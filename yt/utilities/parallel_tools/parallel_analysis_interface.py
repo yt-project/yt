@@ -1033,8 +1033,9 @@ class ParallelAnalysisInterface(object):
             ncols = -1
             size = 0
         else:
-            if len(data) == 1:
-                ncols = size = data.shape
+            if len(data.shape) == 1:
+                ncols = 1
+                size = data.shape[0]
             else:
                 ncols, size = data.shape
         ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)

@@ -150,8 +150,12 @@ class FieldDetector(defaultdict):
         self.RightEdge = [1.0,1.0,1.0]
         self.dds = na.ones(3, "float64")
         self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
+        class fake_parameter_file(defaultdict):
+            pass
         if pf is None:
-            pf = defaultdict(lambda: 1)
+            pf = fake_parameter_file(lambda: 1)
+            pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
+                pf.hubble_constant = pf.cosmological_simulation = 0.0
         self.pf = pf
         class fake_hierarchy(object):
             class fake_io(object):
