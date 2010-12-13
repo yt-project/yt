@@ -285,7 +285,7 @@ class DerivedField(object):
         if self._function.func_name == '<lambda>':
             e.requested.append(self.name)
         else:
-            self(e)
+            e[self.name]
         return e
 
     def get_units(self):
