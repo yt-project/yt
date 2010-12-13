@@ -51,7 +51,8 @@ void binOutHop(SMX smx, HC *my_comm, float densthres);
 void outGroupMerge(SMX smx, HC *my_comm);
 
 /* void main(int argc,char **argv) */
-void hop_main(KD kd, HC *my_comm, float densthres)
+void hop_main(KD kd, HC *my_comm, float densthres, 
+              float period_x, float period_y, float period_z)
 {
   /*	KD kd; */
 	SMX smx;
@@ -77,7 +78,10 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	inputfile = NULL;
 	i = 1;
 /*	for (j=0;j<3;++j) fPeriod[j] = HUGE; */
-	for (j=0;j<3;++j) fPeriod[j] = 1.0;
+/*	for (j=0;j<3;++j) fPeriod[j] = 1.0; */
+    fPeriod[0] = period_x;
+    fPeriod[1] = period_y;
+    fPeriod[2] = period_z;
 	nMerge = 4;
  
  

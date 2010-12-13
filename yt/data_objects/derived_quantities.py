@@ -80,7 +80,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         if preload:
             if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
             lazy_reader = True
-            e = FieldDetector()
+            e = FieldDetector(flat = True)
             e.NumberOfParticles = 1
             self.func(e, *args, **kwargs)
             mylog.debug("Preloading %s", e.requested)

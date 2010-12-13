@@ -143,8 +143,9 @@ class FieldDetector(defaultdict):
     NumberOfParticles = 1
     _read_exception = None
     _id_offset = 0
-    def __init__(self, nd = 16, pf = None):
+    def __init__(self, nd = 16, pf = None, flat = False):
         self.nd = nd
+        self.flat = flat
         self.ActiveDimensions = [nd,nd,nd]
         self.LeftEdge = [0.0,0.0,0.0]
         self.RightEdge = [1.0,1.0,1.0]
@@ -168,8 +169,14 @@ class FieldDetector(defaultdict):
         self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []
-        defaultdict.__init__(self,
-            lambda: na.ones((nd,nd,nd), dtype='float64') + 1e-4*na.random.random((nd,nd,nd)))
+        if not self.flat:
+            defaultdict.__init__(self,
+                lambda: na.ones((nd,nd,nd), dtype='float64')
+                + 1e-4*na.random.random((nd,nd,nd)))
+        else:
+            defaultdict.__init__(self, 
+                lambda: na.ones((nd*nd*nd), dtype='float64')
+                + 1e-4*na.random.random((nd*nd*nd)))
     def __missing__(self, item):
         if FieldInfo.has_key(item) and \
             FieldInfo[item]._function.func_name != '<lambda>':
@@ -184,7 +191,8 @@ class FieldDetector(defaultdict):
                 for i in vv.requested_parameters:
                     if i not in self.requested_parameters: self.requested_parameters.append(i)
             if vv is not None:
-                self[item] = vv
+                if not self.flat: self[item] = vv
+                else: self[item] = vv.ravel()
                 return self[item]
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
