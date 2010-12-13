@@ -146,6 +146,7 @@ class FieldDetector(defaultdict):
     def __init__(self, nd = 16, pf = None, flat = False):
         self.nd = nd
         self.flat = flat
+        self._spatial = not flat
         self.ActiveDimensions = [nd,nd,nd]
         self.LeftEdge = [0.0,0.0,0.0]
         self.RightEdge = [1.0,1.0,1.0]
@@ -182,13 +183,15 @@ class FieldDetector(defaultdict):
             FieldInfo[item]._function.func_name != '<lambda>':
             try:
                 vv = FieldInfo[item](self)
-            except NeedsGridType, exc:
+            except NeedsGridType as exc:
                 ngz = exc.ghost_zones
                 nfd = FieldDetector(self.nd+ngz*2)
-                vv = FieldInfo[item](nfd)[ngz:-ngz,ngz:-ngz,ngz:-ngz]
-                for i in vv.requested:
+                nfd._num_ghost_zones = ngz
+                vv = FieldInfo[item](nfd)
+                if ngz > 0: vv = vv[ngz:-ngz,ngz:-ngz,ngz:-ngz]
+                for i in nfd.requested:
                     if i not in self.requested: self.requested.append(i)
-                for i in vv.requested_parameters:
+                for i in nfd.requested_parameters:
                     if i not in self.requested_parameters: self.requested_parameters.append(i)
             if vv is not None:
                 if not self.flat: self[item] = vv
@@ -211,7 +214,6 @@ class FieldDetector(defaultdict):
             return na.random.random(3)*1e-2
         else:
             return 0.0
-    _spatial = True
     _num_ghost_zones = 0
     id = 1
     def has_field_parameter(self, param): return True
@@ -400,7 +402,7 @@ class ValidateSpatial(FieldValidator):
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
-        if isinstance(data, FieldDetector): return True
+        #if isinstance(data, FieldDetector): return True
         if not data._spatial:
             raise NeedsGridType(self.ghost_zones,self.fields)
         if self.ghost_zones <= data._num_ghost_zones:
