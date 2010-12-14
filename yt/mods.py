@@ -88,7 +88,7 @@ from yt.utilities.definitions import \
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    callback_registry, write_bitmap, write_image
+    callback_registry, write_bitmap, write_image, annotate_image
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
