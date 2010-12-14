@@ -335,7 +335,6 @@ cdef class PartitionedGrid:
             tdata = data[i]
             self.data[i] = <np.float64_t *> tdata.data
 
-    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def cast_plane(self, TransferFunctionProxy tf, VectorPlane vp):
@@ -397,7 +396,6 @@ cdef class PartitionedGrid:
                     if temp > extrema[3]: extrema[3] = temp
         #print extrema[0], extrema[1], extrema[2], extrema[3]
 
-    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef int integrate_ray(self, np.float64_t v_pos[3],
@@ -509,7 +507,6 @@ cdef class PartitionedGrid:
             if enter_t > 1.0: break
         return hit
 
-    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void sample_values(self,
