@@ -352,7 +352,7 @@ class EnzoSimulation(object):
                 rounded += na.power(10.0,(-1.0*decimals))
             z = rounded
 
-            deltaz_max = __deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
+            deltaz_max = _deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
             outputs.append({'redshift': z, 'deltazMax': deltaz_max})
             z -= deltaz_max
 
@@ -576,7 +576,7 @@ EnzoParameterDict = {"CosmologyOmegaMatterNow": float,
                      "DataDumpDir": str,
                      "GlobalDir" : str}
 
-def __deltaz_forward(cosmology, z, target_distance):
+def _deltaz_forward(cosmology, z, target_distance):
     "Calculate deltaz corresponding to moving a comoving distance starting from some redshift."
 
     d_Tolerance = 1e-4
