@@ -231,7 +231,6 @@ class RavenPlot(object):
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
-        self._redraw_image()
         
     def __setitem__(self, item, val):
         self.im[item] = val

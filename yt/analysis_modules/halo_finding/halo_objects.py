@@ -1050,12 +1050,16 @@ class HOPHaloList(HaloList):
         HaloList.__init__(self, data_source, dm_only)
 
     def _run_finder(self):
+        period_x, period_y, period_z = \
+            self.pf.domain_right_edge - self.pf.domain_left_edge
+        print "Setting period to", period_x, period_y, period_z
         self.densities, self.tags = \
             RunHOP(self.particle_fields["particle_position_x"],
                    self.particle_fields["particle_position_y"],
                    self.particle_fields["particle_position_z"],
                    self.particle_fields["ParticleMassMsun"],
-                   self.threshold)
+                   self.threshold,
+                   period_x, period_y, period_z)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
 

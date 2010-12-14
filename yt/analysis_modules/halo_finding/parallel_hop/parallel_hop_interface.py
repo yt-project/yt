@@ -358,6 +358,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         fKD.sort = True # Slower, but needed in _connect_chains
         fKD.rearrange = self.rearrange # True is faster, but uses more memory
         # Now call the fortran.
+        fKD.period = self.period
         create_tree(0)
         self.__max_memory()
         yt_counters("init kd tree")

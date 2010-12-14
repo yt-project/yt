@@ -24,6 +24,7 @@ finish integer
 tree2 _kdtree2
 sort logical /.false./
 rearrange logical /.true./
+period(:) _real
 radius real # the unsquared radius for radius searches
 radius_n integer # the number of results to return
 nfound integer # number of neighbors within radius
@@ -97,7 +98,8 @@ rearranged_data(:,:) _real
 root _tree_node
 #type(tree_node), pointer :: root => null()
 # root pointer of the tree
-
+period(:) _real
+# the an array giving the periodicity of the data.
 
 %%%% tree_set:
 # This contains the objects that any given kD tree might wish to use.
@@ -121,6 +123,7 @@ finish integer
 tree2 _kdtree2
 sort logical /.false./
 rearrange logical /.true./
+period(:) _real
 radius real # the unsquared radius for radius searches
 radius_n integer # the number of results to return
 nfound integer # number of neighbors within radius
