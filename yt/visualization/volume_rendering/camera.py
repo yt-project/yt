@@ -45,7 +45,7 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  use_kd=True, l_max=None, no_ghost=False,
-                 tree_type='domain'):
+                 tree_type='domain',expand_factor=1.0):
         r"""A viewpoint into a volume, for volume rendering.
 
         The camera represents the eye of an observer, which will be used to
@@ -132,6 +132,12 @@ class Camera(ParallelAnalysisInterface):
             prone to longer data IO times.  If all the data can fit in
             memory on each cpu, this can be the fastest option for
             multiple ray casts on the same dataset.
+        expand_factor: float, optional
+            A parameter to be used with the PerspectiveCamera.
+            Controls how much larger a volume to render, which is
+            currently difficult to gauge for the PerspectiveCamera.
+            For full box renders, values in the 2.0-3.0 range seem to
+            produce desirable results. Default: 1.0
 
         Examples
         --------
@@ -174,6 +180,7 @@ class Camera(ParallelAnalysisInterface):
         self.width = width
         self.center = center
         self.steady_north = steady_north
+        self.expand_factor = expand_factor
         # This seems to be necessary for now.  Not sure what goes wrong when not true.
         if north_vector is not None: self.steady_north=True
         self.north_vector = north_vector
@@ -499,9 +506,12 @@ class PerspectiveCamera(Camera):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
         # We might have a different width and back_center
-        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
+        dl = (self.back_center - self.front_center)
+        self.front_center += dl
+        self.back_center -= dl
+        px = self.expand_factor*na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
                          self.resolution[0])[:,None]
-        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
+        py = self.expand_factor*na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
                          self.resolution[1])[None,:]
         inv_mat = self.inv_mat
         bc = self.back_center
@@ -514,9 +524,8 @@ class PerspectiveCamera(Camera):
         
         # We are likely adding on an odd cutting condition here
         vectors = self.front_center - positions
-        n = vectors * vectors
-        n = na.sum(n, axis=2)**0.5
-        vectors /= n[:,:,None]
+        positions = self.front_center - 2.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
+        vectors = (self.front_center - positions)
         print vectors.shape, vectors.dtype, vectors.flags
 
         vector_plane = VectorPlane(positions, vectors,
