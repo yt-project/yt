@@ -100,7 +100,7 @@ class IOHandlerEnzoHDF4_2D(IOHandlerEnzoHDF4):
 class IOHandlerEnzoHDF5(BaseIOHandler):
 
     _data_style = "enzo_hdf5"
-    _particle_reader = True
+    #_particle_reader = True
 
     def _read_field_names(self, grid):
         """
@@ -145,7 +145,7 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
 class IOHandlerPackedHDF5(BaseIOHandler):
 
     _data_style = "enzo_packed_3d"
-    _particle_reader = True
+    #_particle_reader = True
 
     def _read_particles(self, fields, rtype, args, grid_list, enclosed,
                         conv_factors):
