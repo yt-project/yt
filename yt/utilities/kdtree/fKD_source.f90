@@ -664,7 +664,7 @@ contains
        write (*,*) 'KD_TREE_TRANS: note, that new format is data(1:D,1:N)'
        write (*,*) 'KD_TREE_TRANS: with usually N >> D.   If N =approx= D, then a k-d tree'
        write (*,*) 'KD_TREE_TRANS: is not an appropriate data structure.'
-       stop
+       ! stop
     end if
 
     call build_tree(mr)
