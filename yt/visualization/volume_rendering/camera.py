@@ -141,8 +141,10 @@ class Camera(ParallelAnalysisInterface):
             produce desirable results. Default: 1.0
         le: array_like, optional
             Specifies the left edge of the volume to be rendered.
+            Currently only works with use_kd=True.
         re: array_like, optional
             Specifies the right edge of the volume to be rendered.
+            Currently only works with use_kd=True.
 
         Examples
         --------
