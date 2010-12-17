@@ -45,7 +45,8 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  use_kd=True, l_max=None, no_ghost=False,
-                 tree_type='domain',expand_factor=1.0):
+                 tree_type='domain',expand_factor=1.0,
+                 le=None, re=None):
         r"""A viewpoint into a volume, for volume rendering.
 
         The camera represents the eye of an observer, which will be used to
@@ -138,6 +139,10 @@ class Camera(ParallelAnalysisInterface):
             currently difficult to gauge for the PerspectiveCamera.
             For full box renders, values in the 2.0-3.0 range seem to
             produce desirable results. Default: 1.0
+        le: array_like, optional
+            Specifies the left edge of the volume to be rendered.
+        re: array_like, optional
+            Specifies the right edge of the volume to be rendered.
 
         Examples
         --------
@@ -199,7 +204,7 @@ class Camera(ParallelAnalysisInterface):
         if volume is None:
             if self.use_kd:
                 volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost, tree_type=tree_type,
-                                   log_fields = log_fields)
+                                   log_fields = log_fields, le=le, re=re)
             else:
                 volume = HomogenizedVolume(fields, pf = self.pf,
                                            log_fields = log_fields)

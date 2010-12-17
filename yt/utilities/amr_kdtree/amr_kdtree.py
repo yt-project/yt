@@ -273,17 +273,25 @@ class AMRKDTree(HomogenizedVolume):
         if le is None:
             self.domain_left_edge = pf.domain_left_edge
         else:
-            self.domain_left_edge = le
+            self.domain_left_edge = na.clip(na.array(le),pf.domain_left_edge, pf.domain_right_edge)
         if re is None:
             self.domain_right_edge = pf.domain_right_edge
         else:
-            self.domain_right_edge = re
+            self.domain_right_edge = na.clip(na.array(re),pf.domain_left_edge, pf.domain_right_edge)
 
         self.my_l_corner = self.domain_left_edge
         self.my_r_corner = self.domain_right_edge
 
         mylog.info('Making kd tree from le %s to %s'% (self.domain_left_edge, self.domain_right_edge))
         root_grids = pf.hierarchy.get_levels().next()
+
+        root_l_data = na.array([grid.LeftEdge for grid in root_grids])
+        root_r_data = na.array([grid.RightEdge for grid in root_grids])
+        root_we_want = na.all(root_l_data < self.my_r_corner,axis=1)*\
+                       na.all(root_r_data > self.my_l_corner,axis=1)
+        
+        root_grids = root_grids[root_we_want]
+
         # Build the kd-Tree
         nodes = self.__build(root_grids, None, self.domain_left_edge, self.domain_right_edge)
 
