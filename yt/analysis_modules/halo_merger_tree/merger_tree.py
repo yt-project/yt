@@ -164,7 +164,6 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         self.dm_only = dm_only
         self.refresh = refresh
         self.sleep = sleep # How long to wait between db sync checks.
-        self.period = -1
         if self.sleep <= 0.:
             self.sleep = 5
         # MPI stuff
@@ -216,9 +215,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         for cycle, file in enumerate(self.restart_files):
             gc.collect()
             pf = load(file)
-            # get the period, only once is sufficient
-            if self.period == -1:
-                self.period = pf.domain_right_edge - pf.domain_left_edge
+            # This will be fetched many times, but it's not a problem.
+            self.period = pf.domain_right_edge - pf.domain_left_edge
             # If the halos are already found, skip this data step, unless
             # refresh is True.
             dir = os.path.dirname(file)
