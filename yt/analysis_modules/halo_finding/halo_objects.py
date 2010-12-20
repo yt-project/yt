@@ -811,6 +811,7 @@ class HaloList(object):
         self.particle_fields = {}
         for field in self._fields:
             if ytcfg.getboolean("yt","inline") == False:
+                print "FIELD", field
                 tot_part = self._data_source[field].size
                 if field == "particle_index":
                     self.particle_fields[field] = self._data_source[field][ii].astype('int64')
@@ -1050,16 +1051,12 @@ class HOPHaloList(HaloList):
         HaloList.__init__(self, data_source, dm_only)
 
     def _run_finder(self):
-        period_x, period_y, period_z = \
-            self.pf.domain_right_edge - self.pf.domain_left_edge
-        print "Setting period to", period_x, period_y, period_z
         self.densities, self.tags = \
-            RunHOP(self.particle_fields["particle_position_x"],
-                   self.particle_fields["particle_position_y"],
-                   self.particle_fields["particle_position_z"],
-                   self.particle_fields["ParticleMassMsun"],
-                   self.threshold,
-                   period_x, period_y, period_z)
+            RunHOP(self.particle_fields["particle_position_x"] / self.period[0],
+                self.particle_fields["particle_position_y"] / self.period[1],
+                self.particle_fields["particle_position_z"] / self.period[2],
+                self.particle_fields["ParticleMassMsun"],
+                self.threshold)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
 
@@ -1088,9 +1085,9 @@ class FOFHaloList(HaloList):
 
     def _run_finder(self):
         self.tags = \
-            RunFOF(self.particle_fields["particle_position_x"],
-                   self.particle_fields["particle_position_y"],
-                   self.particle_fields["particle_position_z"],
+            RunFOF(self.particle_fields["particle_position_x"] / self.period[0],
+                   self.particle_fields["particle_position_y"] / self.period[1],
+                   self.particle_fields["particle_position_z"] / self.period[2],
                    self.link)
         self.densities = na.ones(self.tags.size, dtype='float64') * -1
         self.particle_fields["densities"] = self.densities
@@ -1129,6 +1126,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.total_mass = total_mass
         self.rearrange = rearrange
         self.period = period
+        self.old_period = period.copy()
+        self.period = na.array([1.]*3)
         self._data_source = data_source
         self.premerge = premerge
         mylog.info("Initializing HOP")
@@ -1148,9 +1147,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self._mpi_exit_test(exit)
         obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
-            self.particle_fields["particle_position_x"],
-            self.particle_fields["particle_position_y"],
-            self.particle_fields["particle_position_z"],
+            self.particle_fields["particle_position_x"] / self.old_period[0],
+            self.particle_fields["particle_position_y"] / self.old_period[1],
+            self.particle_fields["particle_position_z"] / self.old_period[2],
             self.particle_fields["particle_index"],
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold, rearrange=self.rearrange, premerge=self.premerge)
@@ -1168,6 +1167,13 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.Tot_M = obj.Tot_M * self.total_mass
         self.max_dens_point = obj.max_dens_point
         self.max_radius = obj.max_radius
+        for dd in range(3):
+            self.CoM[:, dd] *= self.old_period[dd]
+            self.max_dens_point[:, dd+1] *= self.old_period[dd]
+        # This is wrong, below, with uneven boundaries. We'll cross that bridge
+        # when we get there.
+        self.max_radius *= self.old_period[0]
+        self.period = self.old_period.copy()
         # Precompute the bulk velocity in parallel.
         yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
@@ -1797,6 +1803,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         if subvolume is not None:
             ds_LE = na.array(subvolume.left_edge)
             ds_RE = na.array(subvolume.right_edge)
+        self.period = pf.domain_right_edge - pf.domain_left_edge
         self._data_source = pf.h.all_data()
         GenericHaloFinder.__init__(self, pf, self._data_source, dm_only, padding)
         # do it once with no padding so the total_mass is correct
@@ -1875,6 +1882,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         if subvolume is not None:
             ds_LE = na.array(subvolume.left_edge)
             ds_RE = na.array(subvolume.right_edge)
+        self.period = pf.domain_right_edge - pf.domain_left_edge
         self.pf = pf
         self.hierarchy = pf.h
         self._data_source = pf.h.all_data()
@@ -1887,8 +1895,11 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             padding=self.padding)
         n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
         # get the average spacing between particles
-        l = pf.domain_right_edge - pf.domain_left_edge
-        vol = l[0] * l[1] * l[2]
+        #l = pf.domain_right_edge - pf.domain_left_edge
+        #vol = l[0] * l[1] * l[2]
+        # Because we are now allowing for datasets with non 1-periodicity,
+        # but symmetric, vol is always 1.
+        vol = 1.
         avg_spacing = (float(vol) / n_parts)**(1./3.)
         self.padding = padding
         if subvolume is not None:

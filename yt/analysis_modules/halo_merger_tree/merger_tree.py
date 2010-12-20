@@ -215,8 +215,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         for cycle, file in enumerate(self.restart_files):
             gc.collect()
             pf = load(file)
-            # This will be fetched many times, but it's not a problem.
-            self.period = pf.domain_right_edge - pf.domain_left_edge
+            self.period = self.pf.domain_right_edge - self.pf.domain_left_edge
             # If the halos are already found, skip this data step, unless
             # refresh is True.
             dir = os.path.dirname(file)
@@ -355,9 +354,12 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             child_pf.current_redshift)
         
         # Build the kdtree for the children by looping over the fetched rows.
+        # Normalize the points for use only within the kdtree.
         child_points = []
         for row in self.cursor:
-            child_points.append([row[1], row[2], row[3]])
+            child_points.append([row[1] / self.period[0],
+            row[2] / self.period[1],
+            row[3] / self.period[2]])
         # Turn it into fortran.
         child_points = na.array(child_points)
         fKD.pos = na.asfortranarray(child_points.T)
@@ -367,7 +369,6 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         fKD.nn = 5
         fKD.sort = True
         fKD.rearrange = True
-        fKD.period = self.period
         create_tree(0)
 
         # Find the parent points from the database.
@@ -381,17 +382,19 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # parents.
         candidates = {}
         for row in self.cursor:
-            fKD.qv = na.array([row[1], row[2], row[3]])
+            # Normalize positions for use within the kdtree.
+            fKD.qv = na.array([row[1] / self.period[0],
+            row[2] / self.period[1],
+            row[3] / self.period[2]])
             find_nn_nearest_neighbors()
             NNtags = fKD.tags[:] - 1
             nIDs = []
             for n in NNtags:
                 nIDs.append(n)
-            if len(nIDs) < 5:
-                # We need to fill in fake halos if there aren't enough halos,
-                # which can happen at high redshifts.
-                while len(nIDs) < 5:
-                    nIDs.append(-1)
+            # We need to fill in fake halos if there aren't enough halos,
+            # which can happen at high redshifts.
+            while len(nIDs) < 5:
+                nIDs.append(-1)
             candidates[row[0]] = nIDs
         
         del fKD.pos, fKD.tags, fKD.dist

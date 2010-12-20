@@ -29,7 +29,7 @@ from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface import ParallelAnalysisInterface, parallel_blocking_call, parallel_root_only
 
 try:
-    from yt.utilities.kdtree import *
+    from yt.extensions.kdtree import *
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
@@ -300,13 +300,13 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         yp = self.ds["y"]
         zp = self.ds["z"]
         fKD.pos = na.asfortranarray(na.empty((3,xp.size), dtype='float64'))
-        fKD.pos[0, :] = xp[:]
-        fKD.pos[1, :] = yp[:]
-        fKD.pos[2, :] = zp[:]
+        # Normalize the grid points only within the kdtree.
+        fKD.pos[0, :] = xp[:] / self.period[0]
+        fKD.pos[1, :] = yp[:] / self.period[1]
+        fKD.pos[2, :] = zp[:] / self.period[2]
         fKD.nn = 1
         fKD.sort = False
         fKD.rearrange = True
-        fKD.period = self.period
         create_tree(0)
 
     def _build_sort_array(self):
@@ -483,6 +483,10 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             n += self.sizes[2] * (self.sizes[1] * pos[:,1]).astype('int32')
             n += self.sizes[2] * self.sizes[1] * (self.sizes[0] * pos[:,0]).astype('int32')
         else:
+            # Normalize the points to a 1-period for use only within the kdtree.
+            points[:, 0] = points[:, 0] / self.period[0]
+            points[:, 1] = points[:, 1] / self.period[1]
+            points[:, 2] = points[:, 2] / self.period[2]
             fKD.qv_many = points.T
             fKD.nn_tags = na.asfortranarray(na.empty((1, points.shape[0]), dtype='int64'))
             find_many_nn_nearest_neighbors()

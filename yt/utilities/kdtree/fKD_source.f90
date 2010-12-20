@@ -593,7 +593,6 @@ module kdtree2_module
       ! exclude points within 'correltime' of 'centeridx', iff centeridx >= 0
       integer           :: nalloc  ! how much allocated for results(:)?
       logical           :: rearrange  ! are the data rearranged or original? 
-      real, pointer     :: period(:)
       ! did the # of points found overflow the storage provided?
       logical           :: overflow
       real(kdkind), pointer :: qv(:)  ! query vector
@@ -610,7 +609,7 @@ module kdtree2_module
 
 contains
 
-  function kdtree2_create(input_data,dim,sort,rearrange,period) result (mr)
+  function kdtree2_create(input_data,dim,sort,rearrange) result (mr)
     !
     ! create the actual tree structure, given an input array of data.
     !
@@ -641,7 +640,6 @@ contains
     ! ..
     ! .. Array Arguments ..
     real(kdkind), target :: input_data(:,:)
-    real, target :: period(:)
     !
     integer :: i
     ! ..
@@ -664,11 +662,11 @@ contains
        write (*,*) 'KD_TREE_TRANS: note, that new format is data(1:D,1:N)'
        write (*,*) 'KD_TREE_TRANS: with usually N >> D.   If N =approx= D, then a k-d tree'
        write (*,*) 'KD_TREE_TRANS: is not an appropriate data structure.'
-       ! stop
+       !stop
     end if
 
     call build_tree(mr)
-    
+
     if (present(sort)) then
        mr%sort = sort
     else
@@ -680,9 +678,6 @@ contains
     else
        mr%rearrange = .true.
     endif
-    
-    mr%period => period
-
 
     if (mr%rearrange) then
        allocate(mr%rearranged_data(mr%dimen,mr%n))
@@ -1057,7 +1052,6 @@ contains
 
     sr%ind => tp%ind
     sr%rearrange = tp%rearrange
-    sr%period => tp%period
     if (tp%rearrange) then
        sr%Data => tp%rearranged_data
     else
@@ -1101,7 +1095,6 @@ contains
 
     sr%ind => tp%ind
     sr%rearrange = tp%rearrange
-    sr%period => tp%period
 
     if (sr%rearrange) then
        sr%Data => tp%rearranged_data
@@ -1154,7 +1147,6 @@ contains
     sr%overflow = .false. 
     sr%ind => tp%ind
     sr%rearrange= tp%rearrange
-    sr%period => tp%period
 
     if (tp%rearrange) then
        sr%Data => tp%rearranged_data
@@ -1220,7 +1212,6 @@ contains
 
     sr%ind => tp%ind
     sr%rearrange = tp%rearrange
-    sr%period => tp%period
 
     if (tp%rearrange) then
        sr%Data => tp%rearranged_data
@@ -1275,7 +1266,6 @@ contains
                              ! for counting.
     sr%ind => tp%ind
     sr%rearrange = tp%rearrange
-    sr%period => tp%period
     if (tp%rearrange) then
        sr%Data => tp%rearranged_data
     else
@@ -1325,7 +1315,6 @@ contains
 
     sr%ind => tp%ind
     sr%rearrange = tp%rearrange
-    sr%period => tp%period
 
     if (sr%rearrange) then
        sr%Data => tp%rearranged_data
@@ -1363,7 +1352,7 @@ contains
     return
   end subroutine validate_query_storage
 
-  function square_distance(d, iv,qv,period) result (res)
+  function square_distance(d, iv,qv) result (res)
     ! distance between iv[1:n] and qv[1:n] 
     ! .. Function Return Value ..
     ! re-implemented to improve vectorization.
@@ -1376,12 +1365,11 @@ contains
     ! ..
     ! .. Array Arguments ..
     real(kdkind) :: iv(:),qv(:)
-    real, intent(in) :: period(:)
     ! ..
     ! ..
     ! .. Periodicity added by S Skory
     ! res = sum( (iv(1:d)-qv(1:d))**2 )
-    d_min = min( abs(iv(1:d) - qv(1:d)) , period - abs(iv(1:d) - qv(1:d)) )
+    d_min = min( abs(iv(1:d) - qv(1:d)) , 1. - abs(iv(1:d) - qv(1:d)) )
     res = sum(d_min(1:d)**2)
   end function square_distance
   
@@ -1422,9 +1410,9 @@ contains
        ! node edge is closer, rather than just doing a simple less than or
        ! greater than to the cut in this dimension.
        dis_left = min( (node%box(cut_dim)%lower - qval)**2, &
-          (sr%period(cut_dim) - abs(node%box(cut_dim)%lower - qval))**2)
+          (1 - abs(node%box(cut_dim)%lower - qval))**2)
        dis_right = min( (node%box(cut_dim)%upper - qval)**2, &
-          (sr%period(cut_dim) - abs(node%box(cut_dim)%upper - qval))**2)
+          (1 - abs(node%box(cut_dim)%upper - qval))**2)
 
        
        if (qval < node%cut_val) then
@@ -1459,7 +1447,7 @@ contains
              box => node%box(1:)
              do i=1,sr%dimen
                 if (i .ne. cut_dim) then
-                   dis = dis + dis2_from_bnd(qv(i),box(i)%lower,box(i)%upper,sr%period(i))
+                   dis = dis + dis2_from_bnd(qv(i),box(i)%lower,box(i)%upper)
                    if (dis > ballsize) then
                       return
                    endif
@@ -1494,18 +1482,17 @@ contains
 !    return
 !  end function dis2_from_bnd
 
-  real(kdkind) function dis2_from_bnd(x,amin,amax,period) result (res)
+  real(kdkind) function dis2_from_bnd(x,amin,amax) result (res)
     ! Periodicity added by S Skory
     real(kdkind), intent(in) :: x, amin,amax
-    real, intent(in) :: period
     real :: dxmax, dxmin
     
     if ((x < amax) .and. (x > amin)) then
       res = 0.0
       return
     else
-      dxmax = (min( abs(x - amax), period - abs(x - amax)))**2
-      dxmin = (min( abs(x - amin), period - abs(x - amin)))**2
+      dxmax = (min( abs(x - amax), 1. - abs(x - amax)))**2
+      dxmin = (min( abs(x - amin), 1. - abs(x - amin)))**2
       res = min(dxmax, dxmin)
       return
     endif
@@ -1533,7 +1520,7 @@ contains
     do i=1,dimen
        l = node%box(i)%lower
        u = node%box(i)%upper
-       dis = dis + (dis2_from_bnd(sr%qv(i),l,u,sr%period(i)))
+       dis = dis + (dis2_from_bnd(sr%qv(i),l,u))
        if (dis > ballsize) then
           res = .false.
           return
@@ -1587,7 +1574,7 @@ contains
           do k = 1,dimen
              !sd = sd + (data(k,i) - qv(k))**2
              ! Periodicity by S Skory
-             sdtemp = min( abs(data(k,i) - qv(k)) , sr%period(i) - abs(data(k,i) - qv(k)))
+             sdtemp = min( abs(data(k,i) - qv(k)) , 1. - abs(data(k,i) - qv(k)))
              sd = sd + sdtemp**2
              if (sd>ballsize) cycle mainloop
           end do
@@ -1597,7 +1584,7 @@ contains
           sd = 0.0
           do k = 1,dimen
              !sd = sd + (data(k,indexofi) - qv(k))**2
-             sdtemp = min( abs(data(k,indexofi) - qv(k)), sr%period(i) - abs(data(k,indexofi) - qv(k)))
+             sdtemp = min( abs(data(k,indexofi) - qv(k)), 1. - abs(data(k,indexofi) - qv(k)))
              sd = sd + sdtemp**2
              if (sd>ballsize) cycle mainloop
           end do
@@ -1715,7 +1702,7 @@ contains
           do k = 1,dimen
              !sd = sd + (data(k,i) - qv(k))**2
              ! Periodicity S Skory
-             sdtemp = min( abs(data(k,i) - qv(k)) , sr%period(i) - abs(data(k,i) - qv(k)))
+             sdtemp = min( abs(data(k,i) - qv(k)) , 1. - abs(data(k,i) - qv(k)))
              ! print *, "k ", k, " data(k,i) ", data(k,i), " qv(k) ", qv(k), " sdtemp ", sdtemp
              sd = sd + sdtemp**2
              if (sd>ballsize) cycle mainloop
@@ -1727,7 +1714,7 @@ contains
           do k = 1,dimen
              !sd = sd + (data(k,indexofi) - qv(k))**2
              ! Periodicity S Skory
-             sdtemp = min( abs(data(k,indexofi) - qv(k)), sr%period(i) - abs(data(k,indexofi) - qv(k)))
+             sdtemp = min( abs(data(k,indexofi) - qv(k)), 1. - abs(data(k,indexofi) - qv(k)))
              ! print *, "k ", k, " data(k,indexofi) ", data(k,indexofi), " qv(k) ", qv(k), " sdtemp ", sdtemp
              sd = sd + sdtemp**2
              if (sd>ballsize) cycle mainloop
@@ -1769,7 +1756,7 @@ contains
     ! ..
     allocate (all_distances(tp%n))
     do i = 1, tp%n
-       all_distances(i) = square_distance(tp%dimen,qv,tp%the_data(:,i),tp%period)
+       all_distances(i) = square_distance(tp%dimen,qv,tp%the_data(:,i))
     end do
     ! now find 'n' smallest distances
     do i = 1, nn
@@ -1810,7 +1797,7 @@ contains
     ! ..
     allocate (all_distances(tp%n))
     do i = 1, tp%n
-       all_distances(i) = square_distance(tp%dimen,qv,tp%the_data(:,i),tp%period)
+       all_distances(i) = square_distance(tp%dimen,qv,tp%the_data(:,i))
     end do
     
     nfound = 0

@@ -36,8 +36,7 @@
 #include "numpy/ndarrayobject.h"
 
 void initgrouplist(Grouplist *g);
-void hop_main(KD kd, HC *my_comm, float densthres,
-        float period_x, float period_y, float period_z);
+void hop_main(KD kd, HC *my_comm, float densthres);
 void regroup_main(float dens_outer, HC *my_comm);
 static PyObject *_HOPerror;
 
@@ -103,14 +102,11 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     npy_float64 totalmass = 0.0;
     float normalize_to = 1.0;
     float thresh = 160.0;
-    float period_x, period_y, period_z;
-    period_x = period_y = period_z = 1.0;
 
     int i;
 
-    if (!PyArg_ParseTuple(args, "OOOO|fffff",
-        &oxpos, &oypos, &ozpos, &omass, &thresh, &normalize_to,
-        &period_x, &period_y, &period_z))
+    if (!PyArg_ParseTuple(args, "OOOO|ff",
+        &oxpos, &oypos, &ozpos, &omass, &thresh, &normalize_to))
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
 
@@ -159,7 +155,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     initgrouplist(my_comm.gl);
 
     fprintf(stderr, "Calling hop... %d %0.3e\n",num_particles,thresh);
-    hop_main(kd, &my_comm, thresh, period_x, period_y, period_z);
+    hop_main(kd, &my_comm, thresh);
 
     fprintf(stderr, "Calling regroup...\n");
     regroup_main(thresh, &my_comm);

@@ -67,6 +67,9 @@ translation_dict = {"x-velocity": "velx",
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",
                     "particle_position_z" : "particle_posz",
+                    "particle_velocity_x" : "particle_velx",
+                    "particle_velocity_y" : "particle_vely",
+                    "particle_velocity_z" : "particle_velz",
                     "particle_index" : "particle_tag",
                     "Electron_Fraction" : "elec",
                     "HI_Fraction" : "h   ",
@@ -118,6 +121,15 @@ add_field("yvel", function=lambda a,b: None, take_log=False,
           units=r"\rm{cm}/\rm{s}")
 add_field("zvel", function=lambda a,b: None, take_log=False,
           convert_function=_get_convert("zvel"),
+          units=r"\rm{cm}/\rm{s}")
+add_field("particle_xvel", function=lambda a,b: None, take_log=False,
+          convert_function=_get_convert("particle_xvel"),
+          units=r"\rm{cm}/\rm{s}")
+add_field("particle_yvel", function=lambda a,b: None, take_log=False,
+          convert_function=_get_convert("particle_yvel"),
+          units=r"\rm{cm}/\rm{s}")
+add_field("particle_zvel", function=lambda a,b: None, take_log=False,
+          convert_function=_get_convert("particle_zvel"),
           units=r"\rm{cm}/\rm{s}")
 add_field("temp", function=lambda a,b: None, take_log=True,
           convert_function=_get_convert("temp"),
