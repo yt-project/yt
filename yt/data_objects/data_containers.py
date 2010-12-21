@@ -1914,8 +1914,9 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                self.pf.field_info.has_key(field) and \
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader:
-                self[field] = self.particles[field]
-                continue
+                self.particles.get_data(field)
+                if field not in self.data:
+                    if self._generate_field(field): continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
