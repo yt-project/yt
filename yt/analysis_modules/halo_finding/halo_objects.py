@@ -811,7 +811,6 @@ class HaloList(object):
         self.particle_fields = {}
         for field in self._fields:
             if ytcfg.getboolean("yt","inline") == False:
-                print "FIELD", field
                 tot_part = self._data_source[field].size
                 if field == "particle_index":
                     self.particle_fields[field] = self._data_source[field][ii].astype('int64')
