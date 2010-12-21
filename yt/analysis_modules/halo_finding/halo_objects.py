@@ -1862,8 +1862,10 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             to run FOF on a subvolume of the full volume. Default = None,
             which defaults to the full volume automatically.
         link : float
-            The interparticle distance (compared to the overall average)
-            used to build the halos. Default = 0.2.
+            If positive, the interparticle distance (compared to the overall
+            average) used to build the halos. If negative, this is taken to be
+            the *actual* linking length, and no other calculations will be
+            applied.  Default = 0.2.  
         dm_only : bool
             If True, only dark matter particles are used when building halos.
             Default = False.
@@ -1892,14 +1894,18 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         padded, LE, RE, self._data_source = \
             self._partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
-        n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
-        # get the average spacing between particles
-        #l = pf.domain_right_edge - pf.domain_left_edge
-        #vol = l[0] * l[1] * l[2]
-        # Because we are now allowing for datasets with non 1-periodicity,
-        # but symmetric, vol is always 1.
-        vol = 1.
-        avg_spacing = (float(vol) / n_parts)**(1./3.)
+        if link > 0.0:
+            n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
+            # get the average spacing between particles
+            #l = pf.domain_right_edge - pf.domain_left_edge
+            #vol = l[0] * l[1] * l[2]
+            # Because we are now allowing for datasets with non 1-periodicity,
+            # but symmetric, vol is always 1.
+            vol = 1.
+            avg_spacing = (float(vol) / n_parts)**(1./3.)
+            linking_length = link * avg_spacing
+        else:
+            linking_length = na.abs(link)
         self.padding = padding
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
@@ -1910,7 +1916,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         # reflect particles around the periodic boundary
         #self._reposition_particles((LE, RE))
         # here is where the FOF halo finder is run
-        FOFHaloList.__init__(self, self._data_source, link * avg_spacing, dm_only)
+        mylog.info("Using a linking length of %0.3e", linking_length)
+        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only)
         self._parse_halolist(1.)
         self._join_halolists()
 
