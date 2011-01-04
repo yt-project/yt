@@ -486,7 +486,11 @@ class OrionStaticOutput(StaticOutput):
         dn = os.path.dirname(pname)
         if len(args) > 1: kwargs['paramFilename'] = args[1]
         pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
-        return os.path.exists(os.path.join(pfname))
+
+        # We check for the job_info file's existence because this is currently
+        # what distinguishes Orion data from MAESTRO data.
+        return ( os.path.exists(os.path.join(pfname)) and 
+                 not os.path.exists(os.path.join(pname, "job_info")))
         
     def _parse_parameter_file(self):
         """
