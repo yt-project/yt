@@ -464,7 +464,6 @@ class OrionStaticOutput(StaticOutput):
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
         self.field_info = self._fieldinfo_class()
-        self._parse_header_file()
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
@@ -494,6 +493,7 @@ class OrionStaticOutput(StaticOutput):
         dictionaries.
         """
         self.fullplotdir = os.path.abspath(self.parameter_filename)
+        self._parse_header_file()
         self.parameter_filename = self._localize(
                 self.__ipfn, 'inputs')
         self.fparameter_filename = self._localize(
