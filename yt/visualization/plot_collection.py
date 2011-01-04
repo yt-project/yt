@@ -1705,6 +1705,10 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     colorbar : {'vertical', 'horizontal', None}, optional
         Should Axes objects for colorbars be allocated, and if so, should they
         correspond to the horizontal or vertical set of axes?
+    bw : number
+        The base height/width of an axes object inside the figure, in inches
+    dpi : number
+        The dots per inch fed into the Figure instantiation
 
     Returns
     -------
