@@ -90,8 +90,9 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
         rvs = self.pf.h.io._read_particles(
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)
-        if len(fields) == 1: return rvs[0]
-        return rvs
+        for [n, v] in zip(fields_to_read, rvs):
+            self.source.data[n] = v
+        print self.source.data.keys()
 
 class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
     periodic = False

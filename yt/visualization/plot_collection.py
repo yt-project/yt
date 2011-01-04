@@ -1664,6 +1664,30 @@ class PlotCollectionInteractive(PlotCollection):
         print 'Returning final width of %e' % self.plots[0].width
         return self.plots[0].width
 
+class PlotCollectionIPython(PlotCollection):
+    def save(self):
+        r"""Shows all the plots hanging off this plot collection in the IPython
+        web notebook.
+
+        This function will instruct the IPython web notebook to show its
+        images.
+
+        Examples
+        --------
+
+        >>> pc.save()
+        """
+        from matplotlib.backends.backend_svg import \
+            FigureCanvasSVG
+        from IPython.zmq.pylab.backend_payload import \
+            add_plot_payload
+        from IPython.zmq.pylab.backend_inline import \
+            send_svg_canvas
+        if basename is None: basename = str(self.pf)
+        for plot in self.plots:
+            canvas = FigureCanvasSVG(plot._figure)
+            send_svg_canvas(canvas)
+
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     r"""Construct a multiple axes plot object, with or without a colorbar, into
     which multiple plots may be inserted.

@@ -235,6 +235,11 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['velx'] = (1.0 + self.current_redshift)
         self.conversion_factors['vely'] = self.conversion_factors['velx']
         self.conversion_factors['velz'] = self.conversion_factors['velx']
+        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['particle_vely'] = \
+            self.conversion_factors['particle_velx']
+        self.conversion_factors['particle_velz'] = \
+            self.conversion_factors['particle_velx']
         if not self.has_key("TimeUnits"):
             mylog.warning("No time units.  Setting 1.0 = 1 second.")
             self.conversion_factors["Time"] = 1.0
@@ -250,6 +255,9 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['velx'] = 1.0
         self.conversion_factors['vely'] = 1.0
         self.conversion_factors['velz'] = 1.0
+        self.conversion_factors['particle_velx'] = 1.0
+        self.conversion_factors['particle_vely'] = 1.0
+        self.conversion_factors['particle_velz'] = 1.0
         z = 0
         mylog.warning("Setting 1.0 in code units to be 1.0 cm")
         if not self.has_key("TimeUnits"):

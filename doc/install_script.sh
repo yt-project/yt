@@ -39,6 +39,7 @@ INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
+INST_FORTHON=1
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -151,6 +152,10 @@ printf "%-15s = %s so I " "INST_FTYPE" "${INST_FTYPE}"
 get_willwont ${INST_FTYPE}
 echo "be installing freetype2"
 
+printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
+get_willwont ${INST_FORTHON}
+echo "be installing Forthon (for Halo Finding, etc)"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
@@ -251,6 +256,7 @@ get_enzotools mercurial-1.7.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.13.tar.gz
+get_enzotools Forthon-0.8.4.tar.gz
 get_enzotools yt.hg
 
 if [ $INST_BZLIB -eq 1 ]
@@ -446,6 +452,7 @@ fi
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
 do_setup_py Cython-0.13
+[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.4
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
@@ -456,6 +463,7 @@ echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 [ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
+[ $INST_FORTHON -eq 1 ] && ( ( cd yt/utilities/kdtree && FORTHON_EXE=${DEST_DIR}/bin/Forthon make 2>&1 ) 1>> ${LOG_FILE} )
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD

@@ -19,11 +19,11 @@ subroutine create_tree(treeID)
     ! create a kd tree object
     
     if (ID == 1) then
-        t1%tree2 => kdtree2_create(t1%pos,sort=t1%sort,rearrange=t1%rearrange,period=t1%period)
+        t1%tree2 => kdtree2_create(t1%pos,sort=t1%sort,rearrange=t1%rearrange)
     elseif (ID == 2) then
-        t2%tree2 => kdtree2_create(t2%pos,sort=t2%sort,rearrange=t2%rearrange,period=t2%period)
+        t2%tree2 => kdtree2_create(t2%pos,sort=t2%sort,rearrange=t2%rearrange)
     else
-        tree2 => kdtree2_create(pos,sort=sort,rearrange=rearrange,period=period)
+        tree2 => kdtree2_create(pos,sort=sort,rearrange=rearrange)
     end if
 
     return
