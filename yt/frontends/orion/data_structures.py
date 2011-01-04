@@ -464,7 +464,6 @@ class OrionStaticOutput(StaticOutput):
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
         self.field_info = self._fieldinfo_class()
-        self._parse_header_file()
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
@@ -498,6 +497,7 @@ class OrionStaticOutput(StaticOutput):
         dictionaries.
         """
         self.fullplotdir = os.path.abspath(self.parameter_filename)
+        self._parse_header_file()
         self.parameter_filename = self._localize(
                 self.__ipfn, 'inputs')
         self.fparameter_filename = self._localize(
@@ -535,7 +535,10 @@ class OrionStaticOutput(StaticOutput):
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
+
+        self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
+        self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.refine_by = self.parameters["RefineBy"]
 
     def _parse_fparameter_file(self):
