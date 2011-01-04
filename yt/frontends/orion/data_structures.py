@@ -531,7 +531,10 @@ class OrionStaticOutput(StaticOutput):
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
+
+        self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
+        self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.refine_by = self.parameters["RefineBy"]
 
     def _parse_fparameter_file(self):
