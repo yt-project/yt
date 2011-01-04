@@ -61,7 +61,7 @@ parameterDict = {"CosmologyCurrentRedshift": float,
 
 # converts the Orion inputs file name to the Enzo/yt name expected
 # throughout the code. key is Orion name, value is Enzo/yt equivalent
-orion2enzoDict = {"amr.n_cell": "TopGridRank",
+orion2enzoDict = {"amr.n_cell": "TopGridDimensions",
                   "materials.gamma": "Gamma",
                   "amr.ref_ratio": "RefineBy"
                   }
