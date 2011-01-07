@@ -31,6 +31,7 @@ import numpy as na
 import math
 import weakref
 import exceptions
+import itertools
 
 from yt.funcs import *
 
@@ -2136,7 +2137,7 @@ class ExtractedRegionBase(AMR3DData):
         xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
         h = self._base_region.pf.h
-        for grid_id, x, y, z in izip(grid_ids, xis, yis, zis):
+        for grid_id, x, y, z in itertools.izip(grid_ids, xis, yis, zis):
             # grid_id needs no offset
             ll = h.grids[grid_id].ActiveDimensions.prod() \
                - (na.logical_not(h.grids[grid_id].child_mask)).sum()
