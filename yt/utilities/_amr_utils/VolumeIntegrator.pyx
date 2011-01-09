@@ -26,6 +26,7 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
+cimport kdtree_utils
 from stdlib cimport malloc, free, abs
 
 cdef inline int imax(int i0, int i1):
@@ -70,6 +71,27 @@ cdef extern from "FixedInterpolator.h":
                                        np.float64_t *data)
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
+
+cdef class star_kdtree_container:
+    cdef kdtree_utils.kdtree *tree
+    cdef public np.float64_t er
+    cdef public np.float64_t sigma
+    cdef public np.float64_t coeff
+
+    def __init__(self):
+        self.tree = kdtree_utils.kd_create(3)
+
+    def add_points(self,
+                   np.ndarray[np.float64_t, ndim=1] pos_x,
+                   np.ndarray[np.float64_t, ndim=1] pos_y,
+                   np.ndarray[np.float64_t, ndim=1] pos_z):
+        cdef int i
+        for i in range(pos_x.shape[0]):
+            kdtree_utils.kd_insert3(self.tree,
+                pos_x[i], pos_y[i], pos_z[i], NULL)
+
+    def __dealloc__(self):
+        kdtree_utils.kd_free(self.tree)
 
 cdef class VectorPlane
 
@@ -309,6 +331,10 @@ cdef class PartitionedGrid:
     cdef int dims[3]
     cdef public int parent_grid_id
     cdef public int n_fields
+    cdef kdtree_utils.kdtree *star_list
+    cdef np.float64_t star_er
+    cdef np.float64_t star_sigma
+    cdef np.float64_t star_coeff
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -316,7 +342,8 @@ cdef class PartitionedGrid:
                   int parent_grid_id, int n_fields, data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
-                  np.ndarray[np.int64_t, ndim=1] dims):
+                  np.ndarray[np.int64_t, ndim=1] dims,
+                  star_kdtree_container star_tree = None):
         # The data is likely brought in via a slice, so we copy it
         cdef int i, j, k, size
         cdef np.ndarray[np.float64_t, ndim=3] tdata
@@ -334,6 +361,16 @@ cdef class PartitionedGrid:
         for i in range(n_fields):
             tdata = data[i]
             self.data[i] = <np.float64_t *> tdata.data
+        if star_tree is None:
+            self.star_list = NULL
+        else:
+            self.set_star_tree(star_tree)
+
+    def set_star_tree(self, star_kdtree_container star_tree):
+        self.star_list = star_tree.tree
+        self.star_er = star_tree.er
+        self.star_sigma = star_tree.sigma
+        self.star_coeff = star_tree.coeff
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -517,28 +554,63 @@ cdef class PartitionedGrid:
                             int ci[3],
                             np.float64_t *rgba,
                             TransferFunctionProxy tf):
-        cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
+        cdef np.float64_t cp[3], dp[3], pos[3], dt, t, dv
         cdef np.float64_t grad[3], ds[3]
+        cdef np.float64_t local_dds[3], cell_left[3]
         grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
+        cdef kdtree_utils.kdres *ballq = NULL
         dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
         cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
                         + ci[1] * (self.dims[2] + 1) + ci[2]
         for i in range(3):
             # temp is the left edge of the current cell
-            temp = ci[i] * self.dds[i] + self.left_edge[i]
+            cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
             # this gets us dp as the current first sample position
-            dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i] - temp
+            pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+            dp[i] = pos[i] - cell_left[i]
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
+            local_dds[i] = ds[i] * self.dds[i]
+        if self.star_list != NULL:
+            ballq = kdtree_utils.kd_nearest_range3(
+                self.star_list, cell_left[0] + self.dds[0]*0.5,
+                                cell_left[1] + self.dds[1]*0.5,
+                                cell_left[2] + self.dds[2]*0.5,
+                                self.star_er + 2.0*self.dds[0])
         for dti in range(tf.ns): 
             for i in range(self.n_fields):
                 self.dvs[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
             #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
             #    continue
+            if self.star_list != NULL: self.add_stars(ballq, dt, pos, rgba)
+            tf.eval_transfer(dt, self.dvs, rgba, grad)
             for i in range(3):
                 dp[i] += ds[i]
-            tf.eval_transfer(dt, self.dvs, rgba, grad)
+                pos[i] += local_dds[i]
+        if ballq != NULL: kdtree_utils.kd_res_free(ballq)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void add_stars(self, kdtree_utils.kdres *ballq,
+            np.float64_t dt, np.float64_t pos[3], np.float64_t *rgba):
+        cdef int i, n, ns
+        cdef double star_pos[3]
+        cdef double gexp, gaussian
+        ns = kdtree_utils.kd_res_size(ballq)
+        for n in range(ns):
+            kdtree_utils.kd_res_item3(
+                ballq, &star_pos[0], &star_pos[1], &star_pos[2])
+            gexp = 0.0
+            for i in range(3):
+                gexp += (pos[i] - star_pos[i])*(pos[i] - star_pos[i])
+            gaussian = self.star_coeff * exp(-gexp/self.star_sigma)
+            for i in range(3):
+                rgba[i] += gaussian*dt
+            #print "Adding", gaussian*dt, rgba[0]
+            kdtree_utils.kd_res_next(ballq)
+        kdtree_utils.kd_res_rewind(ballq)
 
 cdef class GridFace:
     cdef int direction
@@ -654,3 +726,4 @@ cdef class ProtoPrism:
         #PG = PartitionedGrid(self.parent_grid_id, new_data,
         #                     self.LeftEdge, self.RightEdge, dims)
         return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)
+

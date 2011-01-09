@@ -158,7 +158,9 @@ def configuration(parent_package='',top_path=None):
                          libraries=["m","hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
     config.add_extension("amr_utils", 
-        ["yt/utilities/amr_utils.c", "yt/utilities/_amr_utils/FixedInterpolator.c"], 
+        ["yt/utilities/amr_utils.c",
+         "yt/utilities/_amr_utils/FixedInterpolator.c",
+         "yt/utilities/_amr_utils/kdtree.c"], 
         define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
         include_dirs=["yt/utilities/_amr_utils/", png_inc,
                       freetype_inc, os.path.join(freetype_inc, "freetype2")],
