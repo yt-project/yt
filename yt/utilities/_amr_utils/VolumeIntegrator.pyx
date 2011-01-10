@@ -74,7 +74,6 @@ cdef extern from "FixedInterpolator.h":
 
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
-    cdef public np.float64_t er
     cdef public np.float64_t sigma
     cdef public np.float64_t coeff
 
@@ -333,7 +332,7 @@ cdef class PartitionedGrid:
     cdef public int n_fields
     cdef kdtree_utils.kdtree *star_list
     cdef np.float64_t star_er
-    cdef np.float64_t star_sigma
+    cdef np.float64_t star_sigma_num
     cdef np.float64_t star_coeff
 
     @cython.boundscheck(False)
@@ -368,8 +367,8 @@ cdef class PartitionedGrid:
 
     def set_star_tree(self, star_kdtree_container star_tree):
         self.star_list = star_tree.tree
-        self.star_er = star_tree.er
-        self.star_sigma = star_tree.sigma
+        self.star_sigma_num = 2.0*star_tree.sigma**2.0
+        self.star_er = 2.326 * star_tree.sigma
         self.star_coeff = star_tree.coeff
 
     @cython.boundscheck(False)
@@ -605,7 +604,7 @@ cdef class PartitionedGrid:
             gexp = 0.0
             for i in range(3):
                 gexp += (pos[i] - star_pos[i])*(pos[i] - star_pos[i])
-            gaussian = self.star_coeff * exp(-gexp/self.star_sigma)
+            gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
             for i in range(3):
                 rgba[i] += gaussian*dt
             #print "Adding", gaussian*dt, rgba[0]
