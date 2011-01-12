@@ -83,11 +83,13 @@ cdef class star_kdtree_container:
     def add_points(self,
                    np.ndarray[np.float64_t, ndim=1] pos_x,
                    np.ndarray[np.float64_t, ndim=1] pos_y,
-                   np.ndarray[np.float64_t, ndim=1] pos_z):
-        cdef int i
+                   np.ndarray[np.float64_t, ndim=1] pos_z,
+                   np.ndarray[np.float64_t, ndim=2] star_colors):
+        cdef int i, n
+        cdef np.float64_t *pointer = <np.float64_t *> star_colors.data
         for i in range(pos_x.shape[0]):
             kdtree_utils.kd_insert3(self.tree,
-                pos_x[i], pos_y[i], pos_z[i], NULL)
+                pos_x[i], pos_y[i], pos_z[i], pointer + i*3)
 
     def __dealloc__(self):
         kdtree_utils.kd_free(self.tree)
@@ -563,20 +565,20 @@ cdef class PartitionedGrid:
         cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
                         + ci[1] * (self.dims[2] + 1) + ci[2]
         for i in range(3):
-            # temp is the left edge of the current cell
             cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
             # this gets us dp as the current first sample position
             pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
             dp[i] = pos[i] - cell_left[i]
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
-            local_dds[i] = ds[i] * self.dds[i]
+            local_dds[i] = v_dir[i] * (exit_t - enter_t) / tf.ns
         if self.star_list != NULL:
             ballq = kdtree_utils.kd_nearest_range3(
                 self.star_list, cell_left[0] + self.dds[0]*0.5,
                                 cell_left[1] + self.dds[1]*0.5,
                                 cell_left[2] + self.dds[2]*0.5,
-                                self.star_er + 2.0*self.dds[0])
+                                self.star_er + 0.9*self.dds[0])
+                                            # ~0.866 + a bit
         for dti in range(tf.ns): 
             for i in range(self.n_fields):
                 self.dvs[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
@@ -597,16 +599,19 @@ cdef class PartitionedGrid:
         cdef int i, n, ns
         cdef double star_pos[3]
         cdef double gexp, gaussian
+        cdef np.float64_t* colors = NULL
         ns = kdtree_utils.kd_res_size(ballq)
         for n in range(ns):
+            # We've got Dodgson here!
             kdtree_utils.kd_res_item3(
                 ballq, &star_pos[0], &star_pos[1], &star_pos[2])
+            colors = <np.float64_t *> kdtree_utils.kd_res_item_data(ballq)
             gexp = 0.0
             for i in range(3):
                 gexp += (pos[i] - star_pos[i])*(pos[i] - star_pos[i])
             gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
             for i in range(3):
-                rgba[i] += gaussian*dt
+                rgba[i] += gaussian*dt*colors[i]
             #print "Adding", gaussian*dt, rgba[0]
             kdtree_utils.kd_res_next(ballq)
         kdtree_utils.kd_res_rewind(ballq)

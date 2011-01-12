@@ -48,3 +48,5 @@ cdef extern from "kdtree.h":
     void kd_res_item3(kdres *set, double *x, double *y, double *z)
     void *kd_res_item_data(kdres *set)
 
+    void kd_data_destructor(kdtree *tree, void (*destr)(void*))
+    void *kd_res_item_data(kdres *set)
