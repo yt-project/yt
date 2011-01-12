@@ -1505,7 +1505,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         
         Parameters
         ----------
-        pf : EnzoStaticOutput object
+        pf : `StaticOutput`
+            The parameter file on which halo finding will be conducted.
         threshold : float
             The density threshold used when building halos. Default = 160.0.
         dm_only : bool
@@ -1779,10 +1780,12 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         
         Parameters
         ----------
-        pf : EnzoStaticOutput object
-        subvolume : A region over which HOP will be run, which can be used
-            to run HOP on a subvolume of the full volume. Default = None,
-            which defaults to the full volume automatically.
+        pf : `StaticOutput`
+            The parameter file on which halo finding will be conducted.
+        subvolume : `yt.data_objects.api.AMRData`, optional
+            A region over which HOP will be run, which can be used to run HOP
+            on a subvolume of the full volume. Default = None, which defaults
+            to the full volume automatically.
         threshold : float
             The density threshold used when building halos. Default = 160.0.
         dm_only : bool
@@ -1795,7 +1798,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             in code units. Default = 0.02.
         
         Examples
-        -------
+        --------
         >>> pf = load("RedshiftOutput0000")
         >>> halos = HaloFinder(pf)
         """
@@ -1857,10 +1860,12 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         
         Parameters
         ----------
-        pf : EnzoStaticOutput object
-        subvolume : A region over which FOF will be run, which can be used
-            to run FOF on a subvolume of the full volume. Default = None,
-            which defaults to the full volume automatically.
+        pf : `StaticOutput`
+            The parameter file on which halo finding will be conducted.
+        subvolume : `yt.data_objects.api.AMRData`, optional
+            A region over which HOP will be run, which can be used to run HOP
+            on a subvolume of the full volume. Default = None, which defaults
+            to the full volume automatically.
         link : float
             If positive, the interparticle distance (compared to the overall
             average) used to build the halos. If negative, this is taken to be
@@ -1876,7 +1881,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             in code units. Default = 0.02.
         
         Examples
-        -------
+        --------
         >>> pf = load("RedshiftOutput0000")
         >>> halos = FOFHaloFinder(pf)
         """

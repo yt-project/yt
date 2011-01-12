@@ -36,3 +36,6 @@ from .merger_tree import \
     Link, \
     MergerTreeDotOutput, \
     MergerTreeTextOutput
+
+from .enzofof_merger_tree import \
+    find_halo_relationships
