@@ -50,7 +50,7 @@ from field_info_container import \
 from yt.utilities.physical_constants import \
      mh, \
      me, \
-     sigma_thomson, \
+     sigma_thompson, \
      clight, \
      kboltz, \
      G
