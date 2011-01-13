@@ -23,9 +23,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.utilities.definitions import \
+    x_dict, \
+    y_dict, \
+    axis_names
 import _MPL
+
 class FixedResolutionBuffer(object):
-    def __init__(self, data_source, bounds, buff_size, antialias = True):
+    def __init__(self, data_source, bounds, buff_size, antialias = True,
+                 periodic = False):
         r"""
         FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
 
@@ -56,6 +62,9 @@ class FixedResolutionBuffer(object):
         antialias : boolean
             This can be true or false.  It determines whether or not sub-pixel
             rendering is used during data deposition.
+        periodic : boolean
+            This can be true or false, and governs whether the pixelization
+            will span the domain boundaries.
 
         See Also
         --------
@@ -83,6 +92,17 @@ class FixedResolutionBuffer(object):
         self.antialias = antialias
         self.data = {}
         self.axis = data_source.axis
+        self.periodic = periodic
+
+        # Handle periodicity, just in case
+        DLE = self.pf.domain_left_edge
+        DRE = self.pf.domain_right_edge
+        DD = float(self.periodic)*(DRE - DLE)
+        axis = self.data_source.axis
+        xax = x_dict[axis]
+        yax = y_dict[axis]
+        self._period = (DD[xax], DD[yax])
+        self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
 
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
@@ -92,7 +112,9 @@ class FixedResolutionBuffer(object):
                              self.data_source['pdy'],
                              self.data_source[item],
                              self.buff_size[0], self.buff_size[1],
-                             self.bounds, int(self.antialias)).transpose()
+                             self.bounds, int(self.antialias),
+                             self._period, int(self.periodic),
+                             ).transpose()
         self[item] = buff
         return buff
 
