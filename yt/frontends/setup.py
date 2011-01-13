@@ -13,4 +13,5 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("ramses")
     config.add_subpackage("tiger")
     config.add_subpackage("art")
+    config.add_subpackage("maestro")
     return config
