@@ -256,6 +256,7 @@ class AMRKDTree(HomogenizedVolume):
         self.tree_type = tree_type
         self.reduce_tree=reduction_needed[self.tree_type]
         self.bricks_loaded = False
+        self.bricks = []
 
         self.fields = ensure_list(fields)
         if log_fields is not None:
@@ -343,7 +344,7 @@ class AMRKDTree(HomogenizedVolume):
         if self.bricks_loaded: return
         current_saved_grids = []
         current_vcds = []
-                
+        
         for current_node in self.tree.itervalues():
             if current_node['grid'] is None: continue
 
@@ -366,6 +367,7 @@ class AMRKDTree(HomogenizedVolume):
                                                     current_node['l_corner'].copy(), 
                                                     current_node['r_corner'].copy(), 
                                                     current_node['dims'].astype('int64'))
+            self.bricks.append(current_node['brick'])
         del current_saved_grids, current_vcds
         self.bricks_loaded = True
         
