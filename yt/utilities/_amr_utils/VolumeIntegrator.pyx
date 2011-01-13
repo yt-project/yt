@@ -571,7 +571,7 @@ cdef class PartitionedGrid:
             dp[i] = pos[i] - cell_left[i]
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
-            local_dds[i] = v_dir[i] * (exit_t - enter_t) / tf.ns
+            local_dds[i] = v_dir[i] * dt
         if self.star_list != NULL:
             ballq = kdtree_utils.kd_nearest_range3(
                 self.star_list, cell_left[0] + self.dds[0]*0.5,
@@ -597,23 +597,20 @@ cdef class PartitionedGrid:
     cdef void add_stars(self, kdtree_utils.kdres *ballq,
             np.float64_t dt, np.float64_t pos[3], np.float64_t *rgba):
         cdef int i, n, ns
-        cdef double star_pos[3]
-        cdef double gexp, gaussian
+        cdef double px, py, pz
+        cdef np.float64_t gexp, gaussian
         cdef np.float64_t* colors = NULL
         ns = kdtree_utils.kd_res_size(ballq)
         for n in range(ns):
             # We've got Dodgson here!
-            kdtree_utils.kd_res_item3(
-                ballq, &star_pos[0], &star_pos[1], &star_pos[2])
+            kdtree_utils.kd_res_item3(ballq, &px, &py, &pz)
             colors = <np.float64_t *> kdtree_utils.kd_res_item_data(ballq)
-            gexp = 0.0
-            for i in range(3):
-                gexp += (pos[i] - star_pos[i])*(pos[i] - star_pos[i])
-            gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
-            for i in range(3):
-                rgba[i] += gaussian*dt*colors[i]
-            #print "Adding", gaussian*dt, rgba[0]
             kdtree_utils.kd_res_next(ballq)
+            gexp = (px - pos[0])*(px - pos[0]) \
+                 + (py - pos[1])*(py - pos[1]) \
+                 + (pz - pos[2])*(pz - pos[2])
+            gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
+            for i in range(3): rgba[i] += gaussian*dt*colors[i]
         kdtree_utils.kd_res_rewind(ballq)
 
 cdef class GridFace:
