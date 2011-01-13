@@ -30,4 +30,6 @@ License:
 
 from .sfr_spectrum import \
     StarFormationRate, \
-    SpectrumBuilder
+    SpectrumBuilder, \
+    Zsun
+

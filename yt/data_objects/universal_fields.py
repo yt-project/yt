@@ -47,15 +47,14 @@ from field_info_container import \
     NeedsProperty, \
     NeedsParameter
 
-mh = 1.67e-24 # g
-me = 9.11e-28 # g
-sigma_thompson = 6.65e-25 # cm^2
-clight = 3.0e10 # cm/s
-kboltz = 1.38e-16 # erg K^-1
-G = 6.67e-8   # cm^3 g^-1 s^-2
-
-
-
+from yt.utilities.physical_constants import \
+     mh, \
+     me, \
+     sigma_thompson, \
+     clight, \
+     kboltz, \
+     G
+     
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
 
