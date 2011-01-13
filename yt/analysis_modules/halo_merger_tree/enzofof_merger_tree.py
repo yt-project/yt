@@ -96,13 +96,13 @@ class HaloCatalog(object):
             true, the correct particle files must exist.
         """
         self.output_id = output_id
-        self.particle_file = h5py.File("FOF/particles_%04i.h5" % output_id, "r")
+        self.particle_file = h5py.File("FOF/particles_%05i.h5" % output_id, "r")
         self.parse_halo_catalog()
         if cache: self.cache = dict()#MaxLengthDict()
 
     def parse_halo_catalog(self):
         hp = []
-        for line in open("FOF/groups_%04i.dat" % self.output_id):
+        for line in open("FOF/groups_%05i.dat" % self.output_id):
             if line.strip() == "": continue # empty
             if line[0] == "#": continue # comment
             if line[0] == "d": continue # datavar
@@ -126,7 +126,7 @@ class HaloCatalog(object):
         mylog.debug("Ball-tree query with radius %0.3e", radius)
         all_nearest = self.halo_kdtree.query_ball_tree(
             other_catalog.halo_kdtree, radius)
-        pbar = get_pbar("Halo Mergers", HC1.halo_positions.shape[0])
+        pbar = get_pbar("Halo Mergers", self.halo_positions.shape[0])
         for hid1, nearest in enumerate(all_nearest):
             pbar.update(hid1)
             parentage_fractions[hid1] = {}
