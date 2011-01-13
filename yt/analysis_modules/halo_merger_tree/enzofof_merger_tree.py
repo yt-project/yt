@@ -108,8 +108,12 @@ class HaloCatalog(object):
             if line[0] == "d": continue # datavar
             x,y,z = [float(f) for f in line.split(None, 3)[:-1]]
             hp.append([x,y,z])
-        self.halo_positions = na.array(hp)
-        self.halo_kdtree = KDTree(self.halo_positions)
+        if hp != []:
+            self.halo_positions = na.array(hp)
+            self.halo_kdtree = KDTree(self.halo_positions)
+        else:
+            self.halo_positions = None
+            self.halo_kdtree = None
         return hp
 
     def read_particle_ids(self, halo_id):
@@ -123,6 +127,8 @@ class HaloCatalog(object):
 
     def calculate_parentage_fractions(self, other_catalog, radius = 0.10):
         parentage_fractions = {}
+        if self.halo_positions == None or other_catalog.halo_positions == None:
+            return parentage_fractions
         mylog.debug("Ball-tree query with radius %0.3e", radius)
         all_nearest = self.halo_kdtree.query_ball_tree(
             other_catalog.halo_kdtree, radius)
@@ -200,7 +206,7 @@ def find_halo_relationships(output1_id, output2_id, output_basename = None,
     mylog.info("Calculating fractions")
     pfrac = HC1.calculate_parentage_fractions(HC2)
 
-    if output_basename is not None:
+    if output_basename is not None and pfrac != {}:
         f = open("%s.txt" % (output_basename), "w")
         for hid1 in sorted(pfrac):
             for hid2 in sorted(pfrac[hid1]):
