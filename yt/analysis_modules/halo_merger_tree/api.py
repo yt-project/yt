@@ -38,4 +38,5 @@ from .merger_tree import \
     MergerTreeTextOutput
 
 from .enzofof_merger_tree import \
-    find_halo_relationships
+    find_halo_relationships, \
+    EnzoFOFMergerTree
