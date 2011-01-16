@@ -635,7 +635,6 @@ class MarkerAnnotateCallback(PlotCallback):
                    self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
         x,y = self.convert_to_pixels(plot, pos)
-        print x, y
         plot._axes.hold(True)
         plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
         plot._axes.hold(False)
