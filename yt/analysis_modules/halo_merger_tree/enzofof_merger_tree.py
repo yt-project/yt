@@ -4,6 +4,8 @@ catalogs output by Enzo and then compare parent/child relationships.
 
 Author: Matthew J. Turk <matthewturk@gmail.com>
 Affiliation: NSF / Columbia
+Author: John H. Wise <jwise@astro.princeton.edu>
+Affiliation: Princeton
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
@@ -44,6 +46,7 @@ import h5py
 import time
 import pdb
 import cPickle
+import glob
 
 from yt.funcs import *
 from yt.utilities.pykdtree import KDTree
@@ -96,6 +99,7 @@ class HaloCatalog(object):
             true, the correct particle files must exist.
         """
         self.output_id = output_id
+        self.redshift = 0.0
         self.particle_file = h5py.File("FOF/particles_%05i.h5" % output_id, "r")
         self.parse_halo_catalog()
         if cache: self.cache = dict()#MaxLengthDict()
@@ -104,6 +108,8 @@ class HaloCatalog(object):
         hp = []
         for line in open("FOF/groups_%05i.dat" % self.output_id):
             if line.strip() == "": continue # empty
+            if line.startswith("# Red"):
+                self.redshift = float(line.split("=")[1])
             if line[0] == "#": continue # comment
             if line[0] == "d": continue # datavar
             x,y,z = [float(f) for f in line.split(None, 3)[:-1]]
@@ -137,10 +143,11 @@ class HaloCatalog(object):
             pbar.update(hid1)
             parentage_fractions[hid1] = {}
             HPL1 = self.read_particle_ids(hid1)
-            for hid2 in nearest:
+            for hid2 in sorted(nearest):
                 HPL2 = other_catalog.read_particle_ids(hid2)
                 p1, p2 = HPL1.find_relative_parentage(HPL2)
-                parentage_fractions[hid1][hid2] = (p1, p2)
+                parentage_fractions[hid1][hid2] = (p1, p2, HPL2.number_of_particles)
+            parentage_fractions[hid1]["NumberOfParticles"] = HPL1.number_of_particles
         pbar.finish()
         return parentage_fractions
 
@@ -149,6 +156,7 @@ class HaloParticleList(object):
         self.halo_id = halo_id
         self.position = na.array(position)
         self.particle_ids = particle_ids
+        self.number_of_particles = particle_ids.size
 
     def find_nearest(self, other_tree, radius = 0.10):
         return other_tree.query_ball_point(self.position, radius)
@@ -160,6 +168,245 @@ class HaloParticleList(object):
         of_child_from_me = float(overlap)/child.particle_ids.size
         of_mine_from_me = float(overlap)/self.particle_ids.size
         return of_child_from_me, of_mine_from_me
+
+class EnzoFOFMergerBranch(object):
+    def __init__(self, tree, output_num, halo_id, max_children):
+        self.output_num = output_num
+        self.halo_id = halo_id
+        self.npart = tree.relationships[output_num][halo_id]["NumberOfParticles"]
+        self.children = []
+        self.progenitor = -1
+        max_relationship = 0.0
+        halo_count = 0
+        sorted_keys = sorted(tree.relationships[output_num][halo_id].keys())
+        for k in sorted_keys:
+            if not str(k).isdigit(): continue
+            v = tree.relationships[output_num][halo_id][k]
+            if v[1] != 0.0 and halo_count < max_children:
+                halo_count += 1
+                self.children.append((k,v[1],v[2]))
+                if v[1] > max_relationship:
+                    self.progenitor = k
+                    max_relationship = v[1]
+
+class EnzoFOFMergerTree(object):
+    r"""Calculates the parentage relationships for halos for a series of
+    outputs, using the framework provided in enzofof_merger_tree.
+    """
+
+    def __init__(self, zrange=None, cycle_range=None, output=False,
+                 load_saved=False, save_filename="merger_tree.cpkl"):
+        r"""
+        Parameters
+        ----------
+        zrange : tuple
+            This is the redshift range (min, max) to calculate the
+            merger tree.
+        cycle_range : tuple, optional
+            This is the cycle number range (min, max) to caluclate the
+            merger tree.  If both zrange and cycle_number given,
+            ignore zrange.
+        output : bool, optional
+            If provided, both .cpkl and .txt files containing the parentage
+            relationships will be output.
+        load_saved : bool, optional
+            Flag to load previously saved parental relationships
+        save_filename : str, optional
+            Filename to save parental relationships
+        
+        Examples
+        --------
+        mt = EnzoFOFMergerTree((0.0, 6.0))
+        mt.build_tree(0)  # Create tree for halo 0
+        mt.print_tree()
+        mt.write_dot()
+        """
+        self.relationships = {}
+        self.redshifts = {}
+        self.find_outputs(zrange, cycle_range, output)
+        if load_saved:
+            self.load_tree(save_filename)
+        else:
+            self.run_merger_tree(output)
+            self.save_tree(save_filename)
+
+    def save_tree(self, filename):
+        cPickle.dump((self.redshifts, self.relationships),
+                     open(filename, "wb"))
+
+    def load_tree(self, filename):
+        self.redshifts, self.relationships = \
+                        cPickle.load(open(filename, "rb"))
+
+    def clear_data(self):
+        r"""Deletes previous merger tree, but keeps parentage
+        relationships.
+        """
+        del self.levels
+
+    def find_outputs(self, zrange, cycle_range, output):
+        self.numbers = []
+        files = glob.glob("FOF/groups_*.dat")
+        # If using redshift range, load redshifts only
+        for f in files:
+            num = int(f[-9:-4])
+            if cycle_range == None:
+                HC = HaloCatalog(num)
+                # Allow for some epsilon
+                diff1 = (HC.redshift - zrange[0]) / zrange[0]
+                diff2 = (HC.redshift - zrange[1]) / zrange[1]
+                if diff1 >= -1e-3 and diff2 <= 1e-3:
+                    self.numbers.append(num)
+                del HC
+            else:
+                if num >= cycle_range[0] and num <= cycle_range[1]:
+                    self.numbers.append(num)
+        self.numbers.sort()
+
+    def run_merger_tree(self, output):
+        # Run merger tree for all outputs, starting with the last output
+        for i in range(len(self.numbers)-1, 0, -1):
+            if output:
+                output = "tree-%5.5d-%5.5d" % (self.numbers[i], self.numbers[i-1])
+            else:
+                output = None
+            z0, z1, fr = find_halo_relationships(self.numbers[i], self.numbers[i-1],
+                                                 output_basename=output)
+            self.relationships[self.numbers[i]] = fr
+            self.redshifts[self.numbers[i]] = z0
+        # Fill in last redshift
+        self.redshifts[self.numbers[0]] = z1
+
+    def build_tree(self, halonum, min_particles=0, max_children=1e20):
+        r"""Builds a merger tree, starting at the last output.
+
+        Parameters
+        ----------
+        halonum : int
+            Halo number in the last output to analyze.
+        min_particles : int, optional
+            Minimum number of particles of halos in tree.
+        max_children : int, optional
+            Maximum number of child halos each leaf can have.
+        """
+        self.halonum = halonum
+        self.output_numbers = sorted(self.relationships, reverse=True)
+        self.levels = {}
+        trunk = self.output_numbers[0]
+        self.levels[trunk] = [EnzoFOFMergerBranch(self, trunk, halonum,
+                                                  max_children)]
+        self.generate_tree(min_particles, max_children)
+
+    def filter_small_halos(self, lvl, min_particles):
+        # Filter out children with less than min_particles
+        for h in self.levels[lvl]:
+            fil = []
+            for c in h.children:
+                if c[2] > min_particles:  # c[2] = npart
+                    fil.append(c)
+            h.children = fil
+
+    def generate_tree(self, min_particles, max_children):
+        self.filter_small_halos(self.output_numbers[0], min_particles)
+        for i in range(1,len(self.output_numbers)):
+            prev = self.output_numbers[i-1]
+            this = self.output_numbers[i]
+            self.levels[this] = []
+            this_halos = []  # To check for duplicates
+            for h in self.levels[prev]:
+                for c in h.children:
+                    if c[0] in this_halos: continue
+                    if self.relationships[this] == {}: continue
+                    branch = EnzoFOFMergerBranch(self, this, c[0],
+                                                 max_children)
+                    self.levels[this].append(branch)
+                    this_halos.append(c[0])
+            self.filter_small_halos(this, min_particles)
+
+    def print_tree(self):
+        r"""Prints the merger tree to stdout.
+        """
+        for lvl in sorted(self.levels, reverse=True):
+            print "========== Cycle %5.5d (z=%f) ==========" % \
+                  (lvl, self.redshifts[lvl])
+            for br in self.levels[lvl]:
+                print "Parent halo = %d" % br.halo_id
+                print "--> Most massive progenitor == Halo %d" % \
+                      (br.progenitor)
+                for i,c in enumerate(br.children):
+                    if i > max_child: break
+                    print "-->    Halo %8.8d :: fraction = %g" % (c[0], c[1])
+
+    def write_dot(self, filename=None):
+        r"""Writes merger tree to a GraphViz file.
+
+        User is responsible for creating an image file from it, e.g.
+        dot -Tpng tree_halo00000.dot > image.png
+
+        Parameters
+        ----------
+        filename : str, optional
+            Filename to write the GraphViz file.  Default will be
+            tree_halo%05i.dat.
+        """
+        if filename == None: filename = "tree_halo%5.5d.dot" % self.halonum
+        fp = open(filename, "w")
+        fp.write("digraph G {\n")
+        fp.write("    node [shape=rect];\n")
+        sorted_lvl = sorted(self.levels, reverse=True)
+        printed = []
+        for ii,lvl in enumerate(sorted_lvl):
+            # Since we get the cycle number from the key, it won't
+            # exist for the last level, i.e. children of last level.
+            # Get it from self.numbers.
+            if ii < len(sorted_lvl)-1:
+                next_lvl = sorted_lvl[ii+1]
+            else:
+                next_lvl = self.numbers[0]
+            for br in self.levels[lvl]:
+                for c in br.children:
+                    color = "red" if c[0] == br.progenitor else "black"
+                    line = "    C%d_H%d -> C%d_H%d [color=%s];\n" % \
+                           (lvl, br.halo_id, next_lvl, c[0], color)
+                    
+                    fp.write(line)
+                    last_level = (ii,lvl)
+        for ii,lvl in enumerate(sorted_lvl):
+            npart_max = 0
+            for br in self.levels[lvl]:
+                if br.npart > npart_max: npart_max = br.npart
+            for br in self.levels[lvl]:
+                halo_str = "C%d_H%d" % (lvl, br.halo_id)
+                style = "filled" if br.npart == npart_max else "solid"
+                line = "%s [label=\"Halo %d\\n%d particles\",style=%s]\n" % \
+                       (halo_str, br.halo_id, br.npart, style)
+                fp.write(line)
+        # Last level, annotate children because they have no associated branches
+        npart_max = 0
+        for br in self.levels[last_level[1]]:
+            for c in br.children:
+                if c[2] > npart_max: npart_max = c[2]
+        for br in self.levels[last_level[1]]:
+            for c in br.children:
+                lvl = self.numbers[0]
+                style = "filled" if c[2] == npart_max else "solid"
+                halo_str = "C%d_H%d" % (lvl, c[0])
+                line = "%s [label=\"Halo %d\\n%d particles\",style=%s]\n" % \
+                       (halo_str, c[0], c[2], style)
+                fp.write(line)
+        # Output redshifts
+        fp.write("\n")
+        fp.write("node [shape=plaintext]\n")
+        fp.write("edge [style=invis]\n")
+        line = ""
+        for k in sorted(self.redshifts, reverse=True):
+            line = line + "\"z = %0.3f\"" % (self.redshifts[k]) + " -> "
+            if k == self.numbers[0]: break
+        line = line[:-4]  # Remove last arrow
+        fp.write("\n%s\n" % line)
+        
+        fp.write("}\n")
+        fp.close()
 
 def find_halo_relationships(output1_id, output2_id, output_basename = None,
                             radius = 0.10):
@@ -210,7 +457,8 @@ def find_halo_relationships(output1_id, output2_id, output_basename = None,
         f = open("%s.txt" % (output_basename), "w")
         for hid1 in sorted(pfrac):
             for hid2 in sorted(pfrac[hid1]):
-                p1, p2 = pfrac[hid1][hid2]
+                if not str(hid2).isdigit(): continue
+                p1, p2, npart = pfrac[hid1][hid2]
                 if p1 == 0.0: continue
                 f.write( "Halo %s (%s) contributed %0.3e of its particles to %s (%s), which makes up %0.3e of that halo\n" % (
                             hid1, output1_id, p2, hid2, output2_id, p1))
@@ -218,4 +466,4 @@ def find_halo_relationships(output1_id, output2_id, output_basename = None,
 
         cPickle.dump(pfrac, open("%s.cpkl" % (output_basename), "wb"))
 
-    return pfrac
+    return HC1.redshift, HC2.redshift, pfrac

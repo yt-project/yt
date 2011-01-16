@@ -878,19 +878,28 @@ class CoordAxesCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     _type_name = "text"
-    def __init__(self, pos, text, text_args = None):
+    def __init__(self, pos, text, data_coords=False,text_args = None):
         """
-        Accepts a position in (0..1, 0..1) of the image,
-        some text and optionally some text arguments.
+        Accepts a position in (0..1, 0..1) of the image, some text and
+        optionally some text arguments. If data_coords is True,
+        position will be in code units instead of image coordinates.
         """
         self.pos = pos
         self.text = text
+        self.data_coords = data_coords
         if text_args is None: text_args = {}
         self.text_args = text_args
 
     def __call__(self, plot):
-        x = plot.image._A.shape[0] * self.pos[0]
-        y = plot.image._A.shape[1] * self.pos[1]
+        if self.data_coords:
+            if len(self.pos) == 3:
+                pos = (self.pos[x_dict[plot.data.axis]],
+                       self.pos[y_dict[plot.data.axis]])
+            else: pos = self.pos
+            x,y = self.convert_to_pixels(plot, pos)
+        else:
+            x = plot.image._A.shape[0] * self.pos[0]
+            y = plot.image._A.shape[1] * self.pos[1]
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class ParticleCallback(PlotCallback):
