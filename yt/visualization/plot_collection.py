@@ -1665,7 +1665,7 @@ class PlotCollectionInteractive(PlotCollection):
         return self.plots[0].width
 
 class PlotCollectionIPython(PlotCollection):
-    def save(self):
+    def save(self, basename = None):
         r"""Shows all the plots hanging off this plot collection in the IPython
         web notebook.
 
