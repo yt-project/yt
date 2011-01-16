@@ -11,6 +11,7 @@ Developers:                     Matthew Turk (matthewturk@gmail.com)
                                 Christopher Moody (cemoody@ucsc.edu)
                                 Oliver Hahn (ohahn@stanford.edu)
                                 John ZuHone (jzuhone@cfa.harvard.edu)
+                                Chris Malone (cmalone@mail.astro.sunysb.edu)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by

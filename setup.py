@@ -50,10 +50,6 @@ def setup_package():
                         "Topic :: Scientific/Engineering :: Physics",
                         "Topic :: Scientific/Engineering :: Visualization", ],
         keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
-        #install_requires = ['matplotlib', 'numpy','ipython'],
-        extras_require = { 'GUI' : ['wxPython'],
-                           'storage' : ['h5py'], 
-                           'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
                             'yt = yt.utilities.command_line:run_main',
                             'enzo_test = yt.utilities.answer_testing.runner:run_main',
