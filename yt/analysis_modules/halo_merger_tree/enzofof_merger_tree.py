@@ -324,6 +324,43 @@ class EnzoFOFMergerTree(object):
                     this_halos.append(c[0])
             self.filter_small_halos(this, min_particles)
 
+    def get_massive_progenitors(self, halonum):
+        r"""Returns a list of the most massive progenitor halos.
+
+        This routine walks down the tree, following the most massive
+        progenitor on each node.
+
+        Parameters
+        ----------
+        halonum : int
+            Halo number at the last output to trace.
+
+        Output
+        ------
+        output : dict
+            Dictionary of redshifts, cycle numbers, and halo numbers
+            of the most massive progenitor.  keys = {redshift, cycle,
+            halonum}
+        """
+        output = {"redshift": [], "cycle": [], "halonum": []}
+        # First (lowest redshift) node in tree
+        halo0 = halonum
+        for cycle in sorted(self.numbers, reverse=True):
+            if cycle not in self.relationships: break
+            if halo0 not in self.relationships[cycle]: break
+            node = self.relationships[cycle][halo0]
+            output["redshift"].append(self.redshifts[cycle])
+            output["cycle"].append(cycle)
+            output["halonum"].append(halo0)
+            # Find progenitor
+            max_rel = 0.0
+            for k,v in node.items():
+                if not str(k).isdigit(): continue
+                if v[1] > max_rel:
+                    halo0 = k
+                    max_rel = v[1]
+        return output
+
     def print_tree(self):
         r"""Prints the merger tree to stdout.
         """
