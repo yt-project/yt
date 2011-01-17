@@ -27,98 +27,71 @@ License:
 
 import ConfigParser, os, os.path, types
 
+ytcfgDefaults = dict(
+    serialize = 'True',
+    onlydeserialize = 'False',
+    timefunctions = 'False',
+    logfile = 'False',
+    coloredlogs = 'False',
+    suppressstreamlogging = 'False',
+    loglevel = '20',
+    inline = 'False',
+    __parallel = 'False',
+    __parallel_rank = '0',
+    __parallel_size = '1',
+    storeparameterfiles = 'True',
+    parameterfilestore = 'parameter_files.csv',
+    maximumstoredpfs = '500',
+    loadfieldplugins = 'True',
+    pluginfilename = 'my_plugins.py'
+    )
+# Here is the upgrade.  We're actually going to parse the file in its entirety
+# here.  Then, if it has any of the Forbidden Sections, it will be rewritten
+# without them.
 
-ytcfgDefaults = {
-    "fido":{
-        'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
-        'WaitBetween':'5',
-        'OtherFiles':'rates.out,cool_rates.out',
-        'NewOutputCreated':'newOutput',
-        'GlobPatterns':'*.hierarchy,*.dir',
-        'NewDirectoryPattern':'%s.dir'
-        },
-    "reason":{
-        'width':"600",
-        'height':"600",
-        'centeronmax':'False',
-        'minpbar':'300',
-        },
-    "lagos":{
-        'ReconstructHierarchy': 'True',
-        'serialize' : 'True',
-        'onlydeserialize' : 'False',
-        'loadfieldplugins':'True',
-        'pluginfilename':'my_plugins.py',
-        },
-    "yt":{
-        'time_functions': 'False',
-        'LogFile': 'False',
-        'LogFileName': 'yt.log',
-        'coloredlogs': 'False',
-        'suppressStreamLogging': 'False',
-        'LogLevel': '20',
-        'timefunctions':'False',
-        'inGui':'False',
-        'inline':'False',
-        '__parallel':'False',
-        '__parallel_rank':'0',
-        '__parallel_size':'1',
-        'StoreParameterFiles': 'True',
-        'ParameterFileStore': 'parameter_files.csv',
-        'MaximumStoredPFs': '500',
-         },
-    "raven":{
-        'ImagePath':".",
-        'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
-        'colormap': 'algae',
-        }
-    }
+__fn = os.path.expanduser("~/.yt/config")
+if os.path.exists(__fn):
+    f = open(__fn).read()
+    if any(header in f for header in ["[lagos]","[raven]","[fido]","[enki]"]):
+        print "***********************************************************"
+        print "* Upgrading configuration file to new format; saving old. *"
+        print "***********************************************************"
+        # This is of the old format
+        cp = ConfigParser.ConfigParser()
+        cp.read(__fn)
+        # NOTE: To avoid having the 'DEFAULT' section here,
+        # we are not passing in ytcfgDefaults to the constructor.
+        new_cp = ConfigParser.ConfigParser()
+        new_cp.add_section("yt")
+        for section in cp.sections():
+            for option in cp.options(section):
+                # We changed them all to lowercase
+                if option.lower() in ytcfgDefaults:
+                    new_cp.set("yt", option, cp.get(section, option))
+                    print "Setting %s to %s" % (option, cp.get(section, option))
+        open(__fn + ".old", "w").write(f)
+        new_cp.write(open(__fn, "w"))
+# Pathological check for Kraken
+#elif os.path.exists("~/"):
+#    if not os.path.exists("~/.yt"):
+#            print "yt is creating a new directory, ~/.yt ."
+#            os.mkdir(os.path.exists("~/.yt/"))
+#    # Now we can read in and write out ...
+#    new_cp = Configparser.ConfigParser(ytcfgDefaults)
+#    new_cp.write(__fn)
 
 class YTConfigParser(ConfigParser.ConfigParser):
-    """
-    Simple class providing some functionality I wish existed in the ConfigParser
-    module already
-    """
-    def __init__(self, fn, defaults=None):
-        if not defaults: defaults = {}
-        ConfigParser.ConfigParser.__init__(self)
-        # Note that we're not going to pass in defaults
-        self.read(fn)
-        # Okay, we're populated.  Now, we will insert additional values
-        # as needed.
-        for section, opts in defaults.items():
-            for opt, val in opts.items():
-                if not self.has_option(section, opt):
-                    self.set(section, opt, val)
-    def set(self, section, opt, val):
-        """
-        This sets an option named *opt* to *val* inside *section*, creating
-        *section* if necessary.
-        """
-        if not self.has_section(section):
-            self.add_section(section)
-        ConfigParser.ConfigParser.set(self, section, opt, val)
-    def __getitem__(self, item):
-        if hasattr(item,'__getitem__'):
-            tr = []
-            for it in item[1:]:
-                tr.append(self.get(item[0], it, raw=True))
-            if len(tr) == 1:
-                return tr[0]
-            return tr
-        else:
-            raise KeyError
-    def __setitem__(self, item, val):
-        if not isinstance(item, types.TupleType) or not len(item) == 2:
-            raise KeyError
-        self.set(item[0], item[1], val)
+    def __setitem__(self, key, val):
+        self.set(key[0], key[1], val)
 
 if os.path.exists(os.path.expanduser("~/.yt/config")):
-    ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')],
-                           ytcfgDefaults)
+    ytcfg = YTConfigParser(ytcfgDefaults)
+    ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])
 else:
-    ytcfg = YTConfigParser(['yt.cfg'],
-                        ytcfgDefaults)
+    ytcfg = YTConfigParser(ytcfgDefaults)
+    ytcfg.read(['yt.cfg'])
+if not ytcfg.has_section("yt"):
+    ytcfg.add_section("yt")
 
 # Now we have parsed the config file.  Overrides come from the command line.
 

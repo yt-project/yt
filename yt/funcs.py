@@ -23,12 +23,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, inspect, traceback, sys, pdb, rpdb, os
+import time, types, signal, inspect, traceback, sys, pdb, os
 import warnings, struct
-import progressbar as pb
 from math import floor, ceil
-from yt.logger import ytLogger as mylog
-from yt.exceptions import *
+
+from yt.utilities.exceptions import *
+from yt.utilities.logger import ytLogger as mylog
+import yt.utilities.progressbar as pb
+import yt.utilities.rpdb as rpdb
 
 # Some compatibility functions.  In the long run, these *should* disappear as
 # we move toward newer python versions.  Most were implemented to get things
@@ -314,12 +316,7 @@ def get_pbar(title, maxval):
     """
     maxval = max(maxval, 1)
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","inGui"):
-        if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
-            return GUIProgressBar(title, maxval)
-        else:
-            return DummyProgressBar()
-    elif ytcfg.getboolean("yt","suppressStreamLogging"):
+    if ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
@@ -412,6 +409,13 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print
     print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
     print
+
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
+def _rdbeta(key):
+    import itertools, base64
+    enc_s = base64.decodestring(_ss)
+    dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
+    print dec_s
 
 # If we recognize one of the arguments on the command line as indicating a
 # different mechanism for handling tracebacks, we attach one of those handlers

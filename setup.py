@@ -7,10 +7,8 @@ distribute_setup.use_setuptools()
 
 import setuptools
 
-APP = ['reason.py']
 DATA_FILES = []
-PY2APP_OPTIONS = {'argv_emulation': True}
-VERSION = "1.7"
+VERSION = "2.0stable"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
@@ -37,8 +35,9 @@ def setup_package():
     setup(
         name = "yt",
         version = VERSION,
-        description = "An analysis and visualization toolkit for Adaptive Mesh " \
-                    + "Refinement data, specifically for the Enzo and Orion codes.",
+        description = "An analysis and visualization toolkit for Astrophysical "
+                    + "simulations, focusing on Adaptive Mesh Refinement data "
+                      "from Enzo, Orion, FLASH, and others.",
         classifiers = [ "Development Status :: 5 - Production/Stable",
                         "Environment :: Console",
                         "Intended Audience :: Science/Research",
@@ -52,22 +51,16 @@ def setup_package():
                         "Topic :: Scientific/Engineering :: Physics",
                         "Topic :: Scientific/Engineering :: Visualization", ],
         keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
-        #install_requires = ['matplotlib', 'numpy','ipython'],
-        extras_require = { 'GUI' : ['wxPython'],
-                           'storage' : ['h5py'], 
-                           'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
-                            'yt = yt.command_line:run_main',
-                            'enzo_test = yt.extensions.enzo_test:run_main',
+                            'yt = yt.utilities.command_line:run_main',
+                            'enzo_test = yt.utilities.answer_testing.runner:run_main',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url = "http://yt.enzotools.org/",
         license="GPL-3",
         configuration=configuration,
-        app=APP, # for py2app
         data_files=DATA_FILES,
-        options={'py2app':PY2APP_OPTIONS},
         zip_safe=False,
         package_data = {'': ['*.so'], }
         )

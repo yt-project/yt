@@ -2,8 +2,7 @@ Hi there!  You've just downloaded yt, an analysis tool for Enzo adaptive
 mesh refinement datasets.  It's written in python and based on the NumPy and
 Matplotlib components.
 
-Full documentation is available inside doc/docs_html.zip as well as
-online at http://yt.enzotools.org/ .
+Full documentation is available online at http://yt.enzotools.org/ .
 
 If you have used Python before, and are comfortable with installing packages,
 you should find the setup.py script fairly straightforward.

@@ -37,15 +37,17 @@ INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
 INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
+INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
+INST_FORTHON=1
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
-# If you need to pass anything to matplotlib, do so here:
-#MPL_SUPP_LDFLAGS=""
-#MPL_SUPP_CCFLAGS=""
-#MPL_SUPP_CXXFLAGS=""
+# If you need to pass anything to matplotlib, do so here.
+MPL_SUPP_LDFLAGS=""
+MPL_SUPP_CFLAGS=""
+MPL_SUPP_CXXFLAGS=""
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -142,6 +144,18 @@ printf "%-15s = %s so I " "INST_BZLIB" "${INST_BZLIB}"
 get_willwont ${INST_BZLIB}
 echo "be installing bzlib"
 
+printf "%-15s = %s so I " "INST_PNG" "${INST_PNG}"
+get_willwont ${INST_PNG}
+echo "be installing libpng"
+
+printf "%-15s = %s so I " "INST_FTYPE" "${INST_FTYPE}"
+get_willwont ${INST_FTYPE}
+echo "be installing freetype2"
+
+printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
+get_willwont ${INST_FORTHON}
+echo "be installing Forthon (for Halo Finding, etc)"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
@@ -188,7 +202,8 @@ function do_setup_py
 {
     [ -e $1/done ] && return
     echo "Installing $1 (arguments: '$*')"
-    [ ! -e $1 ] && tar xfz $1.tar.gz
+    [ ! -e $1/extracted ] && tar xfz $1.tar.gz
+    touch $1/extracted
     cd $1
     if [ ! -z `echo $1 | grep h5py` ]
     then
@@ -233,12 +248,16 @@ fi
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
+[ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 get_enzotools Python-2.6.3.tgz
-get_enzotools numpy-1.5.0.tar.gz
+get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
-get_enzotools mercurial-1.6.3.tar.gz
+get_enzotools mercurial-1.7.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
+get_enzotools Cython-0.14.tar.gz
+get_enzotools Forthon-0.8.4.tar.gz
+get_enzotools yt.hg
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -247,6 +266,7 @@ then
         [ ! -e bzip2-1.0.5 ] && tar xfz bzip2-1.0.5.tar.gz
         echo "Installing BZLIB"
         cd bzip2-1.0.5
+        [ `uname` = "Darwin" ] && sed -i.bak 's/soname/install_name/' Makefile-libbz2_so
         ( make install CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make -f Makefile-libbz2_so CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( cp -v libbz2.so.1.0.4 ${DEST_DIR}/lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -282,7 +302,7 @@ then
         [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
         echo "Installing PNG"
         cd libpng-1.2.43
-        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
@@ -290,6 +310,23 @@ then
     PNG_DIR=${DEST_DIR}
     export LDFLAGS="${LDFLAGS} -L${PNG_DIR}/lib/ -L${PNG_DIR}/lib64/"
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PNG_DIR}/lib/"
+fi
+
+if [ $INST_FTYPE -eq 1 ]
+then
+    if [ ! -e freetype-2.4.4/done ]
+    then
+        [ ! -e freetype-2.4.4 ] && tar xfz freetype-2.4.4.tar.gz
+        echo "Installing FreeType2"
+        cd freetype-2.4.4
+        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+    FTYPE_DIR=${DEST_DIR}
+    export LDFLAGS="${LDFLAGS} -L${FTYPE_DIR}/lib/ -L${FTYPE_DIR}/lib64/"
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${FTYPE_DIR}/lib/"
 fi
 
 if [ -z "$HDF5_DIR" ]
@@ -328,7 +365,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-1.6.3
+    do_setup_py mercurial-1.7.1
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -351,11 +388,19 @@ then
         YT_DIR=`dirname $ORIG_PWD`
     elif [ ! -e yt-hg ] 
     then
-        # Note that we clone the entire repository, not just the branch in
-        # question.  We update to the correct branch momentarily...
-        ( ${HG_EXEC} clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} up -R ${YT_DIR} -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+        # Recently the hg server has had some issues with timeouts.  In lieu of
+        # a new webserver, we are now moving to a three-stage process.
+        # First we clone the repo, but only up to r0.
+        ( ${HG_EXEC} --debug clone -r0 http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        # Now we unbundle our previously downloaded bundle of changesets.
+        # This bundle has been created to include most of the recent
+        # changesets, which should avoid any problematic timeouts.
+        ( ${HG_EXEC} -R ${YT_DIR} unbundle yt.hg 2>&1 ) 1>> ${LOG_FILE}
+        # Now we pull new changes
+        ( ${HG_EXEC} -R ${YT_DIR} pull 2>&1 ) 1>> ${LOG_FILE}
+        # Now we update to the branch we're interested in.
+        ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
@@ -372,7 +417,7 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.5.0 ${NUMPY_ARGS}
+do_setup_py numpy-1.5.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -386,12 +431,16 @@ then
     export CXXFLAGS="${MPL_SUPP_CXXFLAGS}"
     echo "Setting CXXFLAGS ${CXXFLAGS}"
 fi
-if [ -n "${MPL_SUPP_CCFLAGS}" ]
+if [ -n "${MPL_SUPP_CFLAGS}" ]
 then
-    OLD_CCFLAGS=${CCFLAGS}
-    export CCFLAGS="${MPL_SUPP_CCFLAGS}"
-    echo "Setting CCFLAGS ${CCFLAGS}"
+    OLD_CFLAGS=${CFLAGS}
+    export CFLAGS="${MPL_SUPP_CFLAGS}"
+    echo "Setting CFLAGS ${CFLAGS}"
 fi
+# Now we set up the basedir for matplotlib:
+mkdir -p ${DEST_DIR}/src/matplotlib-1.0.0
+echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
+echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
 do_setup_py matplotlib-1.0.0
 if [ -n "${OLD_LDFLAGS}" ]
 then
@@ -399,9 +448,11 @@ then
 fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
-[ -n "${OLD_CCFLAGS}" ] && export CCFLAGS=${OLD_CCFLAGS}
+[ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
+do_setup_py Cython-0.14
+[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.4
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
@@ -411,6 +462,8 @@ cd $YT_DIR
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
+[ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
+[ $INST_FORTHON -eq 1 ] && ( ( cd yt/utilities/kdtree && FORTHON_EXE=${DEST_DIR}/bin/Forthon make 2>&1 ) 1>> ${LOG_FILE} )
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
@@ -445,13 +498,14 @@ echo "For command line analysis run:"
 echo
 echo "$DEST_DIR/bin/yt"
 echo
-echo "Note of interest: this installation will use the directory"
-echo "$YT_DIR"
+echo "Note of interest: this installation will use the directory:"
+echo "    $YT_DIR"
 echo "as the source for all the YT code.  This means you probably shouldn't"
 echo "delete it, but on the plus side, any changes you make there are"
 echo "automatically propagated."
 if [ $INST_HG -eq 1 ]
 then
+  echo
   echo "Mercurial has also been installed:"
   echo
   echo "$DEST_DIR/bin/hg"
@@ -473,7 +527,7 @@ echo
 echo "    http://yt.enzotools.org/wiki/"
 echo "    http://yt.enzotools.org/doc/"
 echo
-echo "Or join the mailing list:"
+echo "Please also join the mailing list:"
 echo 
 echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
 echo
