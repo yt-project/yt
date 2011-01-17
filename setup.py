@@ -8,7 +8,7 @@ distribute_setup.use_setuptools()
 import setuptools
 
 DATA_FILES = []
-VERSION = "2.0dev"
+VERSION = "2.1dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
