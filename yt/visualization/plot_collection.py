@@ -195,10 +195,11 @@ class PlotCollection(object):
 
         Only ONE of the following options can be specified. If all 3 are
         specified, they will be used in the following precedence order:
-            ticks - a list of floating point numbers at which to put ticks
-            minmaxtick - display DEFAULT ticks with min & max also displayed
-            nticks - if ticks not specified, can automatically determine a
-               number of ticks to be evenly spaced in log space
+
+        * `ticks` - a list of floating point numbers at which to put ticks
+        * `minmaxtick` - display DEFAULT ticks with min & max also displayed
+        * `nticks` - if ticks not specified, can automatically determine a
+          number of ticks to be evenly spaced in log space
         """
         for plot in self.plots:
             plot.set_autoscale(False)
