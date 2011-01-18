@@ -804,9 +804,6 @@ def _pdensity(field, data):
 add_field("particle_density", function=_pdensity,
           validators=[ValidateGridType()], convert_function=_convertDensity,
           display_name=r"\mathrm{Particle}\/\mathrm{Density})")
-add_field("particle_density", function=_pdensity_pyx,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
-          display_name=r"\mathrm{Particle}\/\mathrm{Density})")
 
 def _MagneticEnergy(field,data):
     """WARNING WARNING WARNING: Units are not yet known to be
