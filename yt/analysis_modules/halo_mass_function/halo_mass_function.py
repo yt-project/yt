@@ -206,7 +206,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         bins = na.logspace(self.log_mass_min,
             self.log_mass_max,self.num_sigma_bins)
         avgs = (bins[1:]+bins[:-1])/2.
-        dis, bins = na.histogram(self.haloes,bins,new=True)
+        dis, bins = na.histogram(self.haloes,bins)
         # add right to left
         for i,b in enumerate(dis):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
