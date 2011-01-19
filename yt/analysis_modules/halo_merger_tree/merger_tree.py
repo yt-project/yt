@@ -36,6 +36,7 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
 from yt.utilities.logger import ytLogger as mylog
+import yt.utilities.pydot as pydot
 try:
     from yt.utilities.kdtree import *
 except ImportError:
@@ -939,7 +940,13 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
         database : String
             The name of the database file. Default = 'halos.db'.
         dotfile : String
-            The name of the file to write to. Default = 'MergerTree.gv'
+            The name of the file to write to. Default = 'MergerTree.gv'.
+            The suffix of this name gives the format of the output file,
+            so 'MergerTree.jpg' would output a jpg file. "dot -v" (from the
+            command line) will print
+            a list of image formats supported on the system. The default
+            suffix '.gv' will output the results to a text file in the Graphviz
+            markup language.
         current_time : Integer
             The SnapCurrentTimeIdentifier for the snapshot for the halos to
             be tracked. This is identical to the CurrentTimeIdentifier in
@@ -969,15 +976,18 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
         if current_time is not None:
             halos = self._translate_haloIDs(halos, current_time)
         newhalos = set(halos)
-        # A key is the GlobalHaloID for this halo, and the content is a
-        # Node object.
-        self.nodes = {}
-        # A key is the GlobalHaloID for the parent in the relationship,
-        # and the content is a Link ojbect.
-        self.links = defaultdict(Link)
-        # Record which halos are at the same z level for convenience.
-        # They key is a z value, and the content a list of co-leveled halo IDs.
-        self.levels = defaultdict(list)
+        # Create the pydot graph object.
+        self.graph = pydot.Dot('galaxy', graph_type='digraph')
+        # Build some initially empty subgraphs, which are used to identify
+        # nodes that are on the same rank (redshift).
+        line = "SELECT DISTINCT SnapZ FROM Halos;"
+        self.cursor.execute(line)
+        self.subgs = {}
+        result = self.cursor.fetchone()
+        while result:
+            self.subgs[result[0]] = pydot.Subgraph('', rank = 'same')
+            self.graph.add_subgraph(self.subgs[result[0]])
+            result = self.cursor.fetchone()
         # For the first set of halos.
         self._add_nodes(newhalos)
         # Recurse over parents.
@@ -985,13 +995,7 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
             mylog.info("Finding parents for %d children." % len(newhalos))
             newhalos = self._find_parents(newhalos)
             self._add_nodes(newhalos)
-        mylog.info("Writing out %s to disk." % dotfile)
-        self._open_dot(dotfile)
-        self._write_nodes()
-        self._write_links()
-        self._write_levels()
-        self._close_dot()
-        self._close_database()
+        self._write_dotfile(dotfile)
         return None
 
     def _translate_haloIDs(self, halos, current_time):
@@ -1032,9 +1036,10 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
                     if pair[1] <= self.link_min or pair[0] != halo:
                         continue
                     else:
-                        self.nodes[halo].parentIDs.append(pID)
-                        self.links[pID].childIDs.append(halo)
-                        self.links[pID].fractions.append(pair[1])
+                        self.graph.add_edge(pydot.Edge(pID, halo,
+                        label = "%3.2f%%" % float(pair[1]*100),
+                        color = "blue", 
+                        fontsize = "10"))
                         newhalos.add(pID)
                 result = self.cursor.fetchone()
         return newhalos
@@ -1063,57 +1068,28 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
             value = (halo,)
             self.cursor.execute(line, value)
             result = self.cursor.fetchone()
-            self.nodes[halo] = Node(na.array([result[2],result[3],result[4]]),
-                result[1], [], result[0], 1. - float(result[5])/(maxID+1)) #+1 to prevent /0
-            self.levels[result[0]].append(halo)
+            # Add the node to the pydot graph.
+            color_float = 1. - float(result[5])/(maxID+1)
+            self.graph.add_node(pydot.Node(halo,
+                label = "{%1.3e\\n(%1.3f,%1.3f,%1.3f)}" % \
+                (result[1], result[2], result[3], result[4]),
+                shape = "record",
+                color = "%0.3f 1. %0.3f" % (color_float, color_float)))
+            # Add this node to the correct subgraph.
+            self.subgs[result[0]].add_node(pydot.Node(halo))
+            # If this was the first node added to this subgraph, also add
+            # the lone node for the redshift value.
+            if len(self.subgs[result[0]].get_node_list()) == 1:
+                self.subgs[result[0]].add_node(pydot.Node("%1.5e" % result[0],
+                label = "%1.5f" % result[0],
+                shape = "record", color = "green"))
 
-    def _open_dot(self, dotfile):
-        # Write out the opening stuff in the dotfile.
-        self.dotfile=self._write_on_root(dotfile)
-        line = 'digraph galaxy {size="10, 10";\n'
-        line += 'node [style=bold, shape=record];\n'
-        self.dotfile.write(line)
-    
-    def _close_dot(self):
-        self.dotfile.write("\n};\n")
-        self.dotfile.close()
-    
-    def _write_nodes(self):
-        # Write out the nodes to the dot file.
-        self.dotfile.write("{\n")
-        for halo in self.nodes:
-            this = self.nodes[halo]
-            line = '"%d" [label="{%1.3e\\n(%1.3f,%1.3f,%1.3f)}", shape="record",' \
-                % (halo, this.mass, this.CoM[0], this.CoM[1], this.CoM[2])
-            line += ' color="%0.3f 1. %0.3f"];\n' % (this.color, this.color)
-            self.dotfile.write(line)
-        self.dotfile.write("};\n")
-    
-    def _write_links(self):
-        # Write out the links to the dot file.
-        self.dotfile.write("{\n")
-        for parent in self.links:
-            this = self.links[parent]
-            for child,frac in zip(this.childIDs, this.fractions):
-                if frac > self.link_min:
-                    line = '"%d"->"%d" [label="%3.2f%%", color="blue", fontsize=10];\n' \
-                        % (parent, child, frac*100.)
-                    self.dotfile.write(line)
-        self.dotfile.write("};\n")
-
-    def _write_levels(self):
-        # Write out the co-leveled halos to the dot file.
-        for z in self.levels:
-            this = self.levels[z]
-            self.dotfile.write("{ rank = same;\n")
-            line = '"%1.5f"; ' % z
-            for halo in this:
-                line += '"%d"; ' % halo
-            line += "\n};\n"
-            self.dotfile.write(line)
-        # Also write out the unlinked boxes for the redshifts.
-        line = '{"%1.5f" [label="{%1.5f}", shape="record" color="green"];}\n' \
-            % (z, z)
+    def _write_dotfile(self, dotfile):
+        # Based on the suffix of the file name, write out the result to a file.
+        suffix = dotfile.split(".")[-1]
+        if suffix == "gv": suffix = "raw"
+        mylog.info("Writing %s format %s to disk." % (suffix, dotfile))
+        self.graph.write("%s" % dotfile, format=suffix)
 
 class MergerTreeTextOutput(DatabaseFunctions, ParallelAnalysisInterface):
     def __init__(self, database='halos.db', outfile='MergerTreeDB.txt'):

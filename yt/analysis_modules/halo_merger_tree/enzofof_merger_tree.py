@@ -50,6 +50,7 @@ import glob
 
 from yt.funcs import *
 from yt.utilities.pykdtree import KDTree
+import yt.utilities.pydot as pydot
 
 # We don't currently use this, but we may again find a use for it in the
 # future.
@@ -338,23 +339,29 @@ class EnzoFOFMergerTree(object):
                     print "-->    Halo %8.8d :: fraction = %g" % (c[0], c[1])
 
     def write_dot(self, filename=None):
-        r"""Writes merger tree to a GraphViz file.
-
-        User is responsible for creating an image file from it, e.g.
-        dot -Tpng tree_halo00000.dot > image.png
+        r"""Writes merger tree to a GraphViz or image file.
 
         Parameters
         ----------
         filename : str, optional
             Filename to write the GraphViz file.  Default will be
-            tree_halo%05i.dat.
+            tree_halo%05i.gv, which is a text file in the GraphViz format.
+            If filename is an image (e.g. "MergerTree.png") the output will
+            be in the appropriate image format made by calling GraphViz
+            automatically. See GraphViz (e.g. "dot -v")
+            for a list of available output formats.
         """
-        if filename == None: filename = "tree_halo%5.5d.dot" % self.halonum
-        fp = open(filename, "w")
-        fp.write("digraph G {\n")
-        fp.write("    node [shape=rect];\n")
+        if filename == None: filename = "tree_halo%5.5d.gv" % self.halonum
+        # Create the pydot graph object.
+        self.graph = pydot.Dot('galaxy', graph_type='digraph')
+        self.halo_shape = "rect"
+        self.z_shape = "plaintext"
+        # Subgraphs to align levels
+        self.subgs = {}
+        for num in self.numbers:
+            self.subgs[num] = pydot.Subgraph('', rank = 'same')
+            self.graph.add_subgraph(self.subgs[num])
         sorted_lvl = sorted(self.levels, reverse=True)
-        printed = []
         for ii,lvl in enumerate(sorted_lvl):
             # Since we get the cycle number from the key, it won't
             # exist for the last level, i.e. children of last level.
@@ -366,10 +373,12 @@ class EnzoFOFMergerTree(object):
             for br in self.levels[lvl]:
                 for c in br.children:
                     color = "red" if c[0] == br.progenitor else "black"
-                    line = "    C%d_H%d -> C%d_H%d [color=%s];\n" % \
-                           (lvl, br.halo_id, next_lvl, c[0], color)
+                    self.graph.add_edge(pydot.Edge("C%d_H%d" %(lvl, br.halo_id),
+                        "C%d_H%d" % (next_lvl, c[0]), color=color))
+                    #line = "    C%d_H%d -> C%d_H%d [color=%s];\n" % \
+                    #      (lvl, br.halo_id, next_lvl, c[0], color)
                     
-                    fp.write(line)
+                    #fp.write(line)
                     last_level = (ii,lvl)
         for ii,lvl in enumerate(sorted_lvl):
             npart_max = 0
@@ -378,35 +387,21 @@ class EnzoFOFMergerTree(object):
             for br in self.levels[lvl]:
                 halo_str = "C%d_H%d" % (lvl, br.halo_id)
                 style = "filled" if br.npart == npart_max else "solid"
-                line = "%s [label=\"Halo %d\\n%d particles\",style=%s]\n" % \
-                       (halo_str, br.halo_id, br.npart, style)
-                fp.write(line)
-        # Last level, annotate children because they have no associated branches
-        npart_max = 0
-        for br in self.levels[last_level[1]]:
-            for c in br.children:
-                if c[2] > npart_max: npart_max = c[2]
-        for br in self.levels[last_level[1]]:
-            for c in br.children:
-                lvl = self.numbers[0]
-                style = "filled" if c[2] == npart_max else "solid"
-                halo_str = "C%d_H%d" % (lvl, c[0])
-                line = "%s [label=\"Halo %d\\n%d particles\",style=%s]\n" % \
-                       (halo_str, c[0], c[2], style)
-                fp.write(line)
-        # Output redshifts
-        fp.write("\n")
-        fp.write("node [shape=plaintext]\n")
-        fp.write("edge [style=invis]\n")
-        line = ""
-        for k in sorted(self.redshifts, reverse=True):
-            line = line + "\"z = %0.3f\"" % (self.redshifts[k]) + " -> "
-            if k == self.numbers[0]: break
-        line = line[:-4]  # Remove last arrow
-        fp.write("\n%s\n" % line)
-        
-        fp.write("}\n")
-        fp.close()
+                self.graph.add_node(pydot.Node(halo_str,
+                label = "Halo %d\\n%d particles" % (br.halo_id, br.npart),
+                style = style, shape = self.halo_shape))
+                # Add this node to the correct level subgraph.
+                self.subgs[lvl].add_node(pydot.Node(halo_str))
+        for lvl in self.numbers:
+            # Don't add the z if there are no halos already in the subgraph.
+            if len(self.subgs[lvl].get_node_list()) == 0: continue
+            self.subgs[lvl].add_node(pydot.Node("%1.5e" % self.redshifts[lvl],
+                shape = self.z_shape, label = "z=%0.3f" % self.redshifts[lvl]))
+        # Based on the suffix of the file name, write out the result to a file.
+        suffix = filename.split(".")[-1]
+        if suffix == "gv": suffix = "raw"
+        mylog.info("Writing %s format %s to disk." % (suffix, filename))
+        self.graph.write("%s" % filename, format=suffix)
 
 def find_halo_relationships(output1_id, output2_id, output_basename = None,
                             radius = 0.10):
