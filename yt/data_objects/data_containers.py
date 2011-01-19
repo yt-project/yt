@@ -800,9 +800,10 @@ class AMRSliceBase(AMR2DData):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
         ds, dx, dy = grid.dds[self.axis], grid.dds[xaxis], grid.dds[yaxis]
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/ds))
+        sl_ind = int((self.coord-self.pf.domain_left_edge[self.axis])/dx) - \
+                     grid.get_global_startindex()[self.axis]
         sl = [slice(None), slice(None), slice(None)]
-        sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
+        sl[self.axis] = slice(sl_ind, sl_ind + 1)
         #sl.reverse()
         sl = tuple(sl)
         nx = grid.child_mask.shape[xaxis]
@@ -827,9 +828,10 @@ class AMRSliceBase(AMR2DData):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
         dx = grid.dds[self.axis]
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/dx))
+        sl_ind = int((self.coord-self.pf.domain_left_edge[self.axis])/dx) - \
+                     grid.get_global_startindex()[self.axis]
         sl = [slice(None), slice(None), slice(None)]
-        sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
+        sl[self.axis] = slice(sl_ind, sl_ind + 1)
         sl = tuple(sl)
         if self.pf.field_info.has_key(field) and self.pf.field_info[field].particle_type:
             return grid[field]
@@ -839,7 +841,7 @@ class AMRSliceBase(AMR2DData):
             conv_factor = 1.0
             if self.pf.field_info.has_key(field):
                 conv_factor = self.pf.field_info[field]._convert_function(self)
-            dv = self.hierarchy.io._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
+            dv = self.hierarchy.io._read_data_slice(grid, field, self.axis, sl_ind) * conv_factor
         else:
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
