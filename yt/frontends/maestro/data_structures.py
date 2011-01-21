@@ -451,6 +451,10 @@ class MaestroStaticOutput(StaticOutput):
 
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='maestro')
+
+        # this is the unit of time; NOT the current time
+        self.parameters["Time"] = 1 # second
+
         self.field_info = self._fieldinfo_class()
         self._parse_header_file()
 
