@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import setuptools
-import os, sys, os.path
+import os, sys, os.path, glob
 
 def check_for_png():
     # First up: HDF5_DIR in environment
@@ -158,14 +158,18 @@ def configuration(parent_package='',top_path=None):
                          libraries=["m","hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
     config.add_extension("amr_utils", 
-        ["yt/utilities/amr_utils.c",
+        ["yt/utilities/amr_utils.pyx",
          "yt/utilities/_amr_utils/FixedInterpolator.c",
          "yt/utilities/_amr_utils/kdtree.c"], 
         define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
         include_dirs=["yt/utilities/_amr_utils/", png_inc,
                       freetype_inc, os.path.join(freetype_inc, "freetype2")],
         library_dirs=[png_lib, freetype_lib],
-        libraries=["m", "png", "freetype"])
+        libraries=["m", "png", "freetype"],
+        depends=glob.glob("yt/utilities/_amr_utils/*.pyx") +
+                glob.glob("yt/utilities/_amr_utils/*.h") +
+                glob.glob("yt/utilities/_amr_utils/*.c"),
+        )
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     return config
