@@ -81,6 +81,19 @@ function host_specific
         echo
         return
     fi
+    if [ "${MYHOST##nautilus}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Nautilus."
+        echo
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "   $ module swap PE-intel PE-gnu"
+        echo
+        echo "Additionally, note that by default, yt will OVERWRITE"
+        echo "any existing installations from Kraken!  You might want"
+        echo "to adjust the variable DEST_SUFFIX in the install script."
+        echo
+        return
+    fi
     if [ "${MYHOST##verne}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Verne."
