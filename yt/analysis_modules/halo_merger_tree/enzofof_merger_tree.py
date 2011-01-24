@@ -171,7 +171,8 @@ class HaloParticleList(object):
         return of_child_from_me, of_mine_from_me
 
 class EnzoFOFMergerBranch(object):
-    def __init__(self, tree, output_num, halo_id, max_children):
+    def __init__(self, tree, output_num, halo_id, max_children,
+                 min_relation=0.25):
         self.output_num = output_num
         self.halo_id = halo_id
         self.npart = tree.relationships[output_num][halo_id]["NumberOfParticles"]
@@ -183,7 +184,7 @@ class EnzoFOFMergerBranch(object):
         for k in sorted_keys:
             if not str(k).isdigit(): continue
             v = tree.relationships[output_num][halo_id][k]
-            if v[1] != 0.0 and halo_count < max_children:
+            if v[1] > min_relation and halo_count < max_children:
                 halo_count += 1
                 self.children.append((k,v[1],v[2]))
                 if v[1] > max_relationship:
@@ -324,7 +325,7 @@ class EnzoFOFMergerTree(object):
                     this_halos.append(c[0])
             self.filter_small_halos(this, min_particles)
 
-    def get_massive_progenitors(self, halonum):
+    def get_massive_progenitors(self, halonum, min_relation=0.25):
         r"""Returns a list of the most massive progenitor halos.
 
         This routine walks down the tree, following the most massive
@@ -356,7 +357,7 @@ class EnzoFOFMergerTree(object):
             max_rel = 0.0
             for k,v in node.items():
                 if not str(k).isdigit(): continue
-                if v[1] > max_rel:
+                if v[1] > max_rel and v[1] > min_relation:
                     halo0 = k
                     max_rel = v[1]
         return output
