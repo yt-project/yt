@@ -265,7 +265,7 @@ fi
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
-get_enzotools mercurial-1.7.1.tar.gz
+get_enzotools mercurial-1.7.3.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.14.tar.gz
@@ -378,7 +378,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-1.7.1
+    do_setup_py mercurial-1.7.3
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
