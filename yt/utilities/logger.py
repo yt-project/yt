@@ -46,24 +46,23 @@ def add_coloring_to_emit_ansi(fn):
             color = '\x1b[35m' # pink
         else:
             color = '\x1b[0m' # normal
-        args[1].msg = color + args[1].msg +  '\x1b[0m'  # normal
+        ln = color + args[1].levelname + '\x1b[0m'
+        args[1].levelname = ln
         #print "after"
         return fn(*args)
     return new
 
 level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
-fstring = "%(name)-10s %(levelname)-10s %(asctime)s %(message)s"
+ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
+cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 logging.basicConfig(
-    format=fstring,
+    format=ufstring,
     level=level
 )
-
-f = logging.Formatter("%(levelname)-10s %(asctime)s %(message)s")
 
 rootLogger = logging.getLogger()
 
 ytLogger = logging.getLogger("yt")
-ytLogger.debug("Set log level to %s", level)
 
 def disable_stream_logging():
     # We just remove the root logger's handlers
@@ -71,11 +70,20 @@ def disable_stream_logging():
         if isinstance(handler, logging.StreamHandler):
             rootLogger.removeHandler(handler)
 
+original_emitter = logging.StreamHandler.emit
 def colorize_logging():
+    f = logging.Formatter(cfstring)
+    rootLogger.handlers[0].setFormatter(f)
     logging.StreamHandler.emit = add_coloring_to_emit_ansi(logging.StreamHandler.emit)
+def uncolorize_logging():
+    f = logging.Formatter(ufstring)
+    rootLogger.handlers[0].setFormatter(f)
+    logging.StreamHandler.emit = original_emitter
 
 if ytcfg.getboolean("yt","coloredlogs"):
     colorize_logging()
 
 if ytcfg.getboolean("yt","suppressStreamLogging"):
     disable_stream_logging()
+
+ytLogger.debug("Set log level to %s", level)

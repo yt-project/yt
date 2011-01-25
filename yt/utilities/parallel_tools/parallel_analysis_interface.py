@@ -62,8 +62,11 @@ if exe_name in \
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
+        yt.utilities.logger.uncolorize_logging()
+        # Even though the uncolorize function already resets the format string,
+        # we reset it again so that it includes the processor.
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
-                                            yt.utilities.logger.fstring))
+                                            yt.utilities.logger.ufstring))
         yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
