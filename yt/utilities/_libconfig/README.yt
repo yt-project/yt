@@ -4,4 +4,18 @@ library's homepage is available at http://www.hyperrealm.com/libconfig/ .
 libconfig is released under the LGPL, detailed in COPYING.LIB.  For more
 information about libconfig, see the README, COPYING.LIB and AUTHORS files.
 
-This is an unmodified version of the source code.
+We have modified the source tree in a very minor way.  We have applied this
+patch to scanner.l (modified version included):
+
+89,90c89,90
+< integer           [-+]?[0-9]+
+< integer64         [-+]?[0-9]+L(L)?
+---
+> 
+> integer64         [-+]?[0-9]+(L(L)?)?
+165d164
+< {integer}         { yylval->ival = atoi(yytext); return(TOK_INTEGER); }
+
+This removed the integer as a potential parse-target, and forces everything to
+64-bit integers.  As such we have not provided a purely-libconfig experience.
+After this patch was applied, scanner.c was re-generated using lex.
