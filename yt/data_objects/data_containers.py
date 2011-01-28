@@ -800,7 +800,7 @@ class AMRSliceBase(AMR2DData):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
         ds, dx, dy = grid.dds[self.axis], grid.dds[xaxis], grid.dds[yaxis]
-        sl_ind = int((self.coord-self.pf.domain_left_edge[self.axis])/dx) - \
+        sl_ind = int((self.coord-self.pf.domain_left_edge[self.axis])/ds) - \
                      grid.get_global_startindex()[self.axis]
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(sl_ind, sl_ind + 1)
