@@ -58,7 +58,7 @@ from time_series import \
     TimeSeriesDataObject
 
 from analyzer_objects import \
-      AnalysisTask
+    AnalysisTask, analysis_task
 
 from data_containers import \
     data_object_registry
