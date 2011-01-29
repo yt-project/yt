@@ -28,13 +28,33 @@ import inspect, functools, weakref
 from yt.funcs import *
 from yt.convenience import load
 from .data_containers import data_object_registry
-from .analyzer_objects import create_quantity_proxy
+from .analyzer_objects import create_quantity_proxy, \
+    analysis_task_registry
 from .derived_quantities import quantity_info
 from yt.utilities.exceptions import YTException
+
+class AnalysisTaskProxy(object):
+    def __init__(self, time_series):
+        self.time_series = time_series
+
+    def __getitem__(self, key):
+        task_cls = analysis_task_registry[key]
+        @wraps(task_cls.__init__)
+        def func(*args, **kwargs):
+            task = task_cls(*args, **kwargs)
+            return self.time_series.eval(task)
+        return func
+
+    def keys(self):
+        return analysis_task_registry.keys()
+
+    def __contains__(self, key):
+        return key in analysis_task_registry
 
 class TimeSeriesData(object):
     def __init__(self, name):
         self.outputs = []
+        self.tasks = AnalysisTaskProxy(self)
 
     def __iter__(self):
         # We can make this fancier, but this works

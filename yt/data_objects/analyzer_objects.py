@@ -27,7 +27,15 @@ import inspect
 
 from yt.funcs import *
 
+analysis_task_registry = {}
+
 class AnalysisTask(object):
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            if hasattr(cls, "skip") and cls.skip == False:
+                return
+            analysis_task_registry[cls.__name__] = cls
 
     def __init__(self, *args, **kwargs):
         # This should only get called if the subclassed object
