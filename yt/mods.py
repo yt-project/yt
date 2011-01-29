@@ -82,7 +82,6 @@ from yt.analysis_modules.list_modules import \
 available_analysis_modules = get_available_modules()
 
 # Import our analysis modules
-#import yt.analysis_modules.api as analysis
 from yt.analysis_modules.halo_finding.api import \
     HaloFinder
 
