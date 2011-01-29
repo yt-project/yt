@@ -489,62 +489,68 @@ then
     cd $MY_PWD
 fi
 
-echo
-echo
-echo "========================================================================"
-echo
-echo "yt is now installed in $DEST_DIR ."
-echo "To run from this new installation, the a few variables need to be"
-echo "prepended with the following information:"
-echo
-echo "YT_DEST         => $DEST_DIR"
-echo "PATH            => $DEST_DIR/bin/"
-echo "PYTHONPATH      => $DEST_DIR/lib/python2.6/site-packages/"
-echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
-echo
-echo "For interactive data analysis and visualization, we recommend running"
-echo "the IPython interface, which will become more fully featured with time:"
-echo
-echo "$DEST_DIR/bin/iyt"
-echo
-echo "For command line analysis run:"
-echo
-echo "$DEST_DIR/bin/yt"
-echo
-echo "Note of interest: this installation will use the directory:"
-echo "    $YT_DIR"
-echo "as the source for all the YT code.  This means you probably shouldn't"
-echo "delete it, but on the plus side, any changes you make there are"
-echo "automatically propagated."
-if [ $INST_HG -eq 1 ]
-then
-  echo
-  echo "Mercurial has also been installed:"
-  echo
-  echo "$DEST_DIR/bin/hg"
-  echo
-fi
-if [ $INST_ENZO -eq 1 ]
-then
-  echo "Enzo has also been checked out, but not built."
-  echo
-  echo "$DEST_DIR/src/enzo-hg-stable"
-  echo
-  echo "The value of YT_DEST can be used as an HDF5 installation location."
-  echo "Questions about Enzo should be directed to the Enzo User List."
-  echo
-fi
-echo
-echo "For support, see one of the following websites:"
-echo
-echo "    http://yt.enzotools.org/wiki/"
-echo "    http://yt.enzotools.org/doc/"
-echo
-echo "Please also join the mailing list:"
-echo 
-echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
-echo
-echo "========================================================================"
-echo
-echo "Oh, look at me, still talking when there's science to do!"
-echo "Good luck, and email the user list if you run into any problems."
+function print_afterword
+{
+    echo
+    echo
+    echo "========================================================================"
+    echo
+    echo "yt is now installed in $DEST_DIR ."
+    echo "To run from this new installation, the a few variables need to be"
+    echo "prepended with the following information:"
+    echo
+    echo "YT_DEST         => $DEST_DIR"
+    echo "PATH            => $DEST_DIR/bin/"
+    echo "PYTHONPATH      => $DEST_DIR/lib/python2.6/site-packages/"
+    echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
+    echo
+    echo "For interactive data analysis and visualization, we recommend running"
+    echo "the IPython interface, which will become more fully featured with time:"
+    echo
+    echo "$DEST_DIR/bin/iyt"
+    echo
+    echo "For command line analysis run:"
+    echo
+    echo "$DEST_DIR/bin/yt"
+    echo
+    echo "Note of interest: this installation will use the directory:"
+    echo "    $YT_DIR"
+    echo "as the source for all the YT code.  This means you probably shouldn't"
+    echo "delete it, but on the plus side, any changes you make there are"
+    echo "automatically propagated."
+    if [ $INST_HG -eq 1 ]
+    then
+      echo
+      echo "Mercurial has also been installed:"
+      echo
+      echo "$DEST_DIR/bin/hg"
+      echo
+    fi
+    if [ $INST_ENZO -eq 1 ]
+    then
+      echo "Enzo has also been checked out, but not built."
+      echo
+      echo "$DEST_DIR/src/enzo-hg-stable"
+      echo
+      echo "The value of YT_DEST can be used as an HDF5 installation location."
+      echo "Questions about Enzo should be directed to the Enzo User List."
+      echo
+    fi
+    echo
+    echo "For support, see one of the following websites:"
+    echo
+    echo "    http://yt.enzotools.org/wiki/"
+    echo "    http://yt.enzotools.org/doc/"
+    echo
+    echo "Please also join the mailing list:"
+    echo 
+    echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+    echo
+    echo "========================================================================"
+    echo
+    echo "Oh, look at me, still talking when there's science to do!"
+    echo "Good luck, and email the user list if you run into any problems."
+}
+
+print_afterword
+print_afterword >> ${LOG_FILE}
