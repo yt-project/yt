@@ -65,7 +65,7 @@ class TimeSeriesData(object):
                         arg = pf
                     elif style == 'data_object':
                         arg = obj.get(pf)
-                        rv = task.eval(arg)
+                    rv = task.eval(arg)
                 # We catch and store YT-originating exceptions
                 # This fixes the standard problem of having a sphere that's too
                 # small.
