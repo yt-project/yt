@@ -52,13 +52,13 @@ from profiles import \
     BinnedProfile3D
 
 # Disabled for now
-#from time_series import \
-#    TimeSeriesData, \
-#    EnzoTimeSeries, \
-#    TimeSeriesDataObject
-#
-#from analyzer_objects import \
-#      AnalysisTask
+from time_series import \
+    TimeSeriesData, \
+    EnzoTimeSeries, \
+    TimeSeriesDataObject
+
+from analyzer_objects import \
+      AnalysisTask
 
 from data_containers import \
     data_object_registry

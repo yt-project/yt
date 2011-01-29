@@ -30,6 +30,7 @@ from yt.convenience import load
 from .data_containers import data_object_registry
 from .analyzer_objects import create_quantity_proxy
 from .derived_quantities import quantity_info
+from yt.utilities.exceptions import YTException
 
 class TimeSeriesData(object):
     def __init__(self, name):
@@ -38,6 +39,40 @@ class TimeSeriesData(object):
     def __iter__(self):
         # We can make this fancier, but this works
         return self.outputs.__iter__()
+
+    def __getitem__(self, key):
+        if isinstance(key, types.SliceType):
+            if isinstance(key.start, types.FloatType):
+                return self.get_range(key.start, key.stop)
+        return self.outputs[key]
+        
+    def _insert(self, pf):
+        # We get handed an instantiated parameter file
+        # Here we'll figure out a couple things about it, and then stick it
+        # inside our list.
+        self.outputs.append(pf)
+        
+    def eval(self, tasks, obj=None):
+        if obj == None: obj = TimeSeriesDataObject(self, "all_data")
+        tasks = ensure_list(tasks)
+        return_values = []
+        for pf in self:
+            return_values.append([])
+            for task in tasks:
+                try:
+                    style = inspect.getargspec(task.eval)[0][1]
+                    if style == 'pf':
+                        arg = pf
+                    elif style == 'data_object':
+                        arg = obj.get(pf)
+                        rv = task.eval(arg)
+                # We catch and store YT-originating exceptions
+                # This fixes the standard problem of having a sphere that's too
+                # small.
+                except YTException as rv:
+                    pass
+                return_values[-1].append(rv)
+        return return_values
 
 class EnzoTimeSeries(TimeSeriesData):
     _enzo_header = "DATASET WRITTEN "
@@ -60,31 +95,6 @@ class EnzoTimeSeries(TimeSeriesData):
             if not line.startswith(self._enzo_header): continue
             fn = line[len(self._enzo_header):].strip()
             self._insert(load(fn))
-
-    def __getitem__(self, key):
-        if isinstance(key, types.SliceType):
-            if isinstance(key.start, types.FloatType):
-                return self.get_range(key.start, key.stop)
-        return self.outputs[key]
-        
-    def _insert(self, pf):
-        # We get handed an instantiated parameter file
-        # Here we'll figure out a couple things about it, and then stick it
-        # inside our list.
-        self.outputs.append(pf)
-        
-    def eval(self, tasks, obj=None):
-        if obj == None: obj = TimeSeriesDataObject(self, "all_data")
-        tasks = ensure_list(tasks)
-        return_values = []
-        for pf in self:
-            return_values.append([])
-            for task in tasks:
-                style = inspect.getargspec(task.eval)[0][1]
-                if style == 'pf': arg = pf
-                elif style == 'data_object': arg = obj.get(pf)
-                return_values[-1].append(task.eval(arg))
-        return return_values
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):
