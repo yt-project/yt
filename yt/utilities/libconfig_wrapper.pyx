@@ -51,12 +51,18 @@ cdef extern from "libconfig.h":
     void config_write (config_t * config, FILE * stream)
     int config_write_file (config_t * config, char * filename)
 
+    char * config_error_text (config_t * config)
+    char * config_error_file (config_t * config)
+    int config_error_line (config_t * config)
+
     config_setting_t * config_lookup (config_t * config, char * path)
     int config_lookup_int (config_t * config, char * path, int * value)
     int config_lookup_int64 (config_t * config, char * path, long long * value)
     int config_lookup_float (config_t * config, char * path, double * value)
     int config_lookup_bool (config_t * config, char * path, int * value)
     int config_lookup_string (config_t * config, char * path, char ** value)
+
+    char * config_setting_name (config_setting_t * setting)
 
     int config_setting_get_int (config_setting_t * setting)
     long long config_setting_get_int64 (config_setting_t * setting)
@@ -73,6 +79,19 @@ cdef extern from "libconfig.h":
 cdef class libconfigSetting:
     cdef config_setting_t *setting
 
+    def keys(self):
+        cdef int tt = config_setting_type(self.setting)
+        cdef char *setting_name
+        cdef config_setting_t *sub_setting
+        if tt != CONFIG_TYPE_GROUP: return []
+        nelem = config_setting_length(self.setting)
+        tr = []
+        for i in xrange(nelem):
+            sub_setting = config_setting_get_elem(self.setting, i)
+            setting_name = config_setting_name(sub_setting)
+            tr.append(setting_name)
+        return tr
+
 cdef class libconfigConfiguration:
     cdef config_t cfg
     def __cinit__(self):
@@ -82,7 +101,17 @@ cdef class libconfigConfiguration:
         config_destroy(&self.cfg)
 
     def read_file(self, char *fn):
-        config_read_file(&self.cfg, fn)
+        cdef int status, error_line
+        cdef char *error_text, *error_file
+        status = config_read_file(&self.cfg, fn)
+        if status == CONFIG_FALSE:
+            error_text = config_error_text(&self.cfg)
+            error_file = config_error_file(&self.cfg)
+            error_line = config_error_line(&self.cfg)
+            if error_file != NULL:
+                print "Error encounters in %s at line %s" % (
+                        error_file, error_line)
+            print error_text
 
     def read_string(self, char *s):
         config_read_string(&self.cfg, s)
@@ -132,6 +161,7 @@ cdef class libconfigConfiguration:
                 tr.append(self.get_setting(sub_ms))
             return tr
         elif tt == CONFIG_TYPE_GROUP:
-            print "Sorry, can't return references to groups just now."
-            raise RuntimeError
+            group = libconfigSetting()
+            group.setting = setting
+            return group
         return None
