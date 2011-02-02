@@ -131,6 +131,7 @@ cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
     if fit.pass_through == 1: return dvs[fit.field_id]
     if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
+    if bin_id < 0 or bin_id + 2 > fit.nbins: return 0.0
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
     bv = fit.values[bin_id]
     dy = fit.values[bin_id + 1] - bv
