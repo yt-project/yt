@@ -480,6 +480,10 @@ class AMROrthoRayBase(AMR1DData):
         self.sort_by = axis_names[self.axis]
         self._refresh_data()
 
+    @property
+    def coords(self):
+        return (self.px, self.py)
+
     def _get_list_of_grids(self):
         # This bugs me, but we will give the tie to the LeftEdge
         y = na.where( (self.px >=  self.pf.hierarchy.grid_left_edge[:,self.px_ax])
