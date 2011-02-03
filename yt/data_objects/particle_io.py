@@ -43,23 +43,23 @@ class ParticleIOHandler(object):
         self.source = source
 
     def __getitem__(self, key):
-        return self._get_data(key)
+        return self.get_data(key)
 
-    def _get_data(self, fields):
+    def get_data(self, fields):
         fields = ensure_list(fields)
-        rvs = self.source._get_data(fields, force_particle_read=True)
+        rvs = self.source.get_data(fields, force_particle_read=True)
         if len(fields) == 1: return rvs[0]
         return rvs
 
 particle_handler_registry.default_factory = lambda: ParticleIOHandler
 
 class ParticleIOHandlerImplemented(ParticleIOHandler):
-    def _get_data(self, fields):
+    def get_data(self, fields):
         mylog.info("Getting %s using ParticleIO" % str(fields))
         fields = ensure_list(fields)
         if not self.pf.h.io._particle_reader:
             mylog.info("not self.pf.h.io._particle_reader")
-            return self.source._get_data(fields)
+            return self.source.get_data(fields)
         rtype, args = self._get_args()
         count_list, grid_list = [], []
         for grid in self.source._grids:
