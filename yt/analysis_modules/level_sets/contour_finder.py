@@ -143,7 +143,7 @@ def old_identify_contours(data_source, field, min_val, max_val, cached_fields=No
             if not iterable(grid['d%s'%ax]):
                 grid['d%s'%ax] = grid['d%s'%ax]*na.ones(grid.ActiveDimensions)
     del data_source.data["tempContours"] # Force a reload from the grids
-    data_source.get_data("tempContours", in_grids=True)
+    data_source._get_data("tempContours", in_grids=True)
     i = 0
     contour_ind = {}
     for contour_id in na.unique(data_source["tempContours"]):
@@ -312,7 +312,7 @@ def identify_contours(data_source, field, min_val, max_val,
     pbar.finish()
     data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
     del data_source.data["tempContours"] # Force a reload from the grids
-    data_source.get_data("tempContours", in_grids=True)
+    data_source._get_data("tempContours", in_grids=True)
     contour_ind = {}
     i = 0
     for contour_id in na.unique(data_source["tempContours"]):

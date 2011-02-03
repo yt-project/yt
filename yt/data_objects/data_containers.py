@@ -186,6 +186,7 @@ class AMRData(object):
         self._point_indices = {}
         self._vc_data = {}
         for key, val in kwargs.items():
+            mylog.info("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
@@ -264,7 +265,7 @@ class AMRData(object):
         Wipes data and rereads/regenerates it from the self.fields.
         """
         self.clear_data()
-        self.get_data()
+        self._get_data()
 
     def keys(self):
         return self.data.keys()
@@ -276,7 +277,7 @@ class AMRData(object):
         if not self.data.has_key(key):
             if key not in self.fields:
                 self.fields.append(key)
-            self.get_data(key)
+            self._get_data(key)
         return self.data[key]
 
     def __setitem__(self, key, val):
@@ -430,7 +431,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         else: # Can't find the field, try as it might
             raise KeyError(field)
 
-    def get_data(self, fields=None, in_grids=False):
+    def _get_data(self, fields=None, in_grids=False):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
@@ -467,8 +468,36 @@ class AMROrthoRayBase(AMR1DData):
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
-        Dimensionality is reduced to one, and an ordered list of points at an
-        (x,y) tuple along *axis* are available.
+        This is an orthogonal ray cast through the entire domain, at a specific
+        coordinate.
+
+        This object is typically accessed through the `ortho_ray` object that
+        hangs off of hierarchy objects.  The resulting arrays have their
+        dimensionality reduced to one, and an ordered list of points at an
+        (x,y) tuple along `axis` are available.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+        coords : tuple of floats
+            The (plane_x, plane_y) coordinates at which to cast the ray.  Note
+            that this is in the plane coordinates: so if you are casting along
+            x, this will be (y,z).  If you are casting along y, this will be
+            (x,z).  If you are casting along z, this will be (x,y).
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
+        >>> print oray["Density"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.axis = axis
@@ -519,8 +548,35 @@ class AMRRayBase(AMR1DData):
     sort_by = 't'
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
         """
-        We accept a start point and an end point and then get all the data
-        between those two.
+        This is an arbitrarily-aligned ray cast through the entire domain, at a
+        specific coordinate.
+
+        This object is typically accessed through the `ray` object that hangs
+        off of hierarchy objects.  The resulting arrays have their
+        dimensionality reduced to one, and an ordered list of points at an
+        (x,y) tuple along `axis` are available, as is the `t` field, which
+        corresponds to a unitless measurement along the ray from start to
+        end.
+
+        Parameters
+        ----------
+        start_point : array-like set of 3 floats
+            The place where the ray starts.
+        end_point : array-like set of 3 floats
+            The place where the ray ends.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ray = pf.h._ray((0.2, 0.74), (0.4, 0.91))
+        >>> print ray["Density"], ray["t"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = na.array(start_point, dtype='float64')
@@ -598,7 +654,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         return field
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -712,13 +768,6 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         self._store_fields(self.fields, node_name, force)
 
 class AMRSliceBase(AMR2DData):
-    """
-    AMRSlice is an orthogonal slice through the data, taking all the points
-    at the finest resolution available and then indexing them.  It is more
-    appropriately thought of as a slice 'operator' than an object,
-    however, as its field and coordinate can both change.
-    """
-
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
@@ -726,8 +775,42 @@ class AMRSliceBase(AMR2DData):
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, **kwargs):
         """
-        Slice along *axis*:ref:`axis-specification`, at the coordinate *coord*.
-        Optionally supply fields.
+        This is a data object corresponding to a slice through the simulation
+        domain.
+
+        This object is typically accessed through the `slice` object that hangs
+        off of hierarchy objects.  AMRSlice is an orthogonal slice through the
+        data, taking all the points at the finest resolution available and then
+        indexing them.  It is more appropriately thought of as a slice
+        'operator' than an object, however, as its field and coordinate can
+        both change.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        coord : float
+            The coordinate along the axis at which to slice.  This is in
+            "domain" coordinates.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        center : array_like, optional
+            The 'center' supplied to fields that use it.  Note that this does
+            not have to have `coord` as one value.  Strictly optional.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> slice = pf.h.slice(0, 0.25)
+        >>> print slice["Density"]
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self._set_center(center)
@@ -866,12 +949,6 @@ class AMRSliceBase(AMR2DData):
     quantities = property(__get_quantities)
 
 class AMRCuttingPlaneBase(AMR2DData):
-    """
-    AMRCuttingPlane is an oblique plane through the data,
-    defined by a normal vector and a coordinate.  It attempts to guess
-    an 'up' vector, which cannot be overridden, and then it pixelizes
-    the appropriate data onto the plane without interpolation.
-    """
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = AMR2DData._key_fields + ['pz','pdz']
@@ -880,9 +957,47 @@ class AMRCuttingPlaneBase(AMR2DData):
     def __init__(self, normal, center, fields = None, node_name = None,
                  **kwargs):
         """
-        The Cutting Plane slices at an oblique angle, where we use
-        the *normal* vector and the *center* to define the viewing plane.
-        The 'up' direction is guessed at automatically.
+        This is a data object corresponding to an oblique slice through the
+        simulation domain.
+
+        This object is typically accessed through the `cutting` object
+        that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
+        plane through the data, defined by a normal vector and a coordinate.
+        It attempts to guess an 'up' vector, which cannot be overridden, and
+        then it pixelizes the appropriate data onto the plane without
+        interpolation.
+
+        Parameters
+        ----------
+        normal : array_like
+            The vector that defines the desired plane.  For instance, the
+            angular momentum of a sphere.
+        center : array_like, optional
+            The center of the cutting plane.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Notes
+        -----
+
+        This data object in particular can be somewhat expensive to create.
+        It's also important to note that unlike the other 2D data objects, this
+        oject provides px, py, pz, as some cells may have a height from the
+        plane.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
+        >>> print cp["Density"]
         """
         AMR2DData.__init__(self, 4, fields, **kwargs)
         self._set_center(center)
@@ -1156,7 +1271,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         return
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -1213,10 +1328,66 @@ class AMRQuadTreeProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
         """
-        AMRProj is a projection of a *field* along an *axis*.  The field
-        can have an associated *weight_field*, in which case the values are
-        multiplied by a weight before being summed, and then divided by the sum
-        of that weight.
+        This is a data object corresponding to a line integral through the
+        simulation domain.
+
+        This object is typically accessed through the `quad_proj` object that
+        hangs off of hierarchy objects.  AMRQuadProj is a projection of a
+        `field` along an `axis`.  The field can have an associated
+        `weight_field`, in which case the values are multiplied by a weight
+        before being summed, and then divided by the sum of that weight; the
+        two fundamental modes of operating are direct line integral (no
+        weighting) and average along a line of sight (weighting.)  What makes
+        `quad_proj` different from the standard projection mechanism is that it
+        utilizes a quadtree data structure, rather than the old mechanism for
+        projections.  It will not run in parallel, but serial runs should be
+        substantially faster.  Note also that lines of sight are integrated at
+        every projected finest-level cell.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        field : string
+            This is the field which will be "projected" along the axis.  If
+            multiple are specified (in a list) they will all be projected in
+            the first pass.
+        weight_field : string
+            If supplied, the field being projected will be multiplied by this
+            weight value before being integrated, and at the conclusion of the
+            projection the resultant values will be divided by the projected
+            `weight_field`.
+        max_level : int
+            If supplied, only cells at or below this level will be projected.
+        center : array_like, optional
+            The 'center' supplied to fields that use it.  Note that this does
+            not have to have `coord` as one value.  Strictly optional.
+        source : `yt.data_objects.api.AMRData`, optional
+            If specified, this will be the data source used for selecting
+            regions to project.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        field_cuts : list of strings, optional
+            If supplied, each of these strings will be evaluated to cut a
+            region of a grid out.  They can be of the form "grid['Temperature']
+            > 100" for instance.
+        preload_style : string
+            Either 'level' (default) or 'all'.  Defines how grids are loaded --
+            either level by level, or all at once.  Only applicable during
+            parallel runs.
+        serialize : bool, optional
+            Whether we should store this projection in the .yt file or not.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> qproj = pf.h.quad_proj(0, "Density")
+        >>> print qproj["Density"]
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.weight_field = weight_field
@@ -1278,7 +1449,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
         return na.array(dls), na.array(convs)
 
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
         # We need a new tree for every single set of fields we add
@@ -1437,10 +1608,62 @@ class AMRProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
         """
-        AMRProj is a projection of a *field* along an *axis*.  The field
-        can have an associated *weight_field*, in which case the values are
-        multiplied by a weight before being summed, and then divided by the sum
-        of that weight.
+        This is a data object corresponding to a line integral through the
+        simulation domain.
+
+        This object is typically accessed through the `proj` object that
+        hangs off of hierarchy objects.  AMRProj is a projection of a `field`
+        along an `axis`.  The field can have an associated `weight_field`, in
+        which case the values are multiplied by a weight before being summed,
+        and then divided by the sum of that weight; the two fundamental modes
+        of operating are direct line integral (no weighting) and average along
+        a line of sight (weighting.)  Note also that lines of sight are
+        integrated at every projected finest-level cell
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        field : string
+            This is the field which will be "projected" along the axis.  If
+            multiple are specified (in a list) they will all be projected in
+            the first pass.
+        weight_field : string
+            If supplied, the field being projected will be multiplied by this
+            weight value before being integrated, and at the conclusion of the
+            projection the resultant values will be divided by the projected
+            `weight_field`.
+        max_level : int
+            If supplied, only cells at or below this level will be projected.
+        center : array_like, optional
+            The 'center' supplied to fields that use it.  Note that this does
+            not have to have `coord` as one value.  Strictly optional.
+        source : `yt.data_objects.api.AMRData`, optional
+            If specified, this will be the data source used for selecting
+            regions to project.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        field_cuts : list of strings, optional
+            If supplied, each of these strings will be evaluated to cut a
+            region of a grid out.  They can be of the form "grid['Temperature']
+            > 100" for instance.
+        preload_style : string
+            Either 'level' (default) or 'all'.  Defines how grids are loaded --
+            either level by level, or all at once.  Only applicable during
+            parallel runs.
+        serialize : bool, optional
+            Whether we should store this projection in the .yt file or not.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> proj = pf.h.proj(0, "Density")
+        >>> print proj["Density"]
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.weight_field = weight_field
@@ -1620,7 +1843,7 @@ class AMRProjBase(AMR2DData):
         pbar.finish()
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
         self._obtain_fields(fields, self._node_name)
@@ -1761,8 +1984,44 @@ class AMRFixedResProjectionBase(AMR2DData):
     def __init__(self, axis, level, left_edge, dims,
                  fields = None, pf=None, **kwargs):
         """
-        A projection that provides fixed resolution output,
-        operating in a grid-by-grid fashion.
+        This is a data structure that projects grids, but only to fixed (rather
+        than variable) resolution.
+
+        This object is typically accessed through the `fixed_res_proj` object
+        that hangs off of hierarchy objects.  This projection mechanism is much
+        simpler than the standard, variable-resolution projection.  Rather than
+        attempt to identify the highest-resolution element along every possible
+        line of sight, this data structure simply deposits every cell into one
+        of a fixed number of bins.  It is suitable for inline analysis, and it
+        should scale nicely.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to project.  Can be 0, 1, or 2 for x, y, z.
+        level : int
+            This is the level to which values will be projected.  Note that
+            the pixel size in the projection will be identical to a cell at
+            this level of refinement in the simulation.
+        left_edge : array of ints
+            The left edge, in level-local integer coordinates, of the
+            projection
+        dims : array of ints
+            The dimensions of the projection (which, in concert with the
+            left_edge, serves to define its right edge.)
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> fproj = pf.h.fixed_res_proj(1, [0, 0, 0], [64, 64, 64], ["Density"])
+        >>> print fproj["Density"]
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.left_edge = na.array(left_edge)
@@ -1807,7 +2066,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         self['pdy'] = self.dds[yax]
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -1900,7 +2159,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
-    def get_data(self, fields=None, in_grids=False, force_particle_read = False):
+    def _get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
@@ -2648,7 +2907,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
         self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, fields=None):
+    def _get_data(self, fields=None):
         if self._grids is None:
             self._get_list_of_grids()
         if fields is None:
@@ -2792,7 +3051,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             self[field] = interpolator(fake_grid)
         return fake_grid
 
-    def get_data(self, field=None):
+    def _get_data(self, field=None):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
@@ -2880,7 +3139,7 @@ class AMRCoveringGridBase(AMR3DData):
         self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, fields=None):
+    def _get_data(self, fields=None):
         if self._grids is None:
             self._get_list_of_grids()
         if fields is None:
@@ -2987,7 +3246,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         AMRCoveringGridBase._get_list_of_grids(self, buffer)
         self._grids = self._grids[::-1]
 
-    def get_data(self, field=None):
+    def _get_data(self, field=None):
         dx = [self.pf.h.select_grids(l)[0].dds for l in range(self.level+1)]
         self._get_list_of_grids()
         # We don't generate coordinates here.
