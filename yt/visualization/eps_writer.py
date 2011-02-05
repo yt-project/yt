@@ -29,6 +29,7 @@ License:
 import pyx
 import numpy as na
 from matplotlib import cm
+from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.definitions import \
     x_dict, x_names, \
@@ -389,12 +390,12 @@ class DualEPS(object):
         _p1.axes[0].set_axis_off()  # remove axes
         _p1.axes[0].set_position([0,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
-        figure_canvas = FigureCanvas(_p1)
+        figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
         size = _p1.get_size_inches() * _p1.dpi
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
-        figure_canvas.print_png('test.png')
+        #figure_canvas.print_png('test.png')
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              width=self.figsize[0],
                                              height=self.figsize[1]))
@@ -547,9 +548,7 @@ class DualEPS(object):
             proj = "Proj" in plot._type_name and \
                    plot.data._weight is None
             _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
-            print _zlabel
             _zlabel = _zlabel.replace("_","\;")
-            print _zlabel
             _zlog = plot.log_field
         else:
             _zlabel = plot._z_label.replace("_","\;")
