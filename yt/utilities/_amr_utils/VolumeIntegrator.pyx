@@ -126,17 +126,14 @@ cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
 
 cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                             np.float64_t *dvs):
-    cdef np.float64_t bv, dy, dd, tf, bp
+    cdef np.float64_t bv, dy, dd, tf
     cdef int bin_id
     if fit.pass_through == 1: return dvs[fit.field_id]
     if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
-    if bin_id < 0 or bin_id + 2 > fit.nbins: return 0.0
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
-    bp = fit.values[bin_id + 1]
-    if bp < 0.0: return bp
     bv = fit.values[bin_id]
-    dy = bp - bv
+    dy = fit.values[bin_id + 1] - bv
     if fit.weight_field_id != -1:
         return dvs[fit.weight_field_id] * (bv + dd*dy*fit.idbin)
     return (bv + dd*dy*fit.idbin)
@@ -222,7 +219,6 @@ cdef class TransferFunctionProxy:
         # We have to do this after the interpolation
         for i in range(self.n_field_tables):
             fid = self.field_tables[i].weight_table_id
-            if self.istorage[fid] < 0.0: continue
             if fid != -1: self.istorage[i] *= self.istorage[fid]
         for i in range(6):
             trgba[i] = self.istorage[self.field_table_ids[i]]
@@ -239,9 +235,6 @@ cdef class TransferFunctionProxy:
             # This is the new way: alpha corresponds to opacity of a given
             # slice.  Previously it was ill-defined, but represented some
             # measure of emissivity.
-            if trgba[i+3] < 0.0:
-                rgba[i] = trgba[i]
-                continue
             ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
             rgba[i  ] = dt*trgba[i  ] + ta * rgba[i  ]
             #rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
