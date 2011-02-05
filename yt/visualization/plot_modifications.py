@@ -732,8 +732,8 @@ class HopCircleCallback(PlotCallback):
 
 class HopParticleCallback(PlotCallback):
     _type_name = "hop_particles"
-    def __init__(self, hop_output, p_size=1.0,
-                max_number=None, min_size=20, alpha=0.2):
+    def __init__(self, hop_output, max_number, p_size=1.0,
+                min_size=20, alpha=0.2):
         """
         Adds particle positions for the members of each halo as identified
         by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
@@ -762,8 +762,9 @@ class HopParticleCallback(PlotCallback):
             if size < self.min_size: continue
             colors = na.ones(size)
             plot._axes.hold(True)
-            plot._axes.scatter(halo["particle_position_%s" % xf]*dx,
-                halo["particle_position_%s" % yf]*dx, edgecolors="None",
+            px = (halo["particle_position_%s" % xf] - x0)*dx
+            py = (halo["particle_position_%s" % yf] - y0)*dy
+            plot._axes.scatter(px, py, edgecolors="None",
                 s=self.p_size, c='black', alpha=self.alpha)
             plot._axes.set_xlim(xx0,xx1)
             plot._axes.set_ylim(yy0,yy1)
