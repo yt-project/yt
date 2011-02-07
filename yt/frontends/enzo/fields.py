@@ -64,10 +64,15 @@ def _SpeciesComovingDensity(field, data):
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
+def _SpeciesMass(field, data):
+    sp = field.name.split("_")[0] + "_Density"
+    return data[sp] * data["CellVolume"]
 def _SpeciesNumberDensity(field, data):
     species = field.name.split("_")[0]
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/_speciesMass[species]
+def _convertCellMassMsun(data):
+    return 5.027854e-34 # g^-1
 def _ConvertNumberDensity(data):
     return 1.0/mh
 
@@ -78,6 +83,13 @@ for species in _speciesList:
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species))
+    add_field("%s_Mass" % species, units=r"\rm{g}", 
+              function=_SpeciesMass, 
+              validators=ValidateDataField("%s_Density" % species))
+    add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
+              function=_SpeciesMass, 
+              convert_function=_convertCellMassMsun,
+              validators=ValidateDataField("%s_Density" % species))
     if _speciesMass.has_key(species):
         add_field("%s_NumberDensity" % species,
                   function=_SpeciesNumberDensity,
