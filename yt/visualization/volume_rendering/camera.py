@@ -267,7 +267,7 @@ class Camera(ParallelAnalysisInterface):
         This will recalculate all the necessary vectors and vector planes related
         to a camera with new normal vectors, widths, centers, or north vectors.
 
-        Parameters (All Optional)
+        Parameters
         ----------
         normal_vector: array_like, optional
             The new looking vector.
