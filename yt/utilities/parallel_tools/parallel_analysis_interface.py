@@ -68,9 +68,12 @@ if exe_name in \
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
                                             yt.utilities.logger.ufstring))
         yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+        if ytcfg.getboolean("yt", "parallel_traceback"):
+            sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
+
 else:
     parallel_capable = False
 
