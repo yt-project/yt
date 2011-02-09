@@ -2,7 +2,7 @@
 import setuptools
 import os, sys, os.path, glob
 
-INSTALL_LIBCONFIG_WRAPPER = 0
+INSTALL_LIBCONFIG_WRAPPER = 1
 LIBCONFIG_DEFINES = [
     ("HAVE_XLOCALE_H", None)
 ]
