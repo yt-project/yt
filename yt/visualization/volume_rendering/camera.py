@@ -30,7 +30,8 @@ from yt.funcs import *
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane
+from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
+    arr_vec2pix_nest, arr_pix2vec_nest
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -533,13 +534,73 @@ class PerspectiveCamera(Camera):
         vectors = self.front_center - positions
         positions = self.front_center - 2.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
         vectors = (self.front_center - positions)
-        print vectors.shape, vectors.dtype, vectors.flags
 
         vector_plane = VectorPlane(positions, vectors,
                                       self.back_center, bounds, image,
                                       self.unit_vectors[0],
                                       self.unit_vectors[1])
         return vector_plane
+
+def corners(left_edge, right_edge):
+    return na.array([
+      [left_edge[:,0], left_edge[:,1], left_edge[:,2]],
+      [right_edge[:,0], left_edge[:,1], left_edge[:,2]],
+      [right_edge[:,0], right_edge[:,1], left_edge[:,2]],
+      [right_edge[:,0], right_edge[:,1], right_edge[:,2]],
+      [left_edge[:,0], right_edge[:,1], right_edge[:,2]],
+      [left_edge[:,0], left_edge[:,1], right_edge[:,2]],
+      [right_edge[:,0], left_edge[:,1], right_edge[:,2]],
+      [left_edge[:,0], right_edge[:,1], left_edge[:,2]],
+    ], dtype='float64')
+
+class HEALpixCamera(Camera):
+    def __init__(self, center, radius, nside,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None):
+        if pf is not None: self.pf = pf
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.nside = nside
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        else:
+            mylog.error("Sorry, only un-ordered projection is sorted for now!")
+            raise NotImplementedError
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = HomogenizedVolume(fields, pf = self.pf,
+                                       log_fields = log_fields,
+                                       no_ghost=True)
+        self.volume = volume
+
+    def snapshot(self, fn = None):
+        nv = 12*self.nside**2
+        image = na.zeros((nv,1,3), dtype='float64', order='C')
+        vs = arr_pix2vec_nest(self.nside, na.arange(nv))
+        vs *= self.radius
+        vs.shape = (nv,1,3)
+        uv = na.ones(3, dtype='float64')
+        positions = na.ones((nv, 1, 3), dtype='float64') * self.center
+        vector_plane = VectorPlane(positions, vs, self.center,
+                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Rendering equivalent of %0.2f^2 image", nv**0.5)
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        for brick in self.volume.bricks:
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        return image
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
