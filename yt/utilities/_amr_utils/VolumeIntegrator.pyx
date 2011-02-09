@@ -73,6 +73,57 @@ cdef extern from "FixedInterpolator.h":
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
 
+def hp_pix2vec_nest(long nside, long ipix):
+    cdef double v[3]
+    healpix_interface.pix2vec_nest(nside, ipix, v)
+    cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
+    tr[0] = v[0]
+    tr[1] = v[1]
+    tr[2] = v[2]
+    return tr
+
+def arr_pix2vec_nest(long nside,
+                     np.ndarray[np.int64_t, ndim=1] aipix):
+    cdef int n = aipix.shape[0]
+    cdef int i
+    cdef double v[3]
+    cdef long ipix
+    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 3), dtype='float64')
+    for i in range(n):
+        ipix = aipix[i]
+        healpix_interface.pix2vec_nest(nside, ipix, v)
+        tr[i,0] = v[0]
+        tr[i,1] = v[1]
+        tr[i,2] = v[2]
+    return tr
+
+def hp_vec2pix_nest(long nside, double x, double y, double z):
+    cdef double v[3]
+    v[0] = x
+    v[1] = y
+    v[2] = z
+    cdef long ipix
+    healpix_interface.vec2pix_nest(nside, v, &ipix)
+    return ipix
+
+
+def arr_vec2pix_nest(long nside,
+                     np.ndarray[np.float64_t, ndim=1] x,
+                     np.ndarray[np.float64_t, ndim=1] y,
+                     np.ndarray[np.float64_t, ndim=1] z):
+    cdef int n = x.shape[0]
+    cdef int i
+    cdef double v[3]
+    cdef long ipix
+    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    for i in range(n):
+        v[0] = x[i]
+        v[1] = y[i]
+        v[2] = z[i]
+        healpix_interface.vec2pix_nest(nside, v, &ipix)
+        tr[i] = ipix
+    return tr
+
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
     cdef public np.float64_t sigma

@@ -30,9 +30,5 @@ cimport cython
 from stdio cimport fopen, fclose, FILE
 
 cdef extern from "healpix_vectors.h":
-    #int mkPix2xy(long *ipix2x, long *ipix2y)
-    #int mk_xy2pix(int *x2pix, int *y2pix)
-    int pix2vec_nest(long nside, long ipix, double *v, double (*vertex)[3])
-    #int vec2pix_nest( long nside, double *vec, long *ipix)
-    #int pix2coord_nest( long nside, long ipix, int xsize, int ysize, int &npts,
-    #                    int * &xpolygon, int * &ypolygon, int &draw_poly)
+    int pix2vec_nest(long nside, long ipix, double *v)
+    void vec2pix_nest(long nside, double *vec, long *ipix)
