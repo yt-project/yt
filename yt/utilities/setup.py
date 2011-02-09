@@ -2,11 +2,6 @@
 import setuptools
 import os, sys, os.path, glob
 
-INSTALL_LIBCONFIG_WRAPPER = 1
-LIBCONFIG_DEFINES = [
-    ("HAVE_XLOCALE_H", None)
-]
-
 def check_for_png():
     # First up: HDF5_DIR in environment
     if "PNG_DIR" in os.environ:
@@ -176,13 +171,12 @@ def configuration(parent_package='',top_path=None):
                 glob.glob("yt/utilities/_amr_utils/*.h") +
                 glob.glob("yt/utilities/_amr_utils/*.c"),
         )
-    if INSTALL_LIBCONFIG_WRAPPER == 1:
-        config.add_extension("libconfig_wrapper", 
-            ["yt/utilities/libconfig_wrapper.pyx"] +
-             glob.glob("yt/utilities/_libconfig/*.c"), 
-            include_dirs = ["yt/utilities/_libconfig/"],
-            define_macros = LIBCONFIG_DEFINES,
-            )
+    config.add_extension("libconfig_wrapper", 
+        ["yt/utilities/libconfig_wrapper.pyx"] +
+         glob.glob("yt/utilities/_libconfig/*.c"), 
+        include_dirs = ["yt/utilities/_libconfig/"],
+        define_macros = [("HAVE_XLOCALE_H", True)]
+        )
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     return config
