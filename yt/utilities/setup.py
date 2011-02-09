@@ -165,7 +165,8 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("amr_utils", 
         ["yt/utilities/amr_utils.pyx",
          "yt/utilities/_amr_utils/FixedInterpolator.c",
-         "yt/utilities/_amr_utils/kdtree.c"], 
+         "yt/utilities/_amr_utils/kdtree.c"] +
+         glob.glob("yt/utilities/_amr_utils/healpix_*.c"), 
         define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
         include_dirs=["yt/utilities/_amr_utils/", png_inc,
                       freetype_inc, os.path.join(freetype_inc, "freetype2")],

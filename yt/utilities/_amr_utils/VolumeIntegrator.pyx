@@ -27,6 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport kdtree_utils
+cimport healpix_interface
 from stdlib cimport malloc, free, abs
 
 cdef inline int imax(int i0, int i1):
