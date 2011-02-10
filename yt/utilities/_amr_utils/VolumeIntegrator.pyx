@@ -106,7 +106,6 @@ def hp_vec2pix_nest(long nside, double x, double y, double z):
     healpix_interface.vec2pix_nest(nside, v, &ipix)
     return ipix
 
-
 def arr_vec2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] x,
                      np.ndarray[np.float64_t, ndim=1] y,
@@ -122,6 +121,44 @@ def arr_vec2pix_nest(long nside,
         v[2] = z[i]
         healpix_interface.vec2pix_nest(nside, v, &ipix)
         tr[i] = ipix
+    return tr
+
+def hp_pix2ang_nest(long nside, long ipnest):
+    cdef double theta, phi
+    healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+    return (theta, phi)
+
+def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
+    cdef int n = aipnest.shape[0]
+    cdef int i
+    cdef long ipnest
+    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 2), dtype='float64')
+    cdef double theta, phi
+    for i in range(n):
+        ipnest = aipnest[i]
+        healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+        tr[i,0] = theta
+        tr[i,1] = phi
+    return tr
+
+def hp_ang2pix_nest(long nside, double theta, double phi):
+    cdef long ipix
+    healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+    return ipix
+
+def arr_ang2pix_nest(long nside,
+                     np.ndarray[np.float64_t, ndim=1] atheta,
+                     np.ndarray[np.float64_t, ndim=1] aphi):
+    cdef int n = atheta.shape[0]
+    cdef int i
+    cdef long ipnest
+    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    cdef double theta, phi
+    for i in range(n):
+        theta = atheta[i]
+        phi = aphi[i]
+        healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
+        tr[i] = ipnest
     return tr
 
 cdef class star_kdtree_container:
