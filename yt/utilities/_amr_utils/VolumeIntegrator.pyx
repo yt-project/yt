@@ -528,7 +528,8 @@ cdef class PartitionedGrid:
     cdef int integrate_ray(self, np.float64_t v_pos[3],
                                  np.float64_t v_dir[3],
                                  np.float64_t rgba[4],
-                                 TransferFunctionProxy tf):
+                                 TransferFunctionProxy tf,
+                                 np.float64_t *return_t = NULL):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t iv_dir[3]
@@ -632,6 +633,7 @@ cdef class PartitionedGrid:
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             if enter_t > 1.0: break
+        if return_t != NULL: return_t[0] = exit_t
         return hit
 
     @cython.boundscheck(False)
@@ -817,3 +819,74 @@ cdef class ProtoPrism:
         #                     self.LeftEdge, self.RightEdge, dims)
         return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)
 
+cdef struct AdaptiveRayPacket:
+    long nside
+    long ipix
+    np.float64_t t
+    np.float64_t v_dir[3]
+    np.float64_t value[4]
+    AdaptiveRayPacket *next
+    AdaptiveRayPacket *prev
+
+cdef AdaptiveRayPacket *new_rays[4]
+
+cdef class AdaptiveRaySource:
+    cdef np.float64_t center[3]
+    cdef public int rays_per_cell
+    cdef AdaptiveRayPacket *first
+
+    def __cinit__(self, center, rays_per_cell, initial_nside):
+        cdef int i
+        self.center[0] = center[0]
+        self.center[1] = center[1]
+        self.center[2] = center[2]
+        self.rays_per_cell = rays_per_cell
+        cdef AdaptiveRayPacket *last = NULL
+        for i in range(12*initial_nside*initial_nside):
+            pass
+
+    cdef integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf):
+        cdef AdaptiveRayPacket *ray = self.first
+        while 1:
+            # Note that we may end up splitting a ray such that it ends up
+            # outside the brick!
+            if self.intersects(ray, pg):
+                ray = self.refine_ray(ray, pg.dds[0])
+                pg.integrate_ray(self.center, ray.v_dir, ray.value,
+                                 tf, &ray.t)
+            if ray.next == NULL: break
+
+    cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
+        return 1
+
+    cdef AdaptiveRayPacket *refine_ray(self, AdaptiveRayPacket *ray,
+                                       np.float64_t dx):
+        cdef long Nrays = 12 * ray.nside * ray.nside
+        cdef int i, j
+        cdef np.float64_t r = 0.0, dOmega
+        for i in range(3):
+            r += (ray.t * ray.v_dir[i] - self.center[i])**2.0
+        dOmega = 4.0 * 3.1415926 * r / Nrays
+        if dOmega < self.rays_per_cell * dx*dx: return ray
+        # Now we make four new ones
+        for i in range(4):
+            new_rays[i] = <AdaptiveRayPacket *> malloc(
+                            sizeof(AdaptiveRayPacket))
+            new_rays[i].nside = ray.nside + 1
+            new_rays[i].ipix = ray.ipix * 4 + i
+            new_rays[i].t = ray.t
+            for j in range(3):
+                new_rays[i].v_dir[i] = ray.v_dir[i]
+                new_rays[i].value[i] = ray.value[i]
+            new_rays[i].value[3] = ray.value[3]
+        new_rays[0].prev = ray.prev
+        new_rays[3].next = ray.next
+        free(ray)
+        for i in range(3):
+            new_rays[i].next = new_rays[i+1]
+            new_rays[i+1].prev = new_rays[i]
+        return new_rays[0]
+
+# From Enzo:
+#   dOmega = 4 pi r^2/Nrays
+#   if (dOmega > RaysPerCell * dx^2) then split
