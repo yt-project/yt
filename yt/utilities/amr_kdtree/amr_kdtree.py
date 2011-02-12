@@ -31,7 +31,7 @@ from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.utilities.amr_utils import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 import yt.utilities.parallel_tools.parallel_analysis_interface as PT
-
+from copy import deepcopy
 from yt.config import ytcfg
 
 from time import time
@@ -307,7 +307,7 @@ class AMRKDTree(HomogenizedVolume):
             for node in nodes:
                 mytree[node.id] = {'l_corner':node.l_corner, 'r_corner':node.r_corner,
                                    'grid':node.grid, 'split_ax':node.split_ax, 'split_pos':node.split_pos, 'owner':node.owner}
-
+                
         # Merge the kd-trees (only applies in parallel)
         self.merge_trees(mytree)
         # Add properties to leafs/nodes
@@ -319,7 +319,53 @@ class AMRKDTree(HomogenizedVolume):
         mylog.info('[%04i] Nodes %d' % (my_rank,len(self.tree)))
         mylog.info('[%04i] Cost is %d' % (my_rank,self.total_cost))
         mylog.info('[%04i] Volume is %e' % (my_rank,self.volume)) 
-        
+
+    def _overlap_check(self, le, re, node, periodic=True):
+        if ((le[0] < node['r_corner'][0]) and (re[0] > node['l_corner'][0]) and 
+            (le[1] < node['r_corner'][1]) and (re[1] > node['l_corner'][1]) and 
+            (le[2] < node['r_corner'][2]) and (re[2] > node['l_corner'][2])):
+            return True
+
+        if periodic:
+            myle = deepcopy(le)
+            myre = deepcopy(re)
+            w = self.pf.domain_right_edge-self.pf.domain_left_edge
+            for i in range(3):
+                if myle[i] < self.pf.domain_left_edge[i]:
+                    myle[i] += w[i]
+                    myre[i] += w[i]
+                if myre[i] > self.pf.domain_right_edge[i]:
+                    myle[i] -= w[i]
+                    myre[i] -= w[i]
+                    
+            if ((myle[0] < node['r_corner'][0]) and (myre[0] > node['l_corner'][0]) and 
+                (myle[1] < node['r_corner'][1]) and (myre[1] > node['l_corner'][1]) and 
+                (myle[2] < node['r_corner'][2]) and (myre[2] > node['l_corner'][2])):
+                return True
+                
+        return False
+
+    def _get_all_neighbors(self, nodeid, le=None, re=None):
+        node = self.tree[nodeid]
+        neighbors = []
+        dx = self.pf.h.get_smallest_dx()
+        if le is None:
+            le = node['l_corner'] - dx
+        if re is None:
+            re = node['r_corner'] + dx
+
+        nodes_to_check = [0]
+        while len(nodes_to_check) > 0:
+            thisnode = nodes_to_check.pop(0)
+            if self.tree[thisnode]['grid'] is None:
+                if self._overlap_check(le,re,self.tree[_lchild_id(thisnode)]):
+                    nodes_to_check.append(_lchild_id(thisnode))
+                if self._overlap_check(le,re,self.tree[_rchild_id(thisnode)]):
+                    nodes_to_check.append(_rchild_id(thisnode))
+            else:
+                neighbors.append(thisnode)
+        return neighbors
+    
     def merge_trees(self, mytree):
         if nprocs > 1 and self.reduce_tree:
             self.tree = self._mpi_joindict(mytree)
