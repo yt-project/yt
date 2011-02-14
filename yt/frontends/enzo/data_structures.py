@@ -559,6 +559,17 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
     def save_data(self, *args, **kwargs):
         pass
 
+    def _generate_random_grids(self):
+        my_rank = self._mpi_get_rank()
+        my_grids = self.grids[self.grid_procs.ravel() == my_rank]
+        if len(my_grids) > 40:
+            starter = na.random.randint(0, 20)
+            random_sample = na.mgrid[starter:len(my_grids)-1:20j].astype("int32")
+            mylog.debug("Checking grids: %s", random_sample.tolist())
+        else:
+            random_sample = na.mgrid[0:max(len(my_grids)-1,1)].astype("int32")
+        return my_grids[(random_sample,)]
+
 class EnzoHierarchy1D(EnzoHierarchy):
 
     def _fill_arrays(self, ei, si, LE, RE, np):
