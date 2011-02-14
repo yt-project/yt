@@ -72,6 +72,7 @@ function host_specific
 {
     MYHOST=`hostname -s`  # just give the short one, not FQDN
     MYHOSTLONG=`hostname` # FQDN, for Ranger
+    MYOS=`uname -s`       # A guess at the OS
     if [ "${MYHOST##kraken}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Kraken."
@@ -132,6 +133,19 @@ function host_specific
         echo
         echo "   $ module purge"
         echo "   $ module load gcc"
+        echo
+    fi
+    if [ "${MYOS##Darwin}" != "${MYOS}" ]
+    then
+        echo "Looks like you're running on Mac OSX."
+        echo
+        echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
+        echo "Leopard) or newer.  If you do, please set the following"
+        echo "environment variables, remove any broken installation tree, and"
+        echo "re-run this script verbatim."
+        echo
+        echo "$ export CC=gcc-4.2"
+        echo "$ export CXX=g++-4.2"
         echo
     fi
 }
