@@ -1,0 +1,9 @@
+The routines in this directory have been excerpted from the HEALPix library,
+available at:
+
+http://healpix.jpl.nasa.gov/
+
+and described in K.M. Gorski et al., 2005, Ap.J., 622, p.759.
+
+HEALPix is distributed under the terms of GPLv2 or later.  Please see the
+COPYING and READ_Copyrights_Licenses.txt files in this directory.

@@ -15,7 +15,7 @@ http://yt.enzotools.org/doc/index.html
 
 You can also download a copy of the documentation and unzip it right here:
 
-wget http://yt.enzotools.org/doc/docs_html.zip
-unzip docs_html.zip
+wget http://yt.enzotools.org/doc/download.zip
+unzip download.zip
 
 Then open index.html with your favorite web browser, and be off!

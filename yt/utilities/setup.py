@@ -2,11 +2,6 @@
 import setuptools
 import os, sys, os.path, glob
 
-INSTALL_LIBCONFIG_WRAPPER = 0
-LIBCONFIG_DEFINES = [
-    ("HAVE_XLOCALE_H", None)
-]
-
 def check_for_png():
     # First up: HDF5_DIR in environment
     if "PNG_DIR" in os.environ:
@@ -165,7 +160,8 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("amr_utils", 
         ["yt/utilities/amr_utils.pyx",
          "yt/utilities/_amr_utils/FixedInterpolator.c",
-         "yt/utilities/_amr_utils/kdtree.c"], 
+         "yt/utilities/_amr_utils/kdtree.c"] +
+         glob.glob("yt/utilities/_amr_utils/healpix_*.c"), 
         define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
         include_dirs=["yt/utilities/_amr_utils/", png_inc,
                       freetype_inc, os.path.join(freetype_inc, "freetype2")],
@@ -175,13 +171,12 @@ def configuration(parent_package='',top_path=None):
                 glob.glob("yt/utilities/_amr_utils/*.h") +
                 glob.glob("yt/utilities/_amr_utils/*.c"),
         )
-    if INSTALL_LIBCONFIG_WRAPPER == 1:
-        config.add_extension("libconfig_wrapper", 
-            ["yt/utilities/libconfig_wrapper.pyx"] +
-             glob.glob("yt/utilities/_libconfig/*.c"), 
-            include_dirs = ["yt/utilities/_libconfig/"],
-            define_macros = LIBCONFIG_DEFINES,
-            )
+    config.add_extension("libconfig_wrapper", 
+        ["yt/utilities/libconfig_wrapper.pyx"] +
+         glob.glob("yt/utilities/_libconfig/*.c"), 
+        include_dirs = ["yt/utilities/_libconfig/"],
+        define_macros = [("HAVE_XLOCALE_H", True)]
+        )
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     return config
