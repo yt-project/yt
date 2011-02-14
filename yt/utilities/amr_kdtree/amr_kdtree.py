@@ -31,7 +31,7 @@ from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.utilities.amr_utils import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 import yt.utilities.parallel_tools.parallel_analysis_interface as PT
-
+from copy import deepcopy
 from yt.config import ytcfg
 
 from time import time
@@ -257,7 +257,7 @@ class AMRKDTree(HomogenizedVolume):
         self.reduce_tree=reduction_needed[self.tree_type]
         self.bricks_loaded = False
         self.bricks = []
-
+        self.brick_dimensions = []
         self.fields = ensure_list(fields)
         if log_fields is not None:
             log_fields = ensure_list(log_fields)
@@ -307,7 +307,7 @@ class AMRKDTree(HomogenizedVolume):
             for node in nodes:
                 mytree[node.id] = {'l_corner':node.l_corner, 'r_corner':node.r_corner,
                                    'grid':node.grid, 'split_ax':node.split_ax, 'split_pos':node.split_pos, 'owner':node.owner}
-
+                
         # Merge the kd-trees (only applies in parallel)
         self.merge_trees(mytree)
         # Add properties to leafs/nodes
@@ -319,6 +319,149 @@ class AMRKDTree(HomogenizedVolume):
         mylog.info('[%04i] Nodes %d' % (my_rank,len(self.tree)))
         mylog.info('[%04i] Cost is %d' % (my_rank,self.total_cost))
         mylog.info('[%04i] Volume is %e' % (my_rank,self.volume)) 
+
+    def _overlap_check(self, le, re, brick, periodic=True):
+        r"""Given a left and right edges along with a brick, tests overlap of any
+        cells in the brick
+
+        Parameters
+        ----------
+        le: array_like
+            The left edge of the region being searched for overlap.
+        re: array_like
+            The right edge of the region being searched for overlap.
+        periodic: boolean, optional
+            Specifies whether search should include periodicity.  Default:True
+
+        Returns
+        ----------
+        boolean: True if overlap is found, False otherwise.
+        
+        """
+        if ((le[0] < brick['r_corner'][0]) and (re[0] > brick['l_corner'][0]) and 
+            (le[1] < brick['r_corner'][1]) and (re[1] > brick['l_corner'][1]) and 
+            (le[2] < brick['r_corner'][2]) and (re[2] > brick['l_corner'][2])):
+            return True
+
+        if periodic:
+            myle = deepcopy(le)
+            myre = deepcopy(re)
+            w = self.pf.domain_right_edge-self.pf.domain_left_edge
+            for i in range(3):
+                if myle[i] < self.pf.domain_left_edge[i]:
+                    myle[i] += w[i]
+                    myre[i] += w[i]
+                if myre[i] > self.pf.domain_right_edge[i]:
+                    myle[i] -= w[i]
+                    myre[i] -= w[i]
+                    
+            if ((myle[0] < brick['r_corner'][0]) and (myre[0] > brick['l_corner'][0]) and 
+                (myle[1] < brick['r_corner'][1]) and (myre[1] > brick['l_corner'][1]) and 
+                (myle[2] < brick['r_corner'][2]) and (myre[2] > brick['l_corner'][2])):
+                return True
+                
+        return False
+
+    def get_all_neighbor_bricks(self, brick_id, le=None, re=None, periodic=True, add_to_brick_dict=False):
+        r"""Given a brick_id, finds all other bricks that share a face, edge, or
+        vertex.  Alternatively, will find all neighbors to an
+        arbitrary rectangular specified by left and right edges.
+
+        Parameters
+        ----------
+        brick_id: int
+            ID of the brick in question.
+        le: array_like, optional
+            The left edge of an arbitrarily specified rectangular solid
+        re: array_like, optional
+            The right edge of an arbitrarily specified rectangular solid
+        periodic: boolean, optional
+            Specifies whether search should include periodicity.  Default:True
+        iterator: boolean, optional
+            If true, will yield the brick ids instead of return a list
+
+        Returns
+        ----------
+        neighbors: list
+           A list of all neighbor brick ids.
+        
+        """
+        if brick_id is not None:
+            node = self.tree[brick_id]
+        neighbors = []
+        dx = self.pf.h.get_smallest_dx()
+        if le is None:
+            le = node['l_corner'] - dx
+        if re is None:
+            re = node['r_corner'] + dx
+
+        nodes_to_check = [0]
+        while len(nodes_to_check) > 0:
+            thisnode = nodes_to_check.pop(0)
+            if self.tree[thisnode]['grid'] is None:
+                if self._overlap_check(le,re,self.tree[_lchild_id(thisnode)],periodic=periodic):
+                    nodes_to_check.append(_lchild_id(thisnode))
+                if self._overlap_check(le,re,self.tree[_rchild_id(thisnode)],periodic=periodic):
+                    nodes_to_check.append(_rchild_id(thisnode))
+            else:
+                neighbors.append(thisnode)
+
+        if add_to_brick_dict:
+            self.tree[brick_id]['neighbor_bricks']=neighbors
+        return neighbors
+
+    def get_all_neighbor_grids(self, brick_id, le=None, re=None, periodic=True):
+        r"""Given a brick_id, finds all other grids that share a face, edge, or
+        vertex.  Alternatively, will find all neighbors to an
+        arbitrary rectangular specified by left and right edges.
+
+        Parameters
+        ----------
+        brick_id: int
+            ID of the brick in question.
+        le: array_like, optional
+            The left edge of an arbitrarily specified rectangular solid
+        re: array_like, optional
+            The right edge of an arbitrarily specified rectangular solid
+        periodic: boolean, optional
+            Specifies whether search should include periodicity.  Default:True
+        iterator: boolean, optional
+            If true, will yield the grid ids instead of return a list
+
+        Returns
+        ----------
+        neighbors: list
+           A list of all neighbor grid ids.
+        
+        """
+        grids = [self.tree[this_id]['grid'] for this_id in self.get_all_neighbor_bricks(
+            brick_id, le=le, re=re, periodic=periodic)]
+        return grids
+
+    def locate_brick(self, position):
+        r"""Given a position, find the brick that contains it.
+
+        Parameters
+        ----------
+        pos: array_like
+            Position being queried
+
+        Returns
+        ----------
+        node_id: int
+            Brick id that contains position.
+        
+        """
+        node_id = 0
+        while True:
+            brick = self.tree[node_id]
+            if brick['grid'] is not None:
+                return node_id
+            else:
+                if position[brick['split_ax']] <= brick['split_pos']:
+                    node_id = _lchild_id(node_id)
+                else:
+                    node_id = _rchild_id(node_id)
         
     def merge_trees(self, mytree):
         if nprocs > 1 and self.reduce_tree:
@@ -368,6 +511,8 @@ class AMRKDTree(HomogenizedVolume):
                                                     current_node['r_corner'].copy(), 
                                                     current_node['dims'].astype('int64'))
             self.bricks.append(current_node['brick'])
+            self.brick_dimensions.append(current_node['dims'])
+        self.brick_dimensions = na.array(self.brick_dimensions)
         del current_saved_grids, current_vcds
         self.bricks_loaded = True
         
@@ -670,9 +815,15 @@ class AMRKDTree(HomogenizedVolume):
 
         return nodes
 
+    def initialize_source(self):
+        self.get_bricks()
+        
+    def traverse(self, back_center, front_center, image):
+        r"""Traverses the kd-Tree, casting the partitioned grids from back to
+            front.
 
-    def traverse(self, back_center, front_center, start_id):
-        r"""Traverses the kd-Tree, returning a list of partitioned grids.
+        Given the back and front centers, and the image, ray-cast
+        using the kd-Tree structure.
 
         Parameters
         ----------
@@ -680,18 +831,54 @@ class AMRKDTree(HomogenizedVolume):
             Position of the back center from which to start moving forward.
         front_center: array_like
             Position of the front center to which the traversal progresses.
-        start_id: int
-            First kd-Tree node to begin with
-
+        image: na.array
+            Image plane to contain resulting ray cast.
+            
         Returns
         ----------
-        An array of partitioned grids, ordered from the back_center to
-        the front_center.
+        None, but modifies the image array.
+        
+        See Also
+        ----------
+        yt.visualization.volume_rendering.camera
         
         """
+        if self.tree is None: 
+            print 'No KD Tree Exists'
+            return
+        self.total_cells = 0
+        self.image = image
+        if self.tree_type is 'domain':
+            depth = int(na.log2(nprocs))
+            start_id = 0
+
+        elif self.tree_type is 'breadth':
+            if self.reduce_tree is False and nprocs > 1:
+                mylog.error("Breadth-first rendering requires keyword volume_rendering(merge_kd_tree=True) ")
+                mylog.error("Perhaps try the cast_type 'domain'")
+                raise(KeyError)
+            self.clean_owners(self.tree)
+            rt1 = time()
+            ids = [0]
+            costs = [self.tree[0]['cost']]
+            new_ids, new_costs = self.split_tree(ids,costs,nprocs)
+            for i,this_id in enumerate(new_ids):
+                self.tree[this_id]['owner'] = i
+                if my_rank == self.tree[this_id]['owner']:
+                    start_id = this_id
+            
+        elif self.tree_type is 'depth':
+            if self.reduce_tree is False and nprocs > 1:
+                mylog.error("Depth-first rendering requires keyword volume_rendering(merge_kd_tree=True) ")
+                mylog.error("Perhaps try the cast_type 'domain'")
+                raise(KeyError)
+            start_id = 0
+            
+        rt1 = time()
+        mylog.info('About to cast')
 
         viewpoint = front_center - back_center
-        current_id = start_id
+        current_id = deepcopy(start_id)
         tree = self.tree
         head_node = tree[current_id]
         current_node = tree[current_id]
@@ -774,129 +961,37 @@ class AMRKDTree(HomogenizedVolume):
                                                                 current_node['l_corner'].copy(), 
                                                                 current_node['r_corner'].copy(), 
                                                                 current_node['dims'].astype('int64'))
-                    p_grids.append(current_node)
+                    yield current_node['brick']
+                    
+                    # p_grids.append(current_node['brick'])
                     my_total += current_node['cost']
                 total_cells += current_node['cost']
                 current_node['cast_done'] = 1
-        return p_grids
+            # return p_grids
 
-    def initialize_source(self):
-        if self.tree_type is 'domain':
-            self.get_bricks()
-        
-    def kd_ray_cast(self,image, tfp, vector_plane, back_center, front_center):
-        r"""Traverses the kd-Tree, casting the partitioned grids from back to
-            front.
-
-        Given an image, transfer function, vector plane, back and
-        front centers, ray-cast using the kd-Tree structure.
-
-        Parameters
-        ----------
-        image: na.array
-            Image plane to contain resulting ray cast.
-        tfp: ~yt.utilities.amr_utils.TransferFunctionProxy
-            Transfer function to be used in rendering.
-        vector_plane: ~yt.utilities.amr_utils.VectorPlane
-            Vector plane object to be used during ray casting
-        back_center: array_like
-            Position of the back center from which to start moving forward.
-        front_center: array_like
-            Position of the front center to which the traversal progresses.
+        mylog.info('I am done with my rendering after %e seconds' % (time()-rt1)) 
             
-        Returns
-        ----------
-        image: na.array
-            An rgb array of the resulting rendering.
-        
-        See Also
-        ----------
-        yt.visualization.volume_rendering.camera
-        
-        """
-        if self.tree is None: 
-            print 'No KD Tree Exists'
-            return
-        self.total_cells = 0
-        self.image = image
         if self.tree_type is 'domain':
-            depth = int(na.log2(nprocs))
-            start_id = 0
-
-            rt1 = time()
-            mylog.info('About to cast')
-
-            pbar = get_pbar("Ray casting",self.total_cost)
-            total_cells = 0
-            for brick in self.traverse(back_center, front_center, start_id):
-                brick['brick'].cast_plane(tfp, vector_plane)
-                total_cells += brick['cost']
-                pbar.update(total_cells)
-            pbar.finish()
-        
-            mylog.info('I am done with my rendering after %e seconds' % (time()-rt1)) 
             self.reduce_tree_images(self.tree, front_center)
-            mylog.info('Done in kd_ray_cast') 
 
         elif self.tree_type is 'breadth':
-            if self.reduce_tree is False and nprocs > 1:
-                mylog.error("Breadth-first rendering requires keyword volume_rendering(merge_kd_tree=True) ")
-                mylog.error("Perhaps try the cast_type 'domain'")
-                raise(KeyError)
-                    
-            self.clean_owners(self.tree)
-            rt1 = time()
-            ids = [0]
-            costs = [self.tree[0]['cost']]
-
-            new_ids, new_costs = self.split_tree(ids,costs,nprocs)
-            for i,this_id in enumerate(new_ids):
-                self.tree[this_id]['owner'] = i
-                if my_rank == self.tree[this_id]['owner']:
-                    my_node = this_id
-
-                    pbar = get_pbar("Ray casting",self.total_cost)
-                    total_cells = 0
-                    for brick in self.traverse(back_center, front_center, this_id):
-                        brick['brick'].cast_plane(tfp, vector_plane)
-                        total_cells += na.prod(brick['cost'])
-                        pbar.update(total_cells)
-                    pbar.finish()
-        
-            print '[%04d] I am done with my rendering after %e seconds' % (my_rank, time()-rt1) 
             self.breadth_reduce_tree(0,front_center-back_center)
             final_owner = self.tree[0]['owner']
             if final_owner != 0:
+                # mylog.debug('Sending Final Image to root processor')
                 if final_owner == my_rank:
+                    # mylog.debug('I have the final image, sending to root')
                     PT._send_array(self.image.ravel(), 0, tag=final_owner)
                 if my_rank == 0:
-                    self.image = PT._recv_array(final_owner, tag=final_owner).reshape(
+                    # mylog.debug('I am the root, receiving from %i' % final_owner)
+                    self.image[:] = PT._recv_array(final_owner, tag=final_owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-            print 'Done in kd_ray_cast' 
 
         elif self.tree_type is 'depth':
-            if self.reduce_tree is False and nprocs > 1:
-                mylog.error("Depth-first rendering requires keyword volume_rendering(merge_kd_tree=True) ")
-                mylog.error("Perhaps try the cast_type 'domain'")
-                raise(KeyError)
+            self._binary_tree_reduce(self.image)
 
-            mylog.info('About to cast')
-            rt1 = time()
-            pbar = get_pbar("Ray casting",self.total_cost)
-            total_cells = 0
-            for brick in self.traverse(back_center, front_center, 0):
-                brick['brick'].cast_plane(tfp, vector_plane)
-                total_cells += na.prod(brick['cost'])
-                pbar.update(total_cells)
-            pbar.finish()
-                
-            mylog.info('I am done with my rendering after %e seconds' % (time()-rt1)) 
-            im = self._binary_tree_reduce(self.image)
-            self.image = im
-            mylog.info('Done in kd_ray_cast')
-            self._barrier()
-        return self.image
-
+        self._barrier()
+        
     def reduce_tree_images(self, tree, viewpoint):
         rounds = int(na.log2(nprocs))
         my_node = 2**rounds - 1 + my_rank
@@ -968,22 +1063,21 @@ class AMRKDTree(HomogenizedVolume):
             # Stuff on the right is closer than left, reduce right on top of left.
             front = _rchild_id(this_id)
             back = _lchild_id(this_id)
-
     
         # reduce the children first
         if tree[back]['owner'] == -1:
-            print 'back owner is -1, reducing it'
+            # print 'back owner is -1, reducing it'
             self.breadth_reduce_tree(back, viewpoint)
         if tree[front]['owner'] == -1:
-            print 'front owner is -1, reducing it'
+            # print 'front owner is -1, reducing it'
             self.breadth_reduce_tree(front,viewpoint)
 
         # Send the images around
         if tree[front]['owner'] == my_rank:
-            print my_rank, 'sending my image to ',tree[back]['owner']
+            # print my_rank, 'sending my image to ',tree[back]['owner']
             PT._send_array(self.image.ravel(), tree[back]['owner'], tag=my_rank)
         if tree[back]['owner'] == my_rank:
-            print my_rank, 'receiving image from ',tree[front]['owner']
+            # print my_rank, 'receiving image from ',tree[front]['owner']
             arr2 = PT._recv_array(tree[front]['owner'], tag=tree[front]['owner']).reshape(
                 (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
             for i in range(3):
@@ -999,6 +1093,7 @@ class AMRKDTree(HomogenizedVolume):
 
     def _binary_tree_reduce(self, arr, root = 0):
         self._barrier()
+        arr = self.image
         myrank = self._mpi_get_rank()
         nprocs = self._mpi_get_size()
         depth = 0
@@ -1026,7 +1121,6 @@ class AMRKDTree(HomogenizedVolume):
             depth += 1
             procs_with_images = range(0,nprocs,2**depth) 
         self._barrier()
-        return arr
 
     def split_tree(self,ids, costs, n_trees):
         tree = self.tree

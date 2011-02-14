@@ -339,23 +339,19 @@ class Camera(ParallelAnalysisInterface):
         tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
-        if self.use_kd:
-            self.volume.reset_cast()
-            image = self.volume.kd_ray_cast(image, tfp, vector_plane,
-                                            self.back_center, self.front_center)
-        else:
-            pbar = get_pbar("Ray casting",
-                            (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-            total_cells = 0
-            for brick in self.volume.traverse(self.back_center, self.front_center):
-                brick.cast_plane(tfp, vector_plane)
-                total_cells += na.prod(brick.my_data[0].shape)
-                pbar.update(total_cells)
-            pbar.finish()
+
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        for brick in self.volume.traverse(self.back_center, self.front_center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
 
         if self._mpi_get_rank() is 0 and fn is not None:
             write_bitmap(image, fn)
-            
+
         return image
 
     def zoom(self, factor):
