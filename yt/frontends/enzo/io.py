@@ -209,7 +209,9 @@ class IOHandlerInMemory(BaseIOHandler):
         BaseIOHandler.__init__(self)
 
     def _read_data_set(self, grid, field):
-        if grid.id not in self.grids_in_memory: raise KeyError
+        if grid.id not in self.grids_in_memory:
+            mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
+            raise KeyError
         tr = self.grids_in_memory[grid.id][field]
         # If it's particles, we copy.
         if len(tr.shape) == 1: return tr.copy()

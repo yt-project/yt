@@ -52,7 +52,9 @@ if exe_name in \
         ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
         ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
         ytcfg["yt","__parallel"] = "True"
-        if exe_name == "embed_enzo": ytcfg["yt","inline"] = "True"
+        if exe_name == "embed_enzo" or \
+            ("_parallel" in dir(sys) and sys._parallel == True):
+            ytcfg["yt","inline"] = "True"
         # I believe we do not need to turn this off manually
         #ytcfg["yt","StoreParameterFiles"] = "False"
         # Now let's make sure we have the right options set.
@@ -333,7 +335,7 @@ class ParallelAnalysisInterface(object):
         else:
             subvol = True
         if not self._distributed and not subvol:
-           return False, LE, RE, ds
+            return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
             self.hierarchy.periodic_region_strict(self.center,
