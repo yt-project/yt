@@ -338,9 +338,9 @@ class AMRKDTree(HomogenizedVolume):
         boolean: True if overlap is found, False otherwise.
         
         """
-        if ((le[0] < brick['r_corner'][0]) and (re[0] > brick['l_corner'][0]) and 
-            (le[1] < brick['r_corner'][1]) and (re[1] > brick['l_corner'][1]) and 
-            (le[2] < brick['r_corner'][2]) and (re[2] > brick['l_corner'][2])):
+        if (le[0] < brick['r_corner'][0]) and (re[0] > brick['l_corner'][0]) and \
+               (le[1] < brick['r_corner'][1]) and (re[1] > brick['l_corner'][1]) and \
+               (le[2] < brick['r_corner'][2]) and (re[2] > brick['l_corner'][2]):
             return True
 
         if periodic:
@@ -355,9 +355,9 @@ class AMRKDTree(HomogenizedVolume):
                     myle[i] -= w[i]
                     myre[i] -= w[i]
                     
-            if ((myle[0] < brick['r_corner'][0]) and (myre[0] > brick['l_corner'][0]) and 
-                (myle[1] < brick['r_corner'][1]) and (myre[1] > brick['l_corner'][1]) and 
-                (myle[2] < brick['r_corner'][2]) and (myre[2] > brick['l_corner'][2])):
+            if (myle[0] < brick['r_corner'][0]) and (myre[0] > brick['l_corner'][0]) and \
+                   (myle[1] < brick['r_corner'][1]) and (myre[1] > brick['l_corner'][1]) and \
+                   (myle[2] < brick['r_corner'][2]) and (myre[2] > brick['l_corner'][2]):
                 return True
                 
         return False
