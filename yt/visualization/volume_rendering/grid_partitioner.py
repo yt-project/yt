@@ -57,7 +57,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                          for field in self.fields]
         self.log_fields = log_fields
 
-    def traverse(self, back_point, front_point):
+    def traverse(self, back_point, front_point, image):
         mylog.info("Traversing %s bricks between %s and %s",
                    len(self.bricks), back_point, front_point)
         if self.bricks is None: self.initialize_source()
