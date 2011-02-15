@@ -1,5 +1,5 @@
 """
-API for yt.astro_objects
+An AstrophysicalObject that represents a simulation volume
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: NSF / Columbia
@@ -21,14 +21,12 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
 from .astrophysical_object import \
     AstrophysicalObject, identification_method, correlation_method
     
-from .simulation_volume import \
-    SimulationVolume
-    
-from .clumped_region import \
-    ClumpedRegion
+class SimulationVolume(AstrophysicalObject):
+    _type_name = "simulation_volume"
+    def __init__(self, data_source):
+        AstrophysicalObject.__init__(self, data_source)

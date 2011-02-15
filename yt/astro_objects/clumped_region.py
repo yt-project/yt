@@ -1,5 +1,5 @@
 """
-API for yt.astro_objects
+A base-class representing an astrophysical object
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: NSF / Columbia
@@ -21,14 +21,19 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
 from .astrophysical_object import \
     AstrophysicalObject, identification_method, correlation_method
     
-from .simulation_volume import \
-    SimulationVolume
-    
-from .clumped_region import \
-    ClumpedRegion
+class ClumpedRegion(AstrophysicalObject):
+    _type_name = "clumped_region"
+    def __init__(self, data_source):
+        AstrophysicalObject.__init__(self, data_source)
+
+@identification_method("clumped_region", "level_set")
+def clumps(obj, field, min_val):
+    ds = obj.data_source
+    mi, ma = ds.quantities["Extrema"](field)[0]
+    cls = obj.data_source.extract_connected_sets(field, 1, min_val, ma)
+    return [ClumpedRegion(o) for o in cls[1][0]]
