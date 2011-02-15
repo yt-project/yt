@@ -216,7 +216,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         for cycle, file in enumerate(self.restart_files):
             gc.collect()
             pf = load(file)
-            self.period = self.pf.domain_right_edge - self.pf.domain_left_edge
+            self.period = pf.domain_right_edge - pf.domain_left_edge
             # If the halos are already found, skip this data step, unless
             # refresh is True.
             dir = os.path.dirname(file)
