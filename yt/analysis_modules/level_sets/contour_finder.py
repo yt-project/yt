@@ -256,7 +256,11 @@ def coalesce_join_tree(jtree1):
                     s1.update(joins.pop(k2))
                     s1.update([k2])
                     updated += 1
-    return joins
+    tr = []
+    for k in joins.keys():
+        v = joins.pop(k)
+        tr.append((k, na.array(list(v), dtype="int64")))
+    return tr
 
 def identify_contours(data_source, field, min_val, max_val,
                           cached_fields=None):
@@ -300,15 +304,23 @@ def identify_contours(data_source, field, min_val, max_val,
     sort_new = na.array(list(set(tree)), dtype='int64')
     mylog.info("Coalescing %s joins", sort_new.shape[0])
     joins = coalesce_join_tree(sort_new)
+    #joins = [(i, na.array(list(j), dtype="int64")) for i, j in sorted(joins.items())]
     pbar = get_pbar("Joining ", len(joins))
     # This process could and should be done faster
-    for i, new in enumerate(sorted(joins.keys())):
-        pbar.update(i)
-        old_set = joins[new]
-        for old in old_set:
-            if old == new: continue
-            i1 = (data_source["tempContours"] == old)
-            data_source["tempContours"][i1] = new
+    print "Joining..."
+    t1 = time.time()
+    ff = data_source["tempContours"].astype("int64")
+    amr_utils.update_joins(joins, ff)
+    data_source["tempContours"] = ff.astype("float64")
+    #for i, new in enumerate(sorted(joins.keys())):
+    #    pbar.update(i)
+    #    old_set = joins[new]
+    #    for old in old_set:
+    #        if old == new: continue
+    #        i1 = (data_source["tempContours"] == old)
+    #        data_source["tempContours"][i1] = new
+    t2 = time.time()
+    print "Finished joining in %0.2e seconds" % (t2-t1)
     pbar.finish()
     data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
     del data_source.data["tempContours"] # Force a reload from the grids
