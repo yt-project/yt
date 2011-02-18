@@ -33,7 +33,6 @@ from yt.utilities.performance_counters import yt_counters, time_function
 import yt.utilities.parallel_tools.parallel_analysis_interface as PT
 from copy import deepcopy
 from yt.config import ytcfg
-
 from time import time
 import h5py
 my_rank = ytcfg.getint("yt", "__parallel_rank")
@@ -67,22 +66,28 @@ class MasterNode(object):
     Used during the construction to act as both dividing nodes and
     leaf nodes.
     """
-    def __init__(self):
-        self.grids = None
-        self.parent = None
-        self.parent_grid = None
-        self.l_corner = None
-        self.r_corner = None
+    def __init__(self,my_id=None,
+                 parent=None,
+                 parent_grid=None,
+                 grids=None,
+                 l_corner=None,
+                 r_corner=None):
+        
+        self.grids = grids
+        self.parent = parent
+        self.parent_grid = parent_grid
+        self.l_corner = l_corner
+        self.r_corner = r_corner
 
         self.split_ax = None
         self.split_pos = None
 
-        self.left_children = None
-        self.right_children = None
+        self.left_child = None
+        self.right_child = None
         self.cost = 0
-        self.owner = -1
+        # self.owner = -1
 
-        self.id = None
+        self.id = my_id
         
         self.grid = None
         self.brick = None
@@ -90,8 +95,8 @@ class MasterNode(object):
         self.ri = None
         self.dims = None
 
-        self.done = 0
-        self.cast_done = 0
+        # self.done = 0
+        # self.cast_done = 0
 
 def set_leaf(thisnode, grid_id, leaf_l_corner, leaf_r_corner):
     r"""
@@ -116,6 +121,7 @@ def set_leaf(thisnode, grid_id, leaf_l_corner, leaf_r_corner):
     thisnode.grid = grid_id.id
     thisnode.l_corner = leaf_l_corner
     thisnode.r_corner = leaf_r_corner
+    del thisnode.grids, thisnode.parent_grid, thisnode.split_ax, thisnode.split_pos
 
 class AMRKDTree(HomogenizedVolume):
     def __init__(self, pf,  l_max=None, le=None, re=None,
@@ -243,6 +249,7 @@ class AMRKDTree(HomogenizedVolume):
         'split_pos': 0.5}
 
         """
+        self.current_split_dim = 0
 
         self.pf = pf
         if nprocs > len(pf.h.grids):
@@ -253,7 +260,7 @@ class AMRKDTree(HomogenizedVolume):
         if fields is None: fields = ["Density"]
         self.no_ghost = no_ghost
         reduction_needed = {'domain':False,'depth':True,'breadth':True}
-        self.tree_type = tree_type
+        self.tree_type = 'domain' # Hard code for now tree_type
         self.reduce_tree=reduction_needed[self.tree_type]
         self.bricks_loaded = False
         self.bricks = []
@@ -294,31 +301,28 @@ class AMRKDTree(HomogenizedVolume):
         root_grids = root_grids[root_we_want]
 
         # Build the kd-Tree
-        nodes = self.__build(root_grids, None, self.domain_left_edge, self.domain_right_edge)
+        t1 = time()
+        self._build(root_grids, None, self.domain_left_edge, self.domain_right_edge)
+        t2 = time()
+        mylog.debug('It took %e seconds to build AMRKDTree.tree' % (t2-t1))
+        
+        # Build Tree Dictionary
+        self._build_tree_dict()
 
-        # Set up kd-Tree Dictionary
-        mytree = {}
-        if self.reduce_tree:
-            for node in nodes:
-                if node.owner is my_rank:
-                    mytree[node.id] = {'l_corner':node.l_corner, 'r_corner':node.r_corner,
-                                       'grid':node.grid, 'split_ax':node.split_ax, 'split_pos':node.split_pos, 'owner':node.owner}
-        else:
-            for node in nodes:
-                mytree[node.id] = {'l_corner':node.l_corner, 'r_corner':node.r_corner,
-                                   'grid':node.grid, 'split_ax':node.split_ax, 'split_pos':node.split_pos, 'owner':node.owner}
-                
-        # Merge the kd-trees (only applies in parallel)
-        self.merge_trees(mytree)
+        # Initialize the kd leafs:
+        self.initialize_leafs()
+        
         # Add properties to leafs/nodes
-        self.rebuild_tree_links()
-        # Calculate the total cost of the render
         self.total_cost = self.count_cost()
         # Calculate the total volume spanned by the tree
         self.volume = self.count_volume()
-        mylog.info('[%04i] Nodes %d' % (my_rank,len(self.tree)))
-        mylog.info('[%04i] Cost is %d' % (my_rank,self.total_cost))
-        mylog.info('[%04i] Volume is %e' % (my_rank,self.volume)) 
+        mylog.debug('Cost is %d' % self.total_cost)
+        mylog.debug('Volume is %e' % self.volume) 
+
+    def _build_tree_dict(self):
+        self.tree_dict = {}
+        for node in self.depth_traverse():
+            self.tree_dict[node.id] = node
 
     def _overlap_check(self, le, re, brick, periodic=True):
         r"""Given a left and right edges along with a brick, tests overlap of any
@@ -338,9 +342,9 @@ class AMRKDTree(HomogenizedVolume):
         boolean: True if overlap is found, False otherwise.
         
         """
-        if (le[0] < brick['r_corner'][0]) and (re[0] > brick['l_corner'][0]) and \
-               (le[1] < brick['r_corner'][1]) and (re[1] > brick['l_corner'][1]) and \
-               (le[2] < brick['r_corner'][2]) and (re[2] > brick['l_corner'][2]):
+        if (le[0] < brick.r_corner[0]) and (re[0] > brick.l_corner[0]) and \
+               (le[1] < brick.r_corner[1]) and (re[1] > brick.l_corner[1]) and \
+               (le[2] < brick.r_corner[2]) and (re[2] > brick.l_corner[2]):
             return True
 
         if periodic:
@@ -355,14 +359,14 @@ class AMRKDTree(HomogenizedVolume):
                     myle[i] -= w[i]
                     myre[i] -= w[i]
                     
-            if (myle[0] < brick['r_corner'][0]) and (myre[0] > brick['l_corner'][0]) and \
-                   (myle[1] < brick['r_corner'][1]) and (myre[1] > brick['l_corner'][1]) and \
-                   (myle[2] < brick['r_corner'][2]) and (myre[2] > brick['l_corner'][2]):
+            if (myle[0] < brick.r_corner[0]) and (myre[0] > brick.l_corner[0]) and \
+                   (myle[1] < brick.r_corner[1]) and (myre[1] > brick.l_corner[1]) and \
+                   (myle[2] < brick.r_corner[2]) and (myre[2] > brick.l_corner[2]):
                 return True
                 
         return False
 
-    def get_all_neighbor_bricks(self, brick_id, le=None, re=None, periodic=True, add_to_brick_dict=False):
+    def get_all_neighbor_bricks(self, node, le=None, re=None, periodic=True, add_to_brick_obj=False):
         r"""Given a brick_id, finds all other bricks that share a face, edge, or
         vertex.  Alternatively, will find all neighbors to an
         arbitrary rectangular specified by left and right edges.
@@ -386,31 +390,29 @@ class AMRKDTree(HomogenizedVolume):
            A list of all neighbor brick ids.
         
         """
-        if brick_id is not None:
-            node = self.tree[brick_id]
         neighbors = []
         dx = self.pf.h.get_smallest_dx()
         if le is None:
-            le = node['l_corner'] - dx
+            le = node.l_corner - dx
         if re is None:
-            re = node['r_corner'] + dx
+            re = node.r_corner + dx
 
-        nodes_to_check = [0]
+        nodes_to_check = [self.tree]
         while len(nodes_to_check) > 0:
             thisnode = nodes_to_check.pop(0)
-            if self.tree[thisnode]['grid'] is None:
-                if self._overlap_check(le,re,self.tree[_lchild_id(thisnode)],periodic=periodic):
-                    nodes_to_check.append(_lchild_id(thisnode))
-                if self._overlap_check(le,re,self.tree[_rchild_id(thisnode)],periodic=periodic):
-                    nodes_to_check.append(_rchild_id(thisnode))
+            if thisnode.grid is None:
+                if self._overlap_check(le,re,thisnode.left_child,periodic=periodic):
+                    nodes_to_check.append(thisnode.left_child)
+                if self._overlap_check(le,re,thisnode.right_child,periodic=periodic):
+                    nodes_to_check.append(thisnode.right_child)
             else:
                 neighbors.append(thisnode)
 
-        if add_to_brick_dict:
-            self.tree[brick_id]['neighbor_bricks']=neighbors
+        if add_to_brick_obj:
+            self.tree.neighbor_bricks=neighbors
         return neighbors
 
-    def get_all_neighbor_grids(self, brick_id, le=None, re=None, periodic=True):
+    def get_all_neighbor_grids(self, brick, le=None, re=None, periodic=True):
         r"""Given a brick_id, finds all other grids that share a face, edge, or
         vertex.  Alternatively, will find all neighbors to an
         arbitrary rectangular specified by left and right edges.
@@ -434,12 +436,12 @@ class AMRKDTree(HomogenizedVolume):
            A list of all neighbor grid ids.
         
         """
-        grids = [self.tree[this_id]['grid'] for this_id in self.get_all_neighbor_bricks(
-            brick_id, le=le, re=re, periodic=periodic)]
+        grids = [brick.grid for brick in self.get_all_neighbor_bricks(
+            brick, le=le, re=re, periodic=periodic)]
         return grids
 
     def locate_brick(self, position):
-        r"""Given a position, find the brick that contains it.
+        r"""Given a position, find the node that contains it.
 
         Parameters
         ----------
@@ -448,28 +450,22 @@ class AMRKDTree(HomogenizedVolume):
 
         Returns
         ----------
-        node_id: int
-            Brick id that contains position.
+        node: MasterNode()
+            AMRKDTree node that contains position.
         
         """
-        node_id = 0
+        node = self.tree
         while True:
-            brick = self.tree[node_id]
-            if brick['grid'] is not None:
-                return node_id
+            if node.grid is not None:
+                return node
             else:
-                if position[brick['split_ax']] <= brick['split_pos']:
-                    node_id = _lchild_id(node_id)
+                if position[node.split_ax] <= node.split_pos:
+                    node = node.left_child
                 else:
-                    node_id = _rchild_id(node_id)
-        
-    def merge_trees(self, mytree):
-        if nprocs > 1 and self.reduce_tree:
-            self.tree = self._mpi_joindict(mytree)
-        else:
-            self.tree = mytree
-
-    def get_bricks(self):
+                    node = node.right_child
+        return node
+    
+    def initialize_source(self):
         r"""Preload the bricks into the kd-Tree
 
         Traverses the tree, gets the vertex centered data, and
@@ -487,63 +483,35 @@ class AMRKDTree(HomogenizedVolume):
         if self.bricks_loaded: return
         current_saved_grids = []
         current_vcds = []
-        
-        for current_node in self.tree.itervalues():
-            if current_node['grid'] is None: continue
 
-            if current_node['grid'] in current_saved_grids:
-                dds = current_vcds[current_saved_grids.index(current_node['grid'])]
-            else:
-                dds = []
-                for i,field in enumerate(self.fields):
-                    vcd = current_node['grid'].get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
-                    if self.log_fields[i]: vcd = na.log10(vcd)
-                    dds.append(vcd)
-                current_saved_grids.append(current_node['grid'])
-                current_vcds.append(dds)
+        for current_node in self.depth_traverse():
+            if current_node.grid is not None:
+                if current_node.grid in current_saved_grids:
+                    dds = current_vcds[current_saved_grids.index(current_node.grid)]
+                else:
+                    dds = []
+                    for i,field in enumerate(self.fields):
+                        vcd = current_node.grid.get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
+                        if self.log_fields[i]: vcd = na.log10(vcd)
+                        dds.append(vcd)
+                    current_saved_grids.append(current_node.grid)
+                    current_vcds.append(dds)
 
-            data = [d[current_node['li'][0]:current_node['ri'][0]+1,
-                      current_node['li'][1]:current_node['ri'][1]+1,
-                      current_node['li'][2]:current_node['ri'][2]+1].copy() for d in dds]
-            
-            current_node['brick'] = PartitionedGrid(current_node['grid'].id, len(self.fields), data,
-                                                    current_node['l_corner'].copy(), 
-                                                    current_node['r_corner'].copy(), 
-                                                    current_node['dims'].astype('int64'))
-            self.bricks.append(current_node['brick'])
-            self.brick_dimensions.append(current_node['dims'])
+                data = [d[current_node.li[0]:current_node.ri[0]+1,
+                          current_node.li[1]:current_node.ri[1]+1,
+                          current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
+
+                current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+                                                        current_node.l_corner.copy(), 
+                                                        current_node.r_corner.copy(), 
+                                                        current_node.dims.astype('int64'))
+                self.bricks.append(current_node.brick)
+                self.brick_dimensions.append(current_node.dims)
+        self.bricks = na.array(self.bricks)
         self.brick_dimensions = na.array(self.brick_dimensions)
         del current_saved_grids, current_vcds
         self.bricks_loaded = True
         
-    def rebuild_tree_links(self):
-        r"""Sets properties of the kd-Tree dictionary
-
-        For each node, sets the `cost`, `done`, `cast_done`, and `owner` keys.
-        
-        Parameters
-        ----------
-        None
-
-        Returns
-        ----------
-        None
-        
-        """
-        num_leafs = 0
-        for this_id, node in self.tree.iteritems():
-            node['cost']=0
-            if node['grid'] is not None:
-                # I'm a leaf!
-                self.set_leaf_props(node)
-                num_leafs+=1
-            node['done'] = 0
-            node['cast_done'] = 0
-            if this_id < nprocs-1:
-                node['owner'] = (this_id+1 - 2**(len(na.binary_repr(this_id+1))-1))*\
-                                2**(len(na.binary_repr(nprocs))-len(na.binary_repr(this_id+1)))
-        mylog.info('Total of %i leafs' % num_leafs)
-
     def set_leaf_props(self,thisnode):
         r"""Given a leaf, gathers grid, indices, dimensions, and cost properties.
 
@@ -556,19 +524,24 @@ class AMRKDTree(HomogenizedVolume):
         None
         
         """
-        thisnode['grid'] = self.pf.hierarchy.grids[thisnode['grid'] - 1]
-
-        dds = thisnode['grid'].dds
-        gle = thisnode['grid'].LeftEdge
-        gre = thisnode['grid'].RightEdge
-        thisnode['li'] = ((thisnode['l_corner']-gle)/dds).astype('int32')
-        thisnode['ri'] = ((thisnode['r_corner']-gle)/dds).astype('int32')
-        thisnode['dims'] = (thisnode['ri'] - thisnode['li']).astype('int32')
+        thisnode.grid = self.pf.hierarchy.grids[thisnode.grid - 1]
+        
+        dds = thisnode.grid.dds
+        gle = thisnode.grid.LeftEdge
+        gre = thisnode.grid.RightEdge
+        thisnode.li = ((thisnode.l_corner-gle)/dds).astype('int32')
+        thisnode.ri = ((thisnode.r_corner-gle)/dds).astype('int32')
+        thisnode.dims = (thisnode.ri - thisnode.li).astype('int32')
         # Here the cost is actually inversely proportional to 4**Level (empirical)
-        thisnode['cost'] = (na.prod(thisnode['dims'])/4.**thisnode['grid'].Level).astype('int64')
+        thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
         # Here is the old way
         # thisnode.cost = na.prod(thisnode.dims).astype('int64')
-        
+
+    def initialize_leafs(self):
+        for node in self.depth_traverse():
+            if node.grid is not None:
+                self.set_leaf_props(node)
+                
 
     def count_cost(self):
         r"""Counts the cost of the entire tree, while filling in branch costs.
@@ -585,18 +558,125 @@ class AMRKDTree(HomogenizedVolume):
         of all branches and leaves it contains.
         
         """
-        ids = self.tree.keys()
-        ids.sort()
-        total_cost = 0
-        for this_id in ids[::-1]:
-            if self.tree[this_id]['grid'] is not None:
-                total_cost += self.tree[this_id]['cost']
-            try:
-                self.tree[_parent_id(this_id)]['cost'] += self.tree[this_id]['cost']
-            except:
-                pass
-        return total_cost
+
+        for node in self.depth_traverse():
+            if node.grid is None:
+                try:
+                    node.cost = node.left_child.cost 
+                except:
+                    node.cost = 0
+                try: node.cost += node.right_child.cost
+                except:
+                    pass
+        return self.tree.cost
+
+    def depth_traverse(self):
+        '''
+        Yields a depth-first traversal of the kd tree always going to
+        the left child before the right.
+        '''
+        current = self.tree
+        previous = None
+        while current is not None:
+            yield current
+            current, previous = self.step_depth(current, previous)
+
+    def step_depth(self, current, previous):
+        '''
+        Takes a single step in the depth-first traversal
+        '''
+        if current.grid is not None: # At a leaf, move back up
+            previous = current
+            # mylog.debug('moving up from leaf')
+            current = current.parent
+            
+        elif current.parent is previous: # Moving down, go left first
+            previous = current
+            if current.left_child is not None:
+                # mylog.debug('moving down to left child')
+                current = current.left_child
+            elif current.right_child is not None:
+                # mylog.debug('no left, moving down to right child')
+                current = current.right_child
+            else:
+                # mylog.debug('no left or right, moving to parent')
+                current = current.parent
+                
+        elif current.left_child is previous: # Moving up from left, go right 
+            previous = current
+            if current.right_child is not None:
+                # mylog.debug('moving down to right child')
+                current = current.right_child
+            else:
+                # mylog.debug('no right, moving to parent')
+                current = current.parent
+
+        elif current.right_child is previous: # Moving up from right child, move up
+            previous = current
+            # mylog.debug('moving up from right child')
+            current = current.parent
+            
+        return current, previous
+    
+    def viewpoint_traverse(self, viewpoint):
+        '''
+        Yields a viewpoint dependent traversal of the kd-tree.  Starts
+        with nodes furthest away from viewpoint.
+        '''
         
+        current = self.tree
+        previous = None
+        # mylog.debug('Starting with %s %s'%(current, previous))
+        while current is not None:
+            yield current
+            current, previous = self.step_viewpoint(current, previous, viewpoint)
+
+    def step_viewpoint(self, current, previous, viewpoint):
+        '''
+        Takes a single step in the viewpoint based traversal.  Always
+        goes to the node furthest away from viewpoint first.
+        '''
+        if current.grid is not None: # At a leaf, move back up
+            previous = current
+            current = current.parent
+        elif current.split_ax is None: # This is a dead node
+            previous = current
+            current = current.parent
+
+        elif current.parent is previous: # Moving down
+            previous = current
+            if viewpoint[current.split_ax] <= current.split_pos:
+                if current.right_child is not None:
+                    current = current.right_child
+                else:
+                    previous = current.right_child
+            else:
+                if current.left_child is not None:
+                    current = current.left_child
+                else:
+                    previous = current.left_child
+                
+        elif current.right_child is previous: # Moving up from right 
+            previous = current
+            if viewpoint[current.split_ax] <= current.split_pos:
+                if current.left_child is not None:
+                    current = current.left_child
+                else:
+                    current = current.parent
+            else:
+                current = current.parent
+                    
+        elif current.left_child is previous: # Moving up from left child
+            previous = current
+            if viewpoint[current.split_ax] > current.split_pos:
+                if current.right_child is not None:
+                    current = current.right_child
+                else:
+                    current = current.parent
+            else:
+                current = current.parent
+        return current, previous
+                
     def count_volume(self):
         r"""Calculates the volume of the kd-Tree
 
@@ -610,17 +690,12 @@ class AMRKDTree(HomogenizedVolume):
         
         """
         v = 0.0
-        for node in self.tree.itervalues():
-            if node['grid'] is not None:
-                v += na.prod(node['r_corner'] - node['l_corner'])
+        for node in self.depth_traverse():
+            if node.grid is not None:
+                v += na.prod(node.r_corner - node.l_corner)
         return v
 
-    def reset_cast(self):
-        r"""Resets `cast_done` to 0"""
-        for node in self.tree.itervalues():
-            node['cast_done'] = 0
-
-    def __build(self, grids, parent, l_corner, r_corner):
+    def _build(self, grids, parent, l_corner, r_corner):
         r"""Builds the AMR kd-Tree
 
         Parameters
@@ -641,182 +716,132 @@ class AMRKDTree(HomogenizedVolume):
         An array of kd-Tree nodes that make up the AMR kd-Tree
         
         """
-        nodes = [MasterNode()]
-        
-        head_node = nodes[0]
-        current_node = nodes[0]
+        self.tree = MasterNode()
+
+        head_node = self.tree
+        previous_node = None
+        current_node = self.tree
         current_node.grids = grids
         current_node.l_corner = l_corner
         current_node.r_corner = r_corner
-        current_node.owner = my_rank
+        # current_node.owner = my_rank
         current_node.id = 0
         par_tree_depth = long(na.log2(nprocs))
 
-        while(not head_node.done):
-
-            if current_node.done:
-                current_node = current_node.parent
-                # print 'I am going to work on my parent because I am done'
+        while current_node is not None:
+            # If we don't have any grids, that means we are revisiting
+            # a dividing node, and there is nothing to be done.
+            try: ngrids = current_node.grids
+            except:
+                current_node, previous_node = self.step_depth(current_node, previous_node)
                 continue
 
-            if current_node.left_children is not None and current_node.right_children is not None:
-                if current_node.left_children.done and current_node.right_children.done:
-                    current_node.done = 1
-                    # print 'I am done with this node because my children are done.'
+            # This is where all the domain decomposition occurs.  
+            if ((current_node.id + 1)>>par_tree_depth) == 1:
+                # There are nprocs nodes that meet this criteria
+                if (current_node.id+1-nprocs) is my_rank:
+                    # I own this shared node
+                    self.my_l_corner = current_node.l_corner
+                    self.my_r_corner = current_node.r_corner
+                else:
+                    # This node belongs to someone else, move along
+                    current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
-                elif not current_node.left_children.done:
-                    if ((current_node.left_children.id + 1)>>par_tree_depth) == 1:
-                        # There are nprocs nodes that meet this criteria
-                        if (current_node.left_children.id+1-nprocs) is my_rank:
-                            # I own this shared node
-                            current_node = current_node.left_children
-                            current_node.owner = my_rank
-                            
-                            # print '[%04i]'%my_rank,'I am building the kD-tree in the region:',\
-                            # current_node.l_corner,\
-                            # current_node.r_corner,\
-                            # na.prod(current_node.r_corner-current_node.l_corner),\
-                            # len(current_node.grids), current_node.id
-                            self.my_l_corner = current_node.l_corner
-                            self.my_r_corner = current_node.r_corner
-                            continue
-                        else:
-                            # I don't own this shared node
-                            current_node.left_children.done = 1
-                            current_node.left_children.owner = my_rank-1
-                            continue
-                    else:
-                        # Otherwise move to the left child
-                        current_node = current_node.left_children
-                        current_node.owner = my_rank
-                        continue
-                elif not current_node.right_children.done:
-                    if ((current_node.right_children.id + 1)>>par_tree_depth) == 1:
-                        # There are nprocs nodes that meet this criteria
-                        if (current_node.right_children.id+1-nprocs) is my_rank:
-                            # I own this shared node
-                            current_node = current_node.right_children
-                            current_node.owner = my_rank
-
-                            # print '[%04i]'%my_rank,'I am building the kD-tree in the region:',\
-                            # current_node.l_corner,\
-                            # current_node.r_corner,\
-                            # na.prod(current_node.r_corner-current_node.l_corner),\
-                            # len(current_node.grids), current_node.id
-                            self.my_l_corner = current_node.l_corner
-                            self.my_r_corner = current_node.r_corner
-
-                            continue
-                        else:
-                            # I don't own this shared node
-                            current_node.right_children.done = 1
-                            current_node.right_children.owner = my_rank+1
-                            continue
-                    else:
-                        # Otherwise move to the right child
-                        current_node = current_node.right_children
-                        current_node.owner = my_rank
-                        continue
                 
-            
-            # If we are in a single grid
+            # If we are down to one grid, we are either in it or the parent grid
             if len(current_node.grids) is 1:
                 thisgrid = current_node.grids[0]
-                # If we are in the specified domain
+                # If we are completely contained by that grid
                 if (thisgrid.LeftEdge[0] <= current_node.l_corner[0]) and (thisgrid.RightEdge[0] >= current_node.r_corner[0]) and \
                    (thisgrid.LeftEdge[1] <= current_node.l_corner[1]) and (thisgrid.RightEdge[1] >= current_node.r_corner[1]) and \
                    (thisgrid.LeftEdge[2] <= current_node.l_corner[2]) and (thisgrid.RightEdge[2] >= current_node.r_corner[2]):
-                    children = []
                     # Check if we have children and have not exceeded l_max
                     if len(thisgrid.Children) > 0 and thisgrid.Level < self.l_max:
-                        children = self.pf.hierarchy.grids[na.array([child.id - 1 for child in thisgrid.Children])]
+                        # Get the children that are actually in the current volume
+                        children = [child.id - 1 for child in thisgrid.Children  
+                                    if na.all(child.LeftEdge < current_node.r_corner) & 
+                                    na.all(child.RightEdge > current_node.l_corner)]
 
-                        child_l_data = na.array([child.LeftEdge for child in children])
-                        child_r_data = na.array([child.RightEdge for child in children])
-                        children_we_want = na.all(child_l_data < current_node.r_corner,axis=1)*\
-                                           na.all(child_r_data > current_node.l_corner,axis=1)
+                        # If we have children, get all the new grids, and keep building the tree
+                        if len(children) > 0:
+                            current_node.grids = self.pf.hierarchy.grids[na.array(children,copy=False)]
+                            current_node.parent_grid = thisgrid
+                            # print 'My single grid covers the rest of the volume, and I have children, about to iterate on them'
+                            del children
+                            continue
 
-                        children = children[children_we_want]
-                        del child_l_data, child_r_data, children_we_want
-                    # Continue with either our children or make a leaf out of ourself.
-                    if len(children) is 0:
-                        set_leaf(current_node, thisgrid, current_node.l_corner, current_node.r_corner)
-                        current_node.done = 1
-                        # print 'My single grid covers the rest of the volume, and I have no children'
-                        del children
-                        continue
-                    else:
-                        current_node.grids = children
-                        current_node.parent_grid = thisgrid
-                        # print 'My single grid covers the rest of the volume, and I children, about to iterate on them'
-                        del children
-                        continue
+                    # Else make a leaf node (brick container)
+                    set_leaf(current_node, thisgrid, current_node.l_corner, current_node.r_corner)
+                    # print 'My single grid covers the rest of the volume, and I have no children'
+                    current_node, previous_node = self.step_depth(current_node, previous_node)
+                    continue
+
             # If we don't have any grids, this volume belongs to the parent        
             if len(current_node.grids) is 0:
                 set_leaf(current_node, current_node.parent_grid, current_node.l_corner, current_node.r_corner)
-                current_node.done = 1
                 # print 'This volume does not have a child grid, so it belongs to my parent!'
+                current_node, previous_node = self.step_depth(current_node, previous_node)
                 continue
 
-            # Get the left edges for each child
-            l_data = na.array([child.LeftEdge for child in current_node.grids])
-            r_data = na.array([child.RightEdge for child in current_node.grids])
+            # If we've made it this far, time to build a dividing node
+            self._build_dividing_node(current_node)
 
-            # Split along the best dimension
-            best_dim = 0
-            best_choices = []
+            # Step to the nest node in a depth-first traversal.
+            current_node, previous_node = self.step_depth(current_node, previous_node)
 
-            # This helps a lot in terms of speed, but in some crazy situation could cause problems.
-            if l_data.shape[0] > 20:
-                best_dim = na.argmax(current_node.r_corner - current_node.l_corner)
-                choices = na.concatenate(([current_node.l_corner[best_dim]],l_data[:,best_dim],r_data[:,best_dim],
-                                          [current_node.r_corner[best_dim]]))
-                choices = choices[choices >= current_node.l_corner[best_dim]]
-                best_choices = choices[choices <= current_node.r_corner[best_dim]]
-                best_choices.sort()
-            else:
-                for d in range(3):
-                    choices = na.unique(na.clip(na.concatenate(([current_node.l_corner[d]],l_data[:,d],r_data[:,d],
-                                                                [current_node.r_corner[d]])),
-                                                current_node.l_corner[d],current_node.r_corner[d]))
-                    if len(choices) > len(best_choices):
-                        best_choices = choices
-                        best_dim = d
+    def _get_choices(self, current_node):
+        '''
+        Given a node, finds all the choices for the next dividing plane.  
+        '''
+        data = na.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
+        # For some reason doing dim 0 separately is slightly faster.
+        # This could be rewritten to all be in the loop below.
 
-            split = best_choices[len(best_choices)/2]
+        best_dim = 0
+        best_choices = na.unique(data[:,:,0][(current_node.l_corner[0] < data[:,:,0]) &
+                                             (data[:,:,0] < current_node.r_corner[0])])
+        
+        for d in range(1,3):
+            choices = na.unique(data[:,:,d][(current_node.l_corner[d] < data[:,:,d]) &
+                                            (data[:,:,d] < current_node.r_corner[d])])
 
-            less_ids = na.nonzero(l_data[:,best_dim] < split)[0]
-            greater_ids = na.nonzero(split < r_data[:,best_dim])[0]
+            if choices.size > best_choices.size:
+                best_choices, best_dim = choices, d
 
-            current_node.split_ax = best_dim
-            current_node.split_pos = split
+        split = best_choices[(len(best_choices)-1)/2]
+        return data[:,:,best_dim], best_dim, split
 
-            # print 'child has %i grids' % sum(less_ids)
-            nodes.append(MasterNode())
-            current_node.left_children = nodes[-1]
-            current_node.left_children.id = _lchild_id(current_node.id)
-            current_node.left_children.parent = current_node
-            current_node.left_children.parent_grid = current_node.parent_grid
-            current_node.left_children.grids = current_node.grids[less_ids]
-            current_node.left_children.l_corner = current_node.l_corner
-            current_node.left_children.r_corner = corner_bounds(best_dim, split, current_right=current_node.r_corner)
+    def _build_dividing_node(self, current_node):
+        '''
+        Makes the current node a dividing node, and initializes the
+        left and right children.
+        '''
+        
+        data,best_dim,split = self._get_choices(current_node)
 
-            # print 'child has %i grids' % sum(greater_ids)
-            nodes.append(MasterNode())
-            current_node.right_children = nodes[-1]
-            current_node.right_children.id = _rchild_id(current_node.id)
-            current_node.right_children.parent = current_node
-            current_node.right_children.parent_grid = current_node.parent_grid
-            current_node.right_children.grids = current_node.grids[greater_ids]
-            current_node.right_children.l_corner = corner_bounds(best_dim, split, current_left=current_node.l_corner)
-            current_node.right_children.r_corner = current_node.r_corner
+        current_node.split_ax = best_dim
+        current_node.split_pos = split
+        less_ids = na.nonzero(data[:,0] < split)[0]
+        greater_ids = na.nonzero(split < data[:,1])[0]
+        
+        current_node.left_child = MasterNode(my_id=_lchild_id(current_node.id),
+                                             parent=current_node,
+                                             parent_grid=current_node.parent_grid,
+                                             grids=current_node.grids[less_ids],
+                                             l_corner=current_node.l_corner,
+                                             r_corner=corner_bounds(best_dim, split, current_right=current_node.r_corner))
 
-            del l_data, r_data, best_dim, best_choices, split, less_ids, greater_ids, choices
+        current_node.right_child = MasterNode(my_id=_rchild_id(current_node.id),
+                                              parent=current_node,
+                                              parent_grid=current_node.parent_grid,
+                                              grids=current_node.grids[greater_ids],
+                                              l_corner=corner_bounds(best_dim, split, current_left=current_node.l_corner),
+                                              r_corner=current_node.r_corner)
 
-        return nodes
-
-    def initialize_source(self):
-        self.get_bricks()
+        # You have to at least delete the .grids object for the kd
+        # build to work.  The other deletions are just to save memory.
+        del current_node.grids, current_node.parent_grid, current_node.brick,\
+            current_node.li, current_node.ri, current_node.dims
         
     def traverse(self, back_center, front_center, image):
         r"""Traverses the kd-Tree, casting the partitioned grids from back to
@@ -846,172 +871,54 @@ class AMRKDTree(HomogenizedVolume):
         if self.tree is None: 
             print 'No KD Tree Exists'
             return
-        self.total_cells = 0
         self.image = image
-        if self.tree_type is 'domain':
-            depth = int(na.log2(nprocs))
-            start_id = 0
 
-        elif self.tree_type is 'breadth':
-            if self.reduce_tree is False and nprocs > 1:
-                mylog.error("Breadth-first rendering requires keyword volume_rendering(merge_kd_tree=True) ")
-                mylog.error("Perhaps try the cast_type 'domain'")
-                raise(KeyError)
-            self.clean_owners(self.tree)
-            rt1 = time()
-            ids = [0]
-            costs = [self.tree[0]['cost']]
-            new_ids, new_costs = self.split_tree(ids,costs,nprocs)
-            for i,this_id in enumerate(new_ids):
-                self.tree[this_id]['owner'] = i
-                if my_rank == self.tree[this_id]['owner']:
-                    start_id = this_id
-            
-        elif self.tree_type is 'depth':
-            if self.reduce_tree is False and nprocs > 1:
-                mylog.error("Depth-first rendering requires keyword volume_rendering(merge_kd_tree=True) ")
-                mylog.error("Perhaps try the cast_type 'domain'")
-                raise(KeyError)
-            start_id = 0
-            
-        rt1 = time()
-        mylog.info('About to cast')
+        viewpoint = front_center
 
-        viewpoint = front_center - back_center
-        current_id = deepcopy(start_id)
-        tree = self.tree
-        head_node = tree[current_id]
-        current_node = tree[current_id]
-        if self.tree_type is 'depth':
-            cast_all = False
-        else:
-            cast_all = True
-        total_cells = 0
-        my_total = 0
-        p_grids = []
-
-        self.current_saved_grids = []
-        self.current_vcds = []
-
-        while(True):
-
-            current_node = tree[current_id]
-            
-            if head_node['cast_done'] is 1:
-                break
-
-            if current_node['cast_done'] is 1:
-                current_id = _parent_id(current_id)
-                # print 'I am going to work on my parent because I am done'
-                continue
-
-            if current_node['grid'] is None:
-                if _lchild_id(current_id) not in tree or tree[_lchild_id(current_id)]['cast_done'] == 1:
-                    if _rchild_id(current_id) not in tree or tree[_rchild_id(current_id)]['cast_done'] == 1:
-                        current_node['cast_done'] = 1
-                        # print 'I am done with this node because my children are done.'
-                        continue
-
-            if current_node['grid'] is None:
-                # print current_id, current_node, viewpoint, current_node['split_ax'], current_node['split_pos']
-                if viewpoint[current_node['split_ax']] <= current_node['split_pos']:
-                    if _lchild_id(current_id) in tree:
-                        if tree[_lchild_id(current_id)]['cast_done'] == 0:
-                            current_id = _lchild_id(current_id)
-                            # print 'I am going to work on my left child'
-                            continue
-                    if _rchild_id(current_id) in tree:
-                        if tree[_rchild_id(current_id)]['cast_done'] == 0:
-                            current_id = _rchild_id(current_id)
-                            # print 'I am going to work on my right child'
-                            continue
-                else:
-                    if _rchild_id(current_id) in tree:
-                        if tree[_rchild_id(current_id)]['cast_done'] == 0:
-                            current_id = _rchild_id(current_id)
-                            # print 'I am going to work on my right child'
-                            continue
-                    if _lchild_id(current_id) in tree:
-                        if tree[_lchild_id(current_id)]['cast_done'] == 0:
-                            current_id = _lchild_id(current_id)
-                            # print 'I am going to work on my left child'
-                            continue
-            else:
-                if (((total_cells >= 1.0*my_rank*self.total_cost/nprocs) and
-                     (total_cells < 1.0*(my_rank+1)*self.total_cost/nprocs)) or cast_all):
-                    # print ' I am actually casting'
-                    if current_node.get('brick') is None:
-                        #current_node_time = time.time()
-                        if current_node['grid'] in self.current_saved_grids:
-                            dds = self.current_vcds[self.current_saved_grids.index(current_node['grid'])]
-                        else:
-                            dds = []
-                            for i,field in enumerate(self.fields):
-                                vcd = current_node['grid'].get_vertex_centered_data(field,no_ghost=self.no_ghost).astype('float64')
-                                if self.log_fields[i]: vcd = na.log10(vcd)
-                                dds.append(vcd)
-                            self.current_saved_grids.append(current_node['grid'])
-                            self.current_vcds.append(dds)
-
-                        data = [d[current_node['li'][0]:current_node['ri'][0]+1,
-                                  current_node['li'][1]:current_node['ri'][1]+1,
-                                  current_node['li'][2]:current_node['ri'][2]+1].copy() for d in dds]
-                        
-                        current_node['brick'] = PartitionedGrid(current_node['grid'].id, len(self.fields), data,
-                                                                current_node['l_corner'].copy(), 
-                                                                current_node['r_corner'].copy(), 
-                                                                current_node['dims'].astype('int64'))
-                    yield current_node['brick']
-                    
-                    # p_grids.append(current_node['brick'])
-                    my_total += current_node['cost']
-                total_cells += current_node['cost']
-                current_node['cast_done'] = 1
-            # return p_grids
-
-        mylog.info('I am done with my rendering after %e seconds' % (time()-rt1)) 
-            
-        if self.tree_type is 'domain':
-            self.reduce_tree_images(self.tree, front_center)
-
-        elif self.tree_type is 'breadth':
-            self.breadth_reduce_tree(0,front_center-back_center)
-            final_owner = self.tree[0]['owner']
-            if final_owner != 0:
-                # mylog.debug('Sending Final Image to root processor')
-                if final_owner == my_rank:
-                    # mylog.debug('I have the final image, sending to root')
-                    PT._send_array(self.image.ravel(), 0, tag=final_owner)
-                if my_rank == 0:
-                    # mylog.debug('I am the root, receiving from %i' % final_owner)
-                    self.image[:] = PT._recv_array(final_owner, tag=final_owner).reshape(
-                        (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-
-        elif self.tree_type is 'depth':
-            self._binary_tree_reduce(self.image)
-
+        for node in self.viewpoint_traverse(viewpoint):
+            if node.grid is not None:
+                yield node.brick
+         
+        self.reduce_tree_images(self.tree, front_center)
         self._barrier()
         
-    def reduce_tree_images(self, tree, viewpoint):
+    def reduce_tree_images(self, tree, viewpoint, image=None):
+        if image is not None:
+            self.image = image
         rounds = int(na.log2(nprocs))
-        my_node = 2**rounds - 1 + my_rank
-        for thisround in range(rounds,0,-1):
-            #print my_rank, 'my node', my_node
-            parent_id = _parent_id(my_node)
-            parent = tree[parent_id]
-            #print parent['split_ax'], parent['split_pos']
-            if viewpoint[parent['split_ax']] <= parent['split_pos']:
-                front = tree[_lchild_id(parent_id)]
-                back = tree[_rchild_id(parent_id)]
-            else:
-                front = tree[_rchild_id(parent_id)]
-                back = tree[_lchild_id(parent_id)]
 
+        my_node = tree
+        my_node_id = 0
+        my_node.owner = 0
+        path = na.binary_repr(nprocs+my_rank)
+        for i in range(rounds):
+            my_node.left_child.owner = my_node.owner
+            my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))
+            if path[i+1] is '0': 
+                my_node = my_node.left_child
+                my_node_id = my_node.id
+            else:
+                my_node = my_node.right_child
+                my_node_id = my_node.id
+            
+        for thisround in range(rounds,0,-1):
+            print my_rank, 'my node', my_node_id
+            parent = my_node.parent
+            #print parent['split_ax'], parent['split_pos']
+            if viewpoint[parent.split_ax] <= parent.split_pos:
+                front = parent.right_child
+                back = parent.left_child
+            else:
+                front = parent.left_child
+                back = parent.right_child 
+
+            mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
+                
             # Send the images around
-            if front['owner'] == my_rank:
-                if front['owner'] == parent['owner']:
-                    #print my_rank, 'receiving image from ',back['owner']
-                    arr2 = PT._recv_array(back['owner'], tag=back['owner']).reshape(
+            if front.owner == my_rank:
+                if front.owner == parent.owner:
+                    mylog.debug( '%04i receiving image from %04i'%(my_rank,back.owner))
+                    arr2 = PT._recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
@@ -1023,19 +930,19 @@ class AMRKDTree(HomogenizedVolume):
                         ta[ta<0.0] = 0.0 
                         self.image[:,:,i  ] = self.image[:,:,i  ] + ta * arr2[:,:,i  ]
                 else:
-                    mylog.info('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    #print my_rank, 'sending my image to ',back['owner']
-                    PT._send_array(self.image.ravel(), back['owner'], tag=my_rank)
+                    mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
+                    mylog.debug('%04i sending my image to %04i'%(my_rank,back.owner))
+                    PT._send_array(self.image.ravel(), back.owner, tag=my_rank)
 
                 
-            if back['owner'] == my_rank:
-                if front['owner'] == parent['owner']:
-                    #print my_rank, 'sending my image to ',front['owner']
-                    PT._send_array(self.image.ravel(), front['owner'], tag=my_rank)
+            if back.owner == my_rank:
+                if front.owner == parent.owner:
+                    mylog.debug('%04i sending my image to %04i'%(my_rank, front.owner))
+                    PT._send_array(self.image.ravel(), front.owner, tag=my_rank)
                 else:
-                    mylog.info('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    #print my_rank, 'receiving image from ',front['owner']
-                    arr2 = PT._recv_array(front['owner'], tag=front['owner']).reshape(
+                    mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
+                    mylog.debug('%04i receiving image from %04i'%(my_rank,front.owner))
+                    arr2 = PT._recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
@@ -1048,127 +955,25 @@ class AMRKDTree(HomogenizedVolume):
                         self.image[:,:,i  ] = arr2[:,:,i  ] + ta * self.image[:,:,i  ]
                         # image[:,:,i+3] = arr2[:,:,i+3] + ta * image[:,:,i+3]
             # Set parent owner to back owner
-            my_node = (my_node-1)>>1
-
-    def breadth_reduce_tree(self,this_id, viewpoint):
-        my_rank = self._mpi_get_rank()
-        tree = self.tree
-        if tree[this_id]['owner'] == my_rank:
-            return
-        if viewpoint[tree[this_id]['split_ax']] <= tree[this_id]['split_pos']:
-            # Stuff on the right is further away than left, reduce left on top of right.
-            front = _lchild_id(this_id)
-            back = _rchild_id(this_id)
-        else:
-            # Stuff on the right is closer than left, reduce right on top of left.
-            front = _rchild_id(this_id)
-            back = _lchild_id(this_id)
-    
-        # reduce the children first
-        if tree[back]['owner'] == -1:
-            # print 'back owner is -1, reducing it'
-            self.breadth_reduce_tree(back, viewpoint)
-        if tree[front]['owner'] == -1:
-            # print 'front owner is -1, reducing it'
-            self.breadth_reduce_tree(front,viewpoint)
-
-        # Send the images around
-        if tree[front]['owner'] == my_rank:
-            # print my_rank, 'sending my image to ',tree[back]['owner']
-            PT._send_array(self.image.ravel(), tree[back]['owner'], tag=my_rank)
-        if tree[back]['owner'] == my_rank:
-            # print my_rank, 'receiving image from ',tree[front]['owner']
-            arr2 = PT._recv_array(tree[front]['owner'], tag=tree[front]['owner']).reshape(
-                (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-            for i in range(3):
-                # print arr2.shape
-                # ta = (1.0 - arr2[:,:,i+3])
-                ta = (1.0 - na.sum(arr2,axis=2))
-                ta[ta<0.0] = 0.0 
-                self.image[:,:,i  ] = arr2[:,:,i  ] + ta * self.image[:,:,i  ]
-                # image[:,:,i+3] = arr2[:,:,i+3] + ta * image[:,:,i+3]
-        # Set parent owner to back owner
-        tree[this_id]['owner'] = tree[back]['owner']
-        return
-
-    def _binary_tree_reduce(self, arr, root = 0):
-        self._barrier()
-        arr = self.image
-        myrank = self._mpi_get_rank()
-        nprocs = self._mpi_get_size()
-        depth = 0
-        procs_with_images = range(0,nprocs,2**depth)
-        
-        while(len(procs_with_images) > 1):
-            if not myrank in procs_with_images:
-                break
-            # Even - receive then composite
-            if procs_with_images.index(myrank)%2 == 0:
-                arr2 = PT._recv_array(myrank+2**depth, tag=myrank+2**depth).reshape(
-                    (arr.shape[0],arr.shape[1],arr.shape[2]))
-
-                for i in range(3):
-                    # This is the new way: alpha corresponds to opacity of a given
-                    # slice.  Previously it was ill-defined, but represented some
-                    # measure of emissivity.
-                    ta = (1.0 - na.sum(arr2,axis=2))
-                    ta[ta<0.0] = 0.0 
-                    arr[:,:,i  ] = arr2[:,:,i  ] + ta * arr[:,:,i  ]
-                    del ta
-            # Odd - send
+            # my_node = (my_node-1)>>1
+            if my_rank == my_node.parent.owner: 
+                my_node = my_node.parent
             else:
-                PT._send_array(arr.ravel(), myrank-2**depth, tag=myrank)
-            depth += 1
-            procs_with_images = range(0,nprocs,2**depth) 
-        self._barrier()
+                break
 
-    def split_tree(self,ids, costs, n_trees):
-        tree = self.tree
-        if len(ids) == n_trees:
-            return ids, costs
-
-        expensive_index = na.argmax(costs)
-        expensive_tree = ids[expensive_index]
-        
-        if tree[ids[expensive_index]]['grid'] is None:
-            tree[ids[expensive_index]]['owner'] = -1
-            to_split = ids.pop(expensive_index)
-            del costs[expensive_index]
-            lchild_id = _lchild_id(expensive_tree)
-            ids.append(lchild_id)
-            costs.append(tree[lchild_id]['cost'])
-            
-            rchild_id = _rchild_id(expensive_tree)
-            ids.append(rchild_id)
-            costs.append(tree[rchild_id]['cost'])
-            new_ids, new_costs = self.split_tree(ids, costs, n_trees)
-            
-        else:
-            expensive_leaf = ids.pop(expensive_index)
-            leaf_cost = costs.pop(expensive_index)
-            new_ids, new_costs = self.split_tree(ids, costs, n_trees-1)
-            new_ids.insert(expensive_tree,expensive_leaf)
-            new_costs.insert(expensive_tree,leaf_cost)
-
-        return new_ids, new_costs
-
-    def clean_owners(self,nodes):
-        r"""Sets all kd-Tree node `owner` to -1"""
-        for node in nodes.itervalues():
-            node['owner'] = -1
- 
     def store_kd_bricks(self, fn=None):
         if fn is None:
             fn = '%s_kd_bricks.h5'%self.pf
         if my_rank != 0:
             PT._recv_array(my_rank-1, tag=my_rank-1)
         f = h5py.File(fn,"a")
-        for i, node in self.tree.iteritems():
-            if 'brick' in node:
+        for node in self.depth_traverse():
+            i = node.id
+            if node.grid is not None:
                 for fi,field in enumerate(self.fields):
                     try:
                         f.create_dataset("/brick_%s_%s" % (hex(i),field),
-                                         data = node['brick'].my_data[fi].astype('float64'))
+                                         data = node.brick.my_data[fi].astype('float64'))
                     except:
                         pass
         f.close()
@@ -1182,14 +987,22 @@ class AMRKDTree(HomogenizedVolume):
             PT._recv_array(my_rank-1, tag=my_rank-1)
         try:
             f = h5py.File(fn,"r")
-            for i, node in self.tree.iteritems():
-                if node['grid'] is not None:
-                        data = [f["brick_%s_%s" %
-                                           (hex(i), field)][:].astype('float64') for field in self.fields]
-                        node['brick'] = PartitionedGrid(node['grid'].id, len(self.fields), data,
-                                                        node['l_corner'].copy(), 
-                                                        node['r_corner'].copy(), 
-                                                        node['dims'].astype('int64'))
+            for node in self.depth_traverse():
+                i = node.id
+                if node.grid is not None:
+                    data = [f["brick_%s_%s" %
+                              (hex(i), field)][:].astype('float64') for field in self.fields]
+                    node.brick = PartitionedGrid(node.grid.id, len(self.fields), data,
+                                                 node.l_corner.copy(), 
+                                                 node.r_corner.copy(), 
+                                                 node.dims.astype('int64'))
+                    
+                    self.bricks.append(node.brick)
+                    self.brick_dimensions.append(node.dims)
+
+            self.bricks = na.array(self.bricks)
+            self.brick_dimensions = na.array(self.brick_dimensions)
+
             self.bricks_loaded=True
             f.close()
         except:
@@ -1198,6 +1011,7 @@ class AMRKDTree(HomogenizedVolume):
             PT._send_array([0],my_rank+1, tag=my_rank)
 
     def load_tree(self,fn):
+        raise NotImplementedError()
         f = h5py.File(fn,"r")
         kd_ids = f["/kd_ids"][:]
         kd_l_corners = f['/left_edges'][:]
@@ -1223,8 +1037,8 @@ class AMRKDTree(HomogenizedVolume):
 
         self.tree = mytree
 
-
     def store_tree(self,fn):
+        raise NotImplementedError()
         f = h5py.File(fn,"w")
         Nkd = len(self.tree)
         kd_l_corners = na.zeros( (Nkd, 3), dtype='float64')
