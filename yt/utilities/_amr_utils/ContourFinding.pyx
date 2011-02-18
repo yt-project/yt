@@ -39,6 +39,7 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
     return i1
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def construct_boundary_relationships(
         np.ndarray[dtype=np.int64_t, ndim=3] contour_ids):
     # We only look at the boundary and one cell in
@@ -174,3 +175,19 @@ def extract_identified_contours(int max_ind, joins):
         for j in proto_contour:
             contours[j] = proto_contour
     return contours
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def update_joins(joins, np.ndarray[np.int64_t, ndim=1] contour_ids):
+    cdef np.int64_t new, old, i, oi
+    cdef int n, on
+    cdef np.ndarray[np.int64_t, ndim=1] old_set
+    #print contour_ids.shape[0]
+    n = contour_ids.shape[0]
+    for new, old_set in joins:
+        #print new
+        on = old_set.shape[0]
+        for i in range(n):
+            for oi in range(on):
+                old = old_set[oi]
+                if contour_ids[i] == old: contour_ids[i] = new
