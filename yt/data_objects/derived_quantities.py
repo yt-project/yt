@@ -215,8 +215,10 @@ def _AngularMomentumVector(data):
     """
     This function returns the mass-weighted average angular momentum vector.
     """
-    am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
-    j_mag = am.sum(axis=1)
+    amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
+    amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
+    amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
+    j_mag = [amx.sum(), amy.sum(), amz.sum()]
     return [j_mag]
 def _combAngularMomentumVector(data, j_mag):
     if len(j_mag.shape) < 2: j_mag = na.expand_dims(j_mag, 0)
@@ -232,8 +234,10 @@ def _BaryonSpinParameter(data):
     the particles in calculating enclosed mass.
     """
     m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
-    j_mag = am.sum(axis=1)
+    amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
+    amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
+    amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
+    j_mag = na.array([amx.sum(), amy.sum(), amz.sum()])
     e_term_pre = na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
     weight=data["CellMassMsun"].sum()
     return j_mag, m_enc, e_term_pre, weight
@@ -256,9 +260,11 @@ def _ParticleSpinParameter(data):
     the particles in calculating enclosed mass.
     """
     m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    am = data["ParticleSpecificAngularMomentum"]*data["ParticleMassMsun"]
-    if am.size == 0: return (na.zeros((3,), dtype='float64'), m_enc, 0, 0)
-    j_mag = am.sum(axis=1)
+    amx = data["ParticleSpecificAngularMomentumX"]*data["ParticleMassMsun"]
+    if amx.size == 0: return (na.zeros((3,), dtype='float64'), m_enc, 0, 0)
+    amy = data["ParticleSpecificAngularMomentumY"]*data["ParticleMassMsun"]
+    amz = data["ParticleSpecificAngularMomentumZ"]*data["ParticleMassMsun"]
+    j_mag = na.array([amx.sum(), amy.sum(), amz.sum()])
     e_term_pre = na.sum(data["ParticleMassMsun"]
                        *data["ParticleVelocityMagnitude"]**2.0)
     weight=data["ParticleMassMsun"].sum()

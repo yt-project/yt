@@ -339,23 +339,19 @@ class Camera(ParallelAnalysisInterface):
         tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
-        if self.use_kd:
-            self.volume.reset_cast()
-            image = self.volume.kd_ray_cast(image, tfp, vector_plane,
-                                            self.back_center, self.front_center)
-        else:
-            pbar = get_pbar("Ray casting",
-                            (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-            total_cells = 0
-            for brick in self.volume.traverse(self.back_center, self.front_center):
-                brick.cast_plane(tfp, vector_plane)
-                total_cells += na.prod(brick.my_data[0].shape)
-                pbar.update(total_cells)
-            pbar.finish()
+
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        for brick in self.volume.traverse(self.back_center, self.front_center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
 
         if self._mpi_get_rank() is 0 and fn is not None:
             write_bitmap(image, fn)
-            
+
         return image
 
     def zoom(self, factor):
@@ -557,25 +553,23 @@ class HEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None):
+                 pf = None, use_kd=True, no_ghost=False):
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
         self.nside = nside
+        self.use_kd = use_kd
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
-        else:
-            mylog.error("Sorry, only un-ordered projection is sorted for now!")
-            raise NotImplementedError
         self.transfer_function = transfer_function
         if fields is None: fields = ["Density"]
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
         if volume is None:
-            volume = HomogenizedVolume(fields, pf = self.pf,
-                                       log_fields = log_fields,
-                                       no_ghost=True)
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
     def snapshot(self, fn = None):
@@ -594,12 +588,14 @@ class HEALpixCamera(Camera):
         mylog.info("Rendering equivalent of %0.2f^2 image", nv**0.5)
         pbar = get_pbar("Ray casting",
                         (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+
         total_cells = 0
-        for brick in self.volume.bricks:
+        for brick in self.volume.traverse(None, self.center, image):
             brick.cast_plane(tfp, vector_plane)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
+
         return image
 
 class StereoPairCamera(Camera):
