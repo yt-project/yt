@@ -833,7 +833,8 @@ cdef class AdaptiveRaySource:
     cdef public int rays_per_cell
     cdef AdaptiveRayPacket *first
 
-    def __cinit__(self, center, rays_per_cell, initial_nside):
+    def __cinit__(self, center, rays_per_cell, initial_nside,
+                  np.float64_t normalization):
         cdef int i
         self.center[0] = center[0]
         self.center[1] = center[1]
@@ -849,9 +850,9 @@ cdef class AdaptiveRaySource:
             ray.ipix = i
             ray.nside = initial_nside
             healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
-            ray.v_dir[0] = v_dir[0]
-            ray.v_dir[1] = v_dir[1]
-            ray.v_dir[2] = v_dir[2]
+            ray.v_dir[0] = v_dir[0] * normalization
+            ray.v_dir[1] = v_dir[1] * normalization
+            ray.v_dir[2] = v_dir[2] * normalization
             ray.value[0] = ray.value[1] = ray.value[2] = ray.value[3] = 0.0
             ray.next = NULL
             if i == 0: self.first = ray
@@ -875,6 +876,7 @@ cdef class AdaptiveRaySource:
         cdef np.ndarray[np.int64_t, ndim=2] info = np.zeros((count, 2), dtype="int64")
         cdef np.ndarray[np.float64_t, ndim=2] values = np.zeros((count, 4), dtype="float64")
         count = 0
+        ray = self.first
         while ray != NULL:
             info[count, 0] = ray.nside
             info[count, 1] = ray.ipix
@@ -960,6 +962,8 @@ cdef class AdaptiveRaySource:
         new_ray.next = ray.next
         if new_ray.next != NULL:
             new_ray.next.prev = new_ray
+        if self.first == ray:
+            self.first = new_ray.prev.prev.prev
         free(ray)
         return new_ray.prev.prev.prev
 

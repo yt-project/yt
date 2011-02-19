@@ -626,7 +626,7 @@ class AdaptiveHEALpixCamera(Camera):
 
     def snapshot(self, fn = None):
         ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
-                                       self.initial_nside)
+                                       self.initial_nside, self.radius)
         tfp = TransferFunctionProxy(self.transfer_function)
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
