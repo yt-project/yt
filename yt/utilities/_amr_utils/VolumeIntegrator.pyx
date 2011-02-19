@@ -825,13 +825,16 @@ cdef struct AdaptiveRayPacket:
     np.float64_t t
     np.float64_t v_dir[3]
     np.float64_t value[4]
+    np.float64_t pos[3]
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
 
 cdef class AdaptiveRaySource:
     cdef np.float64_t center[3]
-    cdef public int rays_per_cell
+    cdef public np.float64_t rays_per_cell
     cdef AdaptiveRayPacket *first
+    cdef public np.float64_t normalization
+    cdef public int nrays
 
     def __cinit__(self, center, rays_per_cell, initial_nside,
                   np.float64_t normalization):
@@ -843,6 +846,8 @@ cdef class AdaptiveRaySource:
         cdef AdaptiveRayPacket *ray = self.first
         cdef AdaptiveRayPacket *last = NULL
         cdef double v_dir[3]
+        self.normalization = normalization
+        self.nrays = 12*initial_nside*initial_nside
         for i in range(12*initial_nside*initial_nside):
             # Initialize rays here
             ray = <AdaptiveRayPacket *> malloc(sizeof(AdaptiveRayPacket))
@@ -893,14 +898,21 @@ cdef class AdaptiveRaySource:
         cdef AdaptiveRayPacket *ray = self.first
         cdef np.float64_t domega
         domega = self.get_domega(pg.left_edge, pg.right_edge)
+        #print "dOmega", domega, self.nrays
+        cdef int count = 0
+        cdef int i
         while ray != NULL:
             # Note that we may end up splitting a ray such that it ends up
             # outside the brick!
+            #print count
+            count +=1
             if self.intersects(ray, pg):
                 ray = self.refine_ray(ray, domega, pg.dds[0],
                                       pg.left_edge, pg.right_edge)
                 pg.integrate_ray(self.center, ray.v_dir, ray.value,
                                  tf, &ray.t)
+                for i in range(3):
+                    ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
             ray = ray.next
 
     cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
@@ -908,8 +920,8 @@ cdef class AdaptiveRaySource:
         cdef int i
         for i in range(3):
             # Is this correct, for the normalized v_dir?
-            pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
-            if pos[i] < pg.left_edge[i] or pos[i] > pg.right_edge[i]: return 0
+            if ray.pos[i] < pg.left_edge[i]: return 0
+            if ray.pos[i] > pg.right_edge[i]: return 0
         return 1
 
     cdef np.float64_t get_domega(self, np.float64_t left_edge[3],
@@ -917,19 +929,29 @@ cdef class AdaptiveRaySource:
         # We should calculate the subtending angle at the maximum radius of the
         # brick
         cdef int i, j, k
-        cdef np.float64_t r2, max_r2, domega, *edge[2]
+        cdef np.float64_t r2[3], max_r2, domega, *edge[2]
         # We now figure out when the ray will leave the box, at worst.
         edge[0] = left_edge
         edge[1] = right_edge
         max_r2 = -1.0
         for i in range(2):
-            r2 = (edge[i][0] - self.center[0])**2.0
+            r2[0] = (edge[i][0] - self.center[0])**2.0
             for j in range(2):
-                r2 += (edge[j][1] - self.center[1])**2.0
+                r2[1] = r2[0] + (edge[j][1] - self.center[1])**2.0
                 for k in range(3):
-                    r2 += (edge[k][2] - self.center[2])**2.0
-                    max_r2 = fmax(max_r2, r2)
+                    r2[2] = r2[1] + (edge[k][2] - self.center[2])**2.0
+                    max_r2 = fmax(max_r2, r2[2])
         domega = 4.0 * 3.1415926 * max_r2 # Used to be / Nrays
+        #print domega, max_r2**0.5, self.nrays,
+        #print self.center[0],
+        #print self.center[1],
+        #print self.center[2],
+        #print edge[0][0],
+        #print edge[0][1],
+        #print edge[0][2],
+        #print edge[1][0],
+        #print edge[1][1],
+        #print edge[1][2]
         return domega
 
     cdef AdaptiveRayPacket *refine_ray(self, AdaptiveRayPacket *ray,
@@ -937,8 +959,12 @@ cdef class AdaptiveRaySource:
                                        np.float64_t dx,
                                        np.float64_t left_edge[3],
                                        np.float64_t right_edge[3]):
+        # This should be recursive; we are not correctly applying split
+        # criteria multiple times.
         cdef long Nrays = 12 * ray.nside * ray.nside
-        if domega/Nrays < self.rays_per_cell * dx*dx: return ray
+        if domega/Nrays < dx*dx/self.rays_per_cell:
+            #print ray.nside, domega/Nrays, dx, (domega/Nrays * self.rays_per_cell)/(dx*dx)
+            return ray
         if ray.nside == 8192: return ray
         #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
         # Now we make four new ones
@@ -957,7 +983,7 @@ cdef class AdaptiveRaySource:
             healpix_interface.pix2vec_nest(
                     new_ray.nside, new_ray.ipix, v_dir)
             for j in range(3):
-                new_ray.v_dir[j] = v_dir[j]
+                new_ray.v_dir[j] = v_dir[j] * self.normalization
                 new_ray.value[j] = ray.value[j]
             new_ray.value[3] = ray.value[3]
 
@@ -967,6 +993,7 @@ cdef class AdaptiveRaySource:
         if self.first == ray:
             self.first = new_ray.prev.prev.prev
         free(ray)
+        self.nrays += 3
         return new_ray.prev.prev.prev
 
 # From Enzo:
