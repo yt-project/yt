@@ -849,6 +849,7 @@ cdef class AdaptiveRaySource:
             ray.prev = last
             ray.ipix = i
             ray.nside = initial_nside
+            ray.t = 0.0 # Start in the first brick
             healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
             ray.v_dir[0] = v_dir[0] * normalization
             ray.v_dir[1] = v_dir[1] * normalization
@@ -907,7 +908,7 @@ cdef class AdaptiveRaySource:
         cdef int i
         for i in range(3):
             # Is this correct, for the normalized v_dir?
-            pos[i] = ray.v_dir[i] * (ray.t + 1e-8)
+            pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
             if pos[i] < pg.left_edge[i] or pos[i] > pg.right_edge[i]: return 0
         return 1
 
@@ -938,6 +939,7 @@ cdef class AdaptiveRaySource:
                                        np.float64_t right_edge[3]):
         cdef long Nrays = 12 * ray.nside * ray.nside
         if domega/Nrays < self.rays_per_cell * dx*dx: return ray
+        if ray.nside == 8192: return ray
         #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
         # Now we make four new ones
         cdef double v_dir[3]
