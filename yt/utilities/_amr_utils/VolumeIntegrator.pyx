@@ -828,8 +828,6 @@ cdef struct AdaptiveRayPacket:
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
 
-cdef AdaptiveRayPacket *new_rays[4]
-
 cdef class AdaptiveRaySource:
     cdef np.float64_t center[3]
     cdef public int rays_per_cell
@@ -849,23 +847,46 @@ cdef class AdaptiveRaySource:
             ray = <AdaptiveRayPacket *> malloc(sizeof(AdaptiveRayPacket))
             ray.prev = last
             ray.ipix = i
+            ray.nside = initial_nside
             healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
             ray.v_dir[0] = v_dir[0]
             ray.v_dir[1] = v_dir[1]
             ray.v_dir[2] = v_dir[2]
             ray.value[0] = ray.value[1] = ray.value[2] = ray.value[3] = 0.0
             ray.next = NULL
+            if i == 0: self.first = ray
             if last != NULL: last.next = ray
             last = ray
 
     def __dealloc__(self):
-        cdef AdaptiveRayPacket *next, *ray = self.first
+        cdef AdaptiveRayPacket *next
+        cdef AdaptiveRayPacket *ray = self.first
         while ray != NULL:
             next = ray.next
             free(ray)
             ray = next
 
-    cdef integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf):
+    def get_rays(self):
+        cdef AdaptiveRayPacket *ray = self.first
+        cdef int count = 0
+        while ray != NULL:
+            count += 1
+            ray = ray.next
+        cdef np.ndarray[np.int64_t, ndim=2] info = np.zeros((count, 2), dtype="int64")
+        cdef np.ndarray[np.float64_t, ndim=2] values = np.zeros((count, 4), dtype="float64")
+        count = 0
+        while ray != NULL:
+            info[count, 0] = ray.nside
+            info[count, 1] = ray.ipix
+            values[count, 0] = ray.value[0]
+            values[count, 1] = ray.value[1]
+            values[count, 2] = ray.value[2]
+            values[count, 3] = ray.value[3]
+            count += 1
+            ray = ray.next
+        return info, values
+
+    def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf):
         cdef AdaptiveRayPacket *ray = self.first
         cdef np.float64_t domega
         domega = self.get_domega(pg.left_edge, pg.right_edge)
@@ -915,27 +936,32 @@ cdef class AdaptiveRaySource:
                                        np.float64_t right_edge[3]):
         cdef long Nrays = 12 * ray.nside * ray.nside
         if domega/Nrays < self.rays_per_cell * dx*dx: return ray
+        #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
         # Now we make four new ones
         cdef double v_dir[3]
+        cdef AdaptiveRayPacket *prev = ray.prev
         for i in range(4):
-            new_rays[i] = <AdaptiveRayPacket *> malloc(
+            new_ray = <AdaptiveRayPacket *> malloc(
                             sizeof(AdaptiveRayPacket))
-            new_rays[i].nside = ray.nside * 2
-            new_rays[i].ipix = ray.ipix * 4 + i
-            new_rays[i].t = ray.t
+            new_ray.nside = ray.nside * 2
+            new_ray.ipix = ray.ipix * 4 + i
+            new_ray.t = ray.t
+            new_ray.prev = prev
+            if new_ray.prev != NULL:
+                new_ray.prev.next = new_ray
+            prev = new_ray
             healpix_interface.pix2vec_nest(
-                    new_rays[i].nside, new_rays[i].ipix, v_dir)
+                    new_ray.nside, new_ray.ipix, v_dir)
             for j in range(3):
-                new_rays[i].v_dir[j] = v_dir[j]
-                new_rays[i].value[j] = ray.value[j]
-            new_rays[i].value[3] = ray.value[3]
-        new_rays[0].prev = ray.prev
-        new_rays[3].next = ray.next
+                new_ray.v_dir[j] = v_dir[j]
+                new_ray.value[j] = ray.value[j]
+            new_ray.value[3] = ray.value[3]
+
+        new_ray.next = ray.next
+        if new_ray.next != NULL:
+            new_ray.next.prev = new_ray
         free(ray)
-        for i in range(3):
-            new_rays[i].next = new_rays[i+1]
-            new_rays[i+1].prev = new_rays[i]
-        return new_rays[0]
+        return new_ray.prev.prev.prev
 
 # From Enzo:
 #   dOmega = 4 pi r^2/Nrays

@@ -31,7 +31,7 @@ from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
-    arr_vec2pix_nest, arr_pix2vec_nest
+    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -597,6 +597,50 @@ class HEALpixCamera(Camera):
         pbar.finish()
 
         return image
+
+
+class AdaptiveHEALpixCamera(Camera):
+    def __init__(self, center, radius, nside,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None, use_kd=True, no_ghost=False,
+                 rays_per_cell = 5.1):
+        if pf is not None: self.pf = pf
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.use_kd = use_kd
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.use_kd = isinstance(volume, AMRKDTree)
+        self.volume = volume
+        self.initial_nside = nside
+        self.rays_per_cell = rays_per_cell
+
+    def snapshot(self, fn = None):
+        ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
+                                       self.initial_nside)
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Adaptively rendering.")
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        for brick in self.volume.traverse(None, self.center, None):
+            ray_source.integrate_brick(brick, tfp)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        info, values = ray_source.get_rays()
+        return info, values
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
