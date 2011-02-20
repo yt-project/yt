@@ -826,6 +826,7 @@ cdef struct AdaptiveRayPacket:
     np.float64_t v_dir[3]
     np.float64_t value[4]
     np.float64_t pos[3]
+    int ngrid_id
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
 
@@ -861,6 +862,10 @@ cdef class AdaptiveRaySource:
             ray.v_dir[2] = v_dir[2] * normalization
             ray.value[0] = ray.value[1] = ray.value[2] = ray.value[3] = 0.0
             ray.next = NULL
+            ray.pos[0] = self.center[0]
+            ray.pos[1] = self.center[1]
+            ray.pos[2] = self.center[2]
+            ray.ngrid_id = 0
             if i == 0: self.first = ray
             if last != NULL: last.next = ray
             last = ray
@@ -894,7 +899,11 @@ cdef class AdaptiveRaySource:
             ray = ray.next
         return info, values
 
-    def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf,
+                        int pgi, np.ndarray[np.float64_t, ndim=2] ledges,
+                                 np.ndarray[np.float64_t, ndim=2] redges):
         cdef AdaptiveRayPacket *ray = self.first
         cdef np.float64_t domega
         domega = self.get_domega(pg.left_edge, pg.right_edge)
@@ -906,13 +915,20 @@ cdef class AdaptiveRaySource:
             # outside the brick!
             #print count
             count +=1
-            if self.intersects(ray, pg):
+            #if self.intersects(ray, pg):
+            if ray.ngrid_id == pgi:
                 ray = self.refine_ray(ray, domega, pg.dds[0],
                                       pg.left_edge, pg.right_edge)
                 pg.integrate_ray(self.center, ray.v_dir, ray.value,
                                  tf, &ray.t)
                 for i in range(3):
                     ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
+                for i in range(pgi+1, ledges.shape[0]):
+                    if ((ledges[i, 0] <= ray.pos[0] <= redges[i, 0]) and
+                        (ledges[i, 1] <= ray.pos[1] <= redges[i, 1]) and
+                        (ledges[i, 2] <= ray.pos[2] <= redges[i, 2])):
+                        ray.ngrid_id = i
+                        break
             ray = ray.next
 
     cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
@@ -942,18 +958,11 @@ cdef class AdaptiveRaySource:
                     r2[2] = r2[1] + (edge[k][2] - self.center[2])**2.0
                     max_r2 = fmax(max_r2, r2[2])
         domega = 4.0 * 3.1415926 * max_r2 # Used to be / Nrays
-        #print domega, max_r2**0.5, self.nrays,
-        #print self.center[0],
-        #print self.center[1],
-        #print self.center[2],
-        #print edge[0][0],
-        #print edge[0][1],
-        #print edge[0][2],
-        #print edge[1][0],
-        #print edge[1][1],
-        #print edge[1][2]
         return domega
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef AdaptiveRayPacket *refine_ray(self, AdaptiveRayPacket *ray,
                                        np.float64_t domega,
                                        np.float64_t dx,
@@ -962,6 +971,7 @@ cdef class AdaptiveRaySource:
         # This should be recursive; we are not correctly applying split
         # criteria multiple times.
         cdef long Nrays = 12 * ray.nside * ray.nside
+        cdef int i, j
         if domega/Nrays < dx*dx/self.rays_per_cell:
             #print ray.nside, domega/Nrays, dx, (domega/Nrays * self.rays_per_cell)/(dx*dx)
             return ray
@@ -985,6 +995,7 @@ cdef class AdaptiveRaySource:
             for j in range(3):
                 new_ray.v_dir[j] = v_dir[j] * self.normalization
                 new_ray.value[j] = ray.value[j]
+                new_ray.pos[j] = self.center[j] + ray.t * new_ray.v_dir[j]
             new_ray.value[3] = ray.value[3]
 
         new_ray.next = ray.next

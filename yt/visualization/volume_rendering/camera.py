@@ -634,9 +634,11 @@ class AdaptiveHEALpixCamera(Camera):
         pbar = get_pbar("Ray casting",
                         (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
-        bricks = [b for b in self.volume.traverse(None, self.center, None)]
-        for brick in reversed(bricks):
-            ray_source.integrate_brick(brick, tfp)
+        bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
+        left_edges = na.array([b.LeftEdge for b in bricks])
+        right_edges = na.array([b.RightEdge for b in bricks])
+        for i,brick in enumerate(bricks):
+            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
