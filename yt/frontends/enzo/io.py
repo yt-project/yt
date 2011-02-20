@@ -159,6 +159,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return field.swapaxes(0,2)
 
     def preload(self, grids, sets):
+        if len(grids) == 0:
+            data = None
+            return
         # We need to deal with files first
         files_keys = defaultdict(lambda: [])
         pf_field_list = grids[0].pf.h.field_list
