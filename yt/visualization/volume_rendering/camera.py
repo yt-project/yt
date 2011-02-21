@@ -625,8 +625,6 @@ class AdaptiveHEALpixCamera(Camera):
         self.rays_per_cell = rays_per_cell
 
     def snapshot(self, fn = None):
-        ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
-                                       self.initial_nside, self.radius)
         tfp = TransferFunctionProxy(self.transfer_function)
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
@@ -637,6 +635,9 @@ class AdaptiveHEALpixCamera(Camera):
         bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
         left_edges = na.array([b.LeftEdge for b in bricks])
         right_edges = na.array([b.RightEdge for b in bricks])
+        ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
+                                       self.initial_nside, self.radius,
+                                       bricks)
         for i,brick in enumerate(bricks):
             ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges)
             total_cells += na.prod(brick.my_data[0].shape)

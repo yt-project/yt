@@ -408,6 +408,8 @@ cdef class VectorPlane:
         for k in range(nk):
             tv[offset + k] = fv[k]
 
+cdef struct AdaptiveRayPacket
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -826,9 +828,10 @@ cdef struct AdaptiveRayPacket:
     np.float64_t v_dir[3]
     np.float64_t value[4]
     np.float64_t pos[3]
-    int ngrid_id
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
+    AdaptiveRayPacket *brick_next
+    AdaptiveRayPacket *brick_prev
 
 cdef class AdaptiveRaySource:
     cdef np.float64_t center[3]
@@ -836,9 +839,11 @@ cdef class AdaptiveRaySource:
     cdef AdaptiveRayPacket *first
     cdef public np.float64_t normalization
     cdef public int nrays
+    cdef AdaptiveRayPacket **packet_pointers
+    cdef AdaptiveRayPacket **lpacket_pointers
 
     def __cinit__(self, center, rays_per_cell, initial_nside,
-                  np.float64_t normalization):
+                  np.float64_t normalization, brick_list):
         cdef int i
         self.center[0] = center[0]
         self.center[1] = center[1]
@@ -846,7 +851,18 @@ cdef class AdaptiveRaySource:
         self.rays_per_cell = rays_per_cell
         cdef AdaptiveRayPacket *ray = self.first
         cdef AdaptiveRayPacket *last = NULL
+        cdef PartitionedGrid pg
         cdef double v_dir[3]
+        cdef int nbricks = len(brick_list)
+        # You see, killbots have a preset kill limit. Knowing their weakness, I
+        # sent wave after wave of my own men at them until they reached their
+        # limit and shut down.
+        self.lpacket_pointers = <AdaptiveRayPacket **> \
+            malloc(sizeof(AdaptiveRayPacket*)*nbricks)
+        self.packet_pointers = <AdaptiveRayPacket **> \
+            malloc(sizeof(AdaptiveRayPacket*)*nbricks)
+        for i in range(nbricks):
+            self.lpacket_pointers[i] = self.packet_pointers[i] = NULL
         self.normalization = normalization
         self.nrays = 12*initial_nside*initial_nside
         for i in range(12*initial_nside*initial_nside):
@@ -865,10 +881,16 @@ cdef class AdaptiveRaySource:
             ray.pos[0] = self.center[0]
             ray.pos[1] = self.center[1]
             ray.pos[2] = self.center[2]
-            ray.ngrid_id = 0
-            if i == 0: self.first = ray
-            if last != NULL: last.next = ray
+            ray.brick_prev = last
+            ray.brick_next = NULL
+            if last != NULL:
+                last.next = ray
+                last.brick_next = ray
+            else:
+                self.first = ray
             last = ray
+        self.packet_pointers[0] = self.first
+        self.lpacket_pointers[0] = last
 
     def __dealloc__(self):
         cdef AdaptiveRayPacket *next
@@ -877,6 +899,7 @@ cdef class AdaptiveRaySource:
             next = ray.next
             free(ray)
             ray = next
+        free(self.packet_pointers)
 
     def get_rays(self):
         cdef AdaptiveRayPacket *ray = self.first
@@ -904,32 +927,40 @@ cdef class AdaptiveRaySource:
     def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf,
                         int pgi, np.ndarray[np.float64_t, ndim=2] ledges,
                                  np.ndarray[np.float64_t, ndim=2] redges):
-        cdef AdaptiveRayPacket *ray = self.first
         cdef np.float64_t domega
         domega = self.get_domega(pg.left_edge, pg.right_edge)
-        #print "dOmega", domega, self.nrays
+        print "dOmega", domega, self.nrays
         cdef int count = 0
         cdef int i
+        cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
+        cdef AdaptiveRayPacket *next
         while ray != NULL:
             # Note that we may end up splitting a ray such that it ends up
             # outside the brick!
             #print count
             count +=1
             #if self.intersects(ray, pg):
-            if ray.ngrid_id == pgi:
-                ray = self.refine_ray(ray, domega, pg.dds[0],
-                                      pg.left_edge, pg.right_edge)
-                pg.integrate_ray(self.center, ray.v_dir, ray.value,
-                                 tf, &ray.t)
-                for i in range(3):
-                    ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
-                for i in range(pgi+1, ledges.shape[0]):
-                    if ((ledges[i, 0] <= ray.pos[0] <= redges[i, 0]) and
-                        (ledges[i, 1] <= ray.pos[1] <= redges[i, 1]) and
-                        (ledges[i, 2] <= ray.pos[2] <= redges[i, 2])):
-                        ray.ngrid_id = i
-                        break
-            ray = ray.next
+            ray = self.refine_ray(ray, domega, pg.dds[0],
+                                  pg.left_edge, pg.right_edge)
+            pg.integrate_ray(self.center, ray.v_dir, ray.value,
+                             tf, &ray.t)
+            for i in range(3):
+                ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
+            next = ray.brick_next
+            for i in range(pgi+1, ledges.shape[0]):
+                if ((ledges[i, 0] <= ray.pos[0] <= redges[i, 0]) and
+                    (ledges[i, 1] <= ray.pos[1] <= redges[i, 1]) and
+                    (ledges[i, 2] <= ray.pos[2] <= redges[i, 2])):
+                    if self.lpacket_pointers[i] == NULL:
+                        self.packet_pointers[i] = \
+                        self.lpacket_pointers[i] = ray
+                        ray.brick_prev = ray.brick_next = NULL
+                    else:
+                        self.lpacket_pointers[i].brick_next = ray
+                        ray.brick_prev = self.lpacket_pointers[i]
+                        self.lpacket_pointers[i] = ray
+                        ray.brick_next = NULL
+            ray = next
 
     cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
         cdef np.float64_t pos[3]
@@ -980,6 +1011,7 @@ cdef class AdaptiveRaySource:
         # Now we make four new ones
         cdef double v_dir[3]
         cdef AdaptiveRayPacket *prev = ray.prev
+        cdef AdaptiveRayPacket *brick_prev = ray.brick_prev
         for i in range(4):
             new_ray = <AdaptiveRayPacket *> malloc(
                             sizeof(AdaptiveRayPacket))
@@ -987,9 +1019,12 @@ cdef class AdaptiveRaySource:
             new_ray.ipix = ray.ipix * 4 + i
             new_ray.t = ray.t
             new_ray.prev = prev
+            new_ray.brick_prev = brick_prev
             if new_ray.prev != NULL:
                 new_ray.prev.next = new_ray
-            prev = new_ray
+            if new_ray.brick_prev != NULL:
+                new_ray.brick_prev.brick_next = new_ray
+            prev = brick_prev = new_ray
             healpix_interface.pix2vec_nest(
                     new_ray.nside, new_ray.ipix, v_dir)
             for j in range(3):
@@ -999,8 +1034,11 @@ cdef class AdaptiveRaySource:
             new_ray.value[3] = ray.value[3]
 
         new_ray.next = ray.next
+        new_ray.brick_next = ray.brick_next
         if new_ray.next != NULL:
             new_ray.next.prev = new_ray
+        if new_ray.brick_next != NULL:
+            new_ray.brick_next.brick_prev = new_ray
         if self.first == ray:
             self.first = new_ray.prev.prev.prev
         free(ray)
