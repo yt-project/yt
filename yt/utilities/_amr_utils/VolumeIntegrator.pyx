@@ -831,7 +831,7 @@ cdef struct AdaptiveRayPacket:
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
     AdaptiveRayPacket *brick_next
-    AdaptiveRayPacket *brick_prev
+    #int cgi
 
 cdef class AdaptiveRaySource:
     cdef np.float64_t center[3]
@@ -839,12 +839,14 @@ cdef class AdaptiveRaySource:
     cdef AdaptiveRayPacket *first
     cdef public np.float64_t normalization
     cdef public int nrays
+    cdef public int max_nside
     cdef AdaptiveRayPacket **packet_pointers
     cdef AdaptiveRayPacket **lpacket_pointers
 
     def __cinit__(self, center, rays_per_cell, initial_nside,
-                  np.float64_t normalization, brick_list):
+                  np.float64_t normalization, brick_list, int max_nside = 8096):
         cdef int i
+        self.max_nside = max_nside
         self.center[0] = center[0]
         self.center[1] = center[1]
         self.center[2] = center[2]
@@ -865,7 +867,7 @@ cdef class AdaptiveRaySource:
             self.lpacket_pointers[i] = self.packet_pointers[i] = NULL
         self.normalization = normalization
         self.nrays = 12*initial_nside*initial_nside
-        for i in range(12*initial_nside*initial_nside):
+        for i in range(self.nrays):
             # Initialize rays here
             ray = <AdaptiveRayPacket *> malloc(sizeof(AdaptiveRayPacket))
             ray.prev = last
@@ -878,10 +880,10 @@ cdef class AdaptiveRaySource:
             ray.v_dir[2] = v_dir[2] * normalization
             ray.value[0] = ray.value[1] = ray.value[2] = ray.value[3] = 0.0
             ray.next = NULL
+            #ray.cgi = 0
             ray.pos[0] = self.center[0]
             ray.pos[1] = self.center[1]
             ray.pos[2] = self.center[2]
-            ray.brick_prev = last
             ray.brick_next = NULL
             if last != NULL:
                 last.next = ray
@@ -929,7 +931,7 @@ cdef class AdaptiveRaySource:
                                  np.ndarray[np.float64_t, ndim=2] redges):
         cdef np.float64_t domega
         domega = self.get_domega(pg.left_edge, pg.right_edge)
-        print "dOmega", domega, self.nrays
+        #print "dOmega", domega, self.nrays
         cdef int count = 0
         cdef int i
         cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
@@ -939,6 +941,10 @@ cdef class AdaptiveRaySource:
             # outside the brick!
             #print count
             count +=1
+            #if count > 10+self.nrays or ray.cgi != pgi:
+            #    raise RuntimeError
+            # We don't need to check for intersection anymore, as we are the
+            # Ruler of the planet Omicron Persei 8
             #if self.intersects(ray, pg):
             ray = self.refine_ray(ray, domega, pg.dds[0],
                                   pg.left_edge, pg.right_edge)
@@ -946,6 +952,7 @@ cdef class AdaptiveRaySource:
                              tf, &ray.t)
             for i in range(3):
                 ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
+            # We set 'next' after the refinement has occurred
             next = ray.brick_next
             for i in range(pgi+1, ledges.shape[0]):
                 if ((ledges[i, 0] <= ray.pos[0] <= redges[i, 0]) and
@@ -954,12 +961,13 @@ cdef class AdaptiveRaySource:
                     if self.lpacket_pointers[i] == NULL:
                         self.packet_pointers[i] = \
                         self.lpacket_pointers[i] = ray
-                        ray.brick_prev = ray.brick_next = NULL
+                        ray.brick_next = NULL
                     else:
                         self.lpacket_pointers[i].brick_next = ray
-                        ray.brick_prev = self.lpacket_pointers[i]
                         self.lpacket_pointers[i] = ray
                         ray.brick_next = NULL
+                    #ray.cgi = i
+                    break
             ray = next
 
     cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
@@ -1006,24 +1014,27 @@ cdef class AdaptiveRaySource:
         if domega/Nrays < dx*dx/self.rays_per_cell:
             #print ray.nside, domega/Nrays, dx, (domega/Nrays * self.rays_per_cell)/(dx*dx)
             return ray
-        if ray.nside == 8192: return ray
+        if ray.nside >= self.max_nside: return ray
         #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
         # Now we make four new ones
         cdef double v_dir[3]
         cdef AdaptiveRayPacket *prev = ray.prev
-        cdef AdaptiveRayPacket *brick_prev = ray.brick_prev
+        # It is important to note here that brick_prev is a local variable for
+        # the newly created rays, not the previous ray in this brick, as that
+        # has already been passed on to its next brick
+        cdef AdaptiveRayPacket *brick_prev = NULL
         for i in range(4):
             new_ray = <AdaptiveRayPacket *> malloc(
                             sizeof(AdaptiveRayPacket))
             new_ray.nside = ray.nside * 2
             new_ray.ipix = ray.ipix * 4 + i
             new_ray.t = ray.t
+            #new_ray.cgi = ray.cgi
             new_ray.prev = prev
-            new_ray.brick_prev = brick_prev
             if new_ray.prev != NULL:
                 new_ray.prev.next = new_ray
-            if new_ray.brick_prev != NULL:
-                new_ray.brick_prev.brick_next = new_ray
+            if brick_prev != NULL:
+                brick_prev.brick_next = new_ray
             prev = brick_prev = new_ray
             healpix_interface.pix2vec_nest(
                     new_ray.nside, new_ray.ipix, v_dir)
@@ -1037,8 +1048,6 @@ cdef class AdaptiveRaySource:
         new_ray.brick_next = ray.brick_next
         if new_ray.next != NULL:
             new_ray.next.prev = new_ray
-        if new_ray.brick_next != NULL:
-            new_ray.brick_next.brick_prev = new_ray
         if self.first == ray:
             self.first = new_ray.prev.prev.prev
         free(ray)

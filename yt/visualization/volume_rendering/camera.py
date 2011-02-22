@@ -604,7 +604,7 @@ class AdaptiveHEALpixCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False,
-                 rays_per_cell = 5.1):
+                 rays_per_cell = 0.1):
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
