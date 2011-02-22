@@ -1041,13 +1041,16 @@ class ParallelAnalysisInterface(object):
             ncols = -1
             size = 0
         else:
-            if len(data.shape) == 1:
+            if len(data) == 0:
+                ncols = -1
+                size = 0
+            elif len(data.shape) == 1:
                 ncols = 1
                 size = data.shape[0]
             else:
                 ncols, size = data.shape
         ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
-        if data is None:
+        if size == 0:
             data = na.empty((ncols,0), dtype='float64') # This only works for
         size = data.shape[-1]
         sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
