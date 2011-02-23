@@ -933,9 +933,10 @@ cdef class AdaptiveRaySource:
         domega = self.get_domega(pg.left_edge, pg.right_edge)
         #print "dOmega", domega, self.nrays
         cdef int count = 0
-        cdef int i
+        cdef int i, j
         cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
         cdef AdaptiveRayPacket *next
+        cdef int *grid_neighbors = self.find_neighbors(pgi, pg.dds[0], ledges, redges)
         while ray != NULL:
             # Note that we may end up splitting a ray such that it ends up
             # outside the brick!
@@ -954,7 +955,8 @@ cdef class AdaptiveRaySource:
                 ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
             # We set 'next' after the refinement has occurred
             next = ray.brick_next
-            for i in range(pgi+1, ledges.shape[0]):
+            for j in range(grid_neighbors[0]):
+                i = grid_neighbors[j+1]
                 if ((ledges[i, 0] <= ray.pos[0] <= redges[i, 0]) and
                     (ledges[i, 1] <= ray.pos[1] <= redges[i, 1]) and
                     (ledges[i, 2] <= ray.pos[2] <= redges[i, 2])):
@@ -969,6 +971,43 @@ cdef class AdaptiveRaySource:
                     #ray.cgi = i
                     break
             ray = next
+        free(grid_neighbors)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int *find_neighbors(self, int this_grid, np.float64_t dds,
+                             np.ndarray[np.float64_t, ndim=2] ledges,
+                             np.ndarray[np.float64_t, ndim=2] redges):
+        # Iterate once to count the number of grids, iterate a second time to
+        # fill the array.  This could be better with a linked list, but I think
+        # that the difference should not be substantial.
+        cdef int i = 0
+        cdef int count = 0
+        # We grow our grids by dx in every direction, then look for overlap
+        cdef np.float64_t gle[3], gre[3]
+        gle[0] = ledges[this_grid, 0] - dds
+        gle[1] = ledges[this_grid, 1] - dds
+        gle[2] = ledges[this_grid, 2] - dds
+        gre[0] = redges[this_grid, 0] + dds
+        gre[1] = redges[this_grid, 1] + dds
+        gre[2] = redges[this_grid, 2] + dds
+        for i in range(this_grid+1, ledges.shape[0]):
+            # Check for overlap
+            if ((gle[0] < redges[i, 0] and gre[0] > ledges[i, 0]) and
+                (gle[1] < redges[i, 1] and gre[1] > ledges[i, 1]) and
+                (gle[2] < redges[i, 2] and gre[2] > ledges[i, 2])):
+                count += 1
+        cdef int *tr = <int *> malloc(sizeof(int) * count + 1)
+        tr[0] = count
+        count = 0
+        for i in range(this_grid+1, ledges.shape[0]):
+            # Check for overlap
+            if ((gle[0] < redges[i, 0] and gre[0] > ledges[i, 0]) and
+                (gle[1] < redges[i, 1] and gre[1] > ledges[i, 1]) and
+                (gle[2] < redges[i, 2] and gre[2] > ledges[i, 2])):
+                tr[count + 1] = i
+                count += 1
+        return tr
 
     cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
         cdef np.float64_t pos[3]
