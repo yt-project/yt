@@ -58,6 +58,9 @@ class Streamlines(ParallelAnalysisInterface):
     length : float, optional
         Optionally specify the length of integration.  
         Default: na.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
+    direction : real, optional
+        Specifies the direction of integration.  The magnitude of this
+        value has no effect, only the sign.
     
     Examples
     --------
@@ -84,13 +87,14 @@ class Streamlines(ParallelAnalysisInterface):
     >>> pl.savefig('streamlines.png')
     """
     def __init__(self, pf, positions, xfield, yfield, zfield, volume=None,
-                 dx=None, length=None):
+                 dx=None, length=None, direction=1):
         self.pf = pf
         self.start_positions = positions
         self.N = self.start_positions.shape[0]
         self.xfield = xfield
         self.yfield = yfield
         self.zfield = zfield
+        self.direction = na.sign(direction)
         if volume is None:
             volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
                             log_fields=[False,False,False], merge_trees=True)
@@ -129,7 +133,7 @@ class Streamlines(ParallelAnalysisInterface):
             self.volume.get_brick_data(node)
             brick = node.brick
             stream[-step+1] = stream[-step]
-            brick.integrate_streamline(stream[-step+1], self.dx)
+            brick.integrate_streamline(stream[-step+1], self.direction*self.dx)
             if na.any(stream[-step+1,:] <= self.pf.domain_left_edge) | \
                    na.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
@@ -141,6 +145,6 @@ class Streamlines(ParallelAnalysisInterface):
         return step
 
     
-
+    
 
         
