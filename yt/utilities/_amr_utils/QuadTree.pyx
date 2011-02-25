@@ -98,7 +98,9 @@ cdef void QTN_free(QuadTreeNode *node):
 
 cdef class QuadTree:
     cdef int nvals
-    cdef np.int64_t po2[80]
+    # Hardcode to a maximum 80 levels of refinement.
+    # TODO: Update when we get to yottascale.
+    cdef np.int64_t po2[80] 
     cdef QuadTreeNode ***root_nodes
     cdef np.int64_t top_grid_dims[2]
 

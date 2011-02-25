@@ -1456,7 +1456,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         self._obtain_fields(fields, self._node_name)
         fields = [f for f in fields if f not in self.data]
         if len(fields) == 0: return
-        tree = self._get_tree(len(fields) + int(self._weight is not None))
+        tree = self._get_tree(len(fields))
         coord_data = []
         field_data = []
         dxs = []
@@ -1482,7 +1482,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
             coord_data.append(npos)
-            if self._weight is not None: nvals /= nwvals
+            if self._weight is not None: nvals /= nwvals[:,None]
             field_data.append(nvals)
             weight_data.append(nwvals)
             gs = self.source.select_grids(level)
@@ -1534,7 +1534,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             masked_data  = [field_data[field].copy().astype('float64') * weight_data
                                 for field in fields]
             del field_data
-            wdl = self.dls[-1]
+            wdl = dls[-1]
         full_proj = [self.func(field, axis=self.axis) * dl
                      for field, dl in zip(masked_data, dls)]
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
@@ -1544,11 +1544,12 @@ class AMRQuadTreeProjBase(AMR2DData):
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
-        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
+        xind, yind = [arr[used_points].ravel()
+                      for arr in na.indices(full_proj[0].shape)]
         start_index = grid.get_global_startindex()
         xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
-        to_add = na.array([d[used_points].ravel() for d in full_proj])
+        to_add = na.array([d[used_points].ravel() for d in full_proj], order='F')
         tree.add_array_to_tree(grid.Level, xpoints, ypoints, 
                     to_add, weight_proj[used_points].ravel())
 
