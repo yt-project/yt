@@ -610,6 +610,26 @@ class ParallelAnalysisInterface(object):
         return (data, final)
 
     @parallel_passthrough
+    def _mpi_cat2d_double_array(self, data):
+        self._barrier()
+        data, final_shape = data
+        if MPI.COMM_WORLD.rank == 0:
+            new_array = na.zeros(final_shape,dtype='float64')
+            new_array[0:data.shape[0],:,:] = data[:]
+            rows_filled = data.shape[0]
+            for i in range(1, MPI.COMM_WORLD.size):
+                new_rows = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_array[rows_filled:rows_filled+new_rows,:,:] = _recv_array(
+                    source=i, tag=0).reshape((new_rows, final_shape[1], final_shape[2]))
+                rows_filled += new_rows
+            data = new_array
+        else:
+            MPI.COMM_WORLD.send(data.shape[0], 0, 0)
+            _send_array(data.ravel(), dest=0, tag=0)
+        data = MPI.COMM_WORLD.bcast(data)
+        return data
+            
+    @parallel_passthrough
     def _mpi_catdict(self, data):
         field_keys = data.keys()
         field_keys.sort()

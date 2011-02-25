@@ -55,3 +55,6 @@ from plot_modifications import \
 
 from easy_plots import \
     plot_type_registry
+
+from streamlines import \
+     StreamLines
