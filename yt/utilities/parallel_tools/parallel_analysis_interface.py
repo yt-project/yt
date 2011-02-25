@@ -1117,7 +1117,13 @@ class ParallelAnalysisInterface(object):
         self._barrier()
         # We use old-school pickling here on the assumption the arrays are
         # relatively small ( < 1e7 elements )
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
+        if isinstance(data, na.ndarray):
+            tr = na.zeros_like(data)
+            if not data.flags.c_contiguous: data = data.copy()
+            MPI.COMM_WORLD.Allreduce(data, tr, op=MPI.SUM)
+            return tr
+        else:
+            return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
 
     @parallel_passthrough
     def _mpi_Allsum_double(self, data):
