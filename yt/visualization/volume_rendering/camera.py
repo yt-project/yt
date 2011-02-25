@@ -604,7 +604,7 @@ class AdaptiveHEALpixCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False,
-                 rays_per_cell = 0.1):
+                 rays_per_cell = 0.1, max_nside = 8192):
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
@@ -623,6 +623,7 @@ class AdaptiveHEALpixCamera(Camera):
         self.volume = volume
         self.initial_nside = nside
         self.rays_per_cell = rays_per_cell
+        self.max_nside = max_nside
 
     def snapshot(self, fn = None):
         tfp = TransferFunctionProxy(self.transfer_function)
@@ -635,9 +636,17 @@ class AdaptiveHEALpixCamera(Camera):
         bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
         left_edges = na.array([b.LeftEdge for b in bricks])
         right_edges = na.array([b.RightEdge for b in bricks])
+        min_dx = min(((b.RightEdge[0] - b.LeftEdge[0])/b.my_data[0].shape[0]
+                     for b in bricks))
+        # We jitter a bit if we're on a boundary of our initial grid
+        for i in range(3):
+            if bricks[0].LeftEdge[i] == self.center[i]:
+                self.center += 1e-2 * min_dx
+            elif bricks[0].RightEdge[i] == self.center[i]:
+                self.center -= 1e-2 * min_dx
         ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
                                        self.initial_nside, self.radius,
-                                       bricks)
+                                       bricks, self.max_nside)
         for i,brick in enumerate(bricks):
             ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges)
             total_cells += na.prod(brick.my_data[0].shape)

@@ -63,6 +63,7 @@ cdef extern from "math.h":
     double fmod(double x, double y)
     double log2(double x)
     long int lrint(double x)
+    double fabs(double x)
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
@@ -596,6 +597,7 @@ cdef class PartitionedGrid:
             if tdelta[i] < 0: tdelta[i] *= -1
         # We have to jumpstart our calculation
         enter_t = intersect_t
+        hit = 0
         while 1:
             # dims here is one less than the dimensions of the data,
             # but we are tracing on the grid, not on the data...
@@ -634,7 +636,7 @@ cdef class PartitionedGrid:
                     cur_ind[2] += step[2]
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
-            if enter_t > 1.0: break
+            if enter_t >= 1.0: break
         if return_t != NULL: return_t[0] = exit_t
         return hit
 
@@ -844,14 +846,14 @@ cdef class AdaptiveRaySource:
     cdef AdaptiveRayPacket **lpacket_pointers
 
     def __cinit__(self, center, rays_per_cell, initial_nside,
-                  np.float64_t normalization, brick_list, int max_nside = 8096):
+                  np.float64_t normalization, brick_list, int max_nside = 8192):
         cdef int i
         self.max_nside = max_nside
         self.center[0] = center[0]
         self.center[1] = center[1]
         self.center[2] = center[2]
         self.rays_per_cell = rays_per_cell
-        cdef AdaptiveRayPacket *ray = self.first
+        cdef AdaptiveRayPacket *ray
         cdef AdaptiveRayPacket *last = NULL
         cdef PartitionedGrid pg
         cdef double v_dir[3]
@@ -873,7 +875,7 @@ cdef class AdaptiveRaySource:
             ray.prev = last
             ray.ipix = i
             ray.nside = initial_nside
-            ray.t = 0.0 # Start in the first brick
+            ray.t = 0.0 # We assume we are not on a brick boundary
             healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
             ray.v_dir[0] = v_dir[0] * normalization
             ray.v_dir[1] = v_dir[1] * normalization
@@ -937,29 +939,34 @@ cdef class AdaptiveRaySource:
         cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
         cdef AdaptiveRayPacket *next
         cdef int *grid_neighbors = self.find_neighbors(pgi, pg.dds[0], ledges, redges)
+        cdef np.float64_t enter_t, dt, offpos[3]
+        cdef int found_a_home, hit
+        #print "Grid: ", pgi, "has", grid_neighbors[0], "neighbors"
         while ray != NULL:
             # Note that we may end up splitting a ray such that it ends up
-            # outside the brick!
+            # outside the brick!  This will likely cause them to get lost.
             #print count
             count +=1
-            #if count > 10+self.nrays or ray.cgi != pgi:
-            #    raise RuntimeError
             # We don't need to check for intersection anymore, as we are the
             # Ruler of the planet Omicron Persei 8
             #if self.intersects(ray, pg):
             ray = self.refine_ray(ray, domega, pg.dds[0],
                                   pg.left_edge, pg.right_edge)
-            pg.integrate_ray(self.center, ray.v_dir, ray.value,
-                             tf, &ray.t)
+            enter_t = ray.t
+            hit = pg.integrate_ray(self.center, ray.v_dir, ray.value, tf, &ray.t)
+            if hit == 0: dt = 0.0
+            else: dt = (ray.t - enter_t)/hit
             for i in range(3):
-                ray.pos[i] = ray.v_dir[i] * (ray.t + 1e-8) + self.center[i]
+                ray.pos[i] = ray.v_dir[i] * ray.t + self.center[i]
+                offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-5*dt
             # We set 'next' after the refinement has occurred
             next = ray.brick_next
+            found_a_home = 0
             for j in range(grid_neighbors[0]):
                 i = grid_neighbors[j+1]
-                if ((ledges[i, 0] <= ray.pos[0] <= redges[i, 0]) and
-                    (ledges[i, 1] <= ray.pos[1] <= redges[i, 1]) and
-                    (ledges[i, 2] <= ray.pos[2] <= redges[i, 2])):
+                if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
+                    (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
+                    (ledges[i, 2] <= offpos[2] <= redges[i, 2])):
                     if self.lpacket_pointers[i] == NULL:
                         self.packet_pointers[i] = \
                         self.lpacket_pointers[i] = ray
@@ -969,6 +976,7 @@ cdef class AdaptiveRaySource:
                         self.lpacket_pointers[i] = ray
                         ray.brick_next = NULL
                     #ray.cgi = i
+                    found_a_home = 1
                     break
             ray = next
         free(grid_neighbors)
@@ -993,18 +1001,18 @@ cdef class AdaptiveRaySource:
         gre[2] = redges[this_grid, 2] + dds
         for i in range(this_grid+1, ledges.shape[0]):
             # Check for overlap
-            if ((gle[0] < redges[i, 0] and gre[0] > ledges[i, 0]) and
-                (gle[1] < redges[i, 1] and gre[1] > ledges[i, 1]) and
-                (gle[2] < redges[i, 2] and gre[2] > ledges[i, 2])):
+            if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
+                (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
+                (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
                 count += 1
-        cdef int *tr = <int *> malloc(sizeof(int) * count + 1)
+        cdef int *tr = <int *> malloc(sizeof(int) * (count + 1))
         tr[0] = count
         count = 0
         for i in range(this_grid+1, ledges.shape[0]):
             # Check for overlap
-            if ((gle[0] < redges[i, 0] and gre[0] > ledges[i, 0]) and
-                (gle[1] < redges[i, 1] and gre[1] > ledges[i, 1]) and
-                (gle[2] < redges[i, 2] and gre[2] > ledges[i, 2])):
+            if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
+                (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
+                (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
                 tr[count + 1] = i
                 count += 1
         return tr
