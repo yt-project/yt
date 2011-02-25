@@ -38,24 +38,27 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
     if i0 < i1: return i0
     return i1
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+#@cython.boundscheck(False)
+#@cython.wraparound(False)
 def construct_boundary_relationships(
         np.ndarray[dtype=np.int64_t, ndim=3] contour_ids):
     # We only look at the boundary and one cell in
     cdef int i, j, nx, ny, nz, offset_i, offset_j, oi, oj
     cdef np.int64_t c1, c2
-    tree = []
     nx = contour_ids.shape[0]
     ny = contour_ids.shape[1]
     nz = contour_ids.shape[2]
+    # We allocate an array of fixed (maximum) size
+    cdef int s = (ny*nx + nx*nz + nx*nz - 4) * 9
+    cdef np.ndarray[np.int64_t, ndim=2] tree = np.zeros((s, 2), dtype="int64")
+    cdef int ti = 0
     # First x-pass
     for i in range(ny):
         for j in range(nz):
             for offset_i in range(3):
                 oi = offset_i - 1
                 if i == 0 and oi == -1: continue
-                if i == ny - 1 and oj == 1: continue
+                if i == ny - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
                     if j == 0 and oj == -1: continue
@@ -63,18 +66,22 @@ def construct_boundary_relationships(
                     c1 = contour_ids[0, i, j]
                     c2 = contour_ids[1, i + oi, j + oj]
                     if c1 > -1 and c2 > -1:
-                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                        tree[ti,0] = i64max(c1,c2)
+                        tree[ti,1] = i64min(c1,c2)
+                        ti += 1
                     c1 = contour_ids[nx-1, i, j]
                     c2 = contour_ids[nx-2, i + oi, j + oj]
                     if c1 > -1 and c2 > -1:
-                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                        tree[ti,0] = i64max(c1,c2)
+                        tree[ti,1] = i64min(c1,c2)
+                        ti += 1
     # Now y-pass
     for i in range(nx):
         for j in range(nz):
             for offset_i in range(3):
                 oi = offset_i - 1
                 if i == 0 and oi == -1: continue
-                if i == nx - 1 and oj == 1: continue
+                if i == nx - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
                     if j == 0 and oj == -1: continue
@@ -82,17 +89,21 @@ def construct_boundary_relationships(
                     c1 = contour_ids[i, 0, j]
                     c2 = contour_ids[i + oi, 1, j + oj]
                     if c1 > -1 and c2 > -1:
-                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                        tree[ti,0] = i64max(c1,c2)
+                        tree[ti,1] = i64min(c1,c2)
+                        ti += 1
                     c1 = contour_ids[i, ny-1, j]
                     c2 = contour_ids[i + oi, ny-2, j + oj]
                     if c1 > -1 and c2 > -1:
-                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                        tree[ti,0] = i64max(c1,c2)
+                        tree[ti,1] = i64min(c1,c2)
+                        ti += 1
     for i in range(nx):
         for j in range(ny):
             for offset_i in range(3):
                 oi = offset_i - 1
                 if i == 0 and oi == -1: continue
-                if i == nx - 1 and oj == 1: continue
+                if i == nx - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
                     if j == 0 and oj == -1: continue
@@ -100,12 +111,16 @@ def construct_boundary_relationships(
                     c1 = contour_ids[i, j, 0]
                     c2 = contour_ids[i + oi, j + oj, 1]
                     if c1 > -1 and c2 > -1:
-                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                        tree[ti,0] = i64max(c1,c2)
+                        tree[ti,1] = i64min(c1,c2)
+                        ti += 1
                     c1 = contour_ids[i, j, nz-1]
                     c2 = contour_ids[i + oi, j + oj, nz-2]
                     if c1 > -1 and c2 > -1:
-                        tree.append((i64max(c1,c2), i64min(c1,c2)))
-    return tree
+                        tree[ti,0] = i64max(c1,c2)
+                        tree[ti,1] = i64min(c1,c2)
+                        ti += 1
+    return tree[:ti,:]
 
 cdef inline int are_neighbors(
             np.float64_t x1, np.float64_t y1, np.float64_t z1,

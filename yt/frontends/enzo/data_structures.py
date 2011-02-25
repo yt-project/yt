@@ -559,6 +559,18 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
     def save_data(self, *args, **kwargs):
         pass
 
+    _cached_field_list = None
+    _cached_derived_field_list = None
+
+    def _detect_fields(self):
+        if self.__class__._cached_field_list is None:
+            EnzoHierarchy._detect_fields(self)
+            self.__class__._cached_field_list = self.field_list
+            self.__class__._cached_derived_field_list = self.derived_field_list
+        else:
+            self.field_list = self.__class__._cached_field_list
+            self.derived_field_list = self.__class__._cached_derived_field_list
+
     def _generate_random_grids(self):
         my_rank = self._mpi_get_rank()
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
