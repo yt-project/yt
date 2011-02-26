@@ -31,7 +31,7 @@ from yt.funcs import *
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
-from yt.utilities.definitions import axis_names
+from yt.utilities.definitions import axis_names, inv_axis_names
 from .plot_types import \
     FixedResolutionPlot, \
     SlicePlot, \
@@ -54,6 +54,9 @@ def concatenate_pdfs(output_fn, input_fns):
         infile = PdfFileReader(open(fn, 'rb'))
         outfile.addPage(infile.getPage(0))
     outfile.write(open(output_fn, "wb"))
+
+def _fix_axis(axis):
+    return inv_axis_names.get(axis, axis)
 
 class PlotCollection(object):
     __id_counter = 0
@@ -93,7 +96,7 @@ class PlotCollection(object):
         --------
 
         >>> pc = PlotCollection(pf, center=[0.5, 0.5, 0.5])
-        >>> pc.add_slice("Density", 0)
+        >>> pc.add_slice("Density", 'x')
         >>> pc.save()
 
         """
@@ -325,7 +328,7 @@ class PlotCollection(object):
         field : string
             The initial field to slice and display.
         axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+            The axis along which to slice.  Can be 0, 1, or 2 or x, y, z.
         coord : float, optional
             The coordinate to place the slice at, along the slicing axis.
         center : array_like, optional
@@ -377,8 +380,9 @@ class PlotCollection(object):
 
         >>> pf = load("RD0005-mine/RedshiftOutput0005")
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
-        >>> p = pc.add_slice("Density", 0)
+        >>> p = pc.add_slice("Density", 'x')
         """
+        axis = _fix_axis(axis)
         if center == None:
             center = self.c
         if coord == None:
@@ -408,7 +412,7 @@ class PlotCollection(object):
         ----------
         axis : int
             The axis along which to create the thick slab.  Can be 0, 1, or 2
-            for x, y, z.
+            or x, y, z.
         width : float
             The width of the thick slab, in code units, from which particles
             will be plotted.
@@ -451,6 +455,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_particles(0, 1.0)
         """
+        axis = _fix_axis(axis)
         LE = self.pf.domain_left_edge.copy()
         RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
@@ -669,7 +674,7 @@ class PlotCollection(object):
         field : string
             The initial field to slice and display.
         axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+            The axis along which to slice.  Can be 0, 1, or 2 or x, y, z.
         data_source : `yt.data_objects.api.AMRData`
             This is a data source respecting the `AMRData` protocol (i.e., it
             has grids and so forth) that will be used as input to the
@@ -729,8 +734,9 @@ class PlotCollection(object):
 
         >>> pf = load("RD0005-mine/RedshiftOutput0005")
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
-        >>> p = pc.add_projection("Density", 0, "Density")
+        >>> p = pc.add_projection("Density", 'x', "Density")
         """
+        axis = _fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -763,7 +769,7 @@ class PlotCollection(object):
         field : string
             The initial field to slice and display.
         axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+            The axis along which to slice.  Can be 0, 1, or 2 or x, y, z.
         thickness : float
             In 'code units' this is the thickness of the region to be
             projected through.
@@ -819,6 +825,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_thin_projection("Density", 0, 0.1, "Density")
         """
+        axis = _fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -1370,7 +1377,7 @@ class PlotCollection(object):
         Parameters
         ----------
         axis : int
-            The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y,
+            The axis along which to cast the ray.  Can be 0, 1, or 2 or x, y,
             z.
         coords : tuple of floats
             The coordinates to place the ray at.  Note that the axes are in the
@@ -1409,7 +1416,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_ortho_ray(0, (0.5, 0.5), "Density")
         """
-
+        axis = _fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
         data_source = self.pf.h.ortho_ray(axis, coords, field,
@@ -1526,9 +1533,9 @@ class PlotCollection(object):
         as a PDF.
 
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
-        >>> pc.add_projection("Density", 0)
-        >>> pc.add_projection("Density", 1)
-        >>> pc.add_projection("Density", 2)
+        >>> pc.add_projection("Density", 'x')
+        >>> pc.add_projection("Density", 'y')
+        >>> pc.add_projection("Density", 'z')
         >>> pc.set_width(0.5, 'pc')
         >>> dd = pf.h.all_data()
         >>> pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
