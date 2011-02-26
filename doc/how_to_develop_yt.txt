@@ -30,8 +30,9 @@ All code in yt should be under the GPL-3 (preferred) or a compatible license.
 How To Get The Source Code
 --------------------------
 
-With the yt installation script you should have a copy of Mercurial.  You can
-clone the repository like so:
+yt is hosted on BitBucket, and you can see all of the yt repositories at
+http://hg.enzotools.org/ .  With the yt installation script you should have a
+copy of Mercurial.  You can clone the repository like so:
 
    $ hg clone http://hg.enzotools.org/yt/
 
@@ -46,6 +47,27 @@ different version of the library by executing:
    $ python2.6 setup.py develop
 
 This will rebuild all C modules as well.
+
+How To Submit Changes
+---------------------
+
+You can submit changes a couple different ways, but the easiest is to use the
+"fork" mechanism on BitBucket.  Just go here:
+
+http://hg.enzotools.org/yt/fork
+
+and you're all set, ready to go.  You'll have to either clone a new copy of the
+repository or edit .hg/hgrc to point to the location of your new fork, first,
+though.
+
+When you're ready to submit them to the main repository, simply go to:
+
+http://hg.enzotools.org/yt/fork
+
+Make sure you notify "yt_analysis" and put in a little description.  That'll
+notify the core developers that you've got something ready to submit, and we
+will review it an (hopefully!) merge it in.  If it goes well, you may end up
+with push access to the main repository.
 
 How To Read The Source Code
 ---------------------------
@@ -133,21 +155,3 @@ Please be careful when resolving conflicts in files.
 
 Once your branch has been merged in, mark it as closed on the wiki page.
 
-How To Submit Changes
----------------------
-
-If you do not have "push" rights on the primary mercurial repository, set up
-and use the "patchbomb" extension in mercurial to email a bundle of changes to
-the developer mailing list, yt-dev@lists.spacepope.org .
-
-The patchbomb extension is documented here:
-
-http://mercurial.selenic.com/wiki/PatchbombExtension
-
-Please be sure to specify that you wish to send a bundle.  This can be
-accomplished by setting up your hgrc to email the yt-dev mailing list and
-executing the command:
-
-   $ hg email -b
-
-Be sure to read the output of "hg help email" before doing this.
