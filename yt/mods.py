@@ -86,7 +86,7 @@ from yt.analysis_modules.halo_finding.api import \
     HaloFinder
 
 from yt.utilities.definitions import \
-    axis_names, x_dict, y_dict
+    axis_names, x_dict, y_dict, inv_axis_names
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import \
