@@ -59,7 +59,7 @@ class YTTaskCommunicator(object):
 
     @locked
     def query(self):
-        return self.waiting
+        return (self.waiting and self.task_id is None)
 
     def wait(self):
         self.waiting = True
@@ -95,16 +95,30 @@ class YTTaskQueueController(threading.Thread):
             time.sleep(self.interval)
             for i,c in enumerate(self.communicators):
                 if not c.query(): continue
+                print "Sending assignment %s to %s" % (
+                    len(self.assignments), i)
                 c.send_task(len(self.assignments))
                 self.assignments.append(i)
-        for c in self.communicators:
-            c.send_task(-1)
+                if len(self.assignments) >= len(self.tasks): break
+        terminated = 0
+        while terminated != len(self.communicators):
+            for i,c in enumerate(self.communicators):
+                if not c.query(): continue
+                c.send_task(-1)
+                terminated += 1
+                print "Terminated %s" % (i)
 
 class YTTaskQueueConsumer(object):
     # One of these will exist per individual MPI task or one per MPI
     # subcommunicator, depending on the level of parallelism.  They serve to
     # talk to the YTTaskQueueController on one side and possibly several
     # YTTaskExecutors on the other.
+    #
+    # One potential setup for this, when using MPI, would be to have the
+    # Executors each have one of these, but only the head process of that
+    # subcommunicator possess an external communicator.  Then in next_task,
+    # if the external communicator exists, one would probe that; otherwise,
+    # accept a broadcast from the internal communicator's 0th task.
     def __init__(self, external_communicator, internal_communicator):
         self.external_communicator = external_communicator
         self.internal_communicator = internal_communicator
@@ -115,15 +129,21 @@ class YTTaskQueueConsumer(object):
         return next_task
 
 class YTTaskExecutor(object):
+    _count = 0
     # One of these will exist per computational actor
     def __init__(self, tasks, communicator):
         self.communicator = communicator
         self.tasks = tasks
+        self.name = "Runner%03s" % (self.__class__._count)
+        self.__class__._count += 1
 
     def run(self):
         # Note that right now this only works for a 1:1 mapping of
         # YTTaskQueueConsumer to YTTaskExecutor
         next_task = None
-        while next_task != -1:
+        while 1:
             next_task = self.communicator.next_task()
+            if next_task == -1: break
+            print "Executing on %s" % (self.name),
             self.tasks[next_task]()
+        print "Concluded on %s" % (self.name)
