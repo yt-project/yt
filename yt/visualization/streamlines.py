@@ -89,7 +89,7 @@ class Streamlines(ParallelAnalysisInterface):
     def __init__(self, pf, positions, xfield, yfield, zfield, volume=None,
                  dx=None, length=None, direction=1):
         self.pf = pf
-        self.start_positions = positions
+        self.start_positions = na.array(positions)
         self.N = self.start_positions.shape[0]
         self.xfield = xfield
         self.yfield = yfield
@@ -144,7 +144,11 @@ class Streamlines(ParallelAnalysisInterface):
             step -= 1
         return step
 
-    
+    def clean_streamlines(self):
+        temp = na.empty(self.N, dtype='object')
+        for i,stream in enumerate(self.streamlines):
+            temp[i] = stream[na.all(stream != 0.0, axis=1)]
+        self.streamlines = temp
     
 
         
