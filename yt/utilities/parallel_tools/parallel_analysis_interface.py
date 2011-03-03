@@ -69,7 +69,8 @@ if exe_name in \
         # we reset it again so that it includes the processor.
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
                                             yt.utilities.logger.ufstring))
-        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+        if len(yt.utilities.logger.rootLogger.handlers) > 0:
+            yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
         if ytcfg.getboolean("yt", "parallel_traceback"):
             sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
