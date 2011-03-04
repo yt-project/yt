@@ -27,7 +27,7 @@ License:
 
 import gc
 import h5py
-import itertools
+import itertools as it
 import math
 import numpy as na
 import random
@@ -377,8 +377,8 @@ class Halo(object):
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
         # yt.math.
-        for pos in izip(self["particle_position_x"], self["particle_position_y"],
-                self["particle_position_z"]):
+        for pos in it.izip(self["particle_position_x"],
+                self["particle_position_y"], self["particle_position_z"]):
             dist[mark] = periodic_dist(cen, pos, period)
             mark += 1
         # Set up the radial bins.
@@ -720,8 +720,8 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             # Find the distances to the particles. I don't like this much, but I
             # can't see a way to eliminate a loop like this, either here or in
             # yt.math.
-            for pos in izip(self["particle_position_x"], self["particle_position_y"],
-                    self["particle_position_z"]):
+            for pos in it.izip(self["particle_position_x"],
+                    self["particle_position_y"], self["particle_position_z"]):
                 dist[mark] = periodic_dist(cen, pos, period)
                 mark += 1
             dist_min, dist_max = min(dist), max(dist)
