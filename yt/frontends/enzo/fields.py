@@ -240,7 +240,7 @@ add_field("Baryon_Overdensity", function=_Baryon_Overdensity,
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum",
-                   "Bx", "By", "Bz"]
+                   "Bx", "By", "Bz", "Dust_Temperature_Density"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -279,6 +279,17 @@ for ax in ['x','y','z']:
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
+
+# Dust temperature - raw field is T_dust * Density
+def _dust_temperature(field, data):
+    return data['Dust_Temperature_Density'] / data['Density']
+def _convert_dust_temperature(data):
+    ef = (1.0 + data.pf.current_redshift)**3.0
+    return data.convert("Density") / ef
+add_field("Dust_Temperature", function=_dust_temperature, 
+          convert_function=_convert_dust_temperature, take_log=True,
+          validators=[ValidateDataField('Dust_Temperature_Density')],
+          units = r"K")
 
 def _spdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
