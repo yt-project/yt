@@ -38,6 +38,7 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.utilities.performance_counters import \
     yt_counters, time_function
+from yt.utilities.math_utils import periodic_dist
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
