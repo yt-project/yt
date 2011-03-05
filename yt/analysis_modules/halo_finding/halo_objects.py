@@ -362,19 +362,30 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        h = self.data.pf.hubble_constant
-        Om_matter = self.data.pf.omega_matter
-        z = self.data.pf.current_redshift
+        try:
+            h = self.data.pf.hubble_constant
+            Om_matter = self.data.pf.omega_matter
+            z = self.data.pf.current_redshift
+            period = self.data.pf.domain_right_edge - \
+                self.data.pf.domain_left_edge
+            cm = self.data.pf["cm"]
+            thissize = self.indices.size
+        except AttributeError:
+            # For LoadedHaloes
+            h = self.pf.hubble_constant
+            Om_matter = self.pf.omega_matter
+            z = self.pf.current_redshift
+            period = self.pf.domain_right_edge - \
+                self.pf.domain_left_edge
+            cm = self.pf["cm"]
+            thissize = self.size
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
-        
         # Get some pertinent information about the halo.
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
-        dist = na.empty(self.indices.size, dtype='float64')
+        dist = na.empty(thissize, dtype='float64')
         cen = self.center_of_mass()
-        period = self.data.pf.domain_right_edge - \
-            self.data.pf.domain_left_edge
         mark = 0
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
@@ -399,7 +410,7 @@ class Halo(object):
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4./3. * math.pi * rho_crit * \
-        (self.radial_bins * self.data.pf["cm"])**3.0)
+        (self.radial_bins * cm)**3.0)
         
 
 class HOPHalo(Halo):
@@ -806,6 +817,7 @@ class LoadedHalo(Halo):
         self.overdensity = None
         self.saved_fields = {}
         self.particle_mask = None
+        self.ds_sort = None
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,
@@ -827,20 +839,21 @@ class LoadedHalo(Halo):
                 return self.saved_fields[key]
             else:
                 # Dynamically create the masking array for particles, and get
-                # the data using standard yt methods.
+                # the data using standard yt methods. The 1.05 is there to
+                # account for possible silliness having to do with whether
+                # the maximum density or center of mass was used to calculate
+                # the maximum radius.
                 ds = self.pf.h.sphere(self.CoM, 1.05 * self.max_radius)
                 if self.particle_mask is None:
                     pid = self.__getitem__('particle_index')
                     sp_pid = ds['particle_index']
-                    print 'testing'
-                    for id in pid:
-                        if id not in sp_pid: print 'trouble!', id
+                    self.ds_sort = sp_pid.argsort()
+                    sp_pid = sp_pid[self.ds_sort]
                     # The result of searchsorted is an array with the positions
                     # of the indexes in pid as they are in sp_pid. This is
                     # because each element of pid is in sp_pid only once.
                     self.particle_mask = na.searchsorted(sp_pid, pid)
-                    print 'here'
-                return ds[key][self.particle_mask]
+                return ds[key][self.ds_sort][self.particle_mask]
 
     def _get_particle_data(self, halo, fnames, size, field):
         # Given a list of file names, a halo, its size, and the desired field,
@@ -2181,7 +2194,10 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
         
         This function takes the output of `GenericHaloFinder.dump` and
         re-establishes the list of halos in memory. This enables the full set
-        of halo analysis features without running the halo finder again.
+        of halo analysis features without running the halo finder again. To
+        be precise, the particle data for each halo is only read in when
+        necessary, so examining a single halo will not require as much memory
+        as is required for halo finding.
         
         Parameters
         ----------
@@ -2192,7 +2208,8 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
         
         Examples
         --------
-        >>> halos = LoadHaloes("HopAnalysis")
+        >>> pf = load("data0005")
+        >>> halos = LoadHaloes(pf, "HopAnalysis")
         """
         self.basename = basename
         LoadedHaloList.__init__(self, pf, self.basename)

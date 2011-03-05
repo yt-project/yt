@@ -44,7 +44,8 @@ from .halo_finding.api import \
     parallelHF, \
     HOPHaloFinder, \
     FOFHaloFinder, \
-    HaloFinder
+    HaloFinder, \
+    LoadHaloes
 
 from .halo_mass_function.api import \
     HaloMassFcn, \
