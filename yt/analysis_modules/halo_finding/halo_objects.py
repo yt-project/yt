@@ -788,9 +788,10 @@ class FOFHalo(Halo):
         return self.center_of_mass()
 
 class LoadedHalo(Halo):
-    def __init__(self, id, size=None, CoM=None,
+    def __init__(self, pf, id, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None):
+        self.pf = pf
         self.id = id
         self.size = size
         self.CoM = CoM
@@ -804,22 +805,42 @@ class LoadedHalo(Halo):
         self.bin_count = None
         self.overdensity = None
         self.saved_fields = {}
+        self.particle_mask = None
 
     def __getitem__(self, key):
+        # This function will try to get particle data in one of three ways,
+        # in descending preference.
+        # 1. From saved_fields, e.g. we've already got it.
+        # 2. From the halo h5 files off disk.
+        # 3. Use the unique particle indexes of the halo to select a missing
+        # field from an AMR Sphere.
         try:
             # We've already got it.
             return self.saved_fields[key]
         except KeyError:
-            # Gotta go get it.
+            # Gotta go get it from the halo h5 files.
             field_data = self._get_particle_data(self.id, self.fnames,
                 self.size, key)
+            if key == 'particle_position_x': field_data = None
             if field_data is not None:
                 self.saved_fields[key] = field_data
                 return self.saved_fields[key]
             else:
                 # Dynamically create the masking array for particles, and get
                 # the data using standard yt methods.
-                pass
+                ds = self.pf.h.sphere(self.CoM, 1.05 * self.max_radius)
+                if self.particle_mask is None:
+                    pid = self.__getitem__('particle_index')
+                    sp_pid = ds['particle_index']
+                    print 'testing'
+                    for id in pid:
+                        if id not in sp_pid: print 'trouble!', id
+                    # The result of searchsorted is an array with the positions
+                    # of the indexes in pid as they are in sp_pid. This is
+                    # because each element of pid is in sp_pid only once.
+                    self.particle_mask = na.searchsorted(sp_pid, pid)
+                    print 'here'
+                return ds[key][self.particle_mask]
 
     def _get_particle_data(self, halo, fnames, size, field):
         # Given a list of file names, a halo, its size, and the desired field,
@@ -1263,7 +1284,8 @@ class FOFHaloList(HaloList):
 class LoadedHaloList(HaloList):
     _name = "Loaded"
     
-    def __init__(self, basename):
+    def __init__(self, pf, basename):
+        self.pf = pf
         self._groups = []
         self.basename = basename
         self._retrieve_halos()
@@ -1290,8 +1312,9 @@ class LoadedHaloList(HaloList):
             bulk_vel = na.array([float(line[10]), float(line[11]),
                 float(line[12])])
             rms_vel = float(line[14])
-            self._groups.append(LoadedHalo(halo, size, CoM, max_dens_point,
-                group_total_mass, max_radius, bulk_vel, rms_vel, fnames))
+            self._groups.append(LoadedHalo(self.pf, halo, size, CoM,
+                max_dens_point, group_total_mass, max_radius, bulk_vel,
+                rms_vel, fnames))
             halo += 1
     
     def _collect_halo_data_locations(self):
@@ -2153,7 +2176,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
 HaloFinder = HOPHaloFinder
 
 class LoadHaloes(GenericHaloFinder, LoadedHaloList):
-    def __init__(self, basename):
+    def __init__(self, pf, basename):
         r"""Load the full halo data into memory.
         
         This function takes the output of `GenericHaloFinder.dump` and
@@ -2172,7 +2195,7 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
         >>> halos = LoadHaloes("HopAnalysis")
         """
         self.basename = basename
-        LoadedHaloList.__init__(self, self.basename)
+        LoadedHaloList.__init__(self, pf, self.basename)
 
 
         
