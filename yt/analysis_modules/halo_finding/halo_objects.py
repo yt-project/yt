@@ -791,7 +791,6 @@ class LoadedHalo(Halo):
     def __init__(self, id, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None):
-        self._max_dens = halo_list._max_dens
         self.id = id
         self.size = size
         self.CoM = CoM
@@ -804,22 +803,23 @@ class LoadedHalo(Halo):
         self.fnames = fnames
         self.bin_count = None
         self.overdensity = None
-        self.saved_fields = defaultdict(None)
+        self.saved_fields = {}
 
     def __getitem__(self, key):
-        if self.saved_fields[key] is not None:
+        try:
             # We've already got it.
             return self.saved_fields[key]
-        else:
+        except KeyError:
             # Gotta go get it.
-            field_data = self._get_particle_data(self.id, self.locs,
-                self.size)
+            field_data = self._get_particle_data(self.id, self.fnames,
+                self.size, key)
             if field_data is not None:
                 self.saved_fields[key] = field_data
                 return self.saved_fields[key]
             else:
                 # Dynamically create the masking array for particles, and get
                 # the data using standard yt methods.
+                pass
 
     def _get_particle_data(self, halo, fnames, size, field):
         # Given a list of file names, a halo, its size, and the desired field,
@@ -917,7 +917,7 @@ class LoadedHalo(Halo):
         """
         return self.rms_vel
 
-    def maximum_radius(self, center_of_mass=True):
+    def maximum_radius(self):
         r"""Returns the maximum radius in the halo for all particles,
         either from the point of maximum density or from the
         center of mass.
@@ -1266,19 +1266,33 @@ class LoadedHaloList(HaloList):
     def __init__(self, basename):
         self._groups = []
         self.basename = basename
+        self._retrieve_halos()
     
-    def _get_halo_data(self):
+    def _retrieve_halos(self):
         # First get the halo particulars.
         lines = file("%s.out" % self.basename)
         # The location of particle data for each halo.
         locations = self._collect_halo_data_locations()
-        for halo, line in enumerate(lines[1:]): # Skip the comment line a top.
+        halo = 0
+        for line in lines:
+            # Skip the comment lines at top.
+            if line[0] == "#": continue
             line = line.split()
             # get the particle data
             size = int(line[2])
-            locs = self._collect_halo_data_locations()
-            field_data = self._get_particle_data(halo, locs, size)
-            
+            fnames = locations[halo]
+            # Everything else
+            CoM = na.array([float(line[7]), float(line[8]), float(line[9])])
+            max_dens_point = na.array([float(line[3]), float(line[4]),
+                float(line[5]), float(line[6])])
+            group_total_mass = float(line[1])
+            max_radius = float(line[13])
+            bulk_vel = na.array([float(line[10]), float(line[11]),
+                float(line[12])])
+            rms_vel = float(line[14])
+            self._groups.append(LoadedHalo(halo, size, CoM, max_dens_point,
+                group_total_mass, max_radius, bulk_vel, rms_vel, fnames))
+            halo += 1
     
     def _collect_halo_data_locations(self):
         # The halos are listed in order in the file.
@@ -2158,5 +2172,7 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
         >>> halos = LoadHaloes("HopAnalysis")
         """
         self.basename = basename
-        
+        LoadedHaloList.__init__(self, self.basename)
+
+
         
