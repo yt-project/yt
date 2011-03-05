@@ -136,13 +136,19 @@ class FakeGridForParticles(object):
         self.real_grid = grid
         self.child_mask = 1
         self.ActiveDimensions = self.data['x'].shape
+        self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
+        
     def __getitem__(self, field):
         if field not in self.data.keys():
             if field == "RadiusCode":
                 center = self.field_parameters['center']
-                tr = na.sqrt( (self['x'] - center[0])**2.0 +
-                              (self['y'] - center[1])**2.0 +
-                              (self['z'] - center[2])**2.0 )
+                tempx = na.abs(self['x'] - center[0])
+                tempx = na.minimum(tempx, self.DW[0] - tempx)
+                tempy = na.abs(self['y'] - center[1])
+                tempy = na.minimum(tempy, self.DW[1] - tempy)
+                tempz = na.abs(self['z'] - center[2])
+                tempz = na.minimum(tempz, self.DW[2] - tempz)
+                tr = na.sqrt( tempx**2.0 + tempy**2.0 + tempz**2.0 )
             else:
                 raise KeyError(field)
         else: tr = self.data[field]

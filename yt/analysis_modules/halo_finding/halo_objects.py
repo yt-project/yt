@@ -821,7 +821,7 @@ class LoadedHalo(Halo):
             # Gotta go get it from the halo h5 files.
             field_data = self._get_particle_data(self.id, self.fnames,
                 self.size, key)
-            if key == 'particle_position_x': field_data = None
+            #if key == 'particle_position_x': field_data = None
             if field_data is not None:
                 self.saved_fields[key] = field_data
                 return self.saved_fields[key]
