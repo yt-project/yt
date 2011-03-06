@@ -75,6 +75,7 @@ class Halo(object):
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
+        self.pf = self.data.pf
         if indices is not None:
             self.indices = halo_list._base_indices[indices]
         else:
@@ -362,23 +363,13 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        try:
-            h = self.data.pf.hubble_constant
-            Om_matter = self.data.pf.omega_matter
-            z = self.data.pf.current_redshift
-            period = self.data.pf.domain_right_edge - \
-                self.data.pf.domain_left_edge
-            cm = self.data.pf["cm"]
-            thissize = self.indices.size
-        except AttributeError:
-            # For LoadedHaloes
-            h = self.pf.hubble_constant
-            Om_matter = self.pf.omega_matter
-            z = self.pf.current_redshift
-            period = self.pf.domain_right_edge - \
-                self.pf.domain_left_edge
-            cm = self.pf["cm"]
-            thissize = self.size
+        h = self.pf.hubble_constant
+        Om_matter = self.pf.omega_matter
+        z = self.pf.current_redshift
+        period = self.pf.domain_right_edge - \
+            self.pf.domain_left_edge
+        cm = self.pf["cm"]
+        thissize = max(self.size, self.indices.size)
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -818,6 +809,7 @@ class LoadedHalo(Halo):
         self.saved_fields = {}
         self.particle_mask = None
         self.ds_sort = None
+        self.indices = na.array([]) # Never used for a LoadedHalo.
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,
