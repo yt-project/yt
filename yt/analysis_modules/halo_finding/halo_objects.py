@@ -853,6 +853,9 @@ class LoadedHalo(Halo):
                     # of the indexes in pid as they are in sp_pid. This is
                     # because each element of pid is in sp_pid only once.
                     self.particle_mask = na.searchsorted(sp_pid, pid)
+                # We won't store this field below in saved_fields because
+                # that would mean keeping two copies of it, one in the yt
+                # machinery and one here.
                 return ds[key][self.ds_sort][self.particle_mask]
 
     def _get_particle_data(self, halo, fnames, size, field):
@@ -860,6 +863,7 @@ class LoadedHalo(Halo):
         # this returns the particle data for that halo.
         # First get the list of fields from the first file. Not all fields
         # are saved all the time (e.g. creation_time, particle_type).
+        mylog.info("Getting field %s from hdf5 halo particle files." % field)
         f = h5py.File(fnames[0])
         fields = f["Halo%08d" % halo].keys()
         # If we dont have this field, we can give up right now.
