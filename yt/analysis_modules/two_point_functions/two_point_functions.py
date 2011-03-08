@@ -83,12 +83,12 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             number of point pairs per ruler length). Default = 0.
         theta : Float
             For random pairs of points, the second point is found by traversing
-            a distance along a ray set by the angle (theta, phi) from the first
+            a distance along a ray set by the angle (phi, theta) from the first
             point. To keep this angle constant, set ``theta`` to a value in the
-            range [0, 2pi). Default = None, which will randomize theta for
+            range [0, pi]. Default = None, which will randomize theta for
             every pair of points.
         phi : Float
-            Similar to theta above, but the range of values is [-pi/2, pi/2].
+            Similar to theta above, but the range of values is [0, 2*pi).
             Default = None, which will randomize phi for every pair of points.
         
         Examples
@@ -474,16 +474,16 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 high=self.ds.right_edge[dim], size=size)
         # Next we find the second point, determined by a random
         # theta, phi angle.
-        if self.constant_theta is None:
-            theta = self.mt.uniform(low=0, high=2.*math.pi, size=size)
-        else: theta = self.constant_theta * na.ones(size, dtype='float64')
         if self.constant_phi is None:
-            phi = self.mt.uniform(low=-math.pi/2., high=math.pi/2., size=size)
+            phi = self.mt.uniform(low=0, high=2.*math.pi, size=size)
         else: phi = self.constant_phi * na.ones(size, dtype='float64')
+        if self.constant_theta is None:
+            theta = self.mt.uniform(low=0., high=math.pi, size=size)
+        else: theta = self.constant_theta * na.ones(size, dtype='float64')
         r2 = na.empty((size,3), dtype='float64')
-        r2[:,0] = r1[:,0] + length * na.cos(theta) * na.cos(phi)
-        r2[:,1] = r1[:,1] + length * na.sin(theta) * na.cos(phi)
-        r2[:,2] = r1[:,2] + length * na.sin(phi)
+        r2[:,0] = r1[:,0] + length * na.cos(phi) * na.sin(theta)
+        r2[:,1] = r1[:,1] + length * na.sin(phi) * na.sin(theta)
+        r2[:,2] = r1[:,2] + length * na.cos(theta)
         # Reflect so it's inside the (full) volume.
         r2 %= self.period
         return (r1, r2)
