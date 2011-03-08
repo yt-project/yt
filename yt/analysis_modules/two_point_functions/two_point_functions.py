@@ -29,7 +29,7 @@ from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface import ParallelAnalysisInterface, parallel_blocking_call, parallel_root_only
 
 try:
-    from yt.extensions.kdtree import *
+    from yt.utilities.kdtree import *
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
