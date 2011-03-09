@@ -473,12 +473,15 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             r1[:,dim] = self.mt.uniform(low=self.ds.left_edge[dim],
                 high=self.ds.right_edge[dim], size=size)
         # Next we find the second point, determined by a random
-        # theta, phi angle.
+        # theta, phi angle. See Eqns. 1 & 2 from 
+        # http://mathworld.wolfram.com/SpherePointPicking.html,
+        # but phi and theta are switched to the Physics convention.
         if self.constant_phi is None:
             phi = self.mt.uniform(low=0, high=2.*math.pi, size=size)
         else: phi = self.constant_phi * na.ones(size, dtype='float64')
         if self.constant_theta is None:
-            theta = self.mt.uniform(low=0., high=math.pi, size=size)
+            v = self.mt.uniform(low=0., high=1, size=size)
+            theta = na.arccos(2 * v - 1)
         else: theta = self.constant_theta * na.ones(size, dtype='float64')
         r2 = na.empty((size,3), dtype='float64')
         r2[:,0] = r1[:,0] + length * na.cos(phi) * na.sin(theta)
