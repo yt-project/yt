@@ -23,6 +23,9 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import h5py
+import re
+
 from yt.utilities.io_handler import \
            BaseIOHandler
 

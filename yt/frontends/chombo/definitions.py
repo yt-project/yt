@@ -23,3 +23,43 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+parameterDict = {"CosmologyCurrentRedshift": float,
+                 "CosmologyComovingBoxSize": float,
+                 "CosmologyOmegaMatterNow": float,
+                 "CosmologyOmegaLambdaNow": float,
+                 "CosmologyHubbleConstantNow": float,
+                 "CosmologyInitialRedshift": float,
+                 "DualEnergyFormalismEta1": float,
+                 "DualEnergyFormalismEta2": float,
+                 "MetaDataString": str,
+                 "HydroMethod": int,
+                 "DualEnergyFormalism": int,
+                 "InitialTime": float,
+                 "ComovingCoordinates": int,
+                 "DensityUnits": float,
+                 "LengthUnits": float,
+                 "LengthUnit": float,
+                 "TemperatureUnits": float,
+                 "TimeUnits": float,
+                 "GravitationalConstant": float,
+                 "Gamma": float,
+                 "MultiSpecies": int,
+                 "CompilerPrecision": str,
+                 "CurrentTimeIdentifier": int,
+                 "RefineBy": int,
+                 "BoundaryConditionName": str,
+                 "TopGridRank": int,
+                 "TopGridDimensions": int,
+                 "EOSSoundSpeed": float,
+                 "EOSType": int,
+                 "NumberOfParticleAttributes": int,
+                                 }
+
+pluto2enzoDict = {"GAMMA": "Gamma",
+                  "Ref_ratio": "RefineBy"
+                                    }
+
+yt2plutoFieldsDict = {}
+pluto2ytFieldsDict = {}
+
