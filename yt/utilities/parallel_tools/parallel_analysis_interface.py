@@ -1118,7 +1118,7 @@ class ParallelAnalysisInterface(object):
         self._barrier()
         # We use old-school pickling here on the assumption the arrays are
         # relatively small ( < 1e7 elements )
-        if isinstance(data, na.ndarray):
+        if isinstance(data, na.ndarray) and data.dtype != na.bool:
             tr = na.zeros_like(data)
             if not data.flags.c_contiguous: data = data.copy()
             MPI.COMM_WORLD.Allreduce(data, tr, op=MPI.SUM)
