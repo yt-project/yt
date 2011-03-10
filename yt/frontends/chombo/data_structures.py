@@ -234,6 +234,8 @@ class ChomboStaticOutput(StaticOutput):
                                    int(os.stat(self.parameter_filename)[ST_CTIME])
             self.domain_left_edge = na.array([0.,0.,0.])
             self.domain_right_edge = self.__calc_right_edge()
+            self.dimensionality = 3
+            self.refine_by = 2
 
     def _parse_pluto_file(self, ini_filename):
         """
