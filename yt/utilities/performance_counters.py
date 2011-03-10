@@ -100,3 +100,36 @@ class PerformanceCounters(object):
 
 yt_counters = PerformanceCounters()
 time_function = yt_counters.call_func
+
+
+class ProfilingController(object):
+    def __init__(self):
+        self.profilers = {}
+
+    def profile_function(self, function_name):
+        def wrapper(func):
+            try:
+                import cProfile
+            except ImportError:
+                return func
+            my_prof = cProfile.Profile()
+            self.profilers[function_name] = my_prof
+            @wraps(func)
+            def run_in_profiler(*args, **kwargs):
+                my_prof.enable()
+                func(*args, **kwargs)
+                my_prof.disable()
+            return run_in_profiler
+        return wrapper
+
+    def write_out(self, filename_prefix):
+        if ytcfg.getboolean("yt","__parallel"):
+            pfn = "%s_%03i_%03i" % (filename_prefix,
+                     ytcfg.getint("yt", "__parallel_rank"),
+                    ytcfg.getint("yt", "__parallel_size"))
+        else:
+            pfn = "%s" % (filename_prefix)
+        for n, p in sorted(self.profilers.items()):
+            fn = "%s_%s.cprof" % (pfn, n)
+            mylog.info("Dumping %s into %s", n, fn)
+            p.dump_stats(fn)
