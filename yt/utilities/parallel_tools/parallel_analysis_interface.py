@@ -152,7 +152,7 @@ def parallel_simple_proxy(func):
             retval = func(self, *args, **kwargs)
             self._processing = False
         retval = MPI.COMM_WORLD.bcast(retval, root=self._owner)
-        MPI.COMM_WORLD.Barrier()
+        #MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
 
@@ -235,7 +235,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        MPI.COMM_WORLD.Barrier()
+        #MPI.COMM_WORLD.Barrier()
         all_clear = MPI.COMM_WORLD.bcast(all_clear, root=0)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
@@ -632,14 +632,14 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_joindict(self, data):
-        self._barrier()
+        #self._barrier()
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
                 data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
         else:
             MPI.COMM_WORLD.send(data, dest=0, tag=0)
         data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
+        #self._barrier()
         return data
 
     @parallel_passthrough
@@ -1081,7 +1081,7 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
-        self._barrier()
+        #self._barrier()
         data = MPI.COMM_WORLD.bcast(data, root=0)
         return data
 
@@ -1115,7 +1115,7 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_allsum(self, data):
-        self._barrier()
+        #self._barrier()
         # We use old-school pickling here on the assumption the arrays are
         # relatively small ( < 1e7 elements )
         if isinstance(data, na.ndarray) and data.dtype != na.bool:
