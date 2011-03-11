@@ -38,6 +38,7 @@
 #define npy_float128 npy_longdouble
 #endif
 
+#define MIN(a,b) ((a) <= (b) ? (a) : (b))
 
 static PyObject *_hdf5ReadError;
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
@@ -78,6 +79,8 @@ typedef struct sphere_validation_ {
     /* These cannot contain any pointers */
     npy_float64 center[3];
     npy_float64 radius;
+    npy_float64 period[3];
+    int periodic;
 } sphere_validation;
 
 typedef struct cylinder_validation_ {
@@ -992,6 +995,8 @@ int setup_validator_sphere(particle_validation *data, PyObject *InputData)
     /* These are borrowed references */
     PyArrayObject *center = (PyArrayObject *) PyTuple_GetItem(InputData, 0);
     PyObject *radius = (PyObject *) PyTuple_GetItem(InputData, 1);
+    PyObject *operiodic = PyTuple_GetItem(InputData, 2);
+    npy_float64 DW;
 
     /* This will get freed in the finalization of particle validation */
     sphere_validation *sv = (sphere_validation *)
@@ -1003,6 +1008,18 @@ int setup_validator_sphere(particle_validation *data, PyObject *InputData)
     }
 
     sv->radius = (npy_float64) PyFloat_AsDouble(radius);
+
+    sv->periodic = PyInt_AsLong(operiodic);
+    if(sv->periodic == 1) {
+      PyArrayObject *domain_left_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 3);
+      PyArrayObject *domain_right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 4);
+      for (i = 0; i < 3; i++){
+        DW = (*(npy_float64*) PyArray_GETPTR1(domain_right_edge, i))
+           - (*(npy_float64*) PyArray_GETPTR1(domain_left_edge, i));
+        sv->period[i] = DW;
+        //fprintf(stderr, "Setting period equal to %lf\n", sv->period[i]);
+      }
+    }
 
     data->count_func = NULL;
     data->count_func_float = count_particles_sphere_FLOAT;
@@ -1523,6 +1540,7 @@ int count_particles_sphere_FLOAT(particle_validation *data)
 
     double pradius;
 
+    if (vdata->periodic == 0) {
       for (ind = 0; ind < data->particles_to_check; ind++) {
         pradius = 0.0;
         tempr = (particle_position_x[ind] - vdata->center[0]); pradius += tempr*tempr;
@@ -1537,6 +1555,25 @@ int count_particles_sphere_FLOAT(particle_validation *data)
           data->mask[ind] = 0;
         }
       }
+    } else {
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0;
+        tempr = fabs(particle_position_x[ind] - vdata->center[0]);
+        tempr = MIN(tempr, vdata->period[0] - tempr); pradius += tempr*tempr;
+        tempr = fabs(particle_position_y[ind] - vdata->center[1]);
+        tempr = MIN(tempr, vdata->period[1] - tempr); pradius += tempr*tempr;
+        tempr = fabs(particle_position_z[ind] - vdata->center[2]);
+        tempr = MIN(tempr, vdata->period[2] - tempr); pradius += tempr*tempr;
+        pradius = pow(pradius, 0.5);
+        if (pradius <= vdata->radius) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    }
     return n;
 }
 
@@ -1560,6 +1597,7 @@ int count_particles_sphere_DOUBLE(particle_validation *data)
 
     double pradius;
 
+    if (vdata->periodic == 0) {
       for (ind = 0; ind < data->particles_to_check; ind++) {
         pradius = 0.0;
         tempr = (particle_position_x[ind] - vdata->center[0]); pradius += tempr*tempr;
@@ -1574,6 +1612,25 @@ int count_particles_sphere_DOUBLE(particle_validation *data)
           data->mask[ind] = 0;
         }
       }
+    } else {
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0;
+        tempr = fabs(particle_position_x[ind] - vdata->center[0]);
+        tempr = MIN(tempr, vdata->period[0] - tempr); pradius += tempr*tempr;
+        tempr = fabs(particle_position_y[ind] - vdata->center[1]);
+        tempr = MIN(tempr, vdata->period[1] - tempr); pradius += tempr*tempr;
+        tempr = fabs(particle_position_z[ind] - vdata->center[2]);
+        tempr = MIN(tempr, vdata->period[2] - tempr); pradius += tempr*tempr;
+        pradius = pow(pradius, 0.5);
+        if (pradius <= vdata->radius) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    }
     return n;
 }
 
@@ -1597,6 +1654,7 @@ int count_particles_sphere_LONGDOUBLE(particle_validation *data)
 
     long double pradius;
 
+    if (vdata->periodic == 0) {
       for (ind = 0; ind < data->particles_to_check; ind++) {
         pradius = 0.0;
         tempr = (particle_position_x[ind] - vdata->center[0]); pradius += tempr*tempr;
@@ -1611,6 +1669,25 @@ int count_particles_sphere_LONGDOUBLE(particle_validation *data)
           data->mask[ind] = 0;
         }
       }
+    } else {
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0;
+        tempr = fabs(particle_position_x[ind] - vdata->center[0]);
+        tempr = MIN(tempr, vdata->period[0] - tempr); pradius += tempr*tempr;
+        tempr = fabs(particle_position_y[ind] - vdata->center[1]);
+        tempr = MIN(tempr, vdata->period[1] - tempr); pradius += tempr*tempr;
+        tempr = fabs(particle_position_z[ind] - vdata->center[2]);
+        tempr = MIN(tempr, vdata->period[2] - tempr); pradius += tempr*tempr;
+        pradius = pow(pradius, 0.5);
+        if (pradius <= vdata->radius) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    }
     return n;
 }
 

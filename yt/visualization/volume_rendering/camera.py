@@ -45,7 +45,7 @@ class Camera(ParallelAnalysisInterface):
                  volume = None, fields = None,
                  log_fields = None,
                  sub_samples = 5, pf = None,
-                 use_kd=True, l_max=None, no_ghost=False,
+                 use_kd=True, l_max=None, no_ghost=True,
                  tree_type='domain',expand_factor=1.0,
                  le=None, re=None):
         r"""A viewpoint into a volume, for volume rendering.
@@ -203,6 +203,8 @@ class Camera(ParallelAnalysisInterface):
         self.use_kd = use_kd
         self.l_max = l_max
         self.no_ghost = no_ghost
+        if self.no_ghost:
+            mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
         self.tree_type = tree_type
         if volume is None:
             if self.use_kd:

@@ -126,7 +126,7 @@ def set_leaf(thisnode, grid_id, leaf_l_corner, leaf_r_corner):
 class AMRKDTree(HomogenizedVolume):
     def __init__(self, pf,  l_max=None, le=None, re=None,
                  fields=None, no_ghost=False,
-                 tree_type='domain',log_fields=None):
+                 tree_type='domain',log_fields=None, merge_trees=False):
         r"""
         AMR kd-Tree object, a homogenized volume.
 
@@ -198,7 +198,14 @@ class AMRKDTree(HomogenizedVolume):
             prone to longer data IO times.  If all the data can fit in
             memory on each cpu, this can be the fastest option for
             multiple ray casts on the same dataset.
-
+        merge_trees: bool, optional
+            If True, the distributed kD-tree can be merged
+            together in an allgather-like fashion.  This should not be
+            used for parallel rendering, as it will cause all
+            processors to render all bricks.  This is primarily useful
+            for applications that are not domain decomposed but still
+            want to build the kD-tree in parallel. Default:False
+        
 
         Returns
         -------
@@ -306,18 +313,29 @@ class AMRKDTree(HomogenizedVolume):
         t2 = time()
         mylog.debug('It took %e seconds to build AMRKDTree.tree' % (t2-t1))
         
-        # Build Tree Dictionary
         self._build_tree_dict()
 
+        # If the full amr kD-tree is requested, merge the results from
+        # the parallel build.
+        if merge_trees and nprocs > 1:
+            self.join_parallel_trees()            
+            self.my_l_corner = self.domain_left_edge
+            self.my_r_corner = self.domain_right_edge
+        
         # Initialize the kd leafs:
         self.initialize_leafs()
         
         # Add properties to leafs/nodes
         self.total_cost = self.count_cost()
+
         # Calculate the total volume spanned by the tree
         self.volume = self.count_volume()
         mylog.debug('Cost is %d' % self.total_cost)
         mylog.debug('Volume is %e' % self.volume) 
+
+        self.current_saved_grids = []
+        self.current_vcds = []
+
 
     def _build_tree_dict(self):
         self.tree_dict = {}
@@ -511,6 +529,32 @@ class AMRKDTree(HomogenizedVolume):
         self.brick_dimensions = na.array(self.brick_dimensions)
         del current_saved_grids, current_vcds
         self.bricks_loaded = True
+
+    def get_brick_data(self,current_node):
+        if current_node.brick is not None:
+            return 
+
+        if current_node.grid in self.current_saved_grids:
+            dds = self.current_vcds[self.current_saved_grids.index(current_node.grid)]
+        else:
+            dds = []
+            for i,field in enumerate(self.fields):
+                vcd = current_node.grid.get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
+                if self.log_fields[i]: vcd = na.log10(vcd)
+                dds.append(vcd)
+                self.current_saved_grids.append(current_node.grid)
+                self.current_vcds.append(dds)
+                
+        data = [d[current_node.li[0]:current_node.ri[0]+1,
+                  current_node.li[1]:current_node.ri[1]+1,
+                  current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
+
+        current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+                                             current_node.l_corner.copy(), 
+                                             current_node.r_corner.copy(), 
+                                             current_node.dims.astype('int64'))
+
+        return
         
     def set_leaf_props(self,thisnode):
         r"""Given a leaf, gathers grid, indices, dimensions, and cost properties.
@@ -541,7 +585,49 @@ class AMRKDTree(HomogenizedVolume):
         for node in self.depth_traverse():
             if node.grid is not None:
                 self.set_leaf_props(node)
+
+    def join_parallel_trees(self):
+        self.trim_references()
+        self.merge_trees()
+        self.rebuild_references()
                 
+    def trim_references(self):
+        par_tree_depth = long(na.log2(nprocs))
+        for i in range(2**nprocs):
+            if ((i + 1)>>par_tree_depth) == 1:
+                # There are nprocs nodes that meet this criteria
+                if (i+1-nprocs) is not my_rank:
+                    self.tree_dict.pop(i)
+                    continue
+        for node in self.tree_dict.itervalues():
+            del node.parent, node.left_child, node.right_child
+            try:
+                del node.grids
+            except:
+                pass
+            if not na.isreal(node.grid):
+                node.grid = node.grid.id
+        if self.tree_dict[0].split_pos is None:
+            self.tree_dict.pop(0)
+    def merge_trees(self):
+        self.tree_dict = self._mpi_joindict(self.tree_dict)
+
+    def rebuild_references(self):
+        self.tree = self.tree_dict[0]
+        self.tree.parent = None
+        for node in self.depth_traverse():
+            try:
+                node.parent = self.tree_dict[_parent_id(node.id)]
+            except:
+                node.parent = None
+            try:
+                node.left_child = self.tree_dict[_lchild_id(node.id)]
+            except:
+                node.left_child = None
+            try:
+                node.right_child = self.tree_dict[_rchild_id(node.id)]
+            except:
+                node.right_child = None
 
     def count_cost(self):
         r"""Counts the cost of the entire tree, while filling in branch costs.
@@ -1075,3 +1161,20 @@ class AMRKDTree(HomogenizedVolume):
         f.create_dataset("/split_pos",data=kd_split_pos)
         f.create_dataset("/kd_owners",data=kd_owners)
         f.close()
+        
+    def corners_to_line(self,lc, rc):
+        x = na.array([ lc[0], lc[0], lc[0], lc[0], lc[0],
+                       rc[0], rc[0], rc[0], rc[0], rc[0],
+                       rc[0], lc[0], lc[0], rc[0],
+                       rc[0], lc[0], lc[0] ])
+        
+        y = na.array([ lc[1], lc[1], rc[1], rc[1], lc[1],
+                       lc[1], lc[1], rc[1], rc[1], lc[1],
+                       lc[1], lc[1], rc[1], rc[1],
+                       rc[1], rc[1], lc[1] ])
+        
+        z = na.array([ lc[2], rc[2], rc[2], lc[2], lc[2],
+                       lc[2], rc[2], rc[2], lc[2], lc[2],
+                       rc[2], rc[2], rc[2], rc[2],
+                       lc[2], lc[2], lc[2] ])
+        return x,y,z

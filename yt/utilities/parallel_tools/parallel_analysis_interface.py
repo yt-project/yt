@@ -69,7 +69,8 @@ if exe_name in \
         # we reset it again so that it includes the processor.
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
                                             yt.utilities.logger.ufstring))
-        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+        if len(yt.utilities.logger.rootLogger.handlers) > 0:
+            yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
         if ytcfg.getboolean("yt", "parallel_traceback"):
             sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
@@ -1036,6 +1037,19 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
+    def _mpi_cat_na_array(self,data):
+        self._barrier()
+        comm = MPI.COMM_WORLD
+        if comm.rank == 0:
+            for i in range(1,comm.size):
+                buf = comm.recv(source=i, tag=0)
+                data = na.concatenate([data,buf])
+        else:
+            comm.send(data, 0, tag = 0)
+        data = comm.bcast(data, root=0)
+        return data
+
+    @parallel_passthrough
     def _mpi_catarray(self, data):
         if data is None:
             ncols = -1
@@ -1104,7 +1118,13 @@ class ParallelAnalysisInterface(object):
         self._barrier()
         # We use old-school pickling here on the assumption the arrays are
         # relatively small ( < 1e7 elements )
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
+        if isinstance(data, na.ndarray) and data.dtype != na.bool:
+            tr = na.zeros_like(data)
+            if not data.flags.c_contiguous: data = data.copy()
+            MPI.COMM_WORLD.Allreduce(data, tr, op=MPI.SUM)
+            return tr
+        else:
+            return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
 
     @parallel_passthrough
     def _mpi_Allsum_double(self, data):

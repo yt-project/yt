@@ -129,7 +129,10 @@ class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
         ParticleIOHandler.__init__(self, pf, source)
 
     def _get_args(self):
-        return (1, (na.array(self.center, dtype='float64'), self.radius))
+        DLE = na.array(self.pf.domain_left_edge, dtype='float64')
+        DRE = na.array(self.pf.domain_right_edge, dtype='float64')
+        return (1, (na.array(self.center, dtype='float64'), self.radius,
+            1, DLE, DRE))
 
 class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
     _source_type = "disk"

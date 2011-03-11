@@ -707,6 +707,75 @@ cdef class PartitionedGrid:
             gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
             for i in range(3): rgba[i] += gaussian*dt*colors[i]
         kdtree_utils.kd_res_rewind(ballq)
+        
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def integrate_streamline(self, pos, np.float64_t h):
+        cdef np.float64_t k1[3], k2[3], k3[3], k4[3]
+        cdef np.float64_t newpos[3], oldpos[3]
+        for i in range(3):
+            newpos[i] = oldpos[i] = pos[i]
+        self.get_vector_field(newpos, k1)
+        for i in range(3):
+            newpos[i] = oldpos[i] + 0.5*k1[i]*h
+
+        if not (self.left_edge[0] < newpos[0] and newpos[0] < self.right_edge[0] and \
+                self.left_edge[1] < newpos[1] and newpos[1] < self.right_edge[1] and \
+                self.left_edge[2] < newpos[2] and newpos[2] < self.right_edge[2]):
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+        
+        self.get_vector_field(newpos, k2)
+        for i in range(3):
+            newpos[i] = oldpos[i] + 0.5*k2[i]*h
+
+        if not (self.left_edge[0] <= newpos[0] and newpos[0] <= self.right_edge[0] and \
+                self.left_edge[1] <= newpos[1] and newpos[1] <= self.right_edge[1] and \
+                self.left_edge[2] <= newpos[2] and newpos[2] <= self.right_edge[2]):
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k3)
+        for i in range(3):
+            newpos[i] = oldpos[i] + k3[i]*h
+            
+        if not (self.left_edge[0] <= newpos[0] and newpos[0] <= self.right_edge[0] and \
+                self.left_edge[1] <= newpos[1] and newpos[1] <= self.right_edge[1] and \
+                self.left_edge[2] <= newpos[2] and newpos[2] <= self.right_edge[2]):
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k4)
+
+        for i in range(3):
+            pos[i] = oldpos[i] + h*(k1[i]/6.0 + k2[i]/3.0 + k3[i]/3.0 + k4[i]/6.0)
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void get_vector_field(self, np.float64_t pos[3],
+                               np.float64_t *vel):
+        cdef np.float64_t dp[3]
+        cdef int ci[3] 
+        cdef np.float64_t vel_mag = 0.0
+        for i in range(3):
+            ci[i] = (int)((pos[i]-self.left_edge[i])/self.dds[i])
+            dp[i] = (pos[i] - self.left_edge[i])%(self.dds[i])
+
+        cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
+                          + ci[1] * (self.dims[2] + 1) + ci[2]
+        
+        for i in range(3):
+            vel[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
+            vel_mag += vel[i]*vel[i]
+        vel_mag = np.sqrt(vel_mag)
+        if vel_mag != 0.0:
+            for i in range(3):
+                vel[i] /= vel_mag
 
 cdef class GridFace:
     cdef int direction

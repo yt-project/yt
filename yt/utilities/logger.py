@@ -73,11 +73,11 @@ def disable_stream_logging():
 original_emitter = logging.StreamHandler.emit
 def colorize_logging():
     f = logging.Formatter(cfstring)
-    rootLogger.handlers[0].setFormatter(f)
+    if len(rootLogger.handlers) > 0: rootLogger.handlers[0].setFormatter(f)
     logging.StreamHandler.emit = add_coloring_to_emit_ansi(logging.StreamHandler.emit)
 def uncolorize_logging():
     f = logging.Formatter(ufstring)
-    rootLogger.handlers[0].setFormatter(f)
+    if len(rootLogger.handlers) > 0: rootLogger.handlers[0].setFormatter(f)
     logging.StreamHandler.emit = original_emitter
 
 if ytcfg.getboolean("yt","coloredlogs"):

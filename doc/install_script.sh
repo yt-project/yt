@@ -39,7 +39,8 @@ INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
-INST_FORTHON=1
+INST_SQLITE3=1  # Install a local version of SQLite3?
+INST_FORTHON=1  # Install Forthon?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -179,6 +180,10 @@ printf "%-15s = %s so I " "INST_FTYPE" "${INST_FTYPE}"
 get_willwont ${INST_FTYPE}
 echo "be installing freetype2"
 
+printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
+get_willwont ${INST_SQLITE3}
+echo "be installing SQLite3"
+
 printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
 get_willwont ${INST_FORTHON}
 echo "be installing Forthon (for Halo Finding, etc)"
@@ -276,6 +281,7 @@ fi
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
+[ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
@@ -373,6 +379,20 @@ else
     export HDF5_DIR=${HDF5_DIR}
 fi
 export HDF5_API=16
+
+if [ $INST_SQLITE3 -eq 1 ]
+then
+    if [ ! -e sqlite-autoconf-3070500/done ]
+    then
+        [ ! -e sqlite-autoconf-3070500 ] && tar xfz sqlite-autoconf-3070500.tar.gz
+        echo "Installing SQLite3"
+        cd sqlite-autoconf-3070500
+        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+fi
 
 if [ ! -e Python-2.6.3/done ]
 then

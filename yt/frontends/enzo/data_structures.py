@@ -226,7 +226,9 @@ class EnzoHierarchy(AMRHierarchy):
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         f.readline() # Blank at top
+        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         for grid_id in xrange(self.num_grids):
+            pbar.update(grid_id)
             # We will unroll this list
             si.append(_next_token_line("GridStartIndex", f))
             ei.append(_next_token_line("GridEndIndex", f))
@@ -246,6 +248,7 @@ class EnzoHierarchy(AMRHierarchy):
                     continue
                 params = line.split()
                 line = f.readline()
+        pbar.finish()
         self._fill_arrays(ei, si, LE, RE, np)
         self.grids = na.array(self.grids, dtype='object')
         self.filenames = fn
@@ -558,6 +561,18 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def save_data(self, *args, **kwargs):
         pass
+
+    _cached_field_list = None
+    _cached_derived_field_list = None
+
+    def _detect_fields(self):
+        if self.__class__._cached_field_list is None:
+            EnzoHierarchy._detect_fields(self)
+            self.__class__._cached_field_list = self.field_list
+            self.__class__._cached_derived_field_list = self.derived_field_list
+        else:
+            self.field_list = self.__class__._cached_field_list
+            self.derived_field_list = self.__class__._cached_derived_field_list
 
     def _generate_random_grids(self):
         my_rank = self._mpi_get_rank()

@@ -291,6 +291,7 @@ def identify_contours(data_source, field, min_val, max_val,
         total_contours += na.unique(grid["tempContours"][grid["tempContours"] > -1]).size
         new_contours = na.unique(grid["tempContours"][grid["tempContours"] > -1]).tolist()
         tree += zip(new_contours, new_contours)
+    tree = set(tree)
     pbar.finish()
     pbar = get_pbar("Calculating joins ", len(data_source._grids))
     grid_set = set()
@@ -299,9 +300,10 @@ def identify_contours(data_source, field, min_val, max_val,
         cg = grid.retrieve_ghost_zones(1, "tempContours", smoothed=False)
         grid_set.update(set(cg._grids))
         fd = cg["tempContours"].astype('int64')
-        tree += amr_utils.construct_boundary_relationships(fd)
+        boundary_tree = amr_utils.construct_boundary_relationships(fd)
+        tree.update(((a, b) for a, b in boundary_tree))
     pbar.finish()
-    sort_new = na.array(list(set(tree)), dtype='int64')
+    sort_new = na.array(list(tree), dtype='int64')
     mylog.info("Coalescing %s joins", sort_new.shape[0])
     joins = coalesce_join_tree(sort_new)
     #joins = [(i, na.array(list(j), dtype="int64")) for i, j in sorted(joins.items())]

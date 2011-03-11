@@ -32,12 +32,14 @@ import math
 import numpy as na
 import random
 import sys
+from collections import defaultdict
 
 from yt.funcs import *
 
 from yt.config import ytcfg
 from yt.utilities.performance_counters import \
     yt_counters, time_function
+from yt.utilities.math_utils import periodic_dist
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
@@ -73,6 +75,7 @@ class Halo(object):
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
+        self.pf = self.data.pf
         if indices is not None:
             self.indices = halo_list._base_indices[indices]
         else:
@@ -360,25 +363,26 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        h = self.data.pf.hubble_constant
-        Om_matter = self.data.pf.omega_matter
-        z = self.data.pf.current_redshift
+        h = self.pf.hubble_constant
+        Om_matter = self.pf.omega_matter
+        z = self.pf.current_redshift
+        period = self.pf.domain_right_edge - \
+            self.pf.domain_left_edge
+        cm = self.pf["cm"]
+        thissize = max(self.size, self.indices.size)
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
-        
         # Get some pertinent information about the halo.
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
-        dist = na.empty(self.indices.size, dtype='float64')
+        dist = na.empty(thissize, dtype='float64')
         cen = self.center_of_mass()
-        period = self.data.pf.domain_right_edge - \
-            self.data.pf.domain_left_edge
         mark = 0
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
         # yt.math.
-        for pos in izip(self["particle_position_x"], self["particle_position_y"],
-                self["particle_position_z"]):
+        for pos in itertools.izip(self["particle_position_x"],
+                self["particle_position_y"], self["particle_position_z"]):
             dist[mark] = periodic_dist(cen, pos, period)
             mark += 1
         # Set up the radial bins.
@@ -397,7 +401,7 @@ class Halo(object):
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4./3. * math.pi * rho_crit * \
-        (self.radial_bins * self.data.pf["cm"])**3.0)
+        (self.radial_bins * cm)**3.0)
         
 
 class HOPHalo(Halo):
@@ -720,8 +724,8 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             # Find the distances to the particles. I don't like this much, but I
             # can't see a way to eliminate a loop like this, either here or in
             # yt.math.
-            for pos in izip(self["particle_position_x"], self["particle_position_y"],
-                    self["particle_position_z"]):
+            for pos in itertools.izip(self["particle_position_x"],
+                    self["particle_position_y"], self["particle_position_z"]):
                 dist[mark] = periodic_dist(cen, pos, period)
                 mark += 1
             dist_min, dist_max = min(dist), max(dist)
@@ -784,6 +788,186 @@ class FOFHalo(Halo):
     def maximum_density_location(self):
         r"""Not implemented."""
         return self.center_of_mass()
+
+class LoadedHalo(Halo):
+    def __init__(self, pf, id, size=None, CoM=None,
+        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
+        rms_vel=None, fnames=None):
+        self.pf = pf
+        self.id = id
+        self.size = size
+        self.CoM = CoM
+        self.max_dens_point = max_dens_point
+        self.group_total_mass = group_total_mass
+        self.max_radius = max_radius
+        self.bulk_vel = bulk_vel
+        self.rms_vel = rms_vel
+        # locs=the names of the h5 files that have particle data for this halo
+        self.fnames = fnames
+        self.bin_count = None
+        self.overdensity = None
+        self.saved_fields = {}
+        self.particle_mask = None
+        self.ds_sort = None
+        self.indices = na.array([]) # Never used for a LoadedHalo.
+
+    def __getitem__(self, key):
+        # This function will try to get particle data in one of three ways,
+        # in descending preference.
+        # 1. From saved_fields, e.g. we've already got it.
+        # 2. From the halo h5 files off disk.
+        # 3. Use the unique particle indexes of the halo to select a missing
+        # field from an AMR Sphere.
+        try:
+            # We've already got it.
+            return self.saved_fields[key]
+        except KeyError:
+            # Gotta go get it from the halo h5 files.
+            field_data = self._get_particle_data(self.id, self.fnames,
+                self.size, key)
+            #if key == 'particle_position_x': field_data = None
+            if field_data is not None:
+                self.saved_fields[key] = field_data
+                return self.saved_fields[key]
+            else:
+                # Dynamically create the masking array for particles, and get
+                # the data using standard yt methods. The 1.05 is there to
+                # account for possible silliness having to do with whether
+                # the maximum density or center of mass was used to calculate
+                # the maximum radius.
+                ds = self.pf.h.sphere(self.CoM, 1.05 * self.max_radius)
+                if self.particle_mask is None:
+                    pid = self.__getitem__('particle_index')
+                    sp_pid = ds['particle_index']
+                    self.ds_sort = sp_pid.argsort()
+                    sp_pid = sp_pid[self.ds_sort]
+                    # The result of searchsorted is an array with the positions
+                    # of the indexes in pid as they are in sp_pid. This is
+                    # because each element of pid is in sp_pid only once.
+                    self.particle_mask = na.searchsorted(sp_pid, pid)
+                # We won't store this field below in saved_fields because
+                # that would mean keeping two copies of it, one in the yt
+                # machinery and one here.
+                return ds[key][self.ds_sort][self.particle_mask]
+
+    def _get_particle_data(self, halo, fnames, size, field):
+        # Given a list of file names, a halo, its size, and the desired field,
+        # this returns the particle data for that halo.
+        # First get the list of fields from the first file. Not all fields
+        # are saved all the time (e.g. creation_time, particle_type).
+        mylog.info("Getting field %s from hdf5 halo particle files." % field)
+        f = h5py.File(fnames[0])
+        fields = f["Halo%08d" % halo].keys()
+        # If we dont have this field, we can give up right now.
+        if field not in fields: return None
+        if field == 'particle_index' or field == 'particle_type':
+            # the only integer field
+            field_data = na.empty(size, dtype='int64')
+        else:
+            field_data = na.empty(size, dtype='float64')
+        f.close()
+        offset = 0
+        for fname in fnames:
+            f = h5py.File(fname)
+            this = f["Halo%08d" % halo][field][:]
+            s = this.size
+            field_data[offset:offset+s] = this
+            offset += s
+            f.close()
+        return field_data
+        
+    def center_of_mass(self):
+        r"""Calculate and return the center of mass.
+
+        The center of mass of the halo is directly calculated and returned.
+        
+        Examples
+        --------
+        >>> com = halos[0].center_of_mass()
+        """
+        return self.CoM
+    
+    def maximum_density_location(self):
+        r"""Return the location HOP identified as maximally dense.
+        
+        Return the location HOP identified as maximally dense.
+
+        Examples
+        --------
+        >>> max_dens_loc = halos[0].maximum_density_location()
+        """
+        return self.max_dens_point[1:]
+
+    def maximum_density(self):
+        r"""Return the HOP-identified maximum density.
+
+        Return the HOP-identified maximum density.
+
+        Examples
+        --------
+        >>> max_dens = halos[0].maximum_density()
+        """
+        return self.max_dens_point[0]
+
+    def total_mass(self):
+        r"""Returns the total mass in solar masses of the halo.
+        
+        Returns the total mass in solar masses of just the particles in the
+        halo.
+
+        Examples
+        --------
+        >>> halos[0].total_mass()
+        """
+        return self.group_total_mass
+
+    def bulk_velocity(self):
+        r"""Returns the mass-weighted average velocity in cm/s.
+
+        This calculates and returns the mass-weighted average velocity of just
+        the particles in the halo in cm/s.
+        
+        Examples
+        --------
+        >>> bv = halos[0].bulk_velocity()
+        """
+        return self.bulk_vel
+
+    def rms_velocity(self):
+        r"""Returns the mass-weighted RMS velocity for the halo
+        particles in cgs units.
+
+        Calculate and return the mass-weighted RMS velocity for just the
+        particles in the halo.  The bulk velocity of the halo is subtracted
+        before computation.
+        
+        Examples
+        --------
+        >>> rms_vel = halos[0].rms_velocity()
+        """
+        return self.rms_vel
+
+    def maximum_radius(self):
+        r"""Returns the maximum radius in the halo for all particles,
+        either from the point of maximum density or from the
+        center of mass.
+
+        The maximum radius from the most dense point is calculated.  This
+        accounts for periodicity.
+        
+        Parameters
+        ----------
+        center_of_mass : bool
+            True chooses the center of mass when calculating the maximum radius.
+            False chooses from the maximum density location for HOP halos
+            (it has no effect for FOF halos).
+            Default = True.
+        
+        Examples
+        --------
+        >>> radius = halos[0].maximum_radius()
+        """
+        return self.max_radius
 
 class HaloList(object):
 
@@ -1105,6 +1289,52 @@ class FOFHaloList(HaloList):
         >>> halos.write_out("FOFAnalysis.out")
         """
         HaloList.write_out(self, filename)
+
+class LoadedHaloList(HaloList):
+    _name = "Loaded"
+    
+    def __init__(self, pf, basename):
+        self.pf = pf
+        self._groups = []
+        self.basename = basename
+        self._retrieve_halos()
+    
+    def _retrieve_halos(self):
+        # First get the halo particulars.
+        lines = file("%s.out" % self.basename)
+        # The location of particle data for each halo.
+        locations = self._collect_halo_data_locations()
+        halo = 0
+        for line in lines:
+            # Skip the comment lines at top.
+            if line[0] == "#": continue
+            line = line.split()
+            # get the particle data
+            size = int(line[2])
+            fnames = locations[halo]
+            # Everything else
+            CoM = na.array([float(line[7]), float(line[8]), float(line[9])])
+            max_dens_point = na.array([float(line[3]), float(line[4]),
+                float(line[5]), float(line[6])])
+            group_total_mass = float(line[1])
+            max_radius = float(line[13])
+            bulk_vel = na.array([float(line[10]), float(line[11]),
+                float(line[12])])
+            rms_vel = float(line[14])
+            self._groups.append(LoadedHalo(self.pf, halo, size, CoM,
+                max_dens_point, group_total_mass, max_radius, bulk_vel,
+                rms_vel, fnames))
+            halo += 1
+    
+    def _collect_halo_data_locations(self):
+        # The halos are listed in order in the file.
+        lines = file("%s.txt" % self.basename)
+        locations = []
+        for line in lines:
+            line = line.split()
+            locations.append(line[1:])
+        lines.close()
+        return locations
 
 class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
     _name = "parallelHOP"
@@ -1480,6 +1710,32 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         for halo in self._groups:
             if not self._is_mine(halo): continue
             halo.write_particle_list(f)
+
+    def dump(self, basename="HopAnalysis"):
+        r"""Save the full halo data to disk.
+        
+        This function will save the halo data in such a manner that it can be
+        easily re-loaded later using `GenericHaloFinder.load`.
+        This is similar in concept to
+        pickling the data, but outputs the data in the already-established
+        data formats. The simple halo data is written to a text file
+        (e.g. "HopAnalysis.out") using
+        write_out(), and the particle data to hdf5 files (e.g. "HopAnalysis.h5")
+        using write_particle_lists().
+        
+        Parameters
+        ----------
+        basename : String
+            The base name for the files the data will be written to. Default = 
+            "HopAnalysis".
+        
+        Examples
+        --------
+        >>> halos.dump("MyHalos")
+        """
+        self.write_out("%s.out" % basename)
+        self.write_particle_lists(basename)
+        self.write_particle_lists_txt(basename)
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, subvolume=None,threshold=160, dm_only=True, \
@@ -1927,3 +2183,32 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self._join_halolists()
 
 HaloFinder = HOPHaloFinder
+
+class LoadHaloes(GenericHaloFinder, LoadedHaloList):
+    def __init__(self, pf, basename):
+        r"""Load the full halo data into memory.
+        
+        This function takes the output of `GenericHaloFinder.dump` and
+        re-establishes the list of halos in memory. This enables the full set
+        of halo analysis features without running the halo finder again. To
+        be precise, the particle data for each halo is only read in when
+        necessary, so examining a single halo will not require as much memory
+        as is required for halo finding.
+        
+        Parameters
+        ----------
+        basename : String
+            The base name of the files that will be read in. This should match
+            what was used when `GenericHaloFinder.dump` was called. Default =
+            "HopAnalysis".
+        
+        Examples
+        --------
+        >>> pf = load("data0005")
+        >>> halos = LoadHaloes(pf, "HopAnalysis")
+        """
+        self.basename = basename
+        LoadedHaloList.__init__(self, pf, self.basename)
+
+
+        
