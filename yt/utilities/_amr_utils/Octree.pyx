@@ -214,7 +214,7 @@ cdef class Octree:
         cdef np.ndarray[np.int64_t, ndim=2] npos
         cdef np.ndarray[np.float64_t, ndim=2] nvals
         cdef np.ndarray[np.float64_t, ndim=1] nwvals
-        npos = np.zeros( (total, 2), dtype='int64')
+        npos = np.zeros( (total, 3), dtype='int64')
         nvals = np.zeros( (total, self.nvals), dtype='float64')
         nwvals = np.zeros( total, dtype='float64')
         cdef np.int64_t curpos = 0
@@ -259,7 +259,7 @@ cdef class Octree:
             pdata[curpos * 3 + 1] = node.pos[1]
             pdata[curpos * 3 + 2] = node.pos[2]
             return 1
-        if node.children[0][0] == NULL: return 0
+        if node.children[0][0][0] == NULL: return 0
         cdef np.int64_t added = 0
         for i in range(2):
             for j in range(2):
