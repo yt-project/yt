@@ -35,6 +35,7 @@ from math import pi
 from yt.funcs import *
 
 from yt.utilities.amr_utils import CICDeposit_3
+from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
     ValidateDataField, \
@@ -54,7 +55,8 @@ from yt.utilities.physical_constants import \
      clight, \
      kboltz, \
      G, \
-     rho_crit_now
+     rho_crit_now, \
+     speed_of_light_cgs
      
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
@@ -401,7 +403,7 @@ def _Convert_Overdensity(data):
 add_field("Overdensity",function=_Matter_Density,
           convert_function=_Convert_Overdensity, units=r"")
 
-# This is (rho_total - <rho_total>) / <rho_total>
+# This is (rho_total - <rho_total>) / <rho_total>.
 def _DensityPerturbation(field, data):
     rho_bar = rho_crit_now * data.pf.omega_matter * \
         data.pf.hubble_constant**2 * \
@@ -422,6 +424,29 @@ def _Convert_Baryon_Overdensity(data):
                 ((1+data.pf['CosmologyCurrentRedshift'])**3))
 add_field("Baryon_Overdensity", function=_Baryon_Overdensity, 
           convert_function=_Convert_Baryon_Overdensity, units=r"")
+
+# Weak lensing convergence.
+# Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
+def _convertConvergence(data):
+    if not pf.parameters.has_key('cosmology_calculator'):
+        pf.parameters['cosmology_calculator'] = Cosmology(
+            HubbleConstantNow=(100.*pf.hubble_constant),
+            OmegaMatterNow=pf.omega_matter, OmegaLambdaNow=pf.omega_lambda)
+    # observer to lens
+    DL = pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        pf.parameters['observer_redshift'], pf.current_redshift)
+    # observer to source
+    DS = pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        pf.parameters['observer_redshift'], pf.parameters['lensing_source_redshift'])
+    # lens to source
+    DLS = pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        pf.current_redshift, pf.parameters['lensing_source_redshift'])
+    return (((DL * DLS) / DS) * (1.5e14 * pf.omega_matter * 
+                                (pf.hubble_constant / speed_of_light_cgs)**2 *
+                                (1 + pf.current_redshift)))
+add_field("WeakLensingConvergence", function=_DensityPerturbation, 
+          convert_function=_convertConvergence, 
+          projection_conversion='mpccm')
 
 def _CellVolume(field, data):
     if data['dx'].size == 1:
