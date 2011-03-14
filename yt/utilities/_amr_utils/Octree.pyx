@@ -51,7 +51,7 @@ cdef void OTN_add_value(OctreeNode *self,
         self.val[i] += val[i]
     self.weight_val += weight_val
 
-cdef void OTN_refine(OctreeNode *self):
+cdef void OTN_refine(OctreeNode *self, int incremental = 0):
     cdef int i, j, i1, j1
     cdef np.int64_t npos[3]
     cdef OctreeNode *node
@@ -66,6 +66,7 @@ cdef void OTN_refine(OctreeNode *self):
                             npos,
                             self.nvals, self.val, self.weight_val,
                             self.level + 1)
+    if incremental: return
     for i in range(self.nvals): self.val[i] = 0.0
     self.weight_val = 0.0
 
@@ -157,7 +158,7 @@ cdef class Octree:
             if self.incremental:
                 OTN_add_value(node, val, weight_val)
             if node.children[0][0][0] == NULL:
-                OTN_refine(node)
+                OTN_refine(node, self.incremental)
             # Maybe we should use bitwise operators?
             fac = self.po2[level - L - 1]
             i = (pos[0] >= fac*(2*node.pos[0]+1))
