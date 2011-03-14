@@ -247,6 +247,7 @@ class LightCone(EnzoSimulation):
         :param save_stack (bool): if True, the unflatted light cone data including each individual slice is written to 
                an hdf5 file.  Default: True.
         :param save_slice_images (bool): save images for each individual projection slice.  Default: False.
+        :param cmap_name (str): color map for images.  Default: 'algae'.
         :param flatten_stack (bool): if True, the light cone stack is continually flattened each time a slice is added 
                in order to save memory.  This is generally not necessary.  Default: False.
         :param photon_field (bool): if True, the projection data for each slice is decremented by 4 Pi R^2`, where R 
