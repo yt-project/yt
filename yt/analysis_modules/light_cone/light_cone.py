@@ -34,8 +34,6 @@ from yt.analysis_modules.simulation_handler.enzo_simulation \
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.utilities.cosmology import Cosmology
-from yt.visualization.plot_collection import \
-    PlotCollection
 
 from .common_n_volume import commonNVolume
 from .halo_mask import light_cone_halo_map, \
@@ -308,9 +306,6 @@ class LightCone(EnzoSimulation):
                     if weight_field is not None:
                         self.projection_weight_field_stack = [sum(self.projection_weight_field_stack)]
 
-            # Delete the plot collection now that the frb is deleted.
-            del output['pc']
-
             # Unless this is the last slice, delete the dataset object.
             # The last one will be saved to make the plot collection.
             if (q < len(self.light_cone_solution) - 1):
@@ -343,17 +338,6 @@ class LightCone(EnzoSimulation):
                     frb.data[field] *= self.halo_mask
                 else:
                     mylog.error("No halo mask loaded, call get_halo_mask.")
-
-            # Make a plot collection for the light cone projection.
-            center = [0.5 * (self.light_cone_solution[-1]['object'].parameters['DomainLeftEdge'][w] + 
-                             self.light_cone_solution[-1]['object'].parameters['DomainRightEdge'][w])
-                      for w in range(self.light_cone_solution[-1]['object'].parameters['TopGridRank'])]
-            pc = PlotCollection(self.light_cone_solution[-1]['object'], center=center)
-            pc.add_fixed_resolution_plot(frb, field, **kwargs)
-            pc.save(filename)
-
-            # Return the plot collection so the user can remake the plot if they want.
-            return pc
 
     def rerandomize_light_cone_solution(self, newSeed, recycle=True, filename=None):
         """
