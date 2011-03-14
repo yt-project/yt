@@ -470,6 +470,7 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["DualEnergyFormalism"] = 0 # always off.
         self.parameters["EOSType"] = -1 # default
+
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
 
@@ -504,6 +505,9 @@ class OrionStaticOutput(StaticOutput):
                 self.fparameter_filename, 'probin')
         if os.path.isfile(self.fparameter_filename):
             self._parse_fparameter_file()
+            for param in self.fparameters:
+                if orion2enzoDict.has_key(param):
+                    self.parameters[orion2enzoDict[param]]=self.fparameters[param]
         # Let's read the file
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
@@ -540,6 +544,20 @@ class OrionStaticOutput(StaticOutput):
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.refine_by = self.parameters["RefineBy"]
+        self.parameters["ComovingCoordinates"] = bool(self.parameters["ComovingCoordinates"])
+        if self.parameters["ComovingCoordinates"]:
+            self.cosmological_simulation = 1
+            self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
+            self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+            self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
+            a_file = open(os.path.join(self.fullplotdir,'comoving_a'))
+            line = a_file.readline().strip()
+            a_file.close()
+            self.parameters["CosmologyCurrentRedshift"] = 1/float(line) - 1
+            self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
+        else:
+            self.current_redshift = self.omega_lambda = self.omega_matter = \
+                self.hubble_constant = self.cosmological_simulation = 0.0
 
     def _parse_fparameter_file(self):
         """
@@ -573,6 +591,7 @@ class OrionStaticOutput(StaticOutput):
         header_file.close()
         n_fields = int(lines[1])
         self.current_time = float(lines[3+n_fields])
+
 
                 
     def _set_units(self):
