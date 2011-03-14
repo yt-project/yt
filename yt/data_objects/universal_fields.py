@@ -428,22 +428,22 @@ add_field("Baryon_Overdensity", function=_Baryon_Overdensity,
 # Weak lensing convergence.
 # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
 def _convertConvergence(data):
-    if not pf.parameters.has_key('cosmology_calculator'):
-        pf.parameters['cosmology_calculator'] = Cosmology(
-            HubbleConstantNow=(100.*pf.hubble_constant),
-            OmegaMatterNow=pf.omega_matter, OmegaLambdaNow=pf.omega_lambda)
+    if not data.pf.parameters.has_key('cosmology_calculator'):
+        data.pf.parameters['cosmology_calculator'] = Cosmology(
+            HubbleConstantNow=(100.*data.pf.hubble_constant),
+            OmegaMatterNow=data.pf.omega_matter, OmegaLambdaNow=data.pf.omega_lambda)
     # observer to lens
-    DL = pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-        pf.parameters['observer_redshift'], pf.current_redshift)
+    DL = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        data.pf.parameters['observer_redshift'], data.pf.current_redshift)
     # observer to source
-    DS = pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-        pf.parameters['observer_redshift'], pf.parameters['lensing_source_redshift'])
+    DS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        data.pf.parameters['observer_redshift'], data.pf.parameters['lensing_source_redshift'])
     # lens to source
-    DLS = pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-        pf.current_redshift, pf.parameters['lensing_source_redshift'])
-    return (((DL * DLS) / DS) * (1.5e14 * pf.omega_matter * 
-                                (pf.hubble_constant / speed_of_light_cgs)**2 *
-                                (1 + pf.current_redshift)))
+    DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
+    return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter * 
+                                (data.pf.hubble_constant / speed_of_light_cgs)**2 *
+                                (1 + data.pf.current_redshift)))
 add_field("WeakLensingConvergence", function=_DensityPerturbation, 
           convert_function=_convertConvergence, 
           projection_conversion='mpccm')

@@ -47,7 +47,7 @@ class LightCone(EnzoSimulation):
                  final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
-                 output_dir='LC', output_prefix='LightCone', **kwargs):
+                 set_parameters=None, output_dir='LC', output_prefix='LightCone', **kwargs):
         """
         Initialize a LightCone object.
         :param initial_redshift (float): the initial (highest) redshift for the light cone.  Default: 1.0.
@@ -67,6 +67,7 @@ class LightCone(EnzoSimulation):
                the projection axis and center.  This was invented to allow light cones with thin slices to 
                sample coherent large scale structure, but in practice does not work so well.  Try setting 
                this parameter to 1 and see what happens.  Default: 0.0.
+        :param set_parameters (dict): dictionary of parameters to attach to pf.parameters.  Default: None.
         :param output_dir (str): the directory in which images and data files will be written.  Default: 'LC'.
         :param output_prefix (str): the prefix of all images and data files.  Default: 'LightCone'.
         """
@@ -79,6 +80,7 @@ class LightCone(EnzoSimulation):
         self.use_minimum_datasets = use_minimum_datasets
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
+        self.set_parameters = set_parameters
         self.output_dir = output_dir
         self.output_prefix = output_prefix
 
@@ -269,6 +271,7 @@ class LightCone(EnzoSimulation):
                 name = "%s%s_%s_%04d_%04d" % (self.output_dir, self.output_prefix,
                                               node, q, len(self.light_cone_solution))
             output['object'] = load(output['filename'])
+            output['object'].parameters.update(self.set_parameters)
             frb = LightConeProjection(output, field, self.pixels, weight_field=weight_field,
                                       save_image=save_slice_images,
                                       name=name, node=node, **kwargs)
