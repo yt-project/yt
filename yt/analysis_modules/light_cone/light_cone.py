@@ -34,11 +34,12 @@ from yt.analysis_modules.simulation_handler.enzo_simulation \
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.utilities.cosmology import Cosmology
+from yt.visualization.image_writer import write_image
 
 from .common_n_volume import commonNVolume
 from .halo_mask import light_cone_halo_map, \
     light_cone_halo_mask
-from .light_cone_projection import LightConeProjection
+from .light_cone_projection import _light_cone_projection
 
 class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, 
@@ -233,8 +234,8 @@ class LightCone(EnzoSimulation):
             del halo_mask_cube
 
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False, node=None,
-                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False,
-                           add_redshift_label=False, **kwargs):
+                           save_stack=True, save_slice_images=False, cmap_name='algae', 
+                           flatten_stack=False, photon_field=False):
         """
         Create projections for light cone, then add them together.
         :param weight_field (str): the weight field of the projection.  This has the same meaning as in standard 
@@ -270,10 +271,12 @@ class LightCone(EnzoSimulation):
                                               node, q, len(self.light_cone_solution))
             output['object'] = load(output['filename'])
             output['object'].parameters.update(self.set_parameters)
-            frb = LightConeProjection(output, field, self.pixels, weight_field=weight_field,
-                                      save_image=save_slice_images,
-                                      name=name, node=node, **kwargs)
+            frb = _light_cone_projection(output, field, self.pixels, 
+                                         weight_field=weight_field, node=node)
             if ytcfg.getint("yt", "__parallel_rank") == 0:
+                if save_slice_images:
+                    write_image(frb[field], "%s_%s.png" % (name, field), cmap_name=cmap_name)
+
                 if photon_field:
                     # Decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
                     co = Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
@@ -287,7 +290,6 @@ class LightCone(EnzoSimulation):
                     mylog.info("Distance to slice = %e" % dL)
                     frb[field] *= factor #in erg/s/cm^2/Hz on observer's image plane.
 
-            if ytcfg.getint("yt", "__parallel_rank") == 0:
                 if weight_field is not None:
                     # Data come back normalized by the weight field.
                     # Undo that so it can be added up for the light cone.
@@ -326,6 +328,10 @@ class LightCone(EnzoSimulation):
             # Save the last fixed resolution buffer for the plot collection, 
             # but replace the data with the full light cone projection data.
             frb.data[field] = lightConeProjection
+
+            # Write image.
+            if save_slice_images:
+                write_image(frb[field], "%s_%s.png" % (filename, field), cmap_name=cmap_name)
 
             # Write stack to hdf5 file.
             if save_stack:

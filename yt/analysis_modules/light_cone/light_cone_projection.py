@@ -34,9 +34,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
 
 @parallel_blocking_call
-def LightConeProjection(lightConeSlice, field, pixels, weight_field=None, 
-                        save_image=False, name="", node=None, field_cuts=None,
-                        add_redshift_label=False, **kwargs):
+def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None, 
+                           save_image=False, node=None, field_cuts=None):
     "Create a single projection to be added into the light cone stack."
 
     # Use some projection parameters to seed random number generator to make unique node name.
