@@ -544,8 +544,8 @@ class OrionStaticOutput(StaticOutput):
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.refine_by = self.parameters["RefineBy"]
-        self.parameters["ComovingCoordinates"] = bool(self.parameters["ComovingCoordinates"])
-        if self.parameters["ComovingCoordinates"]:
+
+        if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):
             self.cosmological_simulation = 1
             self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
