@@ -54,9 +54,9 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
 
     mylog.info("Making projection at z = %f from %s." % (lightConeSlice['redshift'], lightConeSlice['filename']))
 
-    region_center = [0.5 * (lightConeSlice['object'].parameters['DomainRightEdge'][q] +
-                            lightConeSlice['object'].parameters['DomainLeftEdge'][q]) \
-                         for q in range(lightConeSlice['object'].parameters['TopGridRank'])]
+    region_center = [0.5 * (lightConeSlice['object'].domain_right_edge[q] +
+                            lightConeSlice['object'].domain_left_edge[q]) \
+                         for q in range(lightConeSlice['object'].pf.dimensionality)]
 
     # 1. The Depth Problem
     # Use coordinate field cut in line of sight to cut projection to proper depth.
@@ -230,9 +230,8 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
 
         # Create fixed resolution buffer to return back to the light cone object.
         # These buffers will be stacked together to make the light cone.
-        frb = FixedResolutionBuffer(proj, 
-                                    (0, lightConeSlice['WidthBoxFraction'], 
-                                     0, lightConeSlice['WidthBoxFraction']),
+        frb = FixedResolutionBuffer(proj, (0, lightConeSlice['WidthBoxFraction'], 
+                                           0, lightConeSlice['WidthBoxFraction']),
                                     (pixels, pixels), antialias=False)
 
         return frb
