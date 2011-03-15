@@ -56,7 +56,7 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
 
     region_center = [0.5 * (lightConeSlice['object'].domain_right_edge[q] +
                             lightConeSlice['object'].domain_left_edge[q]) \
-                         for q in range(lightConeSlice['object'].pf.dimensionality)]
+                         for q in range(lightConeSlice['object'].dimensionality)]
 
     # 1. The Depth Problem
     # Use coordinate field cut in line of sight to cut projection to proper depth.
