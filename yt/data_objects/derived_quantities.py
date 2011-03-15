@@ -35,6 +35,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
+from yt.utilities.amr_utils import Octree
 
 __CUDA_BLOCK_SIZE = 256
 
@@ -272,7 +273,8 @@ def _ParticleSpinParameter(data):
 add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
-def _IsBound(data, truncate = True, include_thermal_energy = False):
+def _IsBound(data, truncate = True, include_thermal_energy = False,
+    treecode = False):
     """
     This returns whether or not the object is gravitationally bound
     
@@ -298,15 +300,74 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     # We only divide once here because we have velocity in cgs, but radius is
     # in code.
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
+    # Check for periodicity of the clump.
+    two_root = 2. / na.array(data.pf.domain_dimensions)
+    periodic = na.array([0., 0., 0.])
+    for i,dim in enumerate(["x", "y", "z"]):
+        sorted = data[dim][data[dim].argsort()]
+        # If two adjacent values are different by (more than) two root grid
+        # cells, I think it's reasonable to assume that the clump wraps around.
+        diff = sorted[1:] - sorted[0:-1]
+        if (diff >= two_root[i]).any():
+            # Record the maximum of the minimum range of values, i.e. the last
+            # value just before the gap in values in the sorted array.
+            sel = (diff >= two_root[i])
+            index = na.min(na.nonzero(sel))
+            periodic[i] = sorted[index]
+    # This dict won't make a copy of the data, but we will make a copy to 
+    # change if needed in the periodic section.
+    local_data = {}
+    domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
+    for label in ["x", "y", "z", "CellMass"]:
+        local_data[label] = data[label]
+    if periodic.any():
+        # Adjust local_data to re-center the clump to remove the periodicity
+        # by the gap calculated above.
+        for i,dim in enumerate(["x", "y", "z"]):
+            if not periodic[i]: continue
+            local_data[dim] = data[dim].copy()
+            local_data[dim] += periodic[i]
+            local_data[dim] %= domain_period[i]
     import time
     t1 = time.time()
-    try:
-        pot = G*_cudaIsBound(data, truncate, kinetic/G)
-    except (ImportError, AssertionError):
-        pot = G*FindBindingEnergy(data["CellMass"],
-                                  data['x'],data['y'],data['z'],
-                                  truncate, kinetic/G)
-        mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
+    if treecode:
+        # Calculate the binding energy using the treecode method.
+        # Faster but less accurate.
+        # Make an octree for one value (mass) with incremental=True.
+        octree = Octree(na.array(data.pf.domain_dimensions), 1, True)
+        # Now discover what levels this data comes from.
+        root_dx = 1./data.pf.domain_dimensions[0]
+        dxes = na.unique(data['dx']) # unique returns a sorted array,
+        dyes = na.unique(data['dy']) # so these will all have the same
+        dzes = na.unique(data['dx']) # order.
+        # We only need one dim to figure out levels, we'll use x.
+        levels = na.floor(root_dx / dxes / data.pf.refine_by).astype('int')
+        lsort = levels.argsort()
+        levels = levels[lsort]
+        dxes = dxes[lsort]
+        dyes = dyes[lsort]
+        dzes = dzes[lsort]
+        # Now we pick out the values from each level and add them to the octree.
+        for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
+            print "adding to octree", L
+            sel = (dxes == dx)
+            thisx = (local_data["x"][sel] / dx).astype('int64')
+            thisy = (local_data["y"][sel] / dy).astype('int64')
+            thisz = (local_data["z"][sel] / dz).astype('int64')
+            vals = na.array([local_data["CellMass"][sel]], order='F')
+            octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
+                na.ones_like(thisx).astype('float64'))
+        # Now we calculate the binding energy using a treecode.
+        pot = 0
+    else:
+        try:
+            pot = G*_cudaIsBound(local_data, truncate, kinetic/G)
+        except (ImportError, AssertionError):
+            pot = G*FindBindingEnergy(local_data["CellMass"],
+                                local_data['x'],local_data['y'],local_data['z'],
+                                truncate, kinetic/G)
+    mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
+    del local_data
     return [(pot / kinetic)]
 def _combIsBound(data, bound):
     return bound

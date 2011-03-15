@@ -275,6 +275,53 @@ cdef class Octree:
                             level, curpos + added, pdata, vdata, wdata)
         return added
 
+    cdef np.float64_t node_separation(self, OctreeNode *node1, OctreeNode *node2):
+        # Find the distance between the two nodes. To match FindBindingEnergy
+        # in data_point_utilities.c, we'll do this in code [0,1) units.
+        # We'll also assume 
+        cdef np.float64_t fn1, fn2, p1, p2, dist
+        cdef np.int64_t n1, n2
+        cdef int i
+        dist = 0.0
+        for i in range(3):
+            n1 = self.po2[node1.level] * self.top_grid_dims[i]
+            n2 = self.po2[node2.level] * self.top_grid_dims[i]
+            fn1 = <np.float64_t> n1
+            fn2 = <np.float64_t> n2
+            p1 = (<np.float64_t> node1.pos[i]) / fn1
+            p2 = (<np.float64_t> node2.pos[i]) / fn2
+            dist += np.sqrt((p1 - p2) * (p1 - p2))
+        return dist
+    
+    cdef np.float64_t opening_angle(self, OctreeNode *node1, OctreeNode *node2):
+        # Calculate the opening angle of node2 upon the center of node1.
+        # In order to keep things simple, we will not assume symmetry in all
+        # three directions of the octree, and we'll use the largest dimension
+        # if the tree is not symmetric. This is not strictly the opening angle
+        # the purest sense, but it's slightly more accurate, so it's OK.
+        # This is done in code units to match the distance calculation.
+        cdef np.float64_t d2, dx2, dist
+        cdef np.int64_t n2
+        cdef int i
+        d2 = 0
+        if self.top_grid_dims[1] == self.top_grid_dims[0] and \
+                self.top_grid_dims[2] == self.top_grid_dims[0]:
+            # Symmetric
+            n2 = self.po2[node2.level] * self.top_grid_dims[0]
+            d2 = 1. / (<np.float64_t> n2)
+        else:
+            # Not symmetric
+            for i in range(3):
+                n2 = self.po2[node2.level] * self.top_grid_dims[i]
+                dx2 = 1. / (<np.float64_t> n2)
+                d2 = np.maximum(d2, dx2)
+        # Now calculate the opening angle using the small angle approximation.
+        # This is OK because for large angles, i.e. d2 ~ dist, 
+        dist = self.node_separation(node1, node2)
+        return d2 / dist
+
+    
+
     def __dealloc__(self):
         cdef int i, j, k
         for i in range(self.top_grid_dims[0]):
