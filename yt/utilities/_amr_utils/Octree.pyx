@@ -51,8 +51,8 @@ cdef void OTN_add_value(OctreeNode *self,
         self.val[i] += val[i]
     self.weight_val += weight_val
 
-cdef void OTN_refine(OctreeNode *self):
-    cdef int i, j, i1, j1
+cdef void OTN_refine(OctreeNode *self, int incremental = 0):
+    cdef int i, j, k, i1, j1
     cdef np.int64_t npos[3]
     cdef OctreeNode *node
     for i in range(2):
@@ -66,6 +66,7 @@ cdef void OTN_refine(OctreeNode *self):
                             npos,
                             self.nvals, self.val, self.weight_val,
                             self.level + 1)
+    if incremental: return
     for i in range(self.nvals): self.val[i] = 0.0
     self.weight_val = 0.0
 
@@ -73,7 +74,7 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
                         np.float64_t *val, np.float64_t weight_val,
                         int level):
     cdef OctreeNode *node
-    cdef int i, j
+    cdef int i, j, k
     node = <OctreeNode *> malloc(sizeof(OctreeNode))
     node.pos[0] = pos[0]
     node.pos[1] = pos[1]
@@ -92,7 +93,7 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
     return node
 
 cdef void OTN_free(OctreeNode *node):
-    cdef int i, j
+    cdef int i, j, k
     for i in range(2):
         for j in range(2):
             for k in range(2):
@@ -106,10 +107,12 @@ cdef class Octree:
     cdef np.int64_t po2[80]
     cdef OctreeNode ****root_nodes
     cdef np.int64_t top_grid_dims[3]
+    cdef int incremental
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
-                  int nvals):
-        cdef int i, j
+                  int nvals, int incremental = False):
+        cdef int i, j, k
+        self.incremental = incremental
         cdef OctreeNode *node
         cdef np.int64_t pos[3]
         cdef np.float64_t *vals = <np.float64_t *> alloca(
@@ -147,13 +150,15 @@ cdef class Octree:
                  int level, np.int64_t pos[3],
                  np.float64_t *val,
                  np.float64_t weight_val):
-        cdef int i, j
+        cdef int i, j, k, L
         cdef OctreeNode *node
         node = self.find_on_root_level(pos, level)
         cdef np.int64_t fac
         for L in range(level):
+            if self.incremental:
+                OTN_add_value(node, val, weight_val)
             if node.children[0][0][0] == NULL:
-                OTN_refine(node)
+                OTN_refine(node, self.incremental)
             # Maybe we should use bitwise operators?
             fac = self.po2[level - L - 1]
             i = (pos[0] >= fac*(2*node.pos[0]+1))
@@ -165,7 +170,7 @@ cdef class Octree:
     cdef OctreeNode *find_on_root_level(self, np.int64_t pos[3], int level):
         # We need this because the root level won't just have four children
         # So we find on the root level, then we traverse the tree.
-        cdef np.int64_t i, j
+        cdef np.int64_t i, j, k
         i = <np.int64_t> (pos[0] / self.po2[level])
         j = <np.int64_t> (pos[1] / self.po2[level])
         k = <np.int64_t> (pos[2] / self.po2[level])
@@ -202,7 +207,7 @@ cdef class Octree:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def get_all_from_level(self, int level, int count_only = 0):
-        cdef int i, j
+        cdef int i, j, k
         cdef int total = 0
         vals = []
         for i in range(self.top_grid_dims[0]):
@@ -214,7 +219,7 @@ cdef class Octree:
         cdef np.ndarray[np.int64_t, ndim=2] npos
         cdef np.ndarray[np.float64_t, ndim=2] nvals
         cdef np.ndarray[np.float64_t, ndim=1] nwvals
-        npos = np.zeros( (total, 2), dtype='int64')
+        npos = np.zeros( (total, 3), dtype='int64')
         nvals = np.zeros( (total, self.nvals), dtype='float64')
         nwvals = np.zeros( total, dtype='float64')
         cdef np.int64_t curpos = 0
@@ -229,10 +234,11 @@ cdef class Octree:
         return npos, nvals, nwvals
 
     cdef int count_at_level(self, OctreeNode *node, int level):
-        cdef int i, j
+        cdef int i, j, k
         # We only really return a non-zero, calculated value if we are at the
         # level in question.
         if node.level == level:
+            if self.incremental: return 1
             # We return 1 if there are no finer points at this level and zero
             # if there are
             return (node.children[0][0][0] == NULL)
@@ -249,9 +255,10 @@ cdef class Octree:
                               np.int64_t *pdata,
                               np.float64_t *vdata,
                               np.float64_t *wdata):
-        cdef int i, j
+        cdef int i, j, k
         if node.level == level:
-            if node.children[0][0][0] != NULL: return 0
+            if node.children[0][0][0] != NULL and not self.incremental:
+                return 0
             for i in range(self.nvals):
                 vdata[self.nvals * curpos + i] = node.val[i]
             wdata[curpos] = node.weight_val
@@ -259,7 +266,7 @@ cdef class Octree:
             pdata[curpos * 3 + 1] = node.pos[1]
             pdata[curpos * 3 + 2] = node.pos[2]
             return 1
-        if node.children[0][0] == NULL: return 0
+        if node.children[0][0][0] == NULL: return 0
         cdef np.int64_t added = 0
         for i in range(2):
             for j in range(2):
@@ -269,7 +276,7 @@ cdef class Octree:
         return added
 
     def __dealloc__(self):
-        cdef int i, j
+        cdef int i, j, k
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
