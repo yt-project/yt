@@ -43,6 +43,7 @@ cdef struct OctreeNode:
     int level
     int nvals
     OctreeNode *children[2][2][2]
+    OctreeNode *parent
 
 cdef void OTN_add_value(OctreeNode *self,
         np.float64_t *val, np.float64_t weight_val):
@@ -65,14 +66,38 @@ cdef void OTN_refine(OctreeNode *self, int incremental = 0):
                 self.children[i][j][k] = OTN_initialize(
                             npos,
                             self.nvals, self.val, self.weight_val,
-                            self.level + 1)
+                            self.level + 1, self)
     if incremental: return
     for i in range(self.nvals): self.val[i] = 0.0
     self.weight_val = 0.0
 
+cdef int OTN_same(OctreeNode *node1, OctreeNode *node2):
+    # Returns 1 if node1 == node2; 0 otherwise.
+    # If all of these conditions are met, they are the same node.
+    if node1.pos[0] == node2.pos[0] and \
+       node1.pos[1] == node2.pos[1] and \
+       node1.pos[2] == node2.pos[2] and \
+       node1.level == node2.level: return 1
+    return 0
+
+cdef int OTN_contained(OctreeNode *node1, OctreeNode *node2):
+    # Returns 1 if node2 contains node1; and 0 otherwise.
+    # node1.level > node2.level.
+    cdef OctreeNode *parent_node
+    parent_node = node1.parent
+    while parent_node is not NULL:
+        # If all of these conditions are met, node2 is a parent of node1.
+        if parent_node.pos[0] == node2.pos[0] and \
+           parent_node.pos[1] == node2.pos[0] and \
+           parent_node.pos[2] == node2.pos[2] and \
+           parent_node.level == node2.level: return 1
+        parent_node = parent_node.parent
+    # If we've gotten this far, the two nodes are not related.
+    return 0
+
 cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
                         np.float64_t *val, np.float64_t weight_val,
-                        int level):
+                        int level, OctreeNode *parent):
     cdef OctreeNode *node
     cdef int i, j, k
     node = <OctreeNode *> malloc(sizeof(OctreeNode))
@@ -80,6 +105,7 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
     node.pos[1] = pos[1]
     node.pos[2] = pos[2]
     node.nvals = nvals
+    node.parent = parent
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
     for i in range(nvals):
@@ -108,6 +134,7 @@ cdef class Octree:
     cdef OctreeNode ****root_nodes
     cdef np.int64_t top_grid_dims[3]
     cdef int incremental
+    cdef np.float64_t opening_angle
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
@@ -144,7 +171,7 @@ cdef class Octree:
                 for k in range(top_grid_dims[2]):
                     pos[2] = k
                     self.root_nodes[i][j][k] = OTN_initialize(
-                        pos, nvals, vals, weight_val, 0)
+                        pos, nvals, vals, weight_val, 0, NULL)
 
     cdef void add_to_position(self,
                  int level, np.int64_t pos[3],
@@ -275,7 +302,7 @@ cdef class Octree:
                             level, curpos + added, pdata, vdata, wdata)
         return added
 
-    cdef np.float64_t node_separation(self, OctreeNode *node1, OctreeNode *node2):
+    cdef np.float64_t fbe_node_separation(self, OctreeNode *node1, OctreeNode *node2):
         # Find the distance between the two nodes. To match FindBindingEnergy
         # in data_point_utilities.c, we'll do this in code [0,1) units.
         # We'll also assume 
@@ -293,7 +320,8 @@ cdef class Octree:
             dist += np.sqrt((p1 - p2) * (p1 - p2))
         return dist
     
-    cdef np.float64_t opening_angle(self, OctreeNode *node1, OctreeNode *node2):
+    cdef np.float64_t fbe_opening_angle(self, OctreeNode *node1,
+            OctreeNode *node2):
         # Calculate the opening angle of node2 upon the center of node1.
         # In order to keep things simple, we will not assume symmetry in all
         # three directions of the octree, and we'll use the largest dimension
@@ -303,7 +331,7 @@ cdef class Octree:
         cdef np.float64_t d2, dx2, dist
         cdef np.int64_t n2
         cdef int i
-        d2 = 0
+        d2 = 0.0
         if self.top_grid_dims[1] == self.top_grid_dims[0] and \
                 self.top_grid_dims[2] == self.top_grid_dims[0]:
             # Symmetric
@@ -316,36 +344,113 @@ cdef class Octree:
                 dx2 = 1. / (<np.float64_t> n2)
                 d2 = np.maximum(d2, dx2)
         # Now calculate the opening angle.
-        dist = self.node_separation(node1, node2)
+        dist = self.fbe_node_separation(node1, node2)
         return d2 / dist
 
-    cdef np.float64_t iterate_remote_node_fbe(self, OctreeNode *node1,
+    cdef np.float64_t fbe_potential_of_remote_nodes(self, OctreeNode *node1,
+            int top_i, int top_j, int top_k):
+        # Given a childless node "node1", calculate the potential for it from
+        # all the other nodes using the treecode method.
+        cdef int i, j, k
+        cdef np.float64_t potential
+        potential = 0.0
+        # We *do* want to walk over the root_node that node1 is in to look for
+        # level>0 nodes close to node1, but none of
+        # the previously-walked root_nodes.
+        for i in range(top_i, self.top_grid_dims[0]):
+            for j in range(top_j, self.top_grid_dims[1]):
+                for k in range(top_k, self.top_grid_dims[2]):
+                    potential += self.fbe_iterate_remote_nodes(node1,
+                        self.root_nodes[i][j][k])
+        return potential
+
+    cdef np.float64_t fbe_iterate_remote_nodes(self, OctreeNode *node1,
             OctreeNode *node2):
         # node1 never changes.
         # node2 is the iterated-upon remote node.
-        
-
-    cdef np.float64_t iterate_child_node_fbe(self, OctreeNode *node):
-        # Recursively iterate over child nodes until we get a childless node.
-        cdef int i, j, k
-        cdef float64_t potential
-        potential = 0
-        if node.children[0][0][0] is NULL:
-            # We have a childless node. Time to iterate over every other
-            # node using the treecode method.
-            
+        cdef int i, j, k, contained
+        cdef np.float64_t potential, dist, angle
+        potential = 0.0
+        # Do nothing with node2 when it is the same as node1. No potential
+        # calculation, and no digging deeper.
+        if OTN_same(node1, node2): return 0.0
+        # If we have a childless node2 we can skip everything below and
+        # calculate the potential.
+        if node2.children[0][0][0] == NULL:
+            dist = self.fbe_node_separation(node1, node2)
+            return node1.val[0] * node2.val[0] / dist
+        # We don't want to calculate the potential of the node to a parent node.
+        # Find out if there is a relationship.
+        contained = OTN_contained(node1, node2)
+        # Now we apply the opening angle test. If the opening angle is small
+        # enough, we use this node for the potential and dig no deeper.
+        angle = self.fbe_opening_angle(node1, node2)
+        if angle < self.opening_angle and not contained:
+            dist = self.fbe_node_separation(node1, node2)
+            return node1.val[0] * node2.val[0] / dist
+        # If the above is not satisfied, we must dig deeper!
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    potential += self.iterate_child_node_fbe(node.children[i][j][k])
+                    potential += self.fbe_iterate_remote_nodes(node1,
+                        node2.children[i][j][k])
+        return potential
 
-    def find_binding_energy(self, truncate, kinetic):
+    cdef np.float64_t fbe_iterate_children(self, OctreeNode *node, int top_i,
+            int top_j, int top_k):
+        # Recursively iterate over child nodes until we get a childless node.
         cdef int i, j, k
-        # The first part of the loop goes over all of the root level cells.
+        cdef np.float64_t potential
+        potential = 0.0
+        # We have a childless node. Time to iterate over every other
+        # node using the treecode method.
+        if node.children[0][0][0] is NULL:
+            potential = self.fbe_potential_of_remote_nodes(node, top_i, top_j,
+                top_k)
+            return potential
+        # If the node has children, we need to walk all of them returning
+        # the potential for each.
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    potential += self.fbe_iterate_children(node.children[i][j][k],
+                        top_i, top_j, top_k)
+        return potential
+
+    def find_binding_energy(self, truncate, kinetic, opening_angle = 1.0):
+        r"""Find the binding energy of an ensemble of data points using the
+        treecode method.
+        
+        Note: The first entry of the vals array MUST be Mass.
+        """
+        # Here are the order of events:
+        # 1. We loop over all of the root_nodes, below.
+        # 2. In fbe_iterate_children, each of these nodes is iterated until
+        #    we reach a node without any children.
+        # 3. Next, starting in fbe_potential_of_remote_nodes we again loop over
+        #    root_nodes, not double-counting, calling fbe_iterate_remote_nodes.
+        # 4. In fbe_iterate_remote_nodes, if we have a childless node, we
+        #    calculate the potential between the two nodes and return. Or, if
+        #    we have a node with a small enough opening angle, we return the
+        #    potential. If neither of these are done, we call
+        #    fbe_iterate_remote_nodes on the children nodes.
+        # 5. All of this returns a total, non-double-counted potential.
+        cdef int i, j, k
+        cdef np.float64_t potential
+        potential = 0.0
+        self.opening_angle = opening_angle
+        # The first part of the loop goes over all of the root level nodes.
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
-                    
+                    potential += self.fbe_iterate_children(self.root_nodes[i][j][k],
+                        i, j, k)
+                    if truncate and potential > kinetic: break
+                if truncate and potential > kinetic: break
+            if truncate and potential > kinetic:
+                print "Truncating!"
+                break
+        return potential
 
     def __dealloc__(self):
         cdef int i, j, k
