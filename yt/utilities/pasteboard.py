@@ -87,12 +87,16 @@ class PostInventory(object):
         vals = []
         for t, pfn in self.posts:
             if pfn not in tip:
-                d = open(os.path.join(self.repo_fn, pfn)).read()[:80]
+                d = open(os.path.join(self.repo_fn, pfn)).read()
             else:
-                d = tip[pfn].data()[:80]
+                d = tip[pfn].data()
+            if len(d) > 80: d = d[:77] + "..."
+            name_noext = pfn[6:].replace(".","-")
             vals.append(dict(modified = time.ctime(t),
                              modtime = t,
-                             name = pfn[42:], # 6 for posts/ then 36 for UUID
+                             fullname = pfn,
+                             htmlname = "html/%s.html" % name_noext,
+                             name = pfn[43:], # 6 for posts/ then 36 for UUID
                              descr = d)) 
         fn = os.path.join(self.repo_fn, "inventory.json")
         f = open(fn, "w")
