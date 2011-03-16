@@ -591,6 +591,25 @@ class YTCommands(cmdln.Cmdln):
                             weight="CellMassMsun")
         ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
         pc.save()
+
+    @cmdln.option("-d", "--desc", action="store",
+                  default = False, dest="desc",
+                  help="Description for this pasteboard entry")
+    def do_pasteboard(self, subcmd, opts, arg):
+        """
+        Place a file into the user's pasteboard
+        """
+        if opts.desc is None: raise RuntimeError
+        from yt.utilities.pasteboard import PostInventory
+        pp = PostInventory()
+        pp.add_post(arg, desc=opts.desc)
+
+    @cmdln.option("-o", "--output", action="store",
+                  default = None, dest="output_fn",
+                  help="File to output to; else, print.")
+    def do_pastegrab(self, subcmd, opts, username, paste_id):
+        from yt.utilities.pasteboard import retrieve_pastefile
+        retrieve_pastefile(username, paste_id, opts.output_fn)
     
 def run_main():
     for co in ["--parallel", "--paste"]:
