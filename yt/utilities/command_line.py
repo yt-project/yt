@@ -591,6 +591,15 @@ class YTCommands(cmdln.Cmdln):
                             weight="CellMassMsun")
         ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
         pc.save()
+
+    @add_cmd_options([])
+    def do_pasteboard(self, subcmd, opts, arg):
+        """
+        Place a file into the user's pasteboard
+        """
+        from yt.utilities.pasteboard import PostInventory
+        pp = PostInventory()
+        pp.add_post(arg)
     
 def run_main():
     for co in ["--parallel", "--paste"]:
