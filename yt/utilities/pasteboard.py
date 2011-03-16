@@ -125,6 +125,6 @@ class PostInventory(object):
         fn = os.path.join(self.repo_fn, "inventory.json")
         f = open(fn, "w")
         f.write("var inventory_data = ")
-        json.dump(vals, f)
+        json.dump(vals, f, indent = 1)
         f.write(";")
         return fn
