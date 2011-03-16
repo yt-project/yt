@@ -302,6 +302,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
     # Check for periodicity of the clump.
     two_root = 2. / na.array(data.pf.domain_dimensions)
+    domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
     periodic = na.array([0., 0., 0.])
     for i,dim in enumerate(["x", "y", "z"]):
         sorted = data[dim][data[dim].argsort()]
@@ -309,15 +310,15 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # cells, I think it's reasonable to assume that the clump wraps around.
         diff = sorted[1:] - sorted[0:-1]
         if (diff >= two_root[i]).any():
-            # Record the maximum of the minimum range of values, i.e. the last
-            # value just before the gap in values in the sorted array.
+            # We will record the distance of the larger of the two values that
+            # define the gap from the right boundary, which we'll use for the
+            # periodic adjustment later.
             sel = (diff >= two_root[i])
             index = na.min(na.nonzero(sel))
-            periodic[i] = sorted[index]
+            periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1]
     # This dict won't make a copy of the data, but we will make a copy to 
     # change if needed in the periodic section.
     local_data = {}
-    domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
     for label in ["x", "y", "z", "CellMass"]:
         local_data[label] = data[label]
     if periodic.any():

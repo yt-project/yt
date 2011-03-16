@@ -315,12 +315,37 @@ cdef class Octree:
                 n2 = self.po2[node2.level] * self.top_grid_dims[i]
                 dx2 = 1. / (<np.float64_t> n2)
                 d2 = np.maximum(d2, dx2)
-        # Now calculate the opening angle using the small angle approximation.
-        # This is OK because for large angles, i.e. d2 ~ dist, 
+        # Now calculate the opening angle.
         dist = self.node_separation(node1, node2)
         return d2 / dist
 
-    
+    cdef np.float64_t iterate_remote_node_fbe(self, OctreeNode *node1,
+            OctreeNode *node2):
+        # node1 never changes.
+        # node2 is the iterated-upon remote node.
+        
+
+    cdef np.float64_t iterate_child_node_fbe(self, OctreeNode *node):
+        # Recursively iterate over child nodes until we get a childless node.
+        cdef int i, j, k
+        cdef float64_t potential
+        potential = 0
+        if node.children[0][0][0] is NULL:
+            # We have a childless node. Time to iterate over every other
+            # node using the treecode method.
+            
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    potential += self.iterate_child_node_fbe(node.children[i][j][k])
+
+    def find_binding_energy(self, truncate, kinetic):
+        cdef int i, j, k
+        # The first part of the loop goes over all of the root level cells.
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                for k in range(self.top_grid_dims[2]):
+                    
 
     def __dealloc__(self):
         cdef int i, j, k
