@@ -63,7 +63,12 @@ parameterDict = {"CosmologyCurrentRedshift": float,
 # throughout the code. key is Orion name, value is Enzo/yt equivalent
 orion2enzoDict = {"amr.n_cell": "TopGridDimensions",
                   "materials.gamma": "Gamma",
-                  "amr.ref_ratio": "RefineBy"
+                  "amr.ref_ratio": "RefineBy",
+                  "castro.use_comoving": "ComovingCoordinates",
+                  "castro.redshift_in": "CosmologyInitialRedshift",
+                  "comoving_OmL": "CosmologyOmegaLambdaNow",
+                  "comoving_OmM": "CosmologyOmegaMatterNow",
+                  "comoving_h": "CosmologyHubbleConstantNow"
                   }
 
 yt2orionFieldsDict = {}
