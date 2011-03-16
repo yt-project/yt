@@ -592,14 +592,17 @@ class YTCommands(cmdln.Cmdln):
         ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
         pc.save()
 
-    @add_cmd_options([])
+    @cmdln.option("-d", "--desc", action="store",
+                  default = False, dest="desc",
+                  help="Description for this pasteboard entry")
     def do_pasteboard(self, subcmd, opts, arg):
         """
         Place a file into the user's pasteboard
         """
+        if opts.desc is None: raise RuntimeError
         from yt.utilities.pasteboard import PostInventory
         pp = PostInventory()
-        pp.add_post(arg)
+        pp.add_post(arg, desc=opts.desc)
     
 def run_main():
     for co in ["--parallel", "--paste"]:

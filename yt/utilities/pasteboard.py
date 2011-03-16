@@ -41,20 +41,25 @@ class PostInventory(object):
         uu.readconfig(config_fn)
         commands.pull(uu, self.bbrepo)
         commands.update(uu, self.bbrepo, clean=True)
+        if not os.path.exists(os.path.join(repo_fn, "posts")):
+            os.makedirs(os.path.join(repo_fn, "posts"))
+        if not os.path.exists(os.path.join(repo_fn, "html")):
+            os.makedirs(os.path.join(repo_fn, "html"))
         self.uu = uu
 
     def regenerate_posts(self):
         self.posts = []
         for file in self.bbrepo["tip"]:
-            if file.startswith("posts/") and file.count("/") == 1:
+            if file.startswith("posts/") and file.count("/") == 1 \
+               and not file.endswith(".desc"):
                 filectx = self.bbrepo["tip"][file]
                 last_mod = filectx.filectx(filectx.filerev()).date()
                 self.posts.append((last_mod[0] + last_mod[1], file))
         self.posts.sort()
         self.posts = self.posts[::-1]
 
-    def add_post(self, filename, uu = None,
-                 highlight = True, push = True):
+    def add_post(self, filename, desc = None,
+                 uu = None, highlight = True, push = True):
         # We assume the post filename exists in the current space
         self.regenerate_posts()
         if uu is None: uu = self.uu
@@ -65,6 +70,8 @@ class PostInventory(object):
         pfn = "posts/%s" % (name)
         abs_pfn = os.path.join(self.repo_fn, pfn)
         abs_hfn = os.path.join(self.repo_fn, hfn)
+        if desc is not None:
+            open(abs_pfn + ".desc", "w").write(desc)
         self.posts.insert(0, (int(time.time()), "posts/%s" % name))
         if not os.path.exists(abs_pfn):
             open(abs_pfn,"w").write(open(filename).read())
@@ -77,17 +84,26 @@ class PostInventory(object):
             content = open(abs_pfn).read()
             open(abs_hfn, "w").write(
                 "<HTML><BODY><PRE>" + content + "</PRE></BODY></HTML>")
-        commands.add(uu, self.bbrepo, abs_pfn, abs_hfn)
-        commands.commit(uu, self.bbrepo, abs_hfn, abs_pfn,
-                        inv_fname, message="Adding %s" % name)
+        to_manage = [abs_pfn, abs_hfn]
+        if desc is not None: to_manage.append(abs_pfn + ".desc")
+        commands.add(uu, self.bbrepo, *to_manage)
+        commands.commit(uu, self.bbrepo, *(to_manage + [inv_fname]),
+                        message="Adding %s" % name)
         if push: commands.push(uu, self.bbrepo)
 
     def update_inventory(self):
         tip = self.bbrepo["tip"]
         vals = []
         for t, pfn in self.posts:
-            if pfn not in tip:
-                d = open(os.path.join(self.repo_fn, pfn)).read()
+            dfn = pfn + ".desc"
+            if dfn in tip:
+                d = tip[dfn].data()
+            elif pfn not in tip:
+                abs_pfn = os.path.join(self.repo_fn, pfn)
+                if os.path.exists(abs_pfn + ".desc"):
+                    d = open(abs_pfn + ".desc").read()
+                else:
+                    d = open(abs_pfn).read()
             else:
                 d = tip[pfn].data()
             if len(d) > 80: d = d[:77] + "..."
