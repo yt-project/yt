@@ -36,6 +36,10 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
+cdef inline np.float64_t f64max(np.float64_t f0, np.float64_t f1):
+    if f0 > f1: return f0
+    return f1
+
 cdef struct OctreeNode:
     np.float64_t *val
     np.float64_t weight_val
@@ -342,7 +346,7 @@ cdef class Octree:
             for i in range(3):
                 n2 = self.po2[node2.level] * self.top_grid_dims[i]
                 dx2 = 1. / (<np.float64_t> n2)
-                d2 = np.maximum(d2, dx2)
+                d2 = f64max(d2, dx2)
         # Now calculate the opening angle.
         dist = self.fbe_node_separation(node1, node2)
         return d2 / dist
