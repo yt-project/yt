@@ -29,6 +29,10 @@ import uuid
 
 from yt.config import ytcfg
 
+def _get_last_mod(filectx):
+    rev = filectx.filectx(filectx.filerev())
+    return rev
+
 class PostInventory(object):
     def __init__(self, uu = None, repo_fn = None):
         if uu is None: uu = ui.ui()
@@ -53,7 +57,7 @@ class PostInventory(object):
             if file.startswith("posts/") and file.count("/") == 1 \
                and not file.endswith(".desc"):
                 filectx = self.bbrepo["tip"][file]
-                last_mod = filectx.filectx(filectx.filerev()).date()
+                last_mod = _get_last_mod(filectx).date()
                 self.posts.append((last_mod[0] + last_mod[1], file))
         self.posts.sort()
         self.posts = self.posts[::-1]
@@ -98,14 +102,17 @@ class PostInventory(object):
             dfn = pfn + ".desc"
             if dfn in tip:
                 d = tip[dfn].data()
+                uname = _get_last_mod(tip[dfn]).user()
             elif pfn not in tip:
                 abs_pfn = os.path.join(self.repo_fn, pfn)
+                uname = self.uu.config("ui","username")
                 if os.path.exists(abs_pfn + ".desc"):
                     d = open(abs_pfn + ".desc").read()
                 else:
                     d = open(abs_pfn).read()
             else:
                 d = tip[pfn].data()
+                uname = _get_last_mod(tip[pfn]).user()
             if len(d) > 80: d = d[:77] + "..."
             name_noext = pfn[6:].replace(".","-")
             vals.append(dict(modified = time.ctime(t),
@@ -113,6 +120,7 @@ class PostInventory(object):
                              fullname = pfn,
                              htmlname = "html/%s.html" % name_noext,
                              name = pfn[43:], # 6 for posts/ then 36 for UUID
+                             username = uname,
                              descr = d)) 
         fn = os.path.join(self.repo_fn, "inventory.json")
         f = open(fn, "w")
