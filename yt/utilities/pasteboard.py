@@ -26,6 +26,7 @@ import json
 import os
 import time
 import uuid
+import urllib
 
 from yt.config import ytcfg
 
@@ -128,3 +129,32 @@ class PostInventory(object):
         json.dump(vals, f, indent = 1)
         f.write(";")
         return fn
+
+def retrieve_pastefile(username, paste_id, output_fn = None):
+    # First we get the username's inventory.json
+    s = urllib.urlopen("http://%s.bitbucket.org/inventory.json" % (username))
+    data = s.read()
+    # This is an ugly, ugly hack for my lack of understanding of how best to
+    # handle this JSON stuff.
+    data = data[data.find("=")+1:data.rfind(";")] 
+    #import pdb;pdb.set_trace()
+    inv = json.loads(data)
+    k = None
+    if len(paste_id) == 36:
+        # Then this is a UUID
+        for k in inv:
+            if k['fullname'][6:42] == paste_id: break
+    elif len(paste_id) == 10:
+        pp = int(paste_id)
+        for k in inv:
+            if k['modtime'] == pp: break
+    if k is None: raise KeyError(k)
+    # k is our key
+    url = "http://%s.bitbucket.org/%s" % (username, k['fullname'])
+    s = urllib.urlopen(url)
+    data = s.read()
+    if output_fn is not None:
+        if os.path.exists(output_fn): raise IOError(output_fn)
+        open(output_fn, "w").write(data)
+    else:
+        print data

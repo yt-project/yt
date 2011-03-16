@@ -603,6 +603,13 @@ class YTCommands(cmdln.Cmdln):
         from yt.utilities.pasteboard import PostInventory
         pp = PostInventory()
         pp.add_post(arg, desc=opts.desc)
+
+    @cmdln.option("-o", "--output", action="store",
+                  default = None, dest="output_fn",
+                  help="File to output to; else, print.")
+    def do_pastegrab(self, subcmd, opts, username, paste_id):
+        from yt.utilities.pasteboard import retrieve_pastefile
+        retrieve_pastefile(username, paste_id, opts.output_fn)
     
 def run_main():
     for co in ["--parallel", "--paste"]:
