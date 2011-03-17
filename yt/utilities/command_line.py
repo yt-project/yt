@@ -566,7 +566,7 @@ class YTCommands(cmdln.Cmdln):
         pc.save()
 
     @cmdln.option("-d", "--desc", action="store",
-                  default = False, dest="desc",
+                  default = None, dest="desc",
                   help="Description for this pasteboard entry")
     def do_pasteboard(self, subcmd, opts, arg):
         """
