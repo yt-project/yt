@@ -646,7 +646,7 @@ class YTCommands(cmdln.Cmdln):
         print "    extension."
         print " 3. Setting up a new pasteboard repository."
         print
-        firstname = lastname = email_address = bbusername = None
+        firstname = lastname = email_address = bbusername = repo_list = None
         # Now we try to import the cedit extension.
         try:
             result = imp.find_module("cedit", [supp_path])
@@ -702,6 +702,7 @@ class YTCommands(cmdln.Cmdln):
                 rv = json.loads(rv)
                 firstname = rv['user']["first_name"]
                 lastname = rv['user']["last_name"]
+                repo_list = rv['repositories']
                 print "Retrieved your info:"
                 print "  username:   %s" % (bbusername)
                 print "  first name: %s" % (firstname)
@@ -785,6 +786,80 @@ class YTCommands(cmdln.Cmdln):
         # Now the only thing remaining to do is to set up the pasteboard
         # repository.
         # This is, unfortunately, the most difficult.
+        print
+        print "We are now going to set up a pasteboard. This is a mechanism"
+        print "for versioned posting of snippets, collaboration and"
+        print "discussion."
+        print
+        # Let's get the full list of repositories
+        pasteboard_name = "%s.bitbucket.org" % (bbusername.lower())
+        if repo_list is None:
+            rv = hgbb._bb_apicall(uu, "users/%s" % bbusername, None, False)
+            rv = json.loads(rv)
+            repo_list = rv['repositories']
+        create = True
+        for repo in repo_list:
+            if repo['name'] == pasteboard_name:
+                create = False
+        if create:
+            # Now we first create the repository, but we
+            # will only use the creation API, not the bbcreate command.
+            print
+            print "I am now going to create the repository:"
+            print "    ", pasteboard_name
+            print "on BitBucket.org.  This will set up the domain"
+            print "     http://%s" % (pasteboard_name)
+            print "which will point to the current contents of the repo."
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            data = dict(name=pasteboard_name)
+            hgbb._bb_apicall(ui, 'repositories', data)
+        # Now we clone
+        pasteboard_path = os.path.join(os.environ["YT_DEST"], "src",
+                                       pasteboard_name)
+        if os.path.isdir(pasteboard_path):
+            print "Found an existing clone of the pasteboard repo:"
+            print "    ", pasteboard_path
+        else:
+            print
+            print "I will now clone a copy of your pasteboard repo."
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            commands.clone(uu, "https://%s@bitbucket.org/%s/%s" % (
+                             bbusername, bbusername, pasteboard_name),
+                           pasteboard_path)
+            pbtemplate_path = os.path.join(supp_path, "pasteboard_template")
+            pb_hgrc_path = os.path.join(pasteboard_path, ".hg", "hgrc")
+            cedit.config.setoption(uu, [pb_hgrc_path],
+                                   "paths.pasteboard = " + pbtemplate_path)
+            if create:
+                # We have to pull in the changesets from the pasteboard.
+                commands.pull(uu, pasteboard_path,
+                              os.path.join(supp_path, "pasteboard_template"))
+        if ytcfg.get("yt","pasteboard_repo") != pasteboard_path:
+            print
+            print "Now setting the pasteboard_repo option in"
+            print "~/.yt/config to point to %s" % (pasteboard_path)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            dotyt_path = os.path.expanduser("~/.yt")
+            if not os.path.isdir(dotyt_path):
+                print "There's no directory:"
+                print "    ", dotyt_path
+                print "I will now create it."
+                print
+                loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+                os.mkdir(dotyt_path)
+            ytcfg_path = os.path.expanduser("~/.yt/config")
+            cedit.config.setoption(uu, [ytcfg_path],
+                        "yt.pasteboard_repo=%s" % (pasteboard_path))
+        print
+        print "All done!"
+        print
+        print "You're now set up to use the 'yt pasteboard' command"
+        print "as well as develop using Mercurial and BitBucket."
+        print
+        print "Good luck!"
 
 def run_main():
     for co in ["--parallel", "--paste"]:
