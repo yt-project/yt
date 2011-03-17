@@ -590,6 +590,7 @@ class YTCommands(cmdln.Cmdln):
         """
         from mercurial import hg, ui, commands
         import imp
+        import getpass
         uu = ui.ui()
         print
         print "Hi there!  Welcome to the yt development bootstrap tool."
@@ -640,9 +641,9 @@ class YTCommands(cmdln.Cmdln):
         print "There are three stages:"
         print
         print " 1. Setting up your ~/.hgrc to have a username."
-        print " 2. Setting up a new pasteboard repository."
-        print " 3. Setting up your bitbucket user account and the hgbb"
+        print " 2. Setting up your bitbucket user account and the hgbb"
         print "    extension."
+        print " 3. Setting up a new pasteboard repository."
         print
         firstname = lastname = email_address = bbusername = None
         # Now we try to import the cedit extension.
@@ -654,6 +655,14 @@ class YTCommands(cmdln.Cmdln):
             print "Sorry, but I'm going to bail."
             sys.exit(1)
         cedit = imp.load_module("cedit", *result)
+        try:
+            result = imp.find_module("hgbb", [supp_path + "/hgbb"])
+        except ImportError:
+            print "I was unable to find the 'hgbb' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        hgbb = imp.load_module("hgbb", *result)
         if uu.config("ui","username",None) is None:
             print "You don't have a username specified in your ~/.hgrc."
             print "Let's set this up.  If you would like to quit at any time,"
@@ -678,7 +687,55 @@ class YTCommands(cmdln.Cmdln):
             print "Looks like you already have a username!"
             print "We'll skip that step, then."
             print
+        print "Now we'll set up BitBucket user."
         print
+        loki = raw_input("Do you have a BitBucket.org user already? [yes/no]")
+        if loki.strip().upper() == "YES":
+            bbusername = raw_input("Okay, cool.  What is your username?  ").strip()
+        elif loki.strip().upper() == "NO":
+            print "Okay, we can set you up with one.  It's probably better for"
+            print "it to be all lowercase letter."
+            print
+            bbusername = raw_input("What is your desired username? ").strip()
+            if firstname is None:
+                firstname = raw_input("What's your first name? ").strip()
+            if lastname is None:
+                lastname = raw_input("What's your last name? ").strip()
+            if email_address is None:
+                email_address = raw_input("What's your email address? ").strip()
+            print
+            print "Okay, I'll see if I can create a user with this information:"
+            print "  username:   %s" % (bbusername)
+            print "  first name: %s" % (firstname)
+            print "  last name:  %s" % (lastname)
+            print "  email:      %s" % (email_address)
+            print
+            print "Now, I'm going to ask for a password.  This password will"
+            print "be transmitted over HTTPS (not HTTP) and will not be stored"
+            print "in any local file.  But, it will be stored in memory for"
+            print "the duration of the user-creation process."
+            print
+            while 1:
+                password1 = getpass.getpass("Password? ")
+                password2 = getpass.getpass("Confirm? ")
+                if password1 == password2: break
+                print "Sorry, they didn't match!  Let's try again."
+                print
+            rv = hgbb._bb_apicall(uu, "newuser",
+                                    dict(username=bbusername,
+                                         password=password1,
+                                         email=email_address,
+                                         first_name = firstname,
+                                         last_name = lastname),
+                                   False)
+            del password1, password2
+            if str(rv['username']) == bbusername:
+                print "Successful!  You probably just got an email asking you"
+                print "to confirm this."
+        else:
+            print "Not really sure what you replied with.  Quitting!"
+            sys.exit(1)
+        # Now we set up the hgbb extension
 
 def run_main():
     for co in ["--parallel", "--paste"]:
