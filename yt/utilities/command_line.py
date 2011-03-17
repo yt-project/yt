@@ -834,7 +834,8 @@ class YTCommands(cmdln.Cmdln):
                                    "paths.pasteboard = " + pbtemplate_path)
             if create:
                 # We have to pull in the changesets from the pasteboard.
-                commands.pull(uu, pasteboard_path,
+                pb_repo = hg.repository(uu, pasteboard_path)
+                commands.pull(uu, pb_repo,
                               os.path.join(supp_path, "pasteboard_template"))
         if ytcfg.get("yt","pasteboard_repo") != pasteboard_path:
             print
