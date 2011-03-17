@@ -813,7 +813,7 @@ class YTCommands(cmdln.Cmdln):
             print
             loki = raw_input("Press enter to go on, Ctrl-C to exit.")
             data = dict(name=pasteboard_name)
-            hgbb._bb_apicall(ui, 'repositories', data)
+            hgbb._bb_apicall(uu, 'repositories', data)
         # Now we clone
         pasteboard_path = os.path.join(os.environ["YT_DEST"], "src",
                                        pasteboard_name)
