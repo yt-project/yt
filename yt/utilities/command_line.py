@@ -591,6 +591,7 @@ class YTCommands(cmdln.Cmdln):
         from mercurial import hg, ui, commands
         import imp
         import getpass
+        import json
         uu = ui.ui()
         print
         print "Hi there!  Welcome to the yt development bootstrap tool."
@@ -729,7 +730,7 @@ class YTCommands(cmdln.Cmdln):
                                          last_name = lastname),
                                    False)
             del password1, password2
-            if str(rv['username']) == bbusername:
+            if str(json.loads(rv)['username']) == bbusername:
                 print "Successful!  You probably just got an email asking you"
                 print "to confirm this."
         else:
