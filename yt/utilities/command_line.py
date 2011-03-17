@@ -584,6 +584,102 @@ class YTCommands(cmdln.Cmdln):
         from yt.utilities.pasteboard import retrieve_pastefile
         retrieve_pastefile(username, paste_id, opts.output_fn)
 
+    def do_bootstrap_dev(self, subcmd, opts):
+        """
+        Bootstrap a yt development environment
+        """
+        from mercurial import hg, ui, commands
+        import imp
+        uu = ui.ui()
+        print
+        print "Hi there!  Welcome to the yt development bootstrap tool."
+        print
+        print "This should get you started with mercurial as well as a few"
+        print "other handy things, like a pasteboard of your very own."
+        print
+        # We have to do a couple things.
+        # First, we check that YT_DEST is set.
+        if "YT_DEST" not in os.environ:
+            print
+            print "*** You must set the environment variable YT_DEST ***"
+            print "*** to point to the installation location!        ***"
+            print
+            sys.exit(1)
+        supp_path = os.path.join(os.environ["YT_DEST"], "src",
+                                 "yt-supplemental")
+        # Now we check that the supplemental repository is checked out.
+        if not os.path.isdir(supp_path):
+            print
+            print "*** The yt-supplemental repository is not checked ***"
+            print "*** out.  I can do this for you, but because this ***"
+            print "*** is a delicate act, I require you to respond   ***"
+            print "*** to the prompt with the word 'yes'.            ***"
+            print
+            response = raw_input("Do you want me to try to check it out? ")
+            if response != "yes":
+                print
+                print "Okay, I understand.  You can check it out yourself."
+                print "This command will do it:"
+                print
+                print "$ hg clone http://hg.enzotools.org/yt-supplemental/ ",
+                print "%s" % (supp_path)
+                print
+                sys.exit(1)
+            rv = commands.clone(uu,
+                    "http://hg.enzotools.org/yt-supplemental/", supp_path)
+            if rv:
+                print "Something has gone wrong.  Quitting."
+                sys.exit(1)
+        # Now we think we have our supplemental repository.
+        print
+        print "I have found the yt-supplemental repository at %s" % (supp_path)
+        print
+        print "Let's load up and check what we need to do to get up and"
+        print "running."
+        print
+        print "There are three stages:"
+        print
+        print " 1. Setting up your ~/.hgrc to have a username."
+        print " 2. Setting up a new pasteboard repository."
+        print " 3. Setting up your bitbucket user account and the hgbb"
+        print "    extension."
+        print
+        firstname = lastname = email_address = bbusername = None
+        # Now we try to import the cedit extension.
+        try:
+            result = imp.find_module("cedit", [supp_path])
+        except ImportError:
+            print "I was unable to find the 'cedit' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        cedit = imp.load_module("cedit", *result)
+        if uu.config("ui","username",None) is None:
+            print "You don't have a username specified in your ~/.hgrc."
+            print "Let's set this up.  If you would like to quit at any time,"
+            print "hit Ctrl-C."
+            print
+            firstname = raw_input("What is your first name? ")
+            lastname = raw_input("What is your last name? ")
+            email_address = raw_input("What is your email address? ")
+            print
+            print "Thanks.  I will now add a username of this form to your"
+            print "~/.hgrc file:"
+            print
+            print "    %s %s <%s>" % (firstname, lastname, email_address)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            print
+            cedit.setuser(uu, name="%s %s" % (firstname, lastname),
+                              email="%s" % (email_address),
+                              local=False, username=False)
+            print
+        else:
+            print "Looks like you already have a username!"
+            print "We'll skip that step, then."
+            print
+        print
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]
