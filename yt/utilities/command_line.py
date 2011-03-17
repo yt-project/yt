@@ -688,11 +688,24 @@ class YTCommands(cmdln.Cmdln):
             print "Looks like you already have a username!"
             print "We'll skip that step, then."
             print
-        print "Now we'll set up BitBucket user."
+        print "Now we'll set up BitBucket user.  If you would like to do this"
+        print "yourself, please visit:"
+        print " https://bitbucket.org/account/signup/?plan=5_users"
+        print "for a free account."
         print
         loki = raw_input("Do you have a BitBucket.org user already? [yes/no]")
         if loki.strip().upper() == "YES":
             bbusername = raw_input("Okay, cool.  What is your username?  ").strip()
+            # Now we get information about the username.
+            if firstname is None or lastname is None:
+                rv = hgbb._bb_apicall(uu, "users/%s" % bbusername, None, False)
+                rv = json.loads(rv)
+                firstname = rv['user']["first_name"]
+                lastname = rv['user']["last_name"]
+                print "Retrieved your info:"
+                print "  username:   %s" % (bbusername)
+                print "  first name: %s" % (firstname)
+                print "  last name:  %s" % (lastname)
         elif loki.strip().upper() == "NO":
             print "Okay, we can set you up with one.  It's probably better for"
             print "it to be all lowercase letter."
@@ -733,10 +746,45 @@ class YTCommands(cmdln.Cmdln):
             if str(json.loads(rv)['username']) == bbusername:
                 print "Successful!  You probably just got an email asking you"
                 print "to confirm this."
+            else:
+                print "Okay, something is wrong.  Quitting!"
+                sys.exit(1)
         else:
             print "Not really sure what you replied with.  Quitting!"
             sys.exit(1)
+        # We're now going to do some modification of the hgrc.
+        # We need an hgrc first.
+        hgrc_path = [cedit.config.defaultpath("user", uu)]
+        hgrc_path = cedit.config.verifypaths(hgrc_path)
         # Now we set up the hgbb extension
+        if uu.config("extensions","hgbb",None) is None:
+            hgbb_path = hgbb.__file__
+            if hgbb_path.endswith(".pyc"): hgbb_path = hgbb_path[:-1]
+            print "Now we're going to turn on the hgbb extension in:"
+            print "    ", hgrc_path
+            print "This will enable you to access BitBucket more easily, as well"
+            print "as create repositories from the command line."
+            print
+            print "This constitutes adding the path to the hgbb extension,"
+            print "which will look like this:"
+            print
+            print "   [extensions]"
+            print "   hgbb=%s" % hgbb_path
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path, "extensions.hgbb=%s" % hgbb_path)
+        if uu.config("bb","username", None) is None:
+            print "We'll now set up your username for BitBucket."
+            print "We will add this:"
+            print
+            print "   [bb]"
+            print "   username = %s" % (bbusername)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
+        # Now the only thing remaining to do is to set up the pasteboard
+        # repository.
+        # This is, unfortunately, the most difficult.
 
 def run_main():
     for co in ["--parallel", "--paste"]:
