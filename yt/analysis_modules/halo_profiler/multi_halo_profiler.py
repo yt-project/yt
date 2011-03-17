@@ -562,7 +562,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                         if save_images:
                             filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 
                                                                    dataset_name, axis_labels[w])
-                            write_image(frb[hp['field']], filename, cmap_name=hp['cmap'])
+                            write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
 
                     if save_cube: output.close()
 

@@ -276,7 +276,7 @@ class LightCone(EnzoSimulation):
                                          weight_field=weight_field, node=node)
             if ytcfg.getint("yt", "__parallel_rank") == 0:
                 if save_slice_images:
-                    write_image(frb[field], "%s_%s.png" % (name, field), cmap_name=cmap_name)
+                    write_image(na.log10(frb[field]), "%s_%s.png" % (name, field), cmap_name=cmap_name)
 
                 if photon_field:
                     # Decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
@@ -332,7 +332,7 @@ class LightCone(EnzoSimulation):
 
             # Write image.
             if save_slice_images:
-                write_image(frb[field], "%s_%s.png" % (filename, field), cmap_name=cmap_name)
+                write_image(na.log10(frb[field]), "%s_%s.png" % (filename, field), cmap_name=cmap_name)
 
             # Write stack to hdf5 file.
             if save_stack:
