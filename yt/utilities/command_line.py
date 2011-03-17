@@ -224,42 +224,7 @@ def check_args(func):
             func(self, subcmd, opts, arg)
     return arg_iterate
 
-def _get_vcs_type(path):
-    if os.path.exists(os.path.join(path, ".hg")):
-        return "hg"
-    if os.path.exists(os.path.join(path, ".svn")):
-        return "svn"
-    return None
-
-def _get_svn_version(path):
-    p = subprocess.Popen(["svn", "info", path], stdout = subprocess.PIPE,
-                                               stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    return stdout
-
-def _update_svn(path):
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    f.write("\n\nUPDATE PROCESS: %s\n\n" % (time.asctime()))
-    p = subprocess.Popen(["svn", "up", path], stdout = subprocess.PIPE,
-                                              stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout)
-    f.write("\n\n")
-    if p.returncode:
-        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
-        sys.exit(1)
-    f.write("Rebuilding modules\n\n")
-    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
-                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout)
-    f.write("\n\n")
-    if p.returncode:
-        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
-        sys.exit(1)
-    f.write("Successful!\n")
-
-def _update_hg(path):
+def _update_hg(path, skip_rebuild = False):
     from mercurial import hg, ui, commands
     f = open(os.path.join(path, "yt_updater.log"), "a")
     u = ui.ui()
@@ -280,10 +245,11 @@ def _update_hg(path):
         print "    $ cd %s" % (path)
         print "    $ hg up"
         print "    $ %s setup.py develop" % (sys.executable)
-        sys.exit(1)
+        return 1
     print "Updating the repository"
     f.write("Updating the repository\n\n")
     commands.update(u, repo, check=True)
+    if skip_rebuild: return
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
@@ -294,6 +260,7 @@ def _update_hg(path):
         print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
         sys.exit(1)
     f.write("Successful!\n")
+    print "Updated successfully."
 
 def _get_hg_version(path):
     from mercurial import hg, ui, commands
@@ -302,11 +269,6 @@ def _get_hg_version(path):
     repo = hg.repository(u, path)
     commands.identify(u, repo)
     return u.popbuffer()
-
-_vcs_identifier = dict(svn = _get_svn_version,
-                        hg = _get_hg_version)
-_vcs_updater = dict(svn = _update_svn,
-                     hg = _update_hg)
 
 class YTCommands(cmdln.Cmdln):
     name="yt"
@@ -342,20 +304,31 @@ class YTCommands(cmdln.Cmdln):
         print
         print "yt module located at:"
         print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
         if "site-packages" not in path:
-            vc_type = _get_vcs_type(path)
-            vstring = _vcs_identifier[vc_type](path)
+            vstring = _get_hg_version(path)
             print
             print "The current version of the code is:"
             print
             print "---"
-            print vstring
+            print vstring.strip()
             print "---"
             print
-            print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                _vcs_updater[vc_type](path)
-            print "Updated successfully."
+            if "+" not in vstring:
+                print "We CAN attempt an auto-update of this version."
+            else:
+                print "There are local changes to this repository, and it",
+                print "cannot be auto-updated."
+            if opts.update_source:
+                _update_hg(path)
+                if update_supp == True: _update_hg(spath, skip_rebuild=True)
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
@@ -610,7 +583,7 @@ class YTCommands(cmdln.Cmdln):
     def do_pastegrab(self, subcmd, opts, username, paste_id):
         from yt.utilities.pasteboard import retrieve_pastefile
         retrieve_pastefile(username, paste_id, opts.output_fn)
-    
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]
