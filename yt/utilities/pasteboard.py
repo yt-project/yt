@@ -103,7 +103,9 @@ class PostInventory(object):
             dfn = pfn + ".desc"
             if dfn in tip:
                 d = tip[dfn].data()
-                uname = _get_last_mod(tip[dfn]).user()
+                last_mod =_get_last_mod(tip[dfn])
+                last_hash = last_mod.hex()
+                uname = last_mod.user()
             elif pfn not in tip:
                 abs_pfn = os.path.join(self.repo_fn, pfn)
                 uname = self.uu.config("ui","username")
@@ -111,13 +113,17 @@ class PostInventory(object):
                     d = open(abs_pfn + ".desc").read()
                 else:
                     d = open(abs_pfn).read()
+                last_hash = "tip"
             else:
                 d = tip[pfn].data()
-                uname = _get_last_mod(tip[pfn]).user()
+                last_mod = _get_last_mod(tip[pfn])
+                last_hash = last_mod.hex()
+                uname = last_mod.user()
             if len(d) > 80: d = d[:77] + "..."
             name_noext = pfn[6:].replace(".","-")
             vals.append(dict(modified = time.ctime(t),
                              modtime = t,
+                             lastmod_hash = last_hash,
                              fullname = pfn,
                              htmlname = "html/%s.html" % name_noext,
                              name = pfn[43:], # 6 for posts/ then 36 for UUID
