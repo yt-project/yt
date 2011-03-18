@@ -290,7 +290,6 @@ get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
-get_enzotools yt.hg
 
 if [ $INST_BZLIB -eq 1 ]
 then
