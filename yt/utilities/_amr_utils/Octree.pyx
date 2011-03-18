@@ -90,11 +90,7 @@ cdef int OTN_contained(OctreeNode *node1, OctreeNode *node2):
     cdef OctreeNode *parent_node
     parent_node = node1.parent
     while parent_node is not NULL:
-        # If all of these conditions are met, node2 is a parent of node1.
-        if parent_node.pos[0] == node2.pos[0] and \
-           parent_node.pos[1] == node2.pos[0] and \
-           parent_node.pos[2] == node2.pos[2] and \
-           parent_node.level == node2.level: return 1
+        if parent_node is node2: return 1
         parent_node = parent_node.parent
     # If we've gotten this far, the two nodes are not related.
     return 0
@@ -139,6 +135,7 @@ cdef class Octree:
     cdef np.int64_t top_grid_dims[3]
     cdef int incremental
     cdef np.float64_t opening_angle
+    cdef int count1, count2
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
@@ -150,6 +147,8 @@ cdef class Octree:
                 sizeof(np.float64_t)*nvals)
         cdef np.float64_t weight_val = 0.0
         self.nvals = nvals
+        count1 = 0
+        count2 = 0
         for i in range(nvals): vals[i] = 0.0
 
         self.top_grid_dims[0] = top_grid_dims[0]
@@ -319,9 +318,11 @@ cdef class Octree:
             n2 = self.po2[node2.level] * self.top_grid_dims[i]
             fn1 = <np.float64_t> n1
             fn2 = <np.float64_t> n2
-            p1 = (<np.float64_t> node1.pos[i]) / fn1
-            p2 = (<np.float64_t> node2.pos[i]) / fn2
-            dist += np.sqrt((p1 - p2) * (p1 - p2))
+            # The added term is to re-cell center the data.
+            p1 = (<np.float64_t> node1.pos[i]) / fn1 + 1. / fn1 / 2.
+            p2 = (<np.float64_t> node2.pos[i]) / fn2 + 1. / fn2 / 2.
+            dist += (p1 - p2) * (p1 - p2)
+        dist = np.sqrt(dist)
         return dist
     
     cdef np.float64_t fbe_opening_angle(self, OctreeNode *node1,
@@ -336,6 +337,7 @@ cdef class Octree:
         cdef np.int64_t n2
         cdef int i
         d2 = 0.0
+        if OTN_same(node1, node2): return 100000.0 # Just some large number.
         if self.top_grid_dims[1] == self.top_grid_dims[0] and \
                 self.top_grid_dims[2] == self.top_grid_dims[0]:
             # Symmetric
@@ -364,6 +366,7 @@ cdef class Octree:
         for i in range(top_i, self.top_grid_dims[0]):
             for j in range(top_j, self.top_grid_dims[1]):
                 for k in range(top_k, self.top_grid_dims[2]):
+                    if self.root_nodes[i][j][k].val[0] == 0: continue
                     potential += self.fbe_iterate_remote_nodes(node1,
                         self.root_nodes[i][j][k])
         return potential
@@ -378,14 +381,16 @@ cdef class Octree:
         # Do nothing with node2 when it is the same as node1. No potential
         # calculation, and no digging deeper.
         if OTN_same(node1, node2): return 0.0
-        # If we have a childless node2 we can skip everything below and
-        # calculate the potential.
-        if node2.children[0][0][0] == NULL:
-            dist = self.fbe_node_separation(node1, node2)
-            return node1.val[0] * node2.val[0] / dist
-        # We don't want to calculate the potential of the node to a parent node.
-        # Find out if there is a relationship.
+        # Is node1 contained inside node2?
         contained = OTN_contained(node1, node2)
+        # If we have a childless node2 we can skip everything below and
+        # calculate the potential, as long as node2 does not contain node1.
+        if node2.children[0][0][0] == NULL and not contained:
+            dist = self.fbe_node_separation(node1, node2)
+            self.count2 += 1
+            #print '%1.10e %1.10e %1.10e %1.10e xx' % (node1.val[0], node2.val[0],
+            #dist, node1.val[0] * node2.val[0] / dist)
+            return node1.val[0] * node2.val[0] / dist
         # Now we apply the opening angle test. If the opening angle is small
         # enough, we use this node for the potential and dig no deeper.
         angle = self.fbe_opening_angle(node1, node2)
@@ -396,6 +401,7 @@ cdef class Octree:
         for i in range(2):
             for j in range(2):
                 for k in range(2):
+                    if node2.children[i][j][k].val[0] == 0.0: continue
                     potential += self.fbe_iterate_remote_nodes(node1,
                         node2.children[i][j][k])
         return potential
@@ -409,14 +415,16 @@ cdef class Octree:
         # We have a childless node. Time to iterate over every other
         # node using the treecode method.
         if node.children[0][0][0] is NULL:
-            potential = self.fbe_potential_of_remote_nodes(node, top_i, top_j,
-                top_k)
+            self.count1 += 1
+            potential = self.fbe_potential_of_remote_nodes(node,
+                top_i, top_j, top_k)
             return potential
         # If the node has children, we need to walk all of them returning
         # the potential for each.
         for i in range(2):
             for j in range(2):
                 for k in range(2):
+                    if node.children[i][j][k].val[0] == 0.0: continue
                     potential += self.fbe_iterate_children(node.children[i][j][k],
                         top_i, top_j, top_k)
         return potential
@@ -447,13 +455,18 @@ cdef class Octree:
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
+                    if self.root_nodes[i][j][k].val[0] == 0.0: continue
+                    #print i,j,k
                     potential += self.fbe_iterate_children(self.root_nodes[i][j][k],
                         i, j, k)
+                    #potential = kinetic * 2
                     if truncate and potential > kinetic: break
                 if truncate and potential > kinetic: break
             if truncate and potential > kinetic:
                 print "Truncating!"
                 break
+        print 'count1', self.count1
+        print 'count2', self.count2
         return potential
 
     def __dealloc__(self):

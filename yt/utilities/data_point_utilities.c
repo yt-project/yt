@@ -1567,6 +1567,7 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     float workDone = 0;
     int every_cells = floor(n_q / 100);
     int until_output = 1;
+    double temp1, temp2;
     for (q_outer = 0; q_outer < n_q - 1; q_outer++) {
         this_potential = 0;
         mass_o = *(npy_float64*) PyArray_GETPTR1(mass, q_outer);
@@ -1582,6 +1583,15 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
                             sqrtl( (x_i-x_o)*(x_i-x_o)
                                  + (y_i-y_o)*(y_i-y_o)
                                  + (z_i-z_o)*(z_i-z_o) );
+            temp1 = sqrtl( (x_i-x_o)*(x_i-x_o)
+                                 + (y_i-y_o)*(y_i-y_o)
+                                 + (z_i-z_o)*(z_i-z_o) );
+            temp2 = mass_o * mass_i / 
+                            sqrtl( (x_i-x_o)*(x_i-x_o)
+                                 + (y_i-y_o)*(y_i-y_o)
+                                 + (z_i-z_o)*(z_i-z_o) );
+            //fprintf(stdout, "%1.10e %1.10e %1.10e %1.10e xx\n",
+            //mass_o, mass_i, temp1, temp2);
         }
         total_potential += this_potential;
 	workDone += n_q - q_outer - 1;
@@ -1604,7 +1614,6 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     Py_DECREF(x);
     Py_DECREF(y);
     Py_DECREF(z);
-
     PyObject *status = PyFloat_FromDouble(total_potential);
     return status;
 

@@ -315,7 +315,10 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             # periodic adjustment later.
             sel = (diff >= two_root[i])
             index = na.min(na.nonzero(sel))
-            periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1]
+            # The last addition term below ensures that the data makes a full
+            # wrap-around.
+            periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1] + \
+                two_root[i] / 2.
     # This dict won't make a copy of the data, but we will make a copy to 
     # change if needed in the periodic section.
     local_data = {}
@@ -336,12 +339,13 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # Faster but less accurate.
         # Make an octree for one value (mass) with incremental=True.
         octree = Octree(na.array(data.pf.domain_dimensions), 1, True)
-        # Now discover what levels this data comes from.
-        root_dx = 1./data.pf.domain_dimensions[0]
+        # Now discover what levels this data comes from, not assuming
+        # symmetry.
         dxes = na.unique(data['dx']) # unique returns a sorted array,
         dyes = na.unique(data['dy']) # so these will all have the same
         dzes = na.unique(data['dx']) # order.
         # We only need one dim to figure out levels, we'll use x.
+        root_dx = 1./data.pf.domain_dimensions[0]
         levels = na.floor(root_dx / dxes / data.pf.refine_by).astype('int')
         lsort = levels.argsort()
         levels = levels[lsort]
@@ -349,17 +353,43 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         dyes = dyes[lsort]
         dzes = dzes[lsort]
         # Now we pick out the values from each level and add them to the octree.
+        cover_min = na.array([na.amin(local_data['x']), na.amin(local_data['y']),
+            na.amin(local_data['z'])])
+        cover_max = na.array([na.amax(local_data['x']), na.amax(local_data['y']),
+            na.amax(local_data['z'])])
+        # Fix to root grid cell centers
+        cover_min = cover_min - cover_min % root_dx
+        cover_max = cover_max - cover_max % root_dx
+        # This step adds filler levels, e.g. if this object has data at only
+        # some deep level(s) we need to introduce a zero field for the higher
+        # levels.
+        for L in range(max(data.pf.h.max_level+1, na.amax(levels))):
+            imin = (cover_min * na.array(data.pf.domain_dimensions) * 2**L).astype('int64')
+            imax = (cover_max * na.array(data.pf.domain_dimensions) * 2**L + 2**L - 1).astype('int64')
+            ActiveDimensions = imax - imin
+            i, j, k = na.indices(ActiveDimensions)
+            i = i.flatten() + imin[0]
+            j = j.flatten() + imin[1]
+            k = k.flatten() + imin[2]
+            octree.add_array_to_tree(L, i, j, k,
+                na.array([na.zeros_like(i)], order='F', dtype='float64'),
+                na.ones_like(i).astype('float64'))
+            print L, imin, imax
         for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
             print "adding to octree", L
-            sel = (dxes == dx)
+            sel = (data["dx"] == dx)
             thisx = (local_data["x"][sel] / dx).astype('int64')
             thisy = (local_data["y"][sel] / dy).astype('int64')
             thisz = (local_data["z"][sel] / dz).astype('int64')
             vals = na.array([local_data["CellMass"][sel]], order='F')
+            #vals = na.array([na.ones_like(local_data["CellMass"][sel])], order='F')
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
-                na.ones_like(thisx).astype('float64'))
+               na.ones_like(thisx).astype('float64'))
+            print na.min(thisx), na.min(thisy), na.min(thisz)
+            print na.max(thisx), na.max(thisy), na.max(thisz)
         # Now we calculate the binding energy using a treecode.
-        pot = 0
+        print 'calculating'
+        pot = G*octree.find_binding_energy(truncate, kinetic/G, 0.0)
     else:
         try:
             pot = G*_cudaIsBound(local_data, truncate, kinetic/G)
