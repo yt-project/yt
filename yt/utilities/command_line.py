@@ -342,6 +342,7 @@ class YTCommands(cmdln.Cmdln):
         print
         print "yt module located at:"
         print "    %s" % (path)
+        vstring = None
         if "site-packages" not in path:
             vc_type = _get_vcs_type(path)
             vstring = _vcs_identifier[vc_type](path)
@@ -356,6 +357,10 @@ class YTCommands(cmdln.Cmdln):
             if opts.update_source:  
                 _vcs_updater[vc_type](path)
             print "Updated successfully."
+        elif opts.update_source:
+            print
+            print "You have to update this installation yourself."
+            print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
