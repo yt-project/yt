@@ -108,7 +108,7 @@ class EnzoTimeSeries(TimeSeriesData):
 
     def _populate_output_list(self, output_list):
         for output in output_list:
-            self._insert(EnzoStaticOutput(output))
+            self._insert(load(output))
 
     def _populate_output_log(self, output_log):
         for line in open(output_log):
