@@ -854,6 +854,18 @@ class YTCommands(cmdln.Cmdln):
             ytcfg_path = os.path.expanduser("~/.yt/config")
             cedit.config.setoption(uu, [ytcfg_path],
                         "yt.pasteboard_repo=%s" % (pasteboard_path))
+        try:
+            import pygments
+            install_pygments = False
+        except ImportError:
+            install_pygments = True
+        if install_pygments:
+            print "You are missing the Pygments package.  Installing."
+            import pip
+            rv = pip.main(["install", "pygments"])
+            if rv == 1:
+                print "Unable to install Pygments.  Please report this bug to yt-users."
+                sys.exit(1)
         print
         print "All done!"
         print
