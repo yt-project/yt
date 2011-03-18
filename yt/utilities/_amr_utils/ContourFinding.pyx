@@ -49,7 +49,7 @@ def construct_boundary_relationships(
     ny = contour_ids.shape[1]
     nz = contour_ids.shape[2]
     # We allocate an array of fixed (maximum) size
-    cdef int s = (ny*nx + nx*nz + nx*nz - 4) * 9
+    cdef int s = (ny*nx + nx*nz + ny*nz - 2) * 18
     cdef np.ndarray[np.int64_t, ndim=2] tree = np.zeros((s, 2), dtype="int64")
     cdef int ti = 0
     # First x-pass
