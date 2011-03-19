@@ -1590,8 +1590,6 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
                             sqrtl( (x_i-x_o)*(x_i-x_o)
                                  + (y_i-y_o)*(y_i-y_o)
                                  + (z_i-z_o)*(z_i-z_o) );
-            //fprintf(stdout, "%1.10e %1.10e %1.10e %1.10e xx\n",
-            //mass_o, mass_i, temp1, temp2);
         }
         total_potential += this_potential;
 	workDone += n_q - q_outer - 1;

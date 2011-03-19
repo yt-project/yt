@@ -274,7 +274,7 @@ add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
 def _IsBound(data, truncate = True, include_thermal_energy = False,
-    treecode = False):
+    treecode = False, opening_angle = 1.0):
     """
     This returns whether or not the object is gravitationally bound
     
@@ -338,58 +338,67 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # Calculate the binding energy using the treecode method.
         # Faster but less accurate.
         # Make an octree for one value (mass) with incremental=True.
-        octree = Octree(na.array(data.pf.domain_dimensions), 1, True)
+#         octree = Octree(na.array(data.pf.domain_dimensions), 1, True)
+        # First we find the min/max coverage of this data object.
+        root_dx = 1./na.array(data.pf.domain_dimensions).astype('float64')
+        cover_min = na.array([na.amin(local_data['x']), na.amin(local_data['y']),
+            na.amin(local_data['z'])])
+        cover_max = na.array([na.amax(local_data['x']), na.amax(local_data['y']),
+            na.amax(local_data['z'])])
+        # Fix the coverage to match to root grid cell left 
+        # edges for making indexes.
+        cover_min = cover_min - cover_min % root_dx
+        cover_max = cover_max - cover_max % root_dx
+        cover_imin = (cover_min * na.array(data.pf.domain_dimensions)).astype('int64')
+        cover_imax = (cover_max * na.array(data.pf.domain_dimensions) + 1).astype('int64')
+        cover_ActiveDimensions = cover_imax - cover_imin
+        # Create the octree with these dimensions.
+        # One value (mass) with incremental=True.
+        octree = Octree(cover_ActiveDimensions, 1, True)
+        print 'here', cover_ActiveDimensions
         # Now discover what levels this data comes from, not assuming
         # symmetry.
         dxes = na.unique(data['dx']) # unique returns a sorted array,
         dyes = na.unique(data['dy']) # so these will all have the same
         dzes = na.unique(data['dx']) # order.
         # We only need one dim to figure out levels, we'll use x.
-        root_dx = 1./data.pf.domain_dimensions[0]
-        levels = na.floor(root_dx / dxes / data.pf.refine_by).astype('int')
+        dx = 1./data.pf.domain_dimensions[0]
+        levels = na.floor(dx / dxes / data.pf.refine_by).astype('int')
         lsort = levels.argsort()
         levels = levels[lsort]
         dxes = dxes[lsort]
         dyes = dyes[lsort]
         dzes = dzes[lsort]
-        # Now we pick out the values from each level and add them to the octree.
-        cover_min = na.array([na.amin(local_data['x']), na.amin(local_data['y']),
-            na.amin(local_data['z'])])
-        cover_max = na.array([na.amax(local_data['x']), na.amax(local_data['y']),
-            na.amax(local_data['z'])])
-        # Fix to root grid cell centers
-        cover_min = cover_min - cover_min % root_dx
-        cover_max = cover_max - cover_max % root_dx
-        # This step adds filler levels, e.g. if this object has data at only
-        # some deep level(s) we need to introduce a zero field for the higher
-        # levels.
-        for L in range(max(data.pf.h.max_level+1, na.amax(levels))):
-            imin = (cover_min * na.array(data.pf.domain_dimensions) * 2**L).astype('int64')
-            imax = (cover_max * na.array(data.pf.domain_dimensions) * 2**L + 2**L - 1).astype('int64')
-            ActiveDimensions = imax - imin
+        # This step adds massless cells for all the levels we need in order
+        # to fully populate all the parent-child cells needed.
+        for L in range(min(data.pf.h.max_level+1, na.amax(levels)+1)):
+            ActiveDimensions = cover_ActiveDimensions * 2**L
             i, j, k = na.indices(ActiveDimensions)
-            i = i.flatten() + imin[0]
-            j = j.flatten() + imin[1]
-            k = k.flatten() + imin[2]
+            i = i.flatten()
+            j = j.flatten()
+            k = k.flatten()
             octree.add_array_to_tree(L, i, j, k,
                 na.array([na.zeros_like(i)], order='F', dtype='float64'),
-                na.ones_like(i).astype('float64'))
-            print L, imin, imax
+                na.zeros_like(i).astype('float64'))
+            print L, ActiveDimensions
+            print i[0], i[-1], j[0], j[-1], k[0],k[-1]
+        # Now we add actual data to the octree.
         for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
             print "adding to octree", L
             sel = (data["dx"] == dx)
-            thisx = (local_data["x"][sel] / dx).astype('int64')
-            thisy = (local_data["y"][sel] / dy).astype('int64')
-            thisz = (local_data["z"][sel] / dz).astype('int64')
+            thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
+            thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
+            thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
             vals = na.array([local_data["CellMass"][sel]], order='F')
-            #vals = na.array([na.ones_like(local_data["CellMass"][sel])], order='F')
-            octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
-               na.ones_like(thisx).astype('float64'))
             print na.min(thisx), na.min(thisy), na.min(thisz)
             print na.max(thisx), na.max(thisy), na.max(thisz)
+            octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
+               na.ones_like(thisx).astype('float64'))
         # Now we calculate the binding energy using a treecode.
         print 'calculating'
-        pot = G*octree.find_binding_energy(truncate, kinetic/G, 0.0)
+        pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
+            opening_angle)
+        #octree.print_all_nodes()
     else:
         try:
             pot = G*_cudaIsBound(local_data, truncate, kinetic/G)

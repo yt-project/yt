@@ -77,11 +77,7 @@ cdef void OTN_refine(OctreeNode *self, int incremental = 0):
 
 cdef int OTN_same(OctreeNode *node1, OctreeNode *node2):
     # Returns 1 if node1 == node2; 0 otherwise.
-    # If all of these conditions are met, they are the same node.
-    if node1.pos[0] == node2.pos[0] and \
-       node1.pos[1] == node2.pos[1] and \
-       node1.pos[2] == node2.pos[2] and \
-       node1.level == node2.level: return 1
+    if node1 is node2: return 1
     return 0
 
 cdef int OTN_contained(OctreeNode *node1, OctreeNode *node2):
@@ -134,8 +130,10 @@ cdef class Octree:
     cdef OctreeNode ****root_nodes
     cdef np.int64_t top_grid_dims[3]
     cdef int incremental
+    # Below is for the treecode.
     cdef np.float64_t opening_angle
-    cdef int count1, count2
+    cdef np.float64_t root_dx[3]
+    cdef int switch
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
@@ -147,8 +145,6 @@ cdef class Octree:
                 sizeof(np.float64_t)*nvals)
         cdef np.float64_t weight_val = 0.0
         self.nvals = nvals
-        count1 = 0
-        count2 = 0
         for i in range(nvals): vals[i] = 0.0
 
         self.top_grid_dims[0] = top_grid_dims[0]
@@ -307,20 +303,17 @@ cdef class Octree:
 
     cdef np.float64_t fbe_node_separation(self, OctreeNode *node1, OctreeNode *node2):
         # Find the distance between the two nodes. To match FindBindingEnergy
-        # in data_point_utilities.c, we'll do this in code [0,1) units.
-        # We'll also assume 
-        cdef np.float64_t fn1, fn2, p1, p2, dist
-        cdef np.int64_t n1, n2
+        # in data_point_utilities.c, we'll do this in code units.
+        cdef np.float64_t dx1, dx2, p1, p2, dist
         cdef int i
         dist = 0.0
         for i in range(3):
-            n1 = self.po2[node1.level] * self.top_grid_dims[i]
-            n2 = self.po2[node2.level] * self.top_grid_dims[i]
-            fn1 = <np.float64_t> n1
-            fn2 = <np.float64_t> n2
+            # Discover the appropriate dx for each node/dim.
+            dx1 = self.root_dx[i] / (<np.float64_t> self.po2[node1.level])
+            dx2 = self.root_dx[i] / (<np.float64_t> self.po2[node2.level])
             # The added term is to re-cell center the data.
-            p1 = (<np.float64_t> node1.pos[i]) / fn1 + 1. / fn1 / 2.
-            p2 = (<np.float64_t> node2.pos[i]) / fn2 + 1. / fn2 / 2.
+            p1 = (<np.float64_t> node1.pos[i]) * dx1 + dx1/2.
+            p2 = (<np.float64_t> node2.pos[i]) * dx2 + dx2/2.
             dist += (p1 - p2) * (p1 - p2)
         dist = np.sqrt(dist)
         return dist
@@ -363,6 +356,7 @@ cdef class Octree:
         # We *do* want to walk over the root_node that node1 is in to look for
         # level>0 nodes close to node1, but none of
         # the previously-walked root_nodes.
+        self.switch = 0
         for i in range(top_i, self.top_grid_dims[0]):
             for j in range(top_j, self.top_grid_dims[1]):
                 for k in range(top_k, self.top_grid_dims[2]):
@@ -375,28 +369,39 @@ cdef class Octree:
             OctreeNode *node2):
         # node1 never changes.
         # node2 is the iterated-upon remote node.
+        # self.switch - In order to prevent double counting, we only want
+        # to call this function between node1 and node2 where node2
+        # comes *after* node1 in the iteration order.
+        # switch=0: do not calculate any potential, but keep on iterating.
+        # switch=1: do potentials and keep on iterating if needed.
         cdef int i, j, k, contained
         cdef np.float64_t potential, dist, angle
         potential = 0.0
         # Do nothing with node2 when it is the same as node1. No potential
-        # calculation, and no digging deeper.
-        if OTN_same(node1, node2): return 0.0
+        # calculation, and no digging deeper. But we flip the switch.
+        if OTN_same(node1, node2):
+            self.switch = 1
+            return 0.0
         # Is node1 contained inside node2?
         contained = OTN_contained(node1, node2)
         # If we have a childless node2 we can skip everything below and
         # calculate the potential, as long as node2 does not contain node1.
-        if node2.children[0][0][0] == NULL and not contained:
+        # Errr...  contained may not be needed here.
+        if node2.children[0][0][0] == NULL and not contained and \
+                not OTN_same(node1, node2) and self.switch:
             dist = self.fbe_node_separation(node1, node2)
-            self.count2 += 1
-            #print '%1.10e %1.10e %1.10e %1.10e xx' % (node1.val[0], node2.val[0],
-            #dist, node1.val[0] * node2.val[0] / dist)
             return node1.val[0] * node2.val[0] / dist
         # Now we apply the opening angle test. If the opening angle is small
         # enough, we use this node for the potential and dig no deeper.
         angle = self.fbe_opening_angle(node1, node2)
-        if angle < self.opening_angle and not contained:
+        if angle < self.opening_angle and not contained and \
+                not OTN_same(node1, node2) and self.switch:
             dist = self.fbe_node_separation(node1, node2)
             return node1.val[0] * node2.val[0] / dist
+        # If we've gotten this far with a childless node, it means we've
+        # already accounted for it.
+        if node2.children[0][0][0] == NULL:
+            return 0.0
         # If the above is not satisfied, we must dig deeper!
         for i in range(2):
             for j in range(2):
@@ -415,7 +420,6 @@ cdef class Octree:
         # We have a childless node. Time to iterate over every other
         # node using the treecode method.
         if node.children[0][0][0] is NULL:
-            self.count1 += 1
             potential = self.fbe_potential_of_remote_nodes(node,
                 top_i, top_j, top_k)
             return potential
@@ -429,7 +433,8 @@ cdef class Octree:
                         top_i, top_j, top_k)
         return potential
 
-    def find_binding_energy(self, truncate, kinetic, opening_angle = 1.0):
+    def find_binding_energy(self, int truncate, float kinetic,
+        np.ndarray[np.float64_t, ndim=1] root_dx, float opening_angle = 1.0):
         r"""Find the binding energy of an ensemble of data points using the
         treecode method.
         
@@ -451,23 +456,87 @@ cdef class Octree:
         cdef np.float64_t potential
         potential = 0.0
         self.opening_angle = opening_angle
+        for i in range(3):
+            self.root_dx[i] = root_dx[i]
         # The first part of the loop goes over all of the root level nodes.
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
                     if self.root_nodes[i][j][k].val[0] == 0.0: continue
-                    #print i,j,k
                     potential += self.fbe_iterate_children(self.root_nodes[i][j][k],
                         i, j, k)
-                    #potential = kinetic * 2
                     if truncate and potential > kinetic: break
                 if truncate and potential > kinetic: break
             if truncate and potential > kinetic:
                 print "Truncating!"
                 break
-        print 'count1', self.count1
-        print 'count2', self.count2
         return potential
+
+    cdef int node_ID(self, OctreeNode *node):
+        # Returns an unique ID for this node based on its position and level.
+        cdef int ID, i, offset, root
+        cdef np.int64_t this_grid_dims[3]
+        offset = 0
+        root = 1
+        for i in range(3):
+            root *= self.top_grid_dims[i]
+            this_grid_dims[i] = self.top_grid_dims[i] * 2**node.level
+        for i in range(node.level):
+            offset += root * 2**(3 * i)
+        ID = offset + (node.pos[0] + this_grid_dims[0] * (node.pos[1] + \
+            this_grid_dims[1] * node.pos[2]))
+        return ID
+
+    cdef int node_ID_on_level(self, OctreeNode *node):
+        # Returns the node ID on node.level for this node.
+        cdef int ID, i
+        cdef np.int64_t this_grid_dims[3]
+        for i in range(3):
+            this_grid_dims[i] = self.top_grid_dims[i] * 2**node.level
+        ID = node.pos[0] + this_grid_dims[0] * (node.pos[1] + \
+            this_grid_dims[1] * node.pos[2])
+        return ID
+
+    cdef void print_node_info(self, OctreeNode *node):
+        cdef int i, j, k
+        line = "%d\t" % self.node_ID(node)
+        line += "%d\t%d\t%d\t%d\t" % (node.level,node.pos[0],node.pos[1],node.pos[2])
+        for i in range(node.nvals):
+            line += "%1.5e\t" % node.val[i]
+        line += "%f\t" % node.weight_val
+        line += "%s\t%s\t" % (node.children[0][0][0] is not NULL, node.parent is not NULL)
+        if node.children[0][0][0] is not NULL:
+            nline = ""
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        nline += "%d," % self.node_ID(node.children[i][j][k])
+            line += nline
+        print line
+
+    cdef void iterate_print_nodes(self, OctreeNode *node):
+        cdef int i, j, k
+        self.print_node_info(node)
+        if node.children[0][0][0] is NULL:
+            return
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    self.iterate_print_nodes(node.children[i][j][k])
+        return
+
+    def print_all_nodes(self):
+        cdef int i, j, k
+        line = "ID\tlevel\tx\ty\tz\t"
+        for i in range(self.nvals):
+            line += "val%d\t\t" % i
+        line += "weight\t\tchild?\tparent?\tchildren"
+        print line
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                for k in range(self.top_grid_dims[2]):
+                    self.iterate_print_nodes(self.root_nodes[i][j][k])
+        return
 
     def __dealloc__(self):
         cdef int i, j, k
