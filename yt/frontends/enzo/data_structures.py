@@ -569,9 +569,14 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         if self.__class__._cached_field_list is None:
             EnzoHierarchy._detect_fields(self)
             self.__class__._cached_field_list = self.field_list
-            self.__class__._cached_derived_field_list = self.derived_field_list
         else:
             self.field_list = self.__class__._cached_field_list
+
+    def _setup_derived_fields(self):
+        if self.__class__._cached_derived_field_list is None:
+            EnzoHierarchy._setup_derived_fields(self)
+            self.__class__._cached_derived_field_list = self.derived_field_list
+        else:
             self.derived_field_list = self.__class__._cached_derived_field_list
 
     def _generate_random_grids(self):
