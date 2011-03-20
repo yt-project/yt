@@ -337,19 +337,12 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     if treecode:
         # Calculate the binding energy using the treecode method.
         # Faster but less accurate.
-        # Make an octree for one value (mass) with incremental=True.
-#         octree = Octree(na.array(data.pf.domain_dimensions), 1, True)
-        # First we find the min/max coverage of this data object.
         # The octree doesn't like uneven root grids, so we will make it cubical.
         root_dx = 1./na.array(data.pf.domain_dimensions).astype('float64')
         left = min([na.amin(local_data['x']), na.amin(local_data['y']),
             na.amin(local_data['z'])])
         right = max([na.amax(local_data['x']), na.amax(local_data['y']),
             na.amax(local_data['z'])])
-        #cover_min = na.array([na.amin(local_data['x']), na.amin(local_data['y']),
-        #    na.amin(local_data['z'])])
-        #cover_max = na.array([na.amax(local_data['x']), na.amax(local_data['y']),
-        #    na.amax(local_data['z'])])
         cover_min = na.array([left, left, left])
         cover_max = na.array([right, right, right])
         # Fix the coverage to match to root grid cell left 
@@ -406,7 +399,6 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
             opening_angle)
         #octree.print_all_nodes()
-        #pot = 0.
     else:
         try:
             pot = G*_cudaIsBound(local_data, truncate, kinetic/G)

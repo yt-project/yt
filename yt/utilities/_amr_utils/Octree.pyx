@@ -32,7 +32,7 @@ cimport cython
 
 from stdlib cimport malloc, free, abs
 
-import sys
+import sys, time
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -136,7 +136,7 @@ cdef class Octree:
     cdef np.float64_t opening_angle
     cdef np.float64_t root_dx[3]
     cdef int switch
-    cdef int count1,count2,count3
+    cdef int count2,count3
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
@@ -360,8 +360,6 @@ cdef class Octree:
         # level>0 nodes close to node1, but none of
         # the previously-walked root_nodes.
         self.switch = 0
-        self.count2 = 0
-        self.count3 = 0
         this_sum = 0
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -371,7 +369,6 @@ cdef class Octree:
                     if self.root_nodes[i][j][k].val[0] == 0: continue
                     potential += self.fbe_iterate_remote_nodes(node1,
                         self.root_nodes[i][j][k])
-        #print 'count2', self.count2, self.node_ID(node1), self.count3
         return potential
 
     cdef np.float64_t fbe_iterate_remote_nodes(self, OctreeNode *node1,
@@ -387,7 +384,6 @@ cdef class Octree:
         cdef int i, j, k, contained
         cdef np.float64_t potential, dist, angle
         potential = 0.0
-        self.count3 += 1
         # Do nothing with node2 when it is the same as node1. No potential
         # calculation, and no digging deeper. But we flip the switch.
         if OTN_same(node1, node2):
@@ -401,7 +397,6 @@ cdef class Octree:
         if node2.children[0][0][0] == NULL and not contained and \
                 not OTN_same(node1, node2) and self.switch:
             self.count2 += 1
-            #print 'h', self.node_ID(node1), self.node_ID(node2)
             dist = self.fbe_node_separation(node1, node2)
             return node1.val[0] * node2.val[0] / dist
         # Now we apply the opening angle test. If the opening angle is small
@@ -410,6 +405,7 @@ cdef class Octree:
         if angle < self.opening_angle and not contained and \
                 not OTN_same(node1, node2) and self.switch:
             dist = self.fbe_node_separation(node1, node2)
+            self.count3 += 1
             return node1.val[0] * node2.val[0] / dist
         # If we've gotten this far with a childless node, it means we've
         # already accounted for it.
@@ -432,7 +428,6 @@ cdef class Octree:
         # We have a childless node. Time to iterate over every other
         # node using the treecode method.
         if node.children[0][0][0] is NULL:
-            self.count1 += 1
             potential = self.fbe_potential_of_remote_nodes(node, sum)
             return potential
         # If the node has children, we need to walk all of them returning
@@ -445,6 +440,8 @@ cdef class Octree:
                         sum)
         return potential
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def find_binding_energy(self, int truncate, float kinetic,
         np.ndarray[np.float64_t, ndim=1] root_dx, float opening_angle = 1.0):
         r"""Find the binding energy of an ensemble of data points using the
@@ -468,7 +465,7 @@ cdef class Octree:
         cdef np.float64_t potential
         potential = 0.0
         self.opening_angle = opening_angle
-        self.count1 = 0
+        self.count3 = 0
         self.count2 = 0
         for i in range(3):
             self.root_dx[i] = root_dx[i]
@@ -486,7 +483,8 @@ cdef class Octree:
             if truncate and potential > kinetic:
                 print "Truncating!"
                 break
-        #print 'count1', self.count1
+        print 'count2', self.count2
+        print 'count3', self.count3
         return potential
 
     cdef int node_ID(self, OctreeNode *node):
