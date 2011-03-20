@@ -32,6 +32,8 @@ cimport cython
 
 from stdlib cimport malloc, free, abs
 
+import sys
+
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -134,6 +136,7 @@ cdef class Octree:
     cdef np.float64_t opening_angle
     cdef np.float64_t root_dx[3]
     cdef int switch
+    cdef int count1,count2,count3
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
@@ -347,26 +350,33 @@ cdef class Octree:
         return d2 / dist
 
     cdef np.float64_t fbe_potential_of_remote_nodes(self, OctreeNode *node1,
-            int top_i, int top_j, int top_k):
+            int sum):
         # Given a childless node "node1", calculate the potential for it from
         # all the other nodes using the treecode method.
-        cdef int i, j, k
+        cdef int i, j, k, this_sum
         cdef np.float64_t potential
         potential = 0.0
         # We *do* want to walk over the root_node that node1 is in to look for
         # level>0 nodes close to node1, but none of
         # the previously-walked root_nodes.
         self.switch = 0
-        for i in range(top_i, self.top_grid_dims[0]):
-            for j in range(top_j, self.top_grid_dims[1]):
-                for k in range(top_k, self.top_grid_dims[2]):
+        self.count2 = 0
+        self.count3 = 0
+        this_sum = 0
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                for k in range(self.top_grid_dims[2]):
+                    this_sum += 1
+                    if this_sum < sum: continue
                     if self.root_nodes[i][j][k].val[0] == 0: continue
                     potential += self.fbe_iterate_remote_nodes(node1,
                         self.root_nodes[i][j][k])
+        #print 'count2', self.count2, self.node_ID(node1), self.count3
         return potential
 
     cdef np.float64_t fbe_iterate_remote_nodes(self, OctreeNode *node1,
             OctreeNode *node2):
+
         # node1 never changes.
         # node2 is the iterated-upon remote node.
         # self.switch - In order to prevent double counting, we only want
@@ -377,6 +387,7 @@ cdef class Octree:
         cdef int i, j, k, contained
         cdef np.float64_t potential, dist, angle
         potential = 0.0
+        self.count3 += 1
         # Do nothing with node2 when it is the same as node1. No potential
         # calculation, and no digging deeper. But we flip the switch.
         if OTN_same(node1, node2):
@@ -389,6 +400,8 @@ cdef class Octree:
         # Errr...  contained may not be needed here.
         if node2.children[0][0][0] == NULL and not contained and \
                 not OTN_same(node1, node2) and self.switch:
+            self.count2 += 1
+            #print 'h', self.node_ID(node1), self.node_ID(node2)
             dist = self.fbe_node_separation(node1, node2)
             return node1.val[0] * node2.val[0] / dist
         # Now we apply the opening angle test. If the opening angle is small
@@ -411,8 +424,7 @@ cdef class Octree:
                         node2.children[i][j][k])
         return potential
 
-    cdef np.float64_t fbe_iterate_children(self, OctreeNode *node, int top_i,
-            int top_j, int top_k):
+    cdef np.float64_t fbe_iterate_children(self, OctreeNode *node, int sum):
         # Recursively iterate over child nodes until we get a childless node.
         cdef int i, j, k
         cdef np.float64_t potential
@@ -420,8 +432,8 @@ cdef class Octree:
         # We have a childless node. Time to iterate over every other
         # node using the treecode method.
         if node.children[0][0][0] is NULL:
-            potential = self.fbe_potential_of_remote_nodes(node,
-                top_i, top_j, top_k)
+            self.count1 += 1
+            potential = self.fbe_potential_of_remote_nodes(node, sum)
             return potential
         # If the node has children, we need to walk all of them returning
         # the potential for each.
@@ -430,7 +442,7 @@ cdef class Octree:
                 for k in range(2):
                     if node.children[i][j][k].val[0] == 0.0: continue
                     potential += self.fbe_iterate_children(node.children[i][j][k],
-                        top_i, top_j, top_k)
+                        sum)
         return potential
 
     def find_binding_energy(self, int truncate, float kinetic,
@@ -452,24 +464,29 @@ cdef class Octree:
         #    potential. If neither of these are done, we call
         #    fbe_iterate_remote_nodes on the children nodes.
         # 5. All of this returns a total, non-double-counted potential.
-        cdef int i, j, k
+        cdef int i, j, k, sum
         cdef np.float64_t potential
         potential = 0.0
         self.opening_angle = opening_angle
+        self.count1 = 0
+        self.count2 = 0
         for i in range(3):
             self.root_dx[i] = root_dx[i]
         # The first part of the loop goes over all of the root level nodes.
+        sum = 0
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
                     if self.root_nodes[i][j][k].val[0] == 0.0: continue
+                    sum += 1
                     potential += self.fbe_iterate_children(self.root_nodes[i][j][k],
-                        i, j, k)
+                        sum)
                     if truncate and potential > kinetic: break
                 if truncate and potential > kinetic: break
             if truncate and potential > kinetic:
                 print "Truncating!"
                 break
+        #print 'count1', self.count1
         return potential
 
     cdef int node_ID(self, OctreeNode *node):
@@ -513,6 +530,7 @@ cdef class Octree:
                         nline += "%d," % self.node_ID(node.children[i][j][k])
             line += nline
         print line
+        return
 
     cdef void iterate_print_nodes(self, OctreeNode *node):
         cdef int i, j, k
@@ -527,6 +545,8 @@ cdef class Octree:
 
     def print_all_nodes(self):
         cdef int i, j, k
+        sys.stdout.flush()
+        sys.stderr.flush()
         line = "ID\tlevel\tx\ty\tz\t"
         for i in range(self.nvals):
             line += "val%d\t\t" % i
@@ -536,6 +556,8 @@ cdef class Octree:
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
                     self.iterate_print_nodes(self.root_nodes[i][j][k])
+        sys.stdout.flush()
+        sys.stderr.flush()
         return
 
     def __dealloc__(self):
