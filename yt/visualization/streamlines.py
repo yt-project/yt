@@ -28,7 +28,8 @@ from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
-
+from yt.data_objects.data_containers import AMRStreamlineBase
+        
 class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
 
@@ -107,7 +108,7 @@ class Streamlines(ParallelAnalysisInterface):
         self.length = length
         self.steps = int(length/dx)
         self.streamlines = na.zeros((self.N,self.steps,3), dtype='float64')
-
+        
     def integrate_through_volume(self):
         nprocs = self._mpi_get_size()
         my_rank = self._mpi_get_rank()
@@ -123,12 +124,13 @@ class Streamlines(ParallelAnalysisInterface):
         pbar.finish()
         
         self._finalize_parallel(None)
-
+       
     @parallel_passthrough
     def _finalize_parallel(self,data):
         self.streamlines = self._mpi_allsum(self.streamlines)
         
-    def _integrate_through_brick(self, node, stream, step, periodic=False):
+    def _integrate_through_brick(self, node, stream, step,
+                                 periodic=False):
         while (step > 1):
             self.volume.get_brick_data(node)
             brick = node.brick
@@ -149,6 +151,11 @@ class Streamlines(ParallelAnalysisInterface):
         for i,stream in enumerate(self.streamlines):
             temp[i] = stream[na.all(stream != 0.0, axis=1)]
         self.streamlines = temp
+
+    def path(self, streamline_id):
+        return AMRStreamlineBase(self.streamlines[streamline_id])
     
+        
+                
 
         

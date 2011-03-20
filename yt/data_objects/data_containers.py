@@ -633,6 +633,81 @@ class AMRRayBase(AMR1DData):
         self._ts[grid.id] = na.abs(ts)
         return mask
 
+class AMRStreamlineBase(AMR1DData):
+    _type_name = "streamline"
+    _con_args = ('positions')
+    sort_by = 't'
+    def __init__(self, positions, fields=None, pf=None, **kwargs):
+        """
+        This is an arbitrarily-aligned ray cast through the entire domain, at a
+        specific coordinate.
+
+        This object is typically accessed through the `ray` object that hangs
+        off of hierarchy objects.  The resulting arrays have their
+        dimensionality reduced to one, and an ordered list of points at an
+        (x,y) tuple along `axis` are available, as is the `t` field, which
+        corresponds to a unitless measurement along the ray from start to
+        end.
+
+        Parameters
+        ----------
+        start_point : array-like set of 3 floats
+            The place where the ray starts.
+        end_point : array-like set of 3 floats
+            The place where the ray ends.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ray = pf.h._ray((0.2, 0.74), (0.4, 0.91))
+        >>> print ray["Density"], ray["t"]
+        """
+        AMR1DData.__init__(self, pf, fields, **kwargs)
+        self.positions = positions
+        self.dts = na.empty_like(positions)
+        self.dts[:-1] = na.sqrt(na.sum((self.positions[1:]-
+                                        self.positions[:-1])**2,axis=0))
+        self.dts[-1] = self.dts[-1]
+        self.ts = na.add.accumulate(dts)
+        self._set_center(self.positions[0])
+        self.set_field_parameter('center', self.start_point)
+        self._dts, self._ts = {}, {}
+        #self._refresh_data()
+
+    def _get_data_from_grid(self, grid, field):
+        mask = na.logical_and(self._get_cut_mask(grid),
+                              grid.child_mask)
+        if field == 'dts': return self._dts[grid.id][mask]
+        if field == 't': return self._ts[grid.id][mask]
+        return grid[field][mask]
+        
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        mask = na.zeros(grid.ActiveDimensions, dtype='int')
+        points_in_grid = na.all(self.positions >= grid.LeftEdge, axis=0) & \
+                         na.all(self.positions < grid.LeftEdge, axis=0) 
+        self._dts[grid.id] = self.dts[points_in_grid]
+        self._ts[grid.id] = self.positions[points_in_grid]
+        for i, pos in enumerate(self.positions[points_in_grid]):
+            cx = (pos[0]-grid.LeftEdge[0])/grid.dds[0]
+            cy = (pos[1]-grid.LeftEdge[1])/grid.dds[1]
+            cz = (pos[2]-grid.LeftEdge[2])/grid.dds[2]
+            if mask[cx,cy,cz]:
+                continue
+            mask[cx,cy,cz] = 1
+            dts[cx,cy,cz] = self.dts[i]
+            ts[cx,cy,cz] = self.ts[i]
+        self._dts = dts
+        self._ts = ts
+        return mask
+
 class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     _key_fields = ['px','py','pdx','pdy']
     """
