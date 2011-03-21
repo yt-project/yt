@@ -28,7 +28,8 @@ from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
-
+from yt.data_objects.data_containers import AMRStreamlineBase
+        
 class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
 
@@ -41,12 +42,15 @@ class Streamlines(ParallelAnalysisInterface):
         This is the parameter file to streamline
     pos : array_like
         An array of initial starting positions of the streamlines.
-    xfield: field
+    xfield: field, optional
         The x component of the vector field to be streamlined.
-    yfield: field
+        Default:'x-velocity'
+    yfield: field, optional
         The y component of the vector field to be streamlined.
-    zfield: field
+        Default:'y-velocity'
+    zfield: field, optional
         The z component of the vector field to be streamlined.
+        Default:'z-velocity'
     volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
         The volume to be streamlined.  Can be specified for
         finer-grained control, but otherwise will be automatically
@@ -58,6 +62,9 @@ class Streamlines(ParallelAnalysisInterface):
     length : float, optional
         Optionally specify the length of integration.  
         Default: na.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
+    direction : real, optional
+        Specifies the direction of integration.  The magnitude of this
+        value has no effect, only the sign.
     
     Examples
     --------
@@ -83,14 +90,16 @@ class Streamlines(ParallelAnalysisInterface):
     >>>     ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
     >>> pl.savefig('streamlines.png')
     """
-    def __init__(self, pf, positions, xfield, yfield, zfield, volume=None,
-                 dx=None, length=None):
+    def __init__(self, pf, positions, xfield='x-velocity', yfield='x-velocity',
+                 zfield='x-velocity', volume=None,
+                 dx=None, length=None, direction=1):
         self.pf = pf
-        self.start_positions = positions
+        self.start_positions = na.array(positions)
         self.N = self.start_positions.shape[0]
         self.xfield = xfield
         self.yfield = yfield
         self.zfield = zfield
+        self.direction = na.sign(direction)
         if volume is None:
             volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
                             log_fields=[False,False,False], merge_trees=True)
@@ -103,7 +112,7 @@ class Streamlines(ParallelAnalysisInterface):
         self.length = length
         self.steps = int(length/dx)
         self.streamlines = na.zeros((self.N,self.steps,3), dtype='float64')
-
+        
     def integrate_through_volume(self):
         nprocs = self._mpi_get_size()
         my_rank = self._mpi_get_rank()
@@ -119,17 +128,18 @@ class Streamlines(ParallelAnalysisInterface):
         pbar.finish()
         
         self._finalize_parallel(None)
-
+       
     @parallel_passthrough
     def _finalize_parallel(self,data):
         self.streamlines = self._mpi_allsum(self.streamlines)
         
-    def _integrate_through_brick(self, node, stream, step, periodic=False):
+    def _integrate_through_brick(self, node, stream, step,
+                                 periodic=False):
         while (step > 1):
             self.volume.get_brick_data(node)
             brick = node.brick
             stream[-step+1] = stream[-step]
-            brick.integrate_streamline(stream[-step+1], self.dx)
+            brick.integrate_streamline(stream[-step+1], self.direction*self.dx)
             if na.any(stream[-step+1,:] <= self.pf.domain_left_edge) | \
                    na.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
@@ -140,7 +150,35 @@ class Streamlines(ParallelAnalysisInterface):
             step -= 1
         return step
 
-    
+    def clean_streamlines(self):
+        temp = na.empty(self.N, dtype='object')
+        for i,stream in enumerate(self.streamlines):
+            temp[i] = stream[na.all(stream != 0.0, axis=1)]
+        self.streamlines = temp
 
+    def path(self, streamline_id):
+        """
+        Returns an AMR1DData object defined by a streamline.
 
+        Parameters
+        ----------
+        streamline_id : int
+            This defines which streamline from the Streamlines object
+            that will define the AMR1DData object.
+
+        Returns
+        -------
+        An AMRStreamlineBase AMR1DData object
+
+        Examples
+        --------
+
+        >>> from yt.visualization.api import Streamlines
+        >>> streamlines = Streamlines(pf, [0.5]*3) 
+        >>> streamlines.integrate_through_volume()
+        >>> stream = streamlines.path(0)
+        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+        
+        """
+        return AMRStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
         
