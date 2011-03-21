@@ -38,6 +38,9 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
+cdef extern from "math.h":
+    double sqrt(double x)
+
 cdef inline np.float64_t f64max(np.float64_t f0, np.float64_t f1):
     if f0 > f1: return f0
     return f1
@@ -311,6 +314,7 @@ cdef class Octree:
                             level, curpos + added, pdata, vdata, wdata)
         return added
 
+    @cython.cdivision(True)
     cdef np.float64_t fbe_node_separation(self, OctreeNode *node1, OctreeNode *node2):
         # Find the distance between the two nodes. To match FindBindingEnergy
         # in data_point_utilities.c, we'll do this in code units.
@@ -325,9 +329,10 @@ cdef class Octree:
             p1 = (<np.float64_t> node1.pos[i]) * dx1 + dx1/2.
             p2 = (<np.float64_t> node2.pos[i]) * dx2 + dx2/2.
             dist += (p1 - p2) * (p1 - p2)
-        dist = np.sqrt(dist)
+        dist = sqrt(dist)
         return dist
     
+    @cython.cdivision(True)
     cdef np.float64_t fbe_opening_angle(self, OctreeNode *node1,
             OctreeNode *node2):
         # Calculate the opening angle of node2 upon the center of node1.
@@ -379,6 +384,7 @@ cdef class Octree:
                         self.root_nodes[i][j][k])
         return potential
 
+    @cython.cdivision(True)
     cdef np.float64_t fbe_iterate_remote_nodes(self, OctreeNode *node1,
             OctreeNode *node2):
 
@@ -496,9 +502,10 @@ cdef class Octree:
                                 self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)]
                     sum += 1
 
+    @cython.cdivision(True)
     cdef np.float64_t fbe_main(self, np.float64_t potential, int truncate,
             np.float64_t kinetic):
-        cdef np.float64_t angle
+        cdef np.float64_t angle, dist
         cdef OctreeNode *this_node
         cdef OctreeNode *pair_node
         this_node = self.root_nodes[0][0][0]
