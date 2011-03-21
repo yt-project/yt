@@ -312,6 +312,7 @@ class YTCommands(cmdln.Cmdln):
                 print "The supplemental repositories are located at:"
                 print "    %s" % (spath)
                 update_supp = True
+        vstring = None
         if "site-packages" not in path:
             vstring = _get_hg_version(path)
             print
@@ -321,14 +322,14 @@ class YTCommands(cmdln.Cmdln):
             print vstring.strip()
             print "---"
             print
-            if "+" not in vstring:
-                print "We CAN attempt an auto-update of this version."
-            else:
-                print "There are local changes to this repository, and it",
-                print "cannot be auto-updated."
-            if opts.update_source:
-                _update_hg(path)
-                if update_supp == True: _update_hg(spath, skip_rebuild=True)
+            print "This installation CAN be automatically updated."
+            if opts.update_source:  
+                _vcs_updater[vc_type](path)
+            print "Updated successfully."
+        elif opts.update_source:
+            print
+            print "You have to update this installation yourself."
+            print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
