@@ -345,7 +345,7 @@ cdef class Octree:
         cdef np.int64_t n2
         cdef int i
         d2 = 0.0
-        if OTN_same(node1, node2): return 100000.0 # Just some large number.
+        if node1 is node2: return 100000.0 # Just some large number.
         if self.top_grid_dims[1] == self.top_grid_dims[0] and \
                 self.top_grid_dims[2] == self.top_grid_dims[0]:
             # Symmetric
@@ -454,7 +454,9 @@ cdef class Octree:
                         sum)
         return potential
 
-    cdef void set_next_initial(self, OctreeNode *node, int treecode):
+    cdef void set_next(self, OctreeNode *node, int treecode):
+        # This sets up the linked list, pointing node.next to the next node
+        # in the iteration order.
         cdef int i, j, k
         if treecode and node.val[0] is not 0.:
             self.last_node.next = node
@@ -463,10 +465,14 @@ cdef class Octree:
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    self.set_next_initial(node.children[i][j][k], treecode)
+                    self.set_next(node.children[i][j][k], treecode)
         return
 
-    cdef void set_next_final(self, OctreeNode *node):
+    cdef void set_up_next(self, OctreeNode *node):
+        # This sets up a second linked list, pointing node.up_next to the next
+        # node in the list that is at the same or lower (coarser) level than
+        # this node. This is useful in the treecode for skipping over nodes
+        # that don't need to be inspected.
         cdef int i, j, k
         cdef OctreeNode *initial_next
         cdef OctreeNode *temp_next
@@ -477,34 +483,47 @@ cdef class Octree:
             temp_next = temp_next.next
             if temp_next is NULL: break
         node.up_next = temp_next
-        self.set_next_final(initial_next)
+        self.set_up_next(initial_next)
 
     def finalize(self, int treecode = 0):
         # Set up the linked list for the nodes.
         # Set treecode = 1 if nodes with no mass are to be skipped in the
         # list.
-        cdef int i, j, k, sum
+        cdef int i, j, k, sum, top_grid_total, ii, jj, kk
         self.last_node = self.root_nodes[0][0][0]
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
-                    self.set_next_initial(self.root_nodes[i][j][k], treecode)
+                    self.set_next(self.root_nodes[i][j][k], treecode)
         # Now we want to link to the next node in the list that is
-        # on a level the same or lower (coarser) than us.
+        # on a level the same or lower (coarser) than us. This will be used
+        # during a treecode search so we can skip higher-level (finer) nodes.
         sum = 1
+        top_grid_total = self.top_grid_dims[0] * self.top_grid_dims[1] * \
+            self.top_grid_dims[2]
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
-                    self.set_next_final(self.root_nodes[i][j][k])
-                    if sum < 7:
-                        if treecode and self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)].val[0] is not 0:
-                            self.root_nodes[i][j][k].up_next = \
-                                self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)]
+                    self.set_up_next(self.root_nodes[i][j][k])
+                    # Point the root_nodes.up_next to the next root_node in the
+                    # list, except for the last one which stays pointing to NULL.
+                    if sum < top_grid_total - 1:
+                        ii = i
+                        jj = j
+                        kk = (k + 1) % self.top_grid_dims[2]
+                        if kk < k:
+                            jj = (j + 1) % self.top_grid_dims[1]
+                            if jj < j:
+                                ii = (i + 1) % self.top_grid_dims[0]
+                        self.root_nodes[i][j][k].up_next = \
+                            self.root_nodes[ii][jj][kk]
                     sum += 1
 
     @cython.cdivision(True)
     cdef np.float64_t fbe_main(self, np.float64_t potential, int truncate,
             np.float64_t kinetic):
+        # The work is done here. Starting at the top of the linked list of
+        # nodes, 
         cdef np.float64_t angle, dist
         cdef OctreeNode *this_node
         cdef OctreeNode *pair_node
@@ -513,12 +532,19 @@ cdef class Octree:
             # Iterate down to a childless node.
             while this_node.children[0][0][0] is not NULL:
                 this_node = this_node.next
+                # In case we reach the end of the list...
                 if this_node is NULL: break
             if truncate and potential > kinetic:
                 print 'Truncating...'
                 break
             pair_node = this_node.next
             while pair_node is not NULL:
+                # If pair_node is massless, we can jump to up_next, because
+                # nothing pair_node contains will have mass either.
+                # I think that this should primarily happen for root_nodes.
+                if pair_node.val[0] is 0.0:
+                    pair_node = pair_node.up_next
+                    continue
                 # If pair_node is a childless node, we can calculate the
                 # right now, and get a new pair_node.
                 if pair_node.children[0][0][0] == NULL:
@@ -533,14 +559,20 @@ cdef class Octree:
                 # up_next because we don't need to look at pair_node's children.
                 angle = self.fbe_opening_angle(this_node, pair_node)
                 if angle < self.opening_angle:
+                    # self.dist was just set in fbe_opening_angle, so we
+                    # can use it here without re-calculating it for these two
+                    # nodes.
                     potential += this_node.val[0] * pair_node.val[0] / self.dist
                     if truncate and potential > kinetic: break
+                    # We can skip all the nodes that are contained within 
+                    # pair_node, saving time walking the linked list.
                     pair_node = pair_node.up_next
                     self.tree_count += 1
                 # If we've gotten this far, pair_node has children, but it's
                 # too coarse, so we simply dig deeper using .next.
                 else:
                     pair_node = pair_node.next
+            # We've exhausted the pair_nodes.
             # Now we find a new this_node in the list.
             this_node = this_node.next
         return potential
