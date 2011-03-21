@@ -784,6 +784,9 @@ class YTCommands(cmdln.Cmdln):
             print
             loki = raw_input("Press enter to go on, Ctrl-C to exit.")
             cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
+        # We now reload the UI's config file so that it catches the [bb]
+        # section changes.
+        uu.readconfig(hgrc_path[0])
         # Now the only thing remaining to do is to set up the pasteboard
         # repository.
         # This is, unfortunately, the most difficult.
