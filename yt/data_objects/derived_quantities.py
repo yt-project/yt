@@ -274,7 +274,7 @@ add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
 def _IsBound(data, truncate = True, include_thermal_energy = False,
-    treecode = False, opening_angle = 1.0):
+    treecode = 0, opening_angle = 1.0):
     """
     This returns whether or not the object is gravitationally bound
     
@@ -396,11 +396,14 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
                na.ones_like(thisx).astype('float64'))
         # Now we calculate the binding energy using a treecode.
         print 'calculating'
-        #pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
-        #    opening_angle)
-        octree.finalize(treecode = 1)
-        octree.print_all_nodes()
-        pot = 0
+        if treecode == 1:
+            pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
+                opening_angle)
+        elif treecode == 2:
+            octree.finalize(treecode = 1)
+            pot = G*octree.find_b_e(truncate, kinetic/G, root_dx, opening_angle)
+        #octree.print_all_nodes()
+        #pot = 0
     else:
         try:
             pot = G*_cudaIsBound(local_data, truncate, kinetic/G)

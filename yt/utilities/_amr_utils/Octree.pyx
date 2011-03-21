@@ -51,6 +51,7 @@ cdef struct OctreeNode:
     OctreeNode *children[2][2][2]
     OctreeNode *parent
     OctreeNode *next
+    OctreeNode *up_next
 
 cdef void OTN_add_value(OctreeNode *self,
         np.float64_t *val, np.float64_t weight_val):
@@ -106,6 +107,7 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
     node.nvals = nvals
     node.parent = parent
     node.next = NULL
+    node.up_next = NULL
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
     for i in range(nvals):
@@ -136,9 +138,11 @@ cdef class Octree:
     cdef int incremental
     # Below is for the treecode.
     cdef np.float64_t opening_angle
+    # We'll store dist here so it doesn't have to be calculated twice.
+    cdef np.float64_t dist
     cdef np.float64_t root_dx[3]
     cdef int switch
-    cdef int count2,count3
+    cdef int full_count,tree_count
     cdef OctreeNode *last_node
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
@@ -350,6 +354,7 @@ cdef class Octree:
                 d2 = f64max(d2, dx2)
         # Now calculate the opening angle.
         dist = self.fbe_node_separation(node1, node2)
+        self.dist = dist
         return d2 / dist
 
     cdef np.float64_t fbe_potential_of_remote_nodes(self, OctreeNode *node1,
@@ -399,7 +404,7 @@ cdef class Octree:
         # Errr...  contained may not be needed here.
         if node2.children[0][0][0] == NULL and not contained and \
                 not OTN_same(node1, node2) and self.switch:
-            self.count2 += 1
+            self.full_count += 1
             dist = self.fbe_node_separation(node1, node2)
             return node1.val[0] * node2.val[0] / dist
         # Now we apply the opening angle test. If the opening angle is small
@@ -408,7 +413,7 @@ cdef class Octree:
         if angle < self.opening_angle and not contained and \
                 not OTN_same(node1, node2) and self.switch:
             dist = self.fbe_node_separation(node1, node2)
-            self.count3 += 1
+            self.tree_count += 1
             return node1.val[0] * node2.val[0] / dist
         # If we've gotten this far with a childless node, it means we've
         # already accounted for it.
@@ -465,7 +470,7 @@ cdef class Octree:
         while temp_next.level > node.level:
             temp_next = temp_next.next
             if temp_next is NULL: break
-        node.next = temp_next
+        node.up_next = temp_next
         self.set_next_final(initial_next)
 
     def finalize(self, int treecode = 0):
@@ -487,9 +492,66 @@ cdef class Octree:
                     self.set_next_final(self.root_nodes[i][j][k])
                     if sum < 7:
                         if treecode and self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)].val[0] is not 0:
-                            self.root_nodes[i][j][k].next = \
+                            self.root_nodes[i][j][k].up_next = \
                                 self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)]
                     sum += 1
+
+    cdef np.float64_t fbe_main(self, np.float64_t potential, int truncate,
+            np.float64_t kinetic):
+        cdef np.float64_t angle
+        cdef OctreeNode *this_node
+        cdef OctreeNode *pair_node
+        this_node = self.root_nodes[0][0][0]
+        while this_node is not NULL:
+            # Iterate down to a childless node.
+            while this_node.children[0][0][0] is not NULL:
+                this_node = this_node.next
+                if this_node is NULL: break
+            if truncate and potential > kinetic:
+                print 'Truncating...'
+                break
+            pair_node = this_node.next
+            while pair_node is not NULL:
+                # If pair_node is a childless node, we can calculate the
+                # right now, and get a new pair_node.
+                if pair_node.children[0][0][0] == NULL:
+                    dist = self.fbe_node_separation(this_node, pair_node)
+                    potential += this_node.val[0] * pair_node.val[0] / dist
+                    if truncate and potential > kinetic: break
+                    pair_node = pair_node.next
+                    self.full_count += 1
+                    continue
+                # Next, if the opening angle to pair_node is small enough,
+                # calculate the potential and get a new pair_node using
+                # up_next because we don't need to look at pair_node's children.
+                angle = self.fbe_opening_angle(this_node, pair_node)
+                if angle < self.opening_angle:
+                    potential += this_node.val[0] * pair_node.val[0] / self.dist
+                    if truncate and potential > kinetic: break
+                    pair_node = pair_node.up_next
+                    self.tree_count += 1
+                # If we've gotten this far, pair_node has children, but it's
+                # too coarse, so we simply dig deeper using .next.
+                else:
+                    pair_node = pair_node.next
+            # Now we find a new this_node in the list.
+            this_node = this_node.next
+        return potential
+
+    def find_b_e(self, int truncate, float kinetic,
+        np.ndarray[np.float64_t, ndim=1] root_dx, float opening_angle = 1.0):
+        cdef int i, j, k, sum
+        cdef np.float64_t potential
+        potential = 0.0
+        self.tree_count = 0
+        self.full_count = 0
+        self.opening_angle = opening_angle
+        for i in range(3):
+            self.root_dx[i] = root_dx[i]
+        potential = self.fbe_main(potential, truncate, kinetic)
+        print 'full', self.full_count
+        print 'tree', self.tree_count
+        return potential
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -516,8 +578,8 @@ cdef class Octree:
         cdef np.float64_t potential
         potential = 0.0
         self.opening_angle = opening_angle
-        self.count3 = 0
-        self.count2 = 0
+        self.tree_count = 0
+        self.full_count = 0
         for i in range(3):
             self.root_dx[i] = root_dx[i]
         # The first part of the loop goes over all of the root level nodes.
@@ -534,8 +596,8 @@ cdef class Octree:
             if truncate and potential > kinetic:
                 print "Truncating!"
                 break
-        print 'count2', self.count2
-        print 'count3', self.count3
+        print 'full', self.full_count
+        print 'tree', self.tree_count
         return potential
 
     cdef int node_ID(self, OctreeNode *node):
@@ -569,6 +631,9 @@ cdef class Octree:
         if node.next is not NULL:
             line += "%d\t" % self.node_ID(node.next)
         else: line += "-1\t"
+        if node.up_next is not NULL:
+            line += "%d\t" % self.node_ID(node.up_next)
+        else: line += "-1\t"
         line += "%d\t%d\t%d\t%d\t" % (node.level,node.pos[0],node.pos[1],node.pos[2])
         for i in range(node.nvals):
             line += "%1.5e\t" % node.val[i]
@@ -599,7 +664,7 @@ cdef class Octree:
         cdef int i, j, k
         sys.stdout.flush()
         sys.stderr.flush()
-        line = "ID\tnext\tlevel\tx\ty\tz\t"
+        line = "ID\tnext\tup_n\tlevel\tx\ty\tz\t"
         for i in range(self.nvals):
             line += "val%d\t\t" % i
         line += "weight\t\tchild?\tparent?\tchildren"
