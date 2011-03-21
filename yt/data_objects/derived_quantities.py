@@ -396,9 +396,11 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
                na.ones_like(thisx).astype('float64'))
         # Now we calculate the binding energy using a treecode.
         print 'calculating'
-        pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
-            opening_angle)
-        #octree.print_all_nodes()
+        #pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
+        #    opening_angle)
+        octree.finalize(treecode = 1)
+        octree.print_all_nodes()
+        pot = 0
     else:
         try:
             pot = G*_cudaIsBound(local_data, truncate, kinetic/G)

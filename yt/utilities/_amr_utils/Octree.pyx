@@ -50,6 +50,7 @@ cdef struct OctreeNode:
     int nvals
     OctreeNode *children[2][2][2]
     OctreeNode *parent
+    OctreeNode *next
 
 cdef void OTN_add_value(OctreeNode *self,
         np.float64_t *val, np.float64_t weight_val):
@@ -104,6 +105,7 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
     node.pos[2] = pos[2]
     node.nvals = nvals
     node.parent = parent
+    node.next = NULL
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
     for i in range(nvals):
@@ -137,6 +139,7 @@ cdef class Octree:
     cdef np.float64_t root_dx[3]
     cdef int switch
     cdef int count2,count3
+    cdef OctreeNode *last_node
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
@@ -440,6 +443,54 @@ cdef class Octree:
                         sum)
         return potential
 
+    cdef void set_next_initial(self, OctreeNode *node, int treecode):
+        cdef int i, j, k
+        if treecode and node.val[0] is not 0.:
+            self.last_node.next = node
+            self.last_node = node
+        if node.children[0][0][0] is NULL: return
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    self.set_next_initial(node.children[i][j][k], treecode)
+        return
+
+    cdef void set_next_final(self, OctreeNode *node):
+        cdef int i, j, k
+        cdef OctreeNode *initial_next
+        cdef OctreeNode *temp_next
+        initial_next = node.next
+        temp_next = node.next
+        if node.next is NULL: return
+        while temp_next.level > node.level:
+            temp_next = temp_next.next
+            if temp_next is NULL: break
+        node.next = temp_next
+        self.set_next_final(initial_next)
+
+    def finalize(self, int treecode = 0):
+        # Set up the linked list for the nodes.
+        # Set treecode = 1 if nodes with no mass are to be skipped in the
+        # list.
+        cdef int i, j, k, sum
+        self.last_node = self.root_nodes[0][0][0]
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                for k in range(self.top_grid_dims[2]):
+                    self.set_next_initial(self.root_nodes[i][j][k], treecode)
+        # Now we want to link to the next node in the list that is
+        # on a level the same or lower (coarser) than us.
+        sum = 1
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                for k in range(self.top_grid_dims[2]):
+                    self.set_next_final(self.root_nodes[i][j][k])
+                    if sum < 7:
+                        if treecode and self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)].val[0] is not 0:
+                            self.root_nodes[i][j][k].next = \
+                                self.root_nodes[int(sum/4)][int(sum%4/2)][int(sum%2)]
+                    sum += 1
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def find_binding_energy(self, int truncate, float kinetic,
@@ -515,6 +566,9 @@ cdef class Octree:
     cdef void print_node_info(self, OctreeNode *node):
         cdef int i, j, k
         line = "%d\t" % self.node_ID(node)
+        if node.next is not NULL:
+            line += "%d\t" % self.node_ID(node.next)
+        else: line += "-1\t"
         line += "%d\t%d\t%d\t%d\t" % (node.level,node.pos[0],node.pos[1],node.pos[2])
         for i in range(node.nvals):
             line += "%1.5e\t" % node.val[i]
@@ -545,7 +599,7 @@ cdef class Octree:
         cdef int i, j, k
         sys.stdout.flush()
         sys.stderr.flush()
-        line = "ID\tlevel\tx\ty\tz\t"
+        line = "ID\tnext\tlevel\tx\ty\tz\t"
         for i in range(self.nvals):
             line += "val%d\t\t" % i
         line += "weight\t\tchild?\tparent?\tchildren"
