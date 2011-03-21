@@ -59,7 +59,6 @@ from .field_info_container import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter
-import pdb
 
 def restore_grid_state(func):
     """
