@@ -274,7 +274,7 @@ add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
 def _IsBound(data, truncate = True, include_thermal_energy = False,
-    treecode = 0, opening_angle = 1.0):
+    treecode = False, opening_angle = 1.0):
     """
     This returns whether or not the object is gravitationally bound
     
@@ -355,7 +355,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # Create the octree with these dimensions.
         # One value (mass) with incremental=True.
         octree = Octree(cover_ActiveDimensions, 1, True)
-        print 'here', cover_ActiveDimensions
+        #print 'here', cover_ActiveDimensions
         # Now discover what levels this data comes from, not assuming
         # symmetry.
         dxes = na.unique(data['dx']) # unique returns a sorted array,
@@ -380,30 +380,25 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             octree.add_array_to_tree(L, i, j, k,
                 na.array([na.zeros_like(i)], order='F', dtype='float64'),
                 na.zeros_like(i).astype('float64'))
-            print L, ActiveDimensions
-            print i[0], i[-1], j[0], j[-1], k[0],k[-1]
+            #print L, ActiveDimensions
+            #print i[0], i[-1], j[0], j[-1], k[0],k[-1]
         # Now we add actual data to the octree.
         for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
-            print "adding to octree", L
+            mylog.info("Adding data to Octree for level %d" % L)
             sel = (data["dx"] == dx)
             thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
             thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
             thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
             vals = na.array([local_data["CellMass"][sel]], order='F')
-            print na.min(thisx), na.min(thisy), na.min(thisz)
-            print na.max(thisx), na.max(thisy), na.max(thisz)
+            #print na.min(thisx), na.min(thisy), na.min(thisz)
+            #print na.max(thisx), na.max(thisy), na.max(thisz)
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
                na.ones_like(thisx).astype('float64'))
         # Now we calculate the binding energy using a treecode.
-        print 'calculating'
-        if treecode == 1:
-            pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
-                opening_angle)
-        elif treecode == 2:
-            octree.finalize(treecode = 1)
-            pot = G*octree.find_b_e(truncate, kinetic/G, root_dx, opening_angle)
+        octree.finalize(treecode = 1)
+        pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
+            opening_angle)
         #octree.print_all_nodes()
-        #pot = 0
     else:
         try:
             pot = G*_cudaIsBound(local_data, truncate, kinetic/G)
