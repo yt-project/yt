@@ -51,10 +51,8 @@ from profiles import \
     BinnedProfile2D, \
     BinnedProfile3D
 
-# Disabled for now
 from time_series import \
     TimeSeriesData, \
-    EnzoTimeSeries, \
     TimeSeriesDataObject
 
 from analyzer_objects import \

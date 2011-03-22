@@ -635,6 +635,7 @@ class EnzoStaticOutput(StaticOutput):
         paarmeter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
+        if filename.endswith(".hierarchy"): filename = filename[:-10]
         if parameter_override is None: parameter_override = {}
         self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
@@ -879,6 +880,8 @@ class EnzoStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
+        if ("%s" % (args[0])).endswith(".hierarchy"):
+            return True
         return os.path.exists("%s.hierarchy" % args[0])
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
