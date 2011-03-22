@@ -542,6 +542,10 @@ function print_afterword
     echo
     echo "$DEST_DIR/bin/yt"
     echo
+    echo "To bootstrap a development environment for yt, run:"
+    echo 
+    echo "$DEST_DIR/bin/yt bootstrap_dev"
+    echo
     echo "Note of interest: this installation will use the directory:"
     echo "    $YT_DIR"
     echo "as the source for all the YT code.  This means you probably shouldn't"
@@ -570,7 +574,6 @@ function print_afterword
     echo
     echo "    http://yt.enzotools.org/"
     echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
-    echo
     echo
     echo "========================================================================"
     echo
