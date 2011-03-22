@@ -52,7 +52,7 @@ class AnalysisTaskProxy(object):
         return key in analysis_task_registry
 
 class TimeSeriesData(object):
-    def __init__(self, name, outputs = None):
+    def __init__(self, outputs = None):
         if outputs is None: outputs = []
         self.outputs = outputs
         self.tasks = AnalysisTaskProxy(self)
@@ -99,22 +99,22 @@ class TimeSeriesData(object):
         return return_values
 
     @classmethod
-    def from_filenames(cls, name, filename_list):
+    def from_filenames(cls, filename_list):
         outputs = []
         for fn in filename_list:
             outputs.append(load(fn))
-        obj = cls(name, outputs)
+        obj = cls(outputs)
         return obj
 
     @classmethod
-    def from_output_log(cls, name, output_log,
+    def from_output_log(cls, output_log,
                         line_prefix = "DATASET WRITTEN"):
         outputs = []
         for line in open(output_log):
             if not line.startswith(line_prefix): continue
             fn = line[len(line_prefix):].strip()
             outputs.append(load(fn))
-        obj = cls(name, outputs)
+        obj = cls(outputs)
         return obj
 
 class TimeSeriesQuantitiesContainer(object):
