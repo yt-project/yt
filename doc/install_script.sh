@@ -50,6 +50,10 @@ MPL_SUPP_LDFLAGS=""
 MPL_SUPP_CFLAGS=""
 MPL_SUPP_CXXFLAGS=""
 
+# If you want to spawn multiple Make jobs, here's the place to set the
+# arguments.  For instance, "-j4"
+MAKE_PROCS=""
+
 #------------------------------------------------------------------------------#
 #                                                                              #
 # Okay, the script starts here.  Feel free to play with it, but hopefully      #
@@ -334,7 +338,7 @@ then
         [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
         echo "Installing PNG"
         cd libpng-1.2.43
-        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ./configure CPPFLAGS=-I${DEST_DIR}/include CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
@@ -369,7 +373,7 @@ then
         echo "Installing HDF5"
         cd hdf5-1.8.6
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -387,7 +391,7 @@ then
         echo "Installing SQLite3"
         cd sqlite-autoconf-3070500
         ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -400,7 +404,7 @@ then
     cd Python-2.7.1
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-    ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
     touch done
