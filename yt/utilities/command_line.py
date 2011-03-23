@@ -870,6 +870,18 @@ class YTCommands(cmdln.Cmdln):
             if rv == 1:
                 print "Unable to install Pygments.  Please report this bug to yt-users."
                 sys.exit(1)
+        try:
+            import lxml
+            install_lxml = False
+        except ImportError:
+            install_lxml = True
+        if install_lxml:
+            print "You are missing the lxml package.  Installing."
+            import pip
+            rv = pip.main(["install", "lxml"])
+            if rv == 1:
+                print "Unable to install lxml.  Please report this bug to yt-users."
+                sys.exit(1)
         print
         print "All done!"
         print
