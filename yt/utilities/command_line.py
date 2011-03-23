@@ -759,6 +759,24 @@ class YTCommands(cmdln.Cmdln):
         hgrc_path = [cedit.config.defaultpath("user", uu)]
         hgrc_path = cedit.config.verifypaths(hgrc_path)
         # Now we set up the hgbb extension
+        if uu.config("extensions","config",None) is None:
+            # cedit is a module, but hgbb is a file.  So we call dirname here.
+            cedit_path = os.path.dirname(cedit.__file__)
+            print "Now we're going to turn on the cedit extension in:"
+            print "    ", hgrc_path
+            print "This will enable you to edit your configuration from the"
+            print "command line.  Mainly, this is useful to use the command"
+            print "'addsource', which will let you add a new source to a given"
+            print "mercurial repository -- like a fork, or your own fork."
+            print
+            print "This constitutes adding the path to the cedit extension,"
+            print "which will look like this:"
+            print
+            print "   [extensions]"
+            print "   config=%s" % cedit_path
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path, "extensions.config=%s" % cedit_path)
         if uu.config("extensions","hgbb",None) is None:
             hgbb_path = hgbb.__file__
             if hgbb_path.endswith(".pyc"): hgbb_path = hgbb_path[:-1]
