@@ -124,17 +124,23 @@ class RAMSESHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         # We have to do all the patch-coalescing here.
+        LEVEL_OF_EDGE = 7
+        MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         level_info = self.tree_proxy.count_zones()
         num_ogrids = sum(level_info)
         ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
         ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
         ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
+        ogrid_hilbert_indices = na.zeros(num_ogrids, dtype='uint64')
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
             self.pf.domain_dimensions,
             ogrid_left_edge, ogrid_right_edge,
-            ogrid_levels, ogrid_file_locations, ochild_masks)
+            ogrid_levels, ogrid_file_locations, 
+            ogrid_hilbert_indices, ochild_masks,
+            self.pf.domain_left_edge, self.pf.domain_right_edge)
+        insert_ipython()
         # Now we can rescale
         mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
         DL = self.pf.domain_left_edge
@@ -155,7 +161,6 @@ class RAMSESHierarchy(AMRHierarchy):
             # Now our initial protosubgrid
             #if level == 6: raise RuntimeError
             # We want grids that cover no more than MAX_EDGE cells in every direction
-            MAX_EDGE = 128
             psgs = []
             left_index = na.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
             right_index = left_index + 2

@@ -33,6 +33,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef extern:
+    unsigned long HilbertCurve3D(double *coord)
+
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0
     return i1
@@ -547,7 +550,10 @@ cdef class RAMSES_tree_proxy:
                               np.ndarray[np.float64_t, ndim=2] right_edges,
                               np.ndarray[np.int32_t, ndim=2] grid_levels,
                               np.ndarray[np.int64_t, ndim=2] grid_file_locations,
-                              np.ndarray[np.int32_t, ndim=2] child_mask):
+                              np.ndarray[np.uint64_t, ndim=1] grid_hilbert_indices,
+                              np.ndarray[np.int32_t, ndim=2] child_mask,
+                              np.ndarray[np.float64_t, ndim=1] domain_left,
+                              np.ndarray[np.float64_t, ndim=1] domain_right):
         # We need to do simulation domains here
 
         cdef unsigned idomain, ilevel
@@ -562,10 +568,12 @@ cdef class RAMSES_tree_proxy:
         cdef int grid_ind = 0, grid_aind = 0
         cdef unsigned parent_ind
         cdef bint ci
-
+        cdef double pos[3]
         cdef double grid_half_width 
+        cdef unsigned long rv
 
         cdef np.int32_t rr
+        cdef int i
         cell_count = []
         level_cell_counts = {}
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
@@ -587,9 +595,11 @@ cdef class RAMSES_tree_proxy:
                         grid_it.next()
                         continue
                     gvec = local_tree.grid_pos_double(grid_it)
-                    left_edges[grid_aind, 0] = gvec.x - grid_half_width
-                    left_edges[grid_aind, 1] = gvec.y - grid_half_width
-                    left_edges[grid_aind, 2] = gvec.z - grid_half_width
+                    left_edges[grid_aind, 0] = pos[0] = gvec.x - grid_half_width
+                    left_edges[grid_aind, 1] = pos[1] = gvec.y - grid_half_width
+                    left_edges[grid_aind, 2] = pos[2] = gvec.z - grid_half_width
+                    for i in range(3):
+                        pos[i] = (pos[i] - domain_left[i]) / (domain_right[i] - domain_left[i])
                     right_edges[grid_aind, 0] = gvec.x + grid_half_width
                     right_edges[grid_aind, 1] = gvec.y + grid_half_width
                     right_edges[grid_aind, 2] = gvec.z + grid_half_width
@@ -598,6 +608,7 @@ cdef class RAMSES_tree_proxy:
                     father_it = grid_it.get_parent()
                     grid_file_locations[grid_aind, 0] = <np.int64_t> idomain
                     grid_file_locations[grid_aind, 1] = grid_ind - level_cell_counts[ilevel]
+                    grid_hilbert_indices[grid_aind] = HilbertCurve3D(pos)
                     parent_ind = father_it.get_absolute_position()
                     if ilevel > 0:
                         # We calculate the REAL parent index
@@ -850,3 +861,13 @@ cdef class ProtoSubgrid:
             tr[1,i] = self.right_edge[i]
             tr[2,i] = self.dimensions[i]
         return tr
+
+def hilbert_position(pos):
+    cdef double coord[3]
+    cdef int i
+    cdef unsigned long new_pos
+    coord[0] = pos[0]
+    coord[1] = pos[1]
+    coord[2] = pos[2]
+    new_pos = HilbertCurve3D(coord)
+    return new_pos
