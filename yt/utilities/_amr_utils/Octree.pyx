@@ -419,6 +419,18 @@ cdef class Octree:
                             self.root_nodes[ii][jj][kk]
                     sum += 1
 
+    cdef int fbe_test_next(self, OctreeNode *node):
+        # Return false 0 if none of node's children have mass, or this node
+        # has no children
+        # Return true 1 if at least one of the children have mass.
+        cdef int i, j, k
+        if node.children[0][0][0] is NULL: return 0
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if node.children[i][j][k].val[0] > 0.: return 1
+        return 0
+
     @cython.cdivision(True)
     cdef np.float64_t fbe_main(self, np.float64_t potential, int truncate,
             np.float64_t kinetic):
@@ -427,13 +439,19 @@ cdef class Octree:
         cdef np.float64_t angle, dist
         cdef OctreeNode *this_node
         cdef OctreeNode *pair_node
+        cdef int pair_count
+        cdef int to_break
+        to_break = 0
         this_node = self.root_nodes[0][0][0]
         while this_node is not NULL:
-            # Iterate down to a childless node.
-            while this_node.children[0][0][0] is not NULL:
+            # Iterate down the list to a node that either has no children,
+            # or all of its children are massless. The second case is when data
+            # from a level that isn't the deepest has been added to the tree.
+            while self.fbe_test_next(this_node):
                 this_node = this_node.next
                 # In case we reach the end of the list...
                 if this_node is NULL: break
+            if this_node is NULL: break
             if truncate and potential > kinetic:
                 print 'Truncating...'
                 break
@@ -446,9 +464,11 @@ cdef class Octree:
                 if pair_node.val[0] is 0.0:
                     pair_node = pair_node.up_next
                     continue
-                # If pair_node is a childless node, we can calculate the pot
+                # If pair_node is a childless node, or is a coarser node with
+                # no children, we can calculate the pot
                 # right now, and get a new pair_node.
-                if pair_node.children[0][0][0] == NULL:
+                #if pair_node.children[0][0][0] == NULL:
+                if not self.fbe_test_next(pair_node):
                     dist = self.fbe_node_separation(this_node, pair_node)
                     potential += this_node.val[0] * pair_node.val[0] / dist
                     if truncate and potential > kinetic: break
@@ -479,7 +499,7 @@ cdef class Octree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def find_binding_energy(self, int truncate, float kinetic,
+    def find_binding_energy(self, int truncate, np.float64_t kinetic,
         np.ndarray[np.float64_t, ndim=1] root_dx, float opening_angle = 1.0):
         r"""Find the binding energy of an ensemble of data points using the
         treecode method.
