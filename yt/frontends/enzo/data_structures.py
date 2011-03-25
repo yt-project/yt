@@ -38,6 +38,7 @@ except ImportError:
 from itertools import izip
 
 from yt.funcs import *
+from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.hierarchy import \
