@@ -42,10 +42,10 @@ class BottleDirectRouter(DirectRouter):
     # and the __init__ function will need to include the keyword argument
     # 'route' for it to work.
     def __init__(self, *args, **kwargs):
-        route = kwargs.pop("route")
+        future_route = kwargs.pop("route")
         super(BottleDirectRouter, self).__init__(*args, **kwargs)
         self.__name__ = ""
-        bottle.route(route, method="POST")(self)
+        route_functions[future_route] = ((), {'method':"POST"}, self)
 
     def __call__(self):
         val = request.body.read()
