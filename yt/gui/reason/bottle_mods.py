@@ -26,7 +26,7 @@ License:
 
 from .bottle import server_names, debug, route, run, request
 import uuid
-from extdirect_router import DirectRouter
+from extdirect_router import DirectRouter, DirectProviderDefinition
 
 route_functions = {}
 
@@ -47,6 +47,10 @@ class BottleDirectRouter(DirectRouter):
         self.__name__ = ""
         route_functions[future_route] = ((), {'method':"POST"}, self)
 
+    def _myapi(self):
+        dpd = DirectProviderDefinition(self, self.api_url)
+        return dpd.render()
+
     def __call__(self):
         val = request.body.read()
         rv = super(BottleDirectRouter, self).__call__(val)
@@ -60,7 +64,8 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
         args, kwargs, f = pre_routed[r]
         if r[0] == "/": r = r[1:]
         rp = "/%s/%s" % (token, r)
-        print "Routing from %s => %s" % (rp, f.func_name)
+        func_name = getattr(f, 'func_name', str(f))
+        print "Routing from %s => %s" % (rp, func_name)
         route(rp, *args, **kwargs)(f)
     print "Greetings! Your private token is %s ." % token
     print

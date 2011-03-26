@@ -35,7 +35,7 @@ local_dir = os.path.dirname(__file__)
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expost = ('index', 'resources')
 
-    def __init__(self, locals=None, route = None):
+    def __init__(self, locals=None):
         # First we do the standard initialization
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
@@ -44,11 +44,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # entire interpreter state) we apply all the pre-routing now, rather
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
+                              _myapi = ("/resources/ext-repl-api.js", "GET"),
                               resources = ("/resources/:val", "GET"),
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
-        BottleDirectRouter.__init__(self, route=route)
+        self.api_url = "/repl"
+        BottleDirectRouter.__init__(self, route="/repl")
 
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
