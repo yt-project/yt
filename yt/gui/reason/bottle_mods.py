@@ -24,7 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .bottle import server_names, debug, route
+from .bottle import server_names, debug, route, run
 import uuid
 
 route_functions = {}
@@ -35,7 +35,8 @@ def preroute(future_route, *args, **kwargs):
         return func
     return router
 
-def uuid_serve_functions(pre_routed, open_browser=False):
+def uuid_serve_functions(pre_routed = None, open_browser=False):
+    if pre_routed == None: pre_routed = route_functions
     debug(mode=True)
     token = uuid.uuid1()
     for r in pre_routed:
@@ -60,7 +61,7 @@ def uuid_serve_functions(pre_routed, open_browser=False):
             import webbrowser, threading
             def _local_browse():
                 webbrowser.open('http://localhost:%s/%s/' % (8080, token))
-            thread = threading.Timer(0.5, _open_browser)
+            thread = threading.Timer(0.5, _local_browse)
             thread.start()
         local_browse()
     # Right now we only really support the built-in wsgiref, but this may

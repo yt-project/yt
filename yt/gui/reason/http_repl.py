@@ -30,6 +30,8 @@ import os
 from .bottle_mods import preroute
 from .basic_repl import ProgrammaticREPL
 
+local_dir = os.path.dirname(__file__)
+
 class HTTPREPL(ProgrammaticREPL):
 
     def __init__(self, locals=None):
@@ -43,15 +45,17 @@ class HTTPREPL(ProgrammaticREPL):
         preroute_table = dict(index = ("/", "GET"),
                               push = ("/push", "POST"),
                               dir = ("/dir", "GET"),
-                              doc = ("/doc", "GET"))
-        for v, args in preroute_table:
+                              doc = ("/doc", "GET"),
+                              resources = ("/resources/:val", "GET"))
+        for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
 
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
         # For now this doesn't work!  We will need to move to a better method
         # for this.
-        return open(os.path.join(localDir, "httprepl.html")).read()
+        vals = open(os.path.join(local_dir, "httprepl.html")).read()
+        return vals
         
     def push(self):
         """Push 'line' and return exec results as a bare response."""
@@ -79,3 +83,11 @@ class HTTPREPL(ProgrammaticREPL):
         if not result:
             response.status = 204
         return result
+
+    def resources(self, val):
+        pp = os.path.join(local_dir, "resources", val)
+        if not os.path.exists(pp):
+            response.status = 404
+            return
+        return open(pp).read()
+
