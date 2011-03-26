@@ -51,17 +51,20 @@ cdef struct OctreeNode:
     np.int64_t pos[3]
     int level
     int nvals
+    int max_level # The maximum level under this node with mass.
     OctreeNode *children[2][2][2]
     OctreeNode *parent
     OctreeNode *next
     OctreeNode *up_next
 
 cdef void OTN_add_value(OctreeNode *self,
-        np.float64_t *val, np.float64_t weight_val):
+        np.float64_t *val, np.float64_t weight_val, int level, int treecode):
     cdef int i
     for i in range(self.nvals):
         self.val[i] += val[i]
     self.weight_val += weight_val
+    if treecode and val[0] > 0.:
+        self.max_level = imax(self.max_level, level)
 
 cdef void OTN_refine(OctreeNode *self, int incremental = 0):
     cdef int i, j, k, i1, j1
@@ -95,6 +98,7 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
     node.parent = parent
     node.next = NULL
     node.up_next = NULL
+    node.max_level = 0
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
     for i in range(nvals):
@@ -170,14 +174,14 @@ cdef class Octree:
     cdef void add_to_position(self,
                  int level, np.int64_t pos[3],
                  np.float64_t *val,
-                 np.float64_t weight_val):
+                 np.float64_t weight_val, treecode):
         cdef int i, j, k, L
         cdef OctreeNode *node
         node = self.find_on_root_level(pos, level)
         cdef np.int64_t fac
         for L in range(level):
             if self.incremental:
-                OTN_add_value(node, val, weight_val)
+                OTN_add_value(node, val, weight_val, level, treecode)
             if node.children[0][0][0] == NULL:
                 OTN_refine(node, self.incremental)
             # Maybe we should use bitwise operators?
@@ -186,7 +190,7 @@ cdef class Octree:
             j = (pos[1] >= fac*(2*node.pos[1]+1))
             k = (pos[2] >= fac*(2*node.pos[2]+1))
             node = node.children[i][j][k]
-        OTN_add_value(node, val, weight_val)
+        OTN_add_value(node, val, weight_val, level, treecode)
             
     cdef OctreeNode *find_on_root_level(self, np.int64_t pos[3], int level):
         # We need this because the root level won't just have four children
@@ -205,7 +209,8 @@ cdef class Octree:
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] pzs,
             np.ndarray[np.float64_t, ndim=2] pvals,
-            np.ndarray[np.float64_t, ndim=1] pweight_vals):
+            np.ndarray[np.float64_t, ndim=1] pweight_vals,
+            int treecode = 0):
         cdef int np = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
@@ -216,7 +221,7 @@ cdef class Octree:
             pos[0] = pxs[p]
             pos[1] = pys[p]
             pos[2] = pzs[p]
-            self.add_to_position(level, pos, vals, pweight_vals[p])
+            self.add_to_position(level, pos, vals, pweight_vals[p], treecode)
 
     def add_grid_to_tree(self, int level,
                          np.ndarray[np.int64_t, ndim=1] start_index,
@@ -390,6 +395,7 @@ cdef class Octree:
         # Set treecode = 1 if nodes with no mass are to be skipped in the
         # list.
         cdef int i, j, k, sum, top_grid_total, ii, jj, kk
+        cdef OctreeNode *this_node
         self.last_node = self.root_nodes[0][0][0]
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -419,18 +425,6 @@ cdef class Octree:
                             self.root_nodes[ii][jj][kk]
                     sum += 1
 
-    cdef int fbe_test_next(self, OctreeNode *node):
-        # Return false 0 if none of node's children have mass, or this node
-        # has no children
-        # Return true 1 if at least one of the children have mass.
-        cdef int i, j, k
-        if node.children[0][0][0] is NULL: return 0
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    if node.children[i][j][k].val[0] > 0.: return 1
-        return 0
-
     @cython.cdivision(True)
     cdef np.float64_t fbe_main(self, np.float64_t potential, int truncate,
             np.float64_t kinetic):
@@ -444,10 +438,11 @@ cdef class Octree:
         to_break = 0
         this_node = self.root_nodes[0][0][0]
         while this_node is not NULL:
-            # Iterate down the list to a node that either has no children,
-            # or all of its children are massless. The second case is when data
+            # Iterate down the list to a node that either has no children and
+            # is at the max_level of the tree, or to a node where
+            # all of its children are massless. The second case is when data
             # from a level that isn't the deepest has been added to the tree.
-            while self.fbe_test_next(this_node):
+            while this_node.max_level is not this_node.level:
                 this_node = this_node.next
                 # In case we reach the end of the list...
                 if this_node is NULL: break
@@ -467,8 +462,7 @@ cdef class Octree:
                 # If pair_node is a childless node, or is a coarser node with
                 # no children, we can calculate the pot
                 # right now, and get a new pair_node.
-                #if pair_node.children[0][0][0] == NULL:
-                if not self.fbe_test_next(pair_node):
+                if pair_node.max_level is pair_node.level:
                     dist = self.fbe_node_separation(this_node, pair_node)
                     potential += this_node.val[0] * pair_node.val[0] / dist
                     if truncate and potential > kinetic: break

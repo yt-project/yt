@@ -393,9 +393,10 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             #print na.min(thisx), na.min(thisy), na.min(thisz)
             #print na.max(thisx), na.max(thisy), na.max(thisz)
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
-               na.ones_like(thisx).astype('float64'))
+               na.ones_like(thisx).astype('float64'), treecode = 1)
         # Now we calculate the binding energy using a treecode.
         octree.finalize(treecode = 1)
+        mylog.info("Using a treecode to find gravitational energy for %d cells." % local_data['x'].size)
         pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
             opening_angle)
         #octree.print_all_nodes()
