@@ -137,7 +137,7 @@ def write_bitmap(bitmap_array, filename, max_val = None):
     au.write_png(bitmap_array.copy(), filename)
     return bitmap_array
 
-def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
+def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
     r"""Write out a floating point array directly to a PNG file, scaling it and
     applying a colormap.
 
@@ -157,7 +157,9 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     cmap_name : string, optional
         An acceptable colormap.  See either yt.visualization.color_maps or
         http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        
+    func : function, optional
+        A function to transform the buffer before applying a colormap. 
+
     Returns
     -------
     scaled_image : uint8 image that has been saved
@@ -173,6 +175,36 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     if len(image.shape) == 3:
         mylog.info("Using only channel 1 of supplied image")
         image = image[:,:,0]
+    to_plot = apply_colormap(image, color_bounds = color_bounds, cmap_name = cmap_name)
+    au.write_png(to_plot, filename)
+    return to_plot
+
+def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda x: x):
+    r"""Apply a colormap to a floating point image, scaling to uint8.
+
+    This function will scale an image and directly call libpng to write out a
+    colormapped version of that image.  It is designed for rapid-fire saving of
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+
+    Parameters
+    ----------
+    image : array_like
+        This is an (unscaled) array of floating point values, shape (N,N,) to
+        save in a PNG file.
+    color_bounds : tuple of floats, optional
+        The min and max to scale between.  Outlying values will be clipped.
+    cmap_name : string, optional
+        An acceptable colormap.  See either yt.visualization.color_maps or
+        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+    func : function, optional
+        A function to transform the buffer before applying a colormap. 
+
+    Returns
+    -------
+    to_plot : uint8 image with colorbar applied.
+
+    """
+    image = func(image)
     if color_bounds is None:
         mi = na.nanmin(image[~na.isinf(image)])
         ma = na.nanmax(image[~na.isinf(image)])
@@ -180,7 +212,6 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = na.clip(to_plot, 0, 255)
-    au.write_png(to_plot, filename)
     return to_plot
 
 def annotate_image(image, text, xpos, ypos, font_name = "Vera",
