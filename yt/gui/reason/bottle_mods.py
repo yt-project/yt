@@ -27,8 +27,10 @@ License:
 from .bottle import server_names, debug, route, run, request
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
+import json
 
 route_functions = {}
+route_watchers = []
 
 def preroute(future_route, *args, **kwargs):
     def router(func):
@@ -36,24 +38,34 @@ def preroute(future_route, *args, **kwargs):
         return func
     return router
 
+def notify_route(watcher):
+    route_watchers.append(watcher)
+
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable
     # object through Bottle.  It should be used as a base class of an object,
     # and the __init__ function will need to include the keyword argument
     # 'route' for it to work.
+    _route_prefix = None
     def __init__(self, *args, **kwargs):
         future_route = kwargs.pop("route")
         super(BottleDirectRouter, self).__init__(*args, **kwargs)
-        self.__name__ = ""
+        self.__name__ = str(self.my_name)
         route_functions[future_route] = ((), {'method':"POST"}, self)
+        notify_route(self)
 
     def _myapi(self):
-        dpd = DirectProviderDefinition(self, self.api_url)
-        return dpd.render()
+        dpd = DirectProviderDefinition(self, self.api_url, ns="yt_rpc")
+        source = "Ext.Direct.addProvider(%s);" % json.dumps(dpd._config())
+        return source
 
     def __call__(self):
+        print "Hi there, I just got this request:",
         val = request.body.read()
+        print val
+        #import pdb;pdb.set_trace()
         rv = super(BottleDirectRouter, self).__call__(val)
+        print "With this response:", rv
         return rv
 
 def uuid_serve_functions(pre_routed = None, open_browser=False):
@@ -67,6 +79,11 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
         func_name = getattr(f, 'func_name', str(f))
         print "Routing from %s => %s" % (rp, func_name)
         route(rp, *args, **kwargs)(f)
+    for w in route_watchers:
+        if not hasattr(w, "_route_prefix"):
+            print "WARNING: %s has no _route_prefix attribute.  Not notifying."
+            continue
+            w._route_prefix = token
     print "Greetings! Your private token is %s ." % token
     print
     print "Please direct your browser to:"

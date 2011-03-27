@@ -27,13 +27,14 @@ License:
 import json
 import os
 
-from .bottle_mods import preroute, BottleDirectRouter
+from .bottle_mods import preroute, BottleDirectRouter, notify_route
 from .basic_repl import ProgrammaticREPL
 
 local_dir = os.path.dirname(__file__)
 
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
-    _skip_expost = ('index', 'resources')
+    _skip_expose = ('index', 'resources')
+    my_name = "ExtDirectREPL"
 
     def __init__(self, locals=None):
         # First we do the standard initialization
@@ -49,7 +50,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
-        self.api_url = "/repl"
+        notify_route(self)
+        self.api_url = "repl"
         BottleDirectRouter.__init__(self, route="/repl")
 
     def index(self):
