@@ -60,6 +60,9 @@
                 Ext.get("cell_output").dom.innerHTML +=
                     '<br/><img src="data:image/png;base64,' +
                         payload['image_data'] + '"/>';
+            } else if (payload['type'] == 'cell_contents') {
+                var input_line = repl_input.get("input_line")
+                input_line.setValue(payload['value']);
             }
         });
         repl_input.get('input_line').setReadOnly(false);
