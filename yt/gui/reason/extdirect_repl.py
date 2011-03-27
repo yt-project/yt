@@ -93,6 +93,10 @@ class ExtDirectParameterFileList(BottleDirectRouter):
         for fn, pf in sorted(_cached_pfs.items()):
             objs = []
             for obj in pf.h.objects:
-                objs.append(dict(name=str(obj), type=obj._type_name))
+                try:
+                    name = str(obj)
+                except ReferenceError:
+                    continue
+                objs.append(dict(name=name, type=obj._type_name))
             rv.append( dict(name = str(pf), objects = objs) )
         return rv
