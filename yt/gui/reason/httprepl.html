@@ -40,20 +40,25 @@
     }
     </style>
 	<script type="text/javascript">
-    var res;
+    function cell_sent() {
+        repl_input.get('input_line').setReadOnly(true);
+    }
+
+    function cell_finished() {
+        repl_input.get('input_line').setReadOnly(false);
+    }
 
     var handle_result = function(f, a) {
         var input_line = repl_input.get("input_line")
         if (a.result == null) {
-            Ext.get("output").dom.innertHTML += 
-j       } else {
+            text = "ERROR";
+        } else {
             text = a.result.replace(/\n/g,"<br/>");
-            Ext.get("output").dom.innerHTML +=
-            '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';
-            input_line.setValue("");
-            res = a
-            /*eval(a.result.execute);*/
         }
+        Ext.get("output").dom.innerHTML +=
+        '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';
+        input_line.setValue("");
+        cell_finished();
     }
 
     var repl_input = new Ext.FormPanel({
@@ -69,6 +74,7 @@ j       } else {
             listeners: {
                 specialkey: function(f, e){
                     if (e.getKey() == e.ENTER) {
+                        cell_sent();
                         yt_rpc.ExtDirectREPL.execute({
                             code:repl_input.get('input_line').getValue()},
                             handle_result);
