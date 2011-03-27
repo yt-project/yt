@@ -46,7 +46,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
                               _myapi = ("/resources/ext-repl-api.js", "GET"),
-                              resources = ("/resources/:val", "GET"),
+                              resources = ("/resources/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
@@ -58,11 +58,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
         # For now this doesn't work!  We will need to move to a better method
         # for this.
-        vals = open(os.path.join(local_dir, "httprepl.html")).read()
+        vals = open(os.path.join(local_dir, "html/index.html")).read()
         return vals
 
-    def resources(self, val):
-        pp = os.path.join(local_dir, "resources", val)
+    def resources(self, path):
+        # This will need to be changed.
+        pp = os.path.join(local_dir, "../../../../misc/ext/ext-3.3.1/", path)
         if not os.path.exists(pp):
             response.status = 404
             return
