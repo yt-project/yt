@@ -160,7 +160,8 @@ class PlotCollection(object):
             from yt.gui.reason.bottle_mods import PayloadHandler
             ph = PayloadHandler()
             for f in fn:
-                ph.add_payload(open(f,'rb').read())
+                if f.endswith('png'):
+                    ph.add_payload(open(f,'rb').read())
         return fn
 
     def set_xlim(self, xmin, xmax):
