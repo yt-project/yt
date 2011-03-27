@@ -48,10 +48,11 @@ class BottleDirectRouter(DirectRouter):
     # 'route' for it to work.
     _route_prefix = None
     def __init__(self, *args, **kwargs):
-        future_route = kwargs.pop("route")
+        future_route = self.api_url
         super(BottleDirectRouter, self).__init__(*args, **kwargs)
         self.__name__ = str(self.my_name)
         route_functions[future_route] = ((), {'method':"POST"}, self)
+        preroute("/resources/ext-%s-api.js" % self.api_url, method="GET")(self._myapi)
         notify_route(self)
 
     def _myapi(self):

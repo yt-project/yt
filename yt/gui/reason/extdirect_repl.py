@@ -50,9 +50,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
-        notify_route(self)
         self.api_url = "repl"
-        BottleDirectRouter.__init__(self, route="/repl")
+        BottleDirectRouter.__init__(self)
+        self.pflist = ExtDirectParameterFileList()
 
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
@@ -68,3 +68,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             response.status = 404
             return
         return open(pp).read()
+
+class ExtDirectParameterFileList(BottleDirectRouter):
+    my_name = "ExtDirectParameterFileList"
+    api_url = "pflist"
+
+    def get_list_of_pfs(self):
+        from yt.data_objects.static_output import _cached_pfs
+        names = [str(i) for i in sorted(_cached_pfs.values())]
+        return names
