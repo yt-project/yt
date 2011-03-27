@@ -35,6 +35,9 @@
     .nav {
         background-image:url(resources/folder_go.png) !important;
     }
+    #input_line {
+        font-family: monospace;
+    }
     </style>
 	<script type="text/javascript">
     var res;
@@ -62,7 +65,7 @@ j       } else {
             fieldLabel: '>>>',
             name: 'line',
             allowBlank: 'True',
-            bodyStyle: 'font-family: monospace;',
+            bodyStyle: 'font-family: "monospace";',
             listeners: {
                 specialkey: function(f, e){
                     if (e.getKey() == e.ENTER) {
