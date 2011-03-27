@@ -56,13 +56,14 @@
 
     function cell_finished(result) {
         Ext.each(result['payloads'], function(payload, index) {
-            if (payload['type'] == 'image_string') {
+            if (payload['type'] == 'png_string') {
                 Ext.get("cell_output").dom.innerHTML +=
                     '<br/><img src="data:image/png;base64,' +
                         payload['image_data'] + '"/>';
             }
         });
         repl_input.get('input_line').setReadOnly(false);
+        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
     }
 
     var handle_result = function(f, a) {
@@ -117,37 +118,7 @@
         {text:'West'}
     );
 
-    Ext.onReady(function(){
-
-Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
-
-        // NOTE: This is an example showing simple state management. During development,
-        // it is generally best to disable state management as dynamically-generated ids
-        // can change across page loads, leading to unpredictable results.  The developer
-        // should ensure that stable state ids are set for stateful components in real apps.
-        Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
-
-var children = [{
-     text:'pf1',
-     expanded: true,
-     children:[{
-         text:'sphere',
-         leaf:true
-    },{
-         text:'region'
-        ,leaf:true
-    }]
-},{
-     text:'pf2',
-     expanded: true,
-     children:[{
-         text:'all_data'
-        ,leaf:true
-    }]
- 
-}];
-
-	// Go ahead and create the TreePanel now so that we can use it below
+    var examine;
     var treePanel = new Ext.tree.TreePanel({
        iconCls: 'nav',
     	id: 'tree-panel',
@@ -164,18 +135,31 @@ var children = [{
         })
      });
 
-     Ext.each(my_pfs, function(pf, index) {
-        treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
-                                    leaf:false}));
-        this_pf = treePanel.root.lastChild
-        Ext.each(pf.objects, function(object, obj_index) {
-           this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
-                                leaf: true}));
-       });
-   });
+    function fill_tree(my_pfs) {
+        examine = my_pfs;
+        treePanel.root.removeAll();
+      Ext.each(my_pfs, function(pf, index) {
+          treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
+              leaf:false, expanded:true}));
+          this_pf = treePanel.root.lastChild
+          Ext.each(pf.objects, function(object, obj_index) {
+            this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
+                leaf: true}));
+            });
+          });
+    };
 
+    Ext.onReady(function(){
 
+Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
 
+        // NOTE: This is an example showing simple state management. During development,
+        // it is generally best to disable state management as dynamically-generated ids
+        // can change across page loads, leading to unpredictable results.  The developer
+        // should ensure that stable state ids are set for stateful components in real apps.
+        Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
+
+	// Go ahead and create the TreePanel now so that we can use it below
         viewport = new Ext.Viewport({
             layout: 'border',
             items: [

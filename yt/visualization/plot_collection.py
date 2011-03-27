@@ -163,7 +163,7 @@ class PlotCollection(object):
             for f in fn:
                 if not f.endswith('png'): continue
                 img_data = base64.b64encode(open(f,'rb').read())
-                payload = {'type':'image_string',
+                payload = {'type':'png_string',
                            'image_data':img_data}
                 ph.add_payload(payload)
         return fn

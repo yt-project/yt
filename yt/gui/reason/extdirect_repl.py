@@ -89,5 +89,10 @@ class ExtDirectParameterFileList(BottleDirectRouter):
 
     def get_list_of_pfs(self):
         from yt.data_objects.static_output import _cached_pfs
-        names = [str(i) for i in sorted(_cached_pfs.values())]
-        return names
+        rv = []
+        for fn, pf in sorted(_cached_pfs.items()):
+            objs = []
+            for obj in pf.h.objects:
+                objs.append(dict(name=str(obj), type=obj._type_name))
+            rv.append( dict(name = str(pf), objects = objs) )
+        return rv
