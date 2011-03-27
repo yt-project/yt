@@ -39,6 +39,8 @@
     <!-- EXAMPLES -->
     <script type="text/javascript" src="resources/examples/shared/examples.js"></script>
     <script type="text/javascript" src="resources/ext-repl-api.js"></script>
+
+    <script type="text/javascript" src="pf_data.js"></script>
   
     <script type="text/javascript">
     var viewport;
@@ -118,8 +120,7 @@ var children = [{
 
 	// Go ahead and create the TreePanel now so that we can use it below
     var treePanel = new Ext.tree.TreePanel({
-     loader:new Ext.tree.TreeLoader(),
-        iconCls: 'nav',
+       iconCls: 'nav',
     	id: 'tree-panel',
     	title: 'Objects',
         region:'west',
@@ -127,13 +128,24 @@ var children = [{
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
-        root:new Ext.tree.AsyncTreeNode({
+        root:new Ext.tree.TreeNode({
           expanded:true
          ,leaf:false
          ,text:''
-         ,children:children
-     })
+        })
      });
+
+     Ext.each(my_pfs, function(pf, index) {
+        treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
+                                    leaf:false}));
+        this_pf = treePanel.root.lastChild
+        Ext.each(pf.objects, function(object, obj_index) {
+           this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
+                                leaf: true}));
+       });
+   });
+
+
 
         viewport = new Ext.Viewport({
             layout: 'border',
