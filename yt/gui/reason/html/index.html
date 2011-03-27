@@ -87,13 +87,54 @@
     });
 
     Ext.onReady(function(){
-    
+
+Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
+
         // NOTE: This is an example showing simple state management. During development,
         // it is generally best to disable state management as dynamically-generated ids
         // can change across page loads, leading to unpredictable results.  The developer
         // should ensure that stable state ids are set for stateful components in real apps.
         Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
-        
+
+var children = [{
+     text:'pf1',
+     expanded: true,
+     children:[{
+         text:'sphere',
+         leaf:true
+    },{
+         text:'region'
+        ,leaf:true
+    }]
+},{
+     text:'pf2',
+     expanded: true,
+     children:[{
+         text:'all_data'
+        ,leaf:true
+    }]
+ 
+}];
+
+	// Go ahead and create the TreePanel now so that we can use it below
+    var treePanel = new Ext.tree.TreePanel({
+     loader:new Ext.tree.TreeLoader(),
+        iconCls: 'nav',
+    	id: 'tree-panel',
+    	title: 'Objects',
+        region:'west',
+        split: true,
+        minSize: 150,
+        autoScroll: true,
+        rootVisible: false,
+        root:new Ext.tree.AsyncTreeNode({
+          expanded:true
+         ,leaf:false
+         ,text:''
+         ,children:children
+     })
+     });
+
         viewport = new Ext.Viewport({
             layout: 'border',
             items: [
@@ -122,12 +163,7 @@
                     type: 'accordion',
                     animate: true
                 },
-                items: [{
-                    contentEl: 'west',
-                    title: 'Objects',
-                    border: false,
-                    iconCls: 'nav' // see the HEAD section for style used
-                }]
+                items: [treePanel]
             },
             // in this instance the TabPanel is not wrapped by another panel
             // since no title is needed, this Panel is added directly
