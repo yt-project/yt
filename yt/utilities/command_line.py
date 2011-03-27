@@ -908,6 +908,19 @@ class YTCommands(cmdln.Cmdln):
         print
         print "Good luck!"
 
+    def do_serve(self, subcmd, opts):
+        """
+        Run the Web GUI
+        """
+        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
+        import yt.gui.reason.bottle as bottle
+        from yt.gui.reason.extdirect_repl import ExtDirectREPL
+        from yt.gui.reason.bottle_mods import uuid_serve_functions
+
+        hr = ExtDirectREPL()
+        bottle.debug()
+        uuid_serve_functions(open_browser=True)
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]
