@@ -23,9 +23,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import tempfile
 import color_maps
 from image_writer import \
-    write_image
+    write_image, apply_colormap
+from yt.utilities.amr_utils import write_png_to_file
 from fixed_resolution import \
     FixedResolutionBuffer
 import matplotlib.pyplot
@@ -36,7 +38,7 @@ def invalidate_data(f):
         args[0]._data_valid = False
         args[0]._plot_valid = False
         args[0]._recreate_frb()
-        args[0]._setup_plots()
+        return args[0]._setup_plots()
 
     return newfunc
 
@@ -98,7 +100,7 @@ class PlotWindow(object):
         self._frb._get_data_source_fields()
         self._data_valid = True
         
-    def _setup_plot(self):
+    def _setup_plots(self):
         pass
 
     @property
@@ -160,10 +162,45 @@ class PlotWindow(object):
     def set_antialias(self,aa):
         self.antialias = aa
 
+class PWViewerRaw(PlotWindow):
+    """A PlotWindow viewer that writes raw pngs (no MPL, no axes).
 
-class PlotWindowViewer(PlotWindow):
+    """
+    def _setup_plots(self):
+        self.save('')
+        self._plot_valid = True
+
+    def save(self,name):
+        for field in self._frb.data.keys():
+            nm = "%s_%s.png" % (name,field)
+            print "writing %s" % nm
+            write_image(self._frb[field],nm)
+
+class PWViewerExtJS(PlotWindow):
+    """A viewer for the web interface.
+
+    """
+    def _setup_plots(self):
+        plots = []
+        for field in self._frb.data.keys():
+            tf = tempfile.TemporaryFile()
+            to_plot = apply_colormap(self._frb[field])
+            write_png_to_file(to_plot, tf)
+            tf.seek(0)
+            s = tf.read()
+            tf.close()
+            ret = {}
+            ret['plot'] = s
+            ret['metadata'] = self.get_metadata()
+            plots.append(ret)
+
+        return plots
+
+    def get_metadata(self):
+        pass
+
+class PWWiewer(PlotWindow):
     """A viewer for PlotWindows.
-
 
     """
     def _setup_plots(self):
