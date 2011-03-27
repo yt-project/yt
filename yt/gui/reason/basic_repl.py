@@ -42,6 +42,18 @@ class ProgrammaticREPL(object):
         self.buffer = []
         # Nominally at this point we could populate our namespace with widgets
         # or other useful functions.  We aren't really ready for that just yet.
+
+    def evaluate_cell(self, input):
+        result = []
+        for line in input.split("\n"):
+            r = self.push(line)
+            if r is not None: result.append(r)
+        # To catch if people leave a little bit at the end for us
+        if r is None:
+            r = self.push("\n")
+            if r is not None: result.append(r)
+        # Usually they have \n already
+        return "".join(result)
     
     def push(self, line):
         """Push 'line' and return exec results (None if more input needed)."""
