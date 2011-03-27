@@ -40,19 +40,25 @@
     var res;
 
     var handle_result = function(f, a) {
-        Ext.get("output").dom.innerHTML +=
-        text = a.result.replace(/\n/g,"<br/>");
-        '>>> ' + repl_input.get("input_line").getValue() + '<br/>' + text + '<br/>';
-        repl_input.get("input_line").setValue("");
-        res = a
-        /*eval(a.result.execute);*/
+        var input_line = repl_input.get("input_line")
+        if (a.result == null) {
+            Ext.get("output").dom.innertHTML += 
+j       } else {
+            text = a.result.replace(/\n/g,"<br/>");
+            Ext.get("output").dom.innerHTML +=
+            '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';
+            input_line.setValue("");
+            res = a
+            /*eval(a.result.execute);*/
+        }
     }
 
     var repl_input = new Ext.FormPanel({
         url: 'push',
         items: [{
             id: 'input_line',
-            xtype: 'textfield',
+            xtype: 'textarea',
+            width: '100%',
             fieldLabel: '>>>',
             name: 'line',
             allowBlank: 'True',
@@ -60,8 +66,8 @@
             listeners: {
                 specialkey: function(f, e){
                     if (e.getKey() == e.ENTER) {
-                        yt_rpc.ExtDirectREPL.push({
-                            line:repl_input.get('input_line').getValue()},
+                        yt_rpc.ExtDirectREPL.execute({
+                            code:repl_input.get('input_line').getValue()},
                             handle_result);
                     }
                 }
