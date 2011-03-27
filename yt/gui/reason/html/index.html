@@ -34,6 +34,7 @@
     <script type="text/javascript" src="../ext/ext-3.3.1/examples/shared/examples.js"></script>
   
     <script type="text/javascript">
+    var viewport;
     Ext.onReady(function(){
     
         // NOTE: This is an example showing simple state management. During development,
@@ -82,6 +83,7 @@
             // as a Container
             new Ext.TabPanel({
                 region: 'center', // a center region is ALWAYS required for border layout
+                id: 'center-panel',
                 deferredRender: false,
                 activeTab: 0,     // first tab initially active
                 items: [{
