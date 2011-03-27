@@ -158,10 +158,14 @@ class PlotCollection(object):
             mylog.info("Saved %s", fn[-1])
         if ytcfg.getboolean("yt", "__withinreason"):
             from yt.gui.reason.bottle_mods import PayloadHandler
+            import base64
             ph = PayloadHandler()
             for f in fn:
-                if f.endswith('png'):
-                    ph.add_payload(open(f,'rb').read())
+                if not f.endswith('png'): continue
+                img_data = base64.b64encode(open(f,'rb').read())
+                payload = {'type':'image_string',
+                           'image_data':img_data}
+                ph.add_payload(payload)
         return fn
 
     def set_xlim(self, xmin, xmax):

@@ -53,7 +53,14 @@
         repl_input.get('input_line').setReadOnly(true);
     }
 
-    function cell_finished() {
+    function cell_finished(result) {
+        Ext.each(result['payloads'], function(payload, index) {
+            if (payload['type'] == 'image_string') {
+                Ext.get("cell_output").dom.innerHTML +=
+                    '<br/><img src="data:image/png;base64,' +
+                        payload['image_data'] + '"/>';
+            }
+        });
         repl_input.get('input_line').setReadOnly(false);
     }
 
@@ -67,7 +74,7 @@
         Ext.get("cell_output").dom.innerHTML +=
         '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';
         input_line.setValue("");
-        cell_finished();
+        cell_finished(a.result);
     }
 
     var repl_input = new Ext.FormPanel({
