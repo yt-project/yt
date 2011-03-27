@@ -157,12 +157,11 @@ class PlotCollection(object):
                       override=override, force_save=force_save))
             mylog.info("Saved %s", fn[-1])
         if ytcfg.getboolean("yt", "__withinreason"):
-            strs = []
+            from yt.gui.reason.bottle_mods import PayloadHandler
+            ph = PayloadHandler()
             for f in fn:
-                strs.append(open(f,'rb').read())
-            return fn, strs
-        else:
-            return fn
+                ph.add_payload(open(f,'rb').read())
+        return fn
 
     def set_xlim(self, xmin, xmax):
         r"""Set the x-limits of all plots.
