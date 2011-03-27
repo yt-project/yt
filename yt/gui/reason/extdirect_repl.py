@@ -27,7 +27,8 @@ License:
 import json
 import os
 
-from .bottle_mods import preroute, BottleDirectRouter, notify_route
+from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
+                         PayloadHandler
 from .basic_repl import ProgrammaticREPL
 
 local_dir = os.path.dirname(__file__)
@@ -53,6 +54,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.api_url = "repl"
         BottleDirectRouter.__init__(self)
         self.pflist = ExtDirectParameterFileList()
+        self.executed_cell_texts = []
+        self.payload_handler = PayloadHandler()
 
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
@@ -68,6 +71,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             response.status = 404
             return
         return open(pp).read()
+
+    def execute(self, code):
+        self.executed_cell_texts.append(code)
+        result = ProgrammaticREPL.execute(self, code)
+        payloads = self.payload_handler.deliver_payloads()
+        return_value = {'output': result,
+                        'payloads': payloads}
+        return return_value
+
+    def get_history(self):
+        return self.executed_cell_texts[:]
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

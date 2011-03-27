@@ -56,7 +56,7 @@
         if (a.result == null) {
             text = "ERROR";
         } else {
-            text = a.result.replace(/\n/g,"<br/>");
+            text = a.result['output'].replace(/\n/g,"<br/>");
         }
         Ext.get("cell_output").dom.innerHTML +=
         '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';

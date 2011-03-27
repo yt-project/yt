@@ -31,6 +31,7 @@ import json
 
 route_functions = {}
 route_watchers = []
+payloads = []
 
 def preroute(future_route, *args, **kwargs):
     def router(func):
@@ -40,6 +41,25 @@ def preroute(future_route, *args, **kwargs):
 
 def notify_route(watcher):
     route_watchers.append(watcher)
+
+class PayloadHandler(object):
+    _shared_state = {}
+
+    def __new__(cls, *p, **k):
+        self = object.__new__(cls, *p, **k)
+        self.__dict__ = cls._shared_state
+        return self
+
+    def __init__(self):
+        self.payloads = []
+
+    def deliver_payloads(self):
+        payloads = self.payloads
+        self.payloads = []
+        return payloads
+
+    def add_payload(self, to_add):
+        self.payloads.append(to_add)
 
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable
