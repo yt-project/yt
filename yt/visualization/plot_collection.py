@@ -28,6 +28,7 @@ import numpy as na
 
 from yt.funcs import *
 
+from yt.config import ytcfg
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
@@ -155,7 +156,13 @@ class PlotCollection(object):
             fn.append(plot.save_image(basename, format=format, 
                       override=override, force_save=force_save))
             mylog.info("Saved %s", fn[-1])
-        return fn
+        if ytcfg.getboolean("yt", "__withinreason"):
+            strs = []
+            for f in fn:
+                strs.append(open(f,'rb').read())
+            return fn, strs
+        else:
+            return fn
 
     def set_xlim(self, xmin, xmax):
         r"""Set the x-limits of all plots.
