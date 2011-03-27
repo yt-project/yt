@@ -24,6 +24,9 @@
     #input_line {
         font-family: monospace;
     }
+    #cell_output {
+        font-family: monospace;
+    }
     </style>
 
     <!-- GC -->
@@ -54,7 +57,7 @@
         } else {
             text = a.result.replace(/\n/g,"<br/>");
         }
-        Ext.get("output").dom.innerHTML +=
+        Ext.get("cell_output").dom.innerHTML +=
         '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';
         input_line.setValue("");
         cell_finished();
@@ -141,7 +144,7 @@
                     items: [{
                        title: 'Output',
                        html: "",
-                       id: "output",
+                       id: "cell_output",
                     }, repl_input, ]
                 }, {
                     contentEl: 'center2',
