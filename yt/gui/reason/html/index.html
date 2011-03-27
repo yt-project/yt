@@ -102,18 +102,34 @@
 
     var NorthButton = new Ext.Button(
         {text : 'North',
-        pageX : 10,
-        pageY : 100
+ //       pageX : 10,
+//        pageY : 50
+        anchor:'10% 5%'
         }
     );
+
     var EastButton = new Ext.Button(
-        {text:'East'}
+        {text:'East',
+//        pageX : '100%',
+ //       pageY : '50%'
+        }
     );
     var SouthButton = new Ext.Button(
         {text:'South'}
     );
     var WestButton = new Ext.Button(
         {text:'West'}
+    );
+
+    var PlotPanel = new Ext.Panel(
+        {layout: 'anchor',
+        title: 'Plot Window 1',
+        width:400,
+        height:400,
+        items:[
+            NorthButton, 
+            EastButton]
+        }
     );
 
     Ext.onReady(function(){
@@ -216,12 +232,11 @@ var children = [{
                         id: "cell_output",
                     }, repl_input, ]
                 }, {
-                    contentEl: 'center2',
                     title: 'Plot Window 1',
                     iconCls: 'graph',
                     closable: true,
                     autoScroll: true,
-                    items: [NorthButton]
+                    items: [ PlotPanel ]
                         
                 }]
             }]
