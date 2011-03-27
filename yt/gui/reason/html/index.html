@@ -86,6 +86,10 @@
         },],
     });
 
+    var TestButtonPanel = new Ext.Button(
+        {text:'First Button'}
+    );
+
     Ext.onReady(function(){
 
 Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
@@ -177,10 +181,10 @@ var children = [{
                     title: 'YT',
                     closable: false,
                     autoScroll: true,
-                    items: [{
-                       title: 'Output',
-                       html: "",
-                       id: "cell_output",
+                    items: [TestButtonPanel, 
+                    { title: 'Output',
+                      html: "",
+                      id: "cell_output",
                     }, repl_input, ]
                 }, {
                     contentEl: 'center2',
