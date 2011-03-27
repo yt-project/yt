@@ -46,7 +46,8 @@
     <script type="text/javascript" src="resources/examples/shared/examples.js"></script>
     <script type="text/javascript" src="resources/ext-repl-api.js"></script>
     <script type="text/javascript" src="resources/ext-pflist-api.js"></script>
-  
+    <script type="text/javascript" src="pf_data.js"></script>
+ 
     <script type="text/javascript">
     var viewport;
     function cell_sent() {
@@ -55,13 +56,17 @@
 
     function cell_finished(result) {
         Ext.each(result['payloads'], function(payload, index) {
-            if (payload['type'] == 'image_string') {
+            if (payload['type'] == 'png_string') {
                 Ext.get("cell_output").dom.innerHTML +=
                     '<br/><img src="data:image/png;base64,' +
                         payload['image_data'] + '"/>';
+            } else if (payload['type'] == 'cell_contents') {
+                var input_line = repl_input.get("input_line")
+                input_line.setValue(payload['value']);
             }
         });
         repl_input.get('input_line').setReadOnly(false);
+        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
     }
 
     var handle_result = function(f, a) {
@@ -131,6 +136,36 @@
             EastButton]
         }
     );
+    var examine;
+    var treePanel = new Ext.tree.TreePanel({
+       iconCls: 'nav',
+    	id: 'tree-panel',
+    	title: 'Objects',
+        region:'west',
+        split: true,
+        minSize: 150,
+        autoScroll: true,
+        rootVisible: false,
+        root:new Ext.tree.TreeNode({
+          expanded:true
+         ,leaf:false
+         ,text:''
+        })
+     });
+
+    function fill_tree(my_pfs) {
+        examine = my_pfs;
+        treePanel.root.removeAll();
+      Ext.each(my_pfs, function(pf, index) {
+          treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
+              leaf:false, expanded:true}));
+          this_pf = treePanel.root.lastChild
+          Ext.each(pf.objects, function(object, obj_index) {
+            this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
+                leaf: true}));
+            });
+          });
+    };
 
     Ext.onReady(function(){
 
@@ -142,45 +177,7 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
         // should ensure that stable state ids are set for stateful components in real apps.
         Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
 
-var children = [{
-     text:'pf1',
-     expanded: true,
-     children:[{
-         text:'sphere',
-         leaf:true
-    },{
-         text:'region'
-        ,leaf:true
-    }]
-},{
-     text:'pf2',
-     expanded: true,
-     children:[{
-         text:'all_data'
-        ,leaf:true
-    }]
- 
-}];
-
 	// Go ahead and create the TreePanel now so that we can use it below
-    var treePanel = new Ext.tree.TreePanel({
-     loader:new Ext.tree.TreeLoader(),
-        iconCls: 'nav',
-    	id: 'tree-panel',
-    	title: 'Objects',
-        region:'west',
-        split: true,
-        minSize: 150,
-        autoScroll: true,
-        rootVisible: false,
-        root:new Ext.tree.AsyncTreeNode({
-          expanded:true
-         ,leaf:false
-         ,text:''
-         ,children:children
-     })
-     });
-
         viewport = new Ext.Viewport({
             layout: 'border',
             items: [

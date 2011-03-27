@@ -56,6 +56,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.pflist = ExtDirectParameterFileList()
         self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
+        # Now we load up all the yt.mods stuff, but only after we've finished
+        # setting up.
+        self.execute("from yt.mods import *")
+        self.locals['load_script'] = ext_load_script
 
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
@@ -89,5 +93,23 @@ class ExtDirectParameterFileList(BottleDirectRouter):
 
     def get_list_of_pfs(self):
         from yt.data_objects.static_output import _cached_pfs
-        names = [str(i) for i in sorted(_cached_pfs.values())]
-        return names
+        rv = []
+        for fn, pf in sorted(_cached_pfs.items()):
+            objs = []
+            for obj in pf.h.objects:
+                try:
+                    name = str(obj)
+                except ReferenceError:
+                    continue
+                objs.append(dict(name=name, type=obj._type_name))
+            rv.append( dict(name = str(pf), objects = objs) )
+        return rv
+
+def ext_load_script(filename):
+    contents = open(filename).read()
+    payload_handler = PayloadHandler()
+    payload_handler.add_payload(
+        {'type': 'cell_contents',
+         'value': contents}
+    )
+    return

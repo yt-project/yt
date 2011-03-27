@@ -24,6 +24,7 @@ License:
 """
 
 import tempfile
+import numpy as na
 import color_maps
 from image_writer import \
     write_image, apply_colormap
@@ -38,7 +39,8 @@ def invalidate_data(f):
         args[0]._data_valid = False
         args[0]._plot_valid = False
         args[0]._recreate_frb()
-        return args[0]._setup_plots()
+        if args[0]._initfinished:
+            return args[0]._setup_plots()
 
     return newfunc
 
@@ -80,11 +82,13 @@ class PlotWindow(object):
             rendering is used during data deposition.
 
         """
+        self._initfinished = False
         self.plots = {}
         self.data_source = data_source
         self.buff_size = buff_size
         self.antialias = True
         self.set_window(bounds) # this automatically updates the data and plot
+        self._initfinished = True
 
     def __getitem__(self, item):
         return self.plots[item]
@@ -180,11 +184,34 @@ class PWViewerExtJS(PlotWindow):
     """A viewer for the web interface.
 
     """
+    def __init__(self, *args,**kwargs):
+        PlotWindow.__init__(self, *args,**kwargs)
+        self._field_transform = {}
+        for field in self._frb.data.keys():
+            if self._frb.pf.field_info[field].take_log:
+                self._field_transform[field] = na.log
+            else:
+                self._field_transform[field] = lambda x: x
+
+        self._setup_plots()
+
+    def set_log(self,field,log):
+        """set a field to log or linear.
+
+        """
+        if log:
+            self._field_transform[field] = na.log
+        else:
+            self._field_transform[field] = lambda x: x
+
+    def set_transform(self, field, func):
+        self._field_transform[field] = func
+
     def _setup_plots(self):
         plots = []
         for field in self._frb.data.keys():
             tf = tempfile.TemporaryFile()
-            to_plot = apply_colormap(self._frb[field])
+            to_plot = apply_colormap(self._frb[field],func = self._field_transform[field])
             write_png_to_file(to_plot, tf)
             tf.seek(0)
             s = tf.read()

@@ -81,12 +81,12 @@ class BottleDirectRouter(DirectRouter):
         return source
 
     def __call__(self):
-        print "Hi there, I just got this request:",
+        #print "Hi there, I just got this request:",
         val = request.body.read()
         print val
         #import pdb;pdb.set_trace()
         rv = super(BottleDirectRouter, self).__call__(val)
-        print "With this response:", rv
+        #print "With this response:", rv
         return rv
 
 def uuid_serve_functions(pre_routed = None, open_browser=False):
