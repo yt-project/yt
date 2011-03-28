@@ -1,3 +1,45 @@
+function cell_finished(result, new_cell) {
+  Ext.each(result['payloads'], function(payload, index) {
+      if (payload['type'] == 'png_string') {
+	new_cell.add(new Ext.Panel({
+	    autoEl:{
+	      tag:'img', width:'25%',
+		  src:"data:image/png;base64," +
+		  payload['image_data'],
+		  id:"payload_image_" + number_images,
+		  onClick: "display_image('payload_image_" +
+		  number_images + "');"
+		  }}));
+	new_cell.doLayout();
+	number_images++;
+      } else if (payload['type'] == 'cell_contents') {
+	var input_line = repl_input.get("input_line")
+	  input_line.setValue(payload['value']);
+      } else if (payload['type'] == 'log_entry') {
+	var record = new logging_store.recordType(
+						  {record: payload['log_entry'] });
+	logging_store.add(record, number_log_records++);
+      }
+    });
+  repl_input.get('input_line').setReadOnly(false);
+  yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+}
+
+function cell_sent() {
+  repl_input.get('input_line').setReadOnly(true);
+}
+
+function display_image(image_id) {
+  var image = Ext.get(image_id);
+  var src = image.dom.src;
+  var virtualdom = '<html><title>Image Viewer</title><body><img src="' + src + '"/></body></html>',
+  prev = window.open('', 'image_viewer');
+  prev.document.open();
+  prev.document.write(virtualdom);
+  prev.document.close();
+}
+
+// Create a tree in the left panel with the pfs and their objects.
 function fill_tree(my_pfs) {
   examine = my_pfs;
   treePanel.root.removeAll();
@@ -11,3 +53,22 @@ function fill_tree(my_pfs) {
 	  });
     });
 };
+
+function new_cell(name, input, result) {
+  var CellPanel = new Ext.Panel(
+		    {id: name,
+		     items: [new Ext.Panel({
+			  id:name+"_input",
+			      html:input,
+			      }),
+		       new Ext.Panel({
+			 id:name+"_result",
+			     autoScroll:true,
+			     width: "100%",
+			     html:result,
+			     })
+		       ]
+			}
+			);
+  return CellPanel;
+}
