@@ -39,13 +39,13 @@ try:
     import pygments.formatters
     def _highlighter():
         pl = pygments.lexers.PythonLexer()
-        hf = pygments.formatters.HtmlFormatter(linenos='table')
+        hf = pygments.formatters.HtmlFormatter(
+                linenos='table', linenospecial=2)
         def __highlighter(a):
             return pygments.highlight(a, pl, hf)
         return __highlighter, hf.get_style_defs()
     # We could add an additional '.highlight_pyg' in the call
     highlighter, highlighter_css = _highlighter()
-
 except ImportError:
     highlighter = lambda a: a
     highlight_css = ''

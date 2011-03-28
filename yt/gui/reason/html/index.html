@@ -34,6 +34,10 @@
     #cell_output {
         font-family: monospace;
     }
+    td.code {
+        padding-left: 20px;
+        font-family: monospace;
+    }
     </style>
 
     <!-- GC -->
@@ -78,7 +82,8 @@
             text = "ERROR";
             formatted_input = input_line.getValue();
         } else {
-            text = a.result['output'].replace(/\n/g,"<br/>");
+            //text = a.result['output'].replace(/\n/g,"<br/>");
+            text = "<pre>"+a.result['output']+"</pre>";
             formatted_input = a.result['input']
         }
         Ext.get("cell_output").dom.innerHTML +=
