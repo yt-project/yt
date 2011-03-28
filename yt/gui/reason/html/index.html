@@ -64,6 +64,16 @@
     }
     var examine;
     var number_log_records = 0;
+    var number_images = 0;
+    function display_image(image_id) {
+        var image = Ext.get(image_id);
+        var src = image.dom.src;
+        var virtualdom = '<html><title>Image Viewer</title><body><img src="' + src + '"/></body></html>',
+            prev       = window.open('', 'image_viewer');
+        prev.document.open();
+        prev.document.write(virtualdom);
+        prev.document.close();
+    }
 
     function cell_finished(result, new_cell) {
         Ext.each(result['payloads'], function(payload, index) {
@@ -72,9 +82,13 @@
                                 autoEl:{
                                 tag:'img', width:'25%',
                                 src:"data:image/png;base64," +
-                                        payload['image_data']
+                                        payload['image_data'],
+                                id:"payload_image_" + number_images,
+                                onClick: "display_image('payload_image_" +
+                                          number_images + "');"
                               }}));
                 new_cell.doLayout();
+                number_images++;
             } else if (payload['type'] == 'cell_contents') {
                 var input_line = repl_input.get("input_line")
                 input_line.setValue(payload['value']);
