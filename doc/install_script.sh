@@ -526,7 +526,7 @@ fi
 # Now we open up the ext repository
 if [ ! -e ext-3.3.2/done ]
 then
-    ( unzip ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( unzip -o ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
     ln -sf ext-3.3.2 ext-resources
     touch ext-3.3.2/done
