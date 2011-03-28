@@ -127,13 +127,30 @@
     );
 
     var PlotPanel = new Ext.Panel(
-        {layout: 'anchor',
+        {
+//layout: 'anchor',
+        layout:'vbox',
         title: 'Plot Window 1',
-        width:400,
+//        width:1400,
         height:400,
-        items:[
-            NorthButton, 
-            EastButton]
+        layoutConfig: {
+            align : 'stretch',
+            pack  : 'start',
+        },
+        items: [
+            {html:'panel 1<br><br><br>test<br>'},
+            {html:'panel 1<br><br><br>test<br>'},
+            {html:'panel 1 test<br>'},
+            {html:'panel 1<br><br><br>test<br>'},
+            {html:'panel 1<br>test<br>'},
+            {html:'panel 1<br><br><br>test<br>'},
+            {html:'panel 1<br><br><br>test<br>'},
+            {html:'panel 1 test<br>'},
+            {html:'panel 1<br><br><br>test<br>'},
+            {html:'panel 1<br>test<br>'}
+        ]
+            //NorthButton, 
+            //EastButton]
         }
     );
     var examine;
