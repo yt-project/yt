@@ -2,6 +2,7 @@
 <head>
   <title>Complex Layout</title>
     <link rel="stylesheet" type="text/css" href="resources/resources/css/ext-all.css" />
+    <link rel="stylesheet" type="text/css" href="highlighter.css" />
     
     <style type="text/css">
     html, body {
@@ -69,16 +70,21 @@
         yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
     }
 
+    var res;
+
     var handle_result = function(f, a) {
         var input_line = repl_input.get("input_line")
         if (a.result == null) {
             text = "ERROR";
+            formatted_input = input_line.getValue();
         } else {
             text = a.result['output'].replace(/\n/g,"<br/>");
+            formatted_input = a.result['input']
         }
         Ext.get("cell_output").dom.innerHTML +=
-        '>>> ' + input_line.getValue() + '<br/>' + text + '<br/>';
+          formatted_input + '<br/>' + text + '<br/>';
         input_line.setValue("");
+        res = a.result;
         cell_finished(a.result);
     }
 
