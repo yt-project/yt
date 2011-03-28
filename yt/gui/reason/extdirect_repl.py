@@ -27,6 +27,8 @@ License:
 import json
 import os
 import cStringIO
+import logging
+from yt.utilities.logger import ytLogger, ufstring
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
@@ -82,6 +84,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # setting up.
         self.execute("from yt.mods import *")
         self.locals['load_script'] = ext_load_script
+        self._setup_logging_handlers()
+
+    def _setup_logging_handlers(self):
+        handler = PayloadLoggingHandler()
+        formatter = logging.Formatter(ufstring)
+        handler.setFormatter(formatter)
+        ytLogger.addHandler(handler)
 
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
@@ -154,3 +163,15 @@ def ext_load_script(filename):
          'value': contents}
     )
     return
+
+class PayloadLoggingHandler(logging.StreamHandler):
+    def __init__(self, *args, **kwargs):
+        logging.StreamHandler.__init__(self, *args, **kwargs)
+        self.payload_handler = PayloadHandler()
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.payload_handler.add_payload(
+            {'type':'log_entry',
+             'log_entry':msg})
+
