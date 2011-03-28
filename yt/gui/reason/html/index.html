@@ -116,11 +116,15 @@
             formatted_input = a.result['input']
         }
         var cell = NewCell("cell_"+cell_count, formatted_input, text);
-        notebook.get("output_container").add(cell);
+        OutputContainer.add(cell);
         notebook.doLayout();
         input_line.setValue("");
-        res = cell;
         cell_finished(a.result, cell);
+        if (OutputContainer.items.length > 1) {
+          OutputContainer.body.dom.scrollTop =
+            OutputContainer.body.dom.scrollHeight -
+            cell.body.dom.scrollHeight - 20;
+        }
     }
 
     var repl_input = new Ext.FormPanel({
@@ -185,6 +189,8 @@
                         }),
                      new Ext.Panel({
                         id:name+"_result",
+                        autoScroll:true,
+                        width: "100%",
                         html:result,
                         })
                     ]
