@@ -65,12 +65,16 @@
     var examine;
     var number_log_records = 0;
 
-    function cell_finished(result) {
+    function cell_finished(result, new_cell) {
         Ext.each(result['payloads'], function(payload, index) {
             if (payload['type'] == 'png_string') {
-                Ext.get("cell_output").dom.innerHTML +=
-                    '<br/><img src="data:image/png;base64,' +
-                        payload['image_data'] + '"/>';
+                new_cell.add(new Ext.Panel({
+                                autoEl:{
+                                tag:'img',
+                                src:"data:image/png;base64," +
+                                        payload['image_data']
+                              }}));
+                new_cell.doLayout();
             } else if (payload['type'] == 'cell_contents') {
                 var input_line = repl_input.get("input_line")
                 input_line.setValue(payload['value']);
@@ -104,8 +108,8 @@
         notebook.get("output_container").add(cell);
         notebook.doLayout();
         input_line.setValue("");
-        res = a.result;
-        cell_finished(a.result);
+        res = cell;
+        cell_finished(a.result, cell);
     }
 
     var repl_input = new Ext.FormPanel({
@@ -157,12 +161,13 @@
             {id: name,
              items: [new Ext.Panel({
                         id:name+"_input",
-                        items:[{html:input}]
+                        html:input,
                         }),
                      new Ext.Panel({
                         id:name+"_result",
-                        items:[{html:result}]
-                        })]
+                        html:result,
+                        })
+                    ]
             }
         );
         return CellPanel;
