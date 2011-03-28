@@ -135,23 +135,29 @@
 
     var NorthButton = new Ext.Button(
         {text : 'North',
- //       pageX : 10,
-//        pageY : 50
-        anchor:'10% 5%'
+        pageX : 205,
+        pageY : 10
+//        handler: function(b, e) { window.open("session.py", "_top"); }
         }
     );
 
     var EastButton = new Ext.Button(
         {text:'East',
-//        pageX : '100%',
- //       pageY : '50%'
+        pageX : 410,
+        pageY : 205
         }
     );
     var SouthButton = new Ext.Button(
-        {text:'South'}
+        {text:'South',
+        pageX : 205,
+        pageY : 410
+        }
     );
     var WestButton = new Ext.Button(
-        {text:'West'}
+        {text:'West',
+        pageX : 10,
+        pageY : 205
+        }
     );
 
     function NewCell(name, input, result) {
@@ -182,9 +188,14 @@
         {
         title: 'Plot Window 1',
         autoScroll: true,
-        items: [ ]
-        }
-    );
+        layout:'absolute',
+        items: [ 
+            NorthButton,
+            EastButton,
+            SouthButton,
+            WestButton
+        ]
+    });
     var examine;
     var notebook;
     var treePanel = new Ext.tree.TreePanel({
@@ -319,14 +330,17 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
                         html: "",
                         id: "cell_output",
                     }, repl_input, OutputContainer]
-                }, {
-                    title: 'Plot Window 1',
-                    iconCls: 'graph',
-                    closable: true,
-                    autoScroll: true,
-                    items: [ PlotPanel ]
-                        
-                }]
+                }, PlotPanel]
+//                }, {
+ //                   title: 'Plot Window 1',
+  //                  iconCls: 'graph',
+   //                 layout:'anchor',
+    //                anchor:'100% 100%',
+     //               closable: true,
+      //              autoScroll: true,
+       //             items: [ PlotPanel ]
+        //                
+         //       }]
             }]
         });
         // get a reference to the HTML element with id "hideit" and add a click listener to it 
