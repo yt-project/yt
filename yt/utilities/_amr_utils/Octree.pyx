@@ -498,7 +498,8 @@ cdef class Octree:
         r"""Find the binding energy of an ensemble of data points using the
         treecode method.
         
-        Note: The first entry of the vals array MUST be Mass.
+        Note: The first entry of the vals array MUST be Mass. Any other
+        values will be ignored, including the weight array.
         """
         # The real work is done in fbe_main(), this just sets things up
         # and returns the potential.
@@ -572,6 +573,18 @@ cdef class Octree:
         return
 
     def print_all_nodes(self):
+        r"""
+        Prints out information about all the nodes in the octree.
+        
+        Parameters
+        ----------
+        None.
+        
+        Examples
+        --------
+        >>> octree.print_all_nodes()
+        (many lines of data)
+        """
         cdef int i, j, k
         sys.stdout.flush()
         sys.stderr.flush()

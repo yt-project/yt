@@ -274,15 +274,35 @@ add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
 def _IsBound(data, truncate = True, include_thermal_energy = False,
-    treecode = False, opening_angle = 1.0):
-    """
-    This returns whether or not the object is gravitationally bound
+    treecode = True, opening_angle = 1.0, periodic_test = False):
+    r"""
+    This returns whether or not the object is gravitationally bound. If this
+    returns a value greater than one, it is bound, and otherwise not.
     
-    :param truncate: Should the calculation stop once the ratio of
-                     gravitational:kinetic is 1.0?
-    :param include_thermal_energy: Should we add the energy from ThermalEnergy
-                                   on to the kinetic energy to calculate 
-                                   binding energy?
+    Parameters
+    ----------
+    truncate : Bool
+        Should the calculation stop once the ratio of
+        gravitational:kinetic is 1.0?
+    include_thermal_energy : Bool
+        Should we add the energy from ThermalEnergy
+        on to the kinetic energy to calculate 
+        binding energy?
+    treecode : Bool
+        Whether or not to use the treecode.
+    opening_angle : Float 
+        The maximal angle a remote node may subtend in order
+        for the treecode method of mass conglomeration may be
+        used to calculate the potential between masses.
+    periodic_test : Bool 
+        Used for testing the periodic adjustment machinery
+        of this derived quantity. 
+
+    Examples
+    --------
+    >>> sp.quantities["IsBound"](truncate=False,
+    ... include_thermal_energy=True, treecode=False, opening_angle=2.0)
+    0.32493
     """
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
@@ -296,6 +316,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     if (include_thermal_energy):
         thermal = (data["ThermalEnergy"] * data["CellMass"]).sum()
         kinetic += thermal
+    if periodic_test:
+        kinetic = na.ones_like(kinetic)
     # Gravitational potential energy
     # We only divide once here because we have velocity in cgs, but radius is
     # in code.
@@ -310,6 +332,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # cells, I think it's reasonable to assume that the clump wraps around.
         diff = sorted[1:] - sorted[0:-1]
         if (diff >= two_root[i]).any():
+            mylog.info("Adjusting clump for periodic boundaries in dim %s" % dim)
             # We will record the distance of the larger of the two values that
             # define the gap from the right boundary, which we'll use for the
             # periodic adjustment later.
@@ -319,8 +342,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             # wrap-around.
             periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1] + \
                 two_root[i] / 2.
-    # This dict won't make a copy of the data, but we will make a copy to 
-    # change if needed in the periodic section.
+    # This dict won't make a copy of the data, but it will make a copy to 
+    # change if needed in the periodic section immediately below.
     local_data = {}
     for label in ["x", "y", "z", "CellMass"]:
         local_data[label] = data[label]
@@ -332,6 +355,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             local_data[dim] = data[dim].copy()
             local_data[dim] += periodic[i]
             local_data[dim] %= domain_period[i]
+    if periodic_test:
+        local_data["CellMass"] = na.ones_like(local_data["CellMass"])
     import time
     t1 = time.time()
     if treecode:
@@ -380,8 +405,6 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             octree.add_array_to_tree(L, i, j, k,
                 na.array([na.zeros_like(i)], order='F', dtype='float64'),
                 na.zeros_like(i).astype('float64'))
-            #print L, ActiveDimensions
-            #print i[0], i[-1], j[0], j[-1], k[0],k[-1]
         # Now we add actual data to the octree.
         for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
             mylog.info("Adding data to Octree for level %d" % L)
@@ -390,8 +413,6 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
             thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
             vals = na.array([local_data["CellMass"][sel]], order='F')
-            #print na.min(thisx), na.min(thisy), na.min(thisz)
-            #print na.max(thisx), na.max(thisy), na.max(thisz)
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
                na.ones_like(thisx).astype('float64'), treecode = 1)
         # Now we calculate the binding energy using a treecode.
