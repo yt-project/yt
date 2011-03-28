@@ -16,11 +16,11 @@
     p {
         margin:5px;
     }
-    .settings {
-        background-image:url(resources/examples/shared/icons/fam/folder_wrench.png);
+    pf_icon {
+        background-image:url(images/binary.png);
     }
-    .nav {
-        background-image:url(resources/examples/shared/icons/fam/folder_go.png);
+    data_object {
+        background-image:url(images/kivio_flw.png);
     }
     graph { 
         background-image:url(images/graph.png) !important; //add images to tabs
@@ -55,8 +55,7 @@
     <script type="text/javascript" src="resources/examples/shared/examples.js"></script>
     <script type="text/javascript" src="resources/ext-repl-api.js"></script>
     <script type="text/javascript" src="resources/ext-pflist-api.js"></script>
-    <script type="text/javascript" src="pf_data.js"></script>
- 
+
     <script type="text/javascript">
     var viewport;
     function cell_sent() {
@@ -262,11 +261,11 @@
         treePanel.root.removeAll();
       Ext.each(my_pfs, function(pf, index) {
           treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
-              leaf:false, expanded:true}));
+              leaf:false, expanded:true, iconCls: 'pf_icon'}));
           this_pf = treePanel.root.lastChild
           Ext.each(pf.objects, function(object, obj_index) {
             this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
-                leaf: true}));
+                leaf: true, iconCls: 'data_object'}));
             });
           });
     };
