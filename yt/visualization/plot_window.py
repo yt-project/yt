@@ -123,8 +123,13 @@ class PlotWindow(object):
 
     @invalidate_data
     def zoom(self, factor):
-        """
-        This zooms the window by *factor*.
+        r"""This zooms the window by *factor*.
+
+        Parameters
+        ----------
+        factor : float
+            multiplier for the current width
+
         """
         Wx, Wy = self.width
         centerx = self.xlim[0] + Wx*0.5
@@ -132,13 +137,16 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
-        #self._run_callbacks()
 
     @invalidate_data
     def pan(self, deltas):
-        """
-        This accepts a tuple of *deltas*, composed of (delta_x, delta_y) that
-        will pan the window by those values in absolute coordinates.
+        r"""Pan the image by specifying absolute code unit coordinate deltas.
+        
+        Parameters
+        ----------
+        deltas : sequence of floats
+            (delta_x, delta_y) in *absolute* code unit coordinates
+
         """
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
@@ -183,6 +191,13 @@ class PWViewer(PlotWindow):
 
     def set_log(self,field,log):
         """set a field to log or linear.
+        
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
 
         """
         if log:
@@ -202,7 +217,7 @@ class PWViewer(PlotWindow):
         pass
 
 class PWViewerMPL(PWViewer):
-    """
+    """Viewer using matplotlib as a backend via the YtWindowPlot. 
 
     """
     def _setup_plots(self):
