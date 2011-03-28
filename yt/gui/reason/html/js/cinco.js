@@ -21,6 +21,7 @@ var handle_result = function(f, a) {
   OutputContainer.add(cell);
   notebook.doLayout();
   input_line.setValue("");
+  repl_input.body.removeClass("cell_waiting");
   cell_finished(a.result, cell);
   if (OutputContainer.items.length > 1) {
     OutputContainer.body.dom.scrollTop =
@@ -34,6 +35,7 @@ var repl_input = new Ext.FormPanel({
       url: 'push',
       flex: 0.2,
       layout: 'fit',
+      padding: 5,
       items: [{
       id: 'input_line',
 	  xtype: 'textarea',

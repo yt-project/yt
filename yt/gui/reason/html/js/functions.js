@@ -27,7 +27,8 @@ function cell_finished(result, new_cell) {
 }
 
 function cell_sent() {
-  repl_input.get('input_line').setReadOnly(true);
+    repl_input.get('input_line').setReadOnly(true);
+    repl_input.body.addClass("cell_waiting");
 }
 
 function display_image(image_id) {
