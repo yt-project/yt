@@ -158,8 +158,10 @@
        iconCls: 'nav',
     	id: 'tree-panel',
     	title: 'Objects',
+        layout: 'absolute',
         region:'west',
         split: true,
+        height:480,
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
@@ -169,6 +171,39 @@
          ,text:''
         })
      });
+
+    var ButtonGroupPanel = new Ext.Panel({
+//        title: 'Panel with Button Group',
+        layout: 'absolute',
+        width: 210,
+        height:38,
+        pageX:0,
+        pageY:480,
+        ButtonAlign: 'center',
+        collapsible: false,
+        renderTo: document.body,
+        tbar: [{
+            xtype: 'buttongroup',
+            columns: 3,
+            items: [{
+                text: 'Download',
+                width: 65
+            },{
+//                text: 'Save', iconCls: 'add'
+                text: 'Save',
+                width: 65
+            },{
+                text: 'Pastebin',
+                width: 65
+            }]
+        }]
+    });
+    
+    var DownloadButton = new Ext.Button({
+        text:'Download this Session',
+        region:'west'
+        }
+    );
 
     function fill_tree(my_pfs) {
         examine = my_pfs;
@@ -220,10 +255,13 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
                 collapsible: true,
                 margins: '0 0 0 5',
                 layout: {
-                    type: 'accordion',
+                    type: 'absolute',
                     animate: true
                 },
-                items: [treePanel]
+                items: [
+                    treePanel,
+                    ButtonGroupPanel
+                ]
             },
             // in this instance the TabPanel is not wrapped by another panel
             // since no title is needed, this Panel is added directly
