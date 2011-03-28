@@ -124,29 +124,33 @@ var treePanel = new Ext.tree.TreePanel({
       });
 
 var ButtonGroupPanel = new Ext.Panel({
-  layout: 'anchor',
-      ButtonAlign: 'center',
-      collapsible: false,
-      renderTo: document.body,
-      tbar: [{
-      xtype: 'buttongroup',
-	  columns: 3,
-	  items: [{
-	  text: 'Download',
-	      layout:'anchor',
-	      anchor: '100% 33%',
-	      handler: function(b, e) { window.open("session.py", "_top"); }
-	  },{
-	  text: 'Save',
-	      layout:'anchor',
-	      anchor: '100% 67%',
-	      },{
-	  text: 'Pastebin',
-                layout:'anchor',
-                anchor: '100% 100%',
-		}]
-	  }]
-      });
+    layout: 'anchor',
+    ButtonAlign: 'center',
+    collapsible: false,
+    renderTo: document.body,
+    tbar: [{
+        xtype: 'buttongroup',
+        columns: 5,
+        items: [{
+            text: 'Download',
+            layout:'anchor',
+            anchor: '100% 33%',
+            handler: function(b, e) { window.open("session.py", "_top"); }
+        },{
+            xtype: 'tbseparator'
+        },{
+            text: 'Save',
+            layout:'anchor',
+            anchor: '100% 67%',
+        },{
+            xtype: 'tbseparator'
+        },{
+            text: 'Pastebin',
+            layout:'anchor',
+            anchor: '100% 100%',
+        }]
+    }]
+});
 
 var status_panel;
 var logging_store = new Ext.data.Store({
