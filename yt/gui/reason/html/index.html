@@ -130,6 +130,7 @@
             id: 'input_line',
             xtype: 'textarea',
             width: '100%',
+            autoScroll: true,
             fieldLabel: '>>>',
             name: 'line',
             allowBlank: 'True',
@@ -201,6 +202,7 @@
     var PlotPanel = new Ext.Panel(
         {
         title: 'Plot Window 1',
+        iconCls: 'graph',
         autoScroll: true,
         layout:'absolute',
         items: [ 
@@ -335,9 +337,8 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
                 items: [{
                     title: 'YT',
                     id: 'notebook',
-                    iconCls: 'console',
                     closable: false,
-                    autoScroll: true,
+                    autoScroll: false,
                     iconCls: 'console',
                     items: [{ 
                         title: 'Output',
