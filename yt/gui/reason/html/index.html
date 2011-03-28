@@ -44,17 +44,16 @@
     }
     </style>
 
-    <!-- GC -->
     <!-- LIBS -->
     <script type="text/javascript" src="resources/adapter/ext/ext-base.js"></script>
-    <!-- ENDLIBS -->
-
     <script type="text/javascript" src="resources/ext-all.js"></script>
 
-    <!-- EXAMPLES -->
-    <script type="text/javascript" src="resources/examples/shared/examples.js"></script>
+    <!-- INTERACTIVE -->
     <script type="text/javascript" src="resources/ext-repl-api.js"></script>
     <script type="text/javascript" src="resources/ext-pflist-api.js"></script>
+
+    <!-- LOCAL FUNCTIONS -->
+    <script type="text/javascript" src="js/functions.js"></script>
 
     <script type="text/javascript">
     var viewport;
@@ -265,20 +264,6 @@
         }]
     });
     
-    function fill_tree(my_pfs) {
-        examine = my_pfs;
-        treePanel.root.removeAll();
-      Ext.each(my_pfs, function(pf, index) {
-          treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
-              leaf:false, expanded:true, iconCls: 'pf_icon'}));
-          this_pf = treePanel.root.lastChild
-          Ext.each(pf.objects, function(object, obj_index) {
-            this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
-                leaf: true, iconCls: 'data_object'}));
-            });
-          });
-    };
-
     var status_panel;
     var logging_store = new Ext.data.Store({
             fields: [{name:'record'}],
