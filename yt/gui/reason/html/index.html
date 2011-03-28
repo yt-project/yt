@@ -125,13 +125,13 @@
 
     var repl_input = new Ext.FormPanel({
         url: 'push',
-        height: 100,
+        flex: 0.2,
+        layout: 'fit',
         items: [{
             id: 'input_line',
             xtype: 'textarea',
             width: '100%',
             autoScroll: true,
-            fieldLabel: '>>>',
             name: 'line',
             allowBlank: 'True',
             bodyStyle: 'font-family: "monospace";',
@@ -196,7 +196,7 @@
           title: 'YT Output',
           id: 'output_container',
           autoScroll: true,
-          flex: 1.0,
+          flex: 0.8,
           items: []
         });
 
@@ -377,10 +377,14 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
 </head>
 <body>
     <!-- use class="x-hide-display" to prevent a brief flicker of the content -->
+    <div id="west" class="x-hide-display">
+    </div>
+    <div id="center2" class="x-hide-display">
+        <a id="hideit" href="#">Toggle the west region</a>
+    </div>
     <div id="props-panel" class="x-hide-display" style="width:200px;height:200px;overflow:hidden;">
     </div>
     <div id="south" class="x-hide-display">
-        <p>4d3d3d3 engaged.</p>
     </div>
 </body>
 </html>
