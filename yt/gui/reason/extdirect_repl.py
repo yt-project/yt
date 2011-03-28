@@ -55,7 +55,7 @@ except ImportError:
 local_dir = os.path.dirname(__file__)
 
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
-    _skip_expose = ('index', 'resources')
+    _skip_expose = ('index')
     my_name = "ExtDirectREPL"
 
     def __init__(self, extjs_path, locals=None):
@@ -69,9 +69,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
                               _myapi = ("/resources/ext-repl-api.js", "GET"),
-                              resources = ("/resources/:path#.+#", "GET"),
+                              _resources = ("/resources/:path#.+#", "GET"),
+                              _js = ("/js/:path#.+#", "GET"),
+                              _images = ("/images/:path#.+#", "GET"),
                               _session_py = ("/session.py", "GET"),
-                              _ace = ("/ace/:path#.+#", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
                               )
         for v, args in preroute_table.items():
@@ -100,17 +101,22 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         vals = open(os.path.join(local_dir, "html/index.html")).read()
         return vals
 
-    def resources(self, path):
-        # This will need to be changed.
+    def _resources(self, path):
         pp = os.path.join(self.extjs_path, path)
         if not os.path.exists(pp):
             response.status = 404
             return
         return open(pp).read()
 
-    def _ace(self, path):
-        # This will need to be changed.
-        pp = os.path.join(local_dir, "ace", path)
+    def _js(self, path):
+        pp = os.path.join(local_dir, "html", "js", path)
+        if not os.path.exists(pp):
+            response.status = 404
+            return
+        return open(pp).read()
+
+    def _images(self, path):
+        pp = os.path.join(local_dir, "html", "images", path)
         if not os.path.exists(pp):
             response.status = 404
             return
