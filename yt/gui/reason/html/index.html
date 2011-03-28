@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>Complex Layout</title>
+  <title>Cinco Analysis Generator</title>
     <link rel="stylesheet" type="text/css" href="resources/resources/css/ext-all.css" />
     <link rel="stylesheet" type="text/css" href="highlighter.css" />
     
@@ -70,7 +70,7 @@
             if (payload['type'] == 'png_string') {
                 new_cell.add(new Ext.Panel({
                                 autoEl:{
-                                tag:'img',
+                                tag:'img', width:'25%',
                                 src:"data:image/png;base64," +
                                         payload['image_data']
                               }}));
@@ -79,11 +79,9 @@
                 var input_line = repl_input.get("input_line")
                 input_line.setValue(payload['value']);
             } else if (payload['type'] == 'log_entry') {
-                /*console.log(payload['log_entry']);*/
                 var record = new logging_store.recordType(
                                 {record: payload['log_entry'] });
-                number_log_records += 1;
-                logging_store.add(record, number_log_records);
+                logging_store.add(record, number_log_records++);
             }
         });
         repl_input.get('input_line').setReadOnly(false);
@@ -278,7 +276,6 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
                 cls: "status-logger",
                 split: true,
                 height: 100,
-                minSize: 100,
                 maxSize: 200,
                 collapsible: true,
                 title: 'Status',
@@ -342,6 +339,10 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
         
         notebook = viewport.get("center-panel").get("notebook");
         status_panel = viewport.get("status-region").get("status-div");
+
+        var record = new logging_store.recordType(
+                        {record: '4d3d3d3 engaged' });
+        logging_store.add(record, number_log_records++);
     });
     </script>
 </head>
