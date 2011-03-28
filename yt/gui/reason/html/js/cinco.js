@@ -9,7 +9,6 @@ var cell_count = 0;
 
 var handle_result = function(f, a) {
   var input_line = repl_input.get("input_line")
-  cell_count += 1;
   if (a.result == null) {
     text = "ERROR";
     formatted_input = input_line.getValue();
@@ -18,7 +17,7 @@ var handle_result = function(f, a) {
     text = "<pre>"+a.result['output']+"</pre>";
     formatted_input = a.result['input']
   }
-  var cell = new_cell("cell_"+cell_count, formatted_input, text);
+  var cell = new_cell(formatted_input, text);
   OutputContainer.add(cell);
   notebook.doLayout();
   input_line.setValue("");
@@ -214,16 +213,17 @@ Ext.onReady(function(){
 		      id: 'center-panel',
 		      deferredRender: false,
 		      activeTab: 0,     // first tab initially active
-		      items: [{
-		      title: 'YT',
-			  id: 'notebook',
-			  layout: 'vbox',
-			  layoutConfig: {align:'stretch'},
-			  closable: false,
-			  autoScroll: false,
-			  iconCls: 'console',
-			  items: [repl_input, OutputContainer]
-			  }, PlotPanel]
+		      items: [
+                {
+		            title: 'YT',
+			        id: 'notebook',
+			        layout: 'vbox',
+			        layoutConfig: {align:'stretch'},
+			        closable: false,
+			        autoScroll: false,
+			        iconCls: 'console',
+			        items: [repl_input, OutputContainer]
+			    }, PlotPanel]
 		      //                }, {
 		      //                   title: 'Plot Window 1',
 		      //                  iconCls: 'graph',
@@ -252,4 +252,5 @@ Ext.onReady(function(){
     var record = new logging_store.recordType(
 					      {record: '4d3d3d3 engaged' });
     logging_store.add(record, number_log_records++);
+    repl_input.get("input_line").focus();
   });

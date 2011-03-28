@@ -23,6 +23,7 @@ function cell_finished(result, new_cell) {
     });
   repl_input.get('input_line').setReadOnly(false);
   yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+  repl_input.get("input_line").focus();
 }
 
 function cell_sent() {
@@ -54,9 +55,10 @@ function fill_tree(my_pfs) {
     });
 };
 
-function new_cell(name, input, result) {
+function new_cell(input, result) {
+  var name = "cell_" + cell_count;
   var CellPanel = new Ext.Panel(
-		    {id: name,
+		    {id: name, //title: "Cell " + cell_count,
 		     items: [new Ext.Panel({
 			  id:name+"_input",
 			      html:input,
@@ -70,5 +72,6 @@ function new_cell(name, input, result) {
 		       ]
 			}
 			);
+  cell_count++;
   return CellPanel;
 }
