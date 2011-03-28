@@ -234,26 +234,25 @@
      });
 
     var ButtonGroupPanel = new Ext.Panel({
-        layout: 'anchor',
         ButtonAlign: 'center',
+        layout:'anchor',
+        align:'stretch',
         collapsible: false,
         renderTo: document.body,
         tbar: [{
             xtype: 'buttongroup',
-            columns: 3,
+            columns: 5,
             items: [{
                 text: 'Download',
-                layout:'anchor',
-                anchor: '100% 33%',
                 handler: function(b, e) { window.open("session.py", "_top"); }
-            },{
+            }, {
+                xtype: 'tbseparator'
+            }, {
                 text: 'Save',
-                layout:'anchor',
-                anchor: '100% 67%',
             },{
+                xtype: 'tbseparator'
+            }, {
                 text: 'Pastebin',
-                layout:'anchor',
-                anchor: '100% 100%',
             }]
         }]
     });
