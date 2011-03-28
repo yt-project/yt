@@ -38,6 +38,10 @@
         padding-left: 20px;
         font-family: monospace;
     }
+    div#status-region div.x-grid3-cell-inner {
+        font-family: monospace;
+        font-size: 120%;
+    }
     </style>
 
     <!-- GC -->
@@ -261,10 +265,12 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
                 // lazily created panel (xtype:'panel' is default)
                 xtype: 'grid',
                 store: logging_store,
-                columns: [ {id:'record', header:'Logging Message',
+                columns: [ {id:'record', 
                             sortable: false} ],
+                autofill: true,
                 region: 'south',
                 id: "status-region",
+                cls: "status-logger",
                 split: true,
                 height: 100,
                 minSize: 100,

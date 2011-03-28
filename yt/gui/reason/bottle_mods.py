@@ -28,6 +28,7 @@ from .bottle import server_names, debug, route, run, request
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
+from yt.utilities.logger import ytLogger as mylog
 
 route_functions = {}
 route_watchers = []
@@ -129,4 +130,5 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
     server_type = server_names.get("wsgiref")
     server = server_type(host='localhost', port=8080)
     #repl.locals['server'] = server
+    mylog.info("Starting up the server.")
     run(server=server)
