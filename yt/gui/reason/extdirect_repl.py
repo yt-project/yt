@@ -58,8 +58,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index', 'resources')
     my_name = "ExtDirectREPL"
 
-    def __init__(self, locals=None):
+    def __init__(self, extjs_path, locals=None):
         # First we do the standard initialization
+        self.extjs_path = extjs_path
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
         # since they have different arguments, and most of all because we only
@@ -101,7 +102,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def resources(self, path):
         # This will need to be changed.
-        pp = os.path.join(local_dir, "../../../../misc/ext/ext-3.3.1/", path)
+        pp = os.path.join(self.extjs_path, path)
         if not os.path.exists(pp):
             response.status = 404
             return
