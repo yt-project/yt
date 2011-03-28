@@ -123,8 +123,13 @@ class PlotWindow(object):
 
     @invalidate_data
     def zoom(self, factor):
-        """
-        This zooms the window by *factor*.
+        r"""This zooms the window by *factor*.
+
+        Parameters
+        ----------
+        factor : float
+            multiplier for the current width
+
         """
         Wx, Wy = self.width
         centerx = self.xlim[0] + Wx*0.5
@@ -132,13 +137,16 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
-        #self._run_callbacks()
 
     @invalidate_data
     def pan(self, deltas):
-        """
-        This accepts a tuple of *deltas*, composed of (delta_x, delta_y) that
-        will pan the window by those values in absolute coordinates.
+        r"""Pan the image by specifying absolute code unit coordinate deltas.
+        
+        Parameters
+        ----------
+        deltas : sequence of floats
+            (delta_x, delta_y) in *absolute* code unit coordinates
+
         """
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
@@ -166,22 +174,8 @@ class PlotWindow(object):
     def set_antialias(self,aa):
         self.antialias = aa
 
-class PWViewerRaw(PlotWindow):
-    """A PlotWindow viewer that writes raw pngs (no MPL, no axes).
-
-    """
-    def _setup_plots(self):
-        self.save('')
-        self._plot_valid = True
-
-    def save(self,name):
-        for field in self._frb.data.keys():
-            nm = "%s_%s.png" % (name,field)
-            print "writing %s" % nm
-            write_image(self._frb[field],nm)
-
-class PWViewerExtJS(PlotWindow):
-    """A viewer for the web interface.
+class PWViewer(PlotWindow):
+    """A viewer for PlotWindows.
 
     """
     def __init__(self, *args,**kwargs):
@@ -197,6 +191,13 @@ class PWViewerExtJS(PlotWindow):
 
     def set_log(self,field,log):
         """set a field to log or linear.
+        
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
 
         """
         if log:
@@ -207,6 +208,46 @@ class PWViewerExtJS(PlotWindow):
     def set_transform(self, field, func):
         self._field_transform[field] = func
 
+    @invalidate_plot
+    def set_cmap(self):
+        pass
+
+    @invalidate_plot
+    def set_zlim(self):
+        pass
+
+class PWViewerMPL(PWViewer):
+    """Viewer using matplotlib as a backend via the YtWindowPlot. 
+
+    """
+    def _setup_plots(self):
+        for f in self.fields:
+            self.plots[f] = YtWindowPlot(self._frb[f])
+        self._plot_valid = True
+
+    def save(self,name):
+        for k,v in self.plots.iteritems():
+            n = "%s_%s" % (name, k)
+            v.save(n)
+
+class PWViewerRaw(PWViewer):
+    """A PlotWindow viewer that writes raw pngs (no MPL, no axes).
+
+    """
+    def _setup_plots(self):
+        self.save('')
+        self._plot_valid = True
+
+    def save(self,name):
+        for field in self._frb.data.keys():
+            nm = "%s_%s.png" % (name,field)
+            print "writing %s" % nm
+            write_image(self._frb[field],nm)
+
+class PWViewerExtJS(PWViewer):
+    """A viewer for the web interface.
+
+    """
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
         import base64
@@ -223,26 +264,6 @@ class PWViewerExtJS(PlotWindow):
             ph.add_payload(payload)
 
     def get_metadata(self):
-        pass
-
-class PWWiewer(PlotWindow):
-    """A viewer for PlotWindows.
-
-    """
-    def _setup_plots(self):
-        for f in self.fields:
-            self.plots[f] = YtWindowPlot(self._frb[f])
-        self._plot_valid = True
-
-    def save(self,name):
-        for k,v in self.plots.iteritems():
-            n = "%s_%s" % (name, k)
-            v.save(n)
-    @invalidate_plot
-    def set_cmap(self):
-        pass
-    @invalidate_plot
-    def set_zlim(self):
         pass
 
 
