@@ -125,7 +125,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs.seek(0)
-        response.headers["content-disposition"] = "attachment; filename=session.py"
+        response.headers["content-disposition"] = "attachment;"
         return cs
 
 class ExtDirectParameterFileList(BottleDirectRouter):
