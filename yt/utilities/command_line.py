@@ -920,13 +920,13 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        extjs_path = os.path.join(os.environ["YT_DEST"], "src", "ext-resources")
+        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.gui.reason.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions
 
-        hr = ExtDirectREPL(extjs_path)
+        hr = ExtDirectREPL(base_extjs_path)
         bottle.debug()
         uuid_serve_functions(open_browser=True)
 

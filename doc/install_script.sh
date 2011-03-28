@@ -295,6 +295,7 @@ get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
 get_enzotools ext-3.3.2.zip
+get_enzotools ext-slate-110328.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -530,6 +531,15 @@ then
     ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
     ln -sf ext-3.3.2 ext-resources
     touch ext-3.3.2/done
+fi
+
+# Now we open up the ext theme
+if [ ! -e ext-slate-110328/done ]
+then
+    ( unzip -o ext-slate-110328.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf ext-slate-110328 ext-theme
+    touch ext-slate-110328/done
 fi
 
 function print_afterword
