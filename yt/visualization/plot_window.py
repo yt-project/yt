@@ -166,22 +166,8 @@ class PlotWindow(object):
     def set_antialias(self,aa):
         self.antialias = aa
 
-class PWViewerRaw(PlotWindow):
-    """A PlotWindow viewer that writes raw pngs (no MPL, no axes).
-
-    """
-    def _setup_plots(self):
-        self.save('')
-        self._plot_valid = True
-
-    def save(self,name):
-        for field in self._frb.data.keys():
-            nm = "%s_%s.png" % (name,field)
-            print "writing %s" % nm
-            write_image(self._frb[field],nm)
-
-class PWViewerExtJS(PlotWindow):
-    """A viewer for the web interface.
+class PWViewer(PlotWindow):
+    """A viewer for PlotWindows.
 
     """
     def __init__(self, *args,**kwargs):
@@ -207,6 +193,46 @@ class PWViewerExtJS(PlotWindow):
     def set_transform(self, field, func):
         self._field_transform[field] = func
 
+    @invalidate_plot
+    def set_cmap(self):
+        pass
+
+    @invalidate_plot
+    def set_zlim(self):
+        pass
+
+class PWViewerMPL(PWViewer):
+    """
+
+    """
+    def _setup_plots(self):
+        for f in self.fields:
+            self.plots[f] = YtWindowPlot(self._frb[f])
+        self._plot_valid = True
+
+    def save(self,name):
+        for k,v in self.plots.iteritems():
+            n = "%s_%s" % (name, k)
+            v.save(n)
+
+class PWViewerRaw(PWViewer):
+    """A PlotWindow viewer that writes raw pngs (no MPL, no axes).
+
+    """
+    def _setup_plots(self):
+        self.save('')
+        self._plot_valid = True
+
+    def save(self,name):
+        for field in self._frb.data.keys():
+            nm = "%s_%s.png" % (name,field)
+            print "writing %s" % nm
+            write_image(self._frb[field],nm)
+
+class PWViewerExtJS(PWViewer):
+    """A viewer for the web interface.
+
+    """
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
         import base64
@@ -223,26 +249,6 @@ class PWViewerExtJS(PlotWindow):
             ph.add_payload(payload)
 
     def get_metadata(self):
-        pass
-
-class PWWiewer(PlotWindow):
-    """A viewer for PlotWindows.
-
-    """
-    def _setup_plots(self):
-        for f in self.fields:
-            self.plots[f] = YtWindowPlot(self._frb[f])
-        self._plot_valid = True
-
-    def save(self,name):
-        for k,v in self.plots.iteritems():
-            n = "%s_%s" % (name, k)
-            v.save(n)
-    @invalidate_plot
-    def set_cmap(self):
-        pass
-    @invalidate_plot
-    def set_zlim(self):
         pass
 
 
