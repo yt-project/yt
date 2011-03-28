@@ -38,6 +38,7 @@ except ImportError:
 from itertools import izip
 
 from yt.funcs import *
+from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.hierarchy import \
@@ -137,7 +138,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
-        if os.path.exists(harray_fn):
+        if ytcfg.getboolean("yt","serialize") and os.path.exists(harray_fn):
             try:
                 harray_fp = h5py.File(harray_fn)
                 self.num_grids = harray_fp["/Level"].len()
@@ -286,6 +287,7 @@ class EnzoHierarchy(AMRHierarchy):
     _bn = "%s.cpu%%04i"
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
+        if not ytcfg.getboolean("yt","serialize"): return False
         try:
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
         except h5py.h5.H5Error:
@@ -569,9 +571,14 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         if self.__class__._cached_field_list is None:
             EnzoHierarchy._detect_fields(self)
             self.__class__._cached_field_list = self.field_list
-            self.__class__._cached_derived_field_list = self.derived_field_list
         else:
             self.field_list = self.__class__._cached_field_list
+
+    def _setup_derived_fields(self):
+        if self.__class__._cached_derived_field_list is None:
+            EnzoHierarchy._setup_derived_fields(self)
+            self.__class__._cached_derived_field_list = self.derived_field_list
+        else:
             self.derived_field_list = self.__class__._cached_derived_field_list
 
     def _generate_random_grids(self):
@@ -630,6 +637,7 @@ class EnzoStaticOutput(StaticOutput):
         paarmeter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
+        if filename.endswith(".hierarchy"): filename = filename[:-10]
         if parameter_override is None: parameter_override = {}
         self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
@@ -874,6 +882,8 @@ class EnzoStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
+        if ("%s" % (args[0])).endswith(".hierarchy"):
+            return True
         return os.path.exists("%s.hierarchy" % args[0])
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):

@@ -639,6 +639,97 @@ class AMRRayBase(AMR1DData):
         self._ts[grid.id] = na.abs(ts)
         return mask
 
+class AMRStreamlineBase(AMR1DData):
+    _type_name = "streamline"
+    _con_args = ('positions')
+    sort_by = 't'
+    def __init__(self, positions, fields=None, pf=None, **kwargs):
+        """
+        This is a streamline, which is a set of points defined as
+        being parallel to some vector field.
+
+        This object is typically accessed through the Streamlines.path
+        function.  The resulting arrays have their dimensionality
+        reduced to one, and an ordered list of points at an (x,y)
+        tuple along `axis` are available, as is the `t` field, which
+        corresponds to a unitless measurement along the ray from start
+        to end.
+
+        Parameters
+        ----------
+        positions : array-like
+            List of streamline positions
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        pf : Parameter file object
+            Passed in to access the hierarchy
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> from yt.visualization.api import Streamlines
+        >>> streamlines = Streamlines(pf, [0.5]*3) 
+        >>> streamlines.integrate_through_volume()
+        >>> stream = streamlines.path(0)
+        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+        
+        """
+        AMR1DData.__init__(self, pf, fields, **kwargs)
+        self.positions = positions
+        self.dts = na.empty_like(positions[:,0])
+        self.dts[:-1] = na.sqrt(na.sum((self.positions[1:]-
+                                        self.positions[:-1])**2,axis=1))
+        self.dts[-1] = self.dts[-1]
+        self.ts = na.add.accumulate(self.dts)
+        self._set_center(self.positions[0])
+        self.set_field_parameter('center', self.positions[0])
+        self._dts, self._ts = {}, {}
+        #self._refresh_data()
+
+    def _get_list_of_grids(self):
+        # Get the value of the line at each LeftEdge and RightEdge
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
+        # Check left faces first
+        min_streampoint = na.min(self.positions, axis=0)
+        max_streampoint = na.max(self.positions, axis=0)
+        p = na.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
+        self._grids = self.hierarchy.grids[p]
+
+    def _get_data_from_grid(self, grid, field):
+        mask = na.logical_and(self._get_cut_mask(grid),
+                              grid.child_mask)
+        if field == 'dts': return self._dts[grid.id][mask]
+        if field == 't': return self._ts[grid.id][mask]
+        return grid[field][mask]
+        
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        mask = na.zeros(grid.ActiveDimensions, dtype='int')
+        dts = na.zeros(grid.ActiveDimensions, dtype='float64')
+        ts = na.zeros(grid.ActiveDimensions, dtype='float64')
+        #pdb.set_trace()
+        points_in_grid = na.all(self.positions > grid.LeftEdge, axis=1) & \
+                         na.all(self.positions <= grid.RightEdge, axis=1) 
+        pids = na.where(points_in_grid)[0]
+        for i, pos in zip(pids, self.positions[points_in_grid]):
+            if not points_in_grid[i]: continue
+            ci = ((pos - grid.LeftEdge)/grid.dds).astype('int')
+            for j in range(3):
+                ci[j] = min(ci[j], grid.ActiveDimensions[j]-1)
+            if mask[ci[0], ci[1], ci[2]]:
+                continue
+            mask[ci[0], ci[1], ci[2]] = 1
+            dts[ci[0], ci[1], ci[2]] = self.dts[i]
+            ts[ci[0], ci[1], ci[2]] = self.ts[i]
+        self._dts[grid.id] = dts
+        self._ts[grid.id] = ts
+        return mask
+
 class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     _key_fields = ['px','py','pdx','pdy']
     """

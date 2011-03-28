@@ -34,7 +34,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    mh, rho_crit_now
+    mh
 import yt.utilities.amr_utils as amr_utils
 
 class EnzoFieldContainer(CodeFieldInfoContainer):
@@ -206,31 +206,6 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
 
-def _ComovingDensity(field,data):
-    ef = (1.0 + data.pf.current_redshift)**3.0
-    return data["Density"]/ef
-add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3")
-
-# This is rho_total / rho_cr(z).
-def Overdensity(field,data):
-    return (data['Density'] + data['Dark_Matter_Density']) / \
-        (rho_crit_now * (data.pf.hubble_constant**2) * ((1+data.pf.current_redshift)**3))
-add_field("Overdensity",function=Overdensity,units=r"")
-
-# This is rho_b / <rho_b>.
-def _Baryon_Overdensity(field, data):
-    return data['Density']
-def _Convert_Baryon_Overdensity(data):
-    if data.pf.parameters.has_key('omega_baryon_now'):
-        omega_baryon_now = data.pf.parameters['omega_baryon_now']
-    else:
-        omega_baryon_now = 0.0441
-    return 1 / (omega_baryon_now * rho_crit_now * 
-                (data.pf['CosmologyHubbleConstantNow']**2) * 
-                ((1+data.pf['CosmologyCurrentRedshift'])**3))
-add_field("Baryon_Overdensity", function=_Baryon_Overdensity, 
-          convert_function=_Convert_Baryon_Overdensity, units=r"")
-
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
 
@@ -240,7 +215,7 @@ add_field("Baryon_Overdensity", function=_Baryon_Overdensity,
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum",
-                   "Bx", "By", "Bz"]
+                   "Bx", "By", "Bz", "Dust_Temperature_Density"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -279,6 +254,17 @@ for ax in ['x','y','z']:
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
+
+# Dust temperature - raw field is T_dust * Density
+def _dust_temperature(field, data):
+    return data['Dust_Temperature_Density'] / data['Density']
+def _convert_dust_temperature(data):
+    ef = (1.0 + data.pf.current_redshift)**3.0
+    return data.convert("Density") / ef
+add_field("Dust_Temperature", function=_dust_temperature, 
+          convert_function=_convert_dust_temperature, take_log=True,
+          validators=[ValidateDataField('Dust_Temperature_Density')],
+          units = r"K")
 
 def _spdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')

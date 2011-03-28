@@ -224,42 +224,7 @@ def check_args(func):
             func(self, subcmd, opts, arg)
     return arg_iterate
 
-def _get_vcs_type(path):
-    if os.path.exists(os.path.join(path, ".hg")):
-        return "hg"
-    if os.path.exists(os.path.join(path, ".svn")):
-        return "svn"
-    return None
-
-def _get_svn_version(path):
-    p = subprocess.Popen(["svn", "info", path], stdout = subprocess.PIPE,
-                                               stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    return stdout
-
-def _update_svn(path):
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    f.write("\n\nUPDATE PROCESS: %s\n\n" % (time.asctime()))
-    p = subprocess.Popen(["svn", "up", path], stdout = subprocess.PIPE,
-                                              stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout)
-    f.write("\n\n")
-    if p.returncode:
-        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
-        sys.exit(1)
-    f.write("Rebuilding modules\n\n")
-    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
-                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout)
-    f.write("\n\n")
-    if p.returncode:
-        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
-        sys.exit(1)
-    f.write("Successful!\n")
-
-def _update_hg(path):
+def _update_hg(path, skip_rebuild = False):
     from mercurial import hg, ui, commands
     f = open(os.path.join(path, "yt_updater.log"), "a")
     u = ui.ui()
@@ -280,10 +245,11 @@ def _update_hg(path):
         print "    $ cd %s" % (path)
         print "    $ hg up"
         print "    $ %s setup.py develop" % (sys.executable)
-        sys.exit(1)
+        return 1
     print "Updating the repository"
     f.write("Updating the repository\n\n")
     commands.update(u, repo, check=True)
+    if skip_rebuild: return
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
@@ -294,6 +260,7 @@ def _update_hg(path):
         print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
         sys.exit(1)
     f.write("Successful!\n")
+    print "Updated successfully."
 
 def _get_hg_version(path):
     from mercurial import hg, ui, commands
@@ -302,11 +269,6 @@ def _get_hg_version(path):
     repo = hg.repository(u, path)
     commands.identify(u, repo)
     return u.popbuffer()
-
-_vcs_identifier = dict(svn = _get_svn_version,
-                        hg = _get_hg_version)
-_vcs_updater = dict(svn = _update_svn,
-                     hg = _update_hg)
 
 class YTCommands(cmdln.Cmdln):
     name="yt"
@@ -342,20 +304,32 @@ class YTCommands(cmdln.Cmdln):
         print
         print "yt module located at:"
         print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
         if "site-packages" not in path:
-            vc_type = _get_vcs_type(path)
-            vstring = _vcs_identifier[vc_type](path)
+            vstring = _get_hg_version(path)
             print
             print "The current version of the code is:"
             print
             print "---"
-            print vstring
+            print vstring.strip()
             print "---"
             print
             print "This installation CAN be automatically updated."
             if opts.update_source:  
                 _vcs_updater[vc_type](path)
             print "Updated successfully."
+        elif opts.update_source:
+            print
+            print "You have to update this installation yourself."
+            print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
@@ -591,7 +565,349 @@ class YTCommands(cmdln.Cmdln):
                             weight="CellMassMsun")
         ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
         pc.save()
-    
+
+    @cmdln.option("-d", "--desc", action="store",
+                  default = None, dest="desc",
+                  help="Description for this pasteboard entry")
+    def do_pasteboard(self, subcmd, opts, arg):
+        """
+        Place a file into the user's pasteboard
+        """
+        if opts.desc is None: raise RuntimeError
+        from yt.utilities.pasteboard import PostInventory
+        pp = PostInventory()
+        pp.add_post(arg, desc=opts.desc)
+
+    @cmdln.option("-o", "--output", action="store",
+                  default = None, dest="output_fn",
+                  help="File to output to; else, print.")
+    def do_pastegrab(self, subcmd, opts, username, paste_id):
+        from yt.utilities.pasteboard import retrieve_pastefile
+        retrieve_pastefile(username, paste_id, opts.output_fn)
+
+    def do_bootstrap_dev(self, subcmd, opts):
+        """
+        Bootstrap a yt development environment
+        """
+        from mercurial import hg, ui, commands
+        import imp
+        import getpass
+        import json
+        uu = ui.ui()
+        print
+        print "Hi there!  Welcome to the yt development bootstrap tool."
+        print
+        print "This should get you started with mercurial as well as a few"
+        print "other handy things, like a pasteboard of your very own."
+        print
+        # We have to do a couple things.
+        # First, we check that YT_DEST is set.
+        if "YT_DEST" not in os.environ:
+            print
+            print "*** You must set the environment variable YT_DEST ***"
+            print "*** to point to the installation location!        ***"
+            print
+            sys.exit(1)
+        supp_path = os.path.join(os.environ["YT_DEST"], "src",
+                                 "yt-supplemental")
+        # Now we check that the supplemental repository is checked out.
+        if not os.path.isdir(supp_path):
+            print
+            print "*** The yt-supplemental repository is not checked ***"
+            print "*** out.  I can do this for you, but because this ***"
+            print "*** is a delicate act, I require you to respond   ***"
+            print "*** to the prompt with the word 'yes'.            ***"
+            print
+            response = raw_input("Do you want me to try to check it out? ")
+            if response != "yes":
+                print
+                print "Okay, I understand.  You can check it out yourself."
+                print "This command will do it:"
+                print
+                print "$ hg clone http://hg.enzotools.org/yt-supplemental/ ",
+                print "%s" % (supp_path)
+                print
+                sys.exit(1)
+            rv = commands.clone(uu,
+                    "http://hg.enzotools.org/yt-supplemental/", supp_path)
+            if rv:
+                print "Something has gone wrong.  Quitting."
+                sys.exit(1)
+        # Now we think we have our supplemental repository.
+        print
+        print "I have found the yt-supplemental repository at %s" % (supp_path)
+        print
+        print "Let's load up and check what we need to do to get up and"
+        print "running."
+        print
+        print "There are three stages:"
+        print
+        print " 1. Setting up your ~/.hgrc to have a username."
+        print " 2. Setting up your bitbucket user account and the hgbb"
+        print "    extension."
+        print " 3. Setting up a new pasteboard repository."
+        print
+        firstname = lastname = email_address = bbusername = repo_list = None
+        # Now we try to import the cedit extension.
+        try:
+            result = imp.find_module("cedit", [supp_path])
+        except ImportError:
+            print "I was unable to find the 'cedit' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        cedit = imp.load_module("cedit", *result)
+        try:
+            result = imp.find_module("hgbb", [supp_path + "/hgbb"])
+        except ImportError:
+            print "I was unable to find the 'hgbb' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        hgbb = imp.load_module("hgbb", *result)
+        if uu.config("ui","username",None) is None:
+            print "You don't have a username specified in your ~/.hgrc."
+            print "Let's set this up.  If you would like to quit at any time,"
+            print "hit Ctrl-C."
+            print
+            firstname = raw_input("What is your first name? ")
+            lastname = raw_input("What is your last name? ")
+            email_address = raw_input("What is your email address? ")
+            print
+            print "Thanks.  I will now add a username of this form to your"
+            print "~/.hgrc file:"
+            print
+            print "    %s %s <%s>" % (firstname, lastname, email_address)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            print
+            cedit.setuser(uu, name="%s %s" % (firstname, lastname),
+                              email="%s" % (email_address),
+                              local=False, username=False)
+            print
+        else:
+            print "Looks like you already have a username!"
+            print "We'll skip that step, then."
+            print
+        print "Now we'll set up BitBucket user.  If you would like to do this"
+        print "yourself, please visit:"
+        print " https://bitbucket.org/account/signup/?plan=5_users"
+        print "for a free account."
+        print
+        loki = raw_input("Do you have a BitBucket.org user already? [yes/no]")
+        if loki.strip().upper() == "YES":
+            bbusername = raw_input("Okay, cool.  What is your username?  ").strip()
+            # Now we get information about the username.
+            if firstname is None or lastname is None:
+                rv = hgbb._bb_apicall(uu, "users/%s" % bbusername, None, False)
+                rv = json.loads(rv)
+                firstname = rv['user']["first_name"]
+                lastname = rv['user']["last_name"]
+                repo_list = rv['repositories']
+                print "Retrieved your info:"
+                print "  username:   %s" % (bbusername)
+                print "  first name: %s" % (firstname)
+                print "  last name:  %s" % (lastname)
+        elif loki.strip().upper() == "NO":
+            print "Okay, we can set you up with one.  It's probably better for"
+            print "it to be all lowercase letter."
+            print
+            bbusername = raw_input("What is your desired username? ").strip()
+            if firstname is None:
+                firstname = raw_input("What's your first name? ").strip()
+            if lastname is None:
+                lastname = raw_input("What's your last name? ").strip()
+            if email_address is None:
+                email_address = raw_input("What's your email address? ").strip()
+            print
+            print "Okay, I'll see if I can create a user with this information:"
+            print "  username:   %s" % (bbusername)
+            print "  first name: %s" % (firstname)
+            print "  last name:  %s" % (lastname)
+            print "  email:      %s" % (email_address)
+            print
+            print "Now, I'm going to ask for a password.  This password will"
+            print "be transmitted over HTTPS (not HTTP) and will not be stored"
+            print "in any local file.  But, it will be stored in memory for"
+            print "the duration of the user-creation process."
+            print
+            while 1:
+                password1 = getpass.getpass("Password? ")
+                password2 = getpass.getpass("Confirm? ")
+                if password1 == password2: break
+                print "Sorry, they didn't match!  Let's try again."
+                print
+            rv = hgbb._bb_apicall(uu, "newuser",
+                                    dict(username=bbusername,
+                                         password=password1,
+                                         email=email_address,
+                                         first_name = firstname,
+                                         last_name = lastname),
+                                   False)
+            del password1, password2
+            if str(json.loads(rv)['username']) == bbusername:
+                print "Successful!  You probably just got an email asking you"
+                print "to confirm this."
+            else:
+                print "Okay, something is wrong.  Quitting!"
+                sys.exit(1)
+        else:
+            print "Not really sure what you replied with.  Quitting!"
+            sys.exit(1)
+        # We're now going to do some modification of the hgrc.
+        # We need an hgrc first.
+        hgrc_path = [cedit.config.defaultpath("user", uu)]
+        hgrc_path = cedit.config.verifypaths(hgrc_path)
+        # Now we set up the hgbb extension
+        if uu.config("extensions","config",None) is None:
+            # cedit is a module, but hgbb is a file.  So we call dirname here.
+            cedit_path = os.path.dirname(cedit.__file__)
+            print "Now we're going to turn on the cedit extension in:"
+            print "    ", hgrc_path
+            print "This will enable you to edit your configuration from the"
+            print "command line.  Mainly, this is useful to use the command"
+            print "'addsource', which will let you add a new source to a given"
+            print "mercurial repository -- like a fork, or your own fork."
+            print
+            print "This constitutes adding the path to the cedit extension,"
+            print "which will look like this:"
+            print
+            print "   [extensions]"
+            print "   config=%s" % cedit_path
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path, "extensions.config=%s" % cedit_path)
+        if uu.config("extensions","hgbb",None) is None:
+            hgbb_path = hgbb.__file__
+            if hgbb_path.endswith(".pyc"): hgbb_path = hgbb_path[:-1]
+            print "Now we're going to turn on the hgbb extension in:"
+            print "    ", hgrc_path
+            print "This will enable you to access BitBucket more easily, as well"
+            print "as create repositories from the command line."
+            print
+            print "This constitutes adding the path to the hgbb extension,"
+            print "which will look like this:"
+            print
+            print "   [extensions]"
+            print "   hgbb=%s" % hgbb_path
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path, "extensions.hgbb=%s" % hgbb_path)
+        if uu.config("bb","username", None) is None:
+            print "We'll now set up your username for BitBucket."
+            print "We will add this:"
+            print
+            print "   [bb]"
+            print "   username = %s" % (bbusername)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
+        # We now reload the UI's config file so that it catches the [bb]
+        # section changes.
+        uu.readconfig(hgrc_path[0])
+        # Now the only thing remaining to do is to set up the pasteboard
+        # repository.
+        # This is, unfortunately, the most difficult.
+        print
+        print "We are now going to set up a pasteboard. This is a mechanism"
+        print "for versioned posting of snippets, collaboration and"
+        print "discussion."
+        print
+        # Let's get the full list of repositories
+        pasteboard_name = "%s.bitbucket.org" % (bbusername.lower())
+        if repo_list is None:
+            rv = hgbb._bb_apicall(uu, "users/%s" % bbusername, None, False)
+            rv = json.loads(rv)
+            repo_list = rv['repositories']
+        create = True
+        for repo in repo_list:
+            if repo['name'] == pasteboard_name:
+                create = False
+        if create:
+            # Now we first create the repository, but we
+            # will only use the creation API, not the bbcreate command.
+            print
+            print "I am now going to create the repository:"
+            print "    ", pasteboard_name
+            print "on BitBucket.org.  This will set up the domain"
+            print "     http://%s" % (pasteboard_name)
+            print "which will point to the current contents of the repo."
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            data = dict(name=pasteboard_name)
+            hgbb._bb_apicall(uu, 'repositories', data)
+        # Now we clone
+        pasteboard_path = os.path.join(os.environ["YT_DEST"], "src",
+                                       pasteboard_name)
+        if os.path.isdir(pasteboard_path):
+            print "Found an existing clone of the pasteboard repo:"
+            print "    ", pasteboard_path
+        else:
+            print
+            print "I will now clone a copy of your pasteboard repo."
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            commands.clone(uu, "https://%s@bitbucket.org/%s/%s" % (
+                             bbusername, bbusername, pasteboard_name),
+                           pasteboard_path)
+            pbtemplate_path = os.path.join(supp_path, "pasteboard_template")
+            pb_hgrc_path = os.path.join(pasteboard_path, ".hg", "hgrc")
+            cedit.config.setoption(uu, [pb_hgrc_path],
+                                   "paths.pasteboard = " + pbtemplate_path)
+            if create:
+                # We have to pull in the changesets from the pasteboard.
+                pb_repo = hg.repository(uu, pasteboard_path)
+                commands.pull(uu, pb_repo,
+                              os.path.join(supp_path, "pasteboard_template"))
+        if ytcfg.get("yt","pasteboard_repo") != pasteboard_path:
+            print
+            print "Now setting the pasteboard_repo option in"
+            print "~/.yt/config to point to %s" % (pasteboard_path)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            dotyt_path = os.path.expanduser("~/.yt")
+            if not os.path.isdir(dotyt_path):
+                print "There's no directory:"
+                print "    ", dotyt_path
+                print "I will now create it."
+                print
+                loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+                os.mkdir(dotyt_path)
+            ytcfg_path = os.path.expanduser("~/.yt/config")
+            cedit.config.setoption(uu, [ytcfg_path],
+                        "yt.pasteboard_repo=%s" % (pasteboard_path))
+        try:
+            import pygments
+            install_pygments = False
+        except ImportError:
+            install_pygments = True
+        if install_pygments:
+            print "You are missing the Pygments package.  Installing."
+            import pip
+            rv = pip.main(["install", "pygments"])
+            if rv == 1:
+                print "Unable to install Pygments.  Please report this bug to yt-users."
+                sys.exit(1)
+        try:
+            import lxml
+            install_lxml = False
+        except ImportError:
+            install_lxml = True
+        if install_lxml:
+            print "You are missing the lxml package.  Installing."
+            import pip
+            rv = pip.main(["install", "lxml"])
+            if rv == 1:
+                print "Unable to install lxml.  Please report this bug to yt-users."
+                sys.exit(1)
+        print
+        print "All done!"
+        print
+        print "You're now set up to use the 'yt pasteboard' command"
+        print "as well as develop using Mercurial and BitBucket."
+        print
+        print "Good luck!"
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]

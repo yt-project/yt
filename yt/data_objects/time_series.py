@@ -52,9 +52,13 @@ class AnalysisTaskProxy(object):
         return key in analysis_task_registry
 
 class TimeSeriesData(object):
-    def __init__(self, name):
-        self.outputs = []
+    def __init__(self, outputs = None):
+        if outputs is None: outputs = []
+        self.outputs = outputs
         self.tasks = AnalysisTaskProxy(self)
+        for type_name in data_object_registry:
+            setattr(self, type_name, functools.partial(
+                TimeSeriesDataObject, self, type_name))
 
     def __iter__(self):
         # We can make this fancier, but this works
@@ -94,27 +98,24 @@ class TimeSeriesData(object):
                 return_values[-1].append(rv)
         return return_values
 
-class EnzoTimeSeries(TimeSeriesData):
-    _enzo_header = "DATASET WRITTEN "
-    def __init__(self, name, **kwargs):
-        TimeSeriesData.__init__(self, name)
-        output_list = kwargs.pop('output_list', None)
-        output_log = kwargs.pop('output_log', None)
-        if output_list: self._populate_output_list(output_list)
-        if output_log: self._populate_output_log(output_log)
-        for type_name in data_object_registry:
-            setattr(self, type_name, functools.partial(
-                TimeSeriesDataObject, self, type_name))
+    @classmethod
+    def from_filenames(cls, filename_list):
+        outputs = []
+        for fn in filename_list:
+            outputs.append(load(fn))
+        obj = cls(outputs)
+        return obj
 
-    def _populate_output_list(self, output_list):
-        for output in output_list:
-            self._insert(EnzoStaticOutput(output))
-
-    def _populate_output_log(self, output_log):
+    @classmethod
+    def from_output_log(cls, output_log,
+                        line_prefix = "DATASET WRITTEN"):
+        outputs = []
         for line in open(output_log):
-            if not line.startswith(self._enzo_header): continue
-            fn = line[len(self._enzo_header):].strip()
-            self._insert(load(fn))
+            if not line.startswith(line_prefix): continue
+            fn = line[len(line_prefix):].strip()
+            outputs.append(load(fn))
+        obj = cls(outputs)
+        return obj
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):

@@ -34,20 +34,19 @@ from yt.analysis_modules.simulation_handler.enzo_simulation \
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.utilities.cosmology import Cosmology
-from yt.visualization.plot_collection import \
-    PlotCollection
+from yt.visualization.image_writer import write_image
 
 from .common_n_volume import commonNVolume
 from .halo_mask import light_cone_halo_map, \
     light_cone_halo_mask
-from .light_cone_projection import LightConeProjection
+from .light_cone_projection import _light_cone_projection
 
 class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, 
                  final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
-                 output_dir='LC', output_prefix='LightCone', **kwargs):
+                 set_parameters=None, output_dir='LC', output_prefix='LightCone', **kwargs):
         """
         Initialize a LightCone object.
         :param initial_redshift (float): the initial (highest) redshift for the light cone.  Default: 1.0.
@@ -67,6 +66,7 @@ class LightCone(EnzoSimulation):
                the projection axis and center.  This was invented to allow light cones with thin slices to 
                sample coherent large scale structure, but in practice does not work so well.  Try setting 
                this parameter to 1 and see what happens.  Default: 0.0.
+        :param set_parameters (dict): dictionary of parameters to attach to pf.parameters.  Default: None.
         :param output_dir (str): the directory in which images and data files will be written.  Default: 'LC'.
         :param output_prefix (str): the prefix of all images and data files.  Default: 'LightCone'.
         """
@@ -79,6 +79,7 @@ class LightCone(EnzoSimulation):
         self.use_minimum_datasets = use_minimum_datasets
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
+        self.set_parameters = set_parameters
         self.output_dir = output_dir
         self.output_prefix = output_prefix
 
@@ -233,8 +234,8 @@ class LightCone(EnzoSimulation):
             del halo_mask_cube
 
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False, node=None,
-                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False,
-                           add_redshift_label=False, **kwargs):
+                           save_stack=True, save_slice_images=False, cmap_name='algae', 
+                           flatten_stack=False, photon_field=False):
         """
         Create projections for light cone, then add them together.
         :param weight_field (str): the weight field of the projection.  This has the same meaning as in standard 
@@ -246,6 +247,7 @@ class LightCone(EnzoSimulation):
         :param save_stack (bool): if True, the unflatted light cone data including each individual slice is written to 
                an hdf5 file.  Default: True.
         :param save_slice_images (bool): save images for each individual projection slice.  Default: False.
+        :param cmap_name (str): color map for images.  Default: 'algae'.
         :param flatten_stack (bool): if True, the light cone stack is continually flattened each time a slice is added 
                in order to save memory.  This is generally not necessary.  Default: False.
         :param photon_field (bool): if True, the projection data for each slice is decremented by 4 Pi R^2`, where R 
@@ -269,10 +271,13 @@ class LightCone(EnzoSimulation):
                 name = "%s%s_%s_%04d_%04d" % (self.output_dir, self.output_prefix,
                                               node, q, len(self.light_cone_solution))
             output['object'] = load(output['filename'])
-            frb = LightConeProjection(output, field, self.pixels, weight_field=weight_field,
-                                      save_image=save_slice_images,
-                                      name=name, node=node, **kwargs)
+            output['object'].parameters.update(self.set_parameters)
+            frb = _light_cone_projection(output, field, self.pixels, 
+                                         weight_field=weight_field, node=node)
             if ytcfg.getint("yt", "__parallel_rank") == 0:
+                if save_slice_images:
+                    write_image(na.log10(frb[field]), "%s_%s.png" % (name, field), cmap_name=cmap_name)
+
                 if photon_field:
                     # Decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
                     co = Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
@@ -286,7 +291,6 @@ class LightCone(EnzoSimulation):
                     mylog.info("Distance to slice = %e" % dL)
                     frb[field] *= factor #in erg/s/cm^2/Hz on observer's image plane.
 
-            if ytcfg.getint("yt", "__parallel_rank") == 0:
                 if weight_field is not None:
                     # Data come back normalized by the weight field.
                     # Undo that so it can be added up for the light cone.
@@ -304,9 +308,6 @@ class LightCone(EnzoSimulation):
                     self.projection_stack = [sum(self.projection_stack)]
                     if weight_field is not None:
                         self.projection_weight_field_stack = [sum(self.projection_weight_field_stack)]
-
-            # Delete the plot collection now that the frb is deleted.
-            del output['pc']
 
             # Unless this is the last slice, delete the dataset object.
             # The last one will be saved to make the plot collection.
@@ -329,6 +330,10 @@ class LightCone(EnzoSimulation):
             # but replace the data with the full light cone projection data.
             frb.data[field] = lightConeProjection
 
+            # Write image.
+            if save_slice_images:
+                write_image(na.log10(frb[field]), "%s_%s.png" % (filename, field), cmap_name=cmap_name)
+
             # Write stack to hdf5 file.
             if save_stack:
                 self._save_light_cone_stack(field=field, weight_field=weight_field, filename=filename)
@@ -340,17 +345,6 @@ class LightCone(EnzoSimulation):
                     frb.data[field] *= self.halo_mask
                 else:
                     mylog.error("No halo mask loaded, call get_halo_mask.")
-
-            # Make a plot collection for the light cone projection.
-            center = [0.5 * (self.light_cone_solution[-1]['object'].parameters['DomainLeftEdge'][w] + 
-                             self.light_cone_solution[-1]['object'].parameters['DomainRightEdge'][w])
-                      for w in range(self.light_cone_solution[-1]['object'].parameters['TopGridRank'])]
-            pc = PlotCollection(self.light_cone_solution[-1]['object'], center=center)
-            pc.add_fixed_resolution_plot(frb, field, **kwargs)
-            pc.save(filename)
-
-            # Return the plot collection so the user can remake the plot if they want.
-            return pc
 
     def rerandomize_light_cone_solution(self, newSeed, recycle=True, filename=None):
         """

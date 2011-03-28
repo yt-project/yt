@@ -46,8 +46,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer
-from yt.visualization.plot_collection import \
-    PlotCollection
+from yt.visualization.image_writer import write_image
 
 PROFILE_RADIUS_THRESHOLD = 2
 
@@ -259,10 +258,11 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         self.profile_fields.append({'field':field, 'weight_field':weight_field, 'accumulation':accumulation})
 
-    def add_projection(self, field, weight_field=None):
+    def add_projection(self, field, weight_field=None, cmap='algae'):
         "Add a field for projection."
 
-        self.projection_fields.append({'field':field, 'weight_field':weight_field})
+        self.projection_fields.append({'field':field, 'weight_field':weight_field, 
+                                       'cmap': cmap})
 
     @parallel_blocking_call
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
@@ -466,14 +466,13 @@ class HaloProfiler(ParallelAnalysisInterface):
             return
 
         # Set resolution for fixed resolution output.
-        if save_cube:
-            if self.project_at_level == 'max':
-                proj_level = self.pf.h.max_level
-            else:
-                proj_level = int(self.project_at_level)
-            proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \
-                (self.pf.parameters['RefineBy']**proj_level)
-            projectionResolution = int(self.projection_width / proj_dx)
+        if self.project_at_level == 'max':
+            proj_level = self.pf.h.max_level
+        else:
+            proj_level = int(self.project_at_level)
+        proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \
+            (self.pf.parameters['RefineBy']**proj_level)
+        projectionResolution = int(self.projection_width / proj_dx)
 
         # Create output directory.
         if self.output_dir is not None:
@@ -515,8 +514,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
             for w in axes:
-                # Create a plot collection.
-                pc = PlotCollection(self.pf, center=center)
+                projections = []
                 # YT projections do not follow the right-hand rule.
                 coords = range(3)
                 del coords[w]
@@ -524,12 +522,15 @@ class HaloProfiler(ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    pc.add_projection(hp['field'], w, weight_field=hp['weight_field'], data_source=region)
+                    projections.append(self.pf.h.proj(w, hp['field'], 
+                                                      weight_field=hp['weight_field'], 
+                                                      data_source=region, center=halo['center'],
+                                                      serialize=False))
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.projection_width/self.pf.units[self.projection_width_units]
-                    shift_projections(self.pf, pc, halo['center'], center, w)
+                    #shift_projections(self.pf, projections, halo['center'], center, w)
                     # Projection has now been shifted to center of box.
                     proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
                     proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
@@ -537,30 +538,33 @@ class HaloProfiler(ParallelAnalysisInterface):
                     proj_left = [leftEdge[x_axis], leftEdge[y_axis]]
                     proj_right = [rightEdge[x_axis], rightEdge[y_axis]]
 
-                pc.set_xlim(proj_left[0], proj_right[0])
-                pc.set_ylim(proj_left[1], proj_right[1])
-
                 # Save projection data to hdf5 file.
-                if save_cube:
+                if save_cube or save_images:
                     axis_labels = ['x', 'y', 'z']
-                    dataFilename = "%s/Halo_%04d_%s_data.h5" % \
-                            (my_output_dir, halo['id'], axis_labels[w])
-                    mylog.info("Saving projection data to %s." % dataFilename)
 
-                    output = h5py.File(dataFilename, "a")
+                    if save_cube:
+                        dataFilename = "%s/Halo_%04d_%s_data.h5" % \
+                            (my_output_dir, halo['id'], axis_labels[w])
+                        mylog.info("Saving projection data to %s." % dataFilename)
+                        output = h5py.File(dataFilename, "a")
+
                     # Create fixed resolution buffer for each projection and write them out.
                     for e, hp in enumerate(self.projection_fields):
-                        frb = FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], 
-                                                                       proj_left[1], proj_right[1]),
-                                                          (projectionResolution, projectionResolution),
-                                                          antialias=False)
+                        frb = FixedResolutionBuffer(projections[e], (proj_left[0], proj_right[0], 
+                                                                     proj_left[1], proj_right[1]),
+                                                    (projectionResolution, projectionResolution),
+                                                    antialias=False)
                         dataset_name = "%s_%s" % (hp['field'], hp['weight_field'])
-                        if dataset_name in output.listnames(): del output[dataset_name]
-                        output.create_dataset(dataset_name, data=frb[hp['field']])
-                    output.close()
+                        if save_cube:
+                            if dataset_name in output.listnames(): del output[dataset_name]
+                            output.create_dataset(dataset_name, data=frb[hp['field']])
 
-                if save_images:
-                    pc.save("%s/Halo_%04d" % (my_output_dir, halo['id']), force_save=True)
+                        if save_images:
+                            filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 
+                                                                   dataset_name, axis_labels[w])
+                            write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+
+                    if save_cube: output.close()
 
             del region
 
@@ -789,7 +793,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         else:
             os.mkdir(my_output_dir)
 
-def shift_projections(pf, pc, oldCenter, newCenter, axis):
+def shift_projections(pf, projections, oldCenter, newCenter, axis):
     """
     Shift projection data around.
     This is necessary when projecting a preiodic region.
@@ -801,10 +805,10 @@ def shift_projections(pf, pc, oldCenter, newCenter, axis):
     del offset[axis]
     del width[axis]
 
-    for plot in pc.plots:
+    for plot in projections:
         # Get name of data field.
         other_fields = {'px':True, 'py':True, 'pdx':True, 'pdy':True, 'weight_field':True}
-        for pfield in plot.data.data.keys():
+        for pfield in plot.data.keys():
             if not(other_fields.has_key(pfield)):
                 field = pfield
                 break
