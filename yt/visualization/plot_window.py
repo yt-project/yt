@@ -40,7 +40,7 @@ def invalidate_data(f):
         args[0]._plot_valid = False
         args[0]._recreate_frb()
         if args[0]._initfinished:
-            return args[0]._setup_plots()
+            args[0]._setup_plots()
 
     return newfunc
 
@@ -208,20 +208,19 @@ class PWViewerExtJS(PlotWindow):
         self._field_transform[field] = func
 
     def _setup_plots(self):
-        plots = []
+        from yt.gui.reason.bottle_mods import PayloadHandler
+        import base64
+        ph = PayloadHandler()
         for field in self._frb.data.keys():
             tf = tempfile.TemporaryFile()
             to_plot = apply_colormap(self._frb[field],func = self._field_transform[field])
             write_png_to_file(to_plot, tf)
             tf.seek(0)
-            s = tf.read()
+            img_data = base64.b64encode(tf.read())
             tf.close()
-            ret = {}
-            ret['plot'] = s
-            ret['metadata'] = self.get_metadata()
-            plots.append(ret)
-
-        return plots
+            payload = {'type':'png_string',
+                       'image_data':img_data}
+            ph.add_payload(payload)
 
     def get_metadata(self):
         pass
