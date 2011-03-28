@@ -126,6 +126,7 @@
 
     var repl_input = new Ext.FormPanel({
         url: 'push',
+        height: 100,
         items: [{
             id: 'input_line',
             xtype: 'textarea',
@@ -196,6 +197,7 @@
           title: 'YT Output',
           id: 'output_container',
           autoScroll: true,
+          flex: 1.0,
           items: []
         });
 
@@ -338,14 +340,12 @@ Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
                 items: [{
                     title: 'YT',
                     id: 'notebook',
+                    layout: 'vbox',
+                    layoutConfig: {align:'stretch'},
                     closable: false,
                     autoScroll: false,
                     iconCls: 'console',
-                    items: [{ 
-                        title: 'Output',
-                        html: "",
-                        id: "cell_output",
-                    }, repl_input, OutputContainer]
+                    items: [repl_input, OutputContainer]
                 }, PlotPanel]
 //                }, {
  //                   title: 'Plot Window 1',
