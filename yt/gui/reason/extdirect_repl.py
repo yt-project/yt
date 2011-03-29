@@ -148,6 +148,24 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def get_history(self):
         return self.executed_cell_texts[:]
 
+    def save_session(self, filename):
+        if not filename.startswith('/'):
+            filename = os.path.join(os.path.expanduser('~/'), filename)
+        if os.path.exists(filename):
+            return {'status': 'FAIL', 'filename': filename,
+                    'error': 'File exists!'}
+        try:
+            f = open(filename, 'w')
+            f.write("\n######\n".join(self.executed_cell_texts))
+            f.close()
+        except IOError as (errno, strerror):
+            return {'status': 'FAIL', 'filename': filename,
+                    'error': strerror}
+        except:
+            return {'status': 'FAIL', 'filename': filename,
+                    'error': 'Unexpected error.'}
+        return {'status': 'SUCCESS', 'filename': filename}
+
     def _session_py(self):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))

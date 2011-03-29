@@ -143,13 +143,28 @@ var ButtonGroupPanel = new Ext.Panel({
             text: 'Save',
             layout:'anchor',
 	      anchor: '100% 67%',
-	      handler: function (b,e) { Ext.Msg.prompt("We have important work to do.", 
-		                                       "Enter filename.", 
-					function(btn, text) {
-						 if (btn == 'ok'){
-						   console.log('Call save function here.')
+	      handler: function (b,e) { 
+	      Ext.Msg.prompt("We have important work to do.", 
+			     "Enter filename.", 
+			     function(btn, text) {
+			       if (btn == 'ok'){
+				 yt_rpc.ExtDirectREPL.save_session({filename:text}, 
+						      function(f, a) {
+							if (a.result['status'] == 'SUCCESS') {
+							  Ext.Msg.alert('Success!',
+									'Saved session to ' + 
+									a.result['filename']);
+							}
+							else {
+							  Ext.Msg.alert('Always naysaying!',
+									'Failed to save to ' + 
+									a.result['filename'] + 
+									'<br>Error: ' + 
+									a.result['error']);
+							}
+						      });
 						 }
-					}); }
+			     }); }
         },{
             xtype: 'tbseparator'
         },{
