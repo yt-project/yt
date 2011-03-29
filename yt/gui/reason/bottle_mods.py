@@ -134,6 +134,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
         kwargs = {'timeout': 600, 'max_threads': 1}
     except ImportError:
         server_name = "wsgiref"
+        kwargs = {}
     server_type = server_names.get(server_name)
     server = server_type(host='localhost', port=port, **kwargs)
     #repl.locals['server'] = server
