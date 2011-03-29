@@ -89,6 +89,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # setting up.
         self.execute("from yt.mods import *")
         self.locals['load_script'] = ext_load_script
+        self.locals['__widgets'] = {}
         self._setup_logging_handlers()
 
     def _setup_logging_handlers(self):
