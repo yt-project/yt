@@ -20,6 +20,9 @@ function cell_finished(result, new_cell) {
 	        var record = new logging_store.recordType(
 		        {record: payload['log_entry'] });
 	        logging_store.add(record, number_log_records++);
+        } else if (payload['type'] == 'widget') {
+            var widget_type = payload['widget_type'];
+            var widget = new widget_types[widget_type](payload['varname']);
         }
     });
     yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
