@@ -26,7 +26,7 @@ function cell_finished(result, new_cell) {
             widget_list[widget.id] = widget;
         } else if (payload['type'] == 'widget_payload') {
             var widget = widget_list[payload['widget_id']];
-            widget.handle_payload(payload);
+            widget.accept_results(payload);
         }
     });
     yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);

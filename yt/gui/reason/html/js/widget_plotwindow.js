@@ -31,20 +31,36 @@ var WidgetPlotWindow = function(python_varname) {
                       {xtype:'button',
                        text: 'North',
                        x: 205,
-                       y: 10},
+                       y: 10,
+                       handler: function(b,e) {
+                       cc = python_varname + '.pan_rel((0.0, 0.5))'
+	            yt_rpc.ExtDirectREPL.execute(
+                    {code:cc}, handle_payload); }
+                       },
                       {xtype:'button',
                        text:'East',
                        x : 410,
                        y : 205,
-                       handler: this.print_python},
+                       handler: function(b,e) {
+	            yt_rpc.ExtDirectREPL.execute(
+                    {code:python_varname + '.pan_rel((0.5, 0.0))'},
+                    handle_payload); }},
                       {xtype:'button',
                        text: 'South',
                        x: 205,
-                       y: 410},
+                       y: 410,
+                       handler: function(b,e) {
+	            yt_rpc.ExtDirectREPL.execute(
+                    {code:python_varname + '.pan_rel((0.0, -0.5))'},
+                    handle_payload); }},
                       {xtype: 'button',
                        text: 'West',
                        x: 10,
-                       y: 205},
+                       y: 205,
+                       handler: function(b,e) {
+	            yt_rpc.ExtDirectREPL.execute(
+                    {code:python_varname + '.pan_rel((-0.5, 0.0))'},
+                    handle_payload); }},
                        ]
                   });
 
@@ -53,7 +69,7 @@ var WidgetPlotWindow = function(python_varname) {
     this.panel.doLayout();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
 
-    this.handle_payload = function(payload) {
+    this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
     }
 }
