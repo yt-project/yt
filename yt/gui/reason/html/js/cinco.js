@@ -172,6 +172,14 @@ var ButtonGroupPanel = new Ext.Panel({
             text: 'Pastebin',
             layout:'anchor',
             anchor: '100% 100%',
+	    handler: function (b,e) { 
+	      yt_rpc.ExtDirectREPL.paste_session({}, function(f, a) {
+							if (a.result['status'] == 'SUCCESS') {
+							  Ext.Msg.alert('Pastebin',
+									'Pasted session to:<br>' + 
+									a.result['site']);
+							}
+		}); }
         }]
     }]
 });

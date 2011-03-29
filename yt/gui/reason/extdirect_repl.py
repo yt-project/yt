@@ -169,6 +169,18 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                     'error': 'Unexpected error.'}
         return {'status': 'SUCCESS', 'filename': filename}
 
+    def paste_session(self):
+        import xmlrpclib, cStringIO
+        p = xmlrpclib.ServerProxy(
+            "http://paste.enzotools.org/xmlrpc/",
+            allow_none=True)
+        cs = cStringIO.StringIO()
+        cs.write("\n######\n".join(self.executed_cell_texts))
+        cs = cs.getvalue()
+        ret = p.pastes.newPaste('pytb', cs, None, '', '', True)
+        site = "http://paste.enzotools.org/show/%s" % ret
+        return {'status': 'SUCCESS', 'site': site}
+
     def _session_py(self):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
