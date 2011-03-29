@@ -103,6 +103,7 @@ var PlotPanel = new Ext.Panel(
 				  iconCls: 'graph',
 				  autoScroll: true,
 				  layout:'absolute',
+                  closable: true,
 				  items: [ 
 					  NorthButton,
 					  EastButton,
