@@ -908,6 +908,12 @@ class YTCommands(cmdln.Cmdln):
         print
         print "Good luck!"
 
+    @cmdln.option("-o", "--open-browser", action="store_true",
+                  default = False, dest='open_browser',
+                  help="Open a web browser.")
+    @cmdln.option("-p", "--port", action="store",
+                  default = 9099, dest='port',
+                  help="Port to listen on")
     def do_serve(self, subcmd, opts):
         """
         Run the Web GUI
@@ -928,7 +934,8 @@ class YTCommands(cmdln.Cmdln):
 
         hr = ExtDirectREPL(base_extjs_path)
         bottle.debug()
-        uuid_serve_functions(open_browser=True)
+        uuid_serve_functions(open_browser=opts.open_browser,
+                    port=int(opts.port))
 
 def run_main():
     for co in ["--parallel", "--paste"]:

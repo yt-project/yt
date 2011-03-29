@@ -91,7 +91,7 @@ class BottleDirectRouter(DirectRouter):
         #print "With this response:", rv
         return rv
 
-def uuid_serve_functions(pre_routed = None, open_browser=False):
+def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
     if pre_routed == None: pre_routed = route_functions
     debug(mode=True)
     token = uuid.uuid1()
@@ -111,7 +111,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
     print
     print "Please direct your browser to:"
     print
-    print "     http://localhost:8080/%s/" % token
+    print "     http://localhost:%s/%s/" % (port, token)
     print
     print
     if open_browser:
@@ -122,7 +122,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
             """Start a browser after waiting for half a second."""
             import webbrowser, threading
             def _local_browse():
-                webbrowser.open('http://localhost:%s/%s/' % (8080, token))
+                webbrowser.open('http://localhost:%s/%s/' % (port, token))
             thread = threading.Timer(0.5, _local_browse)
             thread.start()
         local_browse()
@@ -131,11 +131,11 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
         server_name = "rocket"
         log = logging.getLogger('Rocket')
         log.setLevel(logging.INFO)
-        kwargs = {'timeout': 600}
+        kwargs = {'timeout': 600, 'max_threads': 1}
     except ImportError:
         server_name = "wsgiref"
     server_type = server_names.get(server_name)
-    server = server_type(host='localhost', port=8080, **kwargs)
+    server = server_type(host='localhost', port=port, **kwargs)
     #repl.locals['server'] = server
     mylog.info("Starting up the server.")
     run(server=server)
