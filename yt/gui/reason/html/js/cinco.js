@@ -1,5 +1,6 @@
 var viewport;
 var widget_types = {}
+var widget_list = {}
 
 var examine;
 var number_log_records = 0;

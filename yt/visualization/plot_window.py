@@ -262,11 +262,22 @@ class PWViewerExtJS(PWViewer):
     """A viewer for the web interface.
 
     """
+    _ext_widget_id = None
+    _current_field = None
+    _widget_name = "plot_window"
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
         import base64
         ph = PayloadHandler()
-        for field in self._frb.data.keys():
+        if self._current_field is not None \
+           and self._ext_widget_id is not None:
+            fields = [self._current_field]
+            addl_keys = {'type': 'widget_payload',
+                         'widget_id': self._ext_widget_id}
+        else:
+            fields = self._frb.data.keys()
+            addl_keys = {}
+        for field in fields:
             tf = tempfile.TemporaryFile()
             to_plot = apply_colormap(self._frb[field],func = self._field_transform[field])
             write_png_to_file(to_plot, tf)
@@ -275,6 +286,7 @@ class PWViewerExtJS(PWViewer):
             tf.close()
             payload = {'type':'png_string',
                        'image_data':img_data}
+            payload.update(addl_keys)
             ph.add_payload(payload)
 
     def get_metadata(self):
