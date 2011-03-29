@@ -152,8 +152,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return self.executed_cell_texts[:]
 
     def save_session(self, filename):
-        if not filename.startswith('/'):
-            filename = os.path.join(os.path.expanduser('~/'), filename)
+        if filename.startswith('~'):
+            filename = os.path.expanduser(filename)
+        elif not filename.startswith('/'):
+            filename = os.path.join(os.getcwd(), filename)
         if os.path.exists(filename):
             return {'status': 'FAIL', 'filename': filename,
                     'error': 'File exists!'}

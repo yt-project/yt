@@ -142,7 +142,11 @@ var ButtonGroupPanel = new Ext.Panel({
             text: 'Download',
             layout:'anchor',
             anchor: '100% 33%',
-	      handler: function(b, e) { window.open("session.py", "_top"); }
+	      handler: function(b, e) { 
+	      window.open("session.py", "_top"); 
+	      var record = new logging_store.recordType({record: 'Saved session locally.'});
+	      logging_store.add(record, number_log_records++);
+	    }
         },{
             xtype: 'tbseparator'
         },{
@@ -157,9 +161,12 @@ var ButtonGroupPanel = new Ext.Panel({
 				 yt_rpc.ExtDirectREPL.save_session({filename:text}, 
 						      function(f, a) {
 							if (a.result['status'] == 'SUCCESS') {
-							  Ext.Msg.alert('Success!',
-									'Saved session to ' + 
-									a.result['filename']);
+							  var alert_text = 'Saved session to ' + 
+							    a.result['filename']
+							  Ext.Msg.alert('Success!', alert_text);
+							  var record = new logging_store.recordType(
+									   {record: alert_text });
+							  logging_store.add(record, number_log_records++);
 							}
 							else {
 							  Ext.Msg.alert('Always naysaying!',
@@ -180,9 +187,14 @@ var ButtonGroupPanel = new Ext.Panel({
 	    handler: function (b,e) { 
 	      yt_rpc.ExtDirectREPL.paste_session({}, function(f, a) {
 							if (a.result['status'] == 'SUCCESS') {
-							  Ext.Msg.alert('Pastebin',
-									'Pasted session to:<br>' + 
-									a.result['site']);
+							  var alert_text = 'Pasted session to:<br>' + 
+							    a.result['site']
+							  var alert_text_rec = 'Pasted session to: ' + 
+							    a.result['site']
+							  Ext.Msg.alert('Pastebin', alert_text);
+							  var record = new logging_store.recordType(
+									   {record: alert_text_rec });
+							  logging_store.add(record, number_log_records++);
 							}
 		}); }
         }]
