@@ -28,6 +28,7 @@ import json
 import os
 import cStringIO
 import logging
+import uuid
 from yt.utilities.logger import ytLogger, ufstring
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
@@ -89,7 +90,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # setting up.
         self.execute("from yt.mods import *")
         self.locals['load_script'] = ext_load_script
-        self.locals['__widgets'] = {}
+        self.locals['_widgets'] = {}
+        self.locals['add_widget'] = self._add_widget
+        self.locals['test_widget'] = self._test_widget
         self._setup_logging_handlers()
 
     def _setup_logging_handlers(self):
@@ -172,6 +175,23 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         cs.seek(0)
         response.headers["content-disposition"] = "attachment;"
         return cs
+
+    def _add_widget(self, widget):
+        # This should be sanitized
+        uu = str(uuid.uuid1()).replace("-","_")
+        varname = "%s_%s" % (widget._widget_name, uu)
+        self.locals[varname] = widget
+        payload = {'type': 'widget',
+                   'widget_type': widget._widget_name,
+                   'varname': varname}
+        print payload
+        self.payload_handler.add_payload(payload)
+
+    def _test_widget(self):
+        class tt(object):
+            _widget_name = "plot_window"
+        mm = tt()
+        return mm
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

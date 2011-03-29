@@ -1,30 +1,34 @@
 function cell_finished(result, new_cell) {
-  Ext.each(result['payloads'], function(payload, index) {
-      if (payload['type'] == 'png_string') {
-	new_cell.add(new Ext.Panel({
-	    autoEl:{
-	      tag:'img', width:'25%',
-		  src:"data:image/png;base64," +
-		  payload['image_data'],
-		  id:"payload_image_" + number_images,
-		  onClick: "display_image('payload_image_" +
-		  number_images + "');"
-		  }}));
-	new_cell.doLayout();
-	number_images++;
-      } else if (payload['type'] == 'cell_contents') {
-	var input_line = repl_input.get("input_line")
-	  input_line.setValue(payload['value']);
-      } else if (payload['type'] == 'log_entry') {
-	var record = new logging_store.recordType(
-						  {record: payload['log_entry'] });
-	logging_store.add(record, number_log_records++);
-      }
+    Ext.each(result['payloads'], 
+    function(payload, index) {
+        if (payload['type'] == 'png_string') {
+            new_cell.add(new Ext.Panel({
+                autoEl:{
+                    tag:'img', 
+                    width:'25%',
+                    src:"data:image/png;base64," + payload['image_data'],
+                    id:"payload_image_" + number_images,
+                    onClick: "display_image('payload_image_" + number_images + "');"
+		        }
+            }));
+	        new_cell.doLayout();
+	        number_images++;
+        } else if (payload['type'] == 'cell_contents') {
+	        var input_line = repl_input.get("input_line");
+	        input_line.setValue(payload['value']);
+        } else if (payload['type'] == 'log_entry') {
+	        var record = new logging_store.recordType(
+		        {record: payload['log_entry'] });
+	        logging_store.add(record, number_log_records++);
+        } else if (payload['type'] == 'widget') {
+            var widget_type = payload['widget_type'];
+            var widget = new widget_types[widget_type](payload['varname']);
+        }
     });
-  yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
-  repl_input.body.removeClass("cell_waiting");
-  repl_input.get('input_line').setReadOnly(false);
-  repl_input.get("input_line").focus();
+    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+    repl_input.body.removeClass("cell_waiting");
+    repl_input.get('input_line').setReadOnly(false);
+    repl_input.get("input_line").focus();
 }
 
 function cell_sent() {
@@ -33,23 +37,26 @@ function cell_sent() {
 }
 
 function display_image(image_id) {
-  var image = Ext.get(image_id);
-  var src = image.dom.src;
-  var virtualdom = '<html><title>Image Viewer</title><body><img src="' + src + '"/></body></html>',
-  prev = window.open('', 'image_viewer');
-  prev.document.open();
-  prev.document.write(virtualdom);
-  prev.document.close();
+    var image = Ext.get(image_id);
+    var src = image.dom.src;
+    var virtualdom = '<html><title>Image Viewer</title><body><img src="' + src + '"/></body></html>',
+    prev = window.open('', 'image_viewer');
+    prev.document.open();
+    prev.document.write(virtualdom);
+    prev.document.close();
 }
 
 // Create a tree in the left panel with the pfs and their objects.
 function fill_tree(my_pfs) {
-  examine = my_pfs;
-  treePanel.root.removeAll();
-  Ext.each(my_pfs, function(pf, index) {
-      treePanel.root.appendChild(new Ext.tree.TreeNode({text: pf.name,
-              leaf:false, expanded:true, iconCls: 'pf_icon'}));
-      this_pf = treePanel.root.lastChild
+    examine = my_pfs;
+    treePanel.root.removeAll();
+    Ext.each(my_pfs, function(pf, index) {
+        treePanel.root.appendChild(new Ext.tree.TreeNode({
+            text: pf.name,
+            leaf:false, 
+            expanded:true, 
+            iconCls: 'pf_icon'}));
+        this_pf = treePanel.root.lastChild
 	Ext.each(pf.objects, function(object, obj_index) {
             this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
 		    leaf: true, iconCls: 'data_object'}));
