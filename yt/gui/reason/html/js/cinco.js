@@ -137,13 +137,20 @@ var ButtonGroupPanel = new Ext.Panel({
             text: 'Download',
             layout:'anchor',
             anchor: '100% 33%',
-            handler: function(b, e) { window.open("session.py", "_top"); }
+	      handler: function(b, e) { window.open("session.py", "_top"); }
         },{
             xtype: 'tbseparator'
         },{
             text: 'Save',
             layout:'anchor',
-            anchor: '100% 67%',
+	      anchor: '100% 67%',
+	      handler: function (b,e) { Ext.Msg.prompt("We have important work to do.", 
+		                                       "Enter filename.", 
+					function(btn, text) {
+						 if (btn == 'ok'){
+						   console.log('Call save function here.')
+						 }
+					}); }
         },{
             xtype: 'tbseparator'
         },{
