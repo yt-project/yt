@@ -23,6 +23,10 @@ function cell_finished(result, new_cell) {
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
             var widget = new widget_types[widget_type](payload['varname']);
+            widget_list[widget.id] = widget;
+        } else if (payload['type'] == 'widget_payload') {
+            var widget = widget_list[payload['widget_id']];
+            widget.handle_payload(payload);
         }
     });
     yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
@@ -48,7 +52,6 @@ function display_image(image_id) {
 
 // Create a tree in the left panel with the pfs and their objects.
 function fill_tree(my_pfs) {
-    examine = my_pfs;
     treePanel.root.removeAll();
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({

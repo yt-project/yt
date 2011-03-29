@@ -1,5 +1,5 @@
 var WidgetPlotWindow = function(python_varname) {
-    this.vn = "pw_" + python_varname;
+    this.id = python_varname;
     this.print_python = function(b, e) {
         yt_rpc.ExtDirectREPL.execute({code:'print "' + python_varname + '"'},
                                      function(f, a)
@@ -9,16 +9,17 @@ var WidgetPlotWindow = function(python_varname) {
     viewport.get("center-panel").add(
                   {
                   xtype: 'panel',
-                  id: this.vn,
-                  title: this.vn,
+                  id: "pw_" + this.id,
+                  title: this.id,
                   iconCls: 'graph',
                   autoScroll: true,
                   layout:'absolute',
                   items: [ 
                       {xtype:'panel',
+                       id: 'image_panel_' + this.id,
                        autoEl: {
                          tag: 'img',
-                         id: "img_" + this.vn,
+                         id: "img_" + this.id,
                          width: 400,
                          height: 400,
                        },
@@ -50,6 +51,11 @@ var WidgetPlotWindow = function(python_varname) {
     viewport.doLayout();
     this.panel = viewport.get("center-panel").get("pw_" + python_varname);
     this.panel.doLayout();
+    this.image_panel = this.panel.get("image_panel_"+python_varname);
+
+    this.handle_payload = function(payload) {
+        this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
+    }
 }
 
 widget_types['plot_window'] = WidgetPlotWindow;

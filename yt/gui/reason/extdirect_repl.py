@@ -192,6 +192,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # This should be sanitized
         uu = str(uuid.uuid1()).replace("-","_")
         varname = "%s_%s" % (widget._widget_name, uu)
+        widget._ext_widget_id = varname
         self.locals[varname] = widget
         payload = {'type': 'widget',
                    'widget_type': widget._widget_name,
