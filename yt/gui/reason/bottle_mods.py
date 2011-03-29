@@ -28,6 +28,7 @@ from .bottle import server_names, debug, route, run, request
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
+import logging
 from yt.utilities.logger import ytLogger as mylog
 
 route_functions = {}
@@ -125,10 +126,16 @@ def uuid_serve_functions(pre_routed = None, open_browser=False):
             thread = threading.Timer(0.5, _local_browse)
             thread.start()
         local_browse()
-    # Right now we only really support the built-in wsgiref, but this may
-    # change if we start using Rocket.
-    server_type = server_names.get("wsgiref")
-    server = server_type(host='localhost', port=8080)
+    try:
+        import rocket
+        server_name = "rocket"
+        log = logging.getLogger('Rocket')
+        log.setLevel(logging.INFO)
+        kwargs = {'timeout': 600}
+    except ImportError:
+        server_name = "wsgiref"
+    server_type = server_names.get(server_name)
+    server = server_type(host='localhost', port=8080, **kwargs)
     #repl.locals['server'] = server
     mylog.info("Starting up the server.")
     run(server=server)

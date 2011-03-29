@@ -193,6 +193,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         uu = str(uuid.uuid1()).replace("-","_")
         varname = "%s_%s" % (widget._widget_name, uu)
         widget._ext_widget_id = varname
+        # THIS BREAKS THE SCRIPT DOWNLOAD!
+        # We need to make the variable be bound via an execution mechanism
         self.locals[varname] = widget
         payload = {'type': 'widget',
                    'widget_type': widget._widget_name,

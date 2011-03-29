@@ -64,6 +64,7 @@ var WidgetPlotWindow = function(python_varname) {
                        ]
                   });
 
+    viewport.get("center-panel").activate("pw_" + this.id);
     viewport.doLayout();
     this.panel = viewport.get("center-panel").get("pw_" + python_varname);
     this.panel.doLayout();
@@ -72,6 +73,10 @@ var WidgetPlotWindow = function(python_varname) {
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
     }
+
+    yt_rpc.ExtDirectREPL.execute(
+        {code:python_varname + '.zoom(1.0)'},
+        handle_payload);
 }
 
 widget_types['plot_window'] = WidgetPlotWindow;
