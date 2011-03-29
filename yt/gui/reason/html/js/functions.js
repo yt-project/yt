@@ -21,8 +21,9 @@ function cell_finished(result, new_cell) {
 	logging_store.add(record, number_log_records++);
       }
     });
-  repl_input.get('input_line').setReadOnly(false);
   yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+  repl_input.body.removeClass("cell_waiting");
+  repl_input.get('input_line').setReadOnly(false);
   repl_input.get("input_line").focus();
 }
 

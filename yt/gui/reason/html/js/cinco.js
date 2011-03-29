@@ -21,7 +21,6 @@ var handle_result = function(f, a) {
   OutputContainer.add(cell);
   notebook.doLayout();
   input_line.setValue("");
-  repl_input.body.removeClass("cell_waiting");
   cell_finished(a.result, cell);
   if (OutputContainer.items.length > 1) {
     OutputContainer.body.dom.scrollTop =
@@ -263,7 +262,15 @@ Ext.onReady(function(){
     status_panel = viewport.get("status-region").get("status-div");
     
     var record = new logging_store.recordType(
-					      {record: '4d3d3d3 engaged' });
+                        {record: '4d3d3d3 engaged' });
     logging_store.add(record, number_log_records++);
-    repl_input.get("input_line").focus();
+    var record = new logging_store.recordType(
+                        {record: 'Welcome to yt.  Press Shift-Enter to evaluate.' });
+    logging_store.add(record, number_log_records++);
+    if (!Ext.state.Manager.get("cinco_welcomed", false)) {
+        Ext.MessageBox.alert("yt - Reason v5",
+                "Welcome to Reason.  Press shift-enter to evaluate.",
+                function(b,e){ repl_input.get("input_line").focus(); });
+        Ext.state.Manager.set("cinco_welcomed", true);
+    } else{ repl_input.get("input_line").focus(); }
   });
