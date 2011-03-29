@@ -31,6 +31,10 @@ var handle_result = function(f, a) {
   }
 }
 
+var handle_payload = function(pp) {
+    cell_finished(pp, null);
+}
+
 var repl_input = new Ext.FormPanel({
   title: 'YT Input',
       url: 'push',

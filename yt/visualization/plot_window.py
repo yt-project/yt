@@ -152,6 +152,20 @@ class PlotWindow(object):
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
 
     @invalidate_data
+    def pan_rel(self, deltas):
+        r"""Pan the image by specifying relative deltas, to the FOV.
+        
+        Parameters
+        ----------
+        deltas : sequence of floats
+            (delta_x, delta_y) in *relative* code unit coordinates
+
+        """
+        Wx, Wy = self.width
+        self.xlim = (self.xlim[0] + Wx*deltas[0], self.xlim[1] + Wx*deltas[0])
+        self.ylim = (self.ylim[0] + Wy*deltas[1], self.ylim[1] + Wy*deltas[1])
+
+    @invalidate_data
     def set_field(self):
         pass
 
