@@ -161,8 +161,22 @@ class PlotWindow(object):
         self.ylim = bounds[2:]
 
     @invalidate_data
-    def set_width(self):
-        pass
+    def set_width(self, new_width):
+        """set the width of the plot window
+
+        parameters
+        ----------
+        new_width : float
+            the width of the image in code units.
+
+        """
+        Wx, Wy = self.width
+        centerx = self.xlim[0] + Wx*0.5
+        centery = self.ylim[0] + Wy*0.5
+        self.xlim[0] = centerx - new_width/2.
+        self.xlim[1] = centerx + new_width/2.
+        self.ylim[0] = centery - new_width/2.
+        self.ylim[1] = centery + new_width/2.
 
     @property
     def width(self):
