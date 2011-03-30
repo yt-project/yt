@@ -15,6 +15,7 @@ var WidgetPlotWindow = function(python_varname) {
             iconCls: 'graph',
             autoScroll: true,
             layout:'absolute',
+            closable: true,
             items: [ 
                 {
                     xtype:'panel',
