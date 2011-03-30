@@ -43,7 +43,8 @@ function cell_sent() {
 function display_image(image_id) {
     var image = Ext.get(image_id);
     var src = image.dom.src;
-    var virtualdom = '<html><title>Image Viewer</title><body><img src="' + src + '"/></body></html>',
+    var virtualdom = '<html><title>Image Viewer</title><body><img src="' 
+        + src + '"/></body></html>',
     prev = window.open('', 'image_viewer');
     prev.document.open();
     prev.document.write(virtualdom);
@@ -60,30 +61,33 @@ function fill_tree(my_pfs) {
             expanded:true, 
             iconCls: 'pf_icon'}));
         this_pf = treePanel.root.lastChild
-	Ext.each(pf.objects, function(object, obj_index) {
+        Ext.each(pf.objects, function(object, obj_index) {
             this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
-		    leaf: true, iconCls: 'data_object'}));
-	  });
+            leaf: true, iconCls: 'data_object'}));
+        });
     });
-};
+}
 
 function new_cell(input, result) {
-  var name = "cell_" + cell_count;
-  var CellPanel = new Ext.Panel(
-		    {id: name, //title: "Cell " + cell_count,
-		     items: [new Ext.Panel({
-			  id:name+"_input",
-			      html:input,
-			      }),
-		       new Ext.Panel({
-			 id:name+"_result",
-			     autoScroll:true,
-			     width: "100%",
-			     html:result,
-			     })
-		       ]
-			}
-			);
-  cell_count++;
-  return CellPanel;
+    var name = "cell_" + cell_count;
+    var CellPanel = new Ext.Panel(
+        { 
+            id: name, 
+            //title: "Cell " + cell_count,
+            items: [
+                new Ext.Panel({
+                    id:name+"_input",
+                    html:input,
+                }),
+                new Ext.Panel({
+                    id:name+"_result",
+                    autoScroll:true,
+                    width: "100%",
+                    html:result,
+                })
+            ]
+        }
+    );
+    cell_count++;
+    return CellPanel;
 }
