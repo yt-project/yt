@@ -29,6 +29,7 @@ var handle_result = function(f, a) {
         OutputContainer.body.dom.scrollHeight -
         cell.body.dom.scrollHeight - 20;
     }
+}
 
     var handle_payload = function(pp) {
         cell_finished(pp, null);
@@ -275,7 +276,7 @@ var handle_result = function(f, a) {
                             iconCls: 'console',
                             items: [repl_input, OutputContainer]
                         }, 
-                        PlotPanel
+//                        PlotPanel
                     ]
                 }
             ]
