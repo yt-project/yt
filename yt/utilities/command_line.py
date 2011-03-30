@@ -912,7 +912,7 @@ class YTCommands(cmdln.Cmdln):
                   default = False, dest='open_browser',
                   help="Open a web browser.")
     @cmdln.option("-p", "--port", action="store",
-                  default = 9099, dest='port',
+                  default = 0, dest='port',
                   help="Port to listen on")
     def do_serve(self, subcmd, opts):
         """
@@ -926,6 +926,14 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
+        if opts.port == 0:
+            # This means, choose one at random.  We do this by binding to a
+            # socket and allowing the OS to choose the port for that socket.
+            import socket
+            sock = socket.socket()
+            sock.bind(('', 0))
+            opts.port = sock.getsockname()[-1]
+            del sock
         base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.gui.reason.bottle as bottle
