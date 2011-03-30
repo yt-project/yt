@@ -226,6 +226,7 @@ var handle_result = function(f, a) {
                 {
                     xtype: 'grid',
                     store: logging_store,
+                    defaults: { width: 800 },
                     columns: [ {id:'record', 
                         sortable: false,
                         width:800} ],
@@ -242,7 +243,7 @@ var handle_result = function(f, a) {
                 }, {
                     region: 'west',
                     id: 'west-panel', // see Ext.getCmp() below
-                    title: 'BETA Sequences',
+                    title: 'Data',
                     split: true,
                     width: 200,
                     minSize: 175,
@@ -296,17 +297,22 @@ var handle_result = function(f, a) {
     status_panel = viewport.get("status-region").get("status-div");
     
     var record = new logging_store.recordType(
-        {record: '4d3d3d3 engaged' });
+        {record: 'Welcome to yt.'});
+    logging_store.add(record, number_log_records++);
 
-    logging_store.add(record, number_log_records++);
     var record = new logging_store.recordType(
-        {record: 'Welcome to yt.  Press Shift-Enter to evaluate.' });
+        {record: 'After entering a line of code in the YT Input field, press shift-enter to evaluate.' });
     logging_store.add(record, number_log_records++);
-    if (!Ext.state.Manager.get("cinco_welcomed", false)) {
-        Ext.MessageBox.alert("yt - Reason v5",
-        "Welcome to Reason.  Press shift-enter to evaluate.",
+
+    var record = new logging_store.recordType(
+        {record: '4d3d3d3 engaged.' });
+    logging_store.add(record, number_log_records++);
+
+    if (!Ext.state.Manager.get("reason_welcomed", false)) {
+        Ext.MessageBox.alert("Reason v0.5",
+        "Welcome to Reason.  <br>Treat the 'YT Input' field as a YT/python intepreter.<br>Press shift-enter to evaluate.",
         function(b,e){ repl_input.get("input_line").focus(); });
-        Ext.state.Manager.set("cinco_welcomed", true);
+        Ext.state.Manager.set("reason_welcomed", true);
     } else { 
         repl_input.get("input_line").focus(); }
     });
