@@ -122,7 +122,6 @@ var handle_result = function(f, a) {
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
-        },
         root:new Ext.tree.TreeNode({
             expanded:true,
             leaf:false,
