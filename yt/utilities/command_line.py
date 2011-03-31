@@ -324,7 +324,7 @@ class YTCommands(cmdln.Cmdln):
             print
             print "This installation CAN be automatically updated."
             if opts.update_source:  
-                _vcs_updater[vc_type](path)
+                _update_hg(path)
             print "Updated successfully."
         elif opts.update_source:
             print
