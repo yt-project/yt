@@ -92,3 +92,9 @@ function new_cell(input, result) {
     cell_count++;
     return CellPanel;
 }
+
+function widget_call(varname, method) {
+    var fcall = varname + "." + method;
+    yt_rpc.ExtDirectREPL.execute(
+        {code: fcall}, handle_payload);
+}
