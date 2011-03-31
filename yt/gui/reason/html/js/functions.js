@@ -166,10 +166,13 @@ function sliceHandler(item,pressed){
                             pfname:node.attributes.objdata.varname,
                             center: center, axis:axis, field:field},
                           handle_result);
-                        }
+                        win.close();
+                    }
                 },{
                     text: 'Cancel',
-                    handler: function(b, e){Ext.Msg.alert('Cancelled','Slice cancelled.')}
+                    handler: function(b, e){
+                        win.close();
+                    }
                 }
             ]
         }]
@@ -226,10 +229,10 @@ function projectionHandler(item,pressed){
             buttons: [
                 {
                     text: 'Project',
-                    handler: function(b, e){Ext.Msg.alert('Projection','Projecting!')}
+                    handler: function(b, e){win.close()}
                 },{
                     text: 'Cancel',
-                    handler: function(b, e){Ext.Msg.alert('Cancelled','Projection cancelled.')}
+                    handler: function(b, e){win.close()}
                 }
             ]
         }]
