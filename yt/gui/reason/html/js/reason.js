@@ -111,17 +111,6 @@ var handle_result = function(f, a) {
     var examine;
     var notebook;
 
-var rightClickMenu = new Ext.menu.Menu({
-    items: [
-        {
-            text: 'Open slice'
-//            handler: function(b, e) { window.open("session.py", "_top"); }
-        }, {
-            text: 'Open projection'
-//            handler: function(b, e) { window.open("session.py", "_top"); }
-        }
-    ]
-});
 
     var treePanel = new Ext.tree.TreePanel({
         iconCls: 'nav',
@@ -148,6 +137,17 @@ var rightClickMenu = new Ext.menu.Menu({
                 },
                 contextmenu: {
                     fn: function(node, event){
+                        var rightClickMenu = new Ext.menu.Menu({
+                            items: [
+                                {
+                                    text: 'Open slice',
+                                    handler: getSliceHandler(node),
+                                }, {
+                                    text: 'Open projection',
+                                    handler: getProjectionHandler(node),
+                                }
+                            ]
+                        });
                         rightClickMenu.showAt(event.xy);
                     }
                 }

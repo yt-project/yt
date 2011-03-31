@@ -91,3 +91,125 @@ function new_cell(input, result) {
     cell_count++;
     return CellPanel;
 }
+
+
+function getSliceHandler(node){
+function sliceHandler(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:240,
+        height:200,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Slice Details for ' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [{
+                xtype:'textfield',
+                fieldLabel: 'Center X',
+                id: 'x_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Center Y',
+                id: 'y_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Center Z',
+                id: 'z_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'combo',
+                fieldLabel: 'Axis',
+                id: 'axis',
+                store:['X','Y','Z'],
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'combo',
+                fieldLabel: 'Field',
+                id: 'field',
+                store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
+                width: 90,
+                allowBlank:false,
+            }],
+            buttons: [
+                {
+                    text: 'Slice',
+                    handler: function(b, e){Ext.Msg.alert('Slicing','Slicing it up!')}
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){Ext.Msg.alert('Cancelled','Slice cancelled.')}
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return sliceHandler;
+}
+
+
+function getProjectionHandler(node){
+function projectionHandler(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:240,
+        height:170,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Projection Details for ' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [{
+                xtype:'combo',
+                fieldLabel: 'Axis',
+                id: 'axis',
+                store:['X','Y','Z'],
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'combo',
+                fieldLabel: 'Field',
+                id: 'field',
+                store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
+                width: 120,
+                allowBlank:false,
+            },{
+                xtype:'combo',
+                fieldLabel: 'Weight Field',
+                id: 'weightField',
+                store:['None','Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
+                width: 120,
+                allowBlank:false,
+            }],
+            buttons: [
+                {
+                    text: 'Project',
+                    handler: function(b, e){Ext.Msg.alert('Projection','Projecting!')}
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){Ext.Msg.alert('Cancelled','Projection cancelled.')}
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return projectionHandler;
+}
