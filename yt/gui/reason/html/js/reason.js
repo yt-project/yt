@@ -111,6 +111,18 @@ var handle_result = function(f, a) {
     var examine;
     var notebook;
 
+var rightClickMenu = new Ext.menu.Menu({
+    items: [
+        {
+            text: 'Open slice'
+//            handler: function(b, e) { window.open("session.py", "_top"); }
+        }, {
+            text: 'Open projection'
+//            handler: function(b, e) { window.open("session.py", "_top"); }
+        }
+    ]
+});
+
     var treePanel = new Ext.tree.TreePanel({
         iconCls: 'nav',
         id: 'tree-panel',
@@ -126,7 +138,20 @@ var handle_result = function(f, a) {
             expanded:true,
             leaf:false,
             text:''
-        })
+        }),
+        listeners: {
+                render: {
+                    fn: function() {
+                        Ext.getBody().on("contextmenu", Ext.emptyFn,
+                            null, {preventDefault: true});
+                    }
+                },
+                contextmenu: {
+                    fn: function(node, event){
+                        rightClickMenu.showAt(event.xy);
+                    }
+                }
+          }
     });
 
     var ButtonGroupPanel = new Ext.Panel({
