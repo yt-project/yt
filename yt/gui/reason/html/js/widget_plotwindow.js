@@ -36,7 +36,7 @@ var WidgetPlotWindow = function(python_varname) {
                     x: 205,
                     y: 10,
                     handler: function(b,e) {
-                        cc = python_varname + '.pan_rel((0.0, 0.5))'
+                        cc = python_varname + '.pan_rel((0.0, -0.5))'
                         yt_rpc.ExtDirectREPL.execute(
                         {code:cc}, handle_payload); 
                     }
@@ -57,7 +57,7 @@ var WidgetPlotWindow = function(python_varname) {
                     y: 410,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((0.0, -0.5))'},
+                            {code:python_varname + '.pan_rel((0.0, 0.5))'},
                         handle_payload); 
                     }
                 }, {
