@@ -59,14 +59,14 @@ var WidgetPlotWindow = function(python_varname) {
                         width: 400,
                         height: 400,
                     },
-                    x: 10,
+                    x: 100,
                     y: 10,
                     width: 400,
                     height: 400,
                 }, {
                     xtype:'button',
                     text: 'North',
-                    x: 205,
+                    x: 30,
                     y: 10,
                     handler: function(b,e) {
                         cc = python_varname + '.pan_rel((0.0, -0.5))'
@@ -76,8 +76,8 @@ var WidgetPlotWindow = function(python_varname) {
                 }, {
                     xtype:'button',
                     text:'East',
-                    x : 410,
-                    y : 205,
+                    x : 50,
+                    y : 30,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.5, 0.0))'},
@@ -86,8 +86,8 @@ var WidgetPlotWindow = function(python_varname) {
                 }, {
                     xtype:'button',
                     text: 'South',
-                    x: 205,
-                    y: 410,
+                    x: 30,
+                    y: 50,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.0, 0.5))'},
@@ -97,7 +97,7 @@ var WidgetPlotWindow = function(python_varname) {
                     xtype: 'button',
                     text: 'West',
                     x: 10,
-                    y: 205,
+                    y: 30,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((-0.5, 0.0))'},
@@ -108,9 +108,9 @@ var WidgetPlotWindow = function(python_varname) {
                 {
                     xtype: 'button',
                     text: 'Zoom In 10x',
-                    x: 410,
-                    y: 10,
-                    width: 100,
+                    x: 10,
+                    y: 110,
+                    width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(10.0)'},
@@ -119,9 +119,9 @@ var WidgetPlotWindow = function(python_varname) {
                 },{
                     xtype: 'button',
                     text: 'Zoom In 2x',
-                    x: 410,
-                    y: 35,
-                    width: 100,
+                    x: 10,
+                    y: 135,
+                    width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(2.0)'},
@@ -130,9 +130,9 @@ var WidgetPlotWindow = function(python_varname) {
                 },{
                     xtype: 'button',
                     text: 'Zoom Out 2x',
-                    x: 410,
-                    y: 60,
-                    width: 100,
+                    x: 10,
+                    y: 160,
+                    width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(0.5)'},
@@ -141,9 +141,9 @@ var WidgetPlotWindow = function(python_varname) {
                 },{
                     xtype: 'button',
                     text: 'Zoom Out 10x',
-                    x: 410,
-                    y: 85,
-                    width: 100,
+                    x: 10,
+                    y: 185,
+                    width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(0.1)'},
