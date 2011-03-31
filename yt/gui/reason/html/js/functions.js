@@ -1,4 +1,5 @@
 function cell_finished(result, new_cell) {
+    var new_log = false;
     Ext.each(result['payloads'], 
     function(payload, index) {
         if (payload['type'] == 'png_string') {
@@ -20,6 +21,7 @@ function cell_finished(result, new_cell) {
 	        var record = new logging_store.recordType(
 		        {record: payload['log_entry'] });
 	        logging_store.add(record, number_log_records++);
+            new_log = true;
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
             var widget = new widget_types[widget_type](payload['varname']);
@@ -33,6 +35,9 @@ function cell_finished(result, new_cell) {
     repl_input.body.removeClass("cell_waiting");
     repl_input.get('input_line').setReadOnly(false);
     repl_input.get("input_line").focus();
+    if (new_log == true){
+        viewport.get("status-region").getView().focusRow(number_log_records-1);
+    }
 }
 
 function cell_sent() {
