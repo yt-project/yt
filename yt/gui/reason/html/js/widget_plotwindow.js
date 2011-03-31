@@ -71,6 +71,52 @@ var WidgetPlotWindow = function(python_varname) {
                         handle_payload); 
                     }
                 },
+                /* Now the zoom buttons */
+                {
+                    xtype: 'button',
+                    text: 'Zoom In 10x',
+                    x: 410,
+                    y: 10,
+                    width: 100,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.zoom(10.0)'},
+                        handle_payload); 
+                    }
+                },{
+                    xtype: 'button',
+                    text: 'Zoom In 2x',
+                    x: 410,
+                    y: 35,
+                    width: 100,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.zoom(2.0)'},
+                        handle_payload); 
+                    }
+                },{
+                    xtype: 'button',
+                    text: 'Zoom Out 2x',
+                    x: 410,
+                    y: 60,
+                    width: 100,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.zoom(0.5)'},
+                        handle_payload); 
+                    }
+                },{
+                    xtype: 'button',
+                    text: 'Zoom Out 10x',
+                    x: 410,
+                    y: 85,
+                    width: 100,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.zoom(0.1)'},
+                        handle_payload); 
+                    }
+                }
             ]
         }
     );
