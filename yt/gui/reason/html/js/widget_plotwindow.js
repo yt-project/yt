@@ -63,11 +63,60 @@ var WidgetPlotWindow = function(python_varname) {
                     y: 10,
                     width: 400,
                     height: 400,
+                }, 
+                /* the single buttons for 10% pan*/
+                {
+                    xtype:'button',
+                    iconCls: 'singleuparrow',
+                    //text: 'North',
+                    x: 40,
+                    y: 10,
+                    handler: function(b,e) {
+                        cc = python_varname + '.pan_rel((0.0, -0.1))'
+                        yt_rpc.ExtDirectREPL.execute(
+                        {code:cc}, handle_payload); 
+                    }
                 }, {
                     xtype:'button',
-                    text: 'North',
-                    x: 30,
-                    y: 10,
+                    iconCls: 'singlerightarrow',
+                    //text:'East',
+                    x : 60,
+                    y : 30,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.pan_rel((0.1, 0.0))'},
+                        handle_payload); 
+                    }
+                }, {
+                    xtype:'button',
+                    iconCls: 'singledownarrow',
+                    //text: 'South',
+                    x: 40,
+                    y: 50,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.pan_rel((0.0, 0.1))'},
+                        handle_payload); 
+                    }
+                }, {
+                    xtype: 'button',
+                    iconCls: 'singleleftarrow',
+                    //text: 'West',
+                    x: 20,
+                    y: 30,
+                    handler: function(b,e) {
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.pan_rel((-0.1, 0.0))'},
+                        handle_payload); 
+                    }
+                }, 
+                /* the double buttons for 50% pan*/
+                {
+                    xtype:'button',
+                    iconCls: 'doubleuparrow',
+                    //text: 'North',
+                    x: 40,
+                    y: 80,
                     handler: function(b,e) {
                         cc = python_varname + '.pan_rel((0.0, -0.5))'
                         yt_rpc.ExtDirectREPL.execute(
@@ -75,9 +124,10 @@ var WidgetPlotWindow = function(python_varname) {
                     }
                 }, {
                     xtype:'button',
-                    text:'East',
-                    x : 50,
-                    y : 30,
+                    iconCls: 'doublerightarrow',
+                    //text:'East',
+                    x : 60,
+                    y : 100,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.5, 0.0))'},
@@ -85,9 +135,10 @@ var WidgetPlotWindow = function(python_varname) {
                     }
                 }, {
                     xtype:'button',
-                    text: 'South',
-                    x: 30,
-                    y: 50,
+                    iconCls: 'doubledownarrow',
+                    //text: 'South',
+                    x: 40,
+                    y: 120,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.0, 0.5))'},
@@ -95,9 +146,10 @@ var WidgetPlotWindow = function(python_varname) {
                     }
                 }, {
                     xtype: 'button',
-                    text: 'West',
-                    x: 10,
-                    y: 30,
+                    iconCls: 'doubleleftarrow',
+                    //text: 'West',
+                    x: 20,
+                    y: 100,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((-0.5, 0.0))'},
@@ -109,7 +161,7 @@ var WidgetPlotWindow = function(python_varname) {
                     xtype: 'button',
                     text: 'Zoom In 10x',
                     x: 10,
-                    y: 110,
+                    y: 160,
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
@@ -120,7 +172,7 @@ var WidgetPlotWindow = function(python_varname) {
                     xtype: 'button',
                     text: 'Zoom In 2x',
                     x: 10,
-                    y: 135,
+                    y: 185,
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
@@ -131,7 +183,7 @@ var WidgetPlotWindow = function(python_varname) {
                     xtype: 'button',
                     text: 'Zoom Out 2x',
                     x: 10,
-                    y: 160,
+                    y: 210,
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
@@ -142,7 +194,7 @@ var WidgetPlotWindow = function(python_varname) {
                     xtype: 'button',
                     text: 'Zoom Out 10x',
                     x: 10,
-                    y: 185,
+                    y: 235,
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
