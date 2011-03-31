@@ -30,6 +30,7 @@ from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
 import logging
 from yt.utilities.logger import ytLogger as mylog
+from yt.funcs import *
 
 route_functions = {}
 route_watchers = []
@@ -46,6 +47,7 @@ def notify_route(watcher):
 
 class PayloadHandler(object):
     _shared_state = {}
+    _hold = False
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -56,12 +58,31 @@ class PayloadHandler(object):
         self.payloads = []
 
     def deliver_payloads(self):
+        if self._hold: return []
         payloads = self.payloads
         self.payloads = []
         return payloads
 
     def add_payload(self, to_add):
         self.payloads.append(to_add)
+
+_ph = PayloadHandler()
+
+def append_payloads(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        reset = not _ph._hold
+        _ph._hold = True
+        rv = func(self, *args, **kwargs)
+        # Assume it returns a dict
+        if not reset: return rv
+        # In case it sets it manually
+        _ph._hold = False
+        payloads = rv.get('payloads', [])
+        payloads += _ph.deliver_payloads()
+        rv['payloads'] = payloads
+        return rv
+    return wrapper
 
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable
@@ -107,11 +128,31 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
             print "WARNING: %s has no _route_prefix attribute.  Not notifying."
             continue
             w._route_prefix = token
-    print "Greetings! Your private token is %s ." % token
+    print
+    print
+    print "============================================================================="
+    print "============================================================================="
+    print "Greetings, and welcome to Reason!"
+    print "Your private token is %s ." % token
+    print "DO NOT SHARE THIS TOKEN."
     print
     print "Please direct your browser to:"
     print
     print "     http://localhost:%s/%s/" % (port, token)
+    print
+    print "============================================================================="
+    print
+    print "If you are currently ssh'd into a remote machine, you should be able"
+    print "to create a new SSH tunnel by typing or copy/pasting this text"
+    print "verbatim, while waiting to see the 'ssh>' prompt after the first line."
+    print
+    print "~C"
+    print "-L%s:localhost:%s" % (port, port)
+    print
+    print "and then pointing a web browser on your local machine to the above URL."
+    print
+    print "============================================================================="
+    print "============================================================================="
     print
     print
     if open_browser:

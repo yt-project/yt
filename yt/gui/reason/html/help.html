@@ -1,0 +1,145 @@
+<HTML>
+<title>Reason: a GUI for yt</title>
+<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Crimson+Text">
+<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Inconsolata">
+<style type="text/css">
+body {
+    font-family: "Crimson Text", serif;
+}
+pre {
+    font-family: "Inconsolata", sans-serif;
+}
+div.semi_linked {
+    font-family: "Inconsolata", sans-serif;
+    padding: 1em;
+}
+pre.code{
+    background-color: #E0E0E0;
+    padding: 10px;
+}
+div.yt_logo {
+    float: left;
+    margin-left: 25px;
+    width:200px;
+}
+h1 {
+   font-size: 900%;
+   margin-top: 0.1em;
+   margin-bottom: 0.1em;
+}
+span.logo_y {
+   color: #000000;
+}
+span.logo_t {
+   color: #000000;
+}
+div.faq {
+    text-align: left;
+    width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+    /*background-color: #F9F9F9;*/
+    border-left: 2px solid #D0D0D0;
+    border-right: 2px solid #D0D0D0;
+    padding: 25px;
+    position: absolute;
+    left: 300px;
+}
+p b {
+   color: #444444;
+}
+span.yt_name {
+    font-family: "Inconsolata", sans-serif;
+   color: #009955;
+}
+ul.quick_list {
+    list-style-type: none;
+    padding-left: 0px;
+    line-height: 200%;
+    border-top: 2px solid #D0D0D0;
+    padding-top: 15px;
+    font-size: 125%;
+}
+
+a {
+    /*text-decoration: none;*/
+}
+
+a:link {
+    color: #CC0055;
+}
+
+a:visited {
+    
+    color: #660033;
+}
+
+img.yt_image {
+    width: 220px;
+    height: auto;
+    max-height: 220px;
+    float: right;
+    padding: 5px;
+}
+</style>
+<body>
+<div class="yt_logo">
+<h1>yt:</h1>
+<p>because your data isn't going to analyze itself!</p>
+<ul class="quick_list">
+<li><a href="http://yt.enzotools.org/doc/">docs</a></li>
+<li><a href="http://yt.enzotools.org/wiki/Gallery">gallery</a> ( <a href="video_gallery.html">video</a> )</li>
+<li><a href="http://yt.enzotools.org/wiki">wiki</a></li>
+<li><a href="http://yt.enzotools.org/doc/orientation.html">quick start</a></li>
+<li><a href="http://yt.enzotools.org/newticket">report a bug</a></li>
+<li><a href="http://yt.enzotools.org/browser">source</a></li>
+<li><a href="principles.html">principles</a></li>
+<li><a href="http://blog.enzotools.org/">development blog</a></li>
+</ul>
+</div>
+<div class="faq">
+<h2>Reason: A GUI for yt</h2>
+<p>Reason is an interactive form of yt, totally accessible from a
+web browser.  It has full yt capabilities, as if you are acting from the Python
+intepreter, yet it also provides a new way of interacting directly with your
+data objects.  Because it is run through a web browser, you can run it remotely
+on HPC facilities where your data may reside, while manipulating and
+visualizing it in real time at your own local console.</p>
+
+<h2>Using the yt console</h2>
+<p>The Reason layout consists of a <i>yt input</i> box as well as an output
+window.  Whenever you press shift-enter, the contents of your input box is sent
+to the server and the results returned.  While the server is processing, the
+box around the input form will turn red and become read-only.  When the server
+has returned a result, it will return to normal and allow input.</p>
+
+<p>When using the Reason window to create a plot collection object, the saved
+images will be returned in the window.  You can click on these images to view
+them at full-size.</p>
+
+<h2>Using the interactive plot window</h2>
+<p>As you execute cells and load parameter files from disk, these parameter
+files will get added to the tree view on the left, along with any objects that
+have been created from them.</p>
+
+<p>Over time, these objects will expose right-click events to create plot
+windows, as well as drag-and-drop functionality.</p>
+
+<h2>Saving and loading sessions</h2>
+<p>There are three methods for saving your work.  You can click "Download" to
+download a copy of your session on your local machine.  By clicking "Save" you
+can save a copy on the server on which Reason is running.  By clicking
+"Pastebin" you can send a copy of it to the <a
+href="http://paste.enzotools.org/">yt pastebin</a>.</p>
+
+<p>If you use the command 'load_script' and supply it a file the server can
+find locally, it will read that file in and populate the contents of your next
+submission cell with it.</p>
+
+<h2>How to Quit</h2>
+<p>To quit, simply press Ctrl-C in the console window that you ran "yt serve"
+within.</p>
+
+</div>
+</body>
+</html>

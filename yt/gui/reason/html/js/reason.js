@@ -57,7 +57,29 @@ var handle_result = function(f, a) {
                             code:repl_input.get('input_line').getValue()},
                         handle_result);
 	                }
-	            }
+	            },
+                afterrender: function(f, e){
+                    //var input_line_drop_target_el = repl_input.get("input_line").el.dom;
+                    var input_line_drop_target_el = repl_input.body.dom;
+
+                    var input_line_drop_target = new Ext.dd.DropTarget(input_line_drop_target_el, {
+                        ddGroup     : 'pfDDgroup',
+                        notifyEnter : function(ddSource, e, data) {
+                            repl_input.body.stopFx();
+                            repl_input.body.highlight();
+                        },
+                        notifyDrop  : function(ddSource, e, data){
+
+                            var varname = data.node.attributes.objdata.varname;
+                            /* There is possibly a better way to do this, where it's also
+                               inserted correctly. */
+                            var line = repl_input.get("input_line");
+                            line.setValue(line.getValue() + varname);
+                            line.focus();
+                            return(true);
+                        }
+                    });
+                },
             },
         },],
     });
@@ -123,6 +145,8 @@ var handle_result = function(f, a) {
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
+        ddGroup: 'pfDDgroup',
+        enableDD: true,
         root:new Ext.tree.TreeNode({
             expanded:true,
             leaf:false,
@@ -161,11 +185,11 @@ var handle_result = function(f, a) {
         renderTo: document.body,
         tbar: [{
             xtype: 'buttongroup',
-            columns: 5,
+            columns: 7,
             items: [{
                 text: 'Download',
                 layout:'anchor',
-                anchor: '100% 33%',
+                anchor: '100% 25%',
                 handler: function(b, e) { 
                     window.open("session.py", "_top"); 
                     var record = new logging_store.recordType({
@@ -177,7 +201,7 @@ var handle_result = function(f, a) {
             },{
                 text: 'Save',
                 layout:'anchor',
-	            anchor: '100% 67%',
+	            anchor: '100% 50%',
 	            handler: function (b,e) { 
                     Ext.Msg.prompt("We have important work to do.", 
                     "Enter filename.", 
@@ -206,9 +230,9 @@ var handle_result = function(f, a) {
             },{
                 xtype: 'tbseparator'
             },{
-                text: 'Pastebin',
+                text: 'Paste',
                 layout:'anchor',
-                anchor: '100% 100%',
+                anchor: '100% 75%',
                 handler: function (b,e) { 
                     yt_rpc.ExtDirectREPL.paste_session({}, function(f, a) {
                         if (a.result['status'] == 'SUCCESS') {
@@ -222,6 +246,15 @@ var handle_result = function(f, a) {
                             logging_store.add(record, number_log_records++);
                         }
                     }); 
+                }
+            },{
+                xtype: 'tbseparator'
+            },{
+                text: 'Help',
+                layout:'anchor',
+                anchor: '100% 100%',
+                handler: function (b,e) { 
+                        window.open("help.html", "_new");
                 }
             }]
         }]

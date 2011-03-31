@@ -1,4 +1,5 @@
 function cell_finished(result, new_cell) {
+    var new_log = false;
     Ext.each(result['payloads'], 
     function(payload, index) {
         if (payload['type'] == 'png_string') {
@@ -20,6 +21,7 @@ function cell_finished(result, new_cell) {
 	        var record = new logging_store.recordType(
 		        {record: payload['log_entry'] });
 	        logging_store.add(record, number_log_records++);
+            new_log = true;
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
             var widget = new widget_types[widget_type](payload['varname']);
@@ -30,6 +32,9 @@ function cell_finished(result, new_cell) {
         }
     });
     yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+    if (new_log == true){
+        viewport.get("status-region").getView().focusRow(number_log_records-1);
+    }
     repl_input.body.removeClass("cell_waiting");
     repl_input.get('input_line').setReadOnly(false);
     repl_input.get("input_line").focus();
@@ -57,13 +62,18 @@ function fill_tree(my_pfs) {
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({
             text: pf.name,
+            objdata: {fn: pf.filename, varname: pf.varname},
             leaf:false, 
             expanded:true, 
             iconCls: 'pf_icon'}));
         this_pf = treePanel.root.lastChild
-        Ext.each(pf.objects, function(object, obj_index) {
-            this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
-            leaf: true, iconCls: 'data_object'}));
+        Ext.each(pf.objects, function(obj, obj_index) {
+            this_pf.appendChild(new Ext.tree.TreeNode(
+                {text: obj.name,
+                 leaf: true,
+                 iconCls: 'data_obj',
+                 objdata: {varname: obj.varname},
+                 }));
         });
     });
 }
@@ -91,7 +101,6 @@ function new_cell(input, result) {
     cell_count++;
     return CellPanel;
 }
-
 
 function getSliceHandler(node){
 function sliceHandler(item,pressed){
@@ -160,6 +169,12 @@ function sliceHandler(item,pressed){
 return sliceHandler;
 }
 
+function widget_call(varname, method) {
+    var fcall = varname + "." + method;
+    yt_rpc.ExtDirectREPL.execute(
+        {code: fcall}, handle_payload);
+}
+
 
 function getProjectionHandler(node){
 function projectionHandler(item,pressed){
@@ -213,3 +228,5 @@ function projectionHandler(item,pressed){
 }
 return projectionHandler;
 }
+=======
+>>>>>>> other

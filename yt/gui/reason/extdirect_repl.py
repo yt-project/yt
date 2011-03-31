@@ -29,10 +29,13 @@ import os
 import cStringIO
 import logging
 import uuid
+import numpy as na
+
+from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
-                         PayloadHandler
+                         PayloadHandler, append_payloads
 from .bottle import response, request, route
 from .basic_repl import ProgrammaticREPL
 
@@ -70,6 +73,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # entire interpreter state) we apply all the pre-routing now, rather
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
+                              _help_html = ("/help.html", "GET"),
                               _myapi = ("/resources/ext-repl-api.js", "GET"),
                               _resources = ("/resources/:path#.+#", "GET"),
                               _js = ("/js/:path#.+#", "GET"),
@@ -89,6 +93,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         self.execute("from yt.mods import *")
+        self.execute("from yt.data_objects.static_output import _cached_pfs")
         self.locals['load_script'] = ext_load_script
         self.locals['_widgets'] = {}
         self.locals['add_widget'] = self._add_widget
@@ -104,8 +109,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
         # For now this doesn't work!  We will need to move to a better method
-        # for this.
+        # for this.  It should use the package data command.
         vals = open(os.path.join(local_dir, "html/index.html")).read()
+        return vals
+
+    def _help_html(self):
+        vals = open(os.path.join(local_dir, "html/help.html")).read()
         return vals
 
     def _resources(self, path):
@@ -139,13 +148,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def _highlighter_css(self):
         return highlighter_css
 
+    @append_payloads
     def execute(self, code):
         self.executed_cell_texts.append(code)
         result = ProgrammaticREPL.execute(self, code)
-        payloads = self.payload_handler.deliver_payloads()
         return_value = {'output': result,
-                        'input': highlighter(code),
-                        'payloads': payloads}
+                        'input': highlighter(code)}
         return return_value
 
     def get_history(self):
@@ -190,19 +198,46 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    def _add_widget(self, widget):
+    @append_payloads
+    def _add_widget(self, widget_name):
         # This should be sanitized
+        widget = self.locals[widget_name]
         uu = str(uuid.uuid1()).replace("-","_")
         varname = "%s_%s" % (widget._widget_name, uu)
         widget._ext_widget_id = varname
         # THIS BREAKS THE SCRIPT DOWNLOAD!
         # We need to make the variable be bound via an execution mechanism
-        self.locals[varname] = widget
         payload = {'type': 'widget',
                    'widget_type': widget._widget_name,
                    'varname': varname}
-        print payload
         self.payload_handler.add_payload(payload)
+        rv = self.execute("%s = %s\n" % (varname, widget_name))
+        return rv
+
+    @append_payloads
+    def create_slice(self, pfname, center, axis, field):
+        funccall = """
+        _tpf = %(pfname)s
+        _tcenter = na.array([%(c1)0.20f, %(c2)0.20f, %(c3)0.20f], dtype='float64')
+        _taxis = %(axis)s
+        _tfield = "%(field)s"
+        _tcoord = _tcenter[_taxis]
+        _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter)
+        _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
+        DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
+        from yt.visualization.plot_window import PWViewerExtJS
+        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]))
+        _tpw._current_field = _tfield
+        _tpw.set_log(_tfield, True)
+        add_widget('_tpw')
+        """ % dict(pfname = pfname,
+                   c1 = center[0], c2 = center[1], c3 = center[2],
+                   axis = axis, field=field)
+        # There is a call to do this, but I have forgotten it ...
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        rv = self.execute(funccall)
+        return rv
+
 
     def _test_widget(self):
         class tt(object):
@@ -219,13 +254,16 @@ class ExtDirectParameterFileList(BottleDirectRouter):
         rv = []
         for fn, pf in sorted(_cached_pfs.items()):
             objs = []
-            for obj in pf.h.objects:
+            pf_varname = "_cached_pfs['%s']" % (fn)
+            for i,obj in enumerate(pf.h.objects):
                 try:
                     name = str(obj)
                 except ReferenceError:
                     continue
-                objs.append(dict(name=name, type=obj._type_name))
-            rv.append( dict(name = str(pf), objects = objs) )
+                objs.append(dict(name=name, type=obj._type_name,
+                                 varname = "%s.h.objects[%s]" % (pf_varname, i)))
+            rv.append( dict(name = str(pf), objects = objs, filename=fn,
+                            varname = pf_varname) )
         return rv
 
 def ext_load_script(filename):
