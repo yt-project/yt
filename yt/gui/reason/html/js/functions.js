@@ -228,5 +228,3 @@ function projectionHandler(item,pressed){
 }
 return projectionHandler;
 }
-=======
->>>>>>> other
