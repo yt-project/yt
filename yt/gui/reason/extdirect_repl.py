@@ -196,14 +196,15 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    def _add_widget(self, widget):
+    def _add_widget(self, widget_name):
         # This should be sanitized
+        widget = self.locals[widget_name]
         uu = str(uuid.uuid1()).replace("-","_")
         varname = "%s_%s" % (widget._widget_name, uu)
         widget._ext_widget_id = varname
         # THIS BREAKS THE SCRIPT DOWNLOAD!
         # We need to make the variable be bound via an execution mechanism
-        self.locals[varname] = widget
+        self.execute("%s = %s\n" % (varname, widget_name))
         payload = {'type': 'widget',
                    'widget_type': widget._widget_name,
                    'varname': varname}
