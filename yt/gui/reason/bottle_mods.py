@@ -30,6 +30,7 @@ from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
 import logging
 from yt.utilities.logger import ytLogger as mylog
+from yt.funcs import *
 
 route_functions = {}
 route_watchers = []
@@ -46,6 +47,7 @@ def notify_route(watcher):
 
 class PayloadHandler(object):
     _shared_state = {}
+    _hold = False
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -56,12 +58,31 @@ class PayloadHandler(object):
         self.payloads = []
 
     def deliver_payloads(self):
+        if self._hold: return []
         payloads = self.payloads
         self.payloads = []
         return payloads
 
     def add_payload(self, to_add):
         self.payloads.append(to_add)
+
+_ph = PayloadHandler()
+
+def append_payloads(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        reset = not _ph._hold
+        _ph._hold = True
+        rv = func(self, *args, **kwargs)
+        # Assume it returns a dict
+        if not reset: return rv
+        # In case it sets it manually
+        _ph._hold = False
+        payloads = rv.get('payloads', [])
+        payloads += _ph.deliver_payloads()
+        rv['payloads'] = payloads
+        return rv
+    return wrapper
 
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable

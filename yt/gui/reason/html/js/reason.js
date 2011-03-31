@@ -75,6 +75,7 @@ var handle_result = function(f, a) {
                                inserted correctly. */
                             var line = repl_input.get("input_line");
                             line.setValue(line.getValue() + varname);
+                            line.focus();
                             return(true);
                         }
                     });

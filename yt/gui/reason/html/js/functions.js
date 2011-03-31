@@ -32,12 +32,12 @@ function cell_finished(result, new_cell) {
         }
     });
     yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
-    repl_input.body.removeClass("cell_waiting");
-    repl_input.get('input_line').setReadOnly(false);
-    repl_input.get("input_line").focus();
     if (new_log == true){
         viewport.get("status-region").getView().focusRow(number_log_records-1);
     }
+    repl_input.body.removeClass("cell_waiting");
+    repl_input.get('input_line').setReadOnly(false);
+    repl_input.get("input_line").focus();
 }
 
 function cell_sent() {
