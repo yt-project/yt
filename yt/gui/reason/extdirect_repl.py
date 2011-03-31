@@ -225,13 +225,16 @@ class ExtDirectParameterFileList(BottleDirectRouter):
         rv = []
         for fn, pf in sorted(_cached_pfs.items()):
             objs = []
-            for obj in pf.h.objects:
+            pf_varname = "_cached_pfs['%s']" % (fn)
+            for i,obj in enumerate(pf.h.objects):
                 try:
                     name = str(obj)
                 except ReferenceError:
                     continue
-                objs.append(dict(name=name, type=obj._type_name))
-            rv.append( dict(name = str(pf), objects = objs, filename=fn) )
+                objs.append(dict(name=name, type=obj._type_name,
+                                 varname = "%s.h.objects[%s]" % (pf_varname, i)))
+            rv.append( dict(name = str(pf), objects = objs, filename=fn,
+                            varname = pf_varname) )
         return rv
 
 def ext_load_script(filename):

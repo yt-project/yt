@@ -57,14 +57,18 @@ function fill_tree(my_pfs) {
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({
             text: pf.name,
-            pfdata: {fn: pf.filename},
+            objdata: {fn: pf.filename, varname: pf.varname},
             leaf:false, 
             expanded:true, 
             iconCls: 'pf_icon'}));
         this_pf = treePanel.root.lastChild
-        Ext.each(pf.objects, function(object, obj_index) {
-            this_pf.appendChild(new Ext.tree.TreeNode({text: object.name,
-            leaf: true, iconCls: 'data_object'}));
+        Ext.each(pf.objects, function(obj, obj_index) {
+            this_pf.appendChild(new Ext.tree.TreeNode(
+                {text: obj.name,
+                 leaf: true,
+                 iconCls: 'data_obj',
+                 objdata: {varname: obj.varname},
+                 }));
         });
     });
 }

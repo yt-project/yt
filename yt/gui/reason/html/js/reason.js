@@ -57,7 +57,28 @@ var handle_result = function(f, a) {
                             code:repl_input.get('input_line').getValue()},
                         handle_result);
 	                }
-	            }
+	            },
+                afterrender: function(f, e){
+                    //var input_line_drop_target_el = repl_input.get("input_line").el.dom;
+                    var input_line_drop_target_el = repl_input.body.dom;
+
+                    var input_line_drop_target = new Ext.dd.DropTarget(input_line_drop_target_el, {
+                        ddGroup     : 'pfDDgroup',
+                        notifyEnter : function(ddSource, e, data) {
+                            repl_input.body.stopFx();
+                            repl_input.body.highlight();
+                        },
+                        notifyDrop  : function(ddSource, e, data){
+
+                            var varname = data.node.attributes.objdata.varname;
+                            /* There is possibly a better way to do this, where it's also
+                               inserted correctly. */
+                            var line = repl_input.get("input_line");
+                            line.setValue(line.getValue() + varname);
+                            return(true);
+                        }
+                    });
+                },
             },
         },],
     });
@@ -122,6 +143,8 @@ var handle_result = function(f, a) {
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
+        ddGroup: 'pfDDgroup',
+        enableDD: true,
         root:new Ext.tree.TreeNode({
             expanded:true,
             leaf:false,
