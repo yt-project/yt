@@ -542,6 +542,20 @@ then
     touch ext-slate-110328/done
 fi
 
+if [ -e $HOME/.matplotlib/fontList.cache ] && \
+   ( grep -q python2.6 $HOME/.matplotlib/fontList.cache )
+then
+    echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+    echo "*******************************************************"
+    echo
+    echo "  You likely need to remove your old fontList.cache!"
+    echo "  You can do this with this command:"
+    echo ""
+    echo "  rm $HOME/.matplotlib/fontList.cache"
+    echo
+    echo "*******************************************************"
+fi
+
 function print_afterword
 {
     echo

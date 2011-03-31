@@ -38,6 +38,7 @@ except ImportError:
 from itertools import izip
 
 from yt.funcs import *
+from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.hierarchy import \
@@ -137,7 +138,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
-        if os.path.exists(harray_fn):
+        if ytcfg.getboolean("yt","serialize") and os.path.exists(harray_fn):
             try:
                 harray_fp = h5py.File(harray_fn)
                 self.num_grids = harray_fp["/Level"].len()
@@ -286,6 +287,7 @@ class EnzoHierarchy(AMRHierarchy):
     _bn = "%s.cpu%%04i"
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
+        if not ytcfg.getboolean("yt","serialize"): return False
         try:
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
         except h5py.h5.H5Error:
