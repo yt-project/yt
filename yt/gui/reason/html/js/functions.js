@@ -57,6 +57,7 @@ function fill_tree(my_pfs) {
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({
             text: pf.name,
+            pfdata: {fn: pf.filename},
             leaf:false, 
             expanded:true, 
             iconCls: 'pf_icon'}));

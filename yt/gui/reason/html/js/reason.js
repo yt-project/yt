@@ -122,10 +122,6 @@ var handle_result = function(f, a) {
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
-        listeners: {
-            contextmenu: function(n) {
-                Ext.Msg.alert('Hey jerk!');
-                }
         },
         root:new Ext.tree.TreeNode({
             expanded:true,
