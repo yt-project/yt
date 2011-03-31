@@ -216,6 +216,29 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return rv
 
     @append_payloads
+    def create_proj(self, pfname, axis, field, weight):
+        funccall = """
+        _tpf = %(pfname)s
+        _taxis = %(axis)s
+        _tfield = "%(field)s"
+        _tweight = "%(weight)s"
+        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight)
+        _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
+        DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
+        from yt.visualization.plot_window import PWViewerExtJS
+        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]))
+        _tpw._current_field = _tfield
+        _tpw.set_log(_tfield, True)
+        add_widget('_tpw')
+        """ % dict(pfname = pfname,
+                   axis = inv_axis_names[axis],
+                   weight = weight,
+                   field=field)
+        # There is a call to do this, but I have forgotten it ...
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        rv = self.execute(funccall)
+        return rv
+    @append_payloads
     def create_slice(self, pfname, center, axis, field):
         funccall = """
         _tpf = %(pfname)s

@@ -260,7 +260,16 @@ function projectionHandler(item,pressed){
             buttons: [
                 {
                     text: 'Project',
-                    handler: function(b, e){win.close()}
+                    handler: function(b, e){
+                        var axis = Ext.get("axis").getValue();
+                        var field = Ext.get("field").getValue();
+                        var weight = Ext.get("weightField").getValue();
+                        yt_rpc.ExtDirectREPL.create_proj({
+                                pfname: node.attributes.objdata.varname,
+                                axis: axis, field: field, weight: weight},
+                              handle_result);
+                        win.close();
+                    }
                 },{
                     text: 'Cancel',
                     handler: function(b, e){win.close()}
