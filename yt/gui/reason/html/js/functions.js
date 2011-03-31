@@ -120,35 +120,35 @@ function sliceHandler(item,pressed){
             items: [{
                 xtype:'textfield',
                 fieldLabel: 'Center X',
-                id: 'x_center',
+                id: 'slice_x_center',
                 value: '0.5',
                 width: 90,
                 allowBlank:false,
             },{
                 xtype:'textfield',
                 fieldLabel: 'Center Y',
-                id: 'y_center',
+                id: 'slice_y_center',
                 value: '0.5',
                 width: 90,
                 allowBlank:false,
             },{
                 xtype:'textfield',
                 fieldLabel: 'Center Z',
-                id: 'z_center',
+                id: 'slice_z_center',
                 value: '0.5',
                 width: 90,
                 allowBlank:false,
             },{
                 xtype:'combo',
                 fieldLabel: 'Axis',
-                id: 'axis',
+                id: 'slice_axis',
                 store:['X','Y','Z'],
                 width: 90,
                 allowBlank:false,
             },{
                 xtype:'combo',
                 fieldLabel: 'Field',
-                id: 'field',
+                id: 'slice_field',
                 store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
                 width: 90,
                 allowBlank:false,
@@ -156,7 +156,17 @@ function sliceHandler(item,pressed){
             buttons: [
                 {
                     text: 'Slice',
-                    handler: function(b, e){Ext.Msg.alert('Slicing','Slicing it up!')}
+                    handler: function(b, e){
+                        var center = [Ext.get("slice_x_center").getValue(),
+                                      Ext.get("slice_y_center").getValue(),
+                                      Ext.get("slice_z_center").getValue()];
+                        var axis = Ext.get("slice_axis").getValue();
+                        var field = Ext.get("slice_field").getValue();
+                        yt_rpc.ExtDirectREPL.create_slice({
+                            pfname:node.attributes.objdata.varname,
+                            center: center, axis:axis, field:field},
+                          handle_result);
+                        }
                 },{
                     text: 'Cancel',
                     handler: function(b, e){Ext.Msg.alert('Cancelled','Slice cancelled.')}

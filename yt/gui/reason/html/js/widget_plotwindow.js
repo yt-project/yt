@@ -11,7 +11,7 @@ var WidgetPlotWindow = function(python_varname) {
         {
             xtype: 'panel',
             id: "pw_" + this.id,
-            title: this.id,
+            title: "Plot Window",
             iconCls: 'graph',
             autoScroll: true,
             layout:'absolute',

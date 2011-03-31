@@ -33,6 +33,7 @@ import numpy as na
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
+from yt.utilities.definitions import inv_axis_names
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler, append_payloads
@@ -231,8 +232,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw.set_log(_tfield, True)
         add_widget('_tpw')
         """ % dict(pfname = pfname,
-                   c1 = center[0], c2 = center[1], c3 = center[2],
-                   axis = axis, field=field)
+                   c1 = float(center[0]),
+                   c2 = float(center[1]),
+                   c3 = float(center[2]),
+                   axis = inv_axis_names[axis],
+                   field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         rv = self.execute(funccall)
