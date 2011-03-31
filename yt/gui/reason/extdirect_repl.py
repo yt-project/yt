@@ -70,6 +70,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # entire interpreter state) we apply all the pre-routing now, rather
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
+                              _help_html = ("/help.html", "GET"),
                               _myapi = ("/resources/ext-repl-api.js", "GET"),
                               _resources = ("/resources/:path#.+#", "GET"),
                               _js = ("/js/:path#.+#", "GET"),
@@ -89,6 +90,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         self.execute("from yt.mods import *")
+        self.execute("from yt.data_objects.static_output import _cached_pfs")
         self.locals['load_script'] = ext_load_script
         self.locals['_widgets'] = {}
         self.locals['add_widget'] = self._add_widget
@@ -104,8 +106,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def index(self):
         """Return an HTTP-based Read-Eval-Print-Loop terminal."""
         # For now this doesn't work!  We will need to move to a better method
-        # for this.
+        # for this.  It should use the package data command.
         vals = open(os.path.join(local_dir, "html/index.html")).read()
+        return vals
+
+    def _help_html(self):
+        vals = open(os.path.join(local_dir, "html/help.html")).read()
         return vals
 
     def _resources(self, path):
@@ -225,7 +231,7 @@ class ExtDirectParameterFileList(BottleDirectRouter):
                 except ReferenceError:
                     continue
                 objs.append(dict(name=name, type=obj._type_name))
-            rv.append( dict(name = str(pf), objects = objs) )
+            rv.append( dict(name = str(pf), objects = objs, filename=fn) )
         return rv
 
 def ext_load_script(filename):

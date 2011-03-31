@@ -122,6 +122,11 @@ var handle_result = function(f, a) {
         minSize: 150,
         autoScroll: true,
         rootVisible: false,
+        listeners: {
+            contextmenu: function(n) {
+                Ext.Msg.alert('Hey jerk!');
+                }
+        },
         root:new Ext.tree.TreeNode({
             expanded:true,
             leaf:false,
@@ -136,11 +141,11 @@ var handle_result = function(f, a) {
         renderTo: document.body,
         tbar: [{
             xtype: 'buttongroup',
-            columns: 5,
+            columns: 7,
             items: [{
                 text: 'Download',
                 layout:'anchor',
-                anchor: '100% 33%',
+                anchor: '100% 25%',
                 handler: function(b, e) { 
                     window.open("session.py", "_top"); 
                     var record = new logging_store.recordType({
@@ -152,7 +157,7 @@ var handle_result = function(f, a) {
             },{
                 text: 'Save',
                 layout:'anchor',
-	            anchor: '100% 67%',
+	            anchor: '100% 50%',
 	            handler: function (b,e) { 
                     Ext.Msg.prompt("We have important work to do.", 
                     "Enter filename.", 
@@ -181,9 +186,9 @@ var handle_result = function(f, a) {
             },{
                 xtype: 'tbseparator'
             },{
-                text: 'Pastebin',
+                text: 'Paste',
                 layout:'anchor',
-                anchor: '100% 100%',
+                anchor: '100% 75%',
                 handler: function (b,e) { 
                     yt_rpc.ExtDirectREPL.paste_session({}, function(f, a) {
                         if (a.result['status'] == 'SUCCESS') {
@@ -197,6 +202,15 @@ var handle_result = function(f, a) {
                             logging_store.add(record, number_log_records++);
                         }
                     }); 
+                }
+            },{
+                xtype: 'tbseparator'
+            },{
+                text: 'Help',
+                layout:'anchor',
+                anchor: '100% 100%',
+                handler: function (b,e) { 
+                        window.open("help.html", "_new");
                 }
             }]
         }]
