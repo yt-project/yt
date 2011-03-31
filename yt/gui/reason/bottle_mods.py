@@ -107,11 +107,31 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
             print "WARNING: %s has no _route_prefix attribute.  Not notifying."
             continue
             w._route_prefix = token
-    print "Greetings! Your private token is %s ." % token
+    print
+    print
+    print "============================================================================="
+    print "============================================================================="
+    print "Greetings, and welcome to Reason!"
+    print "Your private token is %s ." % token
+    print "DO NOT SHARE THIS TOKEN."
     print
     print "Please direct your browser to:"
     print
     print "     http://localhost:%s/%s/" % (port, token)
+    print
+    print "============================================================================="
+    print
+    print "If you are currently ssh'd into a remote machine, you should be able"
+    print "to create a new SSH tunnel by typing or copy/pasting this text"
+    print "verbatim, while waiting to see the 'ssh>' prompt after the first line."
+    print
+    print "~C"
+    print "-L%s:localhost:%s" % (port, port)
+    print
+    print "and then pointing a web browser on your local machine to the above URL."
+    print
+    print "============================================================================="
+    print "============================================================================="
     print
     print
     if open_browser:
