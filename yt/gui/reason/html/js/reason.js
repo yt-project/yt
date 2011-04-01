@@ -298,8 +298,12 @@ var handle_result = function(f, a) {
         reader: new Ext.data.ArrayReader({}, [{name: 'record'}]),
     });
 
+    var heartbeep_request = false;
+    var task_runner = new Ext.util.TaskRunner();
+
+
     Ext.onReady(function(){
-        Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
+       Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
 
     // NOTE: This is an example showing simple state management. During development,
     // it is generally best to disable state management as dynamically-generated ids
@@ -405,4 +409,18 @@ var handle_result = function(f, a) {
         Ext.state.Manager.set("reason_welcomed", true);
     } else { 
         repl_input.get("input_line").focus(); }
+
+    /* Set up the heartbeep */
+    var heartbeep = {
+    run:
+      function(){ if (heartbeep_request == true) return; 
+        yt_rpc.ExtDirectREPL.heartbeep(
+            {}, function(f, a) {
+            heartbeep_request = false;
+            if (f['alive'] == true) { 
+            }})},
+    interval: 5000};
+
+    //task_runner.start(heartbeep);
+                         
     });

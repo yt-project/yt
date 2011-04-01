@@ -114,6 +114,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         vals = open(os.path.join(local_dir, "html/index.html")).read()
         return vals
 
+    def heartbeep(self):
+        return {'alive': True}
+
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()
         return vals
@@ -217,6 +220,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @append_payloads
     def create_proj(self, pfname, axis, field, weight):
+        if weight == "None": weight = None
         funccall = """
         _tpf = %(pfname)s
         _taxis = %(axis)s
@@ -238,6 +242,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         rv = self.execute(funccall)
         return rv
+
     @append_payloads
     def create_slice(self, pfname, center, axis, field):
         funccall = """
