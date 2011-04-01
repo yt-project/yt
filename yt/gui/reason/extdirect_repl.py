@@ -36,9 +36,10 @@ from yt.utilities.logger import ytLogger, ufstring
 from yt.utilities.definitions import inv_axis_names
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
-                         PayloadHandler, append_payloads
+                         PayloadHandler
 from .bottle import response, request, route
 from .basic_repl import ProgrammaticREPL
+import threading
 
 try:
     import pygments
@@ -58,6 +59,31 @@ except ImportError:
     highlight_css = ''
 
 local_dir = os.path.dirname(__file__)
+
+class MethodLock(object):
+    _shared_state = {}
+    locks = None
+
+    def __new__(cls, *p, **k):
+        self = object.__new__(cls, *p, **k)
+        self.__dict__ = cls._shared_state
+        return self
+
+    def __init__(self):
+        if self.locks is None: self.locks = {}
+
+    def __call__(self, func):
+        if str(func) not in self.locks:
+            self.locks[str(func)] = threading.Lock()
+        @wraps(func)
+        def locker(*args, **kwargs):
+            with self.locks[str(func)]:
+                rv = func(*args, **kwargs)
+            print "Regained lock:", rv
+            return rv
+        return locker
+
+lockit = MethodLock()
 
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
@@ -115,7 +141,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return vals
 
     def heartbeep(self):
-        return {'alive': True}
+        return self.payload_handler.deliver_payloads()
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()
@@ -152,9 +178,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def _highlighter_css(self):
         return highlighter_css
 
-    @append_payloads
+    @lockit
     def execute(self, code):
         self.executed_cell_texts.append(code)
+
         result = ProgrammaticREPL.execute(self, code)
         self.payload_handler.add_payload(
             {'type': 'cell_results',
@@ -164,6 +191,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def get_history(self):
         return self.executed_cell_texts[:]
 
+    @lockit
     def save_session(self, filename):
         if filename.startswith('~'):
             filename = os.path.expanduser(filename)
@@ -184,6 +212,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                     'error': 'Unexpected error.'}
         return {'status': 'SUCCESS', 'filename': filename}
 
+    @lockit
     def paste_session(self):
         import xmlrpclib, cStringIO
         p = xmlrpclib.ServerProxy(
@@ -196,6 +225,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         site = "http://paste.enzotools.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
 
+    @lockit
     def _session_py(self):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
@@ -203,7 +233,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    @append_payloads
+    @lockit
     def _add_widget(self, widget_name):
         # This should be sanitized
         widget = self.locals[widget_name]
@@ -218,7 +248,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.payload_handler.add_payload(payload)
         self.execute("%s = %s\n" % (varname, widget_name))
 
-    @append_payloads
+    @lockit
     def create_proj(self, pfname, axis, field, weight):
         if weight == "None": weight = None
         funccall = """
@@ -242,7 +272,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
 
-    @append_payloads
+    @lockit
     def create_slice(self, pfname, center, axis, field):
         funccall = """
         _tpf = %(pfname)s

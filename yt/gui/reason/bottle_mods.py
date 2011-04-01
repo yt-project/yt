@@ -28,7 +28,7 @@ from .bottle import server_names, debug, route, run, request
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
-import logging
+import logging, threading
 from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import *
 
@@ -48,6 +48,8 @@ def notify_route(watcher):
 class PayloadHandler(object):
     _shared_state = {}
     _hold = False
+    payloads = None
+    lock = None
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -55,32 +57,18 @@ class PayloadHandler(object):
         return self
 
     def __init__(self):
-        self.payloads = []
+        if self.payloads is None: self.payloads = []
+        if self.lock is None: self.lock = threading.Lock()
 
     def deliver_payloads(self):
-        if self._hold: return []
-        payloads = self.payloads
-        self.payloads = []
+        with self.lock:
+            if self._hold: return []
+            payloads = self.payloads
+            self.payloads = []
         return payloads
 
     def add_payload(self, to_add):
         self.payloads.append(to_add)
-
-_ph = PayloadHandler()
-
-def append_payloads(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        reset = not _ph._hold
-        _ph._hold = True
-        func(self, *args, **kwargs)
-        # Assume it returns a dict
-        if not reset: return
-        # In case it sets it manually
-        _ph._hold = False
-        payloads = _ph.deliver_payloads()
-        return payloads
-    return wrapper
 
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable
@@ -170,7 +158,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
         server_name = "rocket"
         log = logging.getLogger('Rocket')
         log.setLevel(logging.INFO)
-        kwargs = {'timeout': 600, 'max_threads': 1}
+        kwargs = {'timeout': 600, 'max_threads': 2}
     except ImportError:
         server_name = "wsgiref"
         kwargs = {}

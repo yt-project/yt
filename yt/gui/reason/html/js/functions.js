@@ -31,6 +31,7 @@ License:
 
 function cell_finished(result) {
     var new_log = false;
+    var cell_resulted = false;
     Ext.each(result, 
     function(payload, index) {
         if (payload['type'] == 'cell_results') {
@@ -47,6 +48,7 @@ function cell_finished(result) {
                 OutputContainer.body.dom.scrollHeight -
                 cell.body.dom.scrollHeight - 20;
             }
+            cell_resulted = true;
         } else if (payload['type'] == 'png_string') {
             new_cell.add(new Ext.Panel({
                 autoEl:{
@@ -76,13 +78,15 @@ function cell_finished(result) {
             widget.accept_results(payload);
         }
     });
-    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
     if (new_log == true){
         viewport.get("status-region").getView().focusRow(number_log_records-1);
     }
-    repl_input.body.removeClass("cell_waiting");
-    repl_input.get('input_line').setReadOnly(false);
-    repl_input.get("input_line").focus();
+    if (cell_resulted == true) {
+        repl_input.body.removeClass("cell_waiting");
+        repl_input.get('input_line').setReadOnly(false);
+        repl_input.get("input_line").focus();
+        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+    }
 }
 
 function cell_sent() {
@@ -232,7 +236,6 @@ function widget_call(varname, method) {
     yt_rpc.ExtDirectREPL.execute(
         {code: fcall}, cell_finished);
 }
-
 
 function getProjectionHandler(node){
 function projectionHandler(item,pressed){

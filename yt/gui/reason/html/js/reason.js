@@ -42,16 +42,6 @@ var res;
 var cell_count = 0;
 
 var handle_result = function(f, a) {
-    var input_line = repl_input.get("input_line")
-    if (a.result == null) {
-        formatted_input = input_line.getValue();
-        text = "ERROR";
-        var cell = new_cell(formatted_input, text);
-        OutputContainer.add(cell);
-        notebook.doLayout();
-        input_line.setValue("");
-        return;
-    }
     cell_finished(a.result);
 }
 
@@ -403,16 +393,18 @@ var handle_result = function(f, a) {
         repl_input.get("input_line").focus(); }
 
     /* Set up the heartbeep */
+    var num = 0;
     var heartbeep = {
     run:
       function(){ if (heartbeep_request == true) return; 
         yt_rpc.ExtDirectREPL.heartbeep(
             {}, function(f, a) {
             heartbeep_request = false;
-            if (f['alive'] == true) { 
+            if (f != null) {
+                handle_result(f, a);
             }})},
-    interval: 5000};
+    interval: 1000};
 
-    //task_runner.start(heartbeep);
+    task_runner.start(heartbeep);
                          
     });
