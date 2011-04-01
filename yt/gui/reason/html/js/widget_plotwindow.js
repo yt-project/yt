@@ -74,7 +74,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         cc = python_varname + '.pan_rel((0.0, -0.1))'
                         yt_rpc.ExtDirectREPL.execute(
-                        {code:cc}, handle_payload); 
+                        {code:cc}, cell_finished); 
                     }
                 }, {
                     xtype:'button',
@@ -85,7 +85,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.1, 0.0))'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 }, {
                     xtype:'button',
@@ -96,7 +96,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.0, 0.1))'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 }, {
                     xtype: 'button',
@@ -107,7 +107,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((-0.1, 0.0))'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 }, 
                 /* the double buttons for 50% pan*/
@@ -120,7 +120,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         cc = python_varname + '.pan_rel((0.0, -0.5))'
                         yt_rpc.ExtDirectREPL.execute(
-                        {code:cc}, handle_payload); 
+                        {code:cc}, cell_finished); 
                     }
                 }, {
                     xtype:'button',
@@ -131,7 +131,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.5, 0.0))'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 }, {
                     xtype:'button',
@@ -142,7 +142,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((0.0, 0.5))'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 }, {
                     xtype: 'button',
@@ -153,7 +153,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.pan_rel((-0.5, 0.0))'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 },
                 /* Now the zoom buttons */
@@ -166,7 +166,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(10.0)'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 },{
                     xtype: 'button',
@@ -177,7 +177,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(2.0)'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 },{
                     xtype: 'button',
@@ -188,7 +188,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(0.5)'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 },{
                     xtype: 'button',
@@ -199,7 +199,7 @@ var WidgetPlotWindow = function(python_varname) {
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.zoom(0.1)'},
-                        handle_payload); 
+                        cell_finished); 
                     }
                 }
             ]
@@ -218,7 +218,7 @@ var WidgetPlotWindow = function(python_varname) {
 
     yt_rpc.ExtDirectREPL.execute(
         {code:python_varname + '.zoom(1.0)'},
-        handle_payload);
+        cell_finished);
 }
 
 widget_types['plot_window'] = WidgetPlotWindow;

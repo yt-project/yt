@@ -29,11 +29,25 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-function cell_finished(result, new_cell) {
+function cell_finished(result) {
     var new_log = false;
-    Ext.each(result['payloads'], 
+    Ext.each(result, 
     function(payload, index) {
-        if (payload['type'] == 'png_string') {
+        if (payload['type'] == 'cell_results') {
+            text = "<pre>"+payload['output']+"</pre>";
+            formatted_input = payload['input']
+            var cell = new_cell(formatted_input, text);
+            OutputContainer.add(cell);
+            OutputContainer.doLayout();
+            notebook.doLayout();
+            repl_input.get("input_line").setValue("");
+            if (OutputContainer.items.length > 1) {
+                examine = cell;
+                OutputContainer.body.dom.scrollTop = 
+                OutputContainer.body.dom.scrollHeight -
+                cell.body.dom.scrollHeight - 20;
+            }
+        } else if (payload['type'] == 'png_string') {
             new_cell.add(new Ext.Panel({
                 autoEl:{
                     tag:'img', 
@@ -216,7 +230,7 @@ return sliceHandler;
 function widget_call(varname, method) {
     var fcall = varname + "." + method;
     yt_rpc.ExtDirectREPL.execute(
-        {code: fcall}, handle_payload);
+        {code: fcall}, cell_finished);
 }
 
 

@@ -156,9 +156,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def execute(self, code):
         self.executed_cell_texts.append(code)
         result = ProgrammaticREPL.execute(self, code)
-        return_value = {'output': result,
-                        'input': highlighter(code)}
-        return return_value
+        self.payload_handler.add_payload(
+            {'type': 'cell_results',
+             'output': result,
+             'input': highlighter(code)})
 
     def get_history(self):
         return self.executed_cell_texts[:]
@@ -215,8 +216,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    'widget_type': widget._widget_name,
                    'varname': varname}
         self.payload_handler.add_payload(payload)
-        rv = self.execute("%s = %s\n" % (varname, widget_name))
-        return rv
+        self.execute("%s = %s\n" % (varname, widget_name))
 
     @append_payloads
     def create_proj(self, pfname, axis, field, weight):
@@ -240,8 +240,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        rv = self.execute(funccall)
-        return rv
+        self.execute(funccall)
 
     @append_payloads
     def create_slice(self, pfname, center, axis, field):
@@ -267,9 +266,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        rv = self.execute(funccall)
-        return rv
-
+        self.execute(funccall)
 
     def _test_widget(self):
         class tt(object):

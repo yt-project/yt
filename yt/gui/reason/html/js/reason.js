@@ -44,27 +44,19 @@ var cell_count = 0;
 var handle_result = function(f, a) {
     var input_line = repl_input.get("input_line")
     if (a.result == null) {
-        text = "ERROR";
         formatted_input = input_line.getValue();
-    } else {
-//        text = a.result['output'].replace(/\n/g,"<br/>");
-        text = "<pre>"+a.result['output']+"</pre>";
-        formatted_input = a.result['input']
+        text = "ERROR";
+        var cell = new_cell(formatted_input, text);
+        OutputContainer.add(cell);
+        notebook.doLayout();
+        input_line.setValue("");
+        return;
     }
-    var cell = new_cell(formatted_input, text);
-    OutputContainer.add(cell);
-    notebook.doLayout();
-    input_line.setValue("");
-    cell_finished(a.result, cell);
-    if (OutputContainer.items.length > 1) {
-        OutputContainer.body.dom.scrollTop = 
-        OutputContainer.body.dom.scrollHeight -
-        cell.body.dom.scrollHeight - 20;
-    }
+    cell_finished(a.result);
 }
 
     var handle_payload = function(pp) {
-        cell_finished(pp, null);
+        cell_finished(pp);
     }
 
     var repl_input = new Ext.FormPanel({

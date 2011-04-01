@@ -73,15 +73,13 @@ def append_payloads(func):
     def wrapper(self, *args, **kwargs):
         reset = not _ph._hold
         _ph._hold = True
-        rv = func(self, *args, **kwargs)
+        func(self, *args, **kwargs)
         # Assume it returns a dict
-        if not reset: return rv
+        if not reset: return
         # In case it sets it manually
         _ph._hold = False
-        payloads = rv.get('payloads', [])
-        payloads += _ph.deliver_payloads()
-        rv['payloads'] = payloads
-        return rv
+        payloads = _ph.deliver_payloads()
+        return payloads
     return wrapper
 
 class BottleDirectRouter(DirectRouter):
