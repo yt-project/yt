@@ -140,7 +140,7 @@ class RAMSESHierarchy(AMRHierarchy):
             ogrid_levels, ogrid_file_locations, 
             ogrid_hilbert_indices, ochild_masks,
             self.pf.domain_left_edge, self.pf.domain_right_edge)
-        insert_ipython()
+        #insert_ipython()
         # Now we can rescale
         mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
         DL = self.pf.domain_left_edge
@@ -169,49 +169,48 @@ class RAMSESHierarchy(AMRHierarchy):
             pbar = get_pbar("Re-gridding ", lefts[0].size)
             min_ind = na.min(left_index, axis=0)
             max_ind = na.max(right_index, axis=0)
-            for i,dli in enumerate(lefts[0]):
-                pbar.update(i)
-                if min_ind[0] > dli + nd[0]: continue
-                if max_ind[0] < dli: continue
-                idim = min(nd[0] - dli, MAX_EDGE)
-                gdi = ((dli  <= right_index[:,0])
-                     & (dli + idim >= left_index[:,0]))
-                if not na.any(gdi): continue
-                for dlj in lefts[1]:
-                    if min_ind[1] > dlj + nd[1]: continue
-                    if max_ind[1] < dlj: continue
-                    idim = min(nd[1] - dlj, MAX_EDGE)
-                    gdj = ((dlj  <= right_index[:,1])
-                         & (dlj + idim >= left_index[:,1])
-                         & (gdi))
-                    if not na.any(gdj): continue
-                    for dlk in lefts[2]:
-                        if min_ind[2] > dlk + nd[2]: continue
-                        if max_ind[2] < dlk: continue
-                        idim = min(nd[2] - dlk, MAX_EDGE)
-                        gdk = ((dlk  <= right_index[:,2])
-                             & (dlk + idim >= left_index[:,2])
-                             & (gdj))
-                        if not na.any(gdk): continue
-                        left = na.array([dli, dlj, dlk])
-                        domain_left = left.ravel()
-                        initial_left = na.zeros(3, dtype='int64') + domain_left
-                        idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
-                        # We want to find how many grids are inside.
-                        dleft_index = left_index[gdk,:]
-                        dright_index = right_index[gdk,:]
-                        ddims = dims[gdk,:]
-                        dfl = fl[gdk,:]
-                        psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                        dleft_index, dright_index, ddims, dfl)
-                        #print "Gridding from %s to %s + %s" % (
-                        #    initial_left, initial_left, idims)
-                        if psg.efficiency <= 0: continue
-                        self.num_deep = 0
-                        psgs.extend(self._recursive_patch_splitting(
-                            psg, idims, initial_left, 
-                            dleft_index, dright_index, ddims, dfl))
-                        #psgs.extend([psg])
+            nbits = 61 - 3*(LEVEL_OF_EDGE + level + 1)
+            hilbert_indices_level = (ogrid_hilbert_indices[ggi] >> nbits)
+            NH = 2**(3*(level - LEVEL_OF_EDGE + 1))
+            if level <= LEVEL_OF_EDGE:
+                hilbert_indices_level[:] = 0
+                NH = 1
+            dlp = [None, None, None]
+            i = 0
+            dlis, dljs, dlks = na.mgrid[0:nd[0]:MAX_EDGE,0:nd[1]:MAX_EDGE,0:nd[2]:MAX_EDGE]
+            dlis = dlis.ravel(); dljs = dljs.ravel(); dlks = dlks.ravel()
+            for i in xrange(dlis.size):
+                dli = dlis[i]; dlj = dljs[i]; dlk = dlks[i]
+                dlp[0] = dli / float(nd[0])
+                dlp[1] = dlj / float(nd[1])
+                dlp[2] = dlk / float(nd[2])
+                hilbert_index = _ramses_reader.hilbert_position(dlp)
+                hilbert_index = (hilbert_index >> nbits)
+                if level > LEVEL_OF_EDGE:
+                    gdk = (hilbert_indices_level == hilbert_index)
+                else:
+                    gdk = na.ones(left_index.shape[0], dtype='bool')
+                if not na.any(gdk): continue
+                print hilbert_index, NH, hilbert_indices_level.max()
+                left = na.array([dli, dlj, dlk])
+                domain_left = left.ravel()
+                initial_left = na.zeros(3, dtype='int64') + domain_left
+                idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
+                # We want to find how many grids are inside.
+                dleft_index = left_index[gdk,:]
+                dright_index = right_index[gdk,:]
+                ddims = dims[gdk,:]
+                dfl = fl[gdk,:]
+                psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
+                                dleft_index, dright_index, ddims, dfl)
+                #print "Gridding from %s to %s + %s" % (
+                #    initial_left, initial_left, idims)
+                if psg.efficiency <= 0: continue
+                self.num_deep = 0
+                psgs.extend(self._recursive_patch_splitting(
+                    psg, idims, initial_left, 
+                    dleft_index, dright_index, ddims, dfl))
+                #psgs.extend([psg])
             pbar.finish()
             self.proto_grids.append(psgs)
             sums = na.zeros(3, dtype='int64')
