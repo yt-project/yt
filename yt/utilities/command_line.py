@@ -935,6 +935,14 @@ class YTCommands(cmdln.Cmdln):
             opts.port = sock.getsockname()[-1]
             del sock
         base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
+        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+            print
+            print "*** You are missing the ExtJS support files. You  ***"
+            print "*** You can get these by either rerunning the     ***"
+            print "*** install script installing, or downloading     ***"
+            print "*** them manually.                                ***"
+            print
+            sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.gui.reason.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
@@ -944,6 +952,7 @@ class YTCommands(cmdln.Cmdln):
         bottle.debug()
         uuid_serve_functions(open_browser=opts.open_browser,
                     port=int(opts.port))
+
 
 def run_main():
     for co in ["--parallel", "--paste"]:
