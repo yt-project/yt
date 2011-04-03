@@ -107,7 +107,7 @@ function fill_tree(my_pfs) {
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({
             text: pf.name,
-            objdata: {fn: pf.filename, varname: pf.varname},
+            objdata: {fn: pf.filename, varname: pf.varname, type: 'pf'},
             leaf:false, 
             expanded:true, 
             iconCls: 'pf_icon'}));
@@ -117,7 +117,7 @@ function fill_tree(my_pfs) {
                 {text: obj.name,
                  leaf: true,
                  iconCls: 'data_obj',
-                 objdata: {varname: obj.varname},
+                 objdata: {varname: obj.varname, type: 'obj'},
                  }));
         });
     });
