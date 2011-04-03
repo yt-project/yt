@@ -134,7 +134,7 @@ class MultipleOutputTest(RegressionTest):
 
     def __iter__(self):
         for line in open(self.io_log):
-            yield line[len(self.io_log_header):].strip()
+            yield line[len(self.io_log_header):].split()[0].strip()
 
 def create_test(base, new_name, **attrs):
     """

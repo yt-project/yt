@@ -151,7 +151,6 @@ var handle_result = function(f, a) {
     var treePanel = new Ext.tree.TreePanel({
         iconCls: 'nav',
         id: 'tree-panel',
-        title: 'Objects',
         layout: 'anchor',
         region:'west',
         split: true,
@@ -175,6 +174,7 @@ var handle_result = function(f, a) {
                 },
                 contextmenu: {
                     fn: function(node, event){
+                        if (node.attributes.objdata.type == 'obj') return;
                         var rightClickMenu = new Ext.menu.Menu({
                             items: [
                                 {
@@ -319,7 +319,7 @@ var handle_result = function(f, a) {
                 }, {
                     region: 'west',
                     id: 'west-panel', // see Ext.getCmp() below
-                    title: 'Data',
+                    title: 'Data Objects',
                     split: true,
                     width: 200,
                     minSize: 175,

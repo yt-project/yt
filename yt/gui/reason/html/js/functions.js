@@ -111,7 +111,8 @@ function fill_tree(my_pfs) {
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({
             text: pf.name,
-            objdata: {fn: pf.filename, varname: pf.varname},
+            objdata: {fn: pf.filename, varname: pf.varname, type: 'pf',
+                      field_list: pf.field_list},
             leaf:false, 
             expanded:true, 
             iconCls: 'pf_icon'}));
@@ -121,7 +122,7 @@ function fill_tree(my_pfs) {
                 {text: obj.name,
                  leaf: true,
                  iconCls: 'data_obj',
-                 objdata: {varname: obj.varname},
+                 objdata: {varname: obj.varname, type: 'obj'},
                  }));
         });
     });
@@ -155,7 +156,7 @@ function getSliceHandler(node){
 function sliceHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
-        width:240,
+        width:320,
         height:200,
         modal:true,
         resizable:false,
@@ -198,8 +199,8 @@ function sliceHandler(item,pressed){
                 xtype:'combo',
                 fieldLabel: 'Field',
                 id: 'slice_field',
-                store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
-                width: 90,
+                store:node.attributes.objdata.field_list,
+                width: 200,
                 allowBlank:false,
             }],
             buttons: [
@@ -241,7 +242,7 @@ function getProjectionHandler(node){
 function projectionHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
-        width:240,
+        width:370,
         height:170,
         modal:true,
         resizable:false,
@@ -263,15 +264,15 @@ function projectionHandler(item,pressed){
                 xtype:'combo',
                 fieldLabel: 'Field',
                 id: 'field',
-                store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
-                width: 120,
+                store:node.attributes.objdata.field_list,
+                width: 230,
                 allowBlank:false,
             },{
                 xtype:'combo',
                 fieldLabel: 'Weight Field',
                 id: 'weightField',
-                store:['None','Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
-                width: 120,
+                store:node.attributes.objdata.field_list,
+                width: 230,
                 allowBlank:false,
             }],
             buttons: [

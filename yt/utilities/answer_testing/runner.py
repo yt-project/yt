@@ -125,7 +125,7 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
             project = imp.load_module(mname, f, filename, desc)
 
     def _update_io_log(self, opts, kwargs):
-        if len(opts.datasets) == 0: return
+        if opts.datasets is None or len(opts.datasets) == 0: return
         f = tempfile.NamedTemporaryFile()
         kwargs['io_log'] = f.name
         for d in opts.datasets:
