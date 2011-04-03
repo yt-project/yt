@@ -32,12 +32,13 @@ License:
 function cell_finished(result) {
     var new_log = false;
     var cell_resulted = false;
+    var cell;
     Ext.each(result, 
     function(payload, index) {
         if (payload['type'] == 'cell_results') {
             text = "<pre>"+payload['output']+"</pre>";
             formatted_input = payload['input']
-            var cell = new_cell(formatted_input, text);
+            cell = new_cell(formatted_input, text);
             OutputContainer.add(cell);
             OutputContainer.doLayout();
             notebook.doLayout();
@@ -50,7 +51,7 @@ function cell_finished(result) {
             }
             cell_resulted = true;
         } else if (payload['type'] == 'png_string') {
-            new_cell.add(new Ext.Panel({
+            OutputContainer.add(new Ext.Panel({
                 autoEl:{
                     tag:'img', 
                     width:'25%',
@@ -59,7 +60,7 @@ function cell_finished(result) {
                     onClick: "display_image('payload_image_" + number_images + "');"
 		        }
             }));
-	        new_cell.doLayout();
+	        OutputContainer.doLayout();
 	        number_images++;
         } else if (payload['type'] == 'cell_contents') {
 	        var input_line = repl_input.get("input_line");
