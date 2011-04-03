@@ -152,7 +152,7 @@ function getSliceHandler(node){
 function sliceHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
-        width:240,
+        width:320,
         height:200,
         modal:true,
         resizable:false,
@@ -196,7 +196,7 @@ function sliceHandler(item,pressed){
                 fieldLabel: 'Field',
                 id: 'slice_field',
                 store:node.attributes.objdata.field_list,
-                width: 90,
+                width: 200,
                 allowBlank:false,
             }],
             buttons: [
@@ -239,7 +239,7 @@ function getProjectionHandler(node){
 function projectionHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
-        width:240,
+        width:370,
         height:170,
         modal:true,
         resizable:false,
@@ -262,14 +262,14 @@ function projectionHandler(item,pressed){
                 fieldLabel: 'Field',
                 id: 'field',
                 store:node.attributes.objdata.field_list,
-                width: 120,
+                width: 230,
                 allowBlank:false,
             },{
                 xtype:'combo',
                 fieldLabel: 'Weight Field',
                 id: 'weightField',
                 store:node.attributes.objdata.field_list,
-                width: 120,
+                width: 230,
                 allowBlank:false,
             }],
             buttons: [
