@@ -107,7 +107,8 @@ function fill_tree(my_pfs) {
     Ext.each(my_pfs, function(pf, index) {
         treePanel.root.appendChild(new Ext.tree.TreeNode({
             text: pf.name,
-            objdata: {fn: pf.filename, varname: pf.varname, type: 'pf'},
+            objdata: {fn: pf.filename, varname: pf.varname, type: 'pf',
+                      field_list: pf.field_list},
             leaf:false, 
             expanded:true, 
             iconCls: 'pf_icon'}));
@@ -194,7 +195,7 @@ function sliceHandler(item,pressed){
                 xtype:'combo',
                 fieldLabel: 'Field',
                 id: 'slice_field',
-                store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
+                store:node.attributes.objdata.field_list,
                 width: 90,
                 allowBlank:false,
             }],
@@ -260,14 +261,14 @@ function projectionHandler(item,pressed){
                 xtype:'combo',
                 fieldLabel: 'Field',
                 id: 'field',
-                store:['Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
+                store:node.attributes.objdata.field_list,
                 width: 120,
                 allowBlank:false,
             },{
                 xtype:'combo',
                 fieldLabel: 'Weight Field',
                 id: 'weightField',
-                store:['None','Density','Temperature','X Velocity','Y Velocity','Z Velocity'],
+                store:node.attributes.objdata.field_list,
                 width: 120,
                 allowBlank:false,
             }],
