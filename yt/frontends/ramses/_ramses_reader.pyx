@@ -37,9 +37,6 @@ cdef extern from "math.h":
     double ceil(double x)
     double log2(double x)
 
-cdef extern:
-    unsigned long HilbertCurve3D(double *coord)
-
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0
     return i1
@@ -612,7 +609,6 @@ cdef class RAMSES_tree_proxy:
                     father_it = grid_it.get_parent()
                     grid_file_locations[grid_aind, 0] = <np.int64_t> idomain
                     grid_file_locations[grid_aind, 1] = grid_ind - level_cell_counts[ilevel]
-                    grid_hilbert_indices[grid_aind] = HilbertCurve3D(pos)
                     parent_ind = father_it.get_absolute_position()
                     if ilevel > 0:
                         # We calculate the REAL parent index

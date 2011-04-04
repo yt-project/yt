@@ -6,8 +6,7 @@ def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('ramses',parent_package,top_path)
     config.add_extension("_ramses_reader",
-        ["yt/frontends/ramses/_ramses_reader.pyx",
-         "yt/frontends/ramses/ramses_headers/HilbertCurve3D.c"],
+        ["yt/frontends/ramses/_ramses_reader.pyx"],
         language="c++",
         include_dirs=["yt/frontends/ramses/ramses_headers/"],
         depends=glob.glob("yt/frontends/ramses/ramses_headers/*.hh")
