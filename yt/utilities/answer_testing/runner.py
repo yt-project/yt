@@ -34,14 +34,15 @@ class RegressionTestStorage(object):
 
 class RegressionTestRunner(object):
     def __init__(self, id, compare_id = None,
-                 results_path = ".", io_log = "OutputLog"):
+                 results_path = ".", compare_results_path = ".",
+                 io_log = "OutputLog"):
         # This test runner assumes it has been launched with the current
         # working directory that of the test case itself.
         self.io_log = io_log
         self.id = id
         if compare_id is not None:
             self.old_results = RegressionTestStorage(
-                                    compare_id, path=results_path)
+                                    compare_id, path=compare_results_path)
         else:
             self.old_results = None
         self.results = RegressionTestStorage(id, path=results_path)
