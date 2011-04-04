@@ -92,7 +92,7 @@ class BottleDirectRouter(DirectRouter):
     def __call__(self):
         #print "Hi there, I just got this request:",
         val = request.body.read()
-        print val
+        #print val
         #import pdb;pdb.set_trace()
         rv = super(BottleDirectRouter, self).__call__(val)
         #print "With this response:", rv

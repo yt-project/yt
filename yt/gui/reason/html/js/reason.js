@@ -280,7 +280,7 @@ var handle_result = function(f, a) {
         reader: new Ext.data.ArrayReader({}, [{name: 'record'}]),
     });
 
-    var heartbeep_request = false;
+    var heartbeat_request = false;
     var task_runner = new Ext.util.TaskRunner();
 
 
@@ -392,19 +392,19 @@ var handle_result = function(f, a) {
     } else { 
         repl_input.get("input_line").focus(); }
 
-    /* Set up the heartbeep */
+    /* Set up the heartbeat */
     var num = 0;
-    var heartbeep = {
+    var heartbeat = {
     run:
-      function(){ if (heartbeep_request == true) return; 
-        yt_rpc.ExtDirectREPL.heartbeep(
+      function(){ if (heartbeat_request == true) return; 
+        yt_rpc.ExtDirectREPL.heartbeat(
             {}, function(f, a) {
-            heartbeep_request = false;
+            heartbeat_request = false;
             if (f != null) {
                 handle_result(f, a);
             }})},
     interval: 1000};
 
-    task_runner.start(heartbeep);
+    task_runner.start(heartbeat);
                          
     });

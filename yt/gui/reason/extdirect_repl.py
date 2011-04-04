@@ -140,7 +140,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         vals = open(os.path.join(local_dir, "html/index.html")).read()
         return vals
 
-    def heartbeep(self):
+    def heartbeat(self):
         return self.payload_handler.deliver_payloads()
 
     def _help_html(self):
