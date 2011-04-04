@@ -1,4 +1,4 @@
-import os, os.path
+import os, os.path, glob
 import sys
 import time
 import subprocess
@@ -7,6 +7,11 @@ distribute_setup.use_setuptools()
 
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils import log
+
+DATA_FILES_HTML = glob.glob('yt/gui/reason/html/*.html')
+DATA_FILES_JS   = glob.glob('yt/gui/reason/html/js/*.js')
+DATA_FILES_PNG  = glob.glob('yt/gui/reason/html/images/*.png') \
+                + glob.glob('yt/gui/reason/html/images/*.ico')
 
 # Verify that we have Cython installed
 try:
@@ -73,7 +78,6 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 
 import setuptools
 
-DATA_FILES = []
 VERSION = "2.1dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
@@ -126,9 +130,10 @@ def setup_package():
         url = "http://yt.enzotools.org/",
         license="GPL-3",
         configuration=configuration,
-        data_files=DATA_FILES,
         zip_safe=False,
-        package_data = {'': ['*.so'], }
+        data_files = [('yt/gui/reason/html/', DATA_FILES_HTML),
+                      ('yt/gui/reason/html/js/', DATA_FILES_JS),
+                      ('yt/gui/reason/html/images/', DATA_FILES_PNG)],
         )
     return
 

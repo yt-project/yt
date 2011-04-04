@@ -294,6 +294,8 @@ get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
+get_enzotools ext-3.3.2.zip
+get_enzotools ext-slate-110328.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -520,6 +522,38 @@ then
     cd ${DEST_DIR}/src/
     ${HG_EXEC} clone https://enzo.googlecode.com/hg/ ./enzo-hg-stable
     cd $MY_PWD
+fi
+
+# Now we open up the ext repository
+if [ ! -e ext-3.3.2/done ]
+then
+    ( unzip -o ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf ext-3.3.2 ext-resources
+    touch ext-3.3.2/done
+fi
+
+# Now we open up the ext theme
+if [ ! -e ext-slate-110328/done ]
+then
+    ( unzip -o ext-slate-110328.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf ext-slate-110328 ext-theme
+    touch ext-slate-110328/done
+fi
+
+if [ -e $HOME/.matplotlib/fontList.cache ] && \
+   ( grep -q python2.6 $HOME/.matplotlib/fontList.cache )
+then
+    echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+    echo "*******************************************************"
+    echo
+    echo "  You likely need to remove your old fontList.cache!"
+    echo "  You can do this with this command:"
+    echo ""
+    echo "  rm $HOME/.matplotlib/fontList.cache"
+    echo
+    echo "*******************************************************"
 fi
 
 function print_afterword

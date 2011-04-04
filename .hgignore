@@ -1,6 +1,13 @@
 build
 yt.egg-info
 __config__.py
+freetype.cfg
+hdf5.cfg
+png.cfg
+yt/frontends/ramses/_ramses_reader.cpp
+yt/utilities/amr_utils.c
+yt/utilities/kdtree/forthonf2c.h
+yt/utilities/libconfig_wrapper.c
 syntax: glob
 *.pyc
 .*.swp

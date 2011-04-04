@@ -324,7 +324,7 @@ class YTCommands(cmdln.Cmdln):
             print
             print "This installation CAN be automatically updated."
             if opts.update_source:  
-                _vcs_updater[vc_type](path)
+                _update_hg(path)
             print "Updated successfully."
         elif opts.update_source:
             print
@@ -907,6 +907,52 @@ class YTCommands(cmdln.Cmdln):
         print "as well as develop using Mercurial and BitBucket."
         print
         print "Good luck!"
+
+    @cmdln.option("-o", "--open-browser", action="store_true",
+                  default = False, dest='open_browser',
+                  help="Open a web browser.")
+    @cmdln.option("-p", "--port", action="store",
+                  default = 0, dest='port',
+                  help="Port to listen on")
+    def do_serve(self, subcmd, opts):
+        """
+        Run the Web GUI
+        """
+        # We have to do a couple things.
+        # First, we check that YT_DEST is set.
+        if "YT_DEST" not in os.environ:
+            print
+            print "*** You must set the environment variable YT_DEST ***"
+            print "*** to point to the installation location!        ***"
+            print
+            sys.exit(1)
+        if opts.port == 0:
+            # This means, choose one at random.  We do this by binding to a
+            # socket and allowing the OS to choose the port for that socket.
+            import socket
+            sock = socket.socket()
+            sock.bind(('', 0))
+            opts.port = sock.getsockname()[-1]
+            del sock
+        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
+        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+            print
+            print "*** You are missing the ExtJS support files. You  ***"
+            print "*** You can get these by either rerunning the     ***"
+            print "*** install script installing, or downloading     ***"
+            print "*** them manually.                                ***"
+            print
+            sys.exit(1)
+        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
+        import yt.gui.reason.bottle as bottle
+        from yt.gui.reason.extdirect_repl import ExtDirectREPL
+        from yt.gui.reason.bottle_mods import uuid_serve_functions
+
+        hr = ExtDirectREPL(base_extjs_path)
+        bottle.debug()
+        uuid_serve_functions(open_browser=opts.open_browser,
+                    port=int(opts.port))
+
 
 def run_main():
     for co in ["--parallel", "--paste"]:
