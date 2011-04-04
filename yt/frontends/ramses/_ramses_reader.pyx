@@ -954,12 +954,3 @@ def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
         hilbert_indices[o] = h
     return hilbert_indices
 
-def hilbert_position(pos):
-    cdef double coord[3]
-    cdef int i
-    cdef unsigned long new_pos
-    coord[0] = pos[0]
-    coord[1] = pos[1]
-    coord[2] = pos[2]
-    new_pos = HilbertCurve3D(coord)
-    return new_pos
