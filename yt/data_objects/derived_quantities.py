@@ -388,7 +388,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         dzes = na.unique(data['dx']) # order.
         # We only need one dim to figure out levels, we'll use x.
         dx = 1./data.pf.domain_dimensions[0]
-        levels = na.floor(dx / dxes / data.pf.refine_by).astype('int')
+        levels = (na.log(dx / dxes) / na.log(data.pf.refine_by)).astype('int')
         lsort = levels.argsort()
         levels = levels[lsort]
         dxes = dxes[lsort]
