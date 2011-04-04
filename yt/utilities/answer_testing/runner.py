@@ -8,10 +8,16 @@ from .xunit import Xunit
 from output_tests import test_registry, MultipleOutputTest, \
                          RegressionTestException
 
+def clear_registry():
+    test_registry.clear()
+
 class RegressionTestStorage(object):
-    def __init__(self, id, path = "."):
-        self.id = id
-        self._path = os.path.join(path, "results_%s" % self.id)
+    def __init__(self, results_id, path = "."):
+        self.id = results_id
+        if results_id == "":
+            self._path = os.path.join(path, "results")
+        else:
+            self._path = os.path.join(path, "results_%s" % self.id)
         if not os.path.isdir(self._path): os.mkdir(self._path)
         if os.path.isfile(self._path): raise RuntimeError
 
@@ -33,19 +39,19 @@ class RegressionTestStorage(object):
         return tr
 
 class RegressionTestRunner(object):
-    def __init__(self, id, compare_id = None,
+    def __init__(self, results_id, compare_id = None,
                  results_path = ".", compare_results_path = ".",
                  io_log = "OutputLog"):
         # This test runner assumes it has been launched with the current
         # working directory that of the test case itself.
         self.io_log = io_log
-        self.id = id
+        self.id = results_id
         if compare_id is not None:
             self.old_results = RegressionTestStorage(
                                     compare_id, path=compare_results_path)
         else:
             self.old_results = None
-        self.results = RegressionTestStorage(id, path=results_path)
+        self.results = RegressionTestStorage(results_id, path=results_path)
         self.plot_list = {}
         self.passed_tests = {}
 
