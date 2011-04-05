@@ -30,6 +30,7 @@ import cStringIO
 import logging
 import uuid
 import numpy as na
+import time
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -88,6 +89,7 @@ lockit = MethodLock()
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
+    timeout = 70 # a minute longer than the rocket server timeout
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
@@ -125,6 +127,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.locals['_widgets'] = {}
         self._setup_logging_handlers()
 
+        # Setup our heartbeat
+        self.last_heartbeat = time.time()
+        self._check_heartbeat()
+
     def _setup_logging_handlers(self):
         handler = PayloadLoggingHandler()
         formatter = logging.Formatter(ufstring)
@@ -139,7 +145,19 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return vals
 
     def heartbeat(self):
+        self.last_heartbeat = time.time()
         return self.payload_handler.deliver_payloads()
+
+    def _check_heartbeat(self):
+        if time.time() - self.last_heartbeat > self.timeout:
+            print "Shutting down after a timeout of %s" % (self.timeout)
+            #sys.exit(0)
+            # Still can't shut down yet, because bottle doesn't return the
+            # server instance by default.
+        print "Not shutting down from timeout."
+        self._heartbeat_timer = threading.Timer(self.timeout - 60,
+                                    self._check_heartbeat)
+        self._heartbeat_timer.start()
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()
