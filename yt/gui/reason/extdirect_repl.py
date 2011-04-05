@@ -123,8 +123,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute("from yt.data_objects.static_output import _cached_pfs")
         self.locals['load_script'] = ext_load_script
         self.locals['_widgets'] = {}
-        self.locals['add_widget'] = self._add_widget
-        self.locals['test_widget'] = self._test_widget
         self._setup_logging_handlers()
 
     def _setup_logging_handlers(self):
@@ -233,7 +231,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    @lockit
     def _add_widget(self, widget_name):
         # This should be sanitized
         widget = self.locals[widget_name]
@@ -246,7 +243,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    'widget_type': widget._widget_name,
                    'varname': varname}
         self.payload_handler.add_payload(payload)
-        self.execute("%s = %s\n" % (varname, widget_name))
+        return "%s = %s\n" % (varname, widget_name)
 
     @lockit
     def create_proj(self, pfname, axis, field, weight):
@@ -264,7 +261,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        add_widget('_tpw')
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
@@ -272,6 +268,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
+        self.execute(self._add_widget('_tpw'))
 
     @lockit
     def create_slice(self, pfname, center, axis, field):
@@ -288,7 +285,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        add_widget('_tpw')
         """ % dict(pfname = pfname,
                    c1 = float(center[0]),
                    c2 = float(center[1]),
@@ -298,6 +294,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
+        self.execute(self._add_widget('_tpw'))
 
     def _test_widget(self):
         class tt(object):
