@@ -80,14 +80,14 @@ cdef void OTN_refine(OctreeNode *self, int incremental = 0):
                 self.children[i][j][k] = OTN_initialize(
                             npos,
                             self.nvals, self.val, self.weight_val,
-                            self.level + 1, self)
+                            self.level + 1, self, incremental)
     if incremental: return
     for i in range(self.nvals): self.val[i] = 0.0
     self.weight_val = 0.0
 
 cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
                         np.float64_t *val, np.float64_t weight_val,
-                        int level, OctreeNode *parent):
+                        int level, OctreeNode *parent, int incremental = 0):
     cdef OctreeNode *node
     cdef int i, j, k
     node = <OctreeNode *> malloc(sizeof(OctreeNode))
@@ -101,9 +101,14 @@ cdef OctreeNode *OTN_initialize(np.int64_t pos[3], int nvals,
     node.max_level = 0
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
-    for i in range(nvals):
-        node.val[i] = val[i]
-    node.weight_val = weight_val
+    if incremental:
+        for i in range(nvals):
+            node.val[i] = 0.
+        node.weight_val = 0.
+    else:
+        for i in range(nvals):
+            node.val[i] = val[i]
+        node.weight_val = weight_val
     for i in range(2):
         for j in range(2):
             for k in range(2):

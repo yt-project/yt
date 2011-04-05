@@ -394,17 +394,6 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         dxes = dxes[lsort]
         dyes = dyes[lsort]
         dzes = dzes[lsort]
-        # This step adds massless cells for all the levels we need in order
-        # to fully populate all the parent-child cells needed.
-        for L in range(min(data.pf.h.max_level+1, na.amax(levels)+1)):
-            ActiveDimensions = cover_ActiveDimensions * 2**L
-            i, j, k = na.indices(ActiveDimensions)
-            i = i.flatten()
-            j = j.flatten()
-            k = k.flatten()
-            octree.add_array_to_tree(L, i, j, k,
-                na.array([na.zeros_like(i)], order='F', dtype='float64'),
-                na.zeros_like(i).astype('float64'))
         # Now we add actual data to the octree.
         for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
             mylog.info("Adding data to Octree for level %d" % L)
