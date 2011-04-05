@@ -89,7 +89,7 @@ lockit = MethodLock()
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
-    timeout = 70 # a minute longer than the rocket server timeout
+    timeout = 660 # a minute longer than the rocket server timeout
     server = None
 
     def __init__(self, base_extjs_path, locals=None):
@@ -156,6 +156,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             # Still can't shut down yet, because bottle doesn't return the
             # server instance by default.
             self.shutdown()
+            return
         print "Not shutting down from timeout."
         self._heartbeat_timer = threading.Timer(self.timeout - 60,
                                     self._check_heartbeat)
