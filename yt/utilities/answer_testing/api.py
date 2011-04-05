@@ -30,4 +30,10 @@ License:
 
 from .runner import \
     RegressionTestRunner, \
-    RegressionTestStorage
+    RegressionTestStorage, \
+    run_main, \
+    clear_registry
+
+from .output_tests import \
+    YTStaticOutputTest, \
+    create_test

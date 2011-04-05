@@ -251,16 +251,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     @lockit
     def create_proj(self, pfname, axis, field, weight):
         if weight == "None": weight = None
+        else: weight = "'%s'" % (weight)
         funccall = """
         _tpf = %(pfname)s
         _taxis = %(axis)s
         _tfield = "%(field)s"
-        _tweight = "%(weight)s"
+        _tweight = %(weight)s
         _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]))
+        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
         add_widget('_tpw')
@@ -284,7 +285,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]))
+        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
         add_widget('_tpw')
@@ -317,7 +318,8 @@ class ExtDirectParameterFileList(BottleDirectRouter):
         for fn, pf in sorted(_cached_pfs.items()):
             objs = []
             pf_varname = "_cached_pfs['%s']" % (fn)
-            fields = pf.h.field_list + pf.h.derived_field_list
+            fields = set(pf.h.field_list + pf.h.derived_field_list)
+            fields = list(fields)
             fields.sort()
             for i,obj in enumerate(pf.h.objects):
                 try:
