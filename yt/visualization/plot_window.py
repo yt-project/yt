@@ -207,6 +207,7 @@ class PWViewer(PlotWindow):
 
     """
     def __init__(self, *args,**kwargs):
+        setup = kwargs.pop("setup", True)
         PlotWindow.__init__(self, *args,**kwargs)
         self._field_transform = {}
         for field in self._frb.data.keys():
@@ -215,7 +216,7 @@ class PWViewer(PlotWindow):
             else:
                 self._field_transform[field] = lambda x: x
 
-        self._setup_plots()
+        if setup: self._setup_plots()
 
     def set_log(self,field,log):
         """set a field to log or linear.

@@ -231,7 +231,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]))
+        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
         add_widget('_tpw')
@@ -255,7 +255,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]))
+        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
         add_widget('_tpw')
