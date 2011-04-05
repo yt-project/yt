@@ -268,7 +268,7 @@ function projectionHandler(item,pressed){
                 xtype:'combo',
                 fieldLabel: 'Weight Field',
                 id: 'weightField',
-                store:node.attributes.objdata.field_list,
+                store:['None'].concat(node.attributes.objdata.field_list),
                 width: 230,
                 allowBlank:false,
             }],
