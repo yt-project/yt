@@ -90,6 +90,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
     timeout = 70 # a minute longer than the rocket server timeout
+    server = None
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
@@ -154,10 +155,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             #sys.exit(0)
             # Still can't shut down yet, because bottle doesn't return the
             # server instance by default.
+            self.shutdown()
         print "Not shutting down from timeout."
         self._heartbeat_timer = threading.Timer(self.timeout - 60,
                                     self._check_heartbeat)
         self._heartbeat_timer.start()
+
+    def shutdown(self):
+        if self.server is None:
+            print "Can't shutdown!"
+        self._heartbeat_timer.cancel()
+        for v in self.server.values(): v.stop()
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()

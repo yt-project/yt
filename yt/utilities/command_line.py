@@ -951,7 +951,7 @@ class YTCommands(cmdln.Cmdln):
         hr = ExtDirectREPL(base_extjs_path)
         bottle.debug()
         uuid_serve_functions(open_browser=opts.open_browser,
-                    port=int(opts.port))
+                    port=int(opts.port), repl=hr)
 
 
 def run_main():

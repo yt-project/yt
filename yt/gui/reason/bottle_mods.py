@@ -24,7 +24,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .bottle import server_names, debug, route, run, request
+from .bottle import server_names, debug, route, run, request, \
+            ServerAdapter
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
@@ -70,6 +71,14 @@ class PayloadHandler(object):
     def add_payload(self, to_add):
         self.payloads.append(to_add)
 
+class YTRocketServer(ServerAdapter):
+    server_info = {} # Hack to get back at instance vars
+    def run(self, handler):
+        from rocket import Rocket
+        server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
+        self.server_info[id(self)] = server
+        server.start()
+
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable
     # object through Bottle.  It should be used as a base class of an object,
@@ -98,7 +107,8 @@ class BottleDirectRouter(DirectRouter):
         #print "With this response:", rv
         return rv
 
-def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
+def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
+                         repl = None):
     if pre_routed == None: pre_routed = route_functions
     debug(mode=True)
     token = uuid.uuid1()
@@ -155,15 +165,15 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
         local_browse()
     try:
         import rocket
-        server_name = "rocket"
+        server_type = YTRocketServer
         log = logging.getLogger('Rocket')
         log.setLevel(logging.INFO)
         kwargs = {'timeout': 600, 'max_threads': 2}
+        if repl is not None:
+            repl.server = YTRocketServer.server_info
     except ImportError:
-        server_name = "wsgiref"
+        server_type = server_names.get("wsgiref")
         kwargs = {}
-    server_type = server_names.get(server_name)
     server = server_type(host='localhost', port=port, **kwargs)
-    #repl.locals['server'] = server
     mylog.info("Starting up the server.")
     run(server=server)
