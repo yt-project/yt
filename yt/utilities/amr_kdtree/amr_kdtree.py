@@ -573,8 +573,8 @@ class AMRKDTree(HomogenizedVolume):
         dds = thisnode.grid.dds
         gle = thisnode.grid.LeftEdge
         gre = thisnode.grid.RightEdge
-        thisnode.li = ((thisnode.l_corner-gle)/dds).astype('int32')
-        thisnode.ri = ((thisnode.r_corner-gle)/dds).astype('int32')
+        thisnode.li = na.rint((thisnode.l_corner-gle)/dds).astype('int32')
+        thisnode.ri = na.rint((thisnode.r_corner-gle)/dds).astype('int32')
         thisnode.dims = (thisnode.ri - thisnode.li).astype('int32')
         # Here the cost is actually inversely proportional to 4**Level (empirical)
         thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
