@@ -30,15 +30,17 @@ import cStringIO
 import logging
 import uuid
 import numpy as na
+import time
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
 from yt.utilities.definitions import inv_axis_names
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
-                         PayloadHandler, append_payloads
+                         PayloadHandler
 from .bottle import response, request, route
 from .basic_repl import ProgrammaticREPL
+import threading
 
 try:
     import pygments
@@ -59,9 +61,36 @@ except ImportError:
 
 local_dir = os.path.dirname(__file__)
 
+class MethodLock(object):
+    _shared_state = {}
+    locks = None
+
+    def __new__(cls, *p, **k):
+        self = object.__new__(cls, *p, **k)
+        self.__dict__ = cls._shared_state
+        return self
+
+    def __init__(self):
+        if self.locks is None: self.locks = {}
+
+    def __call__(self, func):
+        if str(func) not in self.locks:
+            self.locks[str(func)] = threading.Lock()
+        @wraps(func)
+        def locker(*args, **kwargs):
+            with self.locks[str(func)]:
+                rv = func(*args, **kwargs)
+            print "Regained lock:", rv
+            return rv
+        return locker
+
+lockit = MethodLock()
+
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
+    timeout = 660 # a minute longer than the rocket server timeout
+    server = None
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
@@ -97,9 +126,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute("from yt.data_objects.static_output import _cached_pfs")
         self.locals['load_script'] = ext_load_script
         self.locals['_widgets'] = {}
-        self.locals['add_widget'] = self._add_widget
-        self.locals['test_widget'] = self._test_widget
         self._setup_logging_handlers()
+
+        # Setup our heartbeat
+        self.last_heartbeat = time.time()
+        self._check_heartbeat()
 
     def _setup_logging_handlers(self):
         handler = PayloadLoggingHandler()
@@ -114,8 +145,28 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         vals = open(os.path.join(local_dir, "html/index.html")).read()
         return vals
 
-    def heartbeep(self):
-        return {'alive': True}
+    def heartbeat(self):
+        self.last_heartbeat = time.time()
+        return self.payload_handler.deliver_payloads()
+
+    def _check_heartbeat(self):
+        if time.time() - self.last_heartbeat > self.timeout:
+            print "Shutting down after a timeout of %s" % (self.timeout)
+            #sys.exit(0)
+            # Still can't shut down yet, because bottle doesn't return the
+            # server instance by default.
+            self.shutdown()
+            return
+        print "Not shutting down from timeout."
+        self._heartbeat_timer = threading.Timer(self.timeout - 60,
+                                    self._check_heartbeat)
+        self._heartbeat_timer.start()
+
+    def shutdown(self):
+        if self.server is None:
+            print "Can't shutdown!"
+        self._heartbeat_timer.cancel()
+        for v in self.server.values(): v.stop()
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()
@@ -152,9 +203,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def _highlighter_css(self):
         return highlighter_css
 
-    @append_payloads
+    @lockit
     def execute(self, code):
         self.executed_cell_texts.append(code)
+
         result = ProgrammaticREPL.execute(self, code)
         self.payload_handler.add_payload(
             {'type': 'cell_results',
@@ -164,6 +216,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def get_history(self):
         return self.executed_cell_texts[:]
 
+    @lockit
     def save_session(self, filename):
         if filename.startswith('~'):
             filename = os.path.expanduser(filename)
@@ -184,6 +237,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                     'error': 'Unexpected error.'}
         return {'status': 'SUCCESS', 'filename': filename}
 
+    @lockit
     def paste_session(self):
         import xmlrpclib, cStringIO
         p = xmlrpclib.ServerProxy(
@@ -196,6 +250,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         site = "http://paste.enzotools.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
 
+    @lockit
     def _session_py(self):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
@@ -203,7 +258,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    @append_payloads
     def _add_widget(self, widget_name):
         # This should be sanitized
         widget = self.locals[widget_name]
@@ -216,9 +270,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    'widget_type': widget._widget_name,
                    'varname': varname}
         self.payload_handler.add_payload(payload)
-        self.execute("%s = %s\n" % (varname, widget_name))
+        return "%s = %s\n" % (varname, widget_name)
 
-    @append_payloads
+    @lockit
     def create_proj(self, pfname, axis, field, weight):
         if weight == "None": weight = None
         else: weight = "'%s'" % (weight)
@@ -234,7 +288,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        add_widget('_tpw')
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
@@ -242,8 +295,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
+        self.execute(self._add_widget('_tpw'))
 
-    @append_payloads
+    @lockit
     def create_slice(self, pfname, center, axis, field):
         funccall = """
         _tpf = %(pfname)s
@@ -258,7 +312,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        add_widget('_tpw')
         """ % dict(pfname = pfname,
                    c1 = float(center[0]),
                    c2 = float(center[1]),
@@ -268,6 +321,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
+        self.execute(self._add_widget('_tpw'))
 
     def _test_widget(self):
         class tt(object):

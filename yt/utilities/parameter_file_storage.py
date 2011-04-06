@@ -183,6 +183,11 @@ class ParameterFileStore(object):
         self._write_out()
         self.read_db()
 
+    def get_recent(self, n=10):
+        recs = sorted(self._records.values(),
+                      key = lambda a: -a['last_seen'])[:n]
+        return recs
+
     @parallel_simple_proxy
     def _write_out(self):
         if self._read_only: return
