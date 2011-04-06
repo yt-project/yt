@@ -914,6 +914,9 @@ class YTCommands(cmdln.Cmdln):
     @cmdln.option("-p", "--port", action="store",
                   default = 0, dest='port',
                   help="Port to listen on")
+    @cmdln.option("-f", "--find", action="store_true",
+                  default = False, dest="find",
+                  help="At startup, find all *.hierarchy files in the CWD")
     def do_serve(self, subcmd, opts):
         """
         Run the Web GUI
@@ -947,8 +950,10 @@ class YTCommands(cmdln.Cmdln):
         import yt.gui.reason.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions
-
         hr = ExtDirectREPL(base_extjs_path)
+        if opts.find:
+            # We just have to find them and store references to them.
+            hr.execute("pfs = list(all_pfs(max_depth=2))")
         bottle.debug()
         uuid_serve_functions(open_browser=opts.open_browser,
                     port=int(opts.port), repl=hr)
