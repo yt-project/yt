@@ -116,9 +116,10 @@ class TransferFunction(object):
         x0, y0 = start
         x1, y1 = stop
         slope = (y1-y0)/(x1-x0)
-        vals = na.zeros(self.x.shape, 'float64')
-        vals[(self.x >= x0) & (self.x <= x1)] = \
-            slope * (self.x - x0) + y0
+        # We create a whole new set of values and then backout the ones that do
+        # not satisfy our bounding box arguments
+        vals = slope * (self.x - x0) + y0
+        vals[~((self.x >= x0) & (self.x <= x1))] = 0.0
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
     def add_step(self, start, stop, value):

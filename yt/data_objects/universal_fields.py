@@ -35,6 +35,7 @@ from math import pi
 from yt.funcs import *
 
 from yt.utilities.amr_utils import CICDeposit_3
+from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
     ValidateDataField, \
@@ -53,7 +54,9 @@ from yt.utilities.physical_constants import \
      sigma_thompson, \
      clight, \
      kboltz, \
-     G
+     G, \
+     rho_crit_now, \
+     speed_of_light_cgs
      
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
@@ -289,9 +292,9 @@ def _Pressure(field, data):
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Entropy(field, data):
-    return (kboltz/mh) * data["Temperature"] / \
-           (data["MeanMolecularWeight"] * data["Density"]**(2./3.))
-add_field("Entropy", units=r"\rm{ergs}\/\rm{cm}^{2}",
+    return kboltz  * data["Temperature"] / \
+           (data["NumberDensity"]**(data.pf["Gamma"] - 1.0))
+add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{2}",
           function=_Entropy)
 
 def _Height(field, data):
@@ -387,6 +390,63 @@ add_field("StarMassMsun", units=r"M_{\odot}",
 def _Matter_Density(field,data):
     return (data['Density'] + data['Dark_Matter_Density'])
 add_field("Matter_Density",function=_Matter_Density,units=r"\rm{g}/\rm{cm^3}")
+
+def _ComovingDensity(field, data):
+    ef = (1.0 + data.pf.current_redshift)**3.0
+    return data["Density"]/ef
+add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3")
+
+# This is rho_total / rho_cr(z).
+def _Convert_Overdensity(data):
+    return 1 / (rho_crit_now * data.pf.hubble_constant**2 * 
+                (1+data.pf.current_redshift)**3)
+add_field("Overdensity",function=_Matter_Density,
+          convert_function=_Convert_Overdensity, units=r"")
+
+# This is (rho_total - <rho_total>) / <rho_total>.
+def _DensityPerturbation(field, data):
+    rho_bar = rho_crit_now * data.pf.omega_matter * \
+        data.pf.hubble_constant**2 * \
+        (1.0 + data.pf.current_redshift)**3
+    return ((data['Matter_Density'] - rho_bar) / rho_bar)
+add_field("DensityPerturbation",function=_DensityPerturbation,units=r"")
+
+# This is rho_b / <rho_b>.
+def _Baryon_Overdensity(field, data):
+    return data['Density']
+def _Convert_Baryon_Overdensity(data):
+    if data.pf.parameters.has_key('omega_baryon_now'):
+        omega_baryon_now = data.pf.parameters['omega_baryon_now']
+    else:
+        omega_baryon_now = 0.0441
+    return 1 / (omega_baryon_now * rho_crit_now * 
+                (data.pf['CosmologyHubbleConstantNow']**2) * 
+                ((1+data.pf['CosmologyCurrentRedshift'])**3))
+add_field("Baryon_Overdensity", function=_Baryon_Overdensity, 
+          convert_function=_Convert_Baryon_Overdensity, units=r"")
+
+# Weak lensing convergence.
+# Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
+def _convertConvergence(data):
+    if not data.pf.parameters.has_key('cosmology_calculator'):
+        data.pf.parameters['cosmology_calculator'] = Cosmology(
+            HubbleConstantNow=(100.*data.pf.hubble_constant),
+            OmegaMatterNow=data.pf.omega_matter, OmegaLambdaNow=data.pf.omega_lambda)
+    # observer to lens
+    DL = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        data.pf.parameters['observer_redshift'], data.pf.current_redshift)
+    # observer to source
+    DS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        data.pf.parameters['observer_redshift'], data.pf.parameters['lensing_source_redshift'])
+    # lens to source
+    DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+        data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
+    return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter * 
+                                (data.pf.hubble_constant / speed_of_light_cgs)**2 *
+                                (1 + data.pf.current_redshift)))
+add_field("WeakLensingConvergence", function=_DensityPerturbation, 
+          convert_function=_convertConvergence, 
+          projection_conversion='mpccm')
 
 def _CellVolume(field, data):
     if data['dx'].size == 1:
@@ -608,6 +668,43 @@ add_field("ParticleSpecificAngularMomentumKMSMPC",
           function=_ParticleSpecificAngularMomentum, particle_type=True,
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
+
+def _ParticleSpecificAngularMomentumX(field, data):
+    if data.has_field_parameter("bulk_velocity"):
+        bv = data.get_field_parameter("bulk_velocity")
+    else: bv = na.zeros(3, dtype='float64')
+    center = data.get_field_parameter('center')
+    y = data["particle_position_y"] - center[1]
+    z = data["particle_position_z"] - center[2]
+    yv = data["particle_velocity_y"] - bv[1]
+    zv = data["particle_velocity_z"] - bv[2]
+    return yv*z - zv*y
+def _ParticleSpecificAngularMomentumY(field, data):
+    if data.has_field_parameter("bulk_velocity"):
+        bv = data.get_field_parameter("bulk_velocity")
+    else: bv = na.zeros(3, dtype='float64')
+    center = data.get_field_parameter('center')
+    x = data["particle_position_x"] - center[0]
+    z = data["particle_position_z"] - center[2]
+    xv = data["particle_velocity_x"] - bv[0]
+    zv = data["particle_velocity_z"] - bv[2]
+    return -(xv*z - zv*x)
+def _ParticleSpecificAngularMomentumZ(field, data):
+    if data.has_field_parameter("bulk_velocity"):
+        bv = data.get_field_parameter("bulk_velocity")
+    else: bv = na.zeros(3, dtype='float64')
+    center = data.get_field_parameter('center')
+    x = data["particle_position_x"] - center[0]
+    y = data["particle_position_y"] - center[1]
+    xv = data["particle_velocity_x"] - bv[0]
+    yv = data["particle_velocity_y"] - bv[1]
+    return xv*y - yv*x
+for ax in 'XYZ':
+    n = "ParticleSpecificAngularMomentum%s" % ax
+    add_field(n, function=eval("_%s" % n), particle_type=True,
+              convert_function=_convertSpecificAngularMomentum,
+              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
 add_field("ParticleAngularMomentum",
@@ -619,6 +716,23 @@ add_field("ParticleAngularMomentumMSUNKMSMPC",
           function=_ParticleAngularMomentumMSUNKMSMPC,
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}",
           particle_type=True, validators=[ValidateParameter('center')])
+
+def _ParticleAngularMomentumX(field, data):
+    return data["CellMass"] * data["ParticleSpecificAngularMomentumX"]
+add_field("ParticleAngularMomentumX", function=_ParticleAngularMomentumX,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
+         validators=[ValidateParameter('center')])
+def _ParticleAngularMomentumY(field, data):
+    return data["CellMass"] * data["ParticleSpecificAngularMomentumY"]
+add_field("ParticleAngularMomentumY", function=_ParticleAngularMomentumY,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
+         validators=[ValidateParameter('center')])
+def _ParticleAngularMomentumZ(field, data):
+    return data["CellMass"] * data["ParticleSpecificAngularMomentumZ"]
+add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
+         validators=[ValidateParameter('center')])
+
 
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")

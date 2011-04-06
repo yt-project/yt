@@ -35,16 +35,19 @@ from .halo_finding.api import \
     Halo, \
     HOPHalo, \
     parallelHOPHalo, \
+    LoadedHalo, \
     FOFHalo, \
     HaloList, \
     HOPHaloList, \
     FOFHaloList, \
     parallelHOPHaloList, \
+    LoadedHaloList, \
     GenericHaloFinder, \
     parallelHF, \
     HOPHaloFinder, \
     FOFHaloFinder, \
-    HaloFinder
+    HaloFinder, \
+    LoadHaloes
 
 from .halo_mass_function.api import \
     HaloMassFcn, \

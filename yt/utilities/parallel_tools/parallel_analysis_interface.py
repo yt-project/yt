@@ -52,7 +52,9 @@ if exe_name in \
         ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
         ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
         ytcfg["yt","__parallel"] = "True"
-        if exe_name == "embed_enzo": ytcfg["yt","inline"] = "True"
+        if exe_name == "embed_enzo" or \
+            ("_parallel" in dir(sys) and sys._parallel == True):
+            ytcfg["yt","inline"] = "True"
         # I believe we do not need to turn this off manually
         #ytcfg["yt","StoreParameterFiles"] = "False"
         # Now let's make sure we have the right options set.
@@ -62,12 +64,19 @@ if exe_name in \
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
+        yt.utilities.logger.uncolorize_logging()
+        # Even though the uncolorize function already resets the format string,
+        # we reset it again so that it includes the processor.
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
-                                            yt.utilities.logger.fstring))
-        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+                                            yt.utilities.logger.ufstring))
+        if len(yt.utilities.logger.rootLogger.handlers) > 0:
+            yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+        if ytcfg.getboolean("yt", "parallel_traceback"):
+            sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
+
 else:
     parallel_capable = False
 
@@ -143,7 +152,7 @@ def parallel_simple_proxy(func):
             retval = func(self, *args, **kwargs)
             self._processing = False
         retval = MPI.COMM_WORLD.bcast(retval, root=self._owner)
-        MPI.COMM_WORLD.Barrier()
+        #MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
 
@@ -226,7 +235,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        MPI.COMM_WORLD.Barrier()
+        #MPI.COMM_WORLD.Barrier()
         all_clear = MPI.COMM_WORLD.bcast(all_clear, root=0)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
@@ -327,7 +336,7 @@ class ParallelAnalysisInterface(object):
         else:
             subvol = True
         if not self._distributed and not subvol:
-           return False, LE, RE, ds
+            return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
             self.hierarchy.periodic_region_strict(self.center,
@@ -623,14 +632,14 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_joindict(self, data):
-        self._barrier()
+        #self._barrier()
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
                 data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
         else:
             MPI.COMM_WORLD.send(data, dest=0, tag=0)
         data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
+        #self._barrier()
         return data
 
     @parallel_passthrough
@@ -1028,18 +1037,34 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
+    def _mpi_cat_na_array(self,data):
+        self._barrier()
+        comm = MPI.COMM_WORLD
+        if comm.rank == 0:
+            for i in range(1,comm.size):
+                buf = comm.recv(source=i, tag=0)
+                data = na.concatenate([data,buf])
+        else:
+            comm.send(data, 0, tag = 0)
+        data = comm.bcast(data, root=0)
+        return data
+
+    @parallel_passthrough
     def _mpi_catarray(self, data):
         if data is None:
             ncols = -1
             size = 0
         else:
-            if len(data.shape) == 1:
+            if len(data) == 0:
+                ncols = -1
+                size = 0
+            elif len(data.shape) == 1:
                 ncols = 1
                 size = data.shape[0]
             else:
                 ncols, size = data.shape
         ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
-        if data is None:
+        if size == 0:
             data = na.empty((ncols,0), dtype='float64') # This only works for
         size = data.shape[-1]
         sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
@@ -1056,7 +1081,7 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
-        self._barrier()
+        #self._barrier()
         data = MPI.COMM_WORLD.bcast(data, root=0)
         return data
 
@@ -1090,10 +1115,16 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_allsum(self, data):
-        self._barrier()
+        #self._barrier()
         # We use old-school pickling here on the assumption the arrays are
         # relatively small ( < 1e7 elements )
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
+        if isinstance(data, na.ndarray) and data.dtype != na.bool:
+            tr = na.zeros_like(data)
+            if not data.flags.c_contiguous: data = data.copy()
+            MPI.COMM_WORLD.Allreduce(data, tr, op=MPI.SUM)
+            return tr
+        else:
+            return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
 
     @parallel_passthrough
     def _mpi_Allsum_double(self, data):

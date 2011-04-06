@@ -27,6 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport kdtree_utils
+cimport healpix_interface
 from stdlib cimport malloc, free, abs
 
 cdef inline int imax(int i0, int i1):
@@ -62,6 +63,7 @@ cdef extern from "math.h":
     double fmod(double x, double y)
     double log2(double x)
     long int lrint(double x)
+    double fabs(double x)
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
@@ -71,6 +73,94 @@ cdef extern from "FixedInterpolator.h":
                                        np.float64_t *data)
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
+
+def hp_pix2vec_nest(long nside, long ipix):
+    cdef double v[3]
+    healpix_interface.pix2vec_nest(nside, ipix, v)
+    cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
+    tr[0] = v[0]
+    tr[1] = v[1]
+    tr[2] = v[2]
+    return tr
+
+def arr_pix2vec_nest(long nside,
+                     np.ndarray[np.int64_t, ndim=1] aipix):
+    cdef int n = aipix.shape[0]
+    cdef int i
+    cdef double v[3]
+    cdef long ipix
+    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 3), dtype='float64')
+    for i in range(n):
+        ipix = aipix[i]
+        healpix_interface.pix2vec_nest(nside, ipix, v)
+        tr[i,0] = v[0]
+        tr[i,1] = v[1]
+        tr[i,2] = v[2]
+    return tr
+
+def hp_vec2pix_nest(long nside, double x, double y, double z):
+    cdef double v[3]
+    v[0] = x
+    v[1] = y
+    v[2] = z
+    cdef long ipix
+    healpix_interface.vec2pix_nest(nside, v, &ipix)
+    return ipix
+
+def arr_vec2pix_nest(long nside,
+                     np.ndarray[np.float64_t, ndim=1] x,
+                     np.ndarray[np.float64_t, ndim=1] y,
+                     np.ndarray[np.float64_t, ndim=1] z):
+    cdef int n = x.shape[0]
+    cdef int i
+    cdef double v[3]
+    cdef long ipix
+    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    for i in range(n):
+        v[0] = x[i]
+        v[1] = y[i]
+        v[2] = z[i]
+        healpix_interface.vec2pix_nest(nside, v, &ipix)
+        tr[i] = ipix
+    return tr
+
+def hp_pix2ang_nest(long nside, long ipnest):
+    cdef double theta, phi
+    healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+    return (theta, phi)
+
+def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
+    cdef int n = aipnest.shape[0]
+    cdef int i
+    cdef long ipnest
+    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 2), dtype='float64')
+    cdef double theta, phi
+    for i in range(n):
+        ipnest = aipnest[i]
+        healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+        tr[i,0] = theta
+        tr[i,1] = phi
+    return tr
+
+def hp_ang2pix_nest(long nside, double theta, double phi):
+    cdef long ipix
+    healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+    return ipix
+
+def arr_ang2pix_nest(long nside,
+                     np.ndarray[np.float64_t, ndim=1] atheta,
+                     np.ndarray[np.float64_t, ndim=1] aphi):
+    cdef int n = atheta.shape[0]
+    cdef int i
+    cdef long ipnest
+    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    cdef double theta, phi
+    for i in range(n):
+        theta = atheta[i]
+        phi = aphi[i]
+        healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
+        tr[i] = ipnest
+    return tr
 
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
@@ -319,6 +409,8 @@ cdef class VectorPlane:
         for k in range(nk):
             tv[offset + k] = fv[k]
 
+cdef struct AdaptiveRayPacket
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -439,7 +531,8 @@ cdef class PartitionedGrid:
     cdef int integrate_ray(self, np.float64_t v_pos[3],
                                  np.float64_t v_dir[3],
                                  np.float64_t rgba[4],
-                                 TransferFunctionProxy tf):
+                                 TransferFunctionProxy tf,
+                                 np.float64_t *return_t = NULL):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t iv_dir[3]
@@ -504,6 +597,7 @@ cdef class PartitionedGrid:
             if tdelta[i] < 0: tdelta[i] *= -1
         # We have to jumpstart our calculation
         enter_t = intersect_t
+        hit = 0
         while 1:
             # dims here is one less than the dimensions of the data,
             # but we are tracing on the grid, not on the data...
@@ -542,7 +636,8 @@ cdef class PartitionedGrid:
                     cur_ind[2] += step[2]
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
-            if enter_t > 1.0: break
+            if enter_t >= 1.0: break
+        if return_t != NULL: return_t[0] = exit_t
         return hit
 
     @cython.boundscheck(False)
@@ -612,6 +707,75 @@ cdef class PartitionedGrid:
             gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
             for i in range(3): rgba[i] += gaussian*dt*colors[i]
         kdtree_utils.kd_res_rewind(ballq)
+        
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def integrate_streamline(self, pos, np.float64_t h):
+        cdef np.float64_t k1[3], k2[3], k3[3], k4[3]
+        cdef np.float64_t newpos[3], oldpos[3]
+        for i in range(3):
+            newpos[i] = oldpos[i] = pos[i]
+        self.get_vector_field(newpos, k1)
+        for i in range(3):
+            newpos[i] = oldpos[i] + 0.5*k1[i]*h
+
+        if not (self.left_edge[0] < newpos[0] and newpos[0] < self.right_edge[0] and \
+                self.left_edge[1] < newpos[1] and newpos[1] < self.right_edge[1] and \
+                self.left_edge[2] < newpos[2] and newpos[2] < self.right_edge[2]):
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+        
+        self.get_vector_field(newpos, k2)
+        for i in range(3):
+            newpos[i] = oldpos[i] + 0.5*k2[i]*h
+
+        if not (self.left_edge[0] <= newpos[0] and newpos[0] <= self.right_edge[0] and \
+                self.left_edge[1] <= newpos[1] and newpos[1] <= self.right_edge[1] and \
+                self.left_edge[2] <= newpos[2] and newpos[2] <= self.right_edge[2]):
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k3)
+        for i in range(3):
+            newpos[i] = oldpos[i] + k3[i]*h
+            
+        if not (self.left_edge[0] <= newpos[0] and newpos[0] <= self.right_edge[0] and \
+                self.left_edge[1] <= newpos[1] and newpos[1] <= self.right_edge[1] and \
+                self.left_edge[2] <= newpos[2] and newpos[2] <= self.right_edge[2]):
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k4)
+
+        for i in range(3):
+            pos[i] = oldpos[i] + h*(k1[i]/6.0 + k2[i]/3.0 + k3[i]/3.0 + k4[i]/6.0)
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void get_vector_field(self, np.float64_t pos[3],
+                               np.float64_t *vel):
+        cdef np.float64_t dp[3]
+        cdef int ci[3] 
+        cdef np.float64_t vel_mag = 0.0
+        for i in range(3):
+            ci[i] = (int)((pos[i]-self.left_edge[i])/self.dds[i])
+            dp[i] = (pos[i] - self.left_edge[i])%(self.dds[i])
+
+        cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
+                          + ci[1] * (self.dims[2] + 1) + ci[2]
+        
+        for i in range(3):
+            vel[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
+            vel_mag += vel[i]*vel[i]
+        vel_mag = np.sqrt(vel_mag)
+        if vel_mag != 0.0:
+            for i in range(3):
+                vel[i] /= vel_mag
 
 cdef class GridFace:
     cdef int direction
@@ -728,3 +892,284 @@ cdef class ProtoPrism:
         #                     self.LeftEdge, self.RightEdge, dims)
         return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)
 
+cdef struct AdaptiveRayPacket:
+    long nside
+    long ipix
+    np.float64_t t
+    np.float64_t v_dir[3]
+    np.float64_t value[4]
+    np.float64_t pos[3]
+    AdaptiveRayPacket *next
+    AdaptiveRayPacket *prev
+    AdaptiveRayPacket *brick_next
+    #int cgi
+
+cdef class AdaptiveRaySource:
+    cdef np.float64_t center[3]
+    cdef public np.float64_t rays_per_cell
+    cdef AdaptiveRayPacket *first
+    cdef public np.float64_t normalization
+    cdef public int nrays
+    cdef public int max_nside
+    cdef AdaptiveRayPacket **packet_pointers
+    cdef AdaptiveRayPacket **lpacket_pointers
+
+    def __cinit__(self, center, rays_per_cell, initial_nside,
+                  np.float64_t normalization, brick_list, int max_nside = 8192):
+        cdef int i
+        self.max_nside = max_nside
+        self.center[0] = center[0]
+        self.center[1] = center[1]
+        self.center[2] = center[2]
+        self.rays_per_cell = rays_per_cell
+        cdef AdaptiveRayPacket *ray
+        cdef AdaptiveRayPacket *last = NULL
+        cdef PartitionedGrid pg
+        cdef double v_dir[3]
+        cdef int nbricks = len(brick_list)
+        # You see, killbots have a preset kill limit. Knowing their weakness, I
+        # sent wave after wave of my own men at them until they reached their
+        # limit and shut down.
+        self.lpacket_pointers = <AdaptiveRayPacket **> \
+            malloc(sizeof(AdaptiveRayPacket*)*nbricks)
+        self.packet_pointers = <AdaptiveRayPacket **> \
+            malloc(sizeof(AdaptiveRayPacket*)*nbricks)
+        for i in range(nbricks):
+            self.lpacket_pointers[i] = self.packet_pointers[i] = NULL
+        self.normalization = normalization
+        self.nrays = 12*initial_nside*initial_nside
+        for i in range(self.nrays):
+            # Initialize rays here
+            ray = <AdaptiveRayPacket *> malloc(sizeof(AdaptiveRayPacket))
+            ray.prev = last
+            ray.ipix = i
+            ray.nside = initial_nside
+            ray.t = 0.0 # We assume we are not on a brick boundary
+            healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
+            ray.v_dir[0] = v_dir[0] * normalization
+            ray.v_dir[1] = v_dir[1] * normalization
+            ray.v_dir[2] = v_dir[2] * normalization
+            ray.value[0] = ray.value[1] = ray.value[2] = ray.value[3] = 0.0
+            ray.next = NULL
+            #ray.cgi = 0
+            ray.pos[0] = self.center[0]
+            ray.pos[1] = self.center[1]
+            ray.pos[2] = self.center[2]
+            ray.brick_next = NULL
+            if last != NULL:
+                last.next = ray
+                last.brick_next = ray
+            else:
+                self.first = ray
+            last = ray
+        self.packet_pointers[0] = self.first
+        self.lpacket_pointers[0] = last
+
+    def __dealloc__(self):
+        cdef AdaptiveRayPacket *next
+        cdef AdaptiveRayPacket *ray = self.first
+        while ray != NULL:
+            next = ray.next
+            free(ray)
+            ray = next
+        free(self.packet_pointers)
+
+    def get_rays(self):
+        cdef AdaptiveRayPacket *ray = self.first
+        cdef int count = 0
+        while ray != NULL:
+            count += 1
+            ray = ray.next
+        cdef np.ndarray[np.int64_t, ndim=2] info = np.zeros((count, 2), dtype="int64")
+        cdef np.ndarray[np.float64_t, ndim=2] values = np.zeros((count, 4), dtype="float64")
+        count = 0
+        ray = self.first
+        while ray != NULL:
+            info[count, 0] = ray.nside
+            info[count, 1] = ray.ipix
+            values[count, 0] = ray.value[0]
+            values[count, 1] = ray.value[1]
+            values[count, 2] = ray.value[2]
+            values[count, 3] = ray.value[3]
+            count += 1
+            ray = ray.next
+        return info, values
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf,
+                        int pgi, np.ndarray[np.float64_t, ndim=2] ledges,
+                                 np.ndarray[np.float64_t, ndim=2] redges):
+        cdef np.float64_t domega
+        domega = self.get_domega(pg.left_edge, pg.right_edge)
+        #print "dOmega", domega, self.nrays
+        cdef int count = 0
+        cdef int i, j
+        cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
+        cdef AdaptiveRayPacket *next
+        cdef int *grid_neighbors = self.find_neighbors(pgi, pg.dds[0], ledges, redges)
+        cdef np.float64_t enter_t, dt, offpos[3]
+        cdef int found_a_home, hit
+        #print "Grid: ", pgi, "has", grid_neighbors[0], "neighbors"
+        while ray != NULL:
+            # Note that we may end up splitting a ray such that it ends up
+            # outside the brick!  This will likely cause them to get lost.
+            #print count
+            count +=1
+            # We don't need to check for intersection anymore, as we are the
+            # Ruler of the planet Omicron Persei 8
+            #if self.intersects(ray, pg):
+            ray = self.refine_ray(ray, domega, pg.dds[0],
+                                  pg.left_edge, pg.right_edge)
+            enter_t = ray.t
+            hit = pg.integrate_ray(self.center, ray.v_dir, ray.value, tf, &ray.t)
+            if hit == 0: dt = 0.0
+            else: dt = (ray.t - enter_t)/hit
+            for i in range(3):
+                ray.pos[i] = ray.v_dir[i] * ray.t + self.center[i]
+                offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-5*dt
+            # We set 'next' after the refinement has occurred
+            next = ray.brick_next
+            found_a_home = 0
+            for j in range(grid_neighbors[0]):
+                i = grid_neighbors[j+1]
+                if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
+                    (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
+                    (ledges[i, 2] <= offpos[2] <= redges[i, 2])):
+                    if self.lpacket_pointers[i] == NULL:
+                        self.packet_pointers[i] = \
+                        self.lpacket_pointers[i] = ray
+                        ray.brick_next = NULL
+                    else:
+                        self.lpacket_pointers[i].brick_next = ray
+                        self.lpacket_pointers[i] = ray
+                        ray.brick_next = NULL
+                    #ray.cgi = i
+                    found_a_home = 1
+                    break
+            ray = next
+        free(grid_neighbors)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int *find_neighbors(self, int this_grid, np.float64_t dds,
+                             np.ndarray[np.float64_t, ndim=2] ledges,
+                             np.ndarray[np.float64_t, ndim=2] redges):
+        # Iterate once to count the number of grids, iterate a second time to
+        # fill the array.  This could be better with a linked list, but I think
+        # that the difference should not be substantial.
+        cdef int i = 0
+        cdef int count = 0
+        # We grow our grids by dx in every direction, then look for overlap
+        cdef np.float64_t gle[3], gre[3]
+        gle[0] = ledges[this_grid, 0] - dds
+        gle[1] = ledges[this_grid, 1] - dds
+        gle[2] = ledges[this_grid, 2] - dds
+        gre[0] = redges[this_grid, 0] + dds
+        gre[1] = redges[this_grid, 1] + dds
+        gre[2] = redges[this_grid, 2] + dds
+        for i in range(this_grid+1, ledges.shape[0]):
+            # Check for overlap
+            if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
+                (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
+                (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
+                count += 1
+        cdef int *tr = <int *> malloc(sizeof(int) * (count + 1))
+        tr[0] = count
+        count = 0
+        for i in range(this_grid+1, ledges.shape[0]):
+            # Check for overlap
+            if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
+                (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
+                (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
+                tr[count + 1] = i
+                count += 1
+        return tr
+
+    cdef int intersects(self, AdaptiveRayPacket *ray, PartitionedGrid pg):
+        cdef np.float64_t pos[3]
+        cdef int i
+        for i in range(3):
+            # Is this correct, for the normalized v_dir?
+            if ray.pos[i] < pg.left_edge[i]: return 0
+            if ray.pos[i] > pg.right_edge[i]: return 0
+        return 1
+
+    cdef np.float64_t get_domega(self, np.float64_t left_edge[3],
+                                       np.float64_t right_edge[3]):
+        # We should calculate the subtending angle at the maximum radius of the
+        # brick
+        cdef int i, j, k
+        cdef np.float64_t r2[3], max_r2, domega, *edge[2]
+        # We now figure out when the ray will leave the box, at worst.
+        edge[0] = left_edge
+        edge[1] = right_edge
+        max_r2 = -1.0
+        for i in range(2):
+            r2[0] = (edge[i][0] - self.center[0])**2.0
+            for j in range(2):
+                r2[1] = r2[0] + (edge[j][1] - self.center[1])**2.0
+                for k in range(3):
+                    r2[2] = r2[1] + (edge[k][2] - self.center[2])**2.0
+                    max_r2 = fmax(max_r2, r2[2])
+        domega = 4.0 * 3.1415926 * max_r2 # Used to be / Nrays
+        return domega
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef AdaptiveRayPacket *refine_ray(self, AdaptiveRayPacket *ray,
+                                       np.float64_t domega,
+                                       np.float64_t dx,
+                                       np.float64_t left_edge[3],
+                                       np.float64_t right_edge[3]):
+        # This should be recursive; we are not correctly applying split
+        # criteria multiple times.
+        cdef long Nrays = 12 * ray.nside * ray.nside
+        cdef int i, j
+        if domega/Nrays < dx*dx/self.rays_per_cell:
+            #print ray.nside, domega/Nrays, dx, (domega/Nrays * self.rays_per_cell)/(dx*dx)
+            return ray
+        if ray.nside >= self.max_nside: return ray
+        #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
+        # Now we make four new ones
+        cdef double v_dir[3]
+        cdef AdaptiveRayPacket *prev = ray.prev
+        # It is important to note here that brick_prev is a local variable for
+        # the newly created rays, not the previous ray in this brick, as that
+        # has already been passed on to its next brick
+        cdef AdaptiveRayPacket *brick_prev = NULL
+        for i in range(4):
+            new_ray = <AdaptiveRayPacket *> malloc(
+                            sizeof(AdaptiveRayPacket))
+            new_ray.nside = ray.nside * 2
+            new_ray.ipix = ray.ipix * 4 + i
+            new_ray.t = ray.t
+            #new_ray.cgi = ray.cgi
+            new_ray.prev = prev
+            if new_ray.prev != NULL:
+                new_ray.prev.next = new_ray
+            if brick_prev != NULL:
+                brick_prev.brick_next = new_ray
+            prev = brick_prev = new_ray
+            healpix_interface.pix2vec_nest(
+                    new_ray.nside, new_ray.ipix, v_dir)
+            for j in range(3):
+                new_ray.v_dir[j] = v_dir[j] * self.normalization
+                new_ray.value[j] = ray.value[j]
+                new_ray.pos[j] = self.center[j] + ray.t * new_ray.v_dir[j]
+            new_ray.value[3] = ray.value[3]
+
+        new_ray.next = ray.next
+        new_ray.brick_next = ray.brick_next
+        if new_ray.next != NULL:
+            new_ray.next.prev = new_ray
+        if self.first == ray:
+            self.first = new_ray.prev.prev.prev
+        free(ray)
+        self.nrays += 3
+        return new_ray.prev.prev.prev
+
+# From Enzo:
+#   dOmega = 4 pi r^2/Nrays
+#   if (dOmega > RaysPerCell * dx^2) then split

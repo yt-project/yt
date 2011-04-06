@@ -34,8 +34,7 @@ from yt.convenience import \
     load
 from yt.data_objects.profiles import \
     BinnedProfile1D, EmptyProfileData
-from yt.analysis_modules.halo_finding.api import \
-    HaloFinder
+from yt.analysis_modules.halo_finding.api import *
 from .halo_filters import \
     VirialFilter
 from yt.data_objects.field_info_container import \
@@ -47,22 +46,29 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer
-from yt.visualization.plot_collection import \
-    PlotCollection
+from yt.visualization.image_writer import write_image
 
 PROFILE_RADIUS_THRESHOLD = 2
 
 class HaloProfiler(ParallelAnalysisInterface):
     "Radial profiling, filtering, and projections for halos in cosmological simulations."
-    def __init__(self, dataset, halos='multiple', halo_list_file='HopAnalysis.out', halo_list_format='yt_hop',
-                 halo_finder_function=HaloFinder, halo_finder_args=None, halo_finder_kwargs=None,
-                 use_density_center=False, density_center_exponent=1.0, use_field_max_center=None,
+    def __init__(self, dataset, output_dir=None,
+                 halos='multiple', halo_list_file='HopAnalysis.out', 
+                 halo_list_format='yt_hop', halo_finder_function=parallelHF, 
+                 halo_finder_args=None, 
+                 halo_finder_kwargs=dict(threshold=160.0, safety=1.5, 
+                                         dm_only=False, resize=True, 
+                                         fancy_padding=True, rearrange=True),
+                 use_density_center=False, density_center_exponent=1.0,
+                 use_field_max_center=None,
                  halo_radius=0.1, radius_units='1', n_profile_bins=50,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
                  velocity_center=['bulk', 'halo'], filter_quantities=['id','center']):
         """
         Initialize a HaloProfiler object.
+        :param output_dir (str): if specified, all output will be put into this path instead of 
+               in the dataset directories.  Default: None.
         :param halos (str): "multiple" for profiling more than one halo.  In this mode halos are read in 
                from a list or identified with a halo finder.  In "single" mode, the one and only halo 
                center is identified automatically as the location of the peak in the density field.  
@@ -114,7 +120,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         """
 
         self.dataset = dataset
-
+        self.output_dir = output_dir
         self.profile_output_dir = profile_output_dir
         self.projection_output_dir = projection_output_dir
         self.n_profile_bins = n_profile_bins
@@ -131,6 +137,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         self.all_halos = []
         self.filtered_halos = []
         self._projection_halo_list = []
+
+        # Create output directory if specified
+        if self.output_dir is not None:
+            self.__check_directory(self.output_dir)
 
         # Set halo finder function and parameters, if needed.
         self.halo_finder_function = halo_finder_function
@@ -153,7 +163,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         # dictionary: a dictionary containing fields and their corresponding columns.
         self.halo_list_file = halo_list_file
         if halo_list_format == 'yt_hop':
-            self.halo_list_format = {'id':0, 'mass':1, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13}
+            self.halo_list_format = {'id':0, 'mass':1, 'np': 2, 
+                                     'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13}
         elif halo_list_format == 'enzo_hop':
             self.halo_list_format = {'id':0, 'center':[4, 5, 6]}
         elif halo_list_format == 'p-groupfinder':
@@ -169,7 +180,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         self.density_center_exponent = density_center_exponent
         if self.use_density_center:
             def _MatterDensityXTotalMass(field, data):
-                return na.power((data['Matter_Density'] * data['TotalMassMsun']), self.density_center_exponent)
+                return na.power((data['Matter_Density'] * data['TotalMassMsun']), 
+                                self.density_center_exponent)
             def _Convert_MatterDensityXTotalMass(data):
                 return 1
             add_field("MatterDensityXTotalMass", units=r"",
@@ -246,10 +258,11 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         self.profile_fields.append({'field':field, 'weight_field':weight_field, 'accumulation':accumulation})
 
-    def add_projection(self, field, weight_field=None):
+    def add_projection(self, field, weight_field=None, cmap='algae'):
         "Add a field for projection."
 
-        self.projection_fields.append({'field':field, 'weight_field':weight_field})
+        self.projection_fields.append({'field':field, 'weight_field':weight_field, 
+                                       'cmap': cmap})
 
     @parallel_blocking_call
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
@@ -288,8 +301,14 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Add profile fields necessary for calculating virial quantities.
         if virial_filter: self._check_for_needed_profile_fields()
 
-        outputDir = "%s/%s" % (self.pf.fullpath, self.profile_output_dir)
-        self.__check_directory(outputDir)
+        # Create output directory.
+        if self.output_dir is not None:
+            self.__check_directory("%s/%s" % (self.output_dir, self.pf.directory))
+            my_output_dir = "%s/%s/%s" % (self.output_dir, self.pf.directory, 
+                                          self.profile_output_dir)
+        else:
+            my_output_dir = "%s/%s" % (self.pf.fullpath, self.profile_output_dir)
+        self.__check_directory(my_output_dir)
 
         # Profile all halos.
         for halo in self._get_objs('all_halos', round_robin=True):
@@ -305,7 +324,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             if filter_result and len(self.profile_fields) > 0:
 
-                profile_filename = "%s/Halo_%04d_profile.dat" % (outputDir, halo['id'])
+                profile_filename = "%s/Halo_%04d_profile.dat" % (my_output_dir, halo['id'])
 
                 profiledHalo = self._get_halo_profile(halo, profile_filename, virial_filter=virial_filter)
 
@@ -447,17 +466,22 @@ class HaloProfiler(ParallelAnalysisInterface):
             return
 
         # Set resolution for fixed resolution output.
-        if save_cube:
-            if self.project_at_level == 'max':
-                proj_level = self.pf.h.max_level
-            else:
-                proj_level = int(self.project_at_level)
-            proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \
-                (self.pf.parameters['RefineBy']**proj_level)
-            projectionResolution = int(self.projection_width / proj_dx)
+        if self.project_at_level == 'max':
+            proj_level = self.pf.h.max_level
+        else:
+            proj_level = int(self.project_at_level)
+        proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \
+            (self.pf.parameters['RefineBy']**proj_level)
+        projectionResolution = int(self.projection_width / proj_dx)
 
-        outputDir = "%s/%s" % (self.pf.fullpath, self.projection_output_dir)
-        self.__check_directory(outputDir)
+        # Create output directory.
+        if self.output_dir is not None:
+            self.__check_directory("%s/%s" % (self.output_dir, self.pf.directory))
+            my_output_dir = "%s/%s/%s" % (self.output_dir, self.pf.directory, 
+                                          self.projection_output_dir)
+        else:
+            my_output_dir = "%s/%s" % (self.pf.fullpath, self.projection_output_dir)
+        self.__check_directory(my_output_dir)
 
         center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
@@ -490,8 +514,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
             for w in axes:
-                # Create a plot collection.
-                pc = PlotCollection(self.pf, center=center)
+                projections = []
                 # YT projections do not follow the right-hand rule.
                 coords = range(3)
                 del coords[w]
@@ -499,12 +522,15 @@ class HaloProfiler(ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    pc.add_projection(hp['field'], w, weight_field=hp['weight_field'], data_source=region)
+                    projections.append(self.pf.h.proj(w, hp['field'], 
+                                                      weight_field=hp['weight_field'], 
+                                                      data_source=region, center=halo['center'],
+                                                      serialize=False))
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.projection_width/self.pf.units[self.projection_width_units]
-                    shift_projections(self.pf, pc, halo['center'], center, w)
+                    #shift_projections(self.pf, projections, halo['center'], center, w)
                     # Projection has now been shifted to center of box.
                     proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
                     proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
@@ -512,30 +538,33 @@ class HaloProfiler(ParallelAnalysisInterface):
                     proj_left = [leftEdge[x_axis], leftEdge[y_axis]]
                     proj_right = [rightEdge[x_axis], rightEdge[y_axis]]
 
-                pc.set_xlim(proj_left[0], proj_right[0])
-                pc.set_ylim(proj_left[1], proj_right[1])
-
                 # Save projection data to hdf5 file.
-                if save_cube:
+                if save_cube or save_images:
                     axis_labels = ['x', 'y', 'z']
-                    dataFilename = "%s/Halo_%04d_%s_data.h5" % \
-                            (outputDir, halo['id'], axis_labels[w])
-                    mylog.info("Saving projection data to %s." % dataFilename)
 
-                    output = h5py.File(dataFilename, "a")
+                    if save_cube:
+                        dataFilename = "%s/Halo_%04d_%s_data.h5" % \
+                            (my_output_dir, halo['id'], axis_labels[w])
+                        mylog.info("Saving projection data to %s." % dataFilename)
+                        output = h5py.File(dataFilename, "a")
+
                     # Create fixed resolution buffer for each projection and write them out.
                     for e, hp in enumerate(self.projection_fields):
-                        frb = FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], 
-                                                                       proj_left[1], proj_right[1]),
-                                                          (projectionResolution, projectionResolution),
-                                                          antialias=False)
+                        frb = FixedResolutionBuffer(projections[e], (proj_left[0], proj_right[0], 
+                                                                     proj_left[1], proj_right[1]),
+                                                    (projectionResolution, projectionResolution),
+                                                    antialias=False)
                         dataset_name = "%s_%s" % (hp['field'], hp['weight_field'])
-                        if dataset_name in output.listnames(): del output[dataset_name]
-                        output.create_dataset(dataset_name, data=frb[hp['field']])
-                    output.close()
+                        if save_cube:
+                            if dataset_name in output.listnames(): del output[dataset_name]
+                            output.create_dataset(dataset_name, data=frb[hp['field']])
 
-                if save_images:
-                    pc.save("%s/Halo_%04d" % (outputDir, halo['id']), force_save=True)
+                        if save_images:
+                            filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 
+                                                                   dataset_name, axis_labels[w])
+                            write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+
+                    if save_cube: output.close()
 
             del region
 
@@ -573,13 +602,17 @@ class HaloProfiler(ParallelAnalysisInterface):
         if filename is None:
             filename = self.halo_list_file
 
-        hopFile = "%s/%s" % (self.pf.fullpath, filename)
+        if self.output_dir is not None:
+            self.__check_directory("%s/%s" % (self.output_dir, self.pf.directory))
+            hop_file = "%s/%s/%s" % (self.output_dir, self.pf.directory, filename)
+        else:
+            hop_file = "%s/%s" % (self.pf.fullpath, filename)
 
-        if not(os.path.exists(hopFile)):
-            mylog.info("Hop file not found, running hop to get halos.")
-            self._run_hop(hopFile)
+        if not(os.path.exists(hop_file)):
+            mylog.info("Halo finder file not found, running halo finder to get halos.")
+            self._run_hop(hop_file)
 
-        self.all_halos = self._read_halo_list(hopFile)
+        self.all_halos = self._read_halo_list(hop_file)
 
     def _read_halo_list(self, listFile):
         """
@@ -685,11 +718,11 @@ class HaloProfiler(ParallelAnalysisInterface):
             return None
 
     @parallel_blocking_call
-    def _run_hop(self, hopFile):
+    def _run_hop(self, hop_file):
         "Run hop to get halos."
 
         hop_results = self.halo_finder_function(self.pf, *self.halo_finder_args, **self.halo_finder_kwargs)
-        hop_results.write_out(hopFile)
+        hop_results.write_out(hop_file)
 
         del hop_results
         self.pf.h.clear_all_data()
@@ -752,15 +785,15 @@ class HaloProfiler(ParallelAnalysisInterface):
         fid.close()
 
     @parallel_root_only
-    def __check_directory(self, outputDir):
-        if (os.path.exists(outputDir)):
-            if not(os.path.isdir(outputDir)):
-                mylog.error("Output directory exists, but is not a directory: %s." % outputDir)
-                raise IOError(outputDir)
+    def __check_directory(self, my_output_dir):
+        if (os.path.exists(my_output_dir)):
+            if not(os.path.isdir(my_output_dir)):
+                mylog.error("Output directory exists, but is not a directory: %s." % my_output_dir)
+                raise IOError(my_output_dir)
         else:
-            os.mkdir(outputDir)
+            os.mkdir(my_output_dir)
 
-def shift_projections(pf, pc, oldCenter, newCenter, axis):
+def shift_projections(pf, projections, oldCenter, newCenter, axis):
     """
     Shift projection data around.
     This is necessary when projecting a preiodic region.
@@ -772,10 +805,10 @@ def shift_projections(pf, pc, oldCenter, newCenter, axis):
     del offset[axis]
     del width[axis]
 
-    for plot in pc.plots:
+    for plot in projections:
         # Get name of data field.
         other_fields = {'px':True, 'py':True, 'pdx':True, 'pdy':True, 'weight_field':True}
-        for pfield in plot.data.data.keys():
+        for pfield in plot.data.keys():
             if not(other_fields.has_key(pfield)):
                 field = pfield
                 break

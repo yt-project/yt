@@ -1604,7 +1604,6 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     Py_DECREF(x);
     Py_DECREF(y);
     Py_DECREF(z);
-
     PyObject *status = PyFloat_FromDouble(total_potential);
     return status;
 

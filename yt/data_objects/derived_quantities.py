@@ -35,6 +35,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
+from yt.utilities.amr_utils import Octree
 
 __CUDA_BLOCK_SIZE = 256
 
@@ -215,8 +216,10 @@ def _AngularMomentumVector(data):
     """
     This function returns the mass-weighted average angular momentum vector.
     """
-    am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
-    j_mag = am.sum(axis=1)
+    amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
+    amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
+    amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
+    j_mag = [amx.sum(), amy.sum(), amz.sum()]
     return [j_mag]
 def _combAngularMomentumVector(data, j_mag):
     if len(j_mag.shape) < 2: j_mag = na.expand_dims(j_mag, 0)
@@ -232,8 +235,10 @@ def _BaryonSpinParameter(data):
     the particles in calculating enclosed mass.
     """
     m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
-    j_mag = am.sum(axis=1)
+    amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
+    amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
+    amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
+    j_mag = na.array([amx.sum(), amy.sum(), amz.sum()])
     e_term_pre = na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
     weight=data["CellMassMsun"].sum()
     return j_mag, m_enc, e_term_pre, weight
@@ -256,9 +261,11 @@ def _ParticleSpinParameter(data):
     the particles in calculating enclosed mass.
     """
     m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    am = data["ParticleSpecificAngularMomentum"]*data["ParticleMassMsun"]
-    if am.size == 0: return (na.zeros((3,), dtype='float64'), m_enc, 0, 0)
-    j_mag = am.sum(axis=1)
+    amx = data["ParticleSpecificAngularMomentumX"]*data["ParticleMassMsun"]
+    if amx.size == 0: return (na.zeros((3,), dtype='float64'), m_enc, 0, 0)
+    amy = data["ParticleSpecificAngularMomentumY"]*data["ParticleMassMsun"]
+    amz = data["ParticleSpecificAngularMomentumZ"]*data["ParticleMassMsun"]
+    j_mag = na.array([amx.sum(), amy.sum(), amz.sum()])
     e_term_pre = na.sum(data["ParticleMassMsun"]
                        *data["ParticleVelocityMagnitude"]**2.0)
     weight=data["ParticleMassMsun"].sum()
@@ -266,15 +273,36 @@ def _ParticleSpinParameter(data):
 add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
-def _IsBound(data, truncate = True, include_thermal_energy = False):
-    """
-    This returns whether or not the object is gravitationally bound
+def _IsBound(data, truncate = True, include_thermal_energy = False,
+    treecode = True, opening_angle = 1.0, periodic_test = False):
+    r"""
+    This returns whether or not the object is gravitationally bound. If this
+    returns a value greater than one, it is bound, and otherwise not.
     
-    :param truncate: Should the calculation stop once the ratio of
-                     gravitational:kinetic is 1.0?
-    :param include_thermal_energy: Should we add the energy from ThermalEnergy
-                                   on to the kinetic energy to calculate 
-                                   binding energy?
+    Parameters
+    ----------
+    truncate : Bool
+        Should the calculation stop once the ratio of
+        gravitational:kinetic is 1.0?
+    include_thermal_energy : Bool
+        Should we add the energy from ThermalEnergy
+        on to the kinetic energy to calculate 
+        binding energy?
+    treecode : Bool
+        Whether or not to use the treecode.
+    opening_angle : Float 
+        The maximal angle a remote node may subtend in order
+        for the treecode method of mass conglomeration may be
+        used to calculate the potential between masses.
+    periodic_test : Bool 
+        Used for testing the periodic adjustment machinery
+        of this derived quantity. 
+
+    Examples
+    --------
+    >>> sp.quantities["IsBound"](truncate=False,
+    ... include_thermal_energy=True, treecode=False, opening_angle=2.0)
+    0.32493
     """
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
@@ -288,19 +316,109 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     if (include_thermal_energy):
         thermal = (data["ThermalEnergy"] * data["CellMass"]).sum()
         kinetic += thermal
+    if periodic_test:
+        kinetic = na.ones_like(kinetic)
     # Gravitational potential energy
     # We only divide once here because we have velocity in cgs, but radius is
     # in code.
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
+    # Check for periodicity of the clump.
+    two_root = 2. / na.array(data.pf.domain_dimensions)
+    domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
+    periodic = na.array([0., 0., 0.])
+    for i,dim in enumerate(["x", "y", "z"]):
+        sorted = data[dim][data[dim].argsort()]
+        # If two adjacent values are different by (more than) two root grid
+        # cells, I think it's reasonable to assume that the clump wraps around.
+        diff = sorted[1:] - sorted[0:-1]
+        if (diff >= two_root[i]).any():
+            mylog.info("Adjusting clump for periodic boundaries in dim %s" % dim)
+            # We will record the distance of the larger of the two values that
+            # define the gap from the right boundary, which we'll use for the
+            # periodic adjustment later.
+            sel = (diff >= two_root[i])
+            index = na.min(na.nonzero(sel))
+            # The last addition term below ensures that the data makes a full
+            # wrap-around.
+            periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1] + \
+                two_root[i] / 2.
+    # This dict won't make a copy of the data, but it will make a copy to 
+    # change if needed in the periodic section immediately below.
+    local_data = {}
+    for label in ["x", "y", "z", "CellMass"]:
+        local_data[label] = data[label]
+    if periodic.any():
+        # Adjust local_data to re-center the clump to remove the periodicity
+        # by the gap calculated above.
+        for i,dim in enumerate(["x", "y", "z"]):
+            if not periodic[i]: continue
+            local_data[dim] = data[dim].copy()
+            local_data[dim] += periodic[i]
+            local_data[dim] %= domain_period[i]
+    if periodic_test:
+        local_data["CellMass"] = na.ones_like(local_data["CellMass"])
     import time
     t1 = time.time()
-    try:
-        pot = G*_cudaIsBound(data, truncate, kinetic/G)
-    except (ImportError, AssertionError):
-        pot = G*FindBindingEnergy(data["CellMass"],
-                                  data['x'],data['y'],data['z'],
-                                  truncate, kinetic/G)
-        mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
+    if treecode:
+        # Calculate the binding energy using the treecode method.
+        # Faster but less accurate.
+        # The octree doesn't like uneven root grids, so we will make it cubical.
+        root_dx = 1./na.array(data.pf.domain_dimensions).astype('float64')
+        left = min([na.amin(local_data['x']), na.amin(local_data['y']),
+            na.amin(local_data['z'])])
+        right = max([na.amax(local_data['x']), na.amax(local_data['y']),
+            na.amax(local_data['z'])])
+        cover_min = na.array([left, left, left])
+        cover_max = na.array([right, right, right])
+        # Fix the coverage to match to root grid cell left 
+        # edges for making indexes.
+        cover_min = cover_min - cover_min % root_dx
+        cover_max = cover_max - cover_max % root_dx
+        cover_imin = (cover_min * na.array(data.pf.domain_dimensions)).astype('int64')
+        cover_imax = (cover_max * na.array(data.pf.domain_dimensions) + 1).astype('int64')
+        cover_ActiveDimensions = cover_imax - cover_imin
+        # Create the octree with these dimensions.
+        # One value (mass) with incremental=True.
+        octree = Octree(cover_ActiveDimensions, 1, True)
+        #print 'here', cover_ActiveDimensions
+        # Now discover what levels this data comes from, not assuming
+        # symmetry.
+        dxes = na.unique(data['dx']) # unique returns a sorted array,
+        dyes = na.unique(data['dy']) # so these will all have the same
+        dzes = na.unique(data['dx']) # order.
+        # We only need one dim to figure out levels, we'll use x.
+        dx = 1./data.pf.domain_dimensions[0]
+        levels = (na.log(dx / dxes) / na.log(data.pf.refine_by)).astype('int')
+        lsort = levels.argsort()
+        levels = levels[lsort]
+        dxes = dxes[lsort]
+        dyes = dyes[lsort]
+        dzes = dzes[lsort]
+        # Now we add actual data to the octree.
+        for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
+            mylog.info("Adding data to Octree for level %d" % L)
+            sel = (data["dx"] == dx)
+            thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
+            thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
+            thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
+            vals = na.array([local_data["CellMass"][sel]], order='F')
+            octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
+               na.ones_like(thisx).astype('float64'), treecode = 1)
+        # Now we calculate the binding energy using a treecode.
+        octree.finalize(treecode = 1)
+        mylog.info("Using a treecode to find gravitational energy for %d cells." % local_data['x'].size)
+        pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
+            opening_angle)
+        #octree.print_all_nodes()
+    else:
+        try:
+            pot = G*_cudaIsBound(local_data, truncate, kinetic/G)
+        except (ImportError, AssertionError):
+            pot = G*FindBindingEnergy(local_data["CellMass"],
+                                local_data['x'],local_data['y'],local_data['z'],
+                                truncate, kinetic/G)
+    mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
+    del local_data
     return [(pot / kinetic)]
 def _combIsBound(data, bound):
     return bound

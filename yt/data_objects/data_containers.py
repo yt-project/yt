@@ -136,13 +136,19 @@ class FakeGridForParticles(object):
         self.real_grid = grid
         self.child_mask = 1
         self.ActiveDimensions = self.data['x'].shape
+        self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
+        
     def __getitem__(self, field):
         if field not in self.data.keys():
             if field == "RadiusCode":
                 center = self.field_parameters['center']
-                tr = na.sqrt( (self['x'] - center[0])**2.0 +
-                              (self['y'] - center[1])**2.0 +
-                              (self['z'] - center[2])**2.0 )
+                tempx = na.abs(self['x'] - center[0])
+                tempx = na.minimum(tempx, self.DW[0] - tempx)
+                tempy = na.abs(self['y'] - center[1])
+                tempy = na.minimum(tempy, self.DW[1] - tempy)
+                tempz = na.abs(self['z'] - center[2])
+                tempz = na.minimum(tempz, self.DW[2] - tempz)
+                tr = na.sqrt( tempx**2.0 + tempy**2.0 + tempz**2.0 )
             else:
                 raise KeyError(field)
         else: tr = self.data[field]
@@ -631,6 +637,97 @@ class AMRRayBase(AMR1DData):
                        grid.dds, self.center, self.vec)
         self._dts[grid.id] = na.abs(dts)
         self._ts[grid.id] = na.abs(ts)
+        return mask
+
+class AMRStreamlineBase(AMR1DData):
+    _type_name = "streamline"
+    _con_args = ('positions')
+    sort_by = 't'
+    def __init__(self, positions, fields=None, pf=None, **kwargs):
+        """
+        This is a streamline, which is a set of points defined as
+        being parallel to some vector field.
+
+        This object is typically accessed through the Streamlines.path
+        function.  The resulting arrays have their dimensionality
+        reduced to one, and an ordered list of points at an (x,y)
+        tuple along `axis` are available, as is the `t` field, which
+        corresponds to a unitless measurement along the ray from start
+        to end.
+
+        Parameters
+        ----------
+        positions : array-like
+            List of streamline positions
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        pf : Parameter file object
+            Passed in to access the hierarchy
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> from yt.visualization.api import Streamlines
+        >>> streamlines = Streamlines(pf, [0.5]*3) 
+        >>> streamlines.integrate_through_volume()
+        >>> stream = streamlines.path(0)
+        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+        
+        """
+        AMR1DData.__init__(self, pf, fields, **kwargs)
+        self.positions = positions
+        self.dts = na.empty_like(positions[:,0])
+        self.dts[:-1] = na.sqrt(na.sum((self.positions[1:]-
+                                        self.positions[:-1])**2,axis=1))
+        self.dts[-1] = self.dts[-1]
+        self.ts = na.add.accumulate(self.dts)
+        self._set_center(self.positions[0])
+        self.set_field_parameter('center', self.positions[0])
+        self._dts, self._ts = {}, {}
+        #self._refresh_data()
+
+    def _get_list_of_grids(self):
+        # Get the value of the line at each LeftEdge and RightEdge
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
+        # Check left faces first
+        min_streampoint = na.min(self.positions, axis=0)
+        max_streampoint = na.max(self.positions, axis=0)
+        p = na.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
+        self._grids = self.hierarchy.grids[p]
+
+    def _get_data_from_grid(self, grid, field):
+        mask = na.logical_and(self._get_cut_mask(grid),
+                              grid.child_mask)
+        if field == 'dts': return self._dts[grid.id][mask]
+        if field == 't': return self._ts[grid.id][mask]
+        return grid[field][mask]
+        
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        mask = na.zeros(grid.ActiveDimensions, dtype='int')
+        dts = na.zeros(grid.ActiveDimensions, dtype='float64')
+        ts = na.zeros(grid.ActiveDimensions, dtype='float64')
+        #pdb.set_trace()
+        points_in_grid = na.all(self.positions > grid.LeftEdge, axis=1) & \
+                         na.all(self.positions <= grid.RightEdge, axis=1) 
+        pids = na.where(points_in_grid)[0]
+        for i, pos in zip(pids, self.positions[points_in_grid]):
+            if not points_in_grid[i]: continue
+            ci = ((pos - grid.LeftEdge)/grid.dds).astype('int')
+            for j in range(3):
+                ci[j] = min(ci[j], grid.ActiveDimensions[j]-1)
+            if mask[ci[0], ci[1], ci[2]]:
+                continue
+            mask[ci[0], ci[1], ci[2]] = 1
+            dts[ci[0], ci[1], ci[2]] = self.dts[i]
+            ts[ci[0], ci[1], ci[2]] = self.ts[i]
+        self._dts[grid.id] = dts
+        self._ts[grid.id] = ts
         return mask
 
 class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
@@ -1456,7 +1553,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         self._obtain_fields(fields, self._node_name)
         fields = [f for f in fields if f not in self.data]
         if len(fields) == 0: return
-        tree = self._get_tree(len(fields) + int(self._weight is not None))
+        tree = self._get_tree(len(fields))
         coord_data = []
         field_data = []
         dxs = []
@@ -1482,7 +1579,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
             coord_data.append(npos)
-            if self._weight is not None: nvals /= nwvals
+            if self._weight is not None: nvals /= nwvals[:,None]
             field_data.append(nvals)
             weight_data.append(nwvals)
             gs = self.source.select_grids(level)
@@ -1534,7 +1631,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             masked_data  = [field_data[field].copy().astype('float64') * weight_data
                                 for field in fields]
             del field_data
-            wdl = self.dls[-1]
+            wdl = dls[-1]
         full_proj = [self.func(field, axis=self.axis) * dl
                      for field, dl in zip(masked_data, dls)]
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
@@ -1544,11 +1641,12 @@ class AMRQuadTreeProjBase(AMR2DData):
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
-        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
+        xind, yind = [arr[used_points].ravel()
+                      for arr in na.indices(full_proj[0].shape)]
         start_index = grid.get_global_startindex()
         xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
-        to_add = na.array([d[used_points].ravel() for d in full_proj])
+        to_add = na.array([d[used_points].ravel() for d in full_proj], order='F')
         tree.add_array_to_tree(grid.Level, xpoints, ypoints, 
                     to_add, weight_proj[used_points].ravel())
 
@@ -2807,6 +2905,10 @@ class AMRSphereBase(AMR3DData):
         *center* and a *radius*.
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        # Unpack the radius, if necessary
+        if isinstance(radius, tuple) and len(radius) == 2 and \
+           isinstance(radius[1], types.StringTypes):
+           radius = radius[0]/self.pf[radius[1]]
         if radius < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)

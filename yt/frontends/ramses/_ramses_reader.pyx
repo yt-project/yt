@@ -33,6 +33,10 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef extern from "math.h":
+    double ceil(double x)
+    double log2(double x)
+
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0
     return i1
@@ -547,7 +551,10 @@ cdef class RAMSES_tree_proxy:
                               np.ndarray[np.float64_t, ndim=2] right_edges,
                               np.ndarray[np.int32_t, ndim=2] grid_levels,
                               np.ndarray[np.int64_t, ndim=2] grid_file_locations,
-                              np.ndarray[np.int32_t, ndim=2] child_mask):
+                              np.ndarray[np.uint64_t, ndim=1] grid_hilbert_indices,
+                              np.ndarray[np.int32_t, ndim=2] child_mask,
+                              np.ndarray[np.float64_t, ndim=1] domain_left,
+                              np.ndarray[np.float64_t, ndim=1] domain_right):
         # We need to do simulation domains here
 
         cdef unsigned idomain, ilevel
@@ -562,10 +569,12 @@ cdef class RAMSES_tree_proxy:
         cdef int grid_ind = 0, grid_aind = 0
         cdef unsigned parent_ind
         cdef bint ci
-
+        cdef double pos[3]
         cdef double grid_half_width 
+        cdef unsigned long rv
 
         cdef np.int32_t rr
+        cdef int i
         cell_count = []
         level_cell_counts = {}
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
@@ -587,9 +596,11 @@ cdef class RAMSES_tree_proxy:
                         grid_it.next()
                         continue
                     gvec = local_tree.grid_pos_double(grid_it)
-                    left_edges[grid_aind, 0] = gvec.x - grid_half_width
-                    left_edges[grid_aind, 1] = gvec.y - grid_half_width
-                    left_edges[grid_aind, 2] = gvec.z - grid_half_width
+                    left_edges[grid_aind, 0] = pos[0] = gvec.x - grid_half_width
+                    left_edges[grid_aind, 1] = pos[1] = gvec.y - grid_half_width
+                    left_edges[grid_aind, 2] = pos[2] = gvec.z - grid_half_width
+                    for i in range(3):
+                        pos[i] = (pos[i] - domain_left[i]) / (domain_right[i] - domain_left[i])
                     right_edges[grid_aind, 0] = gvec.x + grid_half_width
                     right_edges[grid_aind, 1] = gvec.y + grid_half_width
                     right_edges[grid_aind, 2] = gvec.z + grid_half_width
@@ -850,3 +861,92 @@ cdef class ProtoSubgrid:
             tr[1,i] = self.right_edge[i]
             tr[2,i] = self.dimensions[i]
         return tr
+
+@cython.cdivision
+cdef np.int64_t graycode(np.int64_t x):
+    return x^(x>>1)
+
+@cython.cdivision
+cdef np.int64_t igraycode(np.int64_t x):
+    cdef np.int64_t i, j
+    if x == 0:
+        return x
+    m = <np.int64_t> ceil(log2(x)) + 1
+    i, j = x, 1
+    while j < m:
+        i = i ^ (x>>j)
+        j += 1
+    return i
+
+@cython.cdivision
+cdef np.int64_t direction(np.int64_t x, np.int64_t n):
+    #assert x < 2**n
+    if x == 0:
+        return 0
+    elif x%2 == 0:
+        return tsb(x-1, n)%n
+    else:
+        return tsb(x, n)%n
+
+@cython.cdivision
+cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
+    #assert x < 2**width
+    cdef np.int64_t i = 0
+    while x&1 and i <= width:
+        x = x >> 1
+        i += 1
+    return i
+
+@cython.cdivision
+cdef np.int64_t bitrange(np.int64_t x, np.int64_t width,
+                         np.int64_t start, np.int64_t end):
+    return x >> (width-end) & ((2**(end-start))-1)
+
+@cython.cdivision
+cdef np.int64_t rrot(np.int64_t x, np.int64_t i, np.int64_t width):
+    i = i%width
+    x = (x>>i) | (x<<width-i)
+    return x&(2**width-1)
+
+@cython.cdivision
+cdef np.int64_t lrot(np.int64_t x, np.int64_t i, np.int64_t width):
+    i = i%width
+    x = (x<<i) | (x>>width-i)
+    return x&(2**width-1)
+
+@cython.cdivision
+cdef np.int64_t transform(np.int64_t entry, np.int64_t direction,
+                          np.int64_t width, np.int64_t x):
+    return rrot((x^entry), direction + 1, width)
+
+@cython.cdivision
+cdef np.int64_t entry(np.int64_t x):
+    if x == 0: return 0
+    return graycode(2*((x-1)/2))
+
+@cython.cdivision
+def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
+    # This is inspired by the scurve package by user cortesi on GH.
+    cdef int o, i
+    cdef np.int64_t x, w, h, e, d, l, b
+    cdef np.int64_t p[3]
+    cdef np.ndarray[np.int64_t, ndim=1] hilbert_indices
+    hilbert_indices = np.zeros(left_index.shape[0], 'int64')
+    for o in range(left_index.shape[0]):
+        p[0] = left_index[o, 0]
+        p[1] = left_index[o, 1]
+        p[2] = left_index[o, 2]
+        h = e = d = 0
+        for i in range(order):
+            l = 0
+            for x in range(3):
+                b = bitrange(p[3-x-1], order, i, i+1)
+                l |= (b<<x)
+            l = transform(e, d, 3, l)
+            w = igraycode(l)
+            e = e ^ lrot(entry(w), d+1, 3)
+            d = (d + direction(w, 3) + 1)%3
+            h = (h<<3)|w
+        hilbert_indices[o] = h
+    return hilbert_indices
+

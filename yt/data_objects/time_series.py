@@ -28,38 +28,41 @@ import inspect, functools, weakref
 from yt.funcs import *
 from yt.convenience import load
 from .data_containers import data_object_registry
-from .analyzer_objects import create_quantity_proxy
+from .analyzer_objects import create_quantity_proxy, \
+    analysis_task_registry
 from .derived_quantities import quantity_info
+from yt.utilities.exceptions import YTException
+
+class AnalysisTaskProxy(object):
+    def __init__(self, time_series):
+        self.time_series = time_series
+
+    def __getitem__(self, key):
+        task_cls = analysis_task_registry[key]
+        @wraps(task_cls.__init__)
+        def func(*args, **kwargs):
+            task = task_cls(*args, **kwargs)
+            return self.time_series.eval(task)
+        return func
+
+    def keys(self):
+        return analysis_task_registry.keys()
+
+    def __contains__(self, key):
+        return key in analysis_task_registry
 
 class TimeSeriesData(object):
-    def __init__(self, name):
-        self.outputs = []
-
-    def __iter__(self):
-        # We can make this fancier, but this works
-        return self.outputs.__iter__()
-
-class EnzoTimeSeries(TimeSeriesData):
-    _enzo_header = "DATASET WRITTEN "
-    def __init__(self, name, **kwargs):
-        TimeSeriesData.__init__(self, name)
-        output_list = kwargs.pop('output_list', None)
-        output_log = kwargs.pop('output_log', None)
-        if output_list: self._populate_output_list(output_list)
-        if output_log: self._populate_output_log(output_log)
+    def __init__(self, outputs = None):
+        if outputs is None: outputs = []
+        self.outputs = outputs
+        self.tasks = AnalysisTaskProxy(self)
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
 
-    def _populate_output_list(self, output_list):
-        for output in output_list:
-            self._insert(EnzoStaticOutput(output))
-
-    def _populate_output_log(self, output_log):
-        for line in open(output_log):
-            if not line.startswith(self._enzo_header): continue
-            fn = line[len(self._enzo_header):].strip()
-            self._insert(load(fn))
+    def __iter__(self):
+        # We can make this fancier, but this works
+        return self.outputs.__iter__()
 
     def __getitem__(self, key):
         if isinstance(key, types.SliceType):
@@ -80,11 +83,39 @@ class EnzoTimeSeries(TimeSeriesData):
         for pf in self:
             return_values.append([])
             for task in tasks:
-                style = inspect.getargspec(task.eval)[0][1]
-                if style == 'pf': arg = pf
-                elif style == 'data_object': arg = obj.get(pf)
-                return_values[-1].append(task.eval(arg))
+                try:
+                    style = inspect.getargspec(task.eval)[0][1]
+                    if style == 'pf':
+                        arg = pf
+                    elif style == 'data_object':
+                        arg = obj.get(pf)
+                    rv = task.eval(arg)
+                # We catch and store YT-originating exceptions
+                # This fixes the standard problem of having a sphere that's too
+                # small.
+                except YTException as rv:
+                    pass
+                return_values[-1].append(rv)
         return return_values
+
+    @classmethod
+    def from_filenames(cls, filename_list):
+        outputs = []
+        for fn in filename_list:
+            outputs.append(load(fn))
+        obj = cls(outputs)
+        return obj
+
+    @classmethod
+    def from_output_log(cls, output_log,
+                        line_prefix = "DATASET WRITTEN"):
+        outputs = []
+        for line in open(output_log):
+            if not line.startswith(line_prefix): continue
+            fn = line[len(line_prefix):].strip()
+            outputs.append(load(fn))
+        obj = cls(outputs)
+        return obj
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):

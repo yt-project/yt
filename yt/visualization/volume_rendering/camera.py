@@ -30,7 +30,8 @@ from yt.funcs import *
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane
+from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
+    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -44,7 +45,7 @@ class Camera(ParallelAnalysisInterface):
                  volume = None, fields = None,
                  log_fields = None,
                  sub_samples = 5, pf = None,
-                 use_kd=True, l_max=None, no_ghost=False,
+                 use_kd=True, l_max=None, no_ghost=True,
                  tree_type='domain',expand_factor=1.0,
                  le=None, re=None):
         r"""A viewpoint into a volume, for volume rendering.
@@ -202,6 +203,8 @@ class Camera(ParallelAnalysisInterface):
         self.use_kd = use_kd
         self.l_max = l_max
         self.no_ghost = no_ghost
+        if self.no_ghost:
+            mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
         self.tree_type = tree_type
         if volume is None:
             if self.use_kd:
@@ -338,23 +341,19 @@ class Camera(ParallelAnalysisInterface):
         tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
-        if self.use_kd:
-            self.volume.reset_cast()
-            image = self.volume.kd_ray_cast(image, tfp, vector_plane,
-                                            self.back_center, self.front_center)
-        else:
-            pbar = get_pbar("Ray casting",
-                            (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-            total_cells = 0
-            for brick in self.volume.traverse(self.back_center, self.front_center):
-                brick.cast_plane(tfp, vector_plane)
-                total_cells += na.prod(brick.my_data[0].shape)
-                pbar.update(total_cells)
-            pbar.finish()
+
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        for brick in self.volume.traverse(self.back_center, self.front_center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
 
         if self._mpi_get_rank() is 0 and fn is not None:
             write_bitmap(image, fn)
-            
+
         return image
 
     def zoom(self, factor):
@@ -533,13 +532,130 @@ class PerspectiveCamera(Camera):
         vectors = self.front_center - positions
         positions = self.front_center - 2.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
         vectors = (self.front_center - positions)
-        print vectors.shape, vectors.dtype, vectors.flags
 
         vector_plane = VectorPlane(positions, vectors,
                                       self.back_center, bounds, image,
                                       self.unit_vectors[0],
                                       self.unit_vectors[1])
         return vector_plane
+
+def corners(left_edge, right_edge):
+    return na.array([
+      [left_edge[:,0], left_edge[:,1], left_edge[:,2]],
+      [right_edge[:,0], left_edge[:,1], left_edge[:,2]],
+      [right_edge[:,0], right_edge[:,1], left_edge[:,2]],
+      [right_edge[:,0], right_edge[:,1], right_edge[:,2]],
+      [left_edge[:,0], right_edge[:,1], right_edge[:,2]],
+      [left_edge[:,0], left_edge[:,1], right_edge[:,2]],
+      [right_edge[:,0], left_edge[:,1], right_edge[:,2]],
+      [left_edge[:,0], right_edge[:,1], left_edge[:,2]],
+    ], dtype='float64')
+
+class HEALpixCamera(Camera):
+    def __init__(self, center, radius, nside,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None, use_kd=True, no_ghost=False):
+        if pf is not None: self.pf = pf
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.nside = nside
+        self.use_kd = use_kd
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.use_kd = isinstance(volume, AMRKDTree)
+        self.volume = volume
+
+    def snapshot(self, fn = None):
+        nv = 12*self.nside**2
+        image = na.zeros((nv,1,3), dtype='float64', order='C')
+        vs = arr_pix2vec_nest(self.nside, na.arange(nv))
+        vs *= self.radius
+        vs.shape = (nv,1,3)
+        uv = na.ones(3, dtype='float64')
+        positions = na.ones((nv, 1, 3), dtype='float64') * self.center
+        vector_plane = VectorPlane(positions, vs, self.center,
+                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Rendering equivalent of %0.2f^2 image", nv**0.5)
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+
+        total_cells = 0
+        for brick in self.volume.traverse(None, self.center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+
+        return image
+
+
+class AdaptiveHEALpixCamera(Camera):
+    def __init__(self, center, radius, nside,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None, use_kd=True, no_ghost=False,
+                 rays_per_cell = 0.1, max_nside = 8192):
+        if pf is not None: self.pf = pf
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.use_kd = use_kd
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.use_kd = isinstance(volume, AMRKDTree)
+        self.volume = volume
+        self.initial_nside = nside
+        self.rays_per_cell = rays_per_cell
+        self.max_nside = max_nside
+
+    def snapshot(self, fn = None):
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Adaptively rendering.")
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
+        left_edges = na.array([b.LeftEdge for b in bricks])
+        right_edges = na.array([b.RightEdge for b in bricks])
+        min_dx = min(((b.RightEdge[0] - b.LeftEdge[0])/b.my_data[0].shape[0]
+                     for b in bricks))
+        # We jitter a bit if we're on a boundary of our initial grid
+        for i in range(3):
+            if bricks[0].LeftEdge[i] == self.center[i]:
+                self.center += 1e-2 * min_dx
+            elif bricks[0].RightEdge[i] == self.center[i]:
+                self.center -= 1e-2 * min_dx
+        ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
+                                       self.initial_nside, self.radius,
+                                       bricks, self.max_nside)
+        for i,brick in enumerate(bricks):
+            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        info, values = ray_source.get_rays()
+        return info, values
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):

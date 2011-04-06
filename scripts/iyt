@@ -1,6 +1,7 @@
 #!python
-import os
+import os, re
 from yt.mods import *
+from yt.data_objects.data_containers import AMRData
 namespace = locals().copy()
 
 doc = """\
@@ -264,5 +265,50 @@ def execf(fname):
     ip.ex('execfile("%s")' % os.path.expanduser(fname))
 
 #main()
+
+
+# Now we add some tab completers, in the vein of:
+# http://pymel.googlecode.com/svn/trunk/tools/ipymel.py
+# We'll start with some fields.
+
+def yt_fieldname_completer(self, event):
+    """Match dictionary completions"""
+    #print "python_matches", event.symbol
+    #text = event.symbol # Not sure why this no longer works
+    text = event.line
+    #print repr(text)
+    # Another option, seems to work great. Catches things like ''.<tab>
+    #print repr(text), dir(text)
+    #m = re.match(r"(\S+(\.\w+)*)\.(\w*)$", text)
+    m = re.match(r"(\S+(\.\w+)*)\[[\'\\\"](\w*)$", text)
+
+    if not m:
+        raise IPython.ipapi.TryNext 
+    
+    expr, attr = m.group(1, 3)
+    #print "COMPLETING ON ", expr, attr
+    #print type(self.Completer), dir(self.Completer)
+    #print self.Completer.namespace
+    #print self.Completer.global_namespace
+    try:
+        obj = eval(expr, self.Completer.namespace)
+    except:
+        try:
+            obj = eval(expr, self.Completer.global_namespace)
+        except:
+            raise IPython.ipapi.TryNext 
+        
+    if isinstance(obj, (AMRData, ) ):
+        #print "COMPLETING ON THIS THING"
+        all_fields = [f for f in sorted(
+                obj.pf.h.field_list + obj.pf.h.derived_field_list)]
+        #matches = self.Completer.python_matches(text)
+        #print "RETURNING ", all_fields
+        return all_fields
+
+
+    raise IPython.ipapi.TryNext 
+
+ip.set_hook('complete_command', yt_fieldname_completer , re_key = ".*" )
 
 ip_shell.mainloop(sys_exit=1,banner=doc)

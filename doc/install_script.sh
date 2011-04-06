@@ -39,7 +39,8 @@ INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
-INST_FORTHON=1
+INST_SQLITE3=1  # Install a local version of SQLite3?
+INST_FORTHON=1  # Install Forthon?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -48,6 +49,10 @@ YT_DIR=""
 MPL_SUPP_LDFLAGS=""
 MPL_SUPP_CFLAGS=""
 MPL_SUPP_CXXFLAGS=""
+
+# If you want to spawn multiple Make jobs, here's the place to set the
+# arguments.  For instance, "-j4"
+MAKE_PROCS=""
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -179,6 +184,10 @@ printf "%-15s = %s so I " "INST_FTYPE" "${INST_FTYPE}"
 get_willwont ${INST_FTYPE}
 echo "be installing freetype2"
 
+printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
+get_willwont ${INST_SQLITE3}
+echo "be installing SQLite3"
+
 printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
 get_willwont ${INST_FORTHON}
 echo "be installing Forthon (for Halo Finding, etc)"
@@ -234,12 +243,12 @@ function do_setup_py
     cd $1
     if [ ! -z `echo $1 | grep h5py` ]
     then
-	    echo "${DEST_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR}"
-	    ( ${DEST_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+	    echo "${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR}"
+	    ( ${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     fi
     shift
-    ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ${DEST_DIR}/bin/python2.6 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/python2.7 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -269,22 +278,24 @@ cd ${DEST_DIR}/src
 if [ -z "$HDF5_DIR" ]
 then
     echo "Downloading HDF5"
-    get_enzotools hdf5-1.6.9.tar.gz
+    get_enzotools hdf5-1.8.6.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
-get_enzotools Python-2.6.3.tgz
+[ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
+get_enzotools Python-2.7.1.tgz
 get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
-get_enzotools mercurial-1.7.3.tar.gz
+get_enzotools mercurial-1.8.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
-get_enzotools yt.hg
+get_enzotools ext-3.3.2.zip
+get_enzotools ext-slate-110328.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -329,7 +340,7 @@ then
         [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
         echo "Installing PNG"
         cd libpng-1.2.43
-        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ./configure CPPFLAGS=-I${DEST_DIR}/include CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
@@ -358,13 +369,13 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.6.9/done ]
+    if [ ! -e hdf5-1.8.6/done ]
     then
-        [ ! -e hdf5-1.6.9 ] && tar xfz hdf5-1.6.9.tar.gz
+        [ ! -e hdf5-1.8.6 ] && tar xfz hdf5-1.8.6.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.6.9
+        cd hdf5-1.8.6
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -374,25 +385,40 @@ else
 fi
 export HDF5_API=16
 
-if [ ! -e Python-2.6.3/done ]
+if [ $INST_SQLITE3 -eq 1 ]
+then
+    if [ ! -e sqlite-autoconf-3070500/done ]
+    then
+        [ ! -e sqlite-autoconf-3070500 ] && tar xfz sqlite-autoconf-3070500.tar.gz
+        echo "Installing SQLite3"
+        cd sqlite-autoconf-3070500
+        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+fi
+
+if [ ! -e Python-2.7.1/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.6.3 ] && tar xfz Python-2.6.3.tgz
-    cd Python-2.6.3
+    [ ! -e Python-2.7.1 ] && tar xfz Python-2.7.1.tgz
+    cd Python-2.7.1
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-    ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
     touch done
     cd ..
 fi
 
-export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
+export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-1.7.3
+    do_setup_py mercurial-1.8.1
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -416,16 +442,11 @@ then
     elif [ ! -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
+        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone -r0 http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
-        # Now we unbundle our previously downloaded bundle of changesets.
-        # This bundle has been created to include most of the recent
-        # changesets, which should avoid any problematic timeouts.
-        ( ${HG_EXEC} -R ${YT_DIR} unbundle yt.hg 2>&1 ) 1>> ${LOG_FILE}
-        # Now we pull new changes
-        ( ${HG_EXEC} -R ${YT_DIR} pull 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
@@ -439,10 +460,10 @@ fi
 unset LDFLAGS 
 
 echo "Installing distribute"
-( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/python2.7 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 echo "Installing pip"
-( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 do_setup_py numpy-1.5.1 ${NUMPY_ARGS}
 
@@ -491,7 +512,7 @@ echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 [ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
 [ $INST_FORTHON -eq 1 ] && ( ( cd yt/utilities/kdtree && FORTHON_EXE=${DEST_DIR}/bin/Forthon make 2>&1 ) 1>> ${LOG_FILE} )
-( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
 
@@ -503,62 +524,100 @@ then
     cd $MY_PWD
 fi
 
-echo
-echo
-echo "========================================================================"
-echo
-echo "yt is now installed in $DEST_DIR ."
-echo "To run from this new installation, the a few variables need to be"
-echo "prepended with the following information:"
-echo
-echo "YT_DEST         => $DEST_DIR"
-echo "PATH            => $DEST_DIR/bin/"
-echo "PYTHONPATH      => $DEST_DIR/lib/python2.6/site-packages/"
-echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
-echo
-echo "For interactive data analysis and visualization, we recommend running"
-echo "the IPython interface, which will become more fully featured with time:"
-echo
-echo "$DEST_DIR/bin/iyt"
-echo
-echo "For command line analysis run:"
-echo
-echo "$DEST_DIR/bin/yt"
-echo
-echo "Note of interest: this installation will use the directory:"
-echo "    $YT_DIR"
-echo "as the source for all the YT code.  This means you probably shouldn't"
-echo "delete it, but on the plus side, any changes you make there are"
-echo "automatically propagated."
-if [ $INST_HG -eq 1 ]
+# Now we open up the ext repository
+if [ ! -e ext-3.3.2/done ]
 then
-  echo
-  echo "Mercurial has also been installed:"
-  echo
-  echo "$DEST_DIR/bin/hg"
-  echo
+    ( unzip -o ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf ext-3.3.2 ext-resources
+    touch ext-3.3.2/done
 fi
-if [ $INST_ENZO -eq 1 ]
+
+# Now we open up the ext theme
+if [ ! -e ext-slate-110328/done ]
 then
-  echo "Enzo has also been checked out, but not built."
-  echo
-  echo "$DEST_DIR/src/enzo-hg-stable"
-  echo
-  echo "The value of YT_DEST can be used as an HDF5 installation location."
-  echo "Questions about Enzo should be directed to the Enzo User List."
-  echo
+    ( unzip -o ext-slate-110328.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf ext-slate-110328 ext-theme
+    touch ext-slate-110328/done
 fi
-echo
-echo "For support, see one of the following websites:"
-echo
-echo "    http://yt.enzotools.org/wiki/"
-echo "    http://yt.enzotools.org/doc/"
-echo
-echo "Please also join the mailing list:"
-echo 
-echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
-echo
-echo "========================================================================"
-echo
-echo "Oh, look at me, still talking when there's science to do!"
-echo "Good luck, and email the user list if you run into any problems."
+
+if [ -e $HOME/.matplotlib/fontList.cache ] && \
+   ( grep -q python2.6 $HOME/.matplotlib/fontList.cache )
+then
+    echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+    echo "*******************************************************"
+    echo
+    echo "  You likely need to remove your old fontList.cache!"
+    echo "  You can do this with this command:"
+    echo ""
+    echo "  rm $HOME/.matplotlib/fontList.cache"
+    echo
+    echo "*******************************************************"
+fi
+
+function print_afterword
+{
+    echo
+    echo
+    echo "========================================================================"
+    echo
+    echo "yt is now installed in $DEST_DIR ."
+    echo "To run from this new installation, the a few variables need to be"
+    echo "prepended with the following information:"
+    echo
+    echo "YT_DEST         => $DEST_DIR"
+    echo "PATH            => $DEST_DIR/bin/"
+    echo "PYTHONPATH      => $DEST_DIR/lib/python2.7/site-packages/"
+    echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
+    echo
+    echo "For interactive data analysis and visualization, we recommend running"
+    echo "the IPython interface, which will become more fully featured with time:"
+    echo
+    echo "$DEST_DIR/bin/iyt"
+    echo
+    echo "For command line analysis run:"
+    echo
+    echo "$DEST_DIR/bin/yt"
+    echo
+    echo "To bootstrap a development environment for yt, run:"
+    echo 
+    echo "$DEST_DIR/bin/yt bootstrap_dev"
+    echo
+    echo "Note of interest: this installation will use the directory:"
+    echo "    $YT_DIR"
+    echo "as the source for all the YT code.  This means you probably shouldn't"
+    echo "delete it, but on the plus side, any changes you make there are"
+    echo "automatically propagated."
+    if [ $INST_HG -eq 1 ]
+    then
+      echo
+      echo "Mercurial has also been installed:"
+      echo
+      echo "$DEST_DIR/bin/hg"
+      echo
+    fi
+    if [ $INST_ENZO -eq 1 ]
+    then
+      echo "Enzo has also been checked out, but not built."
+      echo
+      echo "$DEST_DIR/src/enzo-hg-stable"
+      echo
+      echo "The value of YT_DEST can be used as an HDF5 installation location."
+      echo "Questions about Enzo should be directed to the Enzo User List."
+      echo
+    fi
+    echo
+    echo "For support, see the website and join the mailing list:"
+    echo
+    echo "    http://yt.enzotools.org/"
+    echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+    echo
+    echo "========================================================================"
+    echo
+    echo "Oh, look at me, still talking when there's science to do!"
+    echo "Good luck, and email the user list if you run into any problems."
+}
+
+print_afterword
+print_afterword >> ${LOG_FILE}

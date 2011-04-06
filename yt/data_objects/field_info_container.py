@@ -69,12 +69,10 @@ class FieldInfoContainer(object): # We are all Borg.
         :class:`~yt.data_objects.api.DerivedField`.
         """
         if function == None:
-            if kwargs.has_key("function"):
-                function = kwargs.pop("function")
-            else:
-                # This will fail if it does not exist,
-                # which is our desired behavior
-                function = eval("_%s" % name)
+            def create_function(function):
+                self[name] = DerivedField(name, function, **kwargs)
+                return function
+            return create_function
         self[name] = DerivedField(name, function, **kwargs)
 FieldInfo = FieldInfoContainer()
 add_field = FieldInfo.add_field

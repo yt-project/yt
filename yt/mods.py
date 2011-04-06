@@ -46,7 +46,8 @@ from yt.data_objects.api import \
     data_object_registry, \
     derived_field, add_field, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
-    ValidateSpatial, ValidateGridType
+    ValidateSpatial, ValidateGridType, \
+    TimeSeriesData, AnalysisTask, analysis_task
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -81,7 +82,6 @@ from yt.analysis_modules.list_modules import \
 available_analysis_modules = get_available_modules()
 
 # Import our analysis modules
-#import yt.analysis_modules.api as analysis
 from yt.analysis_modules.halo_finding.api import \
     HaloFinder
 

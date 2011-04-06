@@ -36,6 +36,7 @@ ytcfgDefaults = dict(
     suppressstreamlogging = 'False',
     loglevel = '20',
     inline = 'False',
+    __withinreason = 'False',
     __parallel = 'False',
     __parallel_rank = '0',
     __parallel_size = '1',
@@ -43,7 +44,9 @@ ytcfgDefaults = dict(
     parameterfilestore = 'parameter_files.csv',
     maximumstoredpfs = '500',
     loadfieldplugins = 'True',
-    pluginfilename = 'my_plugins.py'
+    pluginfilename = 'my_plugins.py',
+    parallel_traceback = 'False',
+    pasteboard_repo = '',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten
