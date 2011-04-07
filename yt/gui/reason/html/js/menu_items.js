@@ -33,8 +33,8 @@ var main_menu = {
     text: 'Menu',
     id: 'main_menu',
     menu: [
-           {xtype:'menuitem', text: 'Open'},
-           {xtype:'menuitem', text: 'Open Directory'},
+           {xtype:'menuitem', text: 'Open', disabled: true},
+           {xtype:'menuitem', text: 'Open Directory', disabled: true},
            {xtype: 'menuseparator'},
            {xtype:'menuitem', text: 'Save Script',
 	            handler: function (b,e) { 
@@ -89,9 +89,19 @@ var main_menu = {
                 handler: function (b,e) { 
                         window.open("help.html", "_new");
             }},
-           {xtype:'menuitem', text: 'IRC'},
+           {xtype:'menuitem', text: 'yt Chat',
+                handler: function (b,e) { 
+                        window.open("http://yt.enzotools.org/irc.html", "_new");
+            }},
            {xtype: 'menuseparator'},
-           {xtype:'menuitem', text: 'Quit'},
+           {xtype:'menuitem', text: 'Quit',
+             handler: function(b,e) {
+                yt_rpc.ExtDirectREPL.shutdown({}, function(f,a) { 
+                Ext.Msg.alert("Goodbye!", "Goodbye from Reason!", function() {
+                window.open("http://www.google.com/", "_top");});});
+                }
+           },
+                
         ],
 };
 
