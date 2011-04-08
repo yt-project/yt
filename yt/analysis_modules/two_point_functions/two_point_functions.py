@@ -1,7 +1,7 @@
 """
 Two Point Functions Framework.
 
-Author: Stephen Skory <stephenskory@yahoo.com>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt.enzotools.org/
 License:

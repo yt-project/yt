@@ -3,7 +3,7 @@ Commonly used mathematical functions.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD Physics/CASS
-Author: Stephen Skory <stephenskory@yahoo.com>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt.enzotools.org/
 License:

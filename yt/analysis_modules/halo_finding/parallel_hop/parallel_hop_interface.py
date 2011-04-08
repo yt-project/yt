@@ -1,7 +1,7 @@
 """
 A implementation of the HOP algorithm that runs in parallel.
 
-Author: Stephen Skory <sskory@physics.ucsd.edu>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD/CASS
 Homepage: http://yt.enzotools.org/
 License:

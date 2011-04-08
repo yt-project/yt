@@ -3,7 +3,7 @@ HOP-output data handling
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Author: Stephen Skory <stephenskory@yahoo.com>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt.enzotools.org/
 License:

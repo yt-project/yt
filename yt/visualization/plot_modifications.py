@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
 Affiliation: UC Berkeley
-Author: Stephen Skory <sskory@physics.ucsd.edu>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego
 Homepage: http://yt.enzotools.org/
 License:
