@@ -37,6 +37,8 @@ from yt.data_objects.profiles import \
 from yt.analysis_modules.halo_finding.api import *
 from .halo_filters import \
     VirialFilter
+from .centering_methods import \
+    centering_registry
 from yt.data_objects.field_info_container import \
     add_field
 
@@ -60,8 +62,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                                          dm_only=False, resize=True, 
                                          fancy_padding=True, rearrange=True),
                  use_density_center=False, density_center_exponent=1.0,
-                 use_field_max_center=None,
                  halo_radius=0.1, radius_units='1', n_profile_bins=50,
+                 recenter = None,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
                  velocity_center=['bulk', 'halo'], filter_quantities=['id','center']):
@@ -86,14 +88,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                Default: HaloFinder (yt_hop).
         :param halo_finder_args (tuple): args given with call to halo finder function.  Default: None.
         :param halo_finder_kwargs (dict): kwargs given with call to halo finder function. Default: None.
-        :param use_density_center (bool): re-center halos before performing profiles with an center of mass 
-               weighted by overdensity.  This is generally not needed.  Default: False.
-        :param density_center_exponent (float): when use_density_center set to True, this specifies the 
-               exponent, alpha, such that the halo center calculation is weighted by overdensity^alpha.  
-               Default: 1.0.
-        :param use_field_max_center (str): another alternative for halo re-centering by selecting the 
-               location of the maximum of the field given by this keyword.  This is generally not needed.  
-               Default: None.
+        :param recenter (str or function name): The name of a function that
+               recenters the halo.
         :param halo_radius (float): if no halo radii are provided in the halo list file, this parameter is 
                used to specify the radius out to which radial profiles will be made.  This keyword is also 
                used when halos is set to single.  Default: 0.1.
@@ -175,23 +171,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             mylog.error("Keyword, halo_list_format, must be 'yt_hop', 'enzo_hop', 'p-groupfinder', or a dictionary of custom settings.")
             return None
 
-        # Option to recenter sphere on density center.
-        self.use_density_center = use_density_center
-        self.density_center_exponent = density_center_exponent
-        if self.use_density_center:
-            def _MatterDensityXTotalMass(field, data):
-                return na.power((data['Matter_Density'] * data['TotalMassMsun']), 
-                                self.density_center_exponent)
-            def _Convert_MatterDensityXTotalMass(data):
-                return 1
-            add_field("MatterDensityXTotalMass", units=r"",
-                      function=_MatterDensityXTotalMass,
-                      convert_function=_Convert_MatterDensityXTotalMass)
-
-        # Option to recenter sphere on the location of a field max.
-        self.use_field_max_center = use_field_max_center
-        if self.use_field_max_center is not None:
-            self.use_density_center = False
+        # Option to recenter sphere someplace else.
+        self.recenter = recenter
 
         # Look for any field that might need to have the bulk velocity set.
         self._need_bulk_velocity = False
@@ -377,18 +358,14 @@ class HaloProfiler(ParallelAnalysisInterface):
             if len(sphere._grids) == 0: return None
             new_sphere = False
 
-            if self.use_density_center:
-                dc_x = sphere.quantities['WeightedAverageQuantity']('x', 'MatterDensityXTotalMass')
-                dc_y = sphere.quantities['WeightedAverageQuantity']('y', 'MatterDensityXTotalMass')
-                dc_z = sphere.quantities['WeightedAverageQuantity']('z', 'MatterDensityXTotalMass')
-                mylog.info("Moving halo center from %s to %s." % (halo['center'], [dc_x, dc_y, dc_z]))
-                halo['center'] = [dc_x, dc_y, dc_z]
-                new_sphere = True
-
-            if self.use_field_max_center is not None:
-                ma, maxi, mx, my, mz, mg = sphere.quantities['MaxLocation'](self.use_field_max_center)
-                mylog.info("Moving halo center from %s to %s." % (halo['center'], [mx, my, mz]))
-                halo['center'] = [mx, my, mz]
+            if self.recenter:
+                if self.recenter in centering_registry:
+                    new_x, new_y, new_z = \
+                        centering_registry[self.recenter](sphere)
+                else:
+                    # user supplied function
+                    new_x, new_y, new_z = self.recenter(sphere)
+                halo['center'] = [new_x, new_y, new_z]
                 new_sphere = True
 
             if new_sphere:
@@ -558,12 +535,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                         if save_cube:
                             if dataset_name in output.listnames(): del output[dataset_name]
                             output.create_dataset(dataset_name, data=frb[hp['field']])
-
                         if save_images:
                             filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 
                                                                    dataset_name, axis_labels[w])
                             write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
-
                     if save_cube: output.close()
 
             del region
