@@ -856,7 +856,7 @@ class LoadedHalo(Halo):
         # First get the list of fields from the first file. Not all fields
         # are saved all the time (e.g. creation_time, particle_type).
         mylog.info("Getting field %s from hdf5 halo particle files." % field)
-        f = h5py.File(fnames[0])
+        f = h5py.File(fnames[0], 'r')
         fields = f["Halo%08d" % halo].keys()
         # If we dont have this field, we can give up right now.
         if field not in fields: return None
@@ -866,14 +866,19 @@ class LoadedHalo(Halo):
         else:
             field_data = na.empty(size, dtype='float64')
         f.close()
+        # Apparently, there's a bug in h5py that was keeping the file pointer
+        # f closed, even though it's re-opened below. This del seems to fix
+        # that.
+        del f
         offset = 0
         for fname in fnames:
-            f = h5py.File(fname)
+            f = h5py.File(fname, 'r')
             this = f["Halo%08d" % halo][field][:]
             s = this.size
             field_data[offset:offset+s] = this
             offset += s
             f.close()
+            del f
         return field_data
         
     def center_of_mass(self):
