@@ -38,51 +38,106 @@ def add_function(name):
        return func
    return wrapper
 
-#### Density ####
+#### Dark Matter Density ####
 
-def _MatterDensityXTotalMass(field, data):
-    return na.power((data['Dark_Matter_Density'] * data['TotalMassMsun']), 
-                    1.)
-def _Convert_MatterDensityXTotalMass(data):
+def _MatterDensityXDMMass(field, data):
+    return (data['Dark_Matter_Density'] * data['Dark_Matter_Density'] \
+        * data["CellVolume"])
+def _Convert_MatterDensityXDMMass(data):
     return 1
-add_field("MatterDensityXTotalMass", units=r"",
-          function=_MatterDensityXTotalMass,
-          convert_function=_Convert_MatterDensityXTotalMass)
+add_field("MatterDensityXDMMass", units=r"",
+          function=_MatterDensityXDMMass,
+          convert_function=_Convert_MatterDensityXDMMass)
 
 @add_function("Min_Dark_Matter_Density")
 def find_minimum_dm_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('MatterDensityXTotalMass')
+    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('MatterDensityXDMMass')
     return [mx,my,mz]
 
 @add_function("Max_Dark_Matter_Density")
 def find_maximum_dm_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('MatterDensityXTotalMass')
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('MatterDensityXDMMass')
     return [mx,my,mz]
 
 @add_function("CoM_Dark_Matter_Density")
 def find_CoM_dm_density(data):
-    dc_x = data.quantities['WeightedAverageQuantity']('x', 'MatterDensityXTotalMass')
-    dc_y = data.quantities['WeightedAverageQuantity']('y', 'MatterDensityXTotalMass')
-    dc_z = data.quantities['WeightedAverageQuantity']('z', 'MatterDensityXTotalMass')
+    dc_x = data.quantities['WeightedAverageQuantity']('x', 'MatterDensityXDMMass')
+    dc_y = data.quantities['WeightedAverageQuantity']('y', 'MatterDensityXDMMass')
+    dc_z = data.quantities['WeightedAverageQuantity']('z', 'MatterDensityXDMMass')
+    return [dc_x, dc_y, dc_z]
+
+#### Gas Density ####
+
+def _GasDensityXCellMass(field, data):
+    return (data['Density'] * data['CellMassMsun'])
+def _Convert_GasDensityXCellMass(data):
+    return 1
+add_field("GasDensityXCellMass", units=r"",
+          function=_GasDensityXCellMass,
+          convert_function=_Convert_GasDensityXCellMass)
+
+@add_function("Min_Gas_Density")
+def find_minimum_gas_density(data):
+    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('GasDensityXCellMass')
+    return [mx,my,mz]
+
+@add_function("Max_Gas_Density")
+def find_maximum_gas_density(data):
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('GasDensityXCellMass')
+    return [mx,my,mz]
+
+@add_function("CoM_Gas_Density")
+def find_CoM_gas_density(data):
+    dc_x = data.quantities['WeightedAverageQuantity']('x', 'GasDensityXCellMass')
+    dc_y = data.quantities['WeightedAverageQuantity']('y', 'GasDensityXCellMass')
+    dc_z = data.quantities['WeightedAverageQuantity']('z', 'GasDensityXCellMass')
+    return [dc_x, dc_y, dc_z]
+
+#### Total Density ####
+
+def _TotalDensityXTotalMass(field, data):
+    return (data['Density'] + data['Dark_Matter_Density']) * \
+        data['TotalMassMsun'])
+def _Convert_TotalDensityXTotalMass(data):
+    return 1
+add_field("TotalDensityXTotalMass", units=r"",
+          function=_TotalDensityXTotalMass,
+          convert_function=_Convert_TotalDensityXTotalMass)
+
+@add_function("Min_Total_Density")
+def find_minimum_total_density(data):
+    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('TotalDensityXTotalMass')
+    return [mx,my,mz]
+
+@add_function("Max_Total_Density")
+def find_maximum_total_density(data):
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('TotalDensityXTotalMass')
+    return [mx,my,mz]
+
+@add_function("CoM_Total_Density")
+def find_CoM_total_density(data):
+    dc_x = data.quantities['WeightedAverageQuantity']('x', 'TotalDensityXTotalMass')
+    dc_y = data.quantities['WeightedAverageQuantity']('y', 'TotalDensityXTotalMass')
+    dc_z = data.quantities['WeightedAverageQuantity']('z', 'TotalDensityXTotalMass')
     return [dc_x, dc_y, dc_z]
 
 #### Temperature ####
 
-def _TemperatureXTotalMass(field, data):
-    return (data['Temperature'] * data['TotalMassMsun'])
-def _Convert_TemperatureXTotalMass(data):
+def _TemperatureXCellMass(field, data):
+    return (data['Temperature'] * data['CellMassMsun'])
+def _Convert_TemperatureXCellMass(data):
     return 1
-add_field("TemperatureXTotalMass", units=r"",
-          function=_TemperatureXTotalMass,
-          convert_function=_Convert_TemperatureXTotalMass)
+add_field("TemperatureXCellMass", units=r"",
+          function=_TemperatureXCellMass,
+          convert_function=_Convert_TemperatureXCellMass)
 
 @add_function("Min_Temperature")
 def find_minimum_temperature(data):
-    ma, mini, mx, my, mz, mg = data.quantities['MaxLocation']('TemperatureXTotalMass')
+    ma, mini, mx, my, mz, mg = data.quantities['MaxLocation']('TemperatureXCellMass')
     return [mx,my,mz]
 
 @add_function("Max_Temperature")
 def find_maximum_temperature(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('TemperatureXTotalMass')
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('TemperatureXCellMass')
     return [mx,my,mz]
 
