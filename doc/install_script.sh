@@ -291,7 +291,7 @@ get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
 get_enzotools mercurial-1.8.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
-get_enzotools h5py-1.2.0.tar.gz
+get_enzotools h5py-1.3.1.tar.gz
 get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
 get_enzotools ext-3.3.2.zip
@@ -498,7 +498,7 @@ fi
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
-do_setup_py h5py-1.2.0
+do_setup_py h5py-1.3.1
 do_setup_py Cython-0.14
 [ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.4
 
