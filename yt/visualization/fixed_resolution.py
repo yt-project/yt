@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.funcs import *
 from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
@@ -106,6 +107,8 @@ class FixedResolutionBuffer(object):
 
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
+        mylog.info("Making a fixed resolution buffer of %d by %d" % \
+            (self.buff_size[0], self.buff_size[1]))
         buff = _MPL.Pixelize(self.data_source['px'],
                              self.data_source['py'],
                              self.data_source['pdx'],
