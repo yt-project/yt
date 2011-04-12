@@ -192,88 +192,6 @@ var handle_result = function(f, a) {
           }
     });
 
-    var ButtonGroupPanel = new Ext.Panel({
-        layout: 'anchor',
-        ButtonAlign: 'center',
-        collapsible: false,
-        renderTo: document.body,
-        tbar: [{
-            xtype: 'buttongroup',
-            columns: 7,
-            items: [{
-                text: 'Download',
-                layout:'anchor',
-                anchor: '100% 25%',
-                handler: function(b, e) { 
-                    window.open("session.py", "_top"); 
-                    var record = new logging_store.recordType({
-                        record: 'Saved session locally.'});
-                    logging_store.add(record, number_log_records++);
-	            }
-            },{
-                xtype: 'tbseparator'
-            },{
-                text: 'Save',
-                layout:'anchor',
-	            anchor: '100% 50%',
-	            handler: function (b,e) { 
-                    Ext.Msg.prompt("We have important work to do.", 
-                    "Enter filename.", 
-                    function(btn, text) {
-                        if (btn == 'ok'){
-                            yt_rpc.ExtDirectREPL.save_session({filename:text}, 
-                            function(f, a) {
-                                if (a.result['status'] == 'SUCCESS') {
-                                    var alert_text = 'Saved session to ' + 
-                                    a.result['filename']
-                                    Ext.Msg.alert('Success!', alert_text);
-                                    var record = new logging_store.recordType(
-                                        {record: alert_text });
-                                    logging_store.add(record, number_log_records++);
-							    } else {
-							        Ext.Msg.alert('Always naysaying!',
-                                        'Failed to save to ' + 
-                                        a.result['filename'] + 
-                                        '<br>Error: ' + 
-                                        a.result['error']);
-                                }
-                            });
-                        }
-                    });
-                }
-            },{
-                xtype: 'tbseparator'
-            },{
-                text: 'Paste',
-                layout:'anchor',
-                anchor: '100% 75%',
-                handler: function (b,e) { 
-                    yt_rpc.ExtDirectREPL.paste_session({}, function(f, a) {
-                        if (a.result['status'] == 'SUCCESS') {
-                            var alert_text = 'Pasted session to:<br>' + 
-                            a.result['site']
-                            var alert_text_rec = 'Pasted session to: ' + 
-                            a.result['site']
-                            Ext.Msg.alert('Pastebin', alert_text);
-                            var record = new logging_store.recordType(
-                                {record: alert_text_rec });
-                            logging_store.add(record, number_log_records++);
-                        }
-                    }); 
-                }
-            },{
-                xtype: 'tbseparator'
-            },{
-                text: 'Help',
-                layout:'anchor',
-                anchor: '100% 100%',
-                handler: function (b,e) { 
-                        window.open("help.html", "_new");
-                }
-            }]
-        }]
-    });
-
     var status_panel;
     var logging_store = new Ext.data.Store({
         fields: [{name:'record'}],
@@ -330,8 +248,10 @@ var handle_result = function(f, a) {
                         type: 'anchor',
                     },
                     items: [
+                        {xtype: 'toolbar',
+                          items: [ main_menu ],
+                        },
                         treePanel,
-                        ButtonGroupPanel
                     ]
 		  // in this instance the TabPanel is not wrapped by another panel
 		  // since no title is needed, this Panel is added directly

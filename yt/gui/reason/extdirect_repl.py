@@ -150,6 +150,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return self.payload_handler.deliver_payloads()
 
     def _check_heartbeat(self):
+        if self.server is not None:
+            if not all((s._monitor.is_alive() for s in self.server.values())):
+                self.shutdown()
+                return
         if time.time() - self.last_heartbeat > self.timeout:
             print "Shutting down after a timeout of %s" % (self.timeout)
             #sys.exit(0)
@@ -157,9 +161,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             # server instance by default.
             self.shutdown()
             return
-        print "Not shutting down from timeout."
-        self._heartbeat_timer = threading.Timer(self.timeout - 60,
-                                    self._check_heartbeat)
+        self._heartbeat_timer = threading.Timer(10, self._check_heartbeat)
         self._heartbeat_timer.start()
 
     def shutdown(self):
