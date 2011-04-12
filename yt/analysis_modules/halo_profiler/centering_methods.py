@@ -42,7 +42,7 @@ def add_function(name):
 
 def _MatterDensityXTotalMass(field, data):
     return na.power((data['Dark_Matter_Density'] * data['TotalMassMsun']), 
-                    self.density_center_exponent)
+                    1.)
 def _Convert_MatterDensityXTotalMass(data):
     return 1
 add_field("MatterDensityXTotalMass", units=r"",

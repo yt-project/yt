@@ -29,6 +29,7 @@ import h5py
 import types
 
 from yt.funcs import *
+from yt.utilities.math_utils import periodic_dist
 
 from yt.convenience import \
     load
@@ -359,6 +360,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             new_sphere = False
 
             if self.recenter:
+                old = halo['center']
                 if self.recenter in centering_registry:
                     new_x, new_y, new_z = \
                         centering_registry[self.recenter](sphere)
@@ -366,6 +368,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                     # user supplied function
                     new_x, new_y, new_z = self.recenter(sphere)
                 halo['center'] = [new_x, new_y, new_z]
+                d = periodic_dist(old, halo['center'],
+                    self.pf.domain_right_edge - self.pf.domain_left_edge) * \
+                    self.pf['kpc']
+                mylog.info("Recentered %1.3e kpc away." % d)
                 new_sphere = True
 
             if new_sphere:
