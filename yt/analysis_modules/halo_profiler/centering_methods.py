@@ -97,7 +97,7 @@ def find_CoM_gas_density(data):
 
 def _TotalDensityXTotalMass(field, data):
     return (data['Density'] + data['Dark_Matter_Density']) * \
-        data['TotalMassMsun'])
+        data['TotalMassMsun']
 def _Convert_TotalDensityXTotalMass(data):
     return 1
 add_field("TotalDensityXTotalMass", units=r"",
@@ -133,7 +133,7 @@ add_field("TemperatureXCellMass", units=r"",
 
 @add_function("Min_Temperature")
 def find_minimum_temperature(data):
-    ma, mini, mx, my, mz, mg = data.quantities['MaxLocation']('TemperatureXCellMass')
+    ma, mini, mx, my, mz, mg = data.quantities['MinLocation']('TemperatureXCellMass')
     return [mx,my,mz]
 
 @add_function("Max_Temperature")

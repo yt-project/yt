@@ -367,6 +367,12 @@ class HaloProfiler(ParallelAnalysisInterface):
                 else:
                     # user supplied function
                     new_x, new_y, new_z = self.recenter(sphere)
+                if new_x < self.pf.domain_left_edge[0] or \
+                        new_y < self.pf.domain_left_edge[1] or \
+                        new_z < self.pf.domain_left_edge[2]:
+                    mylog.info("Recentering moves too far, skipping halo %d" % \
+                        halo['id'])
+                    return None
                 halo['center'] = [new_x, new_y, new_z]
                 d = periodic_dist(old, halo['center'],
                     self.pf.domain_right_edge - self.pf.domain_left_edge) * \
