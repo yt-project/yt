@@ -82,6 +82,13 @@ function host_specific
     then
         echo "Looks like you're on Kraken."
         echo
+        echo " ******************************************"
+        echo " * It may be better to use the yt module! *"
+        echo " *                                        *"
+        echo " *   $ module load yt                     *"
+        echo " *                                        *"
+        echo " ******************************************"
+        echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
@@ -90,6 +97,13 @@ function host_specific
     if [ "${MYHOST##nautilus}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Nautilus."
+        echo
+        echo " ******************************************"
+        echo " * It may be better to use the yt module! *"
+        echo " *                                        *"
+        echo " *   $ module load yt                     *"
+        echo " *                                        *"
+        echo " ******************************************"
         echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PE-intel PE-gnu"
