@@ -201,6 +201,30 @@ var WidgetPlotWindow = function(python_varname) {
                             {code:python_varname + '.zoom(0.1)'},
                         cell_finished); 
                     }
+                },{
+                    xtype: 'button',
+                    text: 'Upload Image',
+                    x: 10,
+                    y: 285,
+                    width: 80,
+                    handler: function(b,e) {
+                        img_data = image_dom.src;
+                        yt_rpc.ExtDirectREPL.upload_image(
+                            {image_data:img_data},
+                        function(rv) {
+                            var alert_text;
+                            if(rv['uploaded'] == false) {
+                                alert_text = "Failure uploading image!";
+                            } else {
+                                alert_text = "Uploaded to " +
+                                        rv['upload']['links']['imgur_page'];
+                            }
+                            Ext.Msg.alert('imgur.com', alert_text);
+                            var record = new logging_store.recordType(
+                                {record: alert_text });
+                            logging_store.add(record, number_log_records++);
+                        }); 
+                    }
                 }
             ]
         }
@@ -211,6 +235,7 @@ var WidgetPlotWindow = function(python_varname) {
     this.panel = viewport.get("center-panel").get("pw_" + python_varname);
     this.panel.doLayout();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
+    var image_dom = this.image_panel.el.dom;
 
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];

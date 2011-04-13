@@ -31,6 +31,9 @@ import logging
 import uuid
 import numpy as na
 import time
+import urllib
+import urllib2
+import pprint
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -251,6 +254,24 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         ret = p.pastes.newPaste('pytb', cs, None, '', '', True)
         site = "http://paste.enzotools.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
+
+    _api_key = 'f62d550859558f28c4c214136bc797c7'
+    def upload_image(self, image_data):
+        if not image_data.startswith("data:"): return {'uploaded':False}
+        prefix = "data:image/png;base64,"
+        image_data = image_data[len(prefix):]
+        parameters = {'key':self._api_key, 'image':image_data, type:'base64'}
+        data = urllib.urlencode(parameters)
+        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        try:
+            response = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as e:
+            print "ERROR", e
+            return {'uploaded':False}
+        rv = json.loads(response)
+        rv['uploaded'] = True
+        pprint.pprint(rv)
+        return rv
 
     @lockit
     def _session_py(self):
