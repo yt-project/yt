@@ -152,21 +152,16 @@ class StaticOutput(object):
                key in self.parameters or \
                key in self.conversion_factors
 
-    def _get_hierarchy(self):
-        if self.__hierarchy == None:
+    _instantiated_hierarchy = None
+    @property
+    def hierarchy(self):
+        if self._instantiated_hierarchy == None:
             if self._hierarchy_class == None:
                 raise RuntimeError("You should not instantiate StaticOutput.")
-            self.__hierarchy = self._hierarchy_class(self, data_style=self.data_style)
-        return self.__hierarchy
-
-    def _set_hierarchy(self, newh):
-        if self.__hierarchy != None:
-            mylog.warning("Overriding hierarchy attribute!  This is probably unwise!")
-        self.__hierarchy = newh
-
-    __hierarchy = None
-    hierarchy = property(_get_hierarchy, _set_hierarchy)
-    h = property(_get_hierarchy, _set_hierarchy)
+            self._instantiated_hierarchy = self._hierarchy_class(
+                self, data_style=self.data_style)
+        return self._instantiated_hierarchy
+    h = hierarchy
 
     @parallel_root_only
     def print_key_parameters(self):
