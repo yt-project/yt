@@ -39,4 +39,5 @@ from .output_tests import \
     create_test
 
 from .default_tests import \
-    TestFieldStatistics
+    TestFieldStatistics, \
+    TestAllProjections

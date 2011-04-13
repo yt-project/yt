@@ -43,8 +43,6 @@ class TestFieldStatistics(YTStaticOutputTest):
         self.result = results
 
     def compare(self, old_result):
-        proj, pixelized_proj = self.result
-        oproj, opixelized_proj = old_result
         for field in sorted(self.result):
             for i in range(4):
                 oi = old_result[field][i]
@@ -60,14 +58,11 @@ class TestAllProjections(YTStaticOutputTest):
         for field in self.pf.h.field_list:
             results[field] = []
             for ax in range(3):
-                results[field].append(self.pf.h.proj(ax, self.field))
+                t = self.pf.h.proj(ax, field)
+                results[field].append(t.data)
         self.result = results
 
     def compare(self, old_result):
         for field in sorted(self.result):
             for p1, p2 in zip(self.result[field], old_result[field]):
                 self.compare_data_arrays(p1, p2, self.tolerance)
-        self.compare_array_delta(
-            pixelized_proj[self.field],
-            opixelized_proj[self.field],
-            1e-7)
