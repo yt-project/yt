@@ -131,18 +131,15 @@ class ObjectFindingMixin(object):
         # Get the most-refined grid at this coordinate.
         this = self.find_point(coord)[0][-1]
         cellwidth = (this.RightEdge - this.LeftEdge) / this.ActiveDimensions
-        mark = 0
-        last = 1
+        mark = na.zeros(3).astype('int')
         # Find the index for the cell containing this point.
-        for dim in xrange(len(coord)).__reversed__():
-            temp = (coord[dim] - this.LeftEdge[dim]) / cellwidth[dim]
-            mark += int(temp) * last
-            last *= this.ActiveDimensions[dim]
+        for dim in xrange(len(coord)):
+            mark[dim] = int((coord[dim] - this.LeftEdge[dim]) / cellwidth[dim])
         out = []
-        fields = na.atleast_1d(fields)
+        fields = ensure_list(fields)
         # Pull out the values and add it to the out list.
         for field in fields:
-            out.append(this[field].flatten()[mark])
+            out.append(this[field][mark[0], mark[1], mark[2]])
         return out
 
     def find_slice_grids(self, coord, axis):
