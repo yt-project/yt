@@ -37,3 +37,6 @@ from .runner import \
 from .output_tests import \
     YTStaticOutputTest, \
     create_test
+
+from .default_tests import \
+    TestFieldStatistics
