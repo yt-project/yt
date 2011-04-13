@@ -79,17 +79,21 @@ def _ConvertNumberDensity(data):
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
-             validators=ValidateDataField("%s_Density" % species))
+             validators=ValidateDataField("%s_Density" % species),
+             display_name="%s\/Fraction" % species)
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
-             validators=ValidateDataField("%s_Density" % species))
+             validators=ValidateDataField("%s_Density" % species),
+             display_name="Comoving\/%s\/Density" % species)
     add_field("%s_Mass" % species, units=r"\rm{g}", 
               function=_SpeciesMass, 
-              validators=ValidateDataField("%s_Density" % species))
+              validators=ValidateDataField("%s_Density" % species),
+              display_name="%s\/Mass" % species)
     add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
-              validators=ValidateDataField("%s_Density" % species))
+              validators=ValidateDataField("%s_Density" % species),
+              display_name="%s\/Mass" % species)
     if _speciesMass.has_key(species):
         add_field("%s_NumberDensity" % species,
                   function=_SpeciesNumberDensity,
@@ -222,7 +226,9 @@ _default_fields = ["Density","Temperature",
 _default_fields += [ "%s_Density" % sp for sp in _speciesList ]
 
 for field in _default_fields:
+    dn = field.replace("_","\/")
     add_field(field, function=lambda a, b: None, take_log=True,
+              display_name = dn,
               validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
 EnzoFieldInfo["x-velocity"].projection_conversion='1'
 EnzoFieldInfo["y-velocity"].projection_conversion='1'
