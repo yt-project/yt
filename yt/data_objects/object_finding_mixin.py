@@ -107,6 +107,41 @@ class ObjectFindingMixin(object):
         ind = na.where(mask == 1)
         return self.grids[ind], ind
 
+    def find_field_value_at_point(self, fields, coord):
+        r"""Find the value of fields at a point.
+        
+        Returns the values [field1, field2,...] of the fields at the given
+        (x,y,z) point. Returns a list of field values in the same order
+        as the input *fields*.
+        
+        Parameters
+        ---------
+        fields : string or list of strings
+            The field(s) that will be returned.
+        
+        coord : list or array of floats
+            The location for which field values will be returned.
+        
+        Examples
+        --------
+        >>> pf.h.find_field_value_at_point(['Density', 'Temperature'],
+            [0.4, 0.3, 0.8])
+        [2.1489e-24, 1.23843e4]
+        """
+        # Get the most-refined grid at this coordinate.
+        this = self.find_point(coord)[0][-1]
+        cellwidth = (this.RightEdge - this.LeftEdge) / this.ActiveDimensions
+        mark = na.zeros(3).astype('int')
+        # Find the index for the cell containing this point.
+        for dim in xrange(len(coord)):
+            mark[dim] = int((coord[dim] - this.LeftEdge[dim]) / cellwidth[dim])
+        out = []
+        fields = ensure_list(fields)
+        # Pull out the values and add it to the out list.
+        for field in fields:
+            out.append(this[field][mark[0], mark[1], mark[2]])
+        return out
+
     def find_slice_grids(self, coord, axis):
         """
         Returns the (objects, indices) of grids that a slice intersects along
