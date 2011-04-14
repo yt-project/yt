@@ -323,7 +323,7 @@ var handle_result = function(f, a) {
             if (f != null) {
                 handle_result(f, a);
             }})},
-    interval: 1000};
+    interval: 250};
 
     task_runner.start(heartbeat);
                          
