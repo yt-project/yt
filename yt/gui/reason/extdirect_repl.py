@@ -301,7 +301,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return command
 
     @lockit
-    def create_proj(self, pfname, axis, field, weight):
+    def create_proj(self, pfname, axis, field, weight, onmax):
         if weight == "None": weight = None
         else: weight = "'%s'" % (weight)
         funccall = """
