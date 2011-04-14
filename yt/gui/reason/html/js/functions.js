@@ -42,7 +42,12 @@ function cell_finished(result) {
             OutputContainer.add(cell);
             OutputContainer.doLayout();
             notebook.doLayout();
-            repl_input.get("input_line").setValue("");
+            if (repl_input.locked == true) {
+                /* Assume only one locking level */
+                repl_input.locked = false;
+            } else {
+                repl_input.get("input_line").setValue("");
+            }
             if (OutputContainer.items.length > 1) {
                 examine = cell;
                 OutputContainer.body.dom.scrollTop = 
@@ -65,6 +70,7 @@ function cell_finished(result) {
         } else if (payload['type'] == 'cell_contents') {
 	        var input_line = repl_input.get("input_line");
 	        input_line.setValue(payload['value']);
+            repl_input.locked = true;
         } else if (payload['type'] == 'log_entry') {
 	        var record = new logging_store.recordType(
 		        {record: payload['log_entry'] });

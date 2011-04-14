@@ -200,6 +200,7 @@ var handle_result = function(f, a) {
 
     var heartbeat_request = false;
     var task_runner = new Ext.util.TaskRunner();
+    var heartbeat;
 
 
     Ext.onReady(function(){
@@ -314,7 +315,7 @@ var handle_result = function(f, a) {
 
     /* Set up the heartbeat */
     var num = 0;
-    var heartbeat = {
+    heartbeat = {
     run:
       function(){ if (heartbeat_request == true) return; 
         yt_rpc.ExtDirectREPL.heartbeat(

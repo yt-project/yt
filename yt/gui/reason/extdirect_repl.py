@@ -169,9 +169,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def shutdown(self):
         if self.server is None:
-            print "Can't shutdown!"
+            return
         self._heartbeat_timer.cancel()
-        for v in self.server.values(): v.stop()
+        for v in self.server.values():
+            v.stop()
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()

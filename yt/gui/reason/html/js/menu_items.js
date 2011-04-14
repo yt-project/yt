@@ -96,6 +96,7 @@ var main_menu = {
            {xtype: 'menuseparator'},
            {xtype:'menuitem', text: 'Quit',
              handler: function(b,e) {
+                task_runner.stop(heartbeat)
                 yt_rpc.ExtDirectREPL.shutdown({}, function(f,a) { 
                 Ext.Msg.alert("Goodbye!", "Goodbye from Reason!", function() {
                 window.open("http://www.google.com/", "_top");});});

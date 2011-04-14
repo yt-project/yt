@@ -50,7 +50,11 @@ class PayloadHandler(object):
     _shared_state = {}
     _hold = False
     payloads = None
+    recorded_payloads = None
     lock = None
+    record = False
+    count = 0
+
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -60,16 +64,25 @@ class PayloadHandler(object):
     def __init__(self):
         if self.payloads is None: self.payloads = []
         if self.lock is None: self.lock = threading.Lock()
+        if self.recorded_payloads is None: self.recorded_payloads = []
 
     def deliver_payloads(self):
         with self.lock:
             if self._hold: return []
             payloads = self.payloads
+            if self.record:
+                self.recorded_payloads += self.payloads
             self.payloads = []
         return payloads
 
     def add_payload(self, to_add):
-        self.payloads.append(to_add)
+        with self.lock:
+            self.payloads.append(to_add)
+            self.count += 1
+
+    def replay_payloads(self):
+        return self.recorded_payloads
+
 
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
