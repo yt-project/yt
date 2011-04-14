@@ -72,7 +72,8 @@ function cell_finished(result) {
             new_log = true;
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
-            var widget = new widget_types[widget_type](payload['varname']);
+            var widget = new widget_types[widget_type](payload['varname'],
+                                                       payload['data']);
             widget_list[widget.id] = widget;
         } else if (payload['type'] == 'widget_payload') {
             var widget = widget_list[payload['widget_id']];
@@ -158,7 +159,7 @@ function sliceHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
         width:320,
-        height:200,
+        height:250,
         modal:true,
         resizable:false,
         draggable:false,
@@ -196,6 +197,25 @@ function sliceHandler(item,pressed){
                 store:['X','Y','Z'],
                 width: 90,
                 allowBlank:false,
+                value: 'X',
+                triggerAction: 'all',
+            },{
+                xtype:'checkbox',
+                fieldLabel: 'Center on Max',
+                id: 'max_dens',
+                width: 90,
+                allowBlank:false,
+                handler: function(checkbox, checked) {
+                    if (checked == true) {
+                        this.ownerCt.get("slice_x_center").disable();
+                        this.ownerCt.get("slice_y_center").disable();
+                        this.ownerCt.get("slice_z_center").disable();
+                    } else {
+                        this.ownerCt.get("slice_x_center").enable();
+                        this.ownerCt.get("slice_y_center").enable();
+                        this.ownerCt.get("slice_z_center").enable();
+                    }
+                }
             },{
                 xtype:'combo',
                 fieldLabel: 'Field',
@@ -203,6 +223,8 @@ function sliceHandler(item,pressed){
                 store:node.attributes.objdata.field_list,
                 width: 200,
                 allowBlank:false,
+                value: 'Density',
+                triggerAction: 'all',
             }],
             buttons: [
                 {
@@ -213,9 +235,10 @@ function sliceHandler(item,pressed){
                                       Ext.get("slice_z_center").getValue()];
                         var axis = Ext.get("slice_axis").getValue();
                         var field = Ext.get("slice_field").getValue();
+                        var onmax = Ext.get("max_dens").getValue();
                         yt_rpc.ExtDirectREPL.create_slice({
                             pfname:node.attributes.objdata.varname,
-                            center: center, axis:axis, field:field},
+                            center: center, axis:axis, field:field, onmax:onmax},
                           handle_result);
                         win.close();
                     }
@@ -244,7 +267,7 @@ function projectionHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
         width:370,
-        height:170,
+        height:220,
         modal:true,
         resizable:false,
         draggable:false,
@@ -261,6 +284,15 @@ function projectionHandler(item,pressed){
                 store:['X','Y','Z'],
                 width: 90,
                 allowBlank:false,
+                triggerAction: 'all',
+                value: 'X',
+            },{
+                xtype:'checkbox',
+                fieldLabel: 'Center on Max',
+                id: 'max_dens',
+                width: 90,
+                allowBlank:false,
+                /* No handler, because no center */
             },{
                 xtype:'combo',
                 fieldLabel: 'Field',
@@ -268,6 +300,8 @@ function projectionHandler(item,pressed){
                 store:node.attributes.objdata.field_list,
                 width: 230,
                 allowBlank:false,
+                triggerAction: 'all',
+                value: 'Density'
             },{
                 xtype:'combo',
                 fieldLabel: 'Weight Field',
@@ -275,6 +309,8 @@ function projectionHandler(item,pressed){
                 store:['None'].concat(node.attributes.objdata.field_list),
                 width: 230,
                 allowBlank:false,
+                triggerAction: 'all',
+                value: 'None'
             }],
             buttons: [
                 {
@@ -283,9 +319,11 @@ function projectionHandler(item,pressed){
                         var axis = Ext.get("axis").getValue();
                         var field = Ext.get("field").getValue();
                         var weight = Ext.get("weightField").getValue();
+                        var onmax = Ext.get("max_dens").getValue();
                         yt_rpc.ExtDirectREPL.create_proj({
                                 pfname: node.attributes.objdata.varname,
-                                axis: axis, field: field, weight: weight},
+                                axis: axis, field: field, weight: weight,
+                                onmax: onmax},
                               handle_result);
                         win.close();
                     }

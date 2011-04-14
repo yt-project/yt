@@ -31,8 +31,9 @@ License:
 
 
 
-var WidgetPlotWindow = function(python_varname) {
+var WidgetPlotWindow = function(python_varname, widget_data) {
     this.id = python_varname;
+    this.widget_data = widget_data;
     this.print_python = function(b, e) {
         yt_rpc.ExtDirectREPL.execute(
             {code:'print "' + python_varname + '"'},
@@ -225,6 +226,23 @@ var WidgetPlotWindow = function(python_varname) {
                             logging_store.add(record, number_log_records++);
                         }); 
                     }
+                },{
+                    xtype: 'combo',
+                    text: 'Field',
+                    x: 10,
+                    y: 315,
+                    width: 80,
+                    store:widget_data['fields'],
+                    value:widget_data['initial_field'],
+                    editable: false,
+                    triggerAction: 'all',
+                    listeners: {change: function(form, newValue, oldValue) {
+                        alert(newValue);
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.set_current_field("' +
+                                newValue + '")'},
+                            cell_finished);
+                    }}
                 }
             ]
         }

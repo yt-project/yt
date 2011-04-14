@@ -281,7 +281,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    def _add_widget(self, widget_name):
+    def _add_widget(self, widget_name, widget_data_name = None):
         # This should be sanitized
         widget = self.locals[widget_name]
         uu = str(uuid.uuid1()).replace("-","_")
@@ -289,11 +289,16 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         widget._ext_widget_id = varname
         # THIS BREAKS THE SCRIPT DOWNLOAD!
         # We need to make the variable be bound via an execution mechanism
+        command = "%s = %s\n" % (varname, widget_name)
         payload = {'type': 'widget',
                    'widget_type': widget._widget_name,
-                   'varname': varname}
+                   'varname': varname,
+                   'data': None}
+        widget._ext_widget_id = varname
+        if widget_data_name is not None:
+            payload['data'] = self.locals[widget_data_name]
         self.payload_handler.add_payload(payload)
-        return "%s = %s\n" % (varname, widget_name)
+        return command
 
     @lockit
     def create_proj(self, pfname, axis, field, weight):
@@ -311,6 +316,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
+        _twidget_data = {'fields': list(set(_tpf.h.field_list +
+                                        _tpf.h.derived_field_list)),
+                         'initial_field': _tfield}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
@@ -318,15 +326,23 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
-        self.execute(self._add_widget('_tpw'))
+        self.execute(self._add_widget('_tpw', '_twidget_data'))
 
     @lockit
-    def create_slice(self, pfname, center, axis, field):
+    def create_slice(self, pfname, center, axis, field, onmax):
+        if not onmax: 
+            center_string = \
+              "na.array([%(c1)0.20f,%(c2)0.20f, %(c3)0.20f],dtype='float64')" \
+                % dict(c1 = float(center[0]),
+                       c2 = float(center[1]),
+                       c3 = float(center[2]))
+        else:
+            center_string = "_tpf.h.find_max('Density')[1]"
         funccall = """
         _tpf = %(pfname)s
-        _tcenter = na.array([%(c1)0.20f, %(c2)0.20f, %(c3)0.20f], dtype='float64')
         _taxis = %(axis)s
         _tfield = "%(field)s"
+        _tcenter = %(center_string)s
         _tcoord = _tcenter[_taxis]
         _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
@@ -335,16 +351,18 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
+        _tfield_list = _tpf.h.field_list + _tpf.h.derived_field_list
+        _tfield_list.sort()
+        _twidget_data = {'fields': _tfield_list,
+                         'initial_field': _tfield}
         """ % dict(pfname = pfname,
-                   c1 = float(center[0]),
-                   c2 = float(center[1]),
-                   c3 = float(center[2]),
+                   center_string = center_string,
                    axis = inv_axis_names[axis],
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall)
-        self.execute(self._add_widget('_tpw'))
+        self.execute(self._add_widget('_tpw', '_twidget_data'))
 
     def _test_widget(self):
         class tt(object):

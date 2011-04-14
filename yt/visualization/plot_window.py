@@ -307,6 +307,14 @@ class PWViewerExtJS(PWViewer):
     def get_metadata(self):
         pass
 
+    @invalidate_data
+    def set_current_field(self, field):
+        self._current_field = field
+        self._frb[field]
+        if self._frb.pf.field_info[field].take_log:
+            self._field_transform[field] = na.log
+        else:
+            self._field_transform[field] = lambda x: x
 
 
 class YtPlot(object):
