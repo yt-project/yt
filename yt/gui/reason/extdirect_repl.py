@@ -322,8 +322,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        _twidget_data = {'fields': list(set(_tpf.h.field_list +
-                                        _tpf.h.derived_field_list)),
+        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
+        _tfield_list.sort()
+        _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
@@ -358,7 +359,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        _tfield_list = _tpf.h.field_list + _tpf.h.derived_field_list
+        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield}
