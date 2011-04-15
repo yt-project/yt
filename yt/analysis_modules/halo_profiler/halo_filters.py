@@ -28,11 +28,11 @@ import numpy as na
 
 from yt.funcs import *
 
-def VirialFilter(profile,overdensity_field='ActualOverdensity',
-                 virial_overdensity=200.,must_be_virialized=True,
-                 virial_filters=[['TotalMassMsun','>=','1e14']],
-                 virial_quantities=['TotalMassMsun','RadiusMpc'],
-                 virial_index=None):
+def VirialFilter(profile, overdensity_field='ActualOverdensity',
+                 virial_overdensity=200., must_be_virialized=True,
+                 virial_filters=[['TotalMassMsun', '>=','1e14']],
+                 virial_quantities=['TotalMassMsun', 'RadiusMpc'],
+                 virial_index=None, use_log=False):
     """
     Filter halos by virial quantities.
     Return values are a True or False whether the halo passed the filter, 
@@ -40,6 +40,23 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
     the virial_quantities keyword.  Thresholds for virial quantities are 
     given with the virial_filters keyword in the following way: 
     [field, condition, value].
+    :param: overdensity_field (str): the field used for interpolation with the 
+    specified critical value given with 'virial_overdensity'.  
+    Default: 'ActualOverdensity'.
+    :param: virial_overdensity (flt): the value used for interpolation.  
+    Default: 200.[['TotalMassMsun', '>=','1e14']]
+    :param: must_be_virialized (bool): if no values in the profile are above the 
+    value of virial_overdensity, the halo does not pass the filter.  
+    Default: True.
+    :param: virial_filters (list): conditional filters based on virial quantities 
+    given in the following way: [field, condition, value].  
+    Default: [['TotalMassMsun', '>=','1e14']].
+    :param: virial_quantities (list): fields for which interpolated values should 
+    be calculated and returned.  Default: ['TotalMassMsun', 'RadiusMpc'].
+    :param: virial_index (list): if given as a list, the index of the radial profile 
+    which is used for interpolation is placed here.  Default: None.
+    :param: use_log (bool): if True, interpolation is done in log space.  
+    Default: False.
     """
 
     fields = deepcopy(virial_quantities)
@@ -49,9 +66,7 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
             fields.append(vfilter[0])
     
     overDensity = []
-    temp_profile = {}
-    for field in fields:
-        temp_profile[field] = []
+    temp_profile = dict((field, []) for field in fields)
 
     for q in range(len(profile[overdensity_field])):
         good = True
@@ -67,9 +82,11 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
             for field in fields:
                 temp_profile[field].append(profile[field][q])
 
-    virial = {}
-    for field in fields:
-        virial[field] = 0.0
+    if use_log:
+        for field in temp_profile.keys():
+            temp_profile[field] = na.log10(temp_profile[field])
+
+    virial = dict((field, 0.0) for field in fields)
 
     if (not (na.array(overDensity) >= virial_overdensity).any()) and \
             must_be_virialized:
@@ -104,13 +121,20 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
                 temp_profile[field][index]
             virial[field] = value
 
+    if use_log:
+        for field in virial.keys():
+            virial[field] = na.power(10, virial[field])
+
     for vfilter in virial_filters:
         if eval("%s %s %s" % (virial[vfilter[0]],vfilter[1],vfilter[2])):
-            mylog.debug("(%s %s %s) returned True for %s." % (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
+            mylog.debug("(%s %s %s) returned True for %s." % \
+                            (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
             continue
         else:
-            mylog.debug("(%s %s %s) returned False for %s." % (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
+            mylog.debug("(%s %s %s) returned False for %s." % \
+                            (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
             return [False, {}]
 
-    return [True, dict((q,virial[q]) for q in virial_quantities)]
+    return [True, dict((("%s_%s" % (q, virial_overdensity)), virial[q])
+                       for q in virial_quantities)]
 

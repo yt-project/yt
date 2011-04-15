@@ -62,12 +62,12 @@ class HaloProfiler(ParallelAnalysisInterface):
                  halo_finder_kwargs=dict(threshold=160.0, safety=1.5, 
                                          dm_only=False, resize=True, 
                                          fancy_padding=True, rearrange=True),
-                 use_density_center=False, density_center_exponent=1.0,
                  halo_radius=0.1, radius_units='1', n_profile_bins=50,
                  recenter = None,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
-                 velocity_center=['bulk', 'halo'], filter_quantities=['id','center']):
+                 velocity_center=['bulk', 'halo'], filter_quantities=['id','center'], 
+                 use_critical_density=False):
         """
         Initialize a HaloProfiler object.
         :param output_dir (str): if specified, all output will be put into this path instead of 
@@ -114,6 +114,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                                     specified (used only when halos set to single).
         :param filter_quantities (list): quantities from the original halo list file to be written out in the 
                filtered list file.  Default: ['id','center'].
+        :param use_critical_density (bool): if True, the definition of overdensity for virial quantities is calculated with respect to the critical density.  If False, overdensity is with respect to mean matter density, which is lower by a factor of Omega_M.  Default: False.
         """
 
         self.dataset = dataset
@@ -126,6 +127,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         self.project_at_level = project_at_level
         self.filter_quantities = filter_quantities
         if self.filter_quantities is None: self.filter_quantities = []
+        self.use_critical_density = use_critical_density
 
         self.profile_fields = []
         self.projection_fields = []
@@ -561,10 +563,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         if 'ActualOverdensity' in profile.keys():
             return
 
-        rho_crit_now = 1.8788e-29 * self.pf.hubble_constant**2.0 * \
-            self.pf.omega_matter # g cm^-3
+        rho_crit_now = 1.8788e-29 * self.pf.hubble_constant**2 # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + self.pf.current_redshift)**3.0)
+        if not self.use_critical_density: rho_crit *= self.pf.omega_matter
 
         profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit
