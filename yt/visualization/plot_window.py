@@ -28,6 +28,7 @@ import numpy as na
 import color_maps
 from image_writer import \
     write_image, apply_colormap
+from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_file
 from fixed_resolution import \
     FixedResolutionBuffer
@@ -52,7 +53,7 @@ def invalidate_plot(f):
     return newfunc
 
 class PlotWindow(object):
-    def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True):
+    def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, periodic = True):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
         
@@ -83,11 +84,15 @@ class PlotWindow(object):
 
         """
         self._initfinished = False
+        self.center = None
         self.plots = {}
+        self._periodic = periodic
         self.data_source = data_source
         self.buff_size = buff_size
         self.antialias = True
         self.set_window(bounds) # this automatically updates the data and plot
+        center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
+        self.set_center(center)
         self._initfinished = True
 
     def __getitem__(self, item):
@@ -98,7 +103,7 @@ class PlotWindow(object):
             bounds = self.bounds
             self._frb = FixedResolutionBuffer(self.data_source, 
                                               bounds, self.buff_size, 
-                                              self.antialias)
+                                              self.antialias, periodic=self._periodic)
         except:
             raise RuntimeError("Failed to repixelize.")
         self._frb._get_data_source_fields()
@@ -171,9 +176,17 @@ class PlotWindow(object):
 
     @invalidate_data
     def set_window(self, bounds):
-        self.xlim = bounds[0:2]
-        self.ylim = bounds[2:]
-
+        if self.center is not None:
+            dx = bounds[1] - bounds[0]
+            dy = bounds[3] - bounds[2]
+            self.xlim = (self.center[0] - dx/2., self.center[0] + dx/2.)
+            self.ylim = (self.center[1] - dy/2., self.center[1] + dy/2.)
+            mylog.info("xlim = %f %f" %self.xlim)
+            mylog.info("ylim = %f %f" %self.ylim)
+        else:
+            self.xlim = bounds[0:2]
+            self.ylim = bounds[2:]
+        
     @invalidate_data
     def set_width(self, new_width):
         """set the width of the plot window
@@ -192,11 +205,23 @@ class PlotWindow(object):
         self.ylim[0] = centery - new_width/2.
         self.ylim[1] = centery + new_width/2.
 
+    @invalidate_data
+    def set_center(self, new_center):
+        if new_center is None:
+            self.center = None
+        else:
+            self.center = new_center
+        self.set_window(self.bounds)
+
     @property
     def width(self):
         Wx = self.xlim[1] - self.xlim[0]
         Wy = self.ylim[1] - self.ylim[0]
         return (Wx, Wy)
+
+    # @property
+    # def window(self):
+    #     return self.xlim + self.ylim
 
     @invalidate_data
     def set_antialias(self,aa):
@@ -218,6 +243,7 @@ class PWViewer(PlotWindow):
 
         if setup: self._setup_plots()
 
+    @invalidate_plot
     def set_log(self,field,log):
         """set a field to log or linear.
         
