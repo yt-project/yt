@@ -310,7 +310,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _taxis = %(axis)s
         _tfield = "%(field)s"
         _tweight = %(weight)s
-        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight)
+        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight, periodic = True)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
@@ -345,7 +345,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tfield = "%(field)s"
         _tcenter = %(center_string)s
         _tcoord = _tcenter[_taxis]
-        _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter)
+        _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter, periodic = True)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
