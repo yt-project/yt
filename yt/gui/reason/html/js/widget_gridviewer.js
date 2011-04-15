@@ -149,9 +149,9 @@ var WidgetGridViewer = function(python_varname, widget_data) {
     
                     });
             camera.modelView.id();
-            draw()
-    
-                setInterval(draw, 100/60);
+	    camera.update()
+
+	    setInterval(draw, 100/60);
             //Draw the scene
             function draw() {
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
