@@ -91,8 +91,9 @@ class PlotWindow(object):
         self.buff_size = buff_size
         self.antialias = True
         self.set_window(bounds) # this automatically updates the data and plot
-        center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
-        self.set_center(center)
+        if self.data_source.center is not None:
+            center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
+            self.set_center(center)
         self._initfinished = True
 
     def __getitem__(self, item):

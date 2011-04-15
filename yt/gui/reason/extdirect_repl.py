@@ -305,12 +305,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def create_proj(self, pfname, axis, field, weight, onmax):
         if weight == "None": weight = None
         else: weight = "'%s'" % (weight)
+        if not onmax:
+            center_string = None
+        else:
+            center_string = "_tpf.h.find_max('Density')[1]"
         funccall = """
         _tpf = %(pfname)s
         _taxis = %(axis)s
         _tfield = "%(field)s"
         _tweight = %(weight)s
-        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight, periodic = True)
+        _tcen = %(center_string)s
+        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight, periodic = True, center=_tcen)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
@@ -323,6 +328,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
+                   center_string = center_string,
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
