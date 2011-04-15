@@ -36,7 +36,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.widget_data = widget_data;
     this.print_python = function(b, e) {
         yt_rpc.ExtDirectREPL.execute(
-            {code:'print "' + python_varname + '"'},
+            {code:'print "' + python_varname + '"',
+             hide:true},
             function(f, a) {alert(a.result['output']);}
         );
     }
@@ -75,7 +76,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     handler: function(b,e) {
                         cc = python_varname + '.pan_rel((0.0, -0.1))'
                         yt_rpc.ExtDirectREPL.execute(
-                        {code:cc}, cell_finished); 
+                        {code:cc, hide:true}, cell_finished); 
                     }
                 }, {
                     xtype:'button',
@@ -85,7 +86,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y : 30,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((0.1, 0.0))'},
+                            {code:python_varname + '.pan_rel((0.1, 0.0))',
+                             hide:true},
                         cell_finished); 
                     }
                 }, {
@@ -96,7 +98,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 50,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((0.0, 0.1))'},
+                            {code:python_varname + '.pan_rel((0.0, 0.1))',
+                             hide:true},
                         cell_finished); 
                     }
                 }, {
@@ -107,7 +110,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 30,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((-0.1, 0.0))'},
+                            {code:python_varname + '.pan_rel((-0.1, 0.0))',
+                             hide:true},
                         cell_finished); 
                     }
                 }, 
@@ -121,7 +125,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     handler: function(b,e) {
                         cc = python_varname + '.pan_rel((0.0, -0.5))'
                         yt_rpc.ExtDirectREPL.execute(
-                        {code:cc}, cell_finished); 
+                        {code:cc, hide:true}, cell_finished); 
                     }
                 }, {
                     xtype:'button',
@@ -131,7 +135,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y : 100,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((0.5, 0.0))'},
+                            {code:python_varname + '.pan_rel((0.5, 0.0))',
+                             hide:true},
                         cell_finished); 
                     }
                 }, {
@@ -142,7 +147,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 120,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((0.0, 0.5))'},
+                            {code:python_varname + '.pan_rel((0.0, 0.5))',
+                             hide:true},
                         cell_finished); 
                     }
                 }, {
@@ -153,7 +159,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 100,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.pan_rel((-0.5, 0.0))'},
+                            {code:python_varname + '.pan_rel((-0.5, 0.0))',
+                             hide:true},
                         cell_finished); 
                     }
                 },
@@ -166,7 +173,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.zoom(10.0)'},
+                            {code:python_varname + '.zoom(10.0)',
+                             hide:true},
                         cell_finished); 
                     }
                 },{
@@ -177,7 +185,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.zoom(2.0)'},
+                            {code:python_varname + '.zoom(2.0)',
+                             hide:true},
                         cell_finished); 
                     }
                 },{
@@ -188,7 +197,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.zoom(0.5)'},
+                            {code:python_varname + '.zoom(0.5)',
+                             hide:true},
                         cell_finished); 
                     }
                 },{
@@ -199,7 +209,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     width: 80,
                     handler: function(b,e) {
                         yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.zoom(0.1)'},
+                            {code:python_varname + '.zoom(0.1)',
+                             hide:true},
                         cell_finished); 
                     }
                 },{
@@ -240,7 +251,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                         alert(newValue);
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.set_current_field("' +
-                                newValue + '")'},
+                                newValue + '")', hide:true},
                             cell_finished);
                     }}
                 }
@@ -260,7 +271,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     }
 
     yt_rpc.ExtDirectREPL.execute(
-        {code:python_varname + '.zoom(1.0)'},
+        {code:python_varname + '.zoom(1.0)', hide:true},
         cell_finished);
 }
 

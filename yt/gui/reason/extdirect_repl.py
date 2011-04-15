@@ -126,7 +126,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         self.execute("from yt.mods import *")
-        self.execute("from yt.data_objects.static_output import _cached_pfs")
+        self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
         self.locals['load_script'] = ext_load_script
         self.locals['_widgets'] = {}
         self._setup_logging_handlers()
@@ -210,10 +210,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return highlighter_css
 
     @lockit
-    def execute(self, code):
+    def execute(self, code, hide = False):
         self.executed_cell_texts.append(code)
 
         result = ProgrammaticREPL.execute(self, code)
+        if hide: return
         self.payload_handler.add_payload(
             {'type': 'cell_results',
              'output': result,
@@ -333,8 +334,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall)
-        self.execute(self._add_widget('_tpw', '_twidget_data'))
+        self.execute(funccall, hide = True)
+        self.execute(self._add_widget('_tpw', '_twidget_data'), hide = True)
 
     @lockit
     def create_slice(self, pfname, center, axis, field, onmax):
@@ -369,14 +370,26 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall)
-        self.execute(self._add_widget('_tpw', '_twidget_data'))
+        self.execute(funccall, hide = True)
+        self.execute(self._add_widget('_tpw', '_twidget_data'), hide = True)
 
-    def _test_widget(self):
-        class tt(object):
-            _widget_name = "plot_window"
-        mm = tt()
-        return mm
+    @lockit
+    def create_grid_viewer(self, pfname):
+        pf = self.locals[pfname]
+        corners = pf.h.grid_corners
+        vertices = []
+
+        trans  = [0, 1, 2, 7, 5, 6, 3, 4]
+        order  = [0, 1, 1, 2, 2, 3, 3, 0]
+        order += [4, 5, 5, 6, 6, 7, 7, 4]
+        order += [0, 4, 1, 5, 2, 6, 3, 7]
+
+        for g in xrange(corners.shape[2]):
+            for c in order:
+                ci = trans[c]
+                vertices.append(corners[ci,:,g])
+        vertices = na.concatenate(vertices).tolist()
+        return {'vertices': vertices}
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"
