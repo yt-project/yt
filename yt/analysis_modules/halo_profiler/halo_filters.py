@@ -28,10 +28,10 @@ import numpy as na
 
 from yt.funcs import *
 
-def VirialFilter(profile,overdensity_field='ActualOverdensity',
-                 virial_overdensity=200.,must_be_virialized=True,
-                 virial_filters=[['TotalMassMsun','>=','1e14']],
-                 virial_quantities=['TotalMassMsun','RadiusMpc'],
+def VirialFilter(profile, overdensity_field='ActualOverdensity',
+                 virial_overdensity=200., must_be_virialized=True,
+                 virial_filters=[['TotalMassMsun', '>=','1e14']],
+                 virial_quantities=['TotalMassMsun', 'RadiusMpc'],
                  virial_index=None):
     """
     Filter halos by virial quantities.
@@ -49,9 +49,7 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
             fields.append(vfilter[0])
     
     overDensity = []
-    temp_profile = {}
-    for field in fields:
-        temp_profile[field] = []
+    temp_profile = dict((field, []) for field in fields)
 
     for q in range(len(profile[overdensity_field])):
         good = True
@@ -67,9 +65,7 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
             for field in fields:
                 temp_profile[field].append(profile[field][q])
 
-    virial = {}
-    for field in fields:
-        virial[field] = 0.0
+    virial = dict((field, 0.0) for field in fields)
 
     if (not (na.array(overDensity) >= virial_overdensity).any()) and \
             must_be_virialized:
@@ -106,11 +102,14 @@ def VirialFilter(profile,overdensity_field='ActualOverdensity',
 
     for vfilter in virial_filters:
         if eval("%s %s %s" % (virial[vfilter[0]],vfilter[1],vfilter[2])):
-            mylog.debug("(%s %s %s) returned True for %s." % (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
+            mylog.debug("(%s %s %s) returned True for %s." % \
+                            (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
             continue
         else:
-            mylog.debug("(%s %s %s) returned False for %s." % (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
+            mylog.debug("(%s %s %s) returned False for %s." % \
+                            (vfilter[0],vfilter[1],vfilter[2],virial[vfilter[0]]))
             return [False, {}]
 
-    return [True, dict((q,virial[q]) for q in virial_quantities)]
+    return [True, dict((("%s_%s" % (q, virial_overdensity)), virial[q])
+                       for q in virial_quantities)]
 
