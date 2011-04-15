@@ -310,6 +310,7 @@ get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
+get_enzotools PhiloGL-1.1.0.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -554,6 +555,15 @@ then
     ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
     ln -sf ext-slate-110328 ext-theme
     touch ext-slate-110328/done
+fi
+
+# Now we open up PhiloGL
+if [ ! -e PhiloGL-1.1.0/done ]
+then
+    ( unzip -o PhiloGL-1.1.0.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking PhiloGL-1.1.0 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf PhiloGL-1.1.0 PhiloGL
+    touch PhiloGL-1.1.0/done
 fi
 
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
