@@ -155,18 +155,21 @@ def _combTotalMass(data, baryon_mass, particle_mass):
 add_quantity("TotalMass", function=_TotalMass,
              combine_function=_combTotalMass, n_ret = 2)
 
-def _CenterOfMass(data,use_particles=False):
+def _CenterOfMass(data, use_cells=True, use_particles=False):
     """
     This function returns the location of the center
     of mass. By default, it computes of the *non-particle* data in the object. 
 
-    :param use_particles: if True, will compute center of mass for
-    *all data* in the object (default: False)
+    :param use_cells: if True, will include the cell mass (default: True)
+    :param use_particles: if True, will include the particles in the 
+    object (default: False)
     """
-    x = (data["x"] * data["CellMassMsun"]).sum()
-    y = (data["y"] * data["CellMassMsun"]).sum()
-    z = (data["z"] * data["CellMassMsun"]).sum()
-    den = data["CellMassMsun"].sum()
+    x = y = z = den = 0
+    if use_cells: 
+        x += (data["x"] * data["CellMassMsun"]).sum()
+        y += (data["y"] * data["CellMassMsun"]).sum()
+        z += (data["z"] * data["CellMassMsun"]).sum()
+        den += data["CellMassMsun"].sum()
     if use_particles:
         x += (data["particle_position_x"] * data["ParticleMassMsun"]).sum()
         y += (data["particle_position_y"] * data["ParticleMassMsun"]).sum()
