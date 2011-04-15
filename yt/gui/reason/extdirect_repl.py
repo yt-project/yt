@@ -407,7 +407,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         payload = {'type': 'widget',
                    'widget_type': 'grid_viewer',
                    'varname': varname, # Is just "None"
-                   'data': dict(n_vertices = len(vertices)/6,
+                   'data': dict(n_vertices = len(vertices)/3,
                                 vertex_positions = vertices)
                   }
         self.execute("%s = None\n" % (varname), hide=True)
