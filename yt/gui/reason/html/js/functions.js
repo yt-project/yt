@@ -160,6 +160,15 @@ function new_cell(input, result) {
     return CellPanel;
 }
 
+function getGridViewerHandler(node){
+function gridViewerHandler(item, pressed){
+    yt_rpc.ExtDirectREPL.create_grid_viewer(
+        {pfname:node.attributes.objdata.varname},
+        handle_result);
+}
+return gridViewerHandler;
+}
+
 function getSliceHandler(node){
 function sliceHandler(item,pressed){
     var win = new Ext.Window({

@@ -99,6 +99,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # First we do the standard initialization
         self.extjs_path = os.path.join(base_extjs_path, "ext-resources")
         self.extjs_theme_path = os.path.join(base_extjs_path, "ext-theme")
+        self.philogl_path = os.path.join(base_extjs_path, "PhiloGL")
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
         # since they have different arguments, and most of all because we only
@@ -109,6 +110,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               _help_html = ("/help.html", "GET"),
                               _myapi = ("/resources/ext-repl-api.js", "GET"),
                               _resources = ("/resources/:path#.+#", "GET"),
+                              _philogl = ("/philogl/:path#.+#", "GET"),
                               _js = ("/js/:path#.+#", "GET"),
                               _images = ("/images/:path#.+#", "GET"),
                               _theme = ("/theme/:path#.+#", "GET"),
@@ -128,7 +130,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute("from yt.mods import *")
         self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
         self.locals['load_script'] = ext_load_script
-        self.locals['_widgets'] = {}
         self._setup_logging_handlers()
 
         # Setup our heartbeat
@@ -180,6 +181,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def _resources(self, path):
         pp = os.path.join(self.extjs_path, path)
+        if not os.path.exists(pp):
+            response.status = 404
+            return
+        return open(pp).read()
+
+    def _philogl(self, path):
+        pp = os.path.join(self.philogl_path, path)
         if not os.path.exists(pp):
             response.status = 404
             return
@@ -375,7 +383,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def create_grid_viewer(self, pfname):
-        pf = self.locals[pfname]
+        funccall = """
+        _tpf = %(pfname)s
+        """ % dict(pfname = pfname)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = True)
+        pf = self.locals['_tpf']
         corners = pf.h.grid_corners
         vertices = []
 
@@ -389,7 +402,16 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                 ci = trans[c]
                 vertices.append(corners[ci,:,g])
         vertices = na.concatenate(vertices).tolist()
-        return {'vertices': vertices}
+        uu = str(uuid.uuid1()).replace("-","_")
+        varname = "gv_%s" % (uu)
+        payload = {'type': 'widget',
+                   'widget_type': 'grid_viewer',
+                   'varname': varname, # Is just "None"
+                   'data': dict(n_vertices = len(vertices),
+                                vertex_positions = vertices)
+                  }
+        self.execute("%s = None\n" % (varname), hide=True)
+        self.payload_handler.add_payload(payload)
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

@@ -178,6 +178,9 @@ var handle_result = function(f, a) {
                         var rightClickMenu = new Ext.menu.Menu({
                             items: [
                                 {
+                                    text: 'View Grids',
+                                    handler: getGridViewerHandler(node),
+                                }, {
                                     text: 'Open slice',
                                     handler: getSliceHandler(node),
                                 }, {

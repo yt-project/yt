@@ -75,6 +75,7 @@
     <!-- LIBS -->
     <script type="text/javascript" src="resources/adapter/ext/ext-base.js"></script>
     <script type="text/javascript" src="resources/ext-all.js"></script>
+    <script type="text/javascript" src="philogl/build/PhiloGL.js"></script>
 
     <!-- INTERACTIVE -->
     <script type="text/javascript" src="resources/ext-repl-api.js"></script>
@@ -91,6 +92,30 @@
 
     <!-- THE PLOT WINDOW FUNCTIONS -->
     <script type="text/javascript" src="js/widget_plotwindow.js"></script>
+
+    <!-- THE GRID VIEWER FUNCTIONS -->
+    <script type="text/javascript" src="js/widget_gridviewer.js"></script>
+    <script id="gv-shader-fs" type="x-shader/x-fragment">
+      #ifdef GL_ES
+      precision highp float;
+      #endif
+
+      void main(void) {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+      }
+    </script>
+
+    <script id="gv-shader-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+
+      void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
 </head>
 <body>
     <!-- use class="x-hide-display" to prevent a brief flicker of the content -->
