@@ -42,65 +42,87 @@ def add_function(name):
 
 @add_function("Min_Dark_Matter_Density")
 def find_minimum_dm_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('Dark_Matter_Density')
+    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('Dark_Matter_Density',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("Max_Dark_Matter_Density")
 def find_maximum_dm_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Dark_Matter_Density')
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Dark_Matter_Density',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("CoM_Dark_Matter_Density")
 def find_CoM_dm_density(data):
    dc_x, dc_y, dc_z = data.quantities['CenterOfMass'](use_cells=False, 
-                                                      use_particles=True)
+                                                      use_particles=True,
+                                                      lazy_reader=False,
+                                                      preload=False)
    return (dc_x, dc_y, dc_z)
 
 #### Gas Density ####
 
 @add_function("Min_Gas_Density")
 def find_minimum_gas_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('Density')
+    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('Density',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("Max_Gas_Density")
 def find_maximum_gas_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Density')
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Density',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("CoM_Gas_Density")
 def find_CoM_gas_density(data):
    dc_x, dc_y, dc_z = data.quantities['CenterOfMass'](use_cells=True, 
-                                                      use_particles=False)
+                                                      use_particles=False,
+                                                      lazy_reader=False,
+                                                      preload=False)
    return (dc_x, dc_y, dc_z)
 
 #### Total Density ####
 
 @add_function("Min_Total_Density")
 def find_minimum_total_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('Matter_Density')
+    ma, maxi, mx, my, mz, mg = data.quantities['MinLocation']('Matter_Density',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("Max_Total_Density")
 def find_maximum_total_density(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Matter_Density')
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Matter_Density',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("CoM_Total_Density")
 def find_CoM_total_density(data):
    dc_x, dc_y, dc_z = data.quantities['CenterOfMass'](use_cells=True, 
-                                                      use_particles=True)
+                                                      use_particles=True,
+                                                      lazy_reader=False,
+                                                      preload=False)
    return (dc_x, dc_y, dc_z)
 
 #### Temperature ####
 
 @add_function("Min_Temperature")
 def find_minimum_temperature(data):
-    ma, mini, mx, my, mz, mg = data.quantities['MinLocation']('Temperature')
+    ma, mini, mx, my, mz, mg = data.quantities['MinLocation']('Temperature',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
 @add_function("Max_Temperature")
 def find_maximum_temperature(data):
-    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Temperature')
+    ma, maxi, mx, my, mz, mg = data.quantities['MaxLocation']('Temperature',
+                                                              lazy_reader=False,
+                                                              preload=False)
     return (mx, my, mz)
 
