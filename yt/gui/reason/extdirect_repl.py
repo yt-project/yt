@@ -305,24 +305,31 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def create_proj(self, pfname, axis, field, weight, onmax):
         if weight == "None": weight = None
         else: weight = "'%s'" % (weight)
+        if not onmax:
+            center_string = None
+        else:
+            center_string = "_tpf.h.find_max('Density')[1]"
         funccall = """
         _tpf = %(pfname)s
         _taxis = %(axis)s
         _tfield = "%(field)s"
         _tweight = %(weight)s
-        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight)
+        _tcen = %(center_string)s
+        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight, periodic = True, center=_tcen)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        _twidget_data = {'fields': list(set(_tpf.h.field_list +
-                                        _tpf.h.derived_field_list)),
+        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
+        _tfield_list.sort()
+        _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
+                   center_string = center_string,
                    field=field)
         # There is a call to do this, but I have forgotten it ...
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
@@ -345,14 +352,14 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tfield = "%(field)s"
         _tcenter = %(center_string)s
         _tcoord = _tcenter[_taxis]
-        _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter)
+        _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter, periodic = True)
         _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
         _tpw.set_log(_tfield, True)
-        _tfield_list = _tpf.h.field_list + _tpf.h.derived_field_list
+        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield}
