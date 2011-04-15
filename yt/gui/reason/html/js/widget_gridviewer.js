@@ -103,8 +103,9 @@ var WidgetGridViewer = function(python_varname, widget_data) {
                 updateBasedOnOffset(c, off);
                 c.update();
                 } else if (e.event.button = 2){ // Right click - transpose
-                var move_up = c.up.scale(-(e.y-this.curY)/200.);
-                var move_over = horiz.scale(-(e.x-this.curX)/200.);
+		    var tscale = 1.0*off.norm()/512.;
+		    var move_up = c.up.scale(-(e.y-this.curY)*tscale);
+		    var move_over = horiz.scale(-(e.x-this.curX)*tscale);
                 c.position.$add(move_up);
                 c.position.$add(move_over);
                 c.target.$add(move_up);
