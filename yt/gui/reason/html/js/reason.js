@@ -321,6 +321,7 @@ var handle_result = function(f, a) {
     heartbeat = {
     run:
       function(){ if (heartbeat_request == true) return; 
+        heartbeat_request = true;
         yt_rpc.ExtDirectREPL.heartbeat(
             {}, function(f, a) {
             heartbeat_request = false;

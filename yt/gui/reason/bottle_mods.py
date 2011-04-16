@@ -53,6 +53,7 @@ class PayloadHandler(object):
     recorded_payloads = None
     lock = None
     record = False
+    event = None
     count = 0
 
 
@@ -65,6 +66,7 @@ class PayloadHandler(object):
         if self.payloads is None: self.payloads = []
         if self.lock is None: self.lock = threading.Lock()
         if self.recorded_payloads is None: self.recorded_payloads = []
+        if self.event is None: self.event = threading.Event()
 
     def deliver_payloads(self):
         with self.lock:
@@ -73,12 +75,14 @@ class PayloadHandler(object):
             if self.record:
                 self.recorded_payloads += self.payloads
             self.payloads = []
+            self.event.clear()
         return payloads
 
     def add_payload(self, to_add):
         with self.lock:
             self.payloads.append(to_add)
             self.count += 1
+            self.event.set()
 
     def replay_payloads(self):
         return self.recorded_payloads

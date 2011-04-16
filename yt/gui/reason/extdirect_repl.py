@@ -151,7 +151,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
-        return self.payload_handler.deliver_payloads()
+        if self.payload_handler.event.wait(30):
+            return self.payload_handler.deliver_payloads()
+        return []
 
     def _check_heartbeat(self):
         if self.server is not None:
@@ -172,6 +174,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         if self.server is None:
             return
         self._heartbeat_timer.cancel()
+        self.payload_handler.event.set()
         for v in self.server.values():
             v.stop()
 
