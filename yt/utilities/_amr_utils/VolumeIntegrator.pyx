@@ -69,9 +69,16 @@ cdef struct Triangle:
     Triangle *next
     np.float64_t p[3]
 
-cdef void AddTriangle(Triangle *self, np.float64_t *p):
+cdef Triangle *AddTriangle(Triangle *self,
+                    np.float64_t p0, np.float64_t p1, np.float64_t p2):
     cdef Triangle *nn = <Triangle *> malloc(sizeof(Triangle))
-    self.next = nn
+    if self != NULL:
+        self.next = nn
+    nn.p[0] = p0
+    nn.p[1] = p1
+    nn.p[2] = p2
+    nn.next = NULL
+    return nn
 
 cdef int CountTriangles(Triangle *first):
     cdef int count = 0
@@ -104,6 +111,7 @@ cdef extern from "FixedInterpolator.h":
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
     void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
+    np.float64_t vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue)
 
 cdef extern int *edge_table
 cdef extern int **tri_table
@@ -817,29 +825,91 @@ cdef class PartitionedGrid:
     def get_isocontour_triangles(self, np.float64_t isovalue, int field_id = 0):
         # Much of this was inspired by code from Paul Bourke's website:
         # http://paulbourke.net/geometry/polygonise/
-        cdef int i, j, k
+        cdef int i, j, k, n
         cdef int offset
-        cdef np.float64_t gridval[8]
+        cdef np.float64_t gv[8]
         cdef int cubeindex
         cdef np.float64_t vertlist[12]
-        cdef int ntriang
+        cdef int ntriang = 0
+        cdef np.float64_t *intdata = NULL
+        cdef np.float64_t x, y, z
+        cdef np.float64_t mu
+        cdef Triangle *first = NULL
+        cdef Triangle *current = NULL
+        x = self.left_edge[0]
         for i in range(self.dims[0]):
+            x += self.dds[0]
+            y = self.left_edge[1]
             for j in range(self.dims[1]):
+                y += self.dds[1]
+                z = self.left_edge[2]
                 for k in range(self.dims[2]):
+                    z += self.dds[2]
                     offset = i * (self.dims[1] + 1) * (self.dims[2] + 1) \
                            + j * (self.dims[2] + 1) + k
-                    offset_fill(self.dims, self.data[field_id] + offset,
-                                gridval)
+                    intdata = self.data[field_id] + offset
+                    offset_fill(self.dims, intdata, gv)
                     cubeindex = 0
-                    if gridval[0] < isovalue: cubeindex |= 1
-                    if gridval[1] < isovalue: cubeindex |= 2
-                    if gridval[2] < isovalue: cubeindex |= 4
-                    if gridval[3] < isovalue: cubeindex |= 8
-                    if gridval[4] < isovalue: cubeindex |= 16
-                    if gridval[5] < isovalue: cubeindex |= 32
-                    if gridval[6] < isovalue: cubeindex |= 64
-                    if gridval[7] < isovalue: cubeindex |= 128
+                    if gv[0] < isovalue: cubeindex |= 1
+                    if gv[1] < isovalue: cubeindex |= 2
+                    if gv[2] < isovalue: cubeindex |= 4
+                    if gv[3] < isovalue: cubeindex |= 8
+                    if gv[4] < isovalue: cubeindex |= 16
+                    if gv[5] < isovalue: cubeindex |= 32
+                    if gv[6] < isovalue: cubeindex |= 64
+                    if gv[7] < isovalue: cubeindex |= 128
                     if edge_table[cubeindex] == 0: continue
+                    if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
+                        mu = vertex_interp(gv[0], gv[1], isovalue)
+                        vertlist[0] = x + mu * self.dds[0]
+                    if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
+                        mu = vertex_interp(gv[1], gv[2], isovalue)
+                        vertlist[1] = y + mu * self.dds[1]
+                    if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
+                        mu = vertex_interp(gv[2], gv[3], isovalue)
+                        vertlist[2] = x + (1.0 - mu) * self.dds[0]
+                    if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
+                        mu = vertex_interp(gv[3], gv[0], isovalue)
+                        vertlist[3] = y + (1.0 - mu) * self.dds[1]
+                    if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
+                        mu = vertex_interp(gv[4], gv[5], isovalue)
+                        vertlist[4] = x + mu * self.dds[0]
+                    if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
+                        mu = vertex_interp(gv[5], gv[6], isovalue)
+                        vertlist[5] = y + mu * self.dds[1]
+                    if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
+                        mu = vertex_interp(gv[6], gv[7], isovalue)
+                        vertlist[6] = x + (1.0 - mu) * self.dds[0]
+                    if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
+                        mu = vertex_interp(gv[7], gv[4], isovalue)
+                        vertlist[7] = y + (1.0 - mu) * self.dds[1]
+                    if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
+                        mu = vertex_interp(gv[0], gv[4], isovalue)
+                        vertlist[8] = z + mu * self.dds[2]
+                    if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
+                        mu = vertex_interp(gv[1], gv[5], isovalue)
+                        vertlist[9] = z + mu * self.dds[2]
+                    if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
+                        mu = vertex_interp(gv[2], gv[6], isovalue)
+                        vertlist[10] = z + (1.0 - mu) * self.dds[2]
+                    if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
+                        mu = vertex_interp(gv[3], gv[7], isovalue)
+                        vertlist[11] = z + mu * self.dds[2]
+                    n = 0
+                    while 1:
+                        current = AddTriangle(current, 
+                                    vertlist[tri_table[cubeindex][n  ]],
+                                    vertlist[tri_table[cubeindex][n+1]],
+                                    vertlist[tri_table[cubeindex][n+2]])
+                        ntriang += 1
+                        if first == NULL: first = current
+                        n += 3
+                        if tri_table[cubeindex][n] == -1: break
+        # Hallo, we are all done.
+        cdef np.ndarray[np.float64_t, ndim=2] vertices 
+        vertices = np.zeros((ntriang,3), dtype='float64')
+        FillAndWipeTriangles(vertices, first)
+        return vertices
 
 cdef class GridFace:
     cdef int direction

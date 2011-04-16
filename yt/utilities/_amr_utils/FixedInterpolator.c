@@ -73,13 +73,21 @@ npy_float64 offset_interpolate(int ds[3], npy_float64 dp[3], npy_float64 *data)
 void offset_fill(int ds[3], npy_float64 *data, npy_float64 gridval[8])
 {
     gridval[0] = OINDEX(0,0,0);
-    gridval[1] = OINDEX(0,0,1);
-    gridval[2] = OINDEX(0,1,0);
-    gridval[3] = OINDEX(0,1,1);
-    gridval[4] = OINDEX(1,0,0);
-    gridval[5] = OINDEX(1,1,0);
-    gridval[6] = OINDEX(1,0,1);
-    gridval[7] = OINDEX(1,1,1);
+    gridval[1] = OINDEX(1,0,0);
+    gridval[2] = OINDEX(1,1,0);
+    gridval[3] = OINDEX(0,1,0);
+    gridval[4] = OINDEX(0,0,1);
+    gridval[5] = OINDEX(1,0,1);
+    gridval[6] = OINDEX(1,1,1);
+    gridval[7] = OINDEX(0,1,1);
+}
+
+npy_float64 vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue)
+{
+    if (fabs(isovalue - v1) < 0.000001) return 0.0;
+    if (fabs(isovalue - v2) < 0.000001) return 1.0;
+    if (fabs(v1 - v2) < 0.000001) return 0.0;
+    return (isovalue - v1) / (v2 - v1);
 }
 
 npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
