@@ -65,6 +65,36 @@ cdef extern from "math.h":
     long int lrint(double x)
     double fabs(double x)
 
+cdef struct Triangle:
+    Triangle *next
+    np.float64_t p[3]
+
+cdef void AddTriangle(Triangle *self, np.float64_t *p):
+    cdef Triangle *nn = <Triangle *> malloc(sizeof(Triangle))
+    self.next = nn
+
+cdef int CountTriangles(Triangle *first):
+    cdef int count = 0
+    cdef Triangle *this = first
+    while this != NULL:
+        count += 1
+        this = this.next
+    return count
+
+cdef void FillAndWipeTriangles(np.ndarray[np.float64_t, ndim=2] vertices,
+                               Triangle *first):
+    cdef int count = 0
+    cdef Triangle *this = first
+    cdef Triangle *last
+    cdef int i = 0
+    while this != NULL:
+        for i in range(3):
+            vertices[count, i] = this.p[i]
+        count += 1 # Do it at the end because it's an index
+        last = this
+        this = this.next
+        free(last)
+
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                   np.float64_t *data)
@@ -73,6 +103,10 @@ cdef extern from "FixedInterpolator.h":
                                        np.float64_t *data)
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
+    void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
+
+cdef extern int *edge_table
+cdef extern int **tri_table
 
 def hp_pix2vec_nest(long nside, long ipix):
     cdef double v[3]
@@ -776,6 +810,36 @@ cdef class PartitionedGrid:
         if vel_mag != 0.0:
             for i in range(3):
                 vel[i] /= vel_mag
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def get_isocontour_triangles(self, np.float64_t isovalue, int field_id = 0):
+        # Much of this was inspired by code from Paul Bourke's website:
+        # http://paulbourke.net/geometry/polygonise/
+        cdef int i, j, k
+        cdef int offset
+        cdef np.float64_t gridval[8]
+        cdef int cubeindex
+        cdef np.float64_t vertlist[12]
+        cdef int ntriang
+        for i in range(self.dims[0]):
+            for j in range(self.dims[1]):
+                for k in range(self.dims[2]):
+                    offset = i * (self.dims[1] + 1) * (self.dims[2] + 1) \
+                           + j * (self.dims[2] + 1) + k
+                    offset_fill(self.dims, self.data[field_id] + offset,
+                                gridval)
+                    cubeindex = 0
+                    if gridval[0] < isovalue: cubeindex |= 1
+                    if gridval[1] < isovalue: cubeindex |= 2
+                    if gridval[2] < isovalue: cubeindex |= 4
+                    if gridval[3] < isovalue: cubeindex |= 8
+                    if gridval[4] < isovalue: cubeindex |= 16
+                    if gridval[5] < isovalue: cubeindex |= 32
+                    if gridval[6] < isovalue: cubeindex |= 64
+                    if gridval[7] < isovalue: cubeindex |= 128
+                    if edge_table[cubeindex] == 0: continue
 
 cdef class GridFace:
     cdef int direction
