@@ -96,24 +96,30 @@
     <!-- THE GRID VIEWER FUNCTIONS -->
     <script type="text/javascript" src="js/widget_gridviewer.js"></script>
     <script id="gv-shader-fs" type="x-shader/x-fragment">
-      #ifdef GL_ES
-      precision highp float;
-      #endif
+    #ifdef GL_ES
+    precision highp float;
+    #endif
 
-      void main(void) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-      }
+    varying vec4 vColor;
+
+    void main(void) {
+      gl_FragColor = vColor;
+    }
     </script>
 
     <script id="gv-shader-vs" type="x-shader/x-vertex">
-      attribute vec3 aVertexPosition;
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
 
-      uniform mat4 uMVMatrix;
-      uniform mat4 uPMatrix;
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
 
-      void main(void) {
-        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-      }
+    varying vec4 vColor;
+
+    void main(void) {
+      gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+      vColor = aVertexColor;
+    }
     </script>
 
 </head>

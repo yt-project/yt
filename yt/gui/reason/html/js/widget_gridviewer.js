@@ -134,36 +134,43 @@ var WidgetGridViewer = function(python_varname, widget_data) {
                 program = app.program,
                 scene = app.scene,
                 camera = app.camera;
-    
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.clearColor(0, 0, 0, 1);
-            gl.clearDepth(1);
-            gl.enable(gl.DEPTH_TEST);
-            gl.depthFunc(gl.LEQUAL);
 
-            program.setBuffers({
-                'shapeset': {
-                    attribute: 'aVertexPosition',
+	    gl.viewport(0, 0, canvas.width, canvas.height);
+	    gl.clearColor(0, 0, 0, 1);
+	    gl.clearDepth(1);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            gl.enable(gl.BLEND);
+            gl.disable(gl.DEPTH_TEST);
+            program.setUniform('alpha',0.8);
+	    gl.depthFunc(gl.LEQUAL);
+
+	    program.setBuffers({
+	    	'shapeset': {
+	    	    attribute: 'aVertexPosition',
                     value: new Float32Array(widget_data['vertex_positions']),
-                    size: 3
-                    },
-    
-                    });
-            camera.modelView.id();
-	    camera.update()
+	    	    size: 3
+	    	},
+	    	'shapesetColors': {
+	    	    attribute: 'aVertexColor',
+                    value: new Float32Array(widget_data['vertex_colors']),
+	    	    size: 4
+	    	},
+		
+	    });
 
+	    camera.modelView.id();
+	    camera.update()
 	    setInterval(draw, 100/60);
-            //Draw the scene
-            function draw() {
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                //Draw Triangle
-                program.setUniform('uMVMatrix', camera.modelView);
-                program.setUniform('uPMatrix', camera.projection);
-                program.setBuffer('triangle');
+	    //Draw the scene
+	    function draw() {
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		program.setUniform('uMVMatrix', camera.modelView);
+		program.setUniform('uPMatrix', camera.projection);
+		program.setBuffer('shapeset');
+		program.setBuffer('shapesetColors');
                 gl.drawArrays(gl.LINES, 0, widget_data['n_vertices']);        
-                examine = camera
-                }
-            }
+	    }
+	    }
         });  
     }        
 

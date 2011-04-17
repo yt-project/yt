@@ -38,6 +38,7 @@ import pprint
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
 from yt.utilities.definitions import inv_axis_names
+from yt.visualization.image_writer import apply_colormap
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
@@ -393,8 +394,15 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute(funccall, hide = True)
         pf = self.locals['_tpf']
         corners = pf.h.grid_corners
+        levels = pf.h.grid_levels
+        colors = apply_colormap(levels*1.0,
+                                color_bounds=[0,pf.h.max_level],
+                                cmap_name="algae").repeat(24,axis=0)[:,0,:]*1.0/255.
+        colors[:,3]=0.7
+        colors = colors.ravel().tolist()
+        
         vertices = []
-
+        
         trans  = [0, 1, 2, 7, 5, 6, 3, 4]
         order  = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]
@@ -411,8 +419,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    'widget_type': 'grid_viewer',
                    'varname': varname, # Is just "None"
                    'data': dict(n_vertices = len(vertices)/3,
-                                vertex_positions = vertices)
-                  }
+                                vertex_positions = vertices,
+                                vertex_colors = colors)
+                   }
         self.execute("%s = None\n" % (varname), hide=True)
         self.payload_handler.add_payload(payload)
 
