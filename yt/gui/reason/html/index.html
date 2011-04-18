@@ -122,6 +122,36 @@
     }
     </script>
 
+    <!-- THE STREAMLINE VIEWER FUNCTIONS -->
+    <script type="text/javascript" src="js/widget_streamlineviewer.js"></script>
+    <script id="sl-shader-fs" type="x-shader/x-fragment">
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+
+    varying vec4 vColor;
+
+    void main(void) {
+      gl_FragColor = vColor;
+    }
+    </script>
+
+    <script id="sl-shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec4 vColor;
+
+    void main(void) {
+      gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+      vColor = aVertexColor;
+    }
+    </script>
+
+
 </head>
 <body>
     <!-- use class="x-hide-display" to prevent a brief flicker of the content -->

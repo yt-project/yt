@@ -169,6 +169,15 @@ function gridViewerHandler(item, pressed){
 return gridViewerHandler;
 }
 
+function getStreamlineViewerHandler(node){
+function streamlineViewerHandler(item, pressed){
+    yt_rpc.ExtDirectREPL.create_streamline_viewer(
+        {pfname:node.attributes.objdata.varname},
+        handle_result);
+}
+return streamlineViewerHandler;
+}
+
 function getSliceHandler(node){
 function sliceHandler(item,pressed){
     var win = new Ext.Window({

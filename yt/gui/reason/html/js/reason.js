@@ -186,6 +186,9 @@ var handle_result = function(f, a) {
                                 }, {
                                     text: 'Open projection',
                                     handler: getProjectionHandler(node),
+                                }, {
+                                    text: 'View Streamlines',
+                                    handler: getStreamlineViewerHandler(node),
                                 }
                             ]
                         });

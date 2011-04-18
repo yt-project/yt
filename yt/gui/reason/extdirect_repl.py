@@ -425,6 +425,47 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute("%s = None\n" % (varname), hide=True)
         self.payload_handler.add_payload(payload)
 
+    @lockit
+    def create_streamline_viewer(self, pfname):
+        funccall = """
+        _tpf = %(pfname)s
+        """ % dict(pfname = pfname)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = True)
+        pf = self.locals['_tpf']
+
+        c = na.array([0.5]*3)
+        N = 1000
+        scale = 1.0
+        pos_dx = na.random.random((N,3))*scale-scale/2.
+        pos = c+pos_dx
+        
+        SL = Streamlines(pf,pos,'x-velocity', 'y-velocity', 'z-velocity', length=1.0)
+        SL.integrate_through_volume()
+        streamlist=[]
+        stream_lengths = []
+        for i,stream in enumerate(SL.streamlines):
+            stream_lengths.append( stream[na.all(stream != 0.0, axis=1)].shape[0])
+        streamlist = SL.streamlines.flatten()
+        streamlist = streamlist[streamlist!=0.0].tolist()
+        stream_colors = apply_colormap(na.array(streamlist)[::3]*1., cmap_name='algae', color_bounds=[0.,1.])
+        stream_colors = stream_colors*1./255.
+        stream_colors[:,:,3] = 0.8
+        stream_colors = stream_colors.flatten().tolist()
+
+        uu = str(uuid.uuid1()).replace("-","_")
+        varname = "sl_%s" % (uu)
+        payload = {'type': 'widget',
+                   'widget_type': 'streamline_viewer',
+                   'varname': varname, # Is just "None"
+                   'data': dict(n_streamlines = SL.streamlines.shape[0],
+                                stream_positions = streamlist,
+                                stream_colors = stream_colors,
+                                stream_lengths = stream_lengths)
+                   }
+        self.execute("%s = None\n" % (varname), hide=True)
+        self.payload_handler.add_payload(payload)
+
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"
     api_url = "pflist"
