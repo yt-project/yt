@@ -82,6 +82,13 @@ function host_specific
     then
         echo "Looks like you're on Kraken."
         echo
+        echo " ******************************************"
+        echo " * It may be better to use the yt module! *"
+        echo " *                                        *"
+        echo " *   $ module load yt                     *"
+        echo " *                                        *"
+        echo " ******************************************"
+        echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
@@ -90,6 +97,13 @@ function host_specific
     if [ "${MYHOST##nautilus}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Nautilus."
+        echo
+        echo " ******************************************"
+        echo " * It may be better to use the yt module! *"
+        echo " *                                        *"
+        echo " *   $ module load yt                     *"
+        echo " *                                        *"
+        echo " ******************************************"
         echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PE-intel PE-gnu"
@@ -291,11 +305,12 @@ get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
 get_enzotools mercurial-1.8.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
-get_enzotools h5py-1.2.0.tar.gz
+get_enzotools h5py-1.3.1.tar.gz
 get_enzotools Cython-0.14.tar.gz
 get_enzotools Forthon-0.8.4.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
+get_enzotools PhiloGL-1.1.0.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -498,7 +513,7 @@ fi
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
-do_setup_py h5py-1.2.0
+do_setup_py h5py-1.3.1
 do_setup_py Cython-0.14
 [ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.4
 
@@ -540,6 +555,15 @@ then
     ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
     ln -sf ext-slate-110328 ext-theme
     touch ext-slate-110328/done
+fi
+
+# Now we open up PhiloGL
+if [ ! -e PhiloGL-1.1.0/done ]
+then
+    ( unzip -o PhiloGL-1.1.0.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking PhiloGL-1.1.0 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf PhiloGL-1.1.0 PhiloGL
+    touch PhiloGL-1.1.0/done
 fi
 
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
