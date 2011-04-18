@@ -39,6 +39,7 @@ from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
 from yt.utilities.definitions import inv_axis_names
 from yt.visualization.image_writer import apply_colormap
+from yt.visualization.api import Streamlines
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
@@ -435,7 +436,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         pf = self.locals['_tpf']
 
         c = na.array([0.5]*3)
-        N = 1000
+        N = 100
         scale = 1.0
         pos_dx = na.random.random((N,3))*scale-scale/2.
         pos = c+pos_dx
