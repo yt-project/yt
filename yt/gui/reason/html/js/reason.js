@@ -66,7 +66,7 @@ var handle_result = function(f, a) {
             listeners: {
                 specialkey: function(f, e){
                     if (e.getKey() == e.ENTER) {
-                        cell_sent();
+                        disable_input();
                         yt_rpc.ExtDirectREPL.execute({
                             code:repl_input.get('input_line').getValue()},
                         handle_result);
@@ -287,7 +287,10 @@ var handle_result = function(f, a) {
         });
 
 // get a reference to the HTML element with id "hideit" and add a click listener to it 
-    console.log('Mitchell!\nPardon me! Mitchell!')
+    if (typeof(console) != "undefined") {
+        console.log('Mitchell!\nPardon me! Mitchell!');
+    }
+
     Ext.get("hideit").on('click', function(){
 // get a reference to the Panel that was created with id = 'west-panel' 
 	    var w = Ext.getCmp('west-panel');
