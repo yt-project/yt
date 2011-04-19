@@ -33,6 +33,7 @@ from yt.utilities.amr_utils import write_png_to_file
 from fixed_resolution import \
     FixedResolutionBuffer
 import matplotlib.pyplot
+from .plot_modifications import get_smallest_appropriate_unit
 
 def invalidate_data(f):
     def newfunc(*args, **kwargs):
@@ -300,6 +301,12 @@ class PWViewerRaw(PWViewer):
             print "writing %s" % nm
             write_image(self._frb[field],nm)
 
+_metadata_template = """
+X Field of View     %(x_width)0.3f %(unit)s
+Y Field of View     %(y_width)0.3f %(unit)s
+Extrema             %(mi)0.3e - %(ma)0.3e
+"""
+
 class PWViewerExtJS(PWViewer):
     """A viewer for the web interface.
 
@@ -321,13 +328,24 @@ class PWViewerExtJS(PWViewer):
             addl_keys = {}
         for field in fields:
             tf = tempfile.TemporaryFile()
-            to_plot = apply_colormap(self._frb[field],func = self._field_transform[field])
+            fval = self._frb[field]
+            to_plot = apply_colormap(fval, func = self._field_transform[field])
             write_png_to_file(to_plot, tf)
             tf.seek(0)
             img_data = base64.b64encode(tf.read())
             tf.close()
+            mi = fval.min()
+            ma = fval.max()
+            x_width = self.xlim[1] - self.xlim[0]
+            y_width = self.ylim[1] - self.ylim[0]
+            unit = get_smallest_appropriate_unit(x_width, self._frb.pf)
+            md = _metadata_template % dict(
+                    x_width = x_width*self._frb.pf[unit],
+                    y_width = y_width*self._frb.pf[unit],
+                    unit = unit, mi = mi, ma = ma)
             payload = {'type':'png_string',
-                       'image_data':img_data}
+                       'image_data':img_data,
+                       'metadata_string': md}
             payload.update(addl_keys)
             ph.add_payload(payload)
 
