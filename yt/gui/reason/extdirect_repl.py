@@ -96,6 +96,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     my_name = "ExtDirectREPL"
     timeout = 660 # a minute longer than the rocket server timeout
     server = None
+    stopped = False
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
@@ -153,8 +154,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
-        if self.payload_handler.event.wait(30):
-            return self.payload_handler.deliver_payloads()
+        for i in range(30): # The total time to wait
+            # Check for stop
+            if self.stopped: return # No race condition
+            if self.payload_handler.event.wait(1): # One second timeout
+                return self.payload_handler.deliver_payloads()
         return []
 
     def _check_heartbeat(self):
@@ -176,9 +180,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         if self.server is None:
             return
         self._heartbeat_timer.cancel()
+        self.stopped = True
         self.payload_handler.event.set()
         for v in self.server.values():
             v.stop()
+        for t in threading.enumerate():
+            print "Found a living thread:", t
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()
@@ -335,7 +342,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
-        _tpw.set_log(_tfield, True)
+        _tpw._field_transform["%(field)s"] = na.log
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
@@ -525,4 +532,32 @@ def _favicon_ico():
     response.headers['Content-Type'] = "image/x-icon"
     return open(ico).read()
 
+class ExtProgressBar(object):
+    def __init__(self, title, maxval):
+        self.title = title
+        self.maxval = maxval
+        self.last = 0
+        # Now we add a payload for the progress bar
+        self.payload_handler = PayloadHandler()
+        self.payload_handler.add_payload(
+            {'type': 'widget',
+             'widget_type': 'progressbar',
+             'varname': None,
+             'data': {'title':title}
+            })
 
+    def update(self, val):
+        # An update is only meaningful if it's on the order of 1/100 or greater
+        if ceil(100*self.last / self.maxval) + 1 == \
+           floor(100*val / self.maxval) or val == self.maxval:
+            self.last = val
+            self.payload_handler.add_payload(
+                {'type': 'widget_payload',
+                 'widget_id': 'pbar_top',
+                 'value': float(val) / self.maxval})
+
+    def finish(self):
+        self.payload_handler.add_payload(
+            {'type': 'widget_payload',
+             'widget_id': 'pbar_top',
+             'value': -1})
