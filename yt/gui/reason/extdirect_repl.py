@@ -341,7 +341,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
         _tpw._current_field = _tfield
-        _tpw.set_log(_tfield, True)
+        _tpw._field_transform["%(field)s"] = na.log
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
