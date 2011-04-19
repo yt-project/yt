@@ -953,7 +953,10 @@ class YTCommands(cmdln.Cmdln):
         hr = ExtDirectREPL(base_extjs_path)
         if opts.find:
             # We just have to find them and store references to them.
-            hr.execute("pfs = list(all_pfs(max_depth=2))")
+            command_line = ["pfs = []"]
+            for fn in sorted(glob.glob("*/*.hierarchy")):
+                command_line.append("pfs.append(load('%s'))" % fn[:-10])
+            hr.execute("\n".join(command_line))
         bottle.debug()
         uuid_serve_functions(open_browser=opts.open_browser,
                     port=int(opts.port), repl=hr)
