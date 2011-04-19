@@ -42,6 +42,13 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         );
     }
 
+    this.widget_keys = new Ext.KeyMap(document, [
+        {key: 'z', fn: function(){control_panel.get("zoom10x").handler();}}
+    ]);
+    var widget_keys = this.widget_keys;
+    widget_keys.disable();
+    widget_keys.varname = python_varname;
+
     viewport.get("center-panel").add(
         {
             xtype: 'panel',
@@ -51,6 +58,13 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
             autoScroll: true,
             layout:'absolute',
             closable: true,
+            listeners: {activate: function(p){
+                                widget_keys.enable();
+                            },
+                        deactivate: function(p){
+                                widget_keys.disable();
+                            }
+                        },
             items: [ 
                 {
                     xtype:'panel',
@@ -168,6 +182,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 {
                     xtype: 'button',
                     text: 'Zoom In 10x',
+                    id: "zoom10x",
                     x: 10,
                     y: 160,
                     width: 80,
@@ -260,11 +275,14 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     );
 
     viewport.get("center-panel").activate("pw_" + this.id);
+    viewport.get("center-panel").doLayout();
     viewport.doLayout();
     this.panel = viewport.get("center-panel").get("pw_" + python_varname);
     this.panel.doLayout();
+    this.panel.show();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
     var image_dom = this.image_panel.el.dom;
+    var control_panel = this.panel;
 
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
