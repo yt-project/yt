@@ -95,6 +95,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     my_name = "ExtDirectREPL"
     timeout = 660 # a minute longer than the rocket server timeout
     server = None
+    stopped = False
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
@@ -152,8 +153,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
-        if self.payload_handler.event.wait(30):
-            return self.payload_handler.deliver_payloads()
+        for i in range(30): # The total time to wait
+            # Check for stop
+            if self.stopped: return # No race condition
+            if self.payload_handler.event.wait(1): # One second timeout
+                return self.payload_handler.deliver_payloads()
         return []
 
     def _check_heartbeat(self):
@@ -175,9 +179,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         if self.server is None:
             return
         self._heartbeat_timer.cancel()
+        self.stopped = True
         self.payload_handler.event.set()
         for v in self.server.values():
             v.stop()
+        for t in threading.enumerate():
+            print "Found a living thread:", t
 
     def _help_html(self):
         vals = open(os.path.join(local_dir, "html/help.html")).read()
