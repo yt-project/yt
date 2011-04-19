@@ -29,6 +29,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+function enable_input() {
+    repl_input.body.removeClass("cell_waiting");
+    repl_input.get('input_line').setReadOnly(false);
+    repl_input.get("input_line").focus();
+    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+}
+
+function disable_input() {
+    repl_input.get('input_line').setReadOnly(true);
+    repl_input.body.addClass("cell_waiting");
+}
+
 function cell_finished(result) {
     var new_log = false;
     var cell_resulted = false;
@@ -81,6 +93,12 @@ function cell_finished(result) {
             var widget = new widget_types[widget_type](payload['varname'],
                                                        payload['data']);
             widget_list[widget.id] = widget;
+            /*
+               Sometimes instantiating a widget adds some objects ...
+               Plus, often when creating a widget we disable the 
+               entry of data and whatnot. 
+            */
+            cell_resulted = true;
         } else if (payload['type'] == 'widget_payload') {
             var widget = widget_list[payload['widget_id']];
             widget.accept_results(payload);
@@ -90,16 +108,8 @@ function cell_finished(result) {
         viewport.get("status-region").getView().focusRow(number_log_records-1);
     }
     if (cell_resulted == true) {
-        repl_input.body.removeClass("cell_waiting");
-        repl_input.get('input_line').setReadOnly(false);
-        repl_input.get("input_line").focus();
-        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+        enable_input();
     }
-}
-
-function cell_sent() {
-    repl_input.get('input_line').setReadOnly(true);
-    repl_input.body.addClass("cell_waiting");
 }
 
 function display_image(image_id) {
@@ -264,12 +274,14 @@ function sliceHandler(item,pressed){
                             pfname:node.attributes.objdata.varname,
                             center: center, axis:axis, field:field, onmax:onmax},
                           handle_result);
+                        disable_input();
                         win.close();
                     }
                 },{
                     text: 'Cancel',
                     handler: function(b, e){
                         win.close();
+
                     }
                 }
             ]
@@ -349,6 +361,7 @@ function projectionHandler(item,pressed){
                                 axis: axis, field: field, weight: weight,
                                 onmax: onmax},
                               handle_result);
+                        disable_input();
                         win.close();
                     }
                 },{
