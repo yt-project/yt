@@ -448,7 +448,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         pos_dx = na.random.random((N,3))*scale-scale/2.
         pos = c+pos_dx
         
-        SL = Streamlines(pf,pos,'x-velocity', 'y-velocity', 'z-velocity', length=1.0)
+        SL = Streamlines(pf,pos,'x-velocity', 'y-velocity', 'z-velocity', length=1.0, get_magnitude=True)
         SL.integrate_through_volume()
         streamlist=[]
         stream_lengths = []
@@ -456,7 +456,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             stream_lengths.append( stream[na.all(stream != 0.0, axis=1)].shape[0])
         streamlist = SL.streamlines.flatten()
         streamlist = streamlist[streamlist!=0.0].tolist()
-        stream_colors = apply_colormap(na.array(streamlist)[::3]*1., cmap_name='algae', color_bounds=[0.,1.])
+
+        stream_colors = SL.magnitudes.flatten()
+        stream_colors = na.log10(stream_colors[stream_colors > 0.0])
+        stream_colors = apply_colormap(stream_colors, cmap_name='algae')
         stream_colors = stream_colors*1./255.
         stream_colors[:,:,3] = 0.8
         stream_colors = stream_colors.flatten().tolist()
