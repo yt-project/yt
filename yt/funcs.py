@@ -328,6 +328,9 @@ def get_pbar(title, maxval):
             pass
     elif "CODENODE" in os.environ:
         return DummyProgressBar()
+    elif ytcfg.getboolean("yt", "__withinreason"):
+        from yt.gui.reason.extdirect_repl import ExtProgressBar
+        return ExtProgressBar(title, maxval)
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),

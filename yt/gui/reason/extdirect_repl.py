@@ -524,4 +524,32 @@ def _favicon_ico():
     response.headers['Content-Type'] = "image/x-icon"
     return open(ico).read()
 
+class ExtProgressBar(object):
+    def __init__(self, title, maxval):
+        self.title = title
+        self.maxval = maxval
+        self.last = 0
+        # Now we add a payload for the progress bar
+        self.payload_handler = PayloadHandler()
+        self.payload_handler.add_payload(
+            {'type': 'widget',
+             'widget_type': 'progressbar',
+             'varname': None,
+             'data': {'title':title}
+            })
 
+    def update(self, val):
+        # An update is only meaningful if it's on the order of 1/100 or greater
+        if ceil(100*self.last / self.maxval) + 1 == \
+           floor(100*val / self.maxval) or val == self.maxval:
+            self.last = val
+            self.payload_handler.add_payload(
+                {'type': 'widget_payload',
+                 'widget_id': 'pbar_top',
+                 'value': float(val) / self.maxval})
+
+    def finish(self):
+        self.payload_handler.add_payload(
+            {'type': 'widget_payload',
+             'widget_id': 'pbar_top',
+             'value': -1})
