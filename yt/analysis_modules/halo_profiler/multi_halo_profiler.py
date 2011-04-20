@@ -295,8 +295,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         self.__check_directory(my_output_dir)
 
         # Profile all halos.
+        updated_halos = []
         for halo in self._get_objs('all_halos', round_robin=True):
-
             # Apply prefilters to avoid profiling unwanted halos.
             filter_result = True
             haloQuantities = {}
@@ -330,6 +330,17 @@ class HaloProfiler(ParallelAnalysisInterface):
                     if halo.has_key(quantity): haloQuantities[quantity] = halo[quantity]
 
                 self.filtered_halos.append(haloQuantities)
+
+            # If we've gotten this far down, this halo is good and we want
+            # to keep it. But we need to communicate the recentering changes
+            # to all processors (the root one in particular) without having
+            # one task clobber the other.
+            updated_halos.append(halo)
+        
+        # And here is where we bring it all together.
+        updated_halos = self._mpi_catlist(updated_halos)
+        updated_halos.sort(key = lambda a:a['id'])
+        self.all_halos = updated_halos
 
         self.filtered_halos = self._mpi_catlist(self.filtered_halos)
         self.filtered_halos.sort(key = lambda a:a['id'])
@@ -372,14 +383,15 @@ class HaloProfiler(ParallelAnalysisInterface):
                 if new_x < self.pf.domain_left_edge[0] or \
                         new_y < self.pf.domain_left_edge[1] or \
                         new_z < self.pf.domain_left_edge[2]:
-                    mylog.info("Recentering moves too far, skipping halo %d" % \
+                    mylog.info("Recentering rejected, skipping halo %d" % \
                         halo['id'])
                     return None
                 halo['center'] = [new_x, new_y, new_z]
-                d = periodic_dist(old, halo['center'],
-                    self.pf.domain_right_edge - self.pf.domain_left_edge) * \
-                    self.pf['kpc']
-                mylog.info("Recentered %1.3e kpc away." % d)
+                d = self.pf['kpc'] * periodic_dist(old, halo['center'],
+                    self.pf.domain_right_edge - self.pf.domain_left_edge)
+                mylog.info("Recentered halo %d %1.3e kpc away." % (halo['id'], d))
+                # Expand the halo to account for recentering. 
+                halo['r_max'] += d / 1000 # d is in kpc -> want mpc
                 new_sphere = True
 
             if new_sphere:
