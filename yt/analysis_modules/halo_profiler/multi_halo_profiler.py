@@ -396,7 +396,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                     if self.velocity_center[1] == 'halo':
                         sphere.set_field_parameter('bulk_velocity', halo['velocity'])
                     elif self.velocity_center[1] == 'sphere':
-                        sphere.set_field_parameter('bulk_velocity', sphere.quantities['BulkVelocity']())
+                        sphere.set_field_parameter('bulk_velocity', sphere.quantities['BulkVelocity'](lazy_reader=False, preload=False))
                     else:
                         mylog.error("Invalid parameter: VelocityCenter.")
                 elif self.velocity_center[0] == 'max':
@@ -409,7 +409,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             try:
                 profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                                 r_min, halo['r_max'],
-                                                log_space=True, lazy_reader=False)
+                                                log_space=True, lazy_reader=False,
+                                                end_collect=True)
             except EmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
