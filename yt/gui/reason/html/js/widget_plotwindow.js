@@ -86,6 +86,16 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     increment: 0.1,
                     x: 100, y: 410,
                     width: 400,
+                    listeners: {
+                        /* Only changecomplete; don't want too many render
+                        events */
+                        changecomplete: function(slider, newValue, thumb) {
+                            yt_rpc.ExtDirectREPL.execute(
+                                {code:python_varname + ".scroll_zoom(" +
+                                      newValue + ")",
+                                 hide:true}, cell_finished);
+                        }
+                    }
                 }, {
                 /* the single buttons for 10% pan*/
                     xtype:'button',
