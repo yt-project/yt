@@ -79,9 +79,15 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 10,
                     width: 400,
                     height: 400,
-                }, 
+                }, {   xtype: 'multislider',
+                    id: 'slider_' + python_varname,
+                    minValue: 0,
+                    maxValue: 100,
+                    increment: 0.1,
+                    x: 100, y: 410,
+                    width: 400,
+                }, {
                 /* the single buttons for 10% pan*/
-                {
                     xtype:'button',
                     iconCls: 'singleuparrow',
                     //text: 'North',
@@ -281,11 +287,14 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.panel.doLayout();
     this.panel.show();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
+    this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
+    examine = this.zoom_scroll;
 
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
+        this.zoom_scroll.setValue(0, payload['zoom'], true);
     }
 
     yt_rpc.ExtDirectREPL.execute(
