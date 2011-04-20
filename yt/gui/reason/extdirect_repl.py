@@ -278,11 +278,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return {'status': 'SUCCESS', 'site': site}
 
     _api_key = 'f62d550859558f28c4c214136bc797c7'
-    def upload_image(self, image_data):
+    def upload_image(self, image_data, caption):
         if not image_data.startswith("data:"): return {'uploaded':False}
         prefix = "data:image/png;base64,"
         image_data = image_data[len(prefix):]
-        parameters = {'key':self._api_key, 'image':image_data, type:'base64'}
+        parameters = {'key':self._api_key, 'image':image_data, type:'base64',
+                      'caption': caption, 'title': "Uploaded Image from reason"}
         data = urllib.urlencode(parameters)
         req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
         try:

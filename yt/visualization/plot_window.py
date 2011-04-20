@@ -302,6 +302,7 @@ class PWViewerRaw(PWViewer):
             write_image(self._frb[field],nm)
 
 _metadata_template = """
+                    %(pf)s
 X Field of View     %(x_width)0.3f %(unit)s
 Y Field of View     %(y_width)0.3f %(unit)s
 Extrema             %(mi)0.3e - %(ma)0.3e
@@ -341,6 +342,7 @@ class PWViewerExtJS(PWViewer):
             y_width = self.ylim[1] - self.ylim[0]
             unit = get_smallest_appropriate_unit(x_width, self._frb.pf)
             md = _metadata_template % dict(
+                    pf = self._frb.pf,
                     x_width = x_width*self._frb.pf[unit],
                     y_width = y_width*self._frb.pf[unit],
                     unit = unit, mi = mi, ma = ma)

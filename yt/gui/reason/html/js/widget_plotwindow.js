@@ -253,7 +253,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     handler: function(b,e) {
                         img_data = image_dom.src;
                         yt_rpc.ExtDirectREPL.upload_image(
-                            {image_data:img_data},
+                            {image_data:img_data,
+                             caption:metadata_string},
                         function(rv) {
                             var alert_text;
                             if(rv['uploaded'] == false) {
@@ -285,6 +286,14 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                 newValue + '")', hide:true},
                             cell_finished);
                     }}
+                },{
+                    xtype: 'textarea',
+                    readOnly: true,
+                    id: 'metadata_' + python_varname,
+                    width: 300,
+                    height: 200,
+                    style: {fontFamily: 'monospace'},
+                    x: 510, y: 10,
                 }
             ]
         }
@@ -297,14 +306,18 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.panel.doLayout();
     this.panel.show();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
+    this.metadata_panel = this.panel.get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
     examine = this.zoom_scroll;
+    var metadata_string;
 
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
         this.zoom_scroll.setValue(0, payload['zoom'], true);
+        this.metadata_panel.setValue(payload['metadata_string']);
+        metadata_string = payload['metadata_string'];
     }
 
     yt_rpc.ExtDirectREPL.execute(
