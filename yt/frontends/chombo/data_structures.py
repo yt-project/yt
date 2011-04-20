@@ -52,6 +52,8 @@ from yt.data_objects.static_output import \
      StaticOutput
 from yt.utilities.definitions import \
      mpc_conversion
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+     parallel_root_only
 
 from .fields import ChomboFieldContainer
 
@@ -306,3 +308,12 @@ class ChomboStaticOutput(StaticOutput):
         return False
 
 
+    @parallel_root_only
+    def print_key_parameters(self):
+        for a in ["current_time", "domain_dimensions", "domain_left_edge",
+                  "domain_right_edge"]:
+            if not hasattr(self, a):
+                mylog.error("Missing %s in parameter file definition!", a)
+                continue
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)

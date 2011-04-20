@@ -45,6 +45,8 @@ from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
     mpc_conversion
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+     parallel_root_only
 
 from .definitions import \
     orion2enzoDict, \
@@ -621,4 +623,14 @@ class OrionStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+            
+    @parallel_root_only
+    def print_key_parameters(self):
+        for a in ["current_time", "domain_dimensions", "domain_left_edge",
+                  "domain_right_edge"]:
+            if not hasattr(self, a):
+                mylog.error("Missing %s in parameter file definition!", a)
+                continue
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)
 
