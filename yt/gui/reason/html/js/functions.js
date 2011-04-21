@@ -47,7 +47,11 @@ function cell_finished(result) {
     var cell;
     Ext.each(result, 
     function(payload, index) {
-        if (payload['type'] == 'cell_results') {
+        if (payload['type'] == 'shutdown') {
+            task_runner.stop(heartbeat);
+            heartbeat_request = true;
+            return;
+        } else if (payload['type'] == 'cell_results') {
             text = "<pre>"+payload['output']+"</pre>";
             formatted_input = payload['input']
             cell = new_cell(formatted_input, text);

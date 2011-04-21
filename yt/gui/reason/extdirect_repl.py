@@ -156,7 +156,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.last_heartbeat = time.time()
         for i in range(30): # The total time to wait
             # Check for stop
-            if self.stopped: return # No race condition
+            if self.stopped: return {'type':'shutdown'}# No race condition
             if self.payload_handler.event.wait(1): # One second timeout
                 return self.payload_handler.deliver_payloads()
         return []

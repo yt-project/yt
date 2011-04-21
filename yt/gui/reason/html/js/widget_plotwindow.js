@@ -111,6 +111,23 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                  hide:true}, cell_finished);
                         }
                     }
+                },{
+                    xtype: 'combo',
+                    text: 'Field',
+                    x: 100,
+                    y: 435,
+                    width: 400,
+                    store:widget_data['fields'],
+                    value:widget_data['initial_field'],
+                    editable: false,
+                    triggerAction: 'all',
+                    listeners: {change: function(form, newValue, oldValue) {
+                        alert(newValue);
+                        yt_rpc.ExtDirectREPL.execute(
+                            {code:python_varname + '.set_current_field("' +
+                                newValue + '")', hide:true},
+                            cell_finished);
+                    }}
                 }, {
                 /* the single buttons for 10% pan*/
                     xtype:'button',
@@ -284,23 +301,6 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                             logging_store.add(record, number_log_records++);
                         }); 
                     }
-                },{
-                    xtype: 'combo',
-                    text: 'Field',
-                    x: 10,
-                    y: 315,
-                    width: 80,
-                    store:widget_data['fields'],
-                    value:widget_data['initial_field'],
-                    editable: false,
-                    triggerAction: 'all',
-                    listeners: {change: function(form, newValue, oldValue) {
-                        alert(newValue);
-                        yt_rpc.ExtDirectREPL.execute(
-                            {code:python_varname + '.set_current_field("' +
-                                newValue + '")', hide:true},
-                            cell_finished);
-                    }}
                 },{
                     xtype: 'textarea',
                     readOnly: true,
