@@ -319,7 +319,15 @@ then
         [ ! -e bzip2-1.0.5 ] && tar xfz bzip2-1.0.5.tar.gz
         echo "Installing BZLIB"
         cd bzip2-1.0.5
-        [ `uname` = "Darwin" ] && sed -i.bak 's/soname/install_name/' Makefile-libbz2_so
+        if [ `uname` = "Darwin" ] 
+        then
+            if [ -z "${CC}" ] 
+            then
+                sed -i.bak 's/soname/install_name/' Makefile-libbz2_so
+            else
+                sed -i.bak -e 's/soname/install_name/' -e "s/CC=gcc/CC=${CC}/" Makefile-libbz2_so 
+            fi
+        fi
         ( make install CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make -f Makefile-libbz2_so CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( cp -v libbz2.so.1.0.4 ${DEST_DIR}/lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
