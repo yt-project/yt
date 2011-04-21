@@ -79,6 +79,21 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 10,
                     width: 400,
                     height: 400,
+                    listeners: {
+                        afterrender: function(c){
+                            c.el.on('click', function(e){
+                                if (e.ctrlKey == false) return;
+                                xy = e.getXY();
+                                cc = python_varname + ".image_recenter(" 
+                                    + (xy[0] - c.el.dom.x) + ", "
+                                    + (xy[1] - c.el.dom.y) + ", "
+                                    + c.el.dom.width + ", "
+                                    + c.el.dom.height + ")";
+                                yt_rpc.ExtDirectREPL.execute(
+                                {code:cc, hide:false}, cell_finished); 
+                            });
+                        }
+                    }
                 }, {   xtype: 'multislider',
                     id: 'slider_' + python_varname,
                     minValue: 0,
@@ -310,7 +325,6 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
-    examine = this.zoom_scroll;
     var metadata_string;
 
     this.accept_results = function(payload) {

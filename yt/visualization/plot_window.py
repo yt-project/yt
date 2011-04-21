@@ -370,6 +370,14 @@ class PWViewerExtJS(PWViewer):
                 unit = unit, mi = mi, ma = ma)
         return md
 
+    def image_recenter(self, img_x, img_y, img_size_x, img_size_y):
+        dx = (self.xlim[1] - self.xlim[0]) / img_size_x
+        dy = (self.ylim[1] - self.ylim[0]) / img_size_y
+        new_x = img_x * dx + self.xlim[0]
+        new_y = img_y * dy + self.ylim[0]
+        print img_x, img_y, dx, dy, new_x, new_y
+        self.set_center((new_x, new_y))
+
     @invalidate_data
     def set_current_field(self, field):
         self._current_field = field
