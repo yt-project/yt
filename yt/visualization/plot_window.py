@@ -330,28 +330,18 @@ class PWViewerExtJS(PWViewer):
         min_zoom = 200*self._frb.pf.h.get_smallest_dx() * self._frb.pf['unitary']
         for field in fields:
             tf = tempfile.TemporaryFile()
-            fval = self._frb[field]
-            to_plot = apply_colormap(fval, func = self._field_transform[field])
+            to_plot = apply_colormap(self._frb[field], func = self._field_transform[field])
             write_png_to_file(to_plot, tf)
             tf.seek(0)
             img_data = base64.b64encode(tf.read())
             tf.close()
-            mi = fval.min()
-            ma = fval.max()
-            x_width = self.xlim[1] - self.xlim[0]
-            y_width = self.ylim[1] - self.ylim[0]
-            unit = get_smallest_appropriate_unit(x_width, self._frb.pf)
-            md = _metadata_template % dict(
-                    pf = self._frb.pf,
-                    x_width = x_width*self._frb.pf[unit],
-                    y_width = y_width*self._frb.pf[unit],
-                    unit = unit, mi = mi, ma = ma)
             # We scale the width between 200*min_dx and 1.0
+            x_width = self.xlim[1] - self.xlim[0]
             zoom_fac = na.log10(x_width*self._frb.pf['unitary'])/na.log10(min_zoom)
             zoom_fac = 100.0*max(0.0, zoom_fac)
             payload = {'type':'png_string',
                        'image_data':img_data,
-                       'metadata_string': md,
+                       'metadata_string': self.get_metadata(field),
                        'zoom': zoom_fac}
             payload.update(addl_keys)
             ph.add_payload(payload)
@@ -366,8 +356,19 @@ class PWViewerExtJS(PWViewer):
         width = (min_val**(value/100.0))/unit
         self.set_width(width)
 
-    def get_metadata(self):
-        pass
+    def get_metadata(self, field):
+        fval = self._frb[field]
+        mi = fval.min()
+        ma = fval.max()
+        x_width = self.xlim[1] - self.xlim[0]
+        y_width = self.ylim[1] - self.ylim[0]
+        unit = get_smallest_appropriate_unit(x_width, self._frb.pf)
+        md = _metadata_template % dict(
+                pf = self._frb.pf,
+                x_width = x_width*self._frb.pf[unit],
+                y_width = y_width*self._frb.pf[unit],
+                unit = unit, mi = mi, ma = ma)
+        return md
 
     @invalidate_data
     def set_current_field(self, field):
