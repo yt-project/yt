@@ -90,7 +90,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                     + c.el.dom.width + ", "
                                     + c.el.dom.height + ")";
                                 yt_rpc.ExtDirectREPL.execute(
-                                {code:cc, hide:false}, cell_finished); 
+                                {code:cc, hide:true}, cell_finished); 
                             });
                         }
                     }
@@ -121,11 +121,12 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     value:widget_data['initial_field'],
                     editable: false,
                     triggerAction: 'all',
-                    listeners: {change: function(form, newValue, oldValue) {
-                        alert(newValue);
+                    validateOnBlur: false,
+                    listeners: {select: function(combo, record, index) {
+                        var newValue = record.data['field1'];
                         yt_rpc.ExtDirectREPL.execute(
                             {code:python_varname + '.set_current_field("' +
-                                newValue + '")', hide:true},
+                                newValue + '")', hide:false},
                             cell_finished);
                     }}
                 }, {
