@@ -380,15 +380,14 @@ class YTCommands(cmdln.Cmdln):
         """
         import yt.analysis_modules.halo_profiler.api as HP
         kwargs = {'halos': opts.halos,
-                  'hop_style': opts.halo_hop_style,
-                  'radius': opts.halo_radius,
+                  'halo_radius': opts.halo_radius,
                   'radius_units': opts.halo_radius_units}
 
         hp = HP.HaloProfiler(arg,opts.halo_parameter_file,**kwargs)
         if opts.make_profiles:
-            hp.makeProfiles()
+            hp.make_profiles()
         if opts.make_projections:
-            hp.makeProjections()
+            hp.make_projections()
 
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
                       "zlim", "nframes", "output", "cmap", "uboxes", "dex",
