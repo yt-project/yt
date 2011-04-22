@@ -917,6 +917,9 @@ class YTCommands(cmdln.Cmdln):
     @cmdln.option("-f", "--find", action="store_true",
                   default = False, dest="find",
                   help="At startup, find all *.hierarchy files in the CWD")
+    @cmdln.option("-d", "--debug", action="store_true",
+                  default = False, dest="debug",
+                  help="Add a debugging mode for cell execution")
     def do_serve(self, subcmd, opts):
         """
         Run the Web GUI
@@ -951,6 +954,7 @@ class YTCommands(cmdln.Cmdln):
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions
         hr = ExtDirectREPL(base_extjs_path)
+        hr.debug = opts.debug
         if opts.find:
             # We just have to find them and store references to them.
             command_line = ["pfs = []"]

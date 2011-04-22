@@ -97,6 +97,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     timeout = 660 # a minute longer than the rocket server timeout
     server = None
     stopped = False
+    debug = False
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
@@ -234,6 +235,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.executed_cell_texts.append(code)
 
         result = ProgrammaticREPL.execute(self, code)
+        if self.debug:
+            print "==================== Cell Execution ===================="
+            print code
+            print "====================                ===================="
+            print result
+            print "========================================================"
         if hide: return
         self.payload_handler.add_payload(
             {'type': 'cell_results',
