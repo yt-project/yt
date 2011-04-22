@@ -53,7 +53,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         {
             xtype: 'panel',
             id: "pw_" + this.id,
-            title: "Plot Window",
+            title: widget_data['title'],
             iconCls: 'graph',
             autoScroll: true,
             layout:'absolute',
@@ -305,13 +305,30 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                         }); 
                     }
                 },{
-                    xtype: 'textarea',
-                    readOnly: true,
-                    id: 'metadata_' + python_varname,
+                    xtype: 'panel',
+                    layout: 'vbox',
+                    id: 'rhs_panel_' + python_varname,
                     width: 300,
-                    height: 200,
-                    style: {fontFamily: '"Inconsolata", monospace'},
+                    height: 460,
                     x: 510, y: 10,
+                    layoutConfig: {
+                        align: 'stretch',
+                        pack: 'start',
+                    },
+                    items: [
+                        {
+                          xtype: 'panel',
+                          title: 'Plot MetaData',
+                          id: 'metadata_' + python_varname,
+                          style: {fontFamily: '"Inconsolata", monospace'},
+                          html: 'Welcome to the Plot Window.',
+                          height: 200,
+                        }, {
+                          xtype: 'panel',
+                          title: 'Plot Editor',
+                          id: 'plot_edit',
+                          flex: 1,
+                        }]
                 }
             ]
         }
@@ -324,7 +341,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.panel.doLayout();
     this.panel.show();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
-    this.metadata_panel = this.panel.get("metadata_" + python_varname);
+    this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
@@ -333,7 +350,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
         this.zoom_scroll.setValue(0, payload['zoom'], true);
-        this.metadata_panel.setValue(payload['metadata_string']);
+        examine = this.metadata_panel;
+        this.metadata_panel.update(payload['metadata_string']);
         metadata_string = payload['metadata_string'];
     }
 

@@ -302,11 +302,11 @@ class PWViewerRaw(PWViewer):
             write_image(self._frb[field],nm)
 
 _metadata_template = """
-%(pf)s
-
-Field of View:  %(x_width)0.3f %(unit)s
-Minimum Value:  %(mi)0.3e
-Maximum Value:  %(ma)0.3e
+%(pf)s<br>
+<br>
+Field of View:  %(x_width)0.3f %(unit)s<br>
+Minimum Value:  %(mi)0.3e %(units)s<br>
+Maximum Value:  %(ma)0.3e %(units)s
 """
 
 class PWViewerExtJS(PWViewer):
@@ -364,11 +364,12 @@ class PWViewerExtJS(PWViewer):
         x_width = self.xlim[1] - self.xlim[0]
         y_width = self.ylim[1] - self.ylim[0]
         unit = get_smallest_appropriate_unit(x_width, self._frb.pf)
+        units = self.get_field_units(field)
         md = _metadata_template % dict(
                 pf = self._frb.pf,
                 x_width = x_width*self._frb.pf[unit],
                 y_width = y_width*self._frb.pf[unit],
-                unit = unit, mi = mi, ma = ma)
+                unit = unit, units = units, mi = mi, ma = ma)
         return md
 
     def image_recenter(self, img_x, img_y, img_size_x, img_size_y):
@@ -387,6 +388,19 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = na.log
         else:
             self._field_transform[field] = lambda x: x
+
+    def get_field_units(self, field, strip_mathml = True):
+        ds = self._frb.data_source
+        pf = self._frb.pf
+        if ds._type_name == "slice":
+            units = pf.field_info[field].get_units()
+        elif ds._type_name == "proj":
+            units = pf.field_info[field].get_projected_units()
+        else:
+            units = ""
+        if strip_mathml:
+            units = units.replace(r"\rm{", "").replace("}","")
+        return units
 
 
 class YtPlot(object):

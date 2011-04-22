@@ -356,7 +356,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
-                         'initial_field': _tfield}
+                         'initial_field': _tfield,
+                         'title': "%%s Slice" %% (_tpf)}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
@@ -393,7 +394,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
-                         'initial_field': _tfield}
+                         'initial_field': _tfield,
+                         'title': "%%s Slice" %% (_tpf)}
         """ % dict(pfname = pfname,
                    center_string = center_string,
                    axis = inv_axis_names[axis],
