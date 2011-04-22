@@ -355,9 +355,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw._field_transform["%(field)s"] = na.log
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
+        _tcb = _tpw.get_colorbar(_tfield)
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
-                         'title': "%%s Projection" %% (_tpf)}
+                         'title': "%%s Projection" %% (_tpf),
+                         'colorbar': _tcb}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
@@ -393,9 +395,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw.set_log(_tfield, True)
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
+        _tcb = _tpw.get_colorbar(_tfield)
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
-                         'title': "%%s Slice" %% (_tpf)}
+                         'title': "%%s Slice" %% (_tpf),
+                         'colorbar': _tcb}
         """ % dict(pfname = pfname,
                    center_string = center_string,
                    axis = inv_axis_names[axis],

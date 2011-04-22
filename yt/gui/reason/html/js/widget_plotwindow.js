@@ -94,6 +94,22 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                             });
                         }
                     }
+                }, {
+                    xtype:'panel',
+                    id: 'colorbar' + python_varname,
+                    autoEl: {
+                        tag: 'img',
+                        id: "cb_" + python_varname,
+                        src: "data:image/png;base64," +
+                             widget_data['colorbar'],
+                        width: 28,
+                        height: 398,
+                        style: 'border: 1px solid #000000;',
+                    },
+                    x: 510,
+                    y: 10,
+                    width: 30,
+                    height: 400,
                 }, {   xtype: 'multislider',
                     id: 'slider_' + python_varname,
                     minValue: 0,
@@ -310,7 +326,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     id: 'rhs_panel_' + python_varname,
                     width: 300,
                     height: 460,
-                    x: 510, y: 10,
+                    x: 590, y: 10,
                     layoutConfig: {
                         align: 'stretch',
                         pack: 'start',

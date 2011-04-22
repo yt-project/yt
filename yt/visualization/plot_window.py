@@ -22,18 +22,19 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import base64
 import tempfile
+import matplotlib.pyplot
+
 import numpy as na
-import color_maps
-from image_writer import \
+from .image_writer import \
     write_image, apply_colormap
+from .fixed_resolution import \
+    FixedResolutionBuffer
+from .plot_modifications import get_smallest_appropriate_unit
+
 from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_file
-from fixed_resolution import \
-    FixedResolutionBuffer
-import matplotlib.pyplot
-from .plot_modifications import get_smallest_appropriate_unit
 
 def invalidate_data(f):
     def newfunc(*args, **kwargs):
@@ -316,9 +317,10 @@ class PWViewerExtJS(PWViewer):
     _ext_widget_id = None
     _current_field = None
     _widget_name = "plot_window"
+    cmap = 'algae'
+
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
-        import base64
         ph = PayloadHandler()
         if self._current_field is not None \
            and self._ext_widget_id is not None:
@@ -346,6 +348,19 @@ class PWViewerExtJS(PWViewer):
                        'zoom': zoom_fac}
             payload.update(addl_keys)
             ph.add_payload(payload)
+
+    def get_colorbar(self, field, height = 400, width = 40):
+        # Right now there's just the single 'cmap', but that will eventually
+        # change.  I think?
+        vals = na.mgrid[0:1:height * 1j] * na.ones(width)[:,None]
+        vals = vals.transpose()
+        to_plot = apply_colormap(vals)
+        tf = tempfile.TemporaryFile()
+        write_png_to_file(to_plot, tf)
+        tf.seek(0)
+        img_data = base64.b64encode(tf.read())
+        tf.close()
+        return img_data
 
     # This calls an invalidation routine from within
     def scroll_zoom(self, value):
