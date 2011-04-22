@@ -41,6 +41,7 @@ var WidgetGridViewer = function(python_varname, widget_data) {
     this.id = python_varname;
     this.widget_data = widget_data;
     examine = "canvas_" + python_varname;
+    var draw;
     var GridViewerStart = function() {
         this.curX = 0;
         this.curY = 0;
@@ -49,6 +50,7 @@ var WidgetGridViewer = function(python_varname, widget_data) {
             camera.position.x = camera.target.x + offset.x;
             camera.position.y = camera.target.y + offset.y;
             camera.position.z = camera.target.z + offset.z;
+            draw();
         }
         function camGetOffset(camera){
             return PhiloGL.Vec3.sub(camera.position, camera.target)
@@ -131,7 +133,7 @@ var WidgetGridViewer = function(python_varname, widget_data) {
 			this.camera.far = this.dist*2.0;
 			c.update();
                     }
-		    
+		    draw();
 		},
                 onMouseWheel: function(e){
                     e.stop();
@@ -142,7 +144,7 @@ var WidgetGridViewer = function(python_varname, widget_data) {
                     this.camera.near = offset.norm()/100000.0;
                     this.camera.far = offset.norm()*2.0;
                     this.camera.update();
-
+                    draw();
 		}
             },
             onError: function() {
@@ -180,15 +182,14 @@ var WidgetGridViewer = function(python_varname, widget_data) {
 
 		camera.modelView.id();
 		camera.update();
-		draw();
 		
-		(function animloop(){
+		/*(function animloop(){
 		    draw();
 		    requestAnimFrame(animloop, canvas);
-		})();
+		})();*/
 		
 		//Draw the scene
-		function draw() {
+		draw = function() {
 	    	    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	    	    program.setUniform('uMVMatrix', camera.modelView);
 	    	    program.setUniform('uPMatrix', camera.projection);
@@ -196,6 +197,9 @@ var WidgetGridViewer = function(python_varname, widget_data) {
 	    	    program.setBuffer('shapesetColors');
                     gl.drawArrays(gl.LINES, 0, widget_data['n_vertices']);
 		}
+
+		draw();
+
 	    }
         });  
     }        
