@@ -357,7 +357,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tfield_list.sort()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
-                         'title': "%%s Slice" %% (_tpf)}
+                         'title': "%%s Projection" %% (_tpf)}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
