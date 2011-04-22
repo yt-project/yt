@@ -155,11 +155,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
+        if self.debug: print "### Heartbeat ... started"
         for i in range(30): # The total time to wait
             # Check for stop
             if self.stopped: return {'type':'shutdown'}# No race condition
             if self.payload_handler.event.wait(1): # One second timeout
                 return self.payload_handler.deliver_payloads()
+        if self.debug: print "### Heartbeat ... finished"
         return []
 
     def _check_heartbeat(self):

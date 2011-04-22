@@ -951,9 +951,9 @@ class YTCommands(cmdln.Cmdln):
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.gui.reason.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
-        from yt.gui.reason.bottle_mods import uuid_serve_functions
+        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(base_extjs_path)
-        hr.debug = opts.debug
+        hr.debug = PayloadHandler.debug = opts.debug
         if opts.find:
             # We just have to find them and store references to them.
             command_line = ["pfs = []"]

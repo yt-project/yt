@@ -32,10 +32,14 @@ import json
 import logging, threading
 from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import *
+import sys
 
 route_functions = {}
 route_watchers = []
 payloads = []
+
+orig_stdout = sys.stdout
+orig_stderr = sys.stderr
 
 def preroute(future_route, *args, **kwargs):
     def router(func):
@@ -55,6 +59,7 @@ class PayloadHandler(object):
     record = False
     event = None
     count = 0
+    debug = False
 
 
     def __new__(cls, *p, **k):
@@ -74,6 +79,10 @@ class PayloadHandler(object):
             payloads = self.payloads
             if self.record:
                 self.recorded_payloads += self.payloads
+            if self.debug:
+                orig_stderr.write("**** Delivering %s payloads\n" % (len(payloads)))
+                for p in payloads:
+                    orig_stderr.write("****    %s\n" % p['type'])
             self.payloads = []
             self.event.clear()
         return payloads
@@ -83,6 +92,8 @@ class PayloadHandler(object):
             self.payloads.append(to_add)
             self.count += 1
             self.event.set()
+            if self.debug:
+                orig_stderr.write("**** Adding payload of type %s\n" % (to_add['type']))
 
     def replay_payloads(self):
         return self.recorded_payloads
