@@ -283,6 +283,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     x: 10,
                     y: 285,
                     width: 80,
+                    tooltip: "Upload the current image to " +
+                             "<a href='http://imgur.com'>imgur.com</a>",
                     handler: function(b,e) {
                         img_data = image_dom.src;
                         yt_rpc.ExtDirectREPL.upload_image(
@@ -308,7 +310,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     id: 'metadata_' + python_varname,
                     width: 300,
                     height: 200,
-                    style: {fontFamily: 'monospace'},
+                    style: {fontFamily: '"Inconsolata", monospace'},
                     x: 510, y: 10,
                 }
             ]

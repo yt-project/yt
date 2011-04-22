@@ -302,10 +302,11 @@ class PWViewerRaw(PWViewer):
             write_image(self._frb[field],nm)
 
 _metadata_template = """
-                    %(pf)s
-X Field of View     %(x_width)0.3f %(unit)s
-Y Field of View     %(y_width)0.3f %(unit)s
-Extrema             %(mi)0.3e - %(ma)0.3e
+%(pf)s
+
+Field of View:  %(x_width)0.3f %(unit)s
+Minimum Value:  %(mi)0.3e
+Maximum Value:  %(ma)0.3e
 """
 
 class PWViewerExtJS(PWViewer):

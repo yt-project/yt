@@ -281,7 +281,8 @@ Ext.onReady(function(){
         function(b,e){ repl_input.get("input_line").focus(); });
         Ext.state.Manager.set("reason_welcomed", true);
     } else { 
-        repl_input.get("input_line").focus(); }
+        repl_input.get("input_line").focus();
+    }
 
     /* Set up the heartbeat */
     var num = 0;
