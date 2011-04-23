@@ -150,6 +150,9 @@ var treePanel = new Ext.tree.TreePanel({
                             text: 'View Grids',
                             handler: getGridViewerHandler(node),
                         }, {
+                            text: 'View Grid Data',
+                            handler: getGridDataViewerHandler(node),
+                        }, {
                             text: 'Open slice',
                             handler: getSliceHandler(node),
                         }, {

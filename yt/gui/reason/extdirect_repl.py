@@ -417,6 +417,39 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute(self._add_widget('_tpw', '_twidget_data'), hide = True)
 
     @lockit
+    def create_grid_dataview(self, pfname):
+        funccall = """
+        _tpf = %(pfname)s
+        """ % dict(pfname = pfname)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = True)
+        pf = self.locals['_tpf']
+        levels = pf.h.grid_levels
+        left_edge = pf.h.grid_left_edge
+        right_edge = pf.h.grid_right_edge
+        dimensions = pf.h.grid_dimensions
+        cell_counts = pf.h.grid_dimensions.prod(axis=1)
+        # This is annoying, and not ... that happy for memory.
+        i = pf.h.grids[0]._id_offset
+        vals = []
+        for i, (L, LE, RE, dim, cell) in enumerate(zip(
+            levels, left_edge, right_edge, dimensions, cell_counts)):
+            vals.append([ int(i), int(L[0]),
+                          float(LE[0]), float(LE[1]), float(LE[2]),
+                          float(RE[0]), float(RE[1]), float(RE[2]),
+                          int(dim[0]), int(dim[1]), int(dim[2]),
+                          int(cell)] )
+        uu = str(uuid.uuid1()).replace("-","_")
+        varname = "gg_%s" % (uu)
+        payload = {'type': 'widget',
+                   'widget_type': 'grid_data',
+                   'varname': varname, # Is just "None"
+                   'data': dict(gridvals = vals),
+                   }
+        self.execute("%s = None\n" % (varname), hide=True)
+        self.payload_handler.add_payload(payload)
+
+    @lockit
     def create_grid_viewer(self, pfname):
         funccall = """
         _tpf = %(pfname)s

@@ -106,6 +106,8 @@ function cell_finished(result) {
         } else if (payload['type'] == 'widget_payload') {
             var widget = widget_list[payload['widget_id']];
             widget.accept_results(payload);
+        } else {
+            alert("Didn't know how to process " + payload['type']);
         }
     });
     if (new_log == true){
@@ -181,6 +183,15 @@ function gridViewerHandler(item, pressed){
         handle_result);
 }
 return gridViewerHandler;
+}
+
+function getGridDataViewerHandler(node){
+function gridDataViewerHandler(item, pressed){
+    yt_rpc.ExtDirectREPL.create_grid_dataview(
+        {pfname:node.attributes.objdata.varname},
+        handle_result);
+}
+return gridDataViewerHandler;
 }
 
 function getStreamlineViewerHandler(node){
