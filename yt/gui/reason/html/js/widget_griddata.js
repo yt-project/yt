@@ -53,9 +53,9 @@ var WidgetGridDataViewer = function(python_varname, widget_data) {
             title: "Grid Data Viewer",
             iconCls: 'graph',
             autoScroll: true,
-            layout:'absolute',
+            layout:'vbox',
+            layoutConfig: {align: 'stretch', pack: 'start'},
             closable: true,
-            width: 800, height: 500,
             items: [ {
                        xtype: 'grid',
                        store: store,
@@ -128,7 +128,7 @@ var WidgetGridDataViewer = function(python_varname, widget_data) {
                                 sortable: true,
                             },
                        ],
-                      height: 500, width: 700, x: 0, y: 0,
+                      flex: 1,
                       }
                    ],
 
