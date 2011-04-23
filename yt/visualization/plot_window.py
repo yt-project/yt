@@ -32,6 +32,7 @@ from .image_writer import \
 from .fixed_resolution import \
     FixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit
+from .loglocator import LogLocator
 
 from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_file
@@ -342,17 +343,34 @@ class PWViewerExtJS(PWViewer):
             x_width = self.xlim[1] - self.xlim[0]
             zoom_fac = na.log10(x_width*self._frb.pf['unitary'])/na.log10(min_zoom)
             zoom_fac = 100.0*max(0.0, zoom_fac)
+            ticks = self.get_ticks(self._frb[field].min(),
+                                   self._frb[field].max())
             payload = {'type':'png_string',
                        'image_data':img_data,
                        'metadata_string': self.get_metadata(field),
-                       'zoom': zoom_fac}
+                       'zoom': zoom_fac,
+                       'ticks': ticks}
             payload.update(addl_keys)
             ph.add_payload(payload)
+
+    def get_ticks(self, mi, ma, height = 400):
+        # This will eventually change to work with non-logged fields
+        ll = LogLocator() 
+        tick_locs = ll(mi, ma)
+        ticks = []
+        mi = na.log10(mi)
+        ma = na.log10(ma)
+        for v1,v2 in zip(tick_locs, na.log10(tick_locs)):
+            if v2 < mi or v2 > ma: continue
+            p = height - height * (v2 - mi)/(ma - mi)
+            ticks.append((p,v1,v2))
+            #print v1, v2, mi, ma, height, p
+        return ticks
 
     def get_colorbar(self, field, height = 400, width = 40):
         # Right now there's just the single 'cmap', but that will eventually
         # change.  I think?
-        vals = na.mgrid[0:1:height * 1j] * na.ones(width)[:,None]
+        vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
         vals = vals.transpose()
         to_plot = apply_colormap(vals)
         tf = tempfile.TemporaryFile()

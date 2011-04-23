@@ -96,7 +96,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     }
                 }, {
                     xtype:'panel',
-                    id: 'colorbar' + python_varname,
+                    id: 'colorbar_' + python_varname,
                     autoEl: {
                         tag: 'img',
                         id: "cb_" + python_varname,
@@ -110,6 +110,16 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     y: 10,
                     width: 30,
                     height: 400,
+                }, {
+                    xtype: 'panel',
+                    id: 'ticks_' + python_varname,
+                    layout: 'absolute',
+                    y: 10,
+                    x: 540,
+                    width: 40,
+                    height: 400,
+                    items : [],
+                    border: false,
                 }, {   xtype: 'multislider',
                     id: 'slider_' + python_varname,
                     minValue: 0,
@@ -357,6 +367,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.panel.doLayout();
     this.panel.show();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
+    this.ticks = this.panel.get("ticks_"+python_varname);
+    var ticks = this.ticks;
     this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
@@ -369,6 +381,24 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         examine = this.metadata_panel;
         this.metadata_panel.update(payload['metadata_string']);
         metadata_string = payload['metadata_string'];
+        ticks.removeAll();
+        Ext.each(payload['ticks'], function(tick, index) {
+            ticks.add({xtype:'panel',
+                       width: 10, height:1,
+                       style: 'background-color: #000000;',
+                       html:'&nbsp;',
+                       x:0, y: tick[0]});
+            ticks.add({xtype:'panel',
+                       width: 30, height:15,
+                       border: false,
+                       style: 'font-family: "Inconsolata", monospace;' +
+                              'font-size: 12px;',
+                       html: ' ' + tick[2] + ' ',
+                       x:12, y: tick[0]-6});
+            examine = tick;
+        });
+        //examine = ticks;
+        ticks.doLayout();
     }
 
     yt_rpc.ExtDirectREPL.execute(
