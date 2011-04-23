@@ -42,6 +42,11 @@ var res;
 var cell_count = 0;
 
 var handle_result = function(f, a) {
+    if(a.status == false){
+        Ext.Msg.alert("Error", "Something has gone wrong.");
+        examine = {f: f, a: a};
+        return;
+    }
     cell_finished(a.result);
 }
 

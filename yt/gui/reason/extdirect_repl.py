@@ -34,6 +34,7 @@ import time
 import urllib
 import urllib2
 import pprint
+import traceback
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -139,6 +140,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # Setup our heartbeat
         self.last_heartbeat = time.time()
         self._check_heartbeat()
+
+    def exception_handler(self, exc):
+        result = {'type': 'cell_results',
+                  'input': 'ERROR HANDLING IN REASON',
+                  'output': traceback.format_exc()}
+        return result
 
     def _setup_logging_handlers(self):
         handler = PayloadLoggingHandler()
