@@ -25,6 +25,8 @@ License:
 import numpy as na
 import copy
 
+from yt.funcs import *
+
 from .contour_finder import identify_contours
 
 class Clump(object):
@@ -153,7 +155,11 @@ class Clump(object):
 def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, clump_info, 
         function=None):
     obj = object.__new__(Clump)
-    if iterable(parent): parent = parent[1]
+    if iterable(parent):
+        try:
+            parent = parent[1]
+        except KeyError:
+            parent = parent
     if children is None: children = []
     obj.parent, obj.field, obj.min_val, obj.max_val, obj.function_value, obj.children, obj.clump_info, obj.function = \
         parent, field, mi, ma, function_value, children, clump_info, function
