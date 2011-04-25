@@ -25,6 +25,7 @@ License:
 import base64
 import tempfile
 import matplotlib.pyplot
+from functools import wraps
 
 import numpy as na
 from .image_writer import \
@@ -38,6 +39,7 @@ from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_file
 
 def invalidate_data(f):
+    @wraps(f)
     def newfunc(*args, **kwargs):
         f(*args, **kwargs)
         args[0]._data_valid = False
@@ -45,10 +47,10 @@ def invalidate_data(f):
         args[0]._recreate_frb()
         if args[0]._initfinished:
             args[0]._setup_plots()
-
     return newfunc
 
 def invalidate_plot(f):
+    @wraps(f)
     def newfunc(*args, **kwargs):
         args[0]._plot_valid = False
         args[0]._setup_plots()
