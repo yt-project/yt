@@ -415,8 +415,13 @@ class EnzoHierarchy(AMRHierarchy):
                         return data.convert(f)
                     return _convert_function
                 cf = external_wrapper(field)
-            add_enzo_field(field, lambda a, b: None,
-                           convert_function=cf, take_log=False)
+            # Note that we call add_field on the field_info directly.  This
+            # will allow the same field detection mechanism to work for 1D, 2D
+            # and 3D fields.
+            self.pf.field_info.add_field(
+                    field, lambda a, b: None,
+                    convert_function=cf, take_log=False)
+            
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
