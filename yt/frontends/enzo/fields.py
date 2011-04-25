@@ -118,10 +118,8 @@ add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
 
-def _Cooling_Time(field, data):
-    return data["Cooling_Time"]
 add_field("Cooling_Time", units=r"\rm{s}",
-          function=_Cooling_Time,
+          function=lambda a, b: None,
           validators=ValidateDataField("Cooling_Time"),
           projection_conversion="1")
 
