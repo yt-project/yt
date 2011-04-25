@@ -177,15 +177,16 @@ class FieldDetector(defaultdict):
                 lambda: na.ones((nd*nd*nd), dtype='float64')
                 + 1e-4*na.random.random((nd*nd*nd)))
     def __missing__(self, item):
-        if FieldInfo.has_key(item) and \
-            FieldInfo[item]._function.func_name != '<lambda>':
+        FI = getattr(self.pf, "field_info", FieldInfo)
+        if FI.has_key(item) and \
+            FI[item]._function.func_name != '<lambda>':
             try:
-                vv = FieldInfo[item](self)
+                vv = FI[item](self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
                 nfd = FieldDetector(self.nd+ngz*2)
                 nfd._num_ghost_zones = ngz
-                vv = FieldInfo[item](nfd)
+                vv = FI[item](nfd)
                 if ngz > 0: vv = vv[ngz:-ngz,ngz:-ngz,ngz:-ngz]
                 for i in nfd.requested:
                     if i not in self.requested: self.requested.append(i)
@@ -200,8 +201,9 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
-        if FieldInfo.has_key(field_name) and \
-           FieldInfo[field_name].particle_type:
+        FI = getattr(self.pf, "field_info", FieldInfo)
+        if FI.has_key(field_name) and \
+           FI[field_name].particle_type:
             self.requested.append(field_name)
             return na.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
