@@ -233,7 +233,7 @@ class PhasePlotterExtWidget(PhasePlotter):
         cbar = self._convert_axis(self.plot.cbar)
         cbar['cmap_image'] = self._get_cbar_image()
         # This is a historical artifact
-        raw_data = self.plot.image.transpose() 
+        raw_data = self.plot.image.transpose()[::-1,:]
 
         if self.plot.cbar.scale == 'log':
             func = na.log10
