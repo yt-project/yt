@@ -209,6 +209,8 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
         mi = na.nanmin(image[~na.isinf(image)])
         ma = na.nanmax(image[~na.isinf(image)])
         color_bounds = mi, ma
+    else:
+        color_bounds = [func(c) for c in color_bounds]
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = na.clip(to_plot, 0, 255)

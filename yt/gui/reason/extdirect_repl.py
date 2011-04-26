@@ -362,7 +362,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw._field_transform["%(field)s"] = na.log
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
-        _tcb = _tpw.get_colorbar(_tfield)
+        _tcb = _tpw._get_cbar_image()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
                          'title': "%%s Projection" %% (_tpf),
@@ -402,7 +402,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tpw.set_log(_tfield, True)
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
-        _tcb = _tpw.get_colorbar(_tfield)
+        _tcb = _tpw._get_cbar_image()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
                          'title': "%%s Slice" %% (_tpf),

@@ -23,9 +23,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import tempfile
+import base64
+
 from functools import wraps
 import numpy as na
 
+from .image_writer import \
+    write_image, apply_colormap
+from yt.utilities.amr_utils import \
+    write_png_to_file
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
@@ -53,26 +60,13 @@ class AxisSpec(object):
             raise NotImplementedError
         self.ticks = locator(*self.bounds)
 
-class ColorbarSpec(object):
-    title = None
-    bounds = None
-    scale = None
+class ColorbarSpec(AxisSpec):
     cmap = None
-    ticks = None
-
-    def calculate_ticks(self):
-        if self.scale == 'log':
-            locator = LogLocator()
-        else:
-            raise NotImplementedError
-        self.ticks = locator(*self.bounds)
-
 
 class ImagePlotContainer(object):
     x_spec = None
     y_spec = None
     image = None
-    cmap = None
     cbar = None
 
 class PhasePlotter(object):
@@ -232,5 +226,73 @@ class PhasePlotter(object):
         self.plot.image = self.profile[self._current_field]
         self.plot.x_spec = xax
         self.plot.y_spec = yax
-        self.plot.cmap = 'algae'
         self.plot.cbar = cbar
+
+class PhasePlotterExtWidget(PhasePlotter):
+    _ext_widget_id = None
+
+    def _setup_plot(self):
+        PhasePlotter._setup_plot(self)
+        # Now self.plot exists
+        #from yt.gui.reason.bottle_mods import PayloadHandler
+        #ph = PayloadHandler()
+        # We set up an x axis, y axis, colorbar, and image
+        xax = self._convert_axis(self.plot.x_spec)
+        yax = self._convert_axis(self.plot.y_spec)
+        cbar = self._convert_axis(self.plot.cbar)
+        cbar['cmap_image'] = self._get_cbar_image()
+        # This is a historical artifact
+        raw_data = self.plot.image.transpose() 
+
+        if self.plot.cbar.scale == 'log':
+            func = na.log10
+        else:
+            func = lambda a: a
+        to_plot = apply_colormap(raw_data, self.plot.cbar.bounds,
+                                 self.plot.cbar.cmap, func)
+        if self.plot.cbar.scale == 'log':
+            # Now we white-out all those regions
+            #import pdb;pdb.set_trace()
+            to_plot[raw_data == 0.0,:] = 255
+        tf = tempfile.TemporaryFile()
+        write_png_to_file(to_plot, tf)
+        tf.seek(0)
+        img_data = base64.b64encode(tf.read())
+        tf.close()
+        payload = {'xax':xax, 'yax':yax, 'cbar':cbar,
+                   'type': 'widget_payload', 'widget_id': self._ext_widget_id,
+                   'image_data': img_data}
+        return payload
+
+    def _convert_ticks(self, tick_locs, bounds, func, height = 400):
+        # height can be a length too; doesn't quite matter.
+        mi, ma = func(bounds)
+        ticks = []
+        for v1,v2 in zip(tick_locs, func(tick_locs)):
+            if v2 < mi or v2 > ma: continue
+            p = height - height * (v2 - mi)/(ma - mi)
+            ticks.append((p,v1,v2))
+            #print v1, v2, mi, ma, height, p
+        return ticks
+
+    def _convert_axis(self, spec):
+        func = lambda a: a
+        if spec.scale == 'log': func = na.log10
+        tick_info = self._convert_ticks(spec.ticks, spec.bounds, func)
+        ax = {'ticks':tick_info,
+              'title': spec.title}
+        return ax
+
+    def _get_cbar_image(self, height = 400, width = 40):
+        # Right now there's just the single 'cmap', but that will eventually
+        # change.  I think?
+        vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
+        vals = vals.transpose()
+        to_plot = apply_colormap(vals)
+        tf = tempfile.TemporaryFile()
+        write_png_to_file(to_plot, tf)
+        tf.seek(0)
+        img_data = base64.b64encode(tf.read())
+        tf.close()
+        return img_data
+

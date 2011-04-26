@@ -369,7 +369,7 @@ class PWViewerExtJS(PWViewer):
             #print v1, v2, mi, ma, height, p
         return ticks
 
-    def get_colorbar(self, field, height = 400, width = 40):
+    def _get_cbar_image(self, height = 400, width = 40):
         # Right now there's just the single 'cmap', but that will eventually
         # change.  I think?
         vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
