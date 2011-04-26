@@ -142,11 +142,13 @@ function fill_tree(my_pfs) {
             iconCls: 'pf_icon'}));
         this_pf = treePanel.root.lastChild
         Ext.each(pf.objects, function(obj, obj_index) {
+            examine = this_pf;
             this_pf.appendChild(new Ext.tree.TreeNode(
                 {text: obj.name,
                  leaf: true,
                  iconCls: 'data_obj',
-                 objdata: {varname: obj.varname, type: 'obj'},
+                 objdata: {varname: obj.varname, type: 'obj',
+                           pfdata: this_pf.attributes.objdata},
                  }));
         });
     });
@@ -311,6 +313,90 @@ function widget_call(varname, method) {
     var fcall = varname + "." + method;
     yt_rpc.ExtDirectREPL.execute(
         {code: fcall}, cell_finished);
+}
+
+function getPhasePlotHandler(node){
+function phasePlotHandler(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:370,
+        height:220,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Phase Plot Details for ' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [ {
+                xtype:'combo',
+                fieldLabel: 'X Field',
+                id: 'x_field',
+                store:node.attributes.objdata.pfdata.field_list,
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'Density'
+            },{
+                xtype:'combo',
+                fieldLabel: 'Y Field',
+                id: 'y_field',
+                store:node.attributes.objdata.pfdata.field_list,
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'Temperature'
+            },{
+                xtype:'combo',
+                fieldLabel: 'Z Field',
+                id: 'z_field',
+                store:node.attributes.objdata.pfdata.field_list,
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'CellMassMsun'
+            },{
+                xtype:'combo',
+                fieldLabel: 'Weight Field',
+                id: 'weight',
+                store:['None'].concat(node.attributes.objdata.pfdata.field_list),
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'None'
+            }],
+            buttons: [
+                {
+                    text: 'Calculate',
+                    handler: function(b, e){
+                        var x_field = Ext.get("x_field").getValue();
+                        var y_field = Ext.get("y_field").getValue();
+                        var z_field = Ext.get("z_field").getValue();
+                        var weight = Ext.get("weight").getValue();
+                        yt_rpc.ExtDirectREPL.create_phase({
+                                objname: node.attributes.objdata.varname,
+                                /* Mirror image varnames ... */
+                                field_x: x_field,
+                                field_y: y_field,
+                                field_z: z_field,
+                                weight: weight,
+                                },
+                              handle_result);
+                        disable_input();
+                        win.close();
+                    }
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){win.close()}
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return phasePlotHandler;
 }
 
 function getProjectionHandler(node){

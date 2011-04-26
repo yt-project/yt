@@ -340,6 +340,28 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return command
 
     @lockit
+    def create_phase(self, objname, field_x, field_y, field_z, weight):
+        if weight == "None": weight = None
+        else: weight = "'%s'" % (weight)
+        funccall = """
+        _tfield_x = "%(field_x)s"
+        _tfield_y = "%(field_y)s"
+        _tfield_z = "%(field_z)s"
+        _tweight = %(weight)s
+        _tobj = %(objname)s
+        _tpf = _tobj.pf
+        from yt.visualization.profile_plotter import PhasePlotterExtWidget
+        _tpp = PhasePlotterExtWidget(_tobj, _tfield_x, _tfield_y, _tfield_z, _tweight)
+        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
+        _tfield_list.sort()
+        _twidget_data = {'title': "%%s Phase Plot" %% (_tobj)}
+        """ % dict(objname = objname, field_x = field_x, field_y = field_y,
+                   field_z = field_z, weight = weight)
+        funccall = "\n".join(line.strip() for line in funccall.splitlines())
+        self.execute(funccall, hide=True)
+        self.execute(self._add_widget('_tpp', '_twidget_data'), hide=True)
+
+    @lockit
     def create_proj(self, pfname, axis, field, weight, onmax):
         if weight == "None": weight = None
         else: weight = "'%s'" % (weight)

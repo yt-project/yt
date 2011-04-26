@@ -77,9 +77,7 @@ class PhasePlotter(object):
                  weight="CellMassMsun", accumulation=False,
                  x_bins=128, x_log=True, x_bounds=None,
                  y_bins=128, y_log=True, y_bounds=None,
-                 lazy_reader=True, id=None,
-                 axes = None, figure = None,
-                 fractional=False):
+                 lazy_reader=True, fractional=False):
         r"""From an existing object, create a 2D, binned profile.
 
         This function will accept an existing `AMRData` source and from that,
@@ -135,15 +133,6 @@ class PhasePlotter(object):
             any processing occurs.  It defaults to true, and grids are binned
             on a one-by-one basis.  Note that parallel computation requires
             this to be true.
-        id : int, optional
-            If specified, this will be the "semi-unique id" of the resultant
-            plot.  This should not be set.
-        figure : `matplotlib.figure.Figure`, optional
-            The figure onto which the axes will be placed.  Typically not used
-            unless *axes* is also specified.
-        axes : `matplotlib.axes.Axes`, optional
-            The axes object which will be used to create the image plot.
-            Typically used for things like multiplots and the like.
         fractional : boolean
             If true, the plot will be normalized to the sum of all the binned
             values.
@@ -230,12 +219,14 @@ class PhasePlotter(object):
 
 class PhasePlotterExtWidget(PhasePlotter):
     _ext_widget_id = None
+    _widget_name = "phase_plot"
 
     def _setup_plot(self):
+        if self._ext_widget_id is None: return
         PhasePlotter._setup_plot(self)
         # Now self.plot exists
-        #from yt.gui.reason.bottle_mods import PayloadHandler
-        #ph = PayloadHandler()
+        from yt.gui.reason.bottle_mods import PayloadHandler
+        ph = PayloadHandler()
         # We set up an x axis, y axis, colorbar, and image
         xax = self._convert_axis(self.plot.x_spec)
         yax = self._convert_axis(self.plot.y_spec)
@@ -262,7 +253,7 @@ class PhasePlotterExtWidget(PhasePlotter):
         payload = {'xax':xax, 'yax':yax, 'cbar':cbar,
                    'type': 'widget_payload', 'widget_id': self._ext_widget_id,
                    'image_data': img_data}
-        return payload
+        ph.add_payload(payload)
 
     def _convert_ticks(self, tick_locs, bounds, func, height = 400):
         # height can be a length too; doesn't quite matter.

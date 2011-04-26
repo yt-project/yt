@@ -143,27 +143,38 @@ var treePanel = new Ext.tree.TreePanel({
         },
         contextmenu: {
             fn: function(node, event){
-                if (node.attributes.objdata.type == 'obj') return;
-                var rightClickMenu = new Ext.menu.Menu({
-                    items: [
-                        {
-                            text: 'View Grids',
-                            handler: getGridViewerHandler(node),
-                        }, {
-                            text: 'View Grid Data',
-                            handler: getGridDataViewerHandler(node),
-                        }, {
-                            text: 'Open slice',
-                            handler: getSliceHandler(node),
-                        }, {
-                            text: 'Open projection',
-                            handler: getProjectionHandler(node),
-                        }, {
-                            text: 'View Streamlines',
-                            handler: getStreamlineViewerHandler(node),
-                        }
-                    ]
-                });
+                var rightclickMenu;
+                if (node.attributes.objdata.type == 'obj') {
+                  rightClickMenu = new Ext.menu.Menu({
+                      items: [
+                          {
+                              text: 'Phase Plot',
+                              handler: getPhasePlotHandler(node),
+                          }, 
+                      ]
+                  });
+                } else if (node.attributes.objdata.type == 'pf') {
+                  rightClickMenu = new Ext.menu.Menu({
+                      items: [
+                          {
+                              text: 'View Grids',
+                              handler: getGridViewerHandler(node),
+                          }, {
+                              text: 'View Grid Data',
+                              handler: getGridDataViewerHandler(node),
+                          }, {
+                              text: 'Open slice',
+                              handler: getSliceHandler(node),
+                          }, {
+                              text: 'Open projection',
+                              handler: getProjectionHandler(node),
+                          }, {
+                              text: 'View Streamlines',
+                              handler: getStreamlineViewerHandler(node),
+                          }
+                      ]
+                  });
+                }
                 rightClickMenu.showAt(event.xy);
             }
         }
