@@ -30,6 +30,7 @@ from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
 from .plot_types import ProfilePlot, PhasePlot
+from .loglocator import LogLocator
 
 def invalidate_plot(f):
     @wraps(f)
@@ -46,13 +47,26 @@ class AxisSpec(object):
     ticks = None
 
     def calculate_ticks(self):
-        pass
+        if self.scale == 'log':
+            locator = LogLocator()
+        else:
+            raise NotImplementedError
+        self.ticks = locator(*self.bounds)
 
 class ColorbarSpec(object):
     title = None
     bounds = None
     scale = None
     cmap = None
+    ticks = None
+
+    def calculate_ticks(self):
+        if self.scale == 'log':
+            locator = LogLocator()
+        else:
+            raise NotImplementedError
+        self.ticks = locator(*self.bounds)
+
 
 class ImagePlotContainer(object):
     x_spec = None
@@ -60,10 +74,9 @@ class ImagePlotContainer(object):
     image = None
     cmap = None
     cbar = None
-    transform = None
 
 class PhasePlotter(object):
-    _transform = lambda a: a
+    scale = None
     _current_field = None
 
     def __init__(self, data_source, field_x, field_y, field_z,
@@ -183,30 +196,37 @@ class PhasePlotter(object):
         profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_z
         self.profile = profile
-        if data_source.pf.field_info[field_z].take_log:
-            self._transform = na.log10
+        self.scale = {True:'log', False:'linear'}.get(
+                data_source.pf.field_info[field_z], "log")
         self._setup_plot()
 
     def _setup_plot(self):
         xax = AxisSpec()
         xax.title = self.profile.x_bin_field
         xax.bounds = (self.profile._x_bins[0],
-                      self.profile._x_bins[1])
+                      self.profile._x_bins[-1])
         xax.scale = {True: 'log', False: 'linear'}[self.profile._x_log]
         xax.calculate_ticks()
 
         yax = AxisSpec()
         yax.title = self.profile.y_bin_field
         yax.bounds = (self.profile._y_bins[0],
-                      self.profile._y_bins[1])
+                      self.profile._y_bins[-1])
         yax.scale = {True: 'log', False: 'linear'}[self.profile._y_log]
         yax.calculate_ticks()
 
         cbar = ColorbarSpec()
         cbar.title = self._current_field
-        cbar.bounds = (self.profile[self._current_field].min(),
-                       self.profile[self._current_field].max())
+        if self.scale == 'log':
+            nz = (self.profile[self._current_field] > 0)
+            mi = self.profile[self._current_field][nz].min()
+        else:
+            mi = self.profile[self._current_field][nz].min()
+        ma = self.profile[self._current_field].max()
+        cbar.bounds = (mi, ma)
         cbar.cmap = 'algae'
+        cbar.scale = self.scale
+        cbar.calculate_ticks()
 
         self.plot = ImagePlotContainer()
         self.plot.image = self.profile[self._current_field]
@@ -214,4 +234,3 @@ class PhasePlotter(object):
         self.plot.y_spec = yax
         self.plot.cmap = 'algae'
         self.plot.cbar = cbar
-        self.plot.transform = self._transform
