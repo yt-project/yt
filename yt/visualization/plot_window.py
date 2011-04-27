@@ -374,7 +374,8 @@ class PWViewerExtJS(PWViewer):
             tick_locs = ll(mi, ma)
             for v in tick_locs:
                 p = height - height * (v - mi)/(ma-mi)
-                ticks.append((p,v,v))
+                ticks.append((p,v,"%0.3e" % (v)))
+                print "Ticking: ", p, v, v
 
         return ticks
 
