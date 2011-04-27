@@ -15,6 +15,7 @@ Developers:                     Matthew Turk (matthewturk@gmail.com)
                                 Cameron Hummels (chummels@astro.columbia.edu)
                                 Stefan Klemer (sklemer@phys.uni-goettingen.de)
                                 Andrew Myers (atmyers@astro.berkeley.edu)
+                                Tom Abel (tabel@stanford.edu)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
