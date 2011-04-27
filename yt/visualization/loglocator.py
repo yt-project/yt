@@ -83,8 +83,81 @@ class LogLocator(object):
 
         return na.array(ticklocs)
 
+
+class LinearLocator(object):
+    """
+    Determine the tick locations
+
+    The first time this function is called it will try to set the
+    number of ticks to make a nice tick partitioning.  Thereafter the
+    number of ticks will be fixed so that interactive navigation will
+    be nice
+    """
+
+
+    def __init__(self, numticks = None, presets=None):
+        """
+        Use presets to set locs based on lom.  A dict mapping vmin, vmax->locs
+        """
+        self.numticks = numticks
+        if presets is None:
+            self.presets = {}
+        else:
+            self.presets = presets
+
+    def __call__(self, vmin, vmax):
+        'Return the locations of the ticks'
+
+        # vmin, vmax = self.axis.get_view_interval()
+        # vmin, vmax = mtransforms.nonsingular(vmin, vmax, expander = 0.05)
+        if vmax<vmin:
+            vmin, vmax = vmax, vmin
+
+        if (vmin, vmax) in self.presets:
+            return self.presets[(vmin, vmax)]
+
+        if self.numticks is None:
+            self._set_numticks()
+
+
+
+        if self.numticks==0: return []
+        ticklocs = na.linspace(vmin, vmax, self.numticks)
+
+        #return self.raise_if_exceeds(ticklocs)
+        return ticklocs
+
+
+    def _set_numticks(self):
+        self.numticks = 11  # todo; be smart here; this is just for dev
+
+    # def view_limits(self, vmin, vmax):
+    #     'Try to choose the view limits intelligently'
+
+    #     if vmax<vmin:
+    #         vmin, vmax = vmax, vmin
+
+    #     if vmin==vmax:
+    #         vmin-=1
+    #         vmax+=1
+
+    #     exponent, remainder = divmod(math.log10(vmax - vmin), 1)
+
+    #     if remainder < 0.5:
+    #         exponent -= 1
+    #     scale = 10**(-exponent)
+    #     vmin = math.floor(scale*vmin)/scale
+    #     vmax = math.ceil(scale*vmax)/scale
+
+    #     return mtransforms.nonsingular(vmin, vmax)
+
+
 if __name__ == "__main__":
     ll = LogLocator()
     print ll(1e-24, 5e-25)
     print ll(1e-24, 1e-28)
     print ll(1e-24, 1e-35)
+    lll = LinearLocator()
+    print lll(-1e-24, 1e-24)
+    print lll(-2.3, 1.3)
+    print lll(10,23.)
