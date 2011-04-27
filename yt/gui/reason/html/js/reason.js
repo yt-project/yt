@@ -54,10 +54,10 @@ var handle_payload = function(pp) {
     cell_finished(pp);
 }
 
-var repl_input = new Ext.FormPanel({
+var repl_input = new Ext.form.Panel({
     title: 'YT Input',
     url: 'push',
-    flex: 0.2,
+    flex: 1.0,
     layout: 'fit',
     padding: 5,
     items: [{
@@ -73,7 +73,7 @@ var repl_input = new Ext.FormPanel({
                 if (e.getKey() == e.ENTER) {
                     disable_input();
                     yt_rpc.ExtDirectREPL.execute({
-                        code:repl_input.get('input_line').getValue()},
+                        code:repl_input.getComponent('input_line').getValue()},
                     handle_result);
                 }
             },
@@ -91,7 +91,7 @@ var repl_input = new Ext.FormPanel({
 
                         var varname = data.node.attributes.objdata.varname;
                         /* There is possibly a better way to do this, where it's also inserted correctly. */
-                        var line = repl_input.get("input_line");
+                        var line = repl_input.getComponent("input_line");
                         line.setValue(line.getValue() + varname);
                         line.focus();
                         return(true);
@@ -110,14 +110,14 @@ var OutputContainer = new Ext.Panel({
     title: 'YT Output',
     id: 'output_container',
     autoScroll: true,
-    flex: 0.8,
+    flex: 4.0,
     items: []
 });
 
 var examine;
 var notebook;
 
-var treePanel = new Ext.tree.TreePanel({
+/*var treePanel = new Ext.tree.TreePanel({
     iconCls: 'nav',
     id: 'tree-panel',
     layout: 'anchor',
@@ -179,12 +179,22 @@ var treePanel = new Ext.tree.TreePanel({
             }
         }
     }
-});
+});*/
 
 var status_panel;
+
+Ext.define("log", {extend: "Ext.data.Model", fields: ['record']});
+
 var logging_store = new Ext.data.Store({
-    fields: [{name:'record'}],
-    reader: new Ext.data.ArrayReader({}, [{name: 'record'}]),
+    model: 'log',
+    data: [],
+    proxy: {
+        type: 'memory',
+        reader: {
+            type: 'json',
+            root: 'users'
+        }
+    }
 });
 
 var heartbeat_request = false;
@@ -203,7 +213,7 @@ Ext.onReady(function(){
     Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
 
     // Go ahead and create the TreePanel now so that we can use it below
-    viewport = new Ext.Viewport({
+    viewport = new Ext.container.Viewport({
         layout: 'border',
         items: [
 		// lazily created panel (xtype:'panel' is default)
@@ -211,9 +221,12 @@ Ext.onReady(function(){
                 xtype: 'grid',
                 store: logging_store,
                 defaults: { width: 800 },
-                columns: [ {id:'record', 
-                    sortable: false,
-                    width:800} ],
+                columns: [ {
+                     header: 'Log Message',
+                     dataIndex: 'record',
+                     flex:1.0,
+                     sortable: false,
+                     width:800} ],
                 autofill: true,
                 region: 'south',
                 id: "status-region",
@@ -241,7 +254,6 @@ Ext.onReady(function(){
                         xtype: 'toolbar',
                         items: [ main_menu ],
                     },
-                    treePanel,
                 ]
 		  // in this instance the TabPanel is not wrapped by another panel
 		  // since no title is needed, this Panel is added directly
@@ -255,8 +267,11 @@ Ext.onReady(function(){
                 items: [{
                         title: 'YT',
                         id: 'notebook',
-                        layout: 'vbox',
-                        layoutConfig: {align:'stretch'},
+                        layout: {
+                                  type:'vbox',
+                                  align:'stretch',
+                                  pack:'start'
+                                },
                         closable: false,
                         autoScroll: false,
                         iconCls: 'console',
@@ -279,28 +294,20 @@ Ext.onReady(function(){
         w.collapsed ? w.expand() : w.collapse();
     });
     
-    notebook = viewport.get("center-panel").get("notebook");
-    status_panel = viewport.get("status-region").get("status-div");
-    
-    var record = new logging_store.recordType(
-        {record: 'Welcome to yt.'});
-    logging_store.add(record, number_log_records++);
-
-    var record = new logging_store.recordType(
-        {record: 'After entering a line of code in the YT Input field, press shift-enter to evaluate.' });
-    logging_store.add(record, number_log_records++);
-
-    var record = new logging_store.recordType(
-        {record: '4d3d3d3 engaged.' });
-    logging_store.add(record, number_log_records++);
+    notebook = viewport.getComponent("center-panel").getComponent("notebook");
+    status_panel = viewport.getComponent("status-region").getComponent("status-div");
+    logging_store.add({record: 'Welcome to yt.'});
+    logging_store.add({record: 'After entering a line of code in the YT' +
+                      'Input field, press shift-enter to evaluate.' });
+    logging_store.add({record: '4d3d3d3 engaged.' });
 
     if (!Ext.state.Manager.get("reason_welcomed", false)) {
         Ext.MessageBox.alert("Reason v0.5",
         "Welcome to Reason.  <br>Treat the 'YT Input' field as a YT/python intepreter.<br>Press shift-enter to evaluate.",
-        function(b,e){ repl_input.get("input_line").focus(); });
+        function(b,e){ repl_input.getComponent("input_line").focus(); });
         Ext.state.Manager.set("reason_welcomed", true);
     } else { 
-        repl_input.get("input_line").focus();
+        repl_input.getComponent("input_line").focus();
     }
 
     /* Set up the heartbeat */
