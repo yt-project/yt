@@ -30,7 +30,8 @@ from yt.utilities.io_handler import \
            BaseIOHandler
 
 from definitions import \
-    yt2castroFieldsDict
+    yt2castroFieldsDict,
+    castro_particle_field_names
 
 class IOHandlerNative(BaseIOHandler):
 
@@ -39,11 +40,23 @@ class IOHandlerNative(BaseIOHandler):
     def modify(self, field):
         return field.swapaxes(0,2)
 
+    def _read_particle_field(self, grid, field):
+        raise NotImplementedError
+        offset = grid._particle_offset
+        filen = os.path.expanduser(grid.filename[field])
+        off = grid._particle_offset[field]
+        inFile = open(filen,'rb')
+        inFile.seek(off)
+        # This is hardcoded to: 5 int fields, 4 bytes per field
+        inFile.seek(5*grid.NumberOfParticles*4)
+
     def _read_data_set(self, grid, field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
 
         """
+        if field in castro_particle_field_names:
+            return self._read_particle_field(grid, field)
         filen = os.path.expanduser(grid.filename[field])
         off = grid._offset[field]
         inFile = open(filen,'rb')

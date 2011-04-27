@@ -50,7 +50,8 @@ from .definitions import \
     castro2enzoDict, \
     parameterDict, \
     yt2castroFieldsDict, \
-    castro_FAB_header_pattern
+    castro_FAB_header_pattern, \
+    castro_particle_field_names
 
 from .fields import \
     CastroFieldContainer, \
@@ -377,6 +378,21 @@ class CastroHierarchy(AMRHierarchy):
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
+        if self.parameter_file.use_particles:
+            # We know which particle fields will exist -- pending further
+            # changes in the future.
+            for field in _castro_particle_fields:
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D, 2D
+                # and 3D fields.
+                self.pf.field_info.add_field(
+                        field, lambda a, b: None,
+                        convert_function=cf, take_log=False)
 
     def _count_grids(self):
         """this is already provided in 
