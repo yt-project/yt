@@ -544,6 +544,8 @@ class CastroStaticOutput(StaticOutput):
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
+            elif param.startswith("castro.do_dm_particles"):
+                self.use_particles = True
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
