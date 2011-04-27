@@ -33,7 +33,7 @@ from .image_writer import \
 from .fixed_resolution import \
     FixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit
-from .loglocator import LogLocator, LinearLocator
+from .tick_locators import LogLocator, LinearLocator
 
 from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_file
