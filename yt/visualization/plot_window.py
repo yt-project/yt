@@ -346,7 +346,8 @@ class PWViewerExtJS(PWViewer):
             zoom_fac = na.log10(x_width*self._frb.pf['unitary'])/na.log10(min_zoom)
             zoom_fac = 100.0*max(0.0, zoom_fac)
             ticks = self.get_ticks(self._frb[field].min(),
-                                   self._frb[field].max())
+                                   self._frb[field].max(), 
+                                   take_log = self._frb.pf.field_info[field].take_log)
             payload = {'type':'png_string',
                        'image_data':img_data,
                        'metadata_string': self.get_metadata(field),
@@ -355,8 +356,10 @@ class PWViewerExtJS(PWViewer):
             payload.update(addl_keys)
             ph.add_payload(payload)
 
-    def get_ticks(self, mi, ma, height = 400):
+    def get_ticks(self, mi, ma, height = 400, take_log = False):
         # This will eventually change to work with non-logged fields
+        if not take_log:
+            return []
         ll = LogLocator() 
         tick_locs = ll(mi, ma)
         ticks = []
