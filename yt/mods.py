@@ -56,6 +56,9 @@ from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
+from yt.frontends.castro.api import \
+    CastroStaticOutput, CastroFieldInfo, add_castro_field
+
 from yt.frontends.orion.api import \
     OrionStaticOutput, OrionFieldInfo, add_orion_field
 

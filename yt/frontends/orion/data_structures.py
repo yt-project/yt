@@ -489,8 +489,12 @@ class OrionStaticOutput(StaticOutput):
 
         # We check for the job_info file's existence because this is currently
         # what distinguishes Orion data from MAESTRO data.
-        return ( os.path.exists(os.path.join(pfname)) and 
-                 not os.path.exists(os.path.join(pname, "job_info")))
+        pfn = os.path.join(pfname)
+        if not os.path.exists(pfn): return False
+        castro = any(("castro." in line for line in open(pfn)))
+        maestro = os.path.exists(os.path.join(pname, "job_info"))
+        orion = (not castro) and (not maestro)
+        return orion
         
     def _parse_parameter_file(self):
         """
