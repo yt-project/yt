@@ -138,7 +138,7 @@ class LightRay(EnzoSimulation):
 
     def make_light_ray(self, seed=None, fields=None, 
                        solution_filename=None, data_filename=None,
-                       get_nearest_galaxy=False, **kwargs):
+                       get_nearest_galaxy=False, get_los_velocity=False, **kwargs):
         "Create a light ray and get field values for each lixel."
 
         # Calculate solution.
@@ -153,6 +153,9 @@ class LightRay(EnzoSimulation):
         if get_nearest_galaxy:
             all_fields.extend(['x', 'y', 'z', 'nearest_galaxy', 'nearest_galaxy_mass'])
             fields.extend(['x', 'y', 'z'])
+        if get_los_velocity:
+            all_fields.extend(['x-velocity', 'y-velocity', 'z-velocity', 'los_velocity'])
+            fields.extend(['x-velocity', 'y-velocity', 'z-velocity'])
 
         todo = na.arange(my_rank, len(self.light_ray_solution), my_size)
         for index in todo:
@@ -194,6 +197,17 @@ class LightRay(EnzoSimulation):
                 for field in fields:
                     sub_data[field] = na.concatenate([sub_data[field], 
                                                       (sub_ray[field])])
+
+                if get_los_velocity:
+                    line_of_sight = sub_segment[1] - sub_segment[0]
+                    line_of_sight /= ((line_of_sight**2).sum())**0.5
+                    sub_vel = na.array([sub_ray['x-velocity'], 
+                                        sub_ray['y-velocity'],
+                                        sub_ray['z-velocity']])
+                    sub_data['los_velocity'] = na.concatenate([sub_data['los_velocity'], 
+                                                               (na.rollaxis(sub_vel, 1) * 
+                                                                line_of_sight).sum(axis=1)])
+                    del sub_vel
 
                 sub_ray.clear_data()
                 del sub_ray
