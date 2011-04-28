@@ -97,7 +97,7 @@ lockit = MethodLock()
 
 def deliver_image(im):
     if hasattr(im, 'read'):
-        img_data = im.read()
+        img_data = base64.b64encode(im.read())
     elif isinstance(im, types.StringTypes) and \
          im.endswith(".png"):
         img_data = base64.b64encode(open(im).read())
