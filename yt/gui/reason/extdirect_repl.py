@@ -129,6 +129,7 @@ def reason_pylab():
             _canvas_deliver(manager.canvas)
     # Matplotlib has very nice backend overriding.
     # We should really use that.  This is just a hack.
+    import matplotlib
     new_agg = imp.new_module("reason_agg")
     import matplotlib.backends.backend_agg as bagg
     new_agg.__dict__.update(bagg.__dict__)
@@ -139,6 +140,7 @@ def reason_pylab():
     bagg.draw_if_interactive = reason_draw_if_interactive
     from matplotlib._pylab_helpers import Gcf
     import pylab, matplotlib
+    matplotlib.rcParams["backend"] = "module://reason_agg"
     pylab.switch_backend("module://reason_agg")
 
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
