@@ -626,7 +626,10 @@ class AMRRayBase(AMR1DData):
                               grid.child_mask)
         if field == 'dts': return self._dts[grid.id][mask]
         if field == 't': return self._ts[grid.id][mask]
-        return grid[field][mask]
+        gf = grid[field]
+        if not iterable(gf):
+            gf = gf * na.ones(grid.child_mask.shape)
+        return gf[mask]
         
     @cache_mask
     def _get_cut_mask(self, grid):
