@@ -3,7 +3,7 @@ Modifications and extensions to Bottle, to make it slightly more useful for
 yt's purposes
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.

@@ -5,7 +5,7 @@ Author: Stephen Skory <s@skory.us>
 Affiliation: CASS/UC San Diego, CA
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008-2010 Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2008-2011 Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 

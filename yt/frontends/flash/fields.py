@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Matthew Turk, John ZuHone.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk, John ZuHone.  All Rights Reserved.
 
   This file is part of yt.
 

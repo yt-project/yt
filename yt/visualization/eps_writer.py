@@ -9,7 +9,7 @@ Homepage: http://yt.enzotools.org/
 Requirements: PyX
 
 License:
-  Copyright (C) 2010 John Wise.  All Rights Reserved.
+  Copyright (C) 2010-2011 John Wise.  All Rights Reserved.
 
   This file is part of yt.
 

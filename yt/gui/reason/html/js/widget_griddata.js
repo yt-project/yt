@@ -2,7 +2,7 @@
 The Plot Window Widget
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.

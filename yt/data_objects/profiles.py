@@ -7,7 +7,7 @@ Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: CASA, University of Colorado at Boulder
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
