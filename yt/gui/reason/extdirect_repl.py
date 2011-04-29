@@ -186,6 +186,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         reason_pylab()
         self.execute("from yt.mods import *\nimport pylab\npylab.ion()")
         self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
+        self.execute("data_objects = []", hide = True)
         self.locals['load_script'] = ext_load_script
         self.locals['deliver_image'] = deliver_image
         self._setup_logging_handlers()
@@ -605,6 +606,24 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    }
         self.execute("%s = None\n" % (varname), hide=True)
         self.payload_handler.add_payload(payload)
+
+    @lockit
+    def object_creator(self, pfname, objtype, objargs):
+        funccall = "_tobjargs = {}\n"
+        for argname, argval in objargs.items():
+            # These arguments may need further sanitization
+            if isinstance(argval, types.StringTypes):
+                argval = "'%s'" % argval
+            funccall += "_tobjargs['%(argname)s'] = %(argval)s\n" % dict(
+                    argname = argname, argval = argval)
+        funccall += """
+        _tpf = %(pfname)s
+        _tobjclass = getattr(_tpf.h, '%(objtype)s')
+        data_objects.append(_tobjclass(**_tobjargs))
+        """ % dict(pfname = pfname, objtype = objtype)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = False)
+        pf = self.locals['_tpf']
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

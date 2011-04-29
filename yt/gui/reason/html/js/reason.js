@@ -168,6 +168,9 @@ var treePanel = new Ext.tree.TreePanel({
                           }, {
                               text: 'Open projection',
                               handler: getProjectionHandler(node),
+                          /*}, {
+                              text: 'Create Sphere',
+                              handler: getSphereCreator(node), */
                           }, {
                               text: 'View Streamlines',
                               handler: getStreamlineViewerHandler(node),

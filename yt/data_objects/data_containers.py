@@ -2909,7 +2909,7 @@ class AMRSphereBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
-        if isinstance(radius, tuple) and len(radius) == 2 and \
+        if isinstance(radius, (list, tuple)) and len(radius) == 2 and \
            isinstance(radius[1], types.StringTypes):
            radius = radius[0]/self.pf[radius[1]]
         if radius < self.hierarchy.get_smallest_dx():
