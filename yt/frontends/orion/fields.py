@@ -73,7 +73,7 @@ translation_dict = {"x-velocity": "xvel",
                     "y-velocity": "yvel",
                     "z-velocity": "zvel",
                     "Density": "density",
-                    "Total_Energy": "eden",
+                    "TotalEnergy": "eden",
                     "Temperature": "temperature",
                     "x-momentum": "xmom",
                     "y-momentum": "ymom",
@@ -123,9 +123,9 @@ def _ThermalEnergy(field, data):
         leave that commented out for now.
     """
     #if data.pf["DualEnergyFormalism"]:
-    #    return data["Gas_Energy"]
+    #    return data["GasEnergy"]
     #else:
-    return data["Total_Energy"] - 0.5 * data["density"] * (
+    return data["TotalEnergy"] - 0.5 * data["density"] * (
         data["x-velocity"]**2.0
         + data["y-velocity"]**2.0
         + data["z-velocity"]**2.0 )

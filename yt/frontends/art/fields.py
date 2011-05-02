@@ -45,13 +45,13 @@ add_art_field = ARTFieldInfo.add_field
 add_field = add_art_field
 
 translation_dict = {"Density":"density",
-                    "Total_Energy":"Total_Energy",
+                    "TotalEnergy":"TotalEnergy",
                     "x-velocity":"velocity_x",
                     "y-velocity":"velocity_y",
                     "z-velocity":"velocity_z",
                     "Pressure":"pressure",
                     "Metallicity":"metallicity",
-                    "Gas_Energy":"Gas_Energy"
+                    "GasEnergy":"GasEnergy"
                    }
 
 def _generate_translation(mine, theirs):
@@ -78,13 +78,13 @@ ARTFieldInfo["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
 ARTFieldInfo["Density"]._convert_function=_convertDensity
 
 def _convertEnergy(data):
-    return data.convert("Gas_Energy")
-ARTFieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
-ARTFieldInfo["Gas_Energy"]._convert_function=_convertEnergy
+    return data.convert("GasEnergy")
+ARTFieldInfo["GasEnergy"]._units = r"\rm{ergs}/\rm{g}"
+ARTFieldInfo["GasEnergy"]._convert_function=_convertEnergy
 
 def _Temperature(field, data):
-    tr  = data["Gas_Energy"] / data["Density"]
-    tr /= data.pf.conversion_factors["Gas_Energy"]
+    tr  = data["GasEnergy"] / data["Density"]
+    tr /= data.pf.conversion_factors["GasEnergy"]
     tr *= data.pf.conversion_factors["Density"]
     return tr
 def _convertTemperature(data):
