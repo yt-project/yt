@@ -939,6 +939,13 @@ class YTCommands(cmdln.Cmdln):
             sock.bind(('', 0))
             opts.port = sock.getsockname()[-1]
             del sock
+        elif opts.port == '-1':
+            port = raw_input("Desired yt port? ")
+            try:
+                opts.port = int(port)
+            except ValueError:
+                print "Please try a number next time."
+                return 1
         base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
         if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
             print
