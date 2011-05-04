@@ -7,7 +7,7 @@ Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -626,7 +626,10 @@ class AMRRayBase(AMR1DData):
                               grid.child_mask)
         if field == 'dts': return self._dts[grid.id][mask]
         if field == 't': return self._ts[grid.id][mask]
-        return grid[field][mask]
+        gf = grid[field]
+        if not iterable(gf):
+            gf = gf * na.ones(grid.child_mask.shape)
+        return gf[mask]
         
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -2906,7 +2909,7 @@ class AMRSphereBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
-        if isinstance(radius, tuple) and len(radius) == 2 and \
+        if isinstance(radius, (list, tuple)) and len(radius) == 2 and \
            isinstance(radius[1], types.StringTypes):
            radius = radius[0]/self.pf[radius[1]]
         if radius < self.hierarchy.get_smallest_dx():

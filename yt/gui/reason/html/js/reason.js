@@ -8,7 +8,7 @@ Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -168,6 +168,9 @@ var treePanel = new Ext.tree.TreePanel({
                           }, {
                               text: 'Open projection',
                               handler: getProjectionHandler(node),
+                          /*}, {
+                              text: 'Create Sphere',
+                              handler: getSphereCreator(node), */
                           }, {
                               text: 'View Streamlines',
                               handler: getStreamlineViewerHandler(node),

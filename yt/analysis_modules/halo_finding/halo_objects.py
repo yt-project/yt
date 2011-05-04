@@ -7,7 +7,7 @@ Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

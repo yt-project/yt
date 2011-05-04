@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -124,9 +124,9 @@ class ARTHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         # This will need to be generalized to be used elsewhere.
-        self.field_list = [ 'Density','Total_Energy',
+        self.field_list = [ 'Density','TotalEnergy',
                             'x-momentum','y-momentum','z-momentum',
-                            'Pressure','Gamma','Gas_Energy',
+                            'Pressure','Gamma','GasEnergy',
                             'Metal_DensitySNII', 'Metal_DensitySNIa',
                             'Potential_New','Potential_Old']
     
@@ -434,7 +434,7 @@ class ARTStaticOutput(StaticOutput):
         self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))      
         self.conversion_factors["Density"] = \
             self.rho0*(aexpn**-3.0)
-        self.conversion_factors["Gas_Energy"] = \
+        self.conversion_factors["GasEnergy"] = \
             self.rho0*self.v0**2*(aexpn**-5.0)
         tr  = self.tr
         self.conversion_factors["Temperature"] = tr

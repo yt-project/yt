@@ -8,7 +8,7 @@ Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -114,10 +114,10 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     xtype: 'panel',
                     id: 'ticks_' + python_varname,
                     layout: 'absolute',
-                    y: 10,
+                    y: 0,
                     x: 540,
-                    width: 40,
-                    height: 400,
+                    width: 100,
+                    height: 420,
                     items : [],
                     border: false,
                 }, {   xtype: 'multislider',
@@ -334,9 +334,9 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     xtype: 'panel',
                     layout: 'vbox',
                     id: 'rhs_panel_' + python_varname,
-                    width: 300,
+                    width: 250,
                     height: 460,
-                    x: 590, y: 10,
+                    x: 690, y: 10,
                     layoutConfig: {
                         align: 'stretch',
                         pack: 'start',
@@ -383,21 +383,22 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         metadata_string = payload['metadata_string'];
         ticks.removeAll();
         Ext.each(payload['ticks'], function(tick, index) {
+            console.log(tick);
             ticks.add({xtype:'panel',
                        width: 10, height:1,
                        style: 'background-color: #000000;',
                        html:'&nbsp;',
-                       x:0, y: tick[0]});
+                       x:0, y: 10 + tick[0]});
             ticks.add({xtype:'panel',
-                       width: 30, height:15,
+                       width: 90, height:15,
                        border: false,
                        style: 'font-family: "Inconsolata", monospace;' +
                               'font-size: 12px;',
-                       html: ' ' + tick[2] + ' ',
-                       x:12, y: tick[0]-6});
+                       html: '' + tick[2] + '',
+                       x:12, y: 4 + tick[0]});
             examine = tick;
         });
-        //examine = ticks;
+        examine = payload['ticks'];
         ticks.doLayout();
     }
 

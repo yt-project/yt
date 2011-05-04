@@ -3,7 +3,7 @@ Modifications and extensions to Bottle, to make it slightly more useful for
 yt's purposes
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -136,10 +136,10 @@ class BottleDirectRouter(DirectRouter):
         return rv
 
 def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
-                         repl = None):
+                         repl = None, token = None):
     if pre_routed == None: pre_routed = route_functions
     debug(mode=True)
-    token = uuid.uuid1()
+    if token is None: token = uuid.uuid1()
     for r in pre_routed:
         args, kwargs, f = pre_routed[r]
         if r[0] == "/": r = r[1:]

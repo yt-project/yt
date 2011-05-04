@@ -9,7 +9,7 @@ Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -94,8 +94,8 @@ from .level_sets.api import \
     recursive_bottom_clumps, \
     clump_list_sort
 
-from .light_ray.api import \
-    LightRay
+#from .light_ray.api import \
+#    LightRay
 
 from .light_cone.api import \
     LightCone, \

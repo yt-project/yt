@@ -8,7 +8,7 @@ Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -475,4 +475,112 @@ function projectionHandler(item,pressed){
     win.show(this);
 }
 return projectionHandler;
+}
+
+function getSphereCreator(node){
+function sphereCreator(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:320,
+        height:250,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Sphere Creator ' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [{
+                xtype:'textfield',
+                fieldLabel: 'Center X',
+                id: 'slice_x_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Center Y',
+                id: 'slice_y_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Center Z',
+                id: 'slice_z_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Radius',
+                id: 'radius_value',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'combo',
+                fieldLabel: 'Unit',
+                id: 'radius_unit',
+                store:['unitary', '1', 'mpc', 'kpc', 'pc', 'au', 'rsun', 'cm'],
+                width: 90,
+                allowBlank:false,
+                value: 'Unitary',
+                triggerAction: 'all',
+            },{
+                xtype:'checkbox',
+                fieldLabel: 'Center on Max',
+                id: 'max_dens',
+                width: 90,
+                allowBlank:false,
+                handler: function(checkbox, checked) {
+                    if (checked == true) {
+                        this.ownerCt.get("slice_x_center").disable();
+                        this.ownerCt.get("slice_y_center").disable();
+                        this.ownerCt.get("slice_z_center").disable();
+                    } else {
+                        this.ownerCt.get("slice_x_center").enable();
+                        this.ownerCt.get("slice_y_center").enable();
+                        this.ownerCt.get("slice_z_center").enable();
+                    }
+                }
+            }],
+            buttons: [
+                {
+                    text: 'Slice',
+                    handler: function(b, e){
+                        var center = [Ext.get("slice_x_center").getValue(),
+                                      Ext.get("slice_y_center").getValue(),
+                                      Ext.get("slice_z_center").getValue()];
+                        var onmax = Ext.get("max_dens").getValue();
+                        var radius = [Ext.get("radius_value").getValue(),
+                                      Ext.get("radius_unit").getValue()]
+                        objargs = {radius: radius}
+                        if (onmax == true) {
+                            objargs['center'] = 'max';
+                        } else {
+                            objargs['center'] = center;
+                        }
+                        yt_rpc.ExtDirectREPL.object_creator({
+                            pfname:node.attributes.objdata.varname,
+                            objtype:'sphere', objargs:objargs},
+                          handle_result);
+                        disable_input();
+                        win.close();
+                    }
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){
+                        win.close();
+
+                    }
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return sphereCreator;
 }

@@ -1,6 +1,6 @@
 /*
 This file is part of ``kdtree'', a library for working with kd-trees.
-Copyright (C) 2007-2009 John Tsiombikas <nuclear@siggraph.org>
+Copyright (C) 2007-2011 John Tsiombikas <nuclear@siggraph.org>
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

@@ -7,7 +7,7 @@ Author: JS Oishi <jsoishi@astro.berkeley.edu>
 Organization: UC Berkeley
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk, J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 

@@ -9,7 +9,7 @@ Author: Chris Malone <chris.m.malone@gmail.com>
 Affiliation: SUNY Stony Brook
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

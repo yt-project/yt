@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -124,7 +124,10 @@ def get_memory_usage():
     """
     Returning resident size in megabytes
     """
-    pagesize = resource.getpagesize()
+    try:
+        pagesize = resource.getpagesize()
+    except NameError:
+        return 0
     pid = os.getpid()
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):

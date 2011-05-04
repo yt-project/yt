@@ -2,7 +2,7 @@
 This is a simple mechanism for interfacing with Profile and Phase plots
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -37,7 +37,7 @@ from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
 from .plot_types import ProfilePlot, PhasePlot
-from .loglocator import LogLocator
+from .tick_locators import LogLocator
 
 def invalidate_plot(f):
     @wraps(f)

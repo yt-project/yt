@@ -3,7 +3,7 @@ A read-eval-print-loop that is served up through Bottle and accepts its
 commands through ExtDirect calls
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -35,6 +35,10 @@ import urllib
 import urllib2
 import pprint
 import traceback
+import tempfile
+import base64
+import imp
+import threading
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -46,7 +50,6 @@ from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
 from .bottle import response, request, route
 from .basic_repl import ProgrammaticREPL
-import threading
 
 try:
     import pygments
@@ -92,6 +95,54 @@ class MethodLock(object):
 
 lockit = MethodLock()
 
+def deliver_image(im):
+    if hasattr(im, 'read'):
+        img_data = base64.b64encode(im.read())
+    elif isinstance(im, types.StringTypes) and \
+         im.endswith(".png"):
+        img_data = base64.b64encode(open(im).read())
+    elif isinstance(im, types.StringTypes):
+        img_data = im
+    else:
+        raise RuntimeError
+    ph = PayloadHandler()
+    payload = {'type':'png_string',
+               'image_data':img_data}
+    ph.add_payload(payload)
+
+def reason_pylab():
+    def _canvas_deliver(canvas):
+        tf = tempfile.TemporaryFile()
+        canvas.print_png(tf)
+        tf.seek(0)
+        img_data = base64.b64encode(tf.read())
+        tf.close()
+        deliver_image(img_data)
+    def reason_draw_if_interactive():
+        if matplotlib.is_interactive():
+            figManager =  Gcf.get_active()
+            if figManager is not None:
+                _canvas_deliver(figManager.canvas)
+    def reason_show(mainloop = True):
+        # We ignore mainloop here
+        for manager in Gcf.get_all_fig_managers():
+            _canvas_deliver(manager.canvas)
+    # Matplotlib has very nice backend overriding.
+    # We should really use that.  This is just a hack.
+    import matplotlib
+    new_agg = imp.new_module("reason_agg")
+    import matplotlib.backends.backend_agg as bagg
+    new_agg.__dict__.update(bagg.__dict__)
+    new_agg.__dict__.update(
+        {'show': reason_show,
+         'draw_if_interactive': reason_draw_if_interactive})
+    sys.modules["reason_agg"] = new_agg
+    bagg.draw_if_interactive = reason_draw_if_interactive
+    from matplotlib._pylab_helpers import Gcf
+    import pylab, matplotlib
+    matplotlib.rcParams["backend"] = "module://reason_agg"
+    pylab.switch_backend("module://reason_agg")
+
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
@@ -132,9 +183,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.payload_handler = PayloadHandler()
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
-        self.execute("from yt.mods import *")
+        reason_pylab()
+        self.execute("from yt.mods import *\nimport pylab\npylab.ion()")
         self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
+        self.execute("data_objects = []", hide = True)
         self.locals['load_script'] = ext_load_script
+        self.locals['deliver_image'] = deliver_image
         self._setup_logging_handlers()
 
         # Setup our heartbeat
@@ -380,8 +434,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw._current_field = _tfield
-        _tpw._field_transform["%(field)s"] = na.log
+        _tpw.set_current_field("%(field)s")
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _tcb = _tpw._get_cbar_image()
@@ -420,8 +473,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw._current_field = _tfield
-        _tpw.set_log(_tfield, True)
+        _tpw.set_current_field("%(field)s")
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _tcb = _tpw._get_cbar_image()
@@ -554,6 +606,24 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    }
         self.execute("%s = None\n" % (varname), hide=True)
         self.payload_handler.add_payload(payload)
+
+    @lockit
+    def object_creator(self, pfname, objtype, objargs):
+        funccall = "_tobjargs = {}\n"
+        for argname, argval in objargs.items():
+            # These arguments may need further sanitization
+            if isinstance(argval, types.StringTypes):
+                argval = "'%s'" % argval
+            funccall += "_tobjargs['%(argname)s'] = %(argval)s\n" % dict(
+                    argname = argname, argval = argval)
+        funccall += """
+        _tpf = %(pfname)s
+        _tobjclass = getattr(_tpf.h, '%(objtype)s')
+        data_objects.append(_tobjclass(**_tobjargs))
+        """ % dict(pfname = pfname, objtype = objtype)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = False)
+        pf = self.locals['_tpf']
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

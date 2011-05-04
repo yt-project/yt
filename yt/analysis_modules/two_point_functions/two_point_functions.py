@@ -5,7 +5,7 @@ Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2010-2011 Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 

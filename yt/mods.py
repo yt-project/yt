@@ -6,7 +6,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -95,7 +95,8 @@ from yt.utilities.definitions import \
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    callback_registry, write_bitmap, write_image, annotate_image
+    callback_registry, write_bitmap, write_image, annotate_image, \
+    apply_colormap
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
