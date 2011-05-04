@@ -76,9 +76,7 @@ castro2ytFieldsDict = {}
 
 castro_FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
 
-castro_particle_field_names = set(
-    ['particle_position_%s' % ax for ax in 'xyz'] +
-    ['particle_mass'] + 
+castro_particle_field_names = \
+    ['particle_position_%s' % ax for ax in 'xyz'] + \
+    ['particle_mass'] +  \
     ['particle_velocity_%s' % ax for ax in 'xyz'] 
-)
-

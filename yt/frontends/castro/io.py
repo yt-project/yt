@@ -28,6 +28,8 @@ import os
 import numpy as na
 from yt.utilities.io_handler import \
            BaseIOHandler
+from yt.utilities.amr_utils import \
+            read_castro_particles
 
 from definitions import \
     yt2castroFieldsDict, \
@@ -41,14 +43,15 @@ class IOHandlerNative(BaseIOHandler):
         return field.swapaxes(0,2)
 
     def _read_particle_field(self, grid, field):
-        raise NotImplementedError
         offset = grid._particle_offset
-        filen = os.path.expanduser(grid.filename[field])
-        off = grid._particle_offset[field]
-        inFile = open(filen,'rb')
-        inFile.seek(off)
-        # This is hardcoded to: 5 int fields, 4 bytes per field
-        inFile.seek(5*grid.NumberOfParticles*4)
+        filen = os.path.expanduser(grid.particle_filename)
+        off = grid._particle_offset
+        tr = na.zeros(grid.NumberOfParticles, dtype='float64')
+        read_castro_particles(filen, off,
+            castro_particle_field_names.index(field),
+            len(castro_particle_field_names),
+            tr)
+        return tr
 
     def _read_data_set(self, grid, field):
         """

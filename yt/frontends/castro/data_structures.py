@@ -26,6 +26,7 @@ License:
 import re
 import os
 import weakref
+import itertools
 import numpy as na
 
 from collections import \
@@ -283,8 +284,9 @@ class CastroHierarchy(AMRHierarchy):
     def read_particle_header(self):
         # We need to get particle offsets and particle counts
         if not self.parameter_file.use_particles:
-            self.pgrid_info = na.zeros((self.num_grids, 2), dtype='int64')
+            self.pgrid_info = na.zeros((self.num_grids, 3), dtype='int64')
             return
+        self.field_list += castro_particle_field_names[:]
         header = open(os.path.join(self.parameter_file.fullplotdir,
                         "DM", "Header"))
         version = header.readline()
@@ -294,12 +296,12 @@ class CastroHierarchy(AMRHierarchy):
         dummy = header.readline() # nextid
         maxlevel = int(header.readline()) # max level
         # Skip over how many grids on each level; this is degenerate
-        for i in range(maxlevel): dummy = header.readline()
+        for i in range(maxlevel+1): dummy = header.readline()
         grid_info = na.fromiter((int(i)
                     for line in header.readlines()
-                    for i in line.split()[1:]
+                    for i in line.split()
                     ),
-            dtype='int64', count=2*self.num_grids).reshape((self.num_grids, 2))
+            dtype='int64', count=3*self.num_grids).reshape((self.num_grids, 3))
         self.pgrid_info = grid_info
 
     def __cache_endianness(self, test_grid):
@@ -339,6 +341,14 @@ class CastroHierarchy(AMRHierarchy):
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
+        basedir = self.parameter_file.fullplotdir
+        for g, pg in itertools.izip(self.grids, self.pgrid_info):
+            g.particle_filename = os.path.join(
+                basedir, "DM", "Level_%s" % (g.Level), "DATA_%04i" % pg[0])
+            g.NumberOfParticles = pg[1]
+            g._particle_offset = pg[2]
+        self.grid_particle_count[:,0] = self.pgrid_info[:,1]
+        del self.pgrid_info
         self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
         self.grid_levels = self.grid_levels.reshape((self.num_grids,1))
         grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels], axis=0)
@@ -657,6 +667,8 @@ class CastroStaticOutput(StaticOutput):
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
         for key in yt2castroFieldsDict:
+            self.conversion_factors[key] = 1.0
+        for key in castro_particle_field_names:
             self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
