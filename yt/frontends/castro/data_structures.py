@@ -131,6 +131,7 @@ class CastroHierarchy(AMRHierarchy):
 
         # This also sets up the grid objects
         self.read_global_header(header_filename, self.parameter_file.paranoid_read) 
+        self.read_particle_header()
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self, pf, self.data_style)
         self._setup_data_io()
@@ -279,6 +280,28 @@ class CastroHierarchy(AMRHierarchy):
         self.max_level = self.n_levels - 1
         header_file.close()
 
+    def read_particle_header(self):
+        # We need to get particle offsets and particle counts
+        if not self.parameter_file.use_particles:
+            self.pgrid_info = na.zeros((self.num_grids, 2), dtype='int64')
+            return
+        header = open(os.path.join(self.parameter_file.fullplotdir,
+                        "DM", "Header"))
+        version = header.readline()
+        ndim = header.readline()
+        nfields = header.readline()
+        ntotalpart = int(header.readline())
+        dummy = header.readline() # nextid
+        maxlevel = int(header.readline()) # max level
+        # Skip over how many grids on each level; this is degenerate
+        for i in range(maxlevel): dummy = header.readline()
+        grid_info = na.fromiter((int(i)
+                    for line in header.readlines()
+                    for i in line.split()[1:]
+                    ),
+            dtype='int64', count=2*self.num_grids).reshape((self.num_grids, 2))
+        self.pgrid_info = grid_info
+
     def __cache_endianness(self, test_grid):
         """
         Cache the endianness and bytes perreal of the grids by using a
@@ -381,7 +404,7 @@ class CastroHierarchy(AMRHierarchy):
         if self.parameter_file.use_particles:
             # We know which particle fields will exist -- pending further
             # changes in the future.
-            for field in _castro_particle_fields:
+            for field in castro_particle_field_names:
                 def external_wrapper(f):
                     def _convert_function(data):
                         return data.convert(f)
@@ -566,7 +589,7 @@ class CastroStaticOutput(StaticOutput):
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
-        self.refine_by = self.parameters["RefineBy"]
+        self.refine_by = self.parameters.get("RefineBy", 2)
 
         if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):
             self.cosmological_simulation = 1

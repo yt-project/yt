@@ -30,7 +30,7 @@ from yt.utilities.io_handler import \
            BaseIOHandler
 
 from definitions import \
-    yt2castroFieldsDict,
+    yt2castroFieldsDict, \
     castro_particle_field_names
 
 class IOHandlerNative(BaseIOHandler):
