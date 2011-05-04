@@ -425,7 +425,8 @@ class CastroHierarchy(AMRHierarchy):
                 # and 3D fields.
                 self.pf.field_info.add_field(
                         field, lambda a, b: None,
-                        convert_function=cf, take_log=False)
+                        convert_function=cf, take_log=False,
+                        particle_type=True)
 
     def _count_grids(self):
         """this is already provided in 

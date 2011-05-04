@@ -142,3 +142,13 @@ add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 def _Temperature(field, data):
     return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
 add_field("Temperature", function=_Temperature, units=r"\rm{Kelvin}", take_log=False)
+
+def _convertParticleMassMsun(data):
+    return 1.0/1.989e33
+def _ParticleMassMsun(field, data):
+    return data["particle_mass"]
+add_field("ParticleMassMsun",
+          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_ParticleMassMsun)
+

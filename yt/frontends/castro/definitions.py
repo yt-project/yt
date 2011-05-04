@@ -58,7 +58,6 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "NumberOfParticleAttributes": int,
                 }
 
-
 # converts the Castro inputs file name to the Enzo/yt name expected
 # throughout the code. key is Castro name, value is Enzo/yt equivalent
 castro2enzoDict = {"amr.n_cell": "TopGridDimensions",
