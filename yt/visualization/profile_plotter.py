@@ -25,6 +25,7 @@ License:
 
 import tempfile
 import base64
+import types
 
 from functools import wraps
 import numpy as na
@@ -62,12 +63,66 @@ class AxisSpec(object):
 
 class ColorbarSpec(AxisSpec):
     cmap = None
+    display = True
 
 class ImagePlotContainer(object):
     x_spec = None
     y_spec = None
     image = None
     cbar = None
+
+    def to_mpl(self, place = None):
+        import _mpl_imports as mpl
+        if isinstance(place, mpl.matplotlib.figure.Figure):
+            figure, place = place, None
+            place = None
+        else:
+            figure = mpl.matplotlib.figure.Figure((10,8))
+        if isinstance(place, mpl.matplotlib.axes.Axes):
+            axes, place = place, None
+        else:
+            axes = figure.add_subplot(1,1,1)
+        # We'll go with a mesh here, even if it's inappropriate
+        use_mesh = False
+        xmi, xma = self.x_spec.bounds
+        if self.x_spec.scale == 'log':
+            x_bins = na.logspace(na.log10(xmi), na.log10(xma),
+                                 self.image.shape[0]+1)
+            use_mesh = True
+        else:
+            x_bins = na.logspace(xmi, xma, self.image.shape[0]+1)
+
+        ymi, yma = self.y_spec.bounds
+        if self.y_spec.scale == 'log':
+            y_bins = na.logspace(na.log10(ymi), na.log10(yma),
+                                 self.image.shape[0]+1)
+            use_mesh = True
+        else:
+            y_bins = na.logspace(ymi, yma, self.image.shape[0]+1)
+
+        im = self.image
+        if self.cbar.scale == 'log':
+            norm = mpl.matplotlib.colors.LogNorm()
+        else:
+            norm = mpl.matplotlib.colors.Normalize()
+        if use_mesh:
+            pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
+                                  shading='flat', cmap = self.cbar.cmap,
+                                  rasterized=True)
+            if self.x_spec.scale == 'log': axes.set_xscale("log")
+            if self.y_spec.scale == 'log': axes.set_yscale("log")
+        else:
+            axes.imshow(self.image, origin='lower', interpolation='nearest',
+                        cmap = self.cbar.cmap, extent = [xmi,xma,ymi,yma],
+                        norm = norm)
+        if self.x_spec.title is not None:
+            axes.set_xlabel(self.x_spec.title)
+        if self.y_spec.title is not None:
+            axes.set_ylabel(self.y_spec.title)
+        if isinstance(place, types.StringTypes):
+            canvas = mpl.FigureCanvasAgg(figure)
+            canvas.print_figure(place)
+        return figure, axes
 
 class PhasePlotter(object):
     scale = None
@@ -212,7 +267,7 @@ class PhasePlotter(object):
         cbar.calculate_ticks()
 
         self.plot = ImagePlotContainer()
-        self.plot.image = self.profile[self._current_field]
+        self.plot.image = self.profile[self._current_field].transpose()
         self.plot.x_spec = xax
         self.plot.y_spec = yax
         self.plot.cbar = cbar
@@ -233,7 +288,7 @@ class PhasePlotterExtWidget(PhasePlotter):
         cbar = self._convert_axis(self.plot.cbar)
         cbar['cmap_image'] = self._get_cbar_image()
         # This is a historical artifact
-        raw_data = self.plot.image.transpose()[::-1,:]
+        raw_data = self.plot.image[::-1,:]
 
         if self.plot.cbar.scale == 'log':
             func = na.log10
