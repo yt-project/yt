@@ -47,6 +47,11 @@ cdef class VoronoiVolume:
                                     xi, yi, zi, False, False, False, 8)
         self.npart = 0
 
+    def __dealloc__(self):
+        del self.my_con
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def add_array(self, np.ndarray[np.float64_t, ndim=1] xpos,
                         np.ndarray[np.float64_t, ndim=1] ypos,
                         np.ndarray[np.float64_t, ndim=1] zpos):
@@ -55,6 +60,8 @@ cdef class VoronoiVolume:
             self.my_con.put(self.npart, xpos[i], ypos[i], zpos[i])
             self.npart += 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_volumes(self):
         cdef np.ndarray vol = np.zeros(self.npart, 'double')
         cdef double *vdouble = <double *> vol.data
