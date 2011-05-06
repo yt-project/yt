@@ -172,6 +172,10 @@ def configuration(parent_package='',top_path=None):
                 glob.glob("yt/utilities/_amr_utils/*.h") +
                 glob.glob("yt/utilities/_amr_utils/*.c"),
         )
+    #config.add_extension("voropp",
+    #    ["yt/utilities/voropp.pyx"],
+    #    language="c++",
+    #    include_dirs=["yt/utilities/voro++"])
     config.add_extension("libconfig_wrapper", 
         ["yt/utilities/libconfig_wrapper.pyx"] +
          glob.glob("yt/utilities/_libconfig/*.c"), 
