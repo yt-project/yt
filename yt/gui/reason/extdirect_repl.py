@@ -3,7 +3,7 @@ A read-eval-print-loop that is served up through Bottle and accepts its
 commands through ExtDirect calls
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -34,6 +34,11 @@ import time
 import urllib
 import urllib2
 import pprint
+import traceback
+import tempfile
+import base64
+import imp
+import threading
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -45,7 +50,6 @@ from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
 from .bottle import response, request, route
 from .basic_repl import ProgrammaticREPL
-import threading
 
 try:
     import pygments
@@ -91,6 +95,54 @@ class MethodLock(object):
 
 lockit = MethodLock()
 
+def deliver_image(im):
+    if hasattr(im, 'read'):
+        img_data = base64.b64encode(im.read())
+    elif isinstance(im, types.StringTypes) and \
+         im.endswith(".png"):
+        img_data = base64.b64encode(open(im).read())
+    elif isinstance(im, types.StringTypes):
+        img_data = im
+    else:
+        raise RuntimeError
+    ph = PayloadHandler()
+    payload = {'type':'png_string',
+               'image_data':img_data}
+    ph.add_payload(payload)
+
+def reason_pylab():
+    def _canvas_deliver(canvas):
+        tf = tempfile.TemporaryFile()
+        canvas.print_png(tf)
+        tf.seek(0)
+        img_data = base64.b64encode(tf.read())
+        tf.close()
+        deliver_image(img_data)
+    def reason_draw_if_interactive():
+        if matplotlib.is_interactive():
+            figManager =  Gcf.get_active()
+            if figManager is not None:
+                _canvas_deliver(figManager.canvas)
+    def reason_show(mainloop = True):
+        # We ignore mainloop here
+        for manager in Gcf.get_all_fig_managers():
+            _canvas_deliver(manager.canvas)
+    # Matplotlib has very nice backend overriding.
+    # We should really use that.  This is just a hack.
+    import matplotlib
+    new_agg = imp.new_module("reason_agg")
+    import matplotlib.backends.backend_agg as bagg
+    new_agg.__dict__.update(bagg.__dict__)
+    new_agg.__dict__.update(
+        {'show': reason_show,
+         'draw_if_interactive': reason_draw_if_interactive})
+    sys.modules["reason_agg"] = new_agg
+    bagg.draw_if_interactive = reason_draw_if_interactive
+    from matplotlib._pylab_helpers import Gcf
+    import pylab, matplotlib
+    matplotlib.rcParams["backend"] = "module://reason_agg"
+    pylab.switch_backend("module://reason_agg")
+
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
@@ -131,14 +183,23 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.payload_handler = PayloadHandler()
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
-        self.execute("from yt.mods import *")
+        reason_pylab()
+        self.execute("from yt.mods import *\nimport pylab\npylab.ion()")
         self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
+        self.execute("data_objects = []", hide = True)
         self.locals['load_script'] = ext_load_script
+        self.locals['deliver_image'] = deliver_image
         self._setup_logging_handlers()
 
         # Setup our heartbeat
         self.last_heartbeat = time.time()
         self._check_heartbeat()
+
+    def exception_handler(self, exc):
+        result = {'type': 'cell_results',
+                  'input': 'ERROR HANDLING IN REASON',
+                  'output': traceback.format_exc()}
+        return result
 
     def _setup_logging_handlers(self):
         handler = PayloadLoggingHandler()
@@ -333,6 +394,28 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return command
 
     @lockit
+    def create_phase(self, objname, field_x, field_y, field_z, weight):
+        if weight == "None": weight = None
+        else: weight = "'%s'" % (weight)
+        funccall = """
+        _tfield_x = "%(field_x)s"
+        _tfield_y = "%(field_y)s"
+        _tfield_z = "%(field_z)s"
+        _tweight = %(weight)s
+        _tobj = %(objname)s
+        _tpf = _tobj.pf
+        from yt.visualization.profile_plotter import PhasePlotterExtWidget
+        _tpp = PhasePlotterExtWidget(_tobj, _tfield_x, _tfield_y, _tfield_z, _tweight)
+        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
+        _tfield_list.sort()
+        _twidget_data = {'title': "%%s Phase Plot" %% (_tobj)}
+        """ % dict(objname = objname, field_x = field_x, field_y = field_y,
+                   field_z = field_z, weight = weight)
+        funccall = "\n".join(line.strip() for line in funccall.splitlines())
+        self.execute(funccall, hide=True)
+        self.execute(self._add_widget('_tpp', '_twidget_data'), hide=True)
+
+    @lockit
     def create_proj(self, pfname, axis, field, weight, onmax):
         if weight == "None": weight = None
         else: weight = "'%s'" % (weight)
@@ -351,13 +434,14 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw._current_field = _tfield
-        _tpw._field_transform["%(field)s"] = na.log
+        _tpw.set_current_field("%(field)s")
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
+        _tcb = _tpw._get_cbar_image()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
-                         'title': "%%s Projection" %% (_tpf)}
+                         'title': "%%s Projection" %% (_tpf),
+                         'colorbar': _tcb}
         """ % dict(pfname = pfname,
                    axis = inv_axis_names[axis],
                    weight = weight,
@@ -389,13 +473,14 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
         from yt.visualization.plot_window import PWViewerExtJS
         _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw._current_field = _tfield
-        _tpw.set_log(_tfield, True)
+        _tpw.set_current_field("%(field)s")
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
+        _tcb = _tpw._get_cbar_image()
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
-                         'title': "%%s Slice" %% (_tpf)}
+                         'title': "%%s Slice" %% (_tpf),
+                         'colorbar': _tcb}
         """ % dict(pfname = pfname,
                    center_string = center_string,
                    axis = inv_axis_names[axis],
@@ -404,6 +489,39 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall, hide = True)
         self.execute(self._add_widget('_tpw', '_twidget_data'), hide = True)
+
+    @lockit
+    def create_grid_dataview(self, pfname):
+        funccall = """
+        _tpf = %(pfname)s
+        """ % dict(pfname = pfname)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = True)
+        pf = self.locals['_tpf']
+        levels = pf.h.grid_levels
+        left_edge = pf.h.grid_left_edge
+        right_edge = pf.h.grid_right_edge
+        dimensions = pf.h.grid_dimensions
+        cell_counts = pf.h.grid_dimensions.prod(axis=1)
+        # This is annoying, and not ... that happy for memory.
+        i = pf.h.grids[0]._id_offset
+        vals = []
+        for i, (L, LE, RE, dim, cell) in enumerate(zip(
+            levels, left_edge, right_edge, dimensions, cell_counts)):
+            vals.append([ int(i), int(L[0]),
+                          float(LE[0]), float(LE[1]), float(LE[2]),
+                          float(RE[0]), float(RE[1]), float(RE[2]),
+                          int(dim[0]), int(dim[1]), int(dim[2]),
+                          int(cell)] )
+        uu = str(uuid.uuid1()).replace("-","_")
+        varname = "gg_%s" % (uu)
+        payload = {'type': 'widget',
+                   'widget_type': 'grid_data',
+                   'varname': varname, # Is just "None"
+                   'data': dict(gridvals = vals),
+                   }
+        self.execute("%s = None\n" % (varname), hide=True)
+        self.payload_handler.add_payload(payload)
 
     @lockit
     def create_grid_viewer(self, pfname):
@@ -488,6 +606,24 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                    }
         self.execute("%s = None\n" % (varname), hide=True)
         self.payload_handler.add_payload(payload)
+
+    @lockit
+    def object_creator(self, pfname, objtype, objargs):
+        funccall = "_tobjargs = {}\n"
+        for argname, argval in objargs.items():
+            # These arguments may need further sanitization
+            if isinstance(argval, types.StringTypes):
+                argval = "'%s'" % argval
+            funccall += "_tobjargs['%(argname)s'] = %(argval)s\n" % dict(
+                    argname = argname, argval = argval)
+        funccall += """
+        _tpf = %(pfname)s
+        _tobjclass = getattr(_tpf.h, '%(objtype)s')
+        data_objects.append(_tobjclass(**_tobjargs))
+        """ % dict(pfname = pfname, objtype = objtype)
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = False)
+        pf = self.locals['_tpf']
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

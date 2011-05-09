@@ -8,7 +8,7 @@ Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -94,6 +94,32 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                             });
                         }
                     }
+                }, {
+                    xtype:'panel',
+                    id: 'colorbar_' + python_varname,
+                    autoEl: {
+                        tag: 'img',
+                        id: "cb_" + python_varname,
+                        src: "data:image/png;base64," +
+                             widget_data['colorbar'],
+                        width: 28,
+                        height: 398,
+                        style: 'border: 1px solid #000000;',
+                    },
+                    x: 510,
+                    y: 10,
+                    width: 30,
+                    height: 400,
+                }, {
+                    xtype: 'panel',
+                    id: 'ticks_' + python_varname,
+                    layout: 'absolute',
+                    y: 0,
+                    x: 540,
+                    width: 100,
+                    height: 420,
+                    items : [],
+                    border: false,
                 }, {   xtype: 'multislider',
                     id: 'slider_' + python_varname,
                     minValue: 0,
@@ -308,9 +334,9 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     xtype: 'panel',
                     layout: 'vbox',
                     id: 'rhs_panel_' + python_varname,
-                    width: 300,
+                    width: 250,
                     height: 460,
-                    x: 510, y: 10,
+                    x: 690, y: 10,
                     layoutConfig: {
                         align: 'stretch',
                         pack: 'start',
@@ -341,6 +367,8 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.panel.doLayout();
     this.panel.show();
     this.image_panel = this.panel.get("image_panel_"+python_varname);
+    this.ticks = this.panel.get("ticks_"+python_varname);
+    var ticks = this.ticks;
     this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
@@ -353,6 +381,25 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         examine = this.metadata_panel;
         this.metadata_panel.update(payload['metadata_string']);
         metadata_string = payload['metadata_string'];
+        ticks.removeAll();
+        Ext.each(payload['ticks'], function(tick, index) {
+            console.log(tick);
+            ticks.add({xtype:'panel',
+                       width: 10, height:1,
+                       style: 'background-color: #000000;',
+                       html:'&nbsp;',
+                       x:0, y: 10 + tick[0]});
+            ticks.add({xtype:'panel',
+                       width: 90, height:15,
+                       border: false,
+                       style: 'font-family: "Inconsolata", monospace;' +
+                              'font-size: 12px;',
+                       html: '' + tick[2] + '',
+                       x:12, y: 4 + tick[0]});
+            examine = tick;
+        });
+        examine = payload['ticks'];
+        ticks.doLayout();
     }
 
     yt_rpc.ExtDirectREPL.execute(

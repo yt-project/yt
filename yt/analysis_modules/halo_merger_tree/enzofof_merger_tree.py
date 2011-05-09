@@ -3,7 +3,7 @@ A very simple, purely-serial, merger tree script that knows how to parse FOF
 catalogs output by Enzo and then compare parent/child relationships.
 
 Author: Matthew J. Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Author: John H. Wise <jwise@astro.princeton.edu>
 Affiliation: Princeton
 Homepage: http://yt.enzotools.org/

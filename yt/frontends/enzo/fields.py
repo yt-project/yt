@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008-2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -118,21 +118,19 @@ add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
 
-def _Cooling_Time(field, data):
-    return data["Cooling_Time"]
 add_field("Cooling_Time", units=r"\rm{s}",
-          function=_Cooling_Time,
+          function=lambda a, b: None,
           validators=ValidateDataField("Cooling_Time"),
           projection_conversion="1")
 
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
-        return data["Total_Energy"]
+        return data["TotalEnergy"]
     else:
         if data.pf["DualEnergyFormalism"]:
             return data["GasEnergy"]
         else:
-            return data["Total_Energy"] - 0.5*(
+            return data["TotalEnergy"] - 0.5*(
                    data["x-velocity"]**2.0
                  + data["y-velocity"]**2.0
                  + data["z-velocity"]**2.0 )
@@ -156,9 +154,7 @@ add_field("KineticEnergy",function=_KineticEnergy,
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
 
-def _GasEnergy(field, data):
-    return data["Gas_Energy"] / _convertEnergy(data)
-add_field("GasEnergy", function=_GasEnergy,
+add_field("GasEnergy", function=lambda a, b: None,
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Gas_Energy(field, data):
@@ -166,9 +162,7 @@ def _Gas_Energy(field, data):
 add_field("Gas_Energy", function=_Gas_Energy,
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
-def _TotalEnergy(field, data):
-    return data["Total_Energy"] / _convertEnergy(data)
-add_field("TotalEnergy", function=_TotalEnergy,
+add_field("TotalEnergy", function=lambda a, b: None,
           display_name = "\mathrm{Total}\/\mathrm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 

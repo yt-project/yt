@@ -5,7 +5,7 @@ Author: Christopher E Moody <juxtaposicion@gmail.com>
 Affiliation: UC Santa Cruz
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Christopher E Moody, Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Christopher E Moody, Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

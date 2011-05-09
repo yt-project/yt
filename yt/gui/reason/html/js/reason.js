@@ -8,7 +8,7 @@ Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
+Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -42,6 +42,11 @@ var res;
 var cell_count = 0;
 
 var handle_result = function(f, a) {
+    if(a.status == false){
+        Ext.Msg.alert("Error", "Something has gone wrong.");
+        examine = {f: f, a: a};
+        return;
+    }
     cell_finished(a.result);
 }
 
@@ -138,24 +143,41 @@ var treePanel = new Ext.tree.TreePanel({
         },
         contextmenu: {
             fn: function(node, event){
-                if (node.attributes.objdata.type == 'obj') return;
-                var rightClickMenu = new Ext.menu.Menu({
-                    items: [
-                        {
-                            text: 'View Grids',
-                            handler: getGridViewerHandler(node),
-                        }, {
-                            text: 'Open slice',
-                            handler: getSliceHandler(node),
-                        }, {
-                            text: 'Open projection',
-                            handler: getProjectionHandler(node),
-                        }, {
-                            text: 'View Streamlines',
-                            handler: getStreamlineViewerHandler(node),
-                        }
-                    ]
-                });
+                var rightclickMenu;
+                if (node.attributes.objdata.type == 'obj') {
+                  rightClickMenu = new Ext.menu.Menu({
+                      items: [
+                          {
+                              text: 'Phase Plot',
+                              handler: getPhasePlotHandler(node),
+                          }, 
+                      ]
+                  });
+                } else if (node.attributes.objdata.type == 'pf') {
+                  rightClickMenu = new Ext.menu.Menu({
+                      items: [
+                          {
+                              text: 'View Grids',
+                              handler: getGridViewerHandler(node),
+                          }, {
+                              text: 'View Grid Data',
+                              handler: getGridDataViewerHandler(node),
+                          }, {
+                              text: 'Open slice',
+                              handler: getSliceHandler(node),
+                          }, {
+                              text: 'Open projection',
+                              handler: getProjectionHandler(node),
+                          /*}, {
+                              text: 'Create Sphere',
+                              handler: getSphereCreator(node), */
+                          }, {
+                              text: 'View Streamlines',
+                              handler: getStreamlineViewerHandler(node),
+                          }
+                      ]
+                  });
+                }
                 rightClickMenu.showAt(event.xy);
             }
         }

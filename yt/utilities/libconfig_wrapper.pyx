@@ -3,7 +3,7 @@ libconfig (http://www.hyperrealm.com/libconfig/) wrapper in Cython.  Exposes a
 minimum of the API.
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia University
+Affiliation: Columbia University University
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.

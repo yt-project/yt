@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -300,3 +300,22 @@ def read_art_grid(int varindex,
                     filled[offi, offj, offk] = 1
                     to_fill += 1
     return to_fill
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def read_castro_particles(char *fn, int offset, int fieldindex, int nfields,
+                          np.ndarray[np.float64_t, ndim=1] tofill):
+    cdef int nparticles = tofill.shape[0]
+    cdef int i
+    cdef startskip = fieldindex*8
+    cdef endskip = (nfields - 1 - fieldindex)*8
+    cdef np.float64_t temp
+    cdef FILE *f = fopen(fn, 'r')
+    fseek(f, offset + 5*nparticles*4, 0) # 4 bytes
+    for i in range(nparticles):
+        fseek(f, startskip, SEEK_CUR)
+        fread(&temp, 8, 1, f)
+        tofill[i] = temp
+        fseek(f, endskip, SEEK_CUR)
+    fclose(f)

@@ -5,7 +5,7 @@ Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2010-2011 J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -22,20 +22,24 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import base64
 import tempfile
+import matplotlib.pyplot
+from functools import wraps
+
 import numpy as na
-import color_maps
-from image_writer import \
+from .image_writer import \
     write_image, apply_colormap
+from .fixed_resolution import \
+    FixedResolutionBuffer
+from .plot_modifications import get_smallest_appropriate_unit
+from .tick_locators import LogLocator, LinearLocator
+
 from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_file
-from fixed_resolution import \
-    FixedResolutionBuffer
-import matplotlib.pyplot
-from .plot_modifications import get_smallest_appropriate_unit
 
 def invalidate_data(f):
+    @wraps(f)
     def newfunc(*args, **kwargs):
         f(*args, **kwargs)
         args[0]._data_valid = False
@@ -43,10 +47,10 @@ def invalidate_data(f):
         args[0]._recreate_frb()
         if args[0]._initfinished:
             args[0]._setup_plots()
-
     return newfunc
 
 def invalidate_plot(f):
+    @wraps(f)
     def newfunc(*args, **kwargs):
         args[0]._plot_valid = False
         args[0]._setup_plots()
@@ -316,9 +320,10 @@ class PWViewerExtJS(PWViewer):
     _ext_widget_id = None
     _current_field = None
     _widget_name = "plot_window"
+    cmap = 'algae'
+
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
-        import base64
         ph = PayloadHandler()
         if self._current_field is not None \
            and self._ext_widget_id is not None:
@@ -340,12 +345,51 @@ class PWViewerExtJS(PWViewer):
             x_width = self.xlim[1] - self.xlim[0]
             zoom_fac = na.log10(x_width*self._frb.pf['unitary'])/na.log10(min_zoom)
             zoom_fac = 100.0*max(0.0, zoom_fac)
+            ticks = self.get_ticks(self._frb[field].min(),
+                                   self._frb[field].max(), 
+                                   take_log = self._frb.pf.field_info[field].take_log)
             payload = {'type':'png_string',
                        'image_data':img_data,
                        'metadata_string': self.get_metadata(field),
-                       'zoom': zoom_fac}
+                       'zoom': zoom_fac,
+                       'ticks': ticks}
             payload.update(addl_keys)
             ph.add_payload(payload)
+
+    def get_ticks(self, mi, ma, height = 400, take_log = False):
+        # This will eventually change to work with non-logged fields
+        ticks = []
+        if take_log:
+            ll = LogLocator() 
+            tick_locs = ll(mi, ma)
+            mi = na.log10(mi)
+            ma = na.log10(ma)
+            for v1,v2 in zip(tick_locs, na.log10(tick_locs)):
+                if v2 < mi or v2 > ma: continue
+                p = height - height * (v2 - mi)/(ma - mi)
+                ticks.append((p,v1,v2))
+                #print v1, v2, mi, ma, height, p
+        else:
+            ll = LinearLocator()
+            tick_locs = ll(mi, ma)
+            for v in tick_locs:
+                p = height - height * (v - mi)/(ma-mi)
+                ticks.append((p,v,"%0.3e" % (v)))
+
+        return ticks
+
+    def _get_cbar_image(self, height = 400, width = 40):
+        # Right now there's just the single 'cmap', but that will eventually
+        # change.  I think?
+        vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
+        vals = vals.transpose()
+        to_plot = apply_colormap(vals)
+        tf = tempfile.TemporaryFile()
+        write_png_to_file(to_plot, tf)
+        tf.seek(0)
+        img_data = base64.b64encode(tf.read())
+        tf.close()
+        return img_data
 
     # This calls an invalidation routine from within
     def scroll_zoom(self, value):
