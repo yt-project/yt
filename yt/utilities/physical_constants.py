@@ -11,6 +11,9 @@ speed_of_light_cgs = 2.99792458e10 # cm/s, exact
 # Cross Sections
 cross_section_thompson_cgs = 6.65e-25 # cm^2
 
+# Charge
+charge_proton_cgs = 4.803e-28 # emu = 1.602e-19  Coulombs
+
 # Physical Constants
 boltzmann_constant_cgs = 1.3806504e-16 # erg K^-1
 gravitational_constant_cgs  = 6.67428e-8 # cm^3 g^-1 s^-2
@@ -47,6 +50,7 @@ pc_per_cm     = 3.24e-19
 G = gravitational_constant_cgs
 me = mass_electron_cgs
 mp = mass_hydrogen_cgs
+qp = charge_proton_cgs
 mh = mp
 clight = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs
