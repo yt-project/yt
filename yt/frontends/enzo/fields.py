@@ -482,3 +482,18 @@ def _yvel(field, data):
                     dtype='float64')
 add_enzo_1d_field("z-velocity", function=_zvel)
 add_enzo_1d_field("y-velocity", function=_yvel)
+
+def _convertBfield(data): 
+    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
+for field in ['Bx','By','Bz']:
+    f = EnzoFieldInfo[field]
+    f._convert_function=_convertBfield
+    f._units=r"\mathrm{Gau\ss}"
+    f.take_log=False
+
+def _Bmag(field, data):
+    """ magnitude of bvec
+    """
+    return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
+
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
