@@ -971,6 +971,55 @@ class YTCommands(cmdln.Cmdln):
         uuid_serve_functions(open_browser=opts.open_browser,
                     port=int(opts.port), repl=hr)
 
+    
+    def do_remote(self, subcmd, opts):
+        import getpass, sys, socket, time, webbrowser
+        import yt.utilities.pexpect as pex
+
+        host = raw_input('Hostname: ')
+        user = raw_input('User: ')
+        password = getpass.getpass('Password: ')
+
+        sock = socket.socket()
+        sock.bind(('', 0))
+        port = sock.getsockname()[-1]
+        del sock
+
+        child = pex.spawn('ssh -L %s:localhost:%s -l %s %s'%(port, port, user, host))
+        ssh_newkey = 'Are you sure you want to continue connecting'
+        i = child.expect([pex.TIMEOUT, ssh_newkey, 'password: '])
+        if i == 0: # Timeout
+            print 'ERROR!'
+            print 'SSH could not login. Here is what SSH said:'
+            print child.before, child.after
+            return 1
+        if i == 1: # SSH does not have the public key. Just accept it.
+            child.sendline ('yes')
+            child.expect ('password: ')
+            i = child.expect([pex.TIMEOUT, 'password: '])
+            if i == 0: # Timeout
+                print 'ERROR!'
+                print 'SSH could not login. Here is what SSH said:'
+                print child.before, child.after
+                return 1
+        print "Sending password"
+        child.sendline(password)
+        del password
+        print "Okay, sending serving command"
+        child.sendline('yt serve -p -1')
+        print "Waiting ..."
+        child.expect('Desired yt port?')
+        child.sendline("%s" % port)
+        child.expect('     http://localhost:([0-9]*)/(.+)/\r')
+        print "Got:", child.match.group(1), child.match.group(2)
+        port, urlprefix = child.match.group(1), child.match.group(2)
+        print "Sleeping one second and opening browser"
+        time.sleep(1)
+        webbrowser.open("http://localhost:%s/%s/" % (port, urlprefix))
+        print "Press Ctrl-C to terminate session"
+        child.readlines()
+        while 1:
+            time.sleep(1)
 
 def run_main():
     for co in ["--parallel", "--paste"]:
