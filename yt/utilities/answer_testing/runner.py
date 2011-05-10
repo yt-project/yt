@@ -36,6 +36,9 @@ from output_tests import test_registry, MultipleOutputTest, \
 def clear_registry():
     test_registry.clear()
 
+def registry_entries():
+    return test_registry.keys()
+
 class RegressionTestStorage(object):
     def __init__(self, results_id, path = "."):
         self.id = results_id
