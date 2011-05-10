@@ -80,6 +80,7 @@ if __name__ == "__main__":
     if compare_id is not None: compare_id += "_%s_%s" % (pf, pf._hash())
     this_id = opts.this_name + "%s_%s" % (pf, pf._hash())
     rtr = RegressionTestRunner(this_id, compare_id,
+            results_path = opts.storage_dir,
             compare_results_path = opts.storage_dir,
             io_log = [opts.parameter_file])
     tests_to_run = []
