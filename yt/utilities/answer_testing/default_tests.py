@@ -56,6 +56,7 @@ class TestAllProjections(YTStaticOutputTest):
     def run(self):
         results = {}
         for field in self.pf.h.field_list:
+            if self.pf.field_info[field].particle_type: continue
             results[field] = []
             for ax in range(3):
                 t = self.pf.h.proj(ax, field)
