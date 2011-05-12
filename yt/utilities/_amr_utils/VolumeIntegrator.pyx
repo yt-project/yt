@@ -1450,6 +1450,12 @@ cdef class AdaptiveRaySource:
         cdef np.float64_t enter_t, dt, offpos[3]
         cdef int found_a_home, hit
         #print "Grid: ", pgi, "has", grid_neighbors[0], "neighbors"
+        # Some compilers throw errors on the passing of the center, v_dir and
+        # value
+        cdef np.float64_t self_center[3], ray_v_dir[3], ray_value[4]
+        self_center[0] = self.center[0]
+        self_center[1] = self.center[1]
+        self_center[2] = self.center[2]
         while ray != NULL:
             # Note that we may end up splitting a ray such that it ends up
             # outside the brick!  This will likely cause them to get lost.
@@ -1461,7 +1467,18 @@ cdef class AdaptiveRaySource:
             ray = self.refine_ray(ray, domega, pg.dds[0],
                                   pg.left_edge, pg.right_edge)
             enter_t = ray.t
-            hit = pg.integrate_ray(self.center, ray.v_dir, ray.value, tf, &ray.t)
+            ray_v_dir[0] = ray.v_dir[0]
+            ray_v_dir[1] = ray.v_dir[1]
+            ray_v_dir[2] = ray.v_dir[2]
+            ray_value[0] = ray.value[0]
+            ray_value[1] = ray.value[1]
+            ray_value[2] = ray.value[2]
+            ray_value[3] = ray.value[3]
+            hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t)
+            ray.value[0] = ray_value[0]
+            ray.value[1] = ray_value[1]
+            ray.value[2] = ray_value[2]
+            ray.value[3] = ray_value[3]
             if hit == 0: dt = 0.0
             else: dt = (ray.t - enter_t)/hit
             for i in range(3):
