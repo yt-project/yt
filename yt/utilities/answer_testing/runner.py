@@ -36,6 +36,14 @@ from output_tests import test_registry, MultipleOutputTest, \
 def clear_registry():
     test_registry.clear()
 
+class FileNotExistException(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __repr__(self):
+        return "FileNotExistException: %s" % (self.filename)
+
+
 class RegressionTestStorage(object):
     def __init__(self, results_id, path = "."):
         self.id = results_id
@@ -58,6 +66,8 @@ class RegressionTestStorage(object):
         f.close()
 
     def __getitem__(self, test_name):
+        if not os.path.exists(self._fn(test_name)):
+            raise FileNotExistException(self._fn(test_name))
         f = open(self._fn(test_name), "rb")
         tr = cPickle.load(f)
         f.close()
@@ -128,7 +138,10 @@ class RegressionTestRunner(object):
     def _compare(self, test):
         if self.old_results is None:
             return (True, "New Test")
-        old_result = self.old_results[test.name]
+        try:
+            old_result = self.old_results[test.name]
+        except FileNotExistException:
+            return (False, "File %s does not exist." % test.name)
         try:
             test.compare(old_result)
         except RegressionTestException, exc:
