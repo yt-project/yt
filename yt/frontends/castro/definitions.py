@@ -26,14 +26,15 @@ License:
 from yt.funcs import *
 
 def boxlib_bool_to_int(v):
-    if isinstance(v, types.StringTypes):
-        v = v.upper().strip()
-        if v[0] == 'T':
-            return 1
-        elif v[0] == 'F':
-            return 0
-    else:
+    try:
         return int(v)
+    except ValueError:
+        pass
+    v = v.upper().strip()
+    if v[0] == 'T':
+        return 1
+    elif v[0] == 'F':
+        return 0
 
 # TODO: get rid of enzo parameters we do not need
 parameterDict = {"CosmologyCurrentRedshift": float,

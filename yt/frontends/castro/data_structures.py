@@ -52,7 +52,8 @@ from .definitions import \
     parameterDict, \
     yt2castroFieldsDict, \
     castro_FAB_header_pattern, \
-    castro_particle_field_names
+    castro_particle_field_names, \
+    boxlib_bool_to_int
 
 from .fields import \
     CastroFieldContainer, \
@@ -567,6 +568,7 @@ class CastroStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         lines = open(self.parameter_filename).readlines()
+        self.use_particles = False
         for lineI, line in enumerate(lines):
             if line.find("#") >= 1: # Keep the commented lines...
                 line=line[:line.find("#")]
@@ -594,8 +596,8 @@ class CastroStaticOutput(StaticOutput):
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
-            elif param.startswith("castro.do_dm_particles"):
-                self.use_particles = True
+            elif param.startswith("particles.write_in_plotfile"):
+                self.use_particles = boxlib_bool_to_int(vals)
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
