@@ -38,6 +38,16 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
     if i0 < i1: return i0
     return i1
 
+cdef extern from "union_find.h":
+    ctypedef struct forest_node:
+        void *value
+        forest_node *parent
+        int rank
+
+    forest_node* MakeSet(void* value)
+    void Union(forest_node* node1, forest_node* node2)
+    forest_node* Find(forest_node* node)
+
 #@cython.boundscheck(False)
 #@cython.wraparound(False)
 def construct_boundary_relationships(
