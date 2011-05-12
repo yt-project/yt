@@ -48,7 +48,8 @@ from image_writer import \
     map_to_colors, \
     splat_points, \
     annotate_image, \
-    apply_colormap
+    apply_colormap, \
+    _scale_image
 
 from plot_modifications import \
     PlotCallback, \
