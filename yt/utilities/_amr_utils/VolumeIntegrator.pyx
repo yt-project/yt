@@ -67,16 +67,20 @@ cdef extern from "math.h":
 
 cdef struct Triangle:
     Triangle *next
-    np.float64_t p[3]
+    np.float64_t p[3][3]
 
 cdef Triangle *AddTriangle(Triangle *self,
-                    np.float64_t p0, np.float64_t p1, np.float64_t p2):
+                    np.float64_t p0[3], np.float64_t p1[3], np.float64_t p2[3]):
     cdef Triangle *nn = <Triangle *> malloc(sizeof(Triangle))
     if self != NULL:
         self.next = nn
-    nn.p[0] = p0
-    nn.p[1] = p1
-    nn.p[2] = p2
+    cdef int i
+    for i in range(3):
+        nn.p[0][i] = p0[i]
+    for i in range(3):
+        nn.p[1][i] = p1[i]
+    for i in range(3):
+        nn.p[2][i] = p2[i]
     nn.next = NULL
     return nn
 
@@ -93,11 +97,12 @@ cdef void FillAndWipeTriangles(np.ndarray[np.float64_t, ndim=2] vertices,
     cdef int count = 0
     cdef Triangle *this = first
     cdef Triangle *last
-    cdef int i = 0
+    cdef int i, j
     while this != NULL:
         for i in range(3):
-            vertices[count, i] = this.p[i]
-        count += 1 # Do it at the end because it's an index
+            for j in range(3):
+                vertices[count, j] = this.p[i][j]
+            count += 1 # Do it at the end because it's an index
         last = this
         this = this.next
         free(last)
@@ -111,7 +116,9 @@ cdef extern from "FixedInterpolator.h":
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
     void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
-    np.float64_t vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue)
+    np.float64_t vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
+                              np.float64_t vl[3], np.float64_t dds[3],
+                              np.float64_t x, np.float64_t y, np.float64_t z)
 
 #cdef extern int *edge_table
 #cdef extern int **tri_table
@@ -1133,7 +1140,7 @@ cdef class PartitionedGrid:
         cdef int offset
         cdef np.float64_t gv[8]
         cdef int cubeindex
-        cdef np.float64_t vertlist[12]
+        cdef np.float64_t vertlist[12][3]
         cdef int ntriang = 0
         cdef np.float64_t *intdata = NULL
         cdef np.float64_t x, y, z
@@ -1165,41 +1172,41 @@ cdef class PartitionedGrid:
                     #print cubeindex
                     if edge_table[cubeindex] == 0: continue
                     if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
-                        mu = vertex_interp(gv[0], gv[1], isovalue)
-                        vertlist[0] = x + mu * self.dds[0]
+                        mu = vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
-                        mu = vertex_interp(gv[1], gv[2], isovalue)
-                        vertlist[1] = y + mu * self.dds[1]
+                        mu = vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
-                        mu = vertex_interp(gv[2], gv[3], isovalue)
-                        vertlist[2] = x + (1.0 - mu) * self.dds[0]
+                        mu = vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
-                        mu = vertex_interp(gv[3], gv[0], isovalue)
-                        vertlist[3] = y + (1.0 - mu) * self.dds[1]
+                        mu = vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
-                        mu = vertex_interp(gv[4], gv[5], isovalue)
-                        vertlist[4] = x + mu * self.dds[0]
+                        mu = vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
-                        mu = vertex_interp(gv[5], gv[6], isovalue)
-                        vertlist[5] = y + mu * self.dds[1]
+                        mu = vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
-                        mu = vertex_interp(gv[6], gv[7], isovalue)
-                        vertlist[6] = x + (1.0 - mu) * self.dds[0]
+                        mu = vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
-                        mu = vertex_interp(gv[7], gv[4], isovalue)
-                        vertlist[7] = y + (1.0 - mu) * self.dds[1]
+                        mu = vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
-                        mu = vertex_interp(gv[0], gv[4], isovalue)
-                        vertlist[8] = z + mu * self.dds[2]
+                        mu = vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
-                        mu = vertex_interp(gv[1], gv[5], isovalue)
-                        vertlist[9] = z + mu * self.dds[2]
+                        mu = vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
-                        mu = vertex_interp(gv[2], gv[6], isovalue)
-                        vertlist[10] = z + (1.0 - mu) * self.dds[2]
+                        mu = vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
+                                           self.dds, x, y, z)
                     if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
-                        mu = vertex_interp(gv[3], gv[7], isovalue)
-                        vertlist[11] = z + mu * self.dds[2]
+                        mu = vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
+                                           self.dds, x, y, z)
                     n = 0
                     while 1:
                         current = AddTriangle(current, 
@@ -1212,7 +1219,7 @@ cdef class PartitionedGrid:
                         if tri_table[cubeindex][n] == -1: break
         # Hallo, we are all done.
         cdef np.ndarray[np.float64_t, ndim=2] vertices 
-        vertices = np.zeros((ntriang,3), dtype='float64')
+        vertices = np.zeros((ntriang*3,3), dtype='float64')
         FillAndWipeTriangles(vertices, first)
         return vertices
 

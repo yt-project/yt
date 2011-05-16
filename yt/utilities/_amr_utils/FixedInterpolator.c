@@ -82,12 +82,17 @@ void offset_fill(int ds[3], npy_float64 *data, npy_float64 gridval[8])
     gridval[7] = OINDEX(0,1,1);
 }
 
-npy_float64 vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue)
+npy_float64 vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
+                          npy_float64 vl[3], npy_float64 dds[3],
+                          npy_float64 x, npy_float64 y, npy_float64 z)
 {
-    if (fabs(isovalue - v1) < 0.000001) return 0.0;
+    /*if (fabs(isovalue - v1) < 0.000001) return 0.0;
     if (fabs(isovalue - v2) < 0.000001) return 1.0;
-    if (fabs(v1 - v2) < 0.000001) return 0.0;
-    return (isovalue - v1) / (v2 - v1);
+    if (fabs(v1 - v2) < 0.000001) return 0.0;*/
+    npy_float64 mu = (isovalue - v1) / (v2 - v1);
+    vl[0] = x + mu * dds[0];
+    vl[1] = y + mu * dds[1];
+    vl[2] = z + mu * dds[2];
 }
 
 npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
