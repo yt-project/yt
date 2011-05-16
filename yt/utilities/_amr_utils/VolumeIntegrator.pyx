@@ -116,9 +116,10 @@ cdef extern from "FixedInterpolator.h":
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
     void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
-    np.float64_t vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
-                              np.float64_t vl[3], np.float64_t dds[3],
-                              np.float64_t x, np.float64_t y, np.float64_t z)
+    void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
+                       np.float64_t vl[3], np.float64_t dds[3],
+                       np.float64_t x, np.float64_t y, np.float64_t z,
+                       int x0, int y0, int z0, int direction)
 
 #cdef extern int *edge_table
 #cdef extern int **tri_table
@@ -1172,41 +1173,41 @@ cdef class PartitionedGrid:
                     #print cubeindex
                     if edge_table[cubeindex] == 0: continue
                     if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
-                        mu = vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
+                                      self.dds, x, y, z, 0,0,0,1)
                     if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
-                        mu = vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
+                                      self.dds, x, y, z, 1,0,0,2)
                     if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
-                        mu = vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
+                                      self.dds, x, y, z, 1,0,0,-1)
                     if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
-                        mu = vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
+                                      self.dds, x, y, z, 0,1,0,-2)
                     if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
-                        mu = vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
+                                      self.dds, x, y, z, 0,0,1,1)
                     if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
-                        mu = vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
+                                      self.dds, x, y, z, 1,0,1,2)
                     if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
-                        mu = vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
+                                      self.dds, x, y, z, 1,1,1,-1)
                     if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
-                        mu = vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
+                                      self.dds, x, y, z, 0,1,1,-2)
                     if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
-                        mu = vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
+                                      self.dds, x, y, z, 0,0,0,3)
                     if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
-                        mu = vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
+                                      self.dds, x, y, z, 1,0,0,3)
                     if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
-                        mu = vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
+                                      self.dds, x, y, z, 1,1,0,3)
                     if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
-                        mu = vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
-                                           self.dds, x, y, z)
+                        vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
+                                      self.dds, x, y, z, 0,1,0,3)
                     n = 0
                     while 1:
                         current = AddTriangle(current, 

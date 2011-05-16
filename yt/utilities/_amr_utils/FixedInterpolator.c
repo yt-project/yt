@@ -82,17 +82,39 @@ void offset_fill(int ds[3], npy_float64 *data, npy_float64 gridval[8])
     gridval[7] = OINDEX(0,1,1);
 }
 
-npy_float64 vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
-                          npy_float64 vl[3], npy_float64 dds[3],
-                          npy_float64 x, npy_float64 y, npy_float64 z)
+void vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
+                   npy_float64 vl[3], npy_float64 dds[3],
+                   npy_float64 x, npy_float64 y, npy_float64 z,
+                   int x0, int y0, int z0, int direction)
 {
     /*if (fabs(isovalue - v1) < 0.000001) return 0.0;
     if (fabs(isovalue - v2) < 0.000001) return 1.0;
     if (fabs(v1 - v2) < 0.000001) return 0.0;*/
     npy_float64 mu = (isovalue - v1) / (v2 - v1);
-    vl[0] = x + mu * dds[0];
-    vl[1] = y + mu * dds[1];
-    vl[2] = z + mu * dds[2];
+    vl[0] = x; vl[1] = y; vl[2] = z;
+    if (x0 == 1) vl[0] += dds[0];
+    if (y0 == 1) vl[1] += dds[1];
+    if (z0 == 1) vl[2] += dds[2];
+    switch (direction) {
+        case -1:
+            vl[0] -= (1.0 - mu) * dds[0];
+            break;
+        case 1:
+            vl[0] += mu * dds[0];
+            break;
+        case -2:
+            vl[1] -= (1.0 - mu) * dds[1];
+            break;
+        case 2:
+            vl[1] += mu * dds[1];
+            break;
+        case -3:
+            vl[2] -= (1.0 - mu) * dds[2];
+            break;
+        case 3:
+            vl[2] += mu * dds[2];
+            break;
+    }
 }
 
 npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],

@@ -44,6 +44,7 @@ npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
 npy_float64 eval_gradient(int ds[3], int ci[3], npy_float64 dp[3],
 				  npy_float64 *data, npy_float64 *grad);
 
-npy_float64 vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
-                          npy_float64 vl[3], npy_float64 dds[3],
-                          npy_float64 x, npy_float64 y, npy_float64 z);
+void vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
+                   npy_float64 vl[3], npy_float64 dds[3],
+                   npy_float64 x, npy_float64 y, npy_float64 z,
+                   int x0, int y0, int z0, int direction);
