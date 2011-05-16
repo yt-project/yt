@@ -135,7 +135,7 @@ def _ThermalEnergy(field, data):
                  + data["y-velocity"]**2.0
                  + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
-          units=r"\rm{ergs}/\rm{cm^3}")
+          units=r"\rm{ergs}/\rm{g}")
 
 def _KineticEnergy(field, data):
     return 0.5*data["Density"] * ( data["x-velocity"]**2.0
