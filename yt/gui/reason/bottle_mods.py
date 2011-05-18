@@ -192,7 +192,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             thread.start()
         local_browse()
     try:
-        import rocket
+        import yt.utilities.rocket as rocket
         server_type = YTRocketServer
         log = logging.getLogger('Rocket')
         log.setLevel(logging.INFO)
