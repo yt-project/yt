@@ -497,7 +497,7 @@ class YTCommands(cmdln.Cmdln):
         else:
             p = pc.add_slice(opts.field, opts.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data)
+        mapper = PannableMapServer(p.data, opts.field)
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         bottle.run(server='rocket')
