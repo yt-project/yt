@@ -34,7 +34,7 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.ndarray[np.float64_t, ndim=1] value,
                      np.float64_t leftx, np.float64_t rightx,
                      np.float64_t lefty, np.float64_t righty,
-                     np.float64_t mindx = -1):
+                     np.float64_t mindx = -1, np.float64_t maxdx = -1):
     cdef int i
     cdef np.float64_t mi = 1e100, ma = -1e100, v
     cdef int np = px.shape[0]
@@ -46,6 +46,7 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
             if py[i] + pdy[i] < lefty: continue
             if py[i] - pdy[i] > righty: continue
             if pdx[i] < mindx or pdy[i] < mindx: continue
+            if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
             if v < mi: mi = v
             if v > ma: ma = v
     return (mi, ma)

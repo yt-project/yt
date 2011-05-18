@@ -73,9 +73,12 @@ class PannableMapServer(object):
         cmi, cma = get_color_bounds(self.data['px'], self.data['py'],
                                     self.data['pdx'], self.data['pdy'],
                                     self.data[self.field],
-                                    xl - dd*DW[0], xr + dd*DW[0], 
-                                    yl - dd*DW[0], yr + dd*DW[0], 
-                                    dd*DW[0] / (64*256))
+                                    self.pf.domain_left_edge[0],
+                                    self.pf.domain_right_edge[0],
+                                    self.pf.domain_left_edge[1],
+                                    self.pf.domain_right_edge[1],
+                                    dd*DW[0] / (64*256),
+                                    dd*DW[0])
         cmi = na.log10(cmi)
         cma = na.log10(cma)
         to_plot = apply_colormap(na.log10(frb[self.field]), color_bounds = (cmi, cma))
