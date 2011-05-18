@@ -23,7 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import tempfile
 import base64
 import types
 
@@ -33,7 +32,7 @@ import numpy as na
 from .image_writer import \
     write_image, apply_colormap
 from yt.utilities.amr_utils import \
-    write_png_to_file
+    write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
@@ -300,11 +299,8 @@ class PhasePlotterExtWidget(PhasePlotter):
             # Now we white-out all those regions
             #import pdb;pdb.set_trace()
             to_plot[raw_data == 0.0,:] = 255
-        tf = tempfile.TemporaryFile()
-        write_png_to_file(to_plot, tf)
-        tf.seek(0)
-        img_data = base64.b64encode(tf.read())
-        tf.close()
+        pngs = write_png_to_string(to_plot)
+        img_data = base64.b64encode(pngs)
         payload = {'xax':xax, 'yax':yax, 'cbar':cbar,
                    'type': 'widget_payload', 'widget_id': self._ext_widget_id,
                    'image_data': img_data}
@@ -335,10 +331,7 @@ class PhasePlotterExtWidget(PhasePlotter):
         vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
         vals = vals.transpose()
         to_plot = apply_colormap(vals)
-        tf = tempfile.TemporaryFile()
-        write_png_to_file(to_plot, tf)
-        tf.seek(0)
-        img_data = base64.b64encode(tf.read())
-        tf.close()
+        pngs = write_png_to_string(to_plot)
+        img_data = base64.b64encode(pngs)
         return img_data
 
