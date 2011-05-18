@@ -32,7 +32,8 @@ from .runner import \
     RegressionTestRunner, \
     RegressionTestStorage, \
     run_main, \
-    clear_registry
+    clear_registry, \
+    registry_entries
 
 from .output_tests import \
     YTStaticOutputTest, \

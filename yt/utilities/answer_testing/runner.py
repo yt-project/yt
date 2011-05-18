@@ -44,6 +44,9 @@ class FileNotExistException(Exception):
         return "FileNotExistException: %s" % (self.filename)
 
 
+def registry_entries():
+    return test_registry.keys()
+
 class RegressionTestStorage(object):
     def __init__(self, results_id, path = "."):
         self.id = results_id

@@ -118,8 +118,8 @@ class RegressionTest(object):
         """
         if a1.shape != a2.shape:
             raise ShapeMismatch(a1, a2)
-        delta = na.abs(a1 - a2)/(a1 + a2)
-        if delta.max() > acceptable:
+        delta = na.abs(a1 - a2).astype("float64")/(a1 + a2)
+        if na.nanmax(delta) > acceptable:
             raise ArrayDelta(delta, acceptable)
         return True
 
@@ -158,8 +158,11 @@ class MultipleOutputTest(RegressionTest):
         self.io_log = io_log
 
     def __iter__(self):
-        for line in open(self.io_log):
-            yield line[len(self.io_log_header):].split()[0].strip()
+        if isinstance(self.io_log, types.StringTypes):
+            for line in open(self.io_log):
+                yield line[len(self.io_log_header):].split()[0].strip()
+        elif isinstance(self.io_log, types.ListType):
+            for line in self.io_log: yield line
 
 def create_test(base, new_name, **attrs):
     """

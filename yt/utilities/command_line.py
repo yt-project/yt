@@ -270,6 +270,13 @@ def _get_hg_version(path):
     commands.identify(u, repo)
     return u.popbuffer()
 
+def get_yt_version():
+    import pkg_resources
+    yt_provider = pkg_resources.get_provider("yt")
+    path = os.path.dirname(yt_provider.module_path)
+    version = _get_hg_version(path)[:12]
+    return version
+
 class YTCommands(cmdln.Cmdln):
     name="yt"
 
