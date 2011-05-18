@@ -12,6 +12,9 @@ DATA_FILES_HTML = glob.glob('yt/gui/reason/html/*.html')
 DATA_FILES_JS   = glob.glob('yt/gui/reason/html/js/*.js')
 DATA_FILES_PNG  = glob.glob('yt/gui/reason/html/images/*.png') \
                 + glob.glob('yt/gui/reason/html/images/*.ico')
+DATA_FILES_LL   = glob.glob('yt/gui/reason/html/leaflet/*.js') \
+                + glob.glob('yt/gui/reason/html/leaflet/*.css')
+DATA_FILES_LLI  = glob.glob('yt/gui/reason/html/leaflet/images/*.png')
 
 # Verify that we have Cython installed
 try:
@@ -133,7 +136,9 @@ def setup_package():
         zip_safe=False,
         data_files = [('yt/gui/reason/html/', DATA_FILES_HTML),
                       ('yt/gui/reason/html/js/', DATA_FILES_JS),
-                      ('yt/gui/reason/html/images/', DATA_FILES_PNG)],
+                      ('yt/gui/reason/html/images/', DATA_FILES_PNG),
+                      ('yt/gui/reason/html/leaflet/', DATA_FILES_LL),
+                      ('yt/gui/reason/html/leaflet/images', DATA_FILES_LLI)],
         )
     return
 
