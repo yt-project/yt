@@ -475,6 +475,33 @@ class YTCommands(cmdln.Cmdln):
         if not os.path.isdir(opts.output): os.makedirs(opts.output)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
+    @add_cmd_options(["proj", "field", "weight"])
+    @cmdln.option("-a", "--axis", action="store", type="int",
+                   dest="axis", default=0, help="Axis (4 for all three)")
+    @check_args
+    def do_mapserver(self, subcmd, opts, arg):
+        """
+        Serve a plot in a GMaps-style interface
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
+        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
+                                          pf.domain_right_edge))
+        if opts.axis == 4:
+            print "Doesn't work with multiple axes!"
+            return
+        if opts.projection:
+            p = pc.add_projection(opts.field, opts.axis, weight_field=opts.weight)
+        else:
+            p = pc.add_slice(opts.field, opts.axis)
+        from yt.gui.reason.pannable_map import PannableMapServer
+        mapper = PannableMapServer(p.data)
+        import yt.utilities.bottle as bottle
+        bottle.debug(True)
+        bottle.run(server='rocket')
+
     def do_rpdb(self, subcmd, opts, task):
         """
         Connect to a currently running (on localhost) rpd session.
@@ -956,7 +983,7 @@ class YTCommands(cmdln.Cmdln):
             print
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.gui.reason.bottle as bottle
+        import yt.utilities.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(base_extjs_path)
@@ -970,7 +997,6 @@ class YTCommands(cmdln.Cmdln):
         bottle.debug()
         uuid_serve_functions(open_browser=opts.open_browser,
                     port=int(opts.port), repl=hr)
-
     
     def do_remote(self, subcmd, opts):
         import getpass, sys, socket, time, webbrowser

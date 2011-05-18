@@ -23,7 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
-import tempfile
 import matplotlib.pyplot
 from functools import wraps
 
@@ -36,7 +35,7 @@ from .plot_modifications import get_smallest_appropriate_unit
 from .tick_locators import LogLocator, LinearLocator
 
 from yt.funcs import *
-from yt.utilities.amr_utils import write_png_to_file
+from yt.utilities.amr_utils import write_png_to_string
 
 def invalidate_data(f):
     @wraps(f)
@@ -335,12 +334,9 @@ class PWViewerExtJS(PWViewer):
             addl_keys = {}
         min_zoom = 200*self._frb.pf.h.get_smallest_dx() * self._frb.pf['unitary']
         for field in fields:
-            tf = tempfile.TemporaryFile()
             to_plot = apply_colormap(self._frb[field], func = self._field_transform[field])
-            write_png_to_file(to_plot, tf)
-            tf.seek(0)
-            img_data = base64.b64encode(tf.read())
-            tf.close()
+            pngs = write_png_to_string(to_plot)
+            img_data = base64.b64encode(pngs)
             # We scale the width between 200*min_dx and 1.0
             x_width = self.xlim[1] - self.xlim[0]
             zoom_fac = na.log10(x_width*self._frb.pf['unitary'])/na.log10(min_zoom)
@@ -384,11 +380,8 @@ class PWViewerExtJS(PWViewer):
         vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
         vals = vals.transpose()
         to_plot = apply_colormap(vals)
-        tf = tempfile.TemporaryFile()
-        write_png_to_file(to_plot, tf)
-        tf.seek(0)
-        img_data = base64.b64encode(tf.read())
-        tf.close()
+        pngs = write_png_to_string(to_plot)
+        img_data = base64.b64encode(pngs)
         return img_data
 
     # This calls an invalidation routine from within

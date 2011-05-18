@@ -48,7 +48,7 @@ from yt.visualization.api import Streamlines
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
-from .bottle import response, request, route
+from yt.utilities.bottle import response, request, route
 from .basic_repl import ProgrammaticREPL
 
 try:
