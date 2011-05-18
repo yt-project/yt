@@ -24,8 +24,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .bottle import server_names, debug, route, run, request, \
-            ServerAdapter
+from yt.utilities.bottle import \
+    server_names, debug, route, run, request, ServerAdapter
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json

@@ -956,7 +956,7 @@ class YTCommands(cmdln.Cmdln):
             print
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.gui.reason.bottle as bottle
+        import yt.utilities.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(base_extjs_path)
@@ -970,7 +970,6 @@ class YTCommands(cmdln.Cmdln):
         bottle.debug()
         uuid_serve_functions(open_browser=opts.open_browser,
                     port=int(opts.port), repl=hr)
-
     
     def do_remote(self, subcmd, opts):
         import getpass, sys, socket, time, webbrowser
