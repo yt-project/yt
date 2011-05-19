@@ -62,7 +62,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                  halo_finder_kwargs=dict(threshold=160.0, safety=1.5, 
                                          dm_only=False, resize=True, 
                                          fancy_padding=True, rearrange=True),
-                 halo_radius=0.1, radius_units='1', n_profile_bins=50,
+                 halo_radius=None, radius_units='1', n_profile_bins=50,
                  recenter = None,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
@@ -211,8 +211,12 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Create dataset object.
         self.pf = load(self.dataset)
         self.pf.h
-        if self.halos is 'single' or not 'r_max' in self.halo_list_format:
+        if self.halos is 'single' or \
+                not 'r_max' in self.halo_list_format or \
+                halo_radius is not None:
             self.halo_radius = halo_radius / self.pf[radius_units]
+        else:
+            self.halo_radius = None
 
         # Get halo(s).
         if self.halos is 'single':
@@ -654,14 +658,17 @@ class HaloProfiler(ParallelAnalysisInterface):
                     else:
                         halo[field] = __get_num(onLine[self.halo_list_format[field]])
                 if getID: halo['id'] = len(haloList)
-                if has_rmax:
+                if self.halo_radius is not None:
+                    halo['r_max'] = self.halo_radius * self.pf.units['mpc']
+                elif has_rmax:
                     halo['r_max'] *= self.pf.units['mpc']
                 elif has_r200kpc:
                     # If P-Groupfinder used, r_200 [kpc] is calculated.
                     # set r_max as 50% past r_200.
                     halo['r_max'] = 1.5 * halo['r200kpc'] / 1000.
                 else:
-                    halo['r_max'] = self.halo_radius * self.pf.units['mpc']
+                    mylog.error("HaloProfiler has no way to get halo radius.")
+                    return None
                 haloList.append(halo)
 
         mylog.info("Loaded %d halos." % (len(haloList)))
