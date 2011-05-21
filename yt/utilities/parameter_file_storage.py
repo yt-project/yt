@@ -219,3 +219,22 @@ class ParameterFileStore(object):
 
 class ObjectStorage(object):
     pass
+
+class EnzoRunDatabase(object):
+    conn = None
+
+    def __init__(self, path = None):
+        if path is None:
+            path = ytcfg.get("yt", "enzo_db")
+            if len(path) == 0: raise Runtime
+        import sqlite3
+        self.conn = sqlite3.connect(path)
+
+    def find_uuid(self, u):
+        cursor = self.conn.execute(
+            "select pf_path from enzo_outputs where dset_uuid = '%s'" % (
+                u))
+        # It's a 'unique key'
+        result = cursor.fetchone()
+        if result is None: return None
+        return result[0]

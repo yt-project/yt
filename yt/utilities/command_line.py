@@ -485,6 +485,8 @@ class YTCommands(cmdln.Cmdln):
     @add_cmd_options(["proj", "field", "weight"])
     @cmdln.option("-a", "--axis", action="store", type="int",
                    dest="axis", default=0, help="Axis (4 for all three)")
+    @cmdln.option("-o", "--host", action="store", type="string",
+                   dest="host", default=None, help="IP Address to bind on")
     @check_args
     def do_mapserver(self, subcmd, opts, arg):
         """
@@ -507,7 +509,10 @@ class YTCommands(cmdln.Cmdln):
         mapper = PannableMapServer(p.data, opts.field)
         import yt.utilities.bottle as bottle
         bottle.debug(True)
-        bottle.run(server='rocket')
+        if opts.host is not None:
+            bottle.run(server='rocket', host=opts.host)
+        else:
+            bottle.run(server='rocket')
 
     def do_rpdb(self, subcmd, opts, task):
         """
