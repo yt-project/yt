@@ -64,6 +64,10 @@ class ColorbarSpec(AxisSpec):
     cmap = None
     display = True
 
+class PlotContainer(object):
+    x_spec = None
+    y_spec = None
+
 class ImagePlotContainer(object):
     x_spec = None
     y_spec = None
@@ -335,3 +339,54 @@ class PhasePlotterExtWidget(PhasePlotter):
         img_data = base64.b64encode(pngs)
         return img_data
 
+class ProfilePlotter(object):
+    scale = None
+    _current_field = None
+
+    def __init__(self, data_source, field_x, field_y, 
+                 weight="CellMassMsun", accumulation=False,
+                 x_bins=128, x_log=True, x_bounds=None,
+                 lazy_reader=True, fractional=False):
+        if x_bounds is None:
+            x_min, x_max = data_source.quantities["Extrema"](
+                                    field_x, non_zero = x_log,
+                                    lazy_reader=lazy_reader)[0]
+        else:
+            x_min, x_max = x_bounds
+        profile = BinnedProfile1D(data_source,
+                                  x_bins, field_x, x_min, x_max, x_log,
+                                  lazy_reader)
+        # This is a fallback, in case we forget.
+        if field_y == "CellMassMsun": weight = None
+        profile.add_fields(field_y, weight=weight, accumulation=accumulation, fractional=fractional)
+        self._current_field = field_y
+        self.profile = profile
+        self.scale = {True:'log', False:'linear'}.get(
+                data_source.pf.field_info[field_y], "log")
+        self._setup_plot()
+
+    def _setup_plot(self):
+        xax = AxisSpec()
+        xax.title = self.profile.bin_field
+        xax.bounds = (self.profile._bins[0],
+                      self.profile._bins[-1])
+        xax.scale = {True: 'log', False: 'linear'}[self.profile._x_log]
+        xax.calculate_ticks()
+
+        yax = AxisSpec()
+        yax.title = self._current_field
+        if self.scale == 'log':
+            ny = (self.profile[self._current_field] > 0)
+            mi = self.profile[self._current_field][ny].min()
+        else:
+            mi = self.profile[self._current_field][ny].min()
+        ma = self.profile[self._current_field].max()
+        yax.bounds = (mi, ma)
+        yax.scale = self.scale
+        yax.calculate_ticks()
+
+        self.plot = PlotContainer()
+        self.plot.x_values = self.profile._bins
+        self.plot.y_values = self.profile[self._current_field]
+        self.plot.x_spec = xax
+        self.plot.y_spec = yax
