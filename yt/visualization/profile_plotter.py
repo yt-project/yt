@@ -67,6 +67,41 @@ class ColorbarSpec(AxisSpec):
 class PlotContainer(object):
     x_spec = None
     y_spec = None
+    x_values = None
+    y_values = None
+    plot_spec = None
+
+    def to_mpl(self, place = None):
+        import _mpl_imports as mpl
+        if isinstance(place, mpl.matplotlib.figure.Figure):
+            figure, place = place, None
+            place = None
+        else:
+            figure = mpl.matplotlib.figure.Figure((10,8))
+        if isinstance(place, mpl.matplotlib.axes.Axes):
+            axes, place = place, None
+        else:
+            axes = figure.add_subplot(1,1,1)
+        if self.x_spec.scale == 'log' and \
+           self.y_spec.scale == 'log':
+            func = axes.loglog
+        elif self.x_spec == 'log':
+            func = axes.semilogx
+        elif self.y_spec == 'log':
+            func = axes.semilogy
+        if self.plot_spec is None:
+            kwargs = {}
+        else:
+            kwargs = self.plot_spec
+        func(self.x_values, self.y_values, **kwargs)
+        if self.x_spec.title is not None:
+            axes.set_xlabel(self.x_spec.title)
+        if self.y_spec.title is not None:
+            axes.set_ylabel(self.y_spec.title)
+        if isinstance(place, types.StringTypes):
+            canvas = mpl.FigureCanvasAgg(figure)
+            canvas.print_figure(place)
+        return figure, axes
 
 class ImagePlotContainer(object):
     x_spec = None
