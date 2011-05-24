@@ -415,8 +415,8 @@ add_field("DensityPerturbation",function=_DensityPerturbation,units=r"")
 def _Baryon_Overdensity(field, data):
     return data['Density']
 def _Convert_Baryon_Overdensity(data):
-    if data.pf.parameters.has_key('omega_baryon_now'):
-        omega_baryon_now = data.pf.parameters['omega_baryon_now']
+    if data.pf.has_key('omega_baryon_now'):
+        omega_baryon_now = data.pf['omega_baryon_now']
     else:
         omega_baryon_now = 0.0441
     return 1 / (omega_baryon_now * rho_crit_now * 
