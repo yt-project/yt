@@ -102,8 +102,8 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
     elif (overDensity[-1] >= virial_overdensity):
         index = -2
     else:
-        for q in (na.arange(len(overDensity)-2))+2:
-            if (overDensity[q] < virial_overdensity):
+        for q in (na.arange(len(overDensity),0,-1)-1):
+            if (overDensity[q] < virial_overdensity) and (overDensity[q-1] > virial_overdensity):
                 index = q - 1
                 break
 
