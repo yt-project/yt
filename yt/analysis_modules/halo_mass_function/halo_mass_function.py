@@ -324,7 +324,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
             self.multiplicityfunction(thissigma)*(self.massarray[i+1] - self.massarray[i]);
 
             # scale by h^4 to get rid of all factors of h
-            dn_M_z *= math.pow(self.hubble0, 4.0);
+            dn_M_z *= math.pow(self.hubble0, 3.0);
             
             # keep track of cumulative number density
             if dn_M_z > 1.0e-20:
