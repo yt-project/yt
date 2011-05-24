@@ -26,7 +26,8 @@ License:
 import numpy as na
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -37,13 +38,7 @@ from yt.utilities.physical_constants import \
     mh
 import yt.utilities.amr_utils as amr_utils
 
-class EnzoFieldContainer(CodeFieldInfoContainer):
-    """
-    This is a container for Enzo-specific fields.
-    """
-    _shared_state = {}
-    _field_list = {}
-EnzoFieldInfo = EnzoFieldContainer()
+EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_enzo_field = EnzoFieldInfo.add_field
 
 add_field = add_enzo_field
@@ -401,12 +396,7 @@ add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
 # Now we do overrides for 2D fields
 #
 
-class Enzo2DFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = EnzoFieldContainer._field_list.copy()
-# We make a copy of the dict from the other, so we
-# can now update it...
-Enzo2DFieldInfo = Enzo2DFieldContainer()
+Enzo2DFieldInfo = FieldInfoContainer.create_with_fallback(EnzoFieldInfo)
 add_enzo_2d_field = Enzo2DFieldInfo.add_field
 
 def _CellArea(field, data):
@@ -444,12 +434,7 @@ add_enzo_2d_field("z-velocity", function=_zvel)
 # Now we do overrides for 1D fields
 #
 
-class Enzo1DFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = EnzoFieldContainer._field_list.copy()
-# We make a copy of the dict from the other, so we
-# can now update it...
-Enzo1DFieldInfo = Enzo1DFieldContainer()
+Enzo1DFieldInfo = FieldInfoContainer.create_with_fallback(EnzoFieldInfo)
 add_enzo_1d_field = Enzo1DFieldInfo.add_field
 
 def _CellLength(field, data):

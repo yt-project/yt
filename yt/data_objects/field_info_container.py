@@ -33,34 +33,14 @@ import itertools
 
 from yt.funcs import *
 
-class FieldInfoContainer(object): # We are all Borg.
+class FieldInfoContainer(dict): # We are all Borg.
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.  This
     object handles converting units as well as validating the availability of a
     given field.
     """
-    _shared_state = {}
-    _universal_field_list = {}
-    def __new__(cls, *args, **kwargs):
-        self = object.__new__(cls, *args, **kwargs)
-        self.__dict__ = cls._shared_state
-        return self
-    def __getitem__(self, key):
-        if key in self._universal_field_list:
-            return self._universal_field_list[key]
-        raise KeyError
-    def keys(self):
-        """
-        Return all the field names this object knows about.
-        """
-        return self._universal_field_list.keys()
-    def __iter__(self):
-        return self._universal_field_list.iterkeys()
-    def __setitem__(self, key, val):
-        self._universal_field_list[key] = val
-    def has_key(self, key):
-        return key in self._universal_field_list
+    fallback = None
     def add_field(self, name, function = None, **kwargs):
         """
         Add a new field, along with supplemental metadata, to the list of
@@ -74,6 +54,24 @@ class FieldInfoContainer(object): # We are all Borg.
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
+
+    def has_key(self, key):
+        # This gets used a lot
+        if key in self: return True
+        if self.fallback is None: return False
+        return key in self.fallback
+
+    def __missing__(self, key):
+        if self.fallback is None: raise KeyError
+        return self.fallback[key]
+
+    @classmethod
+    def create_with_fallback(cls, fallback):
+        obj = cls()
+        obj.fallback = fallback
+        return obj
+
+
 FieldInfo = FieldInfoContainer()
 add_field = FieldInfo.add_field
 
@@ -85,24 +83,6 @@ def derived_field(**kwargs):
         add_field(**kwargs)
         return function
     return inner_decorator
-
-class CodeFieldInfoContainer(FieldInfoContainer):
-    def __setitem__(self, key, val):
-        self._field_list[key] = val
-    def __iter__(self):
-        return itertools.chain(self._field_list.iterkeys(),
-                        self._universal_field_list.iterkeys())
-    def keys(self):
-        return set(self._field_list.keys() + self._universal_field_list.keys())
-    def has_key(self, key):
-        return key in self._universal_field_list \
-            or key in self._field_list
-    def __getitem__(self, key):
-        if key in self._field_list:
-            return self._field_list[key]
-        if key in self._universal_field_list:
-            return self._universal_field_list[key]
-        raise KeyError(key)
 
 class ValidationException(Exception):
     pass

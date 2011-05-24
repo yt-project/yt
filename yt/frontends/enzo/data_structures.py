@@ -45,13 +45,16 @@ from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 from yt.utilities.definitions import mpc_conversion
 from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
-from .fields import EnzoFieldContainer, Enzo1DFieldContainer, \
-    Enzo2DFieldContainer, add_enzo_field
+from .fields import \
+    EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
+    add_enzo_field, add_enzo_2d_field, add_enzo_1d_field
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -406,7 +409,13 @@ class EnzoHierarchy(AMRHierarchy):
 
     def _setup_unknown_fields(self):
         for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
+            if field in self.parameter_file.field_info:
+                ff = self.parameter_file.field_info[field]
+                if "lambda" in str(ff._function): continue
+                # By allowing a backup, we don't mandate that it's found in our
+                # current field info.  This means we'll instead simply override
+                # it.
+                self.parameter_file.field_info.pop(field, None)
             mylog.info("Adding %s to list of fields", field)
             cf = None
             if self.parameter_file.has_key(field):
@@ -628,7 +637,7 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
-    _fieldinfo_class = EnzoFieldContainer
+    _fieldinfo_fallback = EnzoFieldInfo
     def __init__(self, filename, data_style=None,
                  parameter_override = None,
                  conversion_override = None,
@@ -670,11 +679,12 @@ class EnzoStaticOutput(StaticOutput):
         if self["TopGridRank"] == 1: self._setup_1d()
         elif self["TopGridRank"] == 2: self._setup_2d()
 
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
-        self._fieldinfo_class = Enzo1DFieldContainer
+        self._fieldinfo_fallback = Enzo1DFieldInfo
         self.domain_left_edge = \
             na.concatenate([self["DomainLeftEdge"], [0.0, 0.0]])
         self.domain_right_edge = \
@@ -682,7 +692,7 @@ class EnzoStaticOutput(StaticOutput):
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
-        self._fieldinfo_class = Enzo2DFieldContainer
+        self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
             na.concatenate([self["DomainLeftEdge"], [0.0]])
         self.domain_right_edge = \
@@ -908,7 +918,8 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
 
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()
