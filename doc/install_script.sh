@@ -588,6 +588,10 @@ then
     echo "*******************************************************"
 fi
 
+# Add the environment scripts
+( ln -sf ${YT_DIR}/doc/activate ${DEST_DIR}/bin/activate 2>&1 ) 1>> ${LOG_FILE}
+( ln -sf ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
+
 function print_afterword
 {
     echo
@@ -595,26 +599,30 @@ function print_afterword
     echo "========================================================================"
     echo
     echo "yt is now installed in $DEST_DIR ."
-    echo "To run from this new installation, the a few variables need to be"
-    echo "prepended with the following information:"
     echo
-    echo "YT_DEST         => $DEST_DIR"
-    echo "PATH            => $DEST_DIR/bin/"
-    echo "PYTHONPATH      => $DEST_DIR/lib/python2.7/site-packages/"
-    echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
+    echo "To run from this new installation, use the activate script for this "
+    echo "environment."
+    echo
+    echo "    $ source $DEST_DIR/bin/activate"
+    echo "    (yt)$ "
+    echo
+    echo "This modifies the environment variables YT_DEST, PATH, PYTHONPATH, and"
+    echo "LD_LIBRARY_PATH to match your new yt install. But don't worry - as soon"
+    echo "as you are done you can run `deactivate` to return to your previous"
+    echo "shell environment."
     echo
     echo "For interactive data analysis and visualization, we recommend running"
     echo "the IPython interface, which will become more fully featured with time:"
     echo
-    echo "$DEST_DIR/bin/iyt"
+    echo "    $DEST_DIR/bin/iyt"
     echo
     echo "For command line analysis run:"
     echo
-    echo "$DEST_DIR/bin/yt"
+    echo "    $DEST_DIR/bin/yt"
     echo
     echo "To bootstrap a development environment for yt, run:"
     echo 
-    echo "$DEST_DIR/bin/yt bootstrap_dev"
+    echo "    $DEST_DIR/bin/yt bootstrap_dev"
     echo
     echo "Note of interest: this installation will use the directory:"
     echo "    $YT_DIR"
