@@ -1,6 +1,6 @@
 YT is a group effort.
 
-Developers:                     Matthew Turk (matthewturk@gmail.com)
+Contributors:                   Matthew Turk (matthewturk@gmail.com)
                                 Britton Smith (brittonsmith@gmail.com)
                                 Jeff Oishi (jsoishi@gmail.com)
                                 Stephen Skory (s@skory.us)
@@ -14,7 +14,10 @@ Developers:                     Matthew Turk (matthewturk@gmail.com)
                                 Chris Malone (cmalone@mail.astro.sunysb.edu)
                                 Cameron Hummels (chummels@astro.columbia.edu)
                                 Stefan Klemer (sklemer@phys.uni-goettingen.de)
+                                Tom Abel (tabel@stanford.edu)
                                 Andrew Myers (atmyers@astro.berkeley.edu)
+                                Michael Kuhlen (mqk@astro.berkeley.edu)
+                                Casey Stark (caseywstark@gmail.com)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
