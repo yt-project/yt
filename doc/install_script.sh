@@ -589,8 +589,10 @@ then
 fi
 
 # Add the environment scripts
-( ln -sf ${YT_DIR}/doc/activate ${DEST_DIR}/bin/activate 2>&1 ) 1>> ${LOG_FILE}
-( ln -sf ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
+( cp ${YT_DIR}/doc/activate ${DEST_DIR}/bin/activate 2>&1 ) 1>> ${LOG_FILE}
+sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate
+( cp ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
+sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate.csh
 
 function print_afterword
 {
@@ -608,8 +610,8 @@ function print_afterword
     echo
     echo "This modifies the environment variables YT_DEST, PATH, PYTHONPATH, and"
     echo "LD_LIBRARY_PATH to match your new yt install. But don't worry - as soon"
-    echo "as you are done you can run `deactivate` to return to your previous"
-    echo "shell environment."
+    echo "as you are done you can run 'deactivate' to return to your previous"
+    echo "shell environment.  If you use csh, just append .csh to the above."
     echo
     echo "For interactive data analysis and visualization, we recommend running"
     echo "the IPython interface, which will become more fully featured with time:"
