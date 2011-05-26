@@ -36,7 +36,6 @@ from .data_structures import \
       MaestroStaticOutput
 
 from .fields import \
-      MaestroFieldContainer, \
       MaestroFieldInfo, \
       add_maestro_field
 

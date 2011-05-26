@@ -24,7 +24,8 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -34,12 +35,7 @@ import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, mass_hydrogen_cgs
 
-import pdb
-
-class ARTFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-ARTFieldInfo = ARTFieldContainer()
+ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_art_field = ARTFieldInfo.add_field
 
 add_field = add_art_field

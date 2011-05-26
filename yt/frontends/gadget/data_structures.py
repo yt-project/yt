@@ -37,7 +37,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from .fields import GadgetFieldContainer
+from .fields import GadgetFieldInfo
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 
 class GadgetGrid(AMRGridPatch):
     _id_offset = 0
@@ -144,10 +146,11 @@ class GadgetHierarchy(AMRHierarchy):
 
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = GadgetHierarchy
-    _fieldinfo_class = GadgetFieldContainer
+    _fieldinfo_fallback = GadgetFieldContainer
     def __init__(self, filename,storage_filename=None) :
         self.storage_filename = storage_filename
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
         self.filename = filename
         
         StaticOutput.__init__(self, filename, 'gadget_infrastructure')

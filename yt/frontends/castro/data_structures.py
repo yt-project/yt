@@ -55,9 +55,11 @@ from .definitions import \
     castro_particle_field_names, \
     boxlib_bool_to_int
 
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 from .fields import \
-    CastroFieldContainer, \
-    add_field
+    CastroFieldInfo, \
+    add_castro_field
 
 
 class CastroGrid(AMRGridPatch):
@@ -421,10 +423,10 @@ class CastroHierarchy(AMRHierarchy):
                         return data.convert(f)
                     return _convert_function
                 cf = external_wrapper(field)
-                # Note that we call add_field on the field_info directly.  This
+                # Note that we call add_castro_field on the field_info directly.  This
                 # will allow the same field detection mechanism to work for 1D, 2D
                 # and 3D fields.
-                self.pf.field_info.add_field(
+                self.pf.field_info.add_castro_field(
                         field, lambda a, b: None,
                         convert_function=cf, take_log=False,
                         particle_type=True)
@@ -460,7 +462,7 @@ class CastroHierarchy(AMRHierarchy):
                         return data.convert(f)
                     return _convert_function
                 cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
+            add_castro_field(field, lambda a, b: None,
                       convert_function=cf, take_log=False)
 
 
@@ -489,7 +491,7 @@ class CastroStaticOutput(StaticOutput):
     *filename*, without looking at the Castro hierarchy.
     """
     _hierarchy_class = CastroHierarchy
-    _fieldinfo_class = CastroFieldContainer
+    _fieldinfo_fallback = CastroFieldInfo
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='castro_native', paranoia=False,
@@ -515,7 +517,8 @@ class CastroStaticOutput(StaticOutput):
 
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='castro_native')
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'castro' # always PPM DE

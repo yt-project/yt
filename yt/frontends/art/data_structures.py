@@ -37,8 +37,10 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
-from .fields import ARTFieldContainer
-from .fields import add_field
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
+from .fields import ARTFieldInfo, add_art_field
+from .fields import add_art_field
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
@@ -353,7 +355,7 @@ class ARTHierarchy(AMRHierarchy):
                         return data.convert(f)
                     return _convert_function
                 cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
+            add_art_field(field, lambda a, b: None,
                       convert_function=cf, take_log=False)
 
     def _setup_derived_fields(self):
@@ -368,7 +370,7 @@ class ARTHierarchy(AMRHierarchy):
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
-    _fieldinfo_class = ARTFieldContainer
+    _fieldinfo_fallback = ARTFieldInfo
     _handle = None
     
     def __init__(self, filename, data_style='art',
@@ -376,7 +378,8 @@ class ARTStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'art'

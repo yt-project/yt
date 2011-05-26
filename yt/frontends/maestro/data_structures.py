@@ -54,9 +54,11 @@ from .definitions import \
     yt2maestroFieldsDict, \
     maestro_FAB_header_pattern
 
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 from .fields import \
-    MaestroFieldContainer, \
-    add_field
+    MaestroFieldInfo, \
+    add_maestro_field
 
 
 class MaestroGrid(AMRGridPatch):
@@ -118,7 +120,7 @@ class MaestroGrid(AMRGridPatch):
 class MaestroHierarchy(AMRHierarchy):
     grid = MaestroGrid
     def __init__(self, pf, data_style='maestro'):
-        self.field_info = MaestroFieldContainer()
+        self.field_info = pf.field_info
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -431,7 +433,7 @@ class MaestroStaticOutput(StaticOutput):
     *filename*, without looking at the Maestro hierarchy.
     """
     _hierarchy_class = MaestroHierarchy
-    _fieldinfo_class = MaestroFieldContainer
+    _fieldinfo_fallback = MaestroFieldInfo
 
     def __init__(self, plotname, paramFilename=None, 
                  data_style='maestro', paranoia=False,
@@ -455,7 +457,8 @@ class MaestroStaticOutput(StaticOutput):
         # this is the unit of time; NOT the current time
         self.parameters["Time"] = 1 # second
 
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
         self._parse_header_file()
 
 

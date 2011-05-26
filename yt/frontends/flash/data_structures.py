@@ -41,8 +41,10 @@ from yt.utilities.io_handler import \
     io_registry
 
 from .fields import \
-    FLASHFieldContainer, \
-    add_field
+    FLASHFieldInfo, \
+    add_flash_field
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -180,7 +182,7 @@ class FLASHHierarchy(AMRHierarchy):
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
-    _fieldinfo_class = FLASHFieldContainer
+    _fieldinfo_fallback = FLASHFieldInfo
     _handle = None
     
     def __init__(self, filename, data_style='flash_hdf5',
@@ -193,7 +195,8 @@ class FLASHStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.

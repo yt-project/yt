@@ -35,11 +35,13 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
       StaticOutput
 import _ramses_reader
-from .fields import RAMSESFieldContainer
+from .fields import RAMSESFieldInfo
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -317,7 +319,7 @@ class RAMSESHierarchy(AMRHierarchy):
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESHierarchy
-    _fieldinfo_class = RAMSESFieldContainer
+    _fieldinfo_fallback = RAMSESFieldInfo
     _handle = None
     
     def __init__(self, filename, data_style='ramses',
@@ -325,7 +327,8 @@ class RAMSESStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

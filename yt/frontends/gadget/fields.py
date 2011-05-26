@@ -27,7 +27,8 @@ import numpy as na
 
 from yt.funcs import *
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -35,10 +36,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-class GadgetFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-GadgetFieldInfo = GadgetFieldContainer()
+GadgetFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_gadget_field = GadgetFieldInfo.add_field
 
 add_field = add_gadget_field

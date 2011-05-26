@@ -33,6 +33,8 @@ from yt.data_objects.static_output import \
            StaticOutput
 
 from .fields import GDFFieldContainer
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
@@ -142,14 +144,15 @@ class GDFHierarchy(AMRHierarchy):
 
 class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
-    _fieldinfo_class = GDFFieldContainer
+    _fieldinfo_fallback = GDFFieldContainer
     
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self._handle = h5py.File(self.filename, "r")
         self.storage_filename = storage_filename
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
         self._handle.close()
         del self._handle
         

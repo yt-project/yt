@@ -59,7 +59,7 @@ class FieldInfoContainer(dict): # We are all Borg.
         # This gets used a lot
         if key in self: return True
         if self.fallback is None: return False
-        return key in self.fallback
+        return self.fallback.has_key(key)
 
     def __missing__(self, key):
         if self.fallback is None: raise KeyError

@@ -34,7 +34,6 @@ from .data_structures import \
       ARTStaticOutput
 
 from .fields import \
-      ARTFieldContainer, \
       ARTFieldInfo, \
       add_art_field
 

@@ -25,7 +25,8 @@ License:
 from yt.utilities.physical_constants import \
     mh, kboltz
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -33,13 +34,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-class CastroFieldContainer(CodeFieldInfoContainer):
-    """
-    All Castro-specific fields are stored in here.
-    """
-    _shared_state = {}
-    _field_list = {}
-CastroFieldInfo = CastroFieldContainer()
+CastroFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_castro_field = CastroFieldInfo.add_field
 
 

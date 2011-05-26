@@ -55,8 +55,11 @@ from .definitions import \
     orion_FAB_header_pattern
 
 from .fields import \
-    OrionFieldContainer, \
-    add_field
+    OrionFieldInfo, \
+    add_orion_field
+
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer
 
 
 class OrionGrid(AMRGridPatch):
@@ -410,7 +413,7 @@ class OrionHierarchy(AMRHierarchy):
                         return data.convert(f)
                     return _convert_function
                 cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
+            add_orion_field(field, lambda a, b: None,
                       convert_function=cf, take_log=False)
 
 
@@ -439,7 +442,7 @@ class OrionStaticOutput(StaticOutput):
     *filename*, without looking at the Orion hierarchy.
     """
     _hierarchy_class = OrionHierarchy
-    _fieldinfo_class = OrionFieldContainer
+    _fieldinfo_fallback = OrionFieldInfo
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='orion_native', paranoia=False,
@@ -465,7 +468,8 @@ class OrionStaticOutput(StaticOutput):
 
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
