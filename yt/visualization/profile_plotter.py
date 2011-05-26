@@ -268,7 +268,10 @@ class PhasePlotter(object):
                                   y_bins, field_y, y_min, y_max, y_log,
                                   lazy_reader)
         # This is a fallback, in case we forget.
-        if field_z == "CellMassMsun": weight = None
+        if field_z.startswith("CellMass") or \
+           field_z.startswith("CellVolume"):
+            mylog.warning("Setting weight to None")
+            weight = None
         profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_z
         self.profile = profile
@@ -392,7 +395,10 @@ class ProfilePlotter(object):
                                   x_bins, field_x, x_min, x_max, x_log,
                                   lazy_reader)
         # This is a fallback, in case we forget.
-        if field_y == "CellMassMsun": weight = None
+        if field_y.startswith("CellMass") or \
+           field_y.startswith("CellVolume"):
+            mylog.warning("Setting weight to None")
+            weight = None
         profile.add_fields(field_y, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_y
         self.profile = profile
