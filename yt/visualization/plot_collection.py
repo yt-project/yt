@@ -1707,7 +1707,8 @@ class PlotCollectionIPython(PlotCollection):
             canvas = FigureCanvasSVG(plot._figure)
             send_svg_canvas(canvas)
 
-def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
+def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
+                   cbar_padding = 0.4):
     r"""Construct a multiple axes plot object, with or without a colorbar, into
     which multiple plots may be inserted.
 
@@ -1750,11 +1751,11 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     if colorbar is None:
         fudge_x = fudge_y = 1.0
     elif colorbar.lower() == 'vertical':
-        fudge_x = nx/(0.25+nx)
+        fudge_x = nx/(cbar_padding+nx)
         fudge_y = 1.0
     elif colorbar.lower() == 'horizontal':
         fudge_x = 1.0
-        fudge_y = ny/(0.40+ny)
+        fudge_y = ny/(cbar_padding+ny)
     fig = figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
     from _mpl_imports import FigureCanvasAgg
     fig.set_canvas(FigureCanvasAgg(fig))

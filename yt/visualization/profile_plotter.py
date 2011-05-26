@@ -38,6 +38,7 @@ from yt.data_objects.profiles import \
     BinnedProfile2D
 from .plot_types import ProfilePlot, PhasePlot
 from .tick_locators import LogLocator
+from yt.utilities.logger import ytLogger as mylog
 
 def invalidate_plot(f):
     @wraps(f)
