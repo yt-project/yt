@@ -47,6 +47,7 @@ class StreamGrid(AMRGridPatch):
     """
 
     __slots__ = ['proc_num']
+    _id_offset = 0
     def __init__(self, id, hierarchy):
         """
         Returns an instance of StreamGrid with *id*, associated with *filename*
@@ -127,7 +128,23 @@ class StreamHierarchy(AMRHierarchy):
         self.num_grids = self.stream_handler.num_grids
 
     def _setup_unknown_fields(self):
-        pass
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            # Note that we call add_field on the field_info directly.  This
+            # will allow the same field detection mechanism to work for 1D, 2D
+            # and 3D fields.
+            self.pf.field_info.add_field(
+                    field, lambda a, b: None,
+                    convert_function=cf, take_log=False)
+            
 
     def _parse_hierarchy(self):
         self.grid_dimensions = self.stream_handler.dimensions
@@ -144,11 +161,11 @@ class StreamHierarchy(AMRHierarchy):
         # We enumerate, so it's 0-indexed id and 1-indexed pid
         self.filenames = ["-1"] * self.num_grids
         for id,pid in enumerate(reverse_tree):
-            self.grids.append(self.grid(id+1, self))
+            self.grids.append(self.grid(id, self))
             self.grids[-1].Level = self.grid_levels[id, 0]
             if pid > 0:
                 self.grids[-1]._parent_id = pid
-                self.grids[pid-1]._children_ids.append(self.grids[-1].id)
+                self.grids[pid]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
@@ -167,7 +184,7 @@ class StreamHierarchy(AMRHierarchy):
         pass
 
     def _detect_fields(self):
-        self.field_list = set(self.stream_handler.get_fields())
+        self.field_list = list(set(self.stream_handler.get_fields()))
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
@@ -211,6 +228,8 @@ class StreamStaticOutput(StaticOutput):
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
         self.field_info = self._fieldinfo_class()
+        self.units = {}
+        self.time_units = {}
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name

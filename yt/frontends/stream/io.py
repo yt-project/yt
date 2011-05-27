@@ -49,17 +49,17 @@ class IOHandlerStream(BaseIOHandler):
         # If it's particles, we copy.
         if len(tr.shape) == 1: return tr.copy()
         # New in-place unit conversion breaks if we don't copy first
-        return tr.swapaxes(0,2)[self.my_slice].copy()
+        return tr
 
     def modify(self, field):
-        return field.swapaxes(0,2)
+        return field
 
     def _read_field_names(self, grid):
         return self.fields[grid.id].keys()
 
     def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
-        sl[axis] = slice(coord + 3, coord + 4)
+        sl = [slice(0,-0), slice(0,-0), slice(0,-0)]
+        sl[axis] = slice(coord, coord + 1)
         sl = tuple(reversed(sl))
         tr = self.fields[grid.id][field][sl].swapaxes(0,2)
         # In-place unit conversion requires we return a copy
