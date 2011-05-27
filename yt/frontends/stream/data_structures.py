@@ -26,6 +26,7 @@ License:
 import weakref
 import numpy as na
 
+from yt.utilities.io_handler import io_registry
 from yt.funcs import *
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
@@ -89,7 +90,7 @@ class StreamGrid(AMRGridPatch):
         return [self.hierarchy.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
-class StreamHandlers(object):
+class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
                  fields):
@@ -104,8 +105,7 @@ class StreamHandlers(object):
         self.fields = fields
 
     def get_fields(self):
-        field_list = set()
-        for fl in self.fields.values(): field_list.update(fl.keys())
+        return self.fields.all_fields
 
 class StreamHierarchy(AMRHierarchy):
 
@@ -115,7 +115,7 @@ class StreamHierarchy(AMRHierarchy):
         self.data_style = data_style
         self.float_type = 'float64'
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
-        self.stream_handlers = pf.stream_handlers
+        self.stream_handler = pf.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
         AMRHierarchy.__init__(self, pf, data_style)
@@ -124,17 +124,20 @@ class StreamHierarchy(AMRHierarchy):
         pass
 
     def _count_grids(self):
-        self.num_grids = self.stream_handlers.num_grids
+        self.num_grids = self.stream_handler.num_grids
+
+    def _setup_unknown_fields(self):
+        pass
 
     def _parse_hierarchy(self):
-        self.grid_dimensions = self.stream_handlers.dimensions
-        self.grid_left_edge[:] = self.stream_handlers.left_edges
-        self.grid_right_edge[:] = self.stream_handlers.right_edges
-        self.grid_levels[:] = self.stream_handlers.levels
-        self.grid_procs = self.stream_handlers.processor_ids
-        self.grid_particle_count[:] = self.stream_handlers.particle_count
+        self.grid_dimensions = self.stream_handler.dimensions
+        self.grid_left_edge[:] = self.stream_handler.left_edges
+        self.grid_right_edge[:] = self.stream_handler.right_edges
+        self.grid_levels[:] = self.stream_handler.levels
+        self.grid_procs = self.stream_handler.processor_ids
+        self.grid_particle_count[:] = self.stream_handler.particle_count
         mylog.debug("Copying reverse tree")
-        reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
+        reverse_tree = self.stream_handler.parent_ids.tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
         self.grids = []
@@ -152,12 +155,12 @@ class StreamHierarchy(AMRHierarchy):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
-            grid.proc_num = self.grid_procs[i,0]
+            grid.proc_num = self.grid_procs[i]
         self.grids = na.array(self.grids, dtype='object')
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):
-        EnzoHierarchy._initialize_grid_arrays(self)
+        AMRHierarchy._initialize_grid_arrays(self)
         self.grid_procs = na.zeros((self.num_grids,1),'int32')
 
     def save_data(self, *args, **kwargs):
@@ -180,8 +183,22 @@ class StreamHierarchy(AMRHierarchy):
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._setup_dx()
+        self.max_level = self.grid_levels.max()
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.stream_handler)
+
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
+    _fieldinfo_class = StreamFieldContainer
     _data_style = 'stream'
 
     def __init__(self, stream_handler):
@@ -190,6 +207,7 @@ class StreamStaticOutput(StaticOutput):
         #if conversion_override is None: conversion_override = {}
         #self._conversion_override = conversion_override
 
+        self.stream_handler = stream_handler
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
         self.field_info = self._fieldinfo_class()
@@ -203,7 +221,7 @@ class StreamStaticOutput(StaticOutput):
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality
         self.domain_dimensions = self.stream_handler.domain_dimensions
-        self.current_time = self.stream_handlers.simulation_time
+        self.current_time = self.stream_handler.simulation_time
         if self.stream_handler.cosmology_simulation:
             self.cosmological_simulation = 1
             self.current_redshift = self.stream_handler.current_redshift
@@ -213,6 +231,9 @@ class StreamStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+
+    def _set_units(self):
+        pass
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

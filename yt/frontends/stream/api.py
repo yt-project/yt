@@ -27,7 +27,8 @@ License:
 from .data_structures import \
       StreamGrid, \
       StreamHierarchy, \
-      StreamStaticOutput
+      StreamStaticOutput, \
+      StreamHandler
 
 from .fields import \
       StreamFieldContainer, \
