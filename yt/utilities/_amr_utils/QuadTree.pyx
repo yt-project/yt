@@ -257,3 +257,35 @@ cdef class QuadTree:
                 QTN_free(self.root_nodes[i][j])
             free(self.root_nodes[i])
         free(self.root_nodes)
+
+cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2):
+    # We have four choices when merging nodes.
+    # 1. If both nodes have no refinement, then we add values of n2 to n1.
+    # 2. If both have refinement, we call QTN_merge_nodes on all four children.
+    # 3. If n2 has refinement and n1 does not, we detach n2's children and
+    #    attach them to n1.
+    # 4. If n1 has refinement and n2 does not, we add the value of n2 to n1.
+    cdef int i, j
+
+    if n1.children[0][0] == n2.children[0][0] == NULL:
+        QTN_add_value(n1, n2.val, n2.weight_val)
+    elif n1.children[0][0] != NULL and n2.children[0][0] != NULL:
+        for i in range(2):
+            for j in range(2):
+                QTN_merge_nodes(n1.children[i][j], n2.children[i][j])
+    elif n1.children[0][0] == NULL and n2.children[0][0] != NULL:
+        for i in range(2):
+            for j in range(2):
+                n1.children[i][j] = n2.children[i][j]
+                n2.children[i][j] = NULL
+    elif n1.children[0][0] != NULL and n2.children[0][0] == NULL:
+        QTN_add_value(n1, n2.val, n2.weight_val)
+    else:
+        raise RuntimeError
+
+def merge_quadtrees(QuadTree qt1, QuadTree qt2):
+    cdef int i, j
+    for i in range(qt1.top_grid_dims[0]):
+        for j in range(qt1.top_grid_dims[1]):
+            QTN_merge_nodes(qt1.root_nodes[i][j],
+                            qt2.root_nodes[i][j])
