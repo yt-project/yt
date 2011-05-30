@@ -103,9 +103,11 @@ cdef class QuadTree:
     cdef np.int64_t po2[80] 
     cdef QuadTreeNode ***root_nodes
     cdef np.int64_t top_grid_dims[2]
+    cdef int merged
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals):
+        self.merged = 0
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
@@ -207,10 +209,15 @@ cdef class QuadTree:
         cdef np.int64_t *pdata = <np.int64_t *> npos.data
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
+        cdef np.float64_t wtoadd
+        cdef np.float64_t *vtoadd = <np.float64_t *> \
+                alloca(sizeof(np.float64_t) * self.nvals)
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
+                for vi in range(self.nvals): vtoadd[i] = 0.0
+                wtoadd = 0.0
                 curpos += self.fill_from_level(self.root_nodes[i][j],
-                    level, curpos, pdata, vdata, wdata)
+                    level, curpos, pdata, vdata, wdata, vtoadd, wtoadd)
         return npos, nvals, nwvals
 
     cdef int count_at_level(self, QuadTreeNode *node, int level):
@@ -232,22 +239,33 @@ cdef class QuadTree:
                               np.int64_t curpos,
                               np.int64_t *pdata,
                               np.float64_t *vdata,
-                              np.float64_t *wdata):
+                              np.float64_t *wdata,
+                              np.float64_t *vtoadd,
+                              np.float64_t wtoadd):
         cdef int i, j
         if node.level == level:
             if node.children[0][0] != NULL: return 0
             for i in range(self.nvals):
-                vdata[self.nvals * curpos + i] = node.val[i]
-            wdata[curpos] = node.weight_val
+                vdata[self.nvals * curpos + i] = node.val[i] + vtoadd[i]
+            wdata[curpos] = node.weight_val + wtoadd
             pdata[curpos * 2] = node.pos[0]
             pdata[curpos * 2 + 1] = node.pos[1]
             return 1
         if node.children[0][0] == NULL: return 0
         cdef np.int64_t added = 0
+        if self.merged == 1:
+            for i in range(self.nvals):
+                vtoadd[i] += node.val[i]
+                wtoadd += node.weight_val
         for i in range(2):
             for j in range(2):
                 added += self.fill_from_level(node.children[i][j],
-                        level, curpos + added, pdata, vdata, wdata)
+                        level, curpos + added, pdata, vdata, wdata,
+                        vtoadd, wtoadd)
+        if self.merged == 1:
+            for i in range(self.nvals):
+                vtoadd[i] -= node.val[i]
+                wtoadd -= node.weight_val
         return added
 
     def __dealloc__(self):
@@ -289,3 +307,4 @@ def merge_quadtrees(QuadTree qt1, QuadTree qt2):
         for j in range(qt1.top_grid_dims[1]):
             QTN_merge_nodes(qt1.root_nodes[i][j],
                             qt2.root_nodes[i][j])
+    qt1.merged = 1
