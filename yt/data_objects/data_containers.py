@@ -1591,7 +1591,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             else:
                 ds = 0.0
             dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
-        del tree
+        #self._tree = tree
         coord_data = na.concatenate(coord_data, axis=0).transpose()
         field_data = na.concatenate(field_data, axis=0).transpose()
         weight_data = na.concatenate(weight_data, axis=0).transpose()
@@ -1655,6 +1655,7 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = self.source.select_grids(level)
+        if len(grids_to_project) == 0: return
         dls, convs = self._get_dls(grids_to_project[0], fields)
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \
