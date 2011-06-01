@@ -581,8 +581,8 @@ class AMRRayBase(AMR1DData):
         --------
 
         >>> pf = load("RedshiftOutput0005")
-        >>> ray = pf.h._ray((0.2, 0.74), (0.4, 0.91))
-        >>> print ray["Density"], ray["t"]
+        >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+        >>> print ray["Density"], ray["t"], ray["dts"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = na.array(start_point, dtype='float64')
