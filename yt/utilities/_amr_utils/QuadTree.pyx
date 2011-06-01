@@ -31,6 +31,7 @@ cimport numpy as cnp
 cimport cython
 
 from stdlib cimport malloc, free, abs
+from cython.operator cimport dereference as deref, preincrement as inc
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -78,13 +79,14 @@ cdef QuadTreeNode *QTN_initialize(np.int64_t pos[2], int nvals,
     node.nvals = nvals
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
-    for i in range(nvals):
-        node.val[i] = val[i]
-    node.weight_val = weight_val
     for i in range(2):
         for j in range(2):
             node.children[i][j] = NULL
     node.level = level
+    if val != NULL:
+        for i in range(nvals):
+            node.val[i] = val[i]
+        node.weight_val = weight_val
     return node
 
 cdef void QTN_free(QuadTreeNode *node):
@@ -135,6 +137,87 @@ cdef class QuadTree:
                 pos[1] = j
                 self.root_nodes[i][j] = QTN_initialize(
                     pos, nvals, vals, weight_val, 0)
+
+    cdef int count_total_cells(self, QuadTreeNode *root):
+        cdef int total = 0
+        cdef int i, j
+        if root.children[0][0] == NULL: return 1
+        for i in range(2):
+            for j in range(2):
+                total += self.count_total_cells(root.children[i][j])
+        return total + 1
+
+    cdef int fill_buffer(self, QuadTreeNode *root, int curpos,
+                          np.ndarray[np.int32_t, ndim=1] refined,
+                          np.ndarray[np.float64_t, ndim=2] values,
+                          np.ndarray[np.float64_t, ndim=1] wval):
+        cdef int i, j
+        for i in range(self.nvals):
+            values[curpos, i] = root.val[i]
+        wval[curpos] = root.weight_val
+        if root.children[0][0] != NULL: refined[curpos] = 1
+        else: return curpos+1
+        curpos += 1
+        for i in range(2):
+            for j in range(2):
+                curpos = self.fill_buffer(root.children[i][j], curpos,
+                                 refined, values, wval)
+        return curpos
+
+    cdef int unfill_buffer(self, QuadTreeNode *root, int curpos,
+                          np.ndarray[np.int32_t, ndim=1] refined,
+                          np.ndarray[np.float64_t, ndim=2] values,
+                          np.ndarray[np.float64_t, ndim=1] wval):
+        cdef int i, j
+        for i in range(self.nvals):
+            root.val[i] = values[curpos, i]
+        root.weight_val = wval[curpos]
+        if refined[curpos] == 0: return curpos+1
+        curpos += 1
+        cdef QuadTreeNode *child
+        cdef np.int64_t pos[2]
+        for i in range(2):
+            for j in range(2):
+                pos[0] = root.pos[0]*2 + i
+                pos[1] = root.pos[1]*2 + j
+                child = QTN_initialize(pos, self.nvals, NULL, 0.0, root.level+1)
+                root.children[i][j] = child
+                curpos = self.unfill_buffer(child, curpos, refined, values, wval)
+        return curpos
+
+
+    def frombuffer(self, np.ndarray[np.int32_t, ndim=1] refined,
+                         np.ndarray[np.float64_t, ndim=2] values,
+                         np.ndarray[np.float64_t, ndim=1] wval):
+        self.merged = 1 # Just on the safe side
+        cdef int curpos = 0
+        cdef QuadTreeNode *root
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                curpos = self.unfill_buffer(self.root_nodes[i][j], curpos,
+                                 refined, values, wval)
+
+    def tobuffer(self):
+        cdef int total = 0
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                total += self.count_total_cells(self.root_nodes[i][j])
+        # We now have four buffers:
+        # Refined or not (total,) int32
+        # Values in each node (total, nvals) float64
+        # Weight values in each node (total,) float64
+        cdef np.ndarray[np.int32_t, ndim=1] refined 
+        refined = np.zeros(total, dtype='int32')
+        cdef np.ndarray[np.float64_t, ndim=2] values
+        values = np.zeros((total, self.nvals), dtype='float64')
+        cdef np.ndarray[np.float64_t, ndim=1] wval
+        wval = np.zeros(total, dtype='float64')
+        cdef int curpos = 0
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                curpos = self.fill_buffer(self.root_nodes[i][j], curpos,
+                                 refined, values, wval)
+        return (refined, values, wval)
 
     cdef void add_to_position(self,
                  int level, np.int64_t pos[2],
