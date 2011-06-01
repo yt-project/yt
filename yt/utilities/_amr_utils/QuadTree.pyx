@@ -293,11 +293,11 @@ cdef class QuadTree:
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
         cdef np.float64_t wtoadd
-        cdef np.float64_t *vtoadd = <np.float64_t *> \
-                alloca(sizeof(np.float64_t) * self.nvals)
+        cdef np.float64_t *vtoadd = <np.float64_t *> alloca(
+                sizeof(np.float64_t)*self.nvals)
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
-                for vi in range(self.nvals): vtoadd[i] = 0.0
+                for vi in range(self.nvals): vtoadd[vi] = 0.0
                 wtoadd = 0.0
                 curpos += self.fill_from_level(self.root_nodes[i][j],
                     level, curpos, pdata, vdata, wdata, vtoadd, wtoadd)
@@ -339,7 +339,7 @@ cdef class QuadTree:
         if self.merged == 1:
             for i in range(self.nvals):
                 vtoadd[i] += node.val[i]
-                wtoadd += node.weight_val
+            wtoadd += node.weight_val
         for i in range(2):
             for j in range(2):
                 added += self.fill_from_level(node.children[i][j],
@@ -348,7 +348,7 @@ cdef class QuadTree:
         if self.merged == 1:
             for i in range(self.nvals):
                 vtoadd[i] -= node.val[i]
-                wtoadd -= node.weight_val
+            wtoadd -= node.weight_val
         return added
 
     def __dealloc__(self):
