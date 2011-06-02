@@ -109,7 +109,7 @@ cdef class QuadTree:
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals):
-        self.merged = 0
+        self.merged = 1
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
@@ -277,7 +277,7 @@ cdef class QuadTree:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def get_all_from_level(self, int level, int count_only = 0):
-        cdef int i, j
+        cdef int i, j, vi
         cdef int total = 0
         vals = []
         for i in range(self.top_grid_dims[0]):
@@ -371,8 +371,9 @@ cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2):
     # 4. If n1 has refinement and n2 does not, we add the value of n2 to n1.
     cdef int i, j
 
+    QTN_add_value(n1, n2.val, n2.weight_val)
     if n1.children[0][0] == n2.children[0][0] == NULL:
-        QTN_add_value(n1, n2.val, n2.weight_val)
+        pass
     elif n1.children[0][0] != NULL and n2.children[0][0] != NULL:
         for i in range(2):
             for j in range(2):
@@ -383,7 +384,7 @@ cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2):
                 n1.children[i][j] = n2.children[i][j]
                 n2.children[i][j] = NULL
     elif n1.children[0][0] != NULL and n2.children[0][0] == NULL:
-        QTN_add_value(n1, n2.val, n2.weight_val)
+        pass
     else:
         raise RuntimeError
 
