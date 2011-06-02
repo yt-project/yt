@@ -291,9 +291,9 @@ def map_to_colors(buff, cmap_name):
     return mapped.copy("C")
 
 def strip_colormap_data(fn = "color_map_data.py",
-            cmaps = ("jet", "algae", "hot", "gist_stern")):
+            cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu")):
     import pprint
-    import _colormap_data as rcm
+    import color_maps as rcm
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
