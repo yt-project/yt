@@ -219,6 +219,9 @@ cdef class QuadTree:
                                  refined, values, wval)
         return (refined, values, wval)
 
+    def get_args(self):
+        return (self.top_grid_dims[0], self.top_grid_dims[1], self.nvals)
+
     cdef void add_to_position(self,
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
