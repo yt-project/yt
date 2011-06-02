@@ -1295,7 +1295,7 @@ class ParallelAnalysisInterface(object):
                 target = (rank & ~mask) % size
                 print "SENDING FROM %02i to %02i" % (rank, target)
                 self._send_quadtree(target, qt, tgd, args)
-                qt = self._recv_quadtree(target, tgd, args)
+                #qt = self._recv_quadtree(target, tgd, args)
             else:
                 target = (rank | mask)
                 if target < size:
@@ -1303,7 +1303,7 @@ class ParallelAnalysisInterface(object):
                     qto = self._recv_quadtree(target, tgd, args)
                     merge_quadtrees(qt, qto)
                     del qto
-                    self._send_quadtree(target, qt, tgd, args)
+                    #self._send_quadtree(target, qt, tgd, args)
             mask <<= 1
 
         if rank == 0:
