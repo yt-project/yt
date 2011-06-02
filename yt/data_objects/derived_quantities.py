@@ -388,7 +388,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # symmetry.
         dxes = na.unique(data['dx']) # unique returns a sorted array,
         dyes = na.unique(data['dy']) # so these will all have the same
-        dzes = na.unique(data['dx']) # order.
+        dzes = na.unique(data['dz']) # order.
         # We only need one dim to figure out levels, we'll use x.
         dx = 1./data.pf.domain_dimensions[0]
         levels = (na.log(dx / dxes) / na.log(data.pf.refine_by)).astype('int')
