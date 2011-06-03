@@ -277,7 +277,7 @@ class PhasePlotter(object):
         self._current_field = field_z
         self.profile = profile
         self.scale = {True:'log', False:'linear'}.get(
-                data_source.pf.field_info[field_z], "log")
+                data_source.pf.field_info[field_z].take_log, "log")
         self._setup_plot()
 
     def _setup_plot(self):
@@ -404,7 +404,7 @@ class ProfilePlotter(object):
         self._current_field = field_y
         self.profile = profile
         self.scale = {True:'log', False:'linear'}.get(
-                data_source.pf.field_info[field_y], "log")
+                data_source.pf.field_info[field_y].take_log, "log")
         self._setup_plot()
 
     def _setup_plot(self):
@@ -421,7 +421,7 @@ class ProfilePlotter(object):
             ny = (self.profile[self._current_field] > 0)
             mi = self.profile[self._current_field][ny].min()
         else:
-            mi = self.profile[self._current_field][ny].min()
+            mi = self.profile[self._current_field].min()
         ma = self.profile[self._current_field].max()
         yax.bounds = (mi, ma)
         yax.scale = self.scale
