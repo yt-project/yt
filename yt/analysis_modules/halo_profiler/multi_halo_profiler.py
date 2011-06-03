@@ -211,10 +211,12 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Create dataset object.
         self.pf = load(self.dataset)
         self.pf.h
-        if self.halos is 'single' or \
-                not 'r_max' in self.halo_list_format or \
-                halo_radius is not None:
+
+        # Figure out what max radius to use for profiling.
+        if halo_radius is not None:
             self.halo_radius = halo_radius / self.pf[radius_units]
+        elif self.halos is 'single' or not 'r_max' in self.halo_list_format:
+            self.halo_radius = 0.1
         else:
             self.halo_radius = None
 
