@@ -296,13 +296,18 @@ class FLASHStaticOutput(StaticOutput):
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
 
         # Determine domain dimensions
-        if self._flash_version == 7:
-            self.domain_dimensions = \
-                (self.domain_right_edge - self.domain_left_edge).astype('int64')
-        else:
-            raise RuntimeError("Can't determine FLASH domain_dimensions "+
-                               "for FLASH file version %i." % 
-                               self._flash_version)
+        try:
+            nxb = self._find_parameter("integer", "nxb", handle = self._handle)
+            nyb = self._find_parameter("integer", "nyb", handle = self._handle)
+            nzb = self._find_parameter("integer", "nzb", handle = self._handle)
+        except KeyError:
+            nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
+                              for ax in 'xyz']
+        nblockx = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblocky = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblockz = self._find_parameter("integer", "nblockx", handle = self._handle)
+        self.domain_dimensions = \
+            na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
         if self._flash_version == 7:
             self.current_time = float(
