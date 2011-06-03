@@ -152,6 +152,9 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             print "WARNING: %s has no _route_prefix attribute.  Not notifying."
             continue
             w._route_prefix = token
+    repl.activate()
+    while not repl.execution_thread.queue.empty():
+        time.sleep(1)
     print
     print
     print "============================================================================="
@@ -195,7 +198,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
         import yt.utilities.rocket as rocket
         server_type = YTRocketServer
         log = logging.getLogger('Rocket')
-        log.setLevel(logging.INFO)
+        log.setLevel(logging.WARNING)
         kwargs = {'timeout': 600, 'max_threads': 2}
         if repl is not None:
             repl.server = YTRocketServer.server_info

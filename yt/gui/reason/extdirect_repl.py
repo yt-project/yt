@@ -106,24 +106,24 @@ class ExecutionThread(threading.Thread):
 
     def run(self):
         while 1:
-            print "Checking for a queue ..."
+            #print "Checking for a queue ..."
             try:
                 task = self.queue.get(True, 10)
             except (Queue.Full, Queue.Empty):
                 if self.repl.stopped: return
                 continue
-            print "Received the task", task
+            #print "Received the task", task
             if task['type'] == 'code':
                 self.execute_one(task['code'], task['hide'])
                 self.queue.task_done()
             elif task['type'] == 'add_widget':
-                print "Adding new widget"
+                #print "Adding new widget"
                 self.queue.task_done()
                 new_code = self.repl._add_widget(
                     task['name'], task['widget_data_name'])
-                print "Got this command:", new_code
+                #print "Got this command:", new_code
                 self.repl.execute(new_code, hide=True)
-                print "Executed!"
+                #print "Executed!"
 
     def execute_one(self, code, hide):
         self.repl.executed_cell_texts.append(code)
@@ -237,13 +237,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute("data_objects = []", hide = True)
         self.locals['load_script'] = ext_load_script
         self.locals['deliver_image'] = deliver_image
-        self._setup_logging_handlers()
 
+    def activate(self):
+        self._setup_logging_handlers()
         # Setup our heartbeat
         self.last_heartbeat = time.time()
         self._check_heartbeat()
         self.execution_thread.start()
-        if self.debug: time.sleep(3)
 
     def exception_handler(self, exc):
         result = {'type': 'cell_results',
