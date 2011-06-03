@@ -88,10 +88,12 @@ class PlotContainer(object):
         if self.x_spec.scale == 'log' and \
            self.y_spec.scale == 'log':
             func = axes.loglog
-        elif self.x_spec == 'log':
+        elif self.x_spec.scale == 'log':
             func = axes.semilogx
-        elif self.y_spec == 'log':
+        elif self.y_spec.scale == 'log':
             func = axes.semilogy
+        else:
+            func = axes.plot
         if self.plot_spec is None:
             kwargs = {}
         else:
