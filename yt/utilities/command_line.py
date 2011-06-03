@@ -26,7 +26,8 @@ License:
 from yt.mods import *
 from yt.funcs import *
 import cmdln as cmdln
-import optparse, os, os.path, math, sys, time, subprocess
+import optparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
+import urllib, urllib2, base64
 
 def _fix_pf(arg):
     if os.path.isdir("%s" % arg) and \
@@ -276,6 +277,22 @@ def get_yt_version():
     path = os.path.dirname(yt_provider.module_path)
     version = _get_hg_version(path)[:12]
     return version
+
+# This code snippet is modified from Georg Brandl
+def bb_apicall(endpoint, data, use_pass = True):
+    uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
+    # since bitbucket doesn't return the required WWW-Authenticate header when
+    # making a request without Authorization, we cannot use the standard urllib2
+    # auth handlers; we have to add the requisite header from the start
+    if data is not None:
+        data = urllib.urlencode(data)
+    req = urllib2.Request(uri, data)
+    if use_pass:
+        username = raw_input("Bitbucket Username? ")
+        password = getpass.getpass()
+        upw = '%s:%s' % (username, password)
+        req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+    return urllib2.urlopen(req).read()
 
 class YTCommands(cmdln.Cmdln):
     name="yt"
@@ -609,7 +626,7 @@ class YTCommands(cmdln.Cmdln):
                   help="Description for this pasteboard entry")
     def do_pasteboard(self, subcmd, opts, arg):
         """
-        Place a file into the user's pasteboard
+        Place a file into your pasteboard.
         """
         if opts.desc is None: raise RuntimeError
         from yt.utilities.pasteboard import PostInventory
@@ -620,8 +637,102 @@ class YTCommands(cmdln.Cmdln):
                   default = None, dest="output_fn",
                   help="File to output to; else, print.")
     def do_pastegrab(self, subcmd, opts, username, paste_id):
+        """
+        Download from your or another user's pasteboard.
+        """
         from yt.utilities.pasteboard import retrieve_pastefile
         retrieve_pastefile(username, paste_id, opts.output_fn)
+
+    def do_bugreport(self, subcmd, opts):
+        """
+        Report a bug in yt
+        """
+        print "==============================================================="
+        print
+        print "Hi there!  Welcome to the yt bugreport taker."
+        print
+        print "==============================================================="
+        print
+        print "At any time in advance of the upload of the bug, you"
+        print "should feel free to ctrl-C out and submit the bug "
+        print "report manually by going here:"
+        print "   http://hg.enzotools.org/yt/issues/new"
+        print
+        print "First off, how about a nice, pithy summary of the bug?"
+        print
+        try:
+            current_version = get_yt_version()
+        except:
+            current_version = "Unavailable"
+        summary = raw_input("Summary? ")
+        bugtype = "bug"
+        data = dict(title = summary, type=bugtype)
+        print "Okay, now let's get a bit more information."
+        print
+        print "Remember that if you want to submit a traceback, you can run"
+        print "any script with --paste or --detailed-paste to submit it to"
+        print "the pastebin."
+        if "EDITOR" in os.environ:
+            print
+            print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
+            loki = raw_input()
+            tf = tempfile.NamedTemporaryFile(delete=False)
+            fn = tf.name
+            tf.close()
+            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
+            content = open(fn).read()
+            try:
+                os.unlink(fn)
+            except:
+                pass
+        else:
+            print
+            print "Couldn't find an $EDITOR variable.  So, let's just take"
+            print "take input here.  Type up your summary until you're ready"
+            print "to be done, and to signal you're done, type --- by itself"
+            print "on a line to signal your completion."
+            print
+            print "(okay, type now)"
+            print
+            lines = []
+            while 1:
+                line = raw_input()
+                if line.strip() == "---": break
+                lines.append(line)
+            content = "\n".join(lines)
+        content = "Reporting Version: %s\n\n%s" % (current_version, content)
+        endpoint = "repositories/yt_analysis/yt/issues"
+        data['content'] = content
+        print
+        print "==============================================================="
+        print 
+        print "Okay, we're going to submit with this:"
+        print
+        print "Summary: %s" % (data['title'])
+        print
+        print "---"
+        print content
+        print "---"
+        print
+        print "==============================================================="
+        print
+        print "Is that okay?  If not, hit ctrl-c.  Otherwise, enter means"
+        print "'submit'.  Next we'll ask for your Bitbucket Username."
+        print "If you don't have one, run the 'yt bootstrap_dev' command."
+        print
+        loki = raw_input()
+        retval = bb_apicall(endpoint, data, use_pass=True)
+        import json
+        retval = json.loads(retval)
+        url = "http://hg.enzotools.org/yt/issue/%s" % retval['local_id']
+        print 
+        print "==============================================================="
+        print
+        print "Thanks for your bug report!  You can view it here:"
+        print "   %s" % url
+        print
+        print "Keep in touch!"
+        print
 
     def do_bootstrap_dev(self, subcmd, opts):
         """
