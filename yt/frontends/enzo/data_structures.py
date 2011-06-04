@@ -46,7 +46,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.data_objects.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, NullFunc
 from yt.utilities.definitions import mpc_conversion
 from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
@@ -430,8 +430,8 @@ class EnzoHierarchy(AMRHierarchy):
                 # will allow the same field detection mechanism to work for 1D, 2D
                 # and 3D fields.
                 self.pf.field_info.add_field(
-                        field, lambda a, b: None,
-                        convert_function=cf, take_log=False)
+                        field, NullFunc,
+                        convert_function=cf, take_log=False, units=r"Unknown")
             else:
                 mylog.info("Adding known field %s to list of fields", field)
                 self.parameter_file.field_info[field] = KnownEnzoFields[field]
