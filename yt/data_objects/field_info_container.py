@@ -33,7 +33,7 @@ import itertools
 
 from yt.funcs import *
 
-class FieldInfoContainer(dict): # We are all Borg.
+class FieldInfoContainer(dict): # Resistance has utility
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.  This
@@ -71,6 +71,8 @@ class FieldInfoContainer(dict): # We are all Borg.
         obj.fallback = fallback
         return obj
 
+def NullFunc(field, data):
+    return
 
 FieldInfo = FieldInfoContainer()
 add_field = FieldInfo.add_field

@@ -54,7 +54,8 @@ from yt.utilities.logger import ytLogger as mylog
 from .definitions import parameterDict
 from .fields import \
     EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
-    add_enzo_field, add_enzo_2d_field, add_enzo_1d_field
+    add_enzo_field, add_enzo_2d_field, add_enzo_1d_field, \
+    KnownEnzoFields
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -416,20 +417,24 @@ class EnzoHierarchy(AMRHierarchy):
                 # current field info.  This means we'll instead simply override
                 # it.
                 self.parameter_file.field_info.pop(field, None)
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            # Note that we call add_field on the field_info directly.  This
-            # will allow the same field detection mechanism to work for 1D, 2D
-            # and 3D fields.
-            self.pf.field_info.add_field(
-                    field, lambda a, b: None,
-                    convert_function=cf, take_log=False)
+            if field not in KnownEnzoFields:
+                mylog.info("Adding unknown field %s to list of fields", field)
+                cf = None
+                if self.parameter_file.has_key(field):
+                    def external_wrapper(f):
+                        def _convert_function(data):
+                            return data.convert(f)
+                        return _convert_function
+                    cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D, 2D
+                # and 3D fields.
+                self.pf.field_info.add_field(
+                        field, lambda a, b: None,
+                        convert_function=cf, take_log=False)
+            else:
+                mylog.info("Adding known field %s to list of fields", field)
+                self.parameter_file.field_info[field] = KnownEnzoFields[field]
             
 
     def _setup_derived_fields(self):
