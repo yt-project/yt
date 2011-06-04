@@ -297,6 +297,21 @@ class FLASHStaticOutput(StaticOutput):
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
         self.domain_right_edge = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+
+        # Determine domain dimensions
+        try:
+            nxb = self._find_parameter("integer", "nxb", handle = self._handle)
+            nyb = self._find_parameter("integer", "nyb", handle = self._handle)
+            nzb = self._find_parameter("integer", "nzb", handle = self._handle)
+        except KeyError:
+            nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
+                              for ax in 'xyz']
+        nblockx = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblocky = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblockz = self._find_parameter("integer", "nblockx", handle = self._handle)
+        self.domain_dimensions = \
+            na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+
         if self._flash_version == 7:
             self.current_time = float(
                 self._handle["simulation parameters"][:]["time"])

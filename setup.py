@@ -126,7 +126,6 @@ def setup_package():
         keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
         entry_points = { 'console_scripts' : [
                             'yt = yt.utilities.command_line:run_main',
-                            'enzo_test = yt.utilities.answer_testing.runner:run_main',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",

@@ -70,6 +70,17 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.api.StaticOutput` subclass.
     """
+    if len(args) == 0:
+        try:
+            import Tkinter, tkFileDialog
+        except ImportError:
+            return None
+        root = Tkinter.Tk()
+        filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
+        if filename != None:
+            return load(filename)
+        else:
+            return None
     candidates = []
     for n, c in output_type_registry.items():
         if n is None: continue

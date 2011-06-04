@@ -581,8 +581,8 @@ class AMRRayBase(AMR1DData):
         --------
 
         >>> pf = load("RedshiftOutput0005")
-        >>> ray = pf.h._ray((0.2, 0.74), (0.4, 0.91))
-        >>> print ray["Density"], ray["t"]
+        >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+        >>> print ray["Density"], ray["t"], ray["dts"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = na.array(start_point, dtype='float64')
@@ -1517,8 +1517,8 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _initialize_source(self, source = None):
         if source is None:
-            check, source = self._partition_hierarchy_2d(self.axis)
-            self._check_region = check
+            source = self.pf.h.all_data()
+            self._check_region = False
             #self._okay_to_serialize = (not check)
         else:
             self._distributed = False
@@ -1565,19 +1565,22 @@ class AMRQuadTreeProjBase(AMR2DData):
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
             print "Preloading %s grids and getting %s" % (
-                    len(self.source._grids), self._get_dependencies(fields))
-            self._preload(self.source._grids,
+                    len(self.source._get_grid_objs()),
+                    self._get_dependencies(fields))
+            self._preload([g for g in self._get_grid_objs()],
                           self._get_dependencies(fields), self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
         # having to do this by level, and instead do it by CPU file
         for level in range(0, self._max_level+1):
             if self.preload_style == 'level':
-                self._preload(self.source.select_grids(level),
+                self._preload([g for g in self._get_grid_objs()
+                                 if g.Level == level],
                               self._get_dependencies(fields), self.hierarchy.io)
             self._add_level_to_tree(tree, level, fields)
             mylog.debug("End of projecting level level %s, memory usage %0.3e", 
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
+        tree = self.merge_quadtree_buffers(tree)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -1591,7 +1594,6 @@ class AMRQuadTreeProjBase(AMR2DData):
             else:
                 ds = 0.0
             dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
-        del tree
         coord_data = na.concatenate(coord_data, axis=0).transpose()
         field_data = na.concatenate(field_data, axis=0).transpose()
         weight_data = na.concatenate(weight_data, axis=0).transpose()
@@ -1609,7 +1611,6 @@ class AMRQuadTreeProjBase(AMR2DData):
         data['pdy'] = data['pdx'] # generalization is out the window!
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
-        data = self._mpi_catdict(data)
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
@@ -1654,7 +1655,9 @@ class AMRQuadTreeProjBase(AMR2DData):
                     to_add, weight_proj[used_points].ravel())
 
     def _add_level_to_tree(self, tree, level, fields):
-        grids_to_project = self.source.select_grids(level)
+        grids_to_project = [g for g in self._get_grid_objs()
+                            if g.Level == level]
+        if len(grids_to_project) == 0: return
         dls, convs = self._get_dls(grids_to_project[0], fields)
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \

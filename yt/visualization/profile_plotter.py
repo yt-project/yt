@@ -37,7 +37,8 @@ from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
 from .plot_types import ProfilePlot, PhasePlot
-from .tick_locators import LogLocator
+from .tick_locators import LogLocator, LinearLocator
+from yt.utilities.logger import ytLogger as mylog
 
 def invalidate_plot(f):
     @wraps(f)
@@ -56,6 +57,8 @@ class AxisSpec(object):
     def calculate_ticks(self):
         if self.scale == 'log':
             locator = LogLocator()
+        elif self.scale == 'linear':
+            locator = LinearLocator()
         else:
             raise NotImplementedError
         self.ticks = locator(*self.bounds)
@@ -85,10 +88,12 @@ class PlotContainer(object):
         if self.x_spec.scale == 'log' and \
            self.y_spec.scale == 'log':
             func = axes.loglog
-        elif self.x_spec == 'log':
+        elif self.x_spec.scale == 'log':
             func = axes.semilogx
-        elif self.y_spec == 'log':
+        elif self.y_spec.scale == 'log':
             func = axes.semilogy
+        else:
+            func = axes.plot
         if self.plot_spec is None:
             kwargs = {}
         else:
@@ -268,12 +273,15 @@ class PhasePlotter(object):
                                   y_bins, field_y, y_min, y_max, y_log,
                                   lazy_reader)
         # This is a fallback, in case we forget.
-        if field_z == "CellMassMsun": weight = None
+        if field_z.startswith("CellMass") or \
+           field_z.startswith("CellVolume"):
+            mylog.warning("Setting weight to None")
+            weight = None
         profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_z
         self.profile = profile
         self.scale = {True:'log', False:'linear'}.get(
-                data_source.pf.field_info[field_z], "log")
+                data_source.pf.field_info[field_z].take_log, "log")
         self._setup_plot()
 
     def _setup_plot(self):
@@ -392,12 +400,15 @@ class ProfilePlotter(object):
                                   x_bins, field_x, x_min, x_max, x_log,
                                   lazy_reader)
         # This is a fallback, in case we forget.
-        if field_y == "CellMassMsun": weight = None
+        if field_y.startswith("CellMass") or \
+           field_y.startswith("CellVolume"):
+            mylog.warning("Setting weight to None")
+            weight = None
         profile.add_fields(field_y, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_y
         self.profile = profile
         self.scale = {True:'log', False:'linear'}.get(
-                data_source.pf.field_info[field_y], "log")
+                data_source.pf.field_info[field_y].take_log, "log")
         self._setup_plot()
 
     def _setup_plot(self):
@@ -414,7 +425,7 @@ class ProfilePlotter(object):
             ny = (self.profile[self._current_field] > 0)
             mi = self.profile[self._current_field][ny].min()
         else:
-            mi = self.profile[self._current_field][ny].min()
+            mi = self.profile[self._current_field].min()
         ma = self.profile[self._current_field].max()
         yax.bounds = (mi, ma)
         yax.scale = self.scale

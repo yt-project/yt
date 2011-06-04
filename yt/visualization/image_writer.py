@@ -29,7 +29,19 @@ from yt.funcs import *
 import _colormap_data as cmd
 import yt.utilities.amr_utils as au
 
-def _scale_image(image):
+def scale_image(image):
+    r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
+    from [0,255].
+
+    Parameters
+    ----------
+    image : array_like or tuple of image info
+
+    Examples
+    --------
+
+        >>> image = scale_image(image)
+    """
     if isinstance(image, na.ndarray) and image.dtype == na.uint8:
         return image
     if isinstance(image, (types.TupleType, types.ListType)):
@@ -86,16 +98,16 @@ def multi_image_composite(fn, red_channel, blue_channel,
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
-    red_channel = _scale_image(red_channel)
-    blue_channel = _scale_image(blue_channel)
+    red_channel = scale_image(red_channel)
+    blue_channel = scale_image(blue_channel)
     if green_channel is None:
         green_channel = na.zeros(red_channel.shape, dtype='uint8')
     else:
-        green_channel = _scale_image(green_channel)
+        green_channel = scale_image(green_channel)
     if alpha_channel is None:
         alpha_channel = na.zeros(red_channel.shape, dtype='uint8') + 255
     else:
-        alpha_channel = _scale_image(alpha_channel) 
+        alpha_channel = scale_image(alpha_channel) 
     image = na.array([red_channel, green_channel, blue_channel, alpha_channel])
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
@@ -279,9 +291,9 @@ def map_to_colors(buff, cmap_name):
     return mapped.copy("C")
 
 def strip_colormap_data(fn = "color_map_data.py",
-            cmaps = ("jet", "algae", "hot", "gist_stern")):
+            cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu")):
     import pprint
-    import _colormap_data as rcm
+    import color_maps as rcm
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
