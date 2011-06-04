@@ -109,7 +109,10 @@ class DerivedQuantity(ParallelAnalysisInterface):
         rv = []
         for my_list in self.retvals:
             data = na.array(my_list).transpose()
-            rv.append(self._mpi_catarray(data).transpose())
+            old_shape = data.shape
+            data = self._mpi_catarray(data).transpose()
+            if len(data.shape) != old_shape: data = data.squeeze()
+            rv.append(data)
         self.retvals = rv
         
     def _call_func_unlazy(self, args, kwargs):
