@@ -89,9 +89,9 @@ _common_options = dict(
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type="float",
-                   dest="center", default=[0.5, 0.5, 0.5],
+                   dest="center", default=None,
                    nargs=3,
-                   help="Center (-1,-1,-1 for max)"),
+                   help="Center, command separated (-1 -1 -1 for max)"),
     bn      = dict(short="-b", long="--basename",
                    action="store", type="string",
                    dest="basename", default=None,
@@ -478,6 +478,8 @@ class YTCommands(cmdln.Cmdln):
         if opts.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
             v, center = pf.h.find_max("Density")
+        elif opts.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = na.array(center)
         pc=PlotCollection(pf, center=center)
         if opts.axis == 4:
