@@ -203,9 +203,9 @@ class RAMSESHierarchy(AMRHierarchy):
             sums = na.zeros(3, dtype='int64')
             mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
-            for g in self.proto_grids[level]:
-                sums += [s.sum() for s in g.sigs]
-            assert(na.all(sums == dims.prod(axis=1).sum()))
+            #for g in self.proto_grids[level]:
+            #    sums += [s.sum() for s in g.sigs]
+            #assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
     num_deep = 0

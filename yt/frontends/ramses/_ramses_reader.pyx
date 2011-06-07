@@ -397,10 +397,10 @@ cdef class RAMSES_tree_proxy:
         # We now have to get our field names to fill our array
         self.trees = <RAMSES_tree**>\
             malloc(sizeof(RAMSES_tree*) * self.rsnap.m_header.ncpu)
+        for ii in range(self.ndomains): self.trees[ii] = NULL
         self.hydro_datas = <RAMSES_hydro_data ***>\
                        malloc(sizeof(RAMSES_hydro_data**) * self.rsnap.m_header.ncpu)
         self.ndomains = self.rsnap.m_header.ncpu
-        #for ii in range(self.ndomains): self.trees[ii] = NULL
         # Note we don't do ncpu + 1
         for idomain in range(self.rsnap.m_header.ncpu):
             # we don't delete local_tree
@@ -415,8 +415,8 @@ cdef class RAMSES_tree_proxy:
                     new RAMSES_hydro_data(deref(local_tree))
             self.trees[idomain] = local_tree
             # We do not delete the final snapshot, which we'll use later
-            if idomain + 1 < self.rsnap.m_header.ncpu:
-                del local_hydro_data
+            #if idomain + 1 < self.rsnap.m_header.ncpu:
+            #    del local_hydro_data
         # Only once, we read all the field names
         self.nfields = local_hydro_data.m_nvars
         cdef string *field_name
@@ -434,7 +434,6 @@ cdef class RAMSES_tree_proxy:
             self.field_names.append(field_name.c_str())
             self.field_ind[self.field_names[-1]] = ifield
         # This all needs to be cleaned up in the deallocator
-        del local_hydro_data
 
     def __dealloc__(self):
         import traceback; traceback.print_stack()
@@ -473,21 +472,20 @@ cdef class RAMSES_tree_proxy:
         cdef np.ndarray[np.int64_t, ndim=1] cell_count
         cell_count = np.zeros(self.rsnap.m_header.levelmax + 1, 'int64')
         cdef int local_count = 0
+        cdef int tree_count
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
-            local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
-                                         self.rsnap.m_header.levelmax, 0)
-            local_tree.read()
-            local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
+            local_tree = self.trees[idomain - 1]
             for ilevel in range(local_tree.m_maxlevel + 1):
                 local_count = 0
+                tree_count = 0
                 local_level = &local_tree.m_AMR_levels[ilevel]
                 grid_it = local_tree.begin(ilevel)
                 grid_end = local_tree.end(ilevel)
                 while grid_it != grid_end:
                     local_count += (grid_it.get_domain() == idomain)
+                    tree_count += 1
                     grid_it.next()
                 cell_count[ilevel] += local_count
-            del local_tree, local_hydro_data
 
         return cell_count
 
@@ -582,10 +580,7 @@ cdef class RAMSES_tree_proxy:
         cdef np.ndarray[np.int64_t, ndim=1] level_cell_counts
         level_cell_counts = np.zeros(self.rsnap.m_header.levelmax + 1, 'int64')
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
-            local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
-                                         self.rsnap.m_header.levelmax, 0)
-            local_tree.read()
-            local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
+            local_tree = self.trees[idomain - 1]
             for ilevel in range(local_tree.m_maxlevel + 1):
                 # this gets overwritten for every domain, which is okay
                 level_cell_counts[ilevel] = grid_ind 
@@ -626,7 +621,6 @@ cdef class RAMSES_tree_proxy:
                     grid_ind += 1
                     grid_aind += 1
                     grid_it.next()
-            del local_tree, local_hydro_data
 
     def read_oct_grid(self, char *field, int level, int domain, int grid_id):
 
@@ -715,13 +709,29 @@ cdef class RAMSES_tree_proxy:
                         to_fill += 1
         return to_fill
 
+#def recursive_patch_splitting(ProtoSubgrid psg,
+#        np.ndarray[np.int64_t, ndim=1] dims,
+#        np.ndarray[np.int64_t, ndim=1] inds,
+#        np.ndarray[np.int64_t, ndim=2] left_index,
+#        np.ndarray[np.int64_t, ndim=2] right_index,
+#        np.ndarray[np.int64_t, ndim=2] gdims,
+#        np.ndarray[np.int64_t, ndim=2] fl,
+#        int num_deep = 0):
+#    cdef float min_eff = 0.1
+#    if num_deep > 40:
+#        psg.efficiency = min_eff
+#        return [psg]
+#    if psg.efficiency > min_eff or psg.efficiency < 0.0:
+#        return [psg]
+#    cdef 
+#
 cdef class ProtoSubgrid:
     cdef np.int64_t *signature[3]
     cdef np.int64_t left_edge[3]
     cdef np.int64_t right_edge[3]
     cdef np.int64_t dimensions[3]
     cdef public np.float64_t efficiency
-    cdef public object sigs
+    cdef np.int64_t *sigs[3]
     cdef public object grid_file_locations
     cdef public object dd
         
@@ -740,7 +750,6 @@ cdef class ProtoSubgrid:
         cdef int l0, r0, l1, r1, l2, r2, i0, i1, i2
         cdef np.int64_t temp_l[3], temp_r[3], ncells
         cdef np.float64_t efficiency
-        self.sigs = []
         for i in range(3):
             temp_l[i] = left_index[i] + dimensions[i]
             temp_r[i] = left_index[i]
@@ -764,13 +773,14 @@ cdef class ProtoSubgrid:
             if self.dimensions[i] <= 0:
                 self.efficiency = -1.0
                 return
-            self.sigs.append(np.zeros(self.dimensions[i], 'int64'))
-        #print self.sigs[0].size, self.sigs[1].size, self.sigs[2].size
+            self.sigs[i] = <np.int64_t *> malloc(
+                                sizeof(np.int64_t) * self.dimensions[i])
+            for gi in range(self.dimensions[i]): self.sigs[i][gi] = 0
         
         # My guess is that this whole loop could be done more efficiently.
         # However, this is clear and straightforward, so it is a good first
         # pass.
-        cdef np.ndarray[np.int64_t, ndim=1] sig0, sig1, sig2
+        cdef np.int64_t *sig0, *sig1, *sig2
         sig0 = self.sigs[0]
         sig1 = self.sigs[1]
         sig2 = self.sigs[2]
@@ -813,6 +823,11 @@ cdef class ProtoSubgrid:
         #print "Efficiency is %0.3e" % (efficiency)
         self.efficiency = efficiency
 
+    def __dealloc__(self):
+        free(self.sigs[0])
+        free(self.sigs[1])
+        free(self.sigs[2])
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def find_split(self):
@@ -821,7 +836,7 @@ cdef class ProtoSubgrid:
         cdef np.ndarray[ndim=1, dtype=np.int64_t] axes
         cdef np.int64_t strength, zcstrength, zcp
         axes = np.argsort(self.dd)[::-1]
-        cdef np.ndarray[np.int64_t] sig
+        cdef np.int64_t *sig
         for axi in range(3):
             ax = axes[axi]
             center = self.dimensions[ax] / 2
