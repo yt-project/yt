@@ -164,7 +164,8 @@ class LightRay(EnzoSimulation):
 
     def make_light_ray(self, seed=None, fields=None, 
                        solution_filename=None, data_filename=None,
-                       get_nearest_galaxy=False, get_los_velocity=False, **kwargs):
+                       get_nearest_galaxy=False, get_los_velocity=False, 
+                       halo_mass_field='TotalMassMsun_200', **kwargs):
         """
         Create a light ray and get field values for each lixel.  A light ray consists of 
         a list of field values for cells intersected by the ray and the path length of 
@@ -296,7 +297,8 @@ class LightRay(EnzoSimulation):
             # Calculate distance to nearest object on halo list for each lixel.
             if get_nearest_galaxy:
                 sub_data['nearest_galaxy'], sub_data['nearest_galaxy_mass'] = \
-                    self._get_nearest_galaxy_distance(sub_data, halo_list)
+                    self._get_nearest_galaxy_distance(sub_data, halo_list,
+                                                      halo_mass_field=halo_mass_field)
                 sub_data['nearest_galaxy'] *= pf.units['mpccm']
 
             # Remove empty lixels.
@@ -351,8 +353,7 @@ class LightRay(EnzoSimulation):
         return new_data                
 
     def _get_halo_list(self, dataset, halo_profiler_kwargs=None, 
-                       halo_profiler_actions=None, halo_list='all',
-                       halo_mass_field='TotalMassMsun_200'):
+                       halo_profiler_actions=None, halo_list='all'):
         "Load a list of halos for the dataset."
 
         if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
