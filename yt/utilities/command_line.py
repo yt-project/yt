@@ -654,13 +654,30 @@ class YTCommands(cmdln.Cmdln):
         print "Hi there!  Welcome to the yt bugreport taker."
         print
         print "==============================================================="
-        print
-        print "At any time in advance of the upload of the bug, you"
-        print "should feel free to ctrl-C out and submit the bug "
-        print "report manually by going here:"
+        print "At any time in advance of the upload of the bug, you should feel free"
+        print "to ctrl-C out and submit the bug report manually by going here:"
         print "   http://hg.enzotools.org/yt/issues/new"
+        print 
+        print "Also, in order to submit a bug through this interface, you"
+        print "need a Bitbucket account. If you don't have one, exit this "
+        print "bugreport now and run the 'yt bootstrap_dev' command to create one."
         print
-        print "First off, how about a nice, pithy summary of the bug?"
+        print "Have you checked the existing bug reports to make"
+        print "sure your bug has not already been recorded by someone else?"
+        print "   http://hg.enzotools.org/yt/issues?status=new&status=open"
+        print
+        print "Finally, are you sure that your bug is, in fact, a bug? It might"
+        print "simply be a misunderstanding that could be cleared up by"
+        print "visiting the yt irc channel or getting advice on the email list:"
+        print "   http://yt.enzotools.org/irc.html"
+        print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+        print
+        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
+        print
+        print
+        print "Okay, sorry about that. How about a nice, pithy ( < 12 words )"
+        print "summary of the bug?  (e.g. 'Particle overlay problem with parallel "
+        print "projections')"
         print
         try:
             current_version = get_yt_version()
@@ -669,11 +686,12 @@ class YTCommands(cmdln.Cmdln):
         summary = raw_input("Summary? ")
         bugtype = "bug"
         data = dict(title = summary, type=bugtype)
+        print
         print "Okay, now let's get a bit more information."
         print
         print "Remember that if you want to submit a traceback, you can run"
         print "any script with --paste or --detailed-paste to submit it to"
-        print "the pastebin."
+        print "the pastebin and then include the link in this bugreport."
         if "EDITOR" in os.environ:
             print
             print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
@@ -730,7 +748,8 @@ class YTCommands(cmdln.Cmdln):
         print 
         print "==============================================================="
         print
-        print "Thanks for your bug report!  You can view it here:"
+        print "Thanks for your bug report!  Together we'll make yt totally bug free!"
+        print "You can view bug report here:"
         print "   %s" % url
         print
         print "Keep in touch!"
