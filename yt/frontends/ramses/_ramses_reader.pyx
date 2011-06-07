@@ -457,6 +457,8 @@ cdef class RAMSES_tree_proxy:
         if self.snapshot_name != NULL: del self.snapshot_name
         if self.rsnap != NULL: del self.rsnap
         
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def count_zones(self):
         # We need to do simulation domains here
 
@@ -468,10 +470,9 @@ cdef class RAMSES_tree_proxy:
 
         # All the loop-local pointers must be declared up here
 
-        cell_count = []
+        cdef np.ndarray[np.int64_t, ndim=1] cell_count
+        cell_count = np.zeros(self.rsnap.m_header.levelmax + 1, 'int64')
         cdef int local_count = 0
-        for ilevel in range(self.rsnap.m_header.levelmax + 1):
-            cell_count.append(0)
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
                                          self.rsnap.m_header.levelmax, 0)
@@ -545,6 +546,9 @@ cdef class RAMSES_tree_proxy:
 
         return header_info
 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def fill_hierarchy_arrays(self, 
                               np.ndarray[np.int32_t, ndim=1] top_grid_dims,
                               np.ndarray[np.float64_t, ndim=2] left_edges,
@@ -575,8 +579,8 @@ cdef class RAMSES_tree_proxy:
 
         cdef np.int32_t rr
         cdef int i
-        cell_count = []
-        level_cell_counts = {}
+        cdef np.ndarray[np.int64_t, ndim=1] level_cell_counts
+        level_cell_counts = np.zeros(self.rsnap.m_header.levelmax + 1, 'int64')
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
                                          self.rsnap.m_header.levelmax, 0)
