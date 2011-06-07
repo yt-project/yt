@@ -46,6 +46,8 @@ from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
     mpc_conversion
+from yt.utilities.amr_utils import \
+    get_box_grids_level
 
 from .definitions import \
     castro2enzoDict, \
@@ -380,8 +382,13 @@ class CastroHierarchy(AMRHierarchy):
             grid._setup_dx()
 
     def __setup_grid_tree(self):
+        mask = na.empty(self.grids.size, dtype='int32')
         for i, grid in enumerate(self.grids):
-            children = self._get_grid_children(grid)
+            get_box_grids_level(grid.LeftEdge, grid.RightEdge, grid.Level + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            children = self.grids[mask.astype("bool")]
+            #assert(len(children) == len(self._get_grid_children(grid)))
             for child in children:
                 self.gridReverseTree[child.id].append(i)
                 self.gridTree[i].append(weakref.proxy(child))
