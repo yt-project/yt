@@ -147,6 +147,8 @@ cdef class QuadTree:
                 total += self.count_total_cells(root.children[i][j])
         return total + 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef int fill_buffer(self, QuadTreeNode *root, int curpos,
                           np.ndarray[np.int32_t, ndim=1] refined,
                           np.ndarray[np.float64_t, ndim=2] values,
@@ -164,6 +166,8 @@ cdef class QuadTree:
                                  refined, values, wval)
         return curpos
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef int unfill_buffer(self, QuadTreeNode *root, int curpos,
                           np.ndarray[np.int32_t, ndim=1] refined,
                           np.ndarray[np.float64_t, ndim=2] values,
@@ -186,6 +190,8 @@ cdef class QuadTree:
         return curpos
 
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def frombuffer(self, np.ndarray[np.int32_t, ndim=1] refined,
                          np.ndarray[np.float64_t, ndim=2] values,
                          np.ndarray[np.float64_t, ndim=1] wval):
@@ -197,6 +203,8 @@ cdef class QuadTree:
                 curpos = self.unfill_buffer(self.root_nodes[i][j], curpos,
                                  refined, values, wval)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def tobuffer(self):
         cdef int total = 0
         for i in range(self.top_grid_dims[0]):
@@ -226,7 +234,7 @@ cdef class QuadTree:
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
                  np.float64_t weight_val):
-        cdef int i, j
+        cdef int i, j, L
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
         cdef np.int64_t fac
@@ -240,6 +248,7 @@ cdef class QuadTree:
             node = node.children[i][j]
         QTN_add_value(node, val, weight_val)
             
+    @cython.cdivision(True)
     cdef QuadTreeNode *find_on_root_level(self, np.int64_t pos[2], int level):
         # We need this because the root level won't just have four children
         # So we find on the root level, then we traverse the tree.
@@ -266,6 +275,7 @@ cdef class QuadTree:
             pos[0] = pxs[p]
             pos[1] = pys[p]
             self.add_to_position(level, pos, vals, pweight_vals[p])
+        return
 
     def add_grid_to_tree(self, int level,
                          np.ndarray[np.int64_t, ndim=1] start_index,
