@@ -43,7 +43,7 @@ class EnzoSimulation(object):
     Super class for performing the same operation over all data dumps in 
     a simulation from one redshift to another.
     """
-    def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
+    def __init__(self, enzo_parameter_file, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
                  links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True, get_available_data=False,
                  get_data_by_force=False):
         """
@@ -70,14 +70,14 @@ class EnzoSimulation(object):
                is loaded up to get the time and redshift manually.  This is useful with collapse simulations that use 
                OutputFirstTimeAtLevel or with simulations that make outputs based on cycle numbers.  Default: False.
         """
-        self.EnzoParameterFile = EnzoParameterFile
+        self.enzo_parameter_file = enzo_parameter_file
         self.enzoParameters = {}
         self.redshift_outputs = []
         self.allOutputs = []
         self.InitialTime = initial_time
         self.FinalTime = final_time
-        self.InitialRedshift = initial_redshift
-        self.FinalRedshift = final_redshift
+        self.initial_redshift = initial_redshift
+        self.final_redshift = final_redshift
         self.links = links
         self.get_time_outputs = get_time_outputs
         self.get_redshift_outputs = get_redshift_outputs
@@ -202,20 +202,20 @@ class EnzoSimulation(object):
         """
 
         # Check for sufficient starting/ending parameters.
-        if self.InitialTime is None and self.InitialRedshift is None:
+        if self.InitialTime is None and self.initial_redshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
                'CosmologyInitialRedshift' in self.enzoParameters:
-                self.InitialRedshift = self.enzoParameters['CosmologyInitialRedshift']
+                self.initial_redshift = self.enzoParameters['CosmologyInitialRedshift']
             elif 'InitialTime' in self.enzoParameters:
                 self.InitialTime = self.enzoParameters['InitialTime']
             else:
                 mylog.error("Couldn't find parameter for initial time or redshift from parameter file.")
                 return None
 
-        if self.FinalTime is None and self.FinalRedshift is None:
+        if self.FinalTime is None and self.final_redshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
                'CosmologyFinalRedshift' in self.enzoParameters:
-                self.FinalRedshift = self.enzoParameters['CosmologyFinalRedshift']
+                self.final_redshift = self.enzoParameters['CosmologyFinalRedshift']
             elif 'StopTime' in self.enzoParameters:
                 self.FinalTime = self.enzoParameters['StopTime']
             else:
@@ -236,11 +236,11 @@ class EnzoSimulation(object):
                                                 OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
                                                 OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
                                                 InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
-            if self.InitialRedshift is not None:
-                self.InitialTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.InitialRedshift) / \
+            if self.initial_redshift is not None:
+                self.InitialTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.initial_redshift) / \
                     self.enzo_cosmology.TimeUnits
-            if self.FinalRedshift is not None:
-                self.FinalTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.FinalRedshift) / \
+            if self.final_redshift is not None:
+                self.FinalTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.final_redshift) / \
                     self.enzo_cosmology.TimeUnits
 
         # Get initial time of simulation.
@@ -286,7 +286,7 @@ class EnzoSimulation(object):
 
     def _read_enzo_parameter_file(self):
         "Reads an Enzo parameter file looking for cosmology and output parameters."
-        lines = open(self.EnzoParameterFile).readlines()
+        lines = open(self.enzo_parameter_file).readlines()
         for line in lines:
             if line.find("#") >= 0: # Keep the commented lines
                 line=line[:line.find("#")]
@@ -383,8 +383,8 @@ class EnzoSimulation(object):
                the lowest redshift dataset present will be used.  Default: None.
         """
 
-        if initial_redshift is None: initial_redshift = self.InitialRedshift
-        if final_redshift is None: final_redshift = self.FinalRedshift
+        if initial_redshift is None: initial_redshift = self.initial_redshift
+        if final_redshift is None: final_redshift = self.final_redshift
 
         # Calculate maximum delta z for each data dump.
         self._calculate_deltaz_max()
