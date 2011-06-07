@@ -46,13 +46,39 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
 from yt.convenience import load
 
 class LightRay(EnzoSimulation):
-    def __init__(self, EnzoParameterFile, FinalRedshift, InitialRedshift, 
+    def __init__(self, enzo_parameter_file, final_redshift, initial_redshift, 
                  deltaz_min=0.0, use_minimum_datasets=True, 
                  minimum_coherent_box_fraction=0.0, **kwargs):
+        """
+        Create a LightRay object.  A light ray is much like a light cone, in that 
+        it stacks together multiple datasets in order to extend a redshift interval.  
+        Unlike a light cone, which does randomly oriented projections for each dataset, 
+        a light ray consists of randomly oriented single rays.  The purpose of these 
+        is to create synthetic QSO lines of sight.
 
-        EnzoSimulation.__init__(self, EnzoParameterFile, 
-                                initial_redshift=InitialRedshift,
-                                final_redshift=FinalRedshift, links=True,
+        Once the LightRay object is set up, use LightRay.make_light_ray to begin making 
+        rays.  Different randomizations can be created with a single object by providing 
+        different random seeds to make_light_ray.
+
+        :param enzo_parameter_file (string): path to simulation parameter file.
+        :param final_redshift (float): lower bound of the ray redshift interval.
+        :param initial_redshift (float): upper bound of the ray redshift interval.
+        :param deltaz_min (float): minimum delta z between consecutive datasets.
+        Default: 0.0.
+        :param use_minimum_datasets (bool): if True, the minimum number of datasets is 
+        used to connect the initial and final redshift.  If false, the light ray 
+        solution will contain as many entries as possible within the redshift interval.  
+        Default: True.
+        minimum_coherent_box_fraction (float): used with use_minimum_datasets set to False, 
+        this parameter specifies the fraction of the total box size to be traversed before 
+        rerandomizing the projection axis and center.  This was invented to allow light cones 
+        with thin slices to sample coherent large scale structure, but in practice does not 
+        work so well.  It is not very clear what this will do to a light ray.  Default: 0.0.
+        """
+
+        EnzoSimulation.__init__(self, enzo_parameter_file, 
+                                initial_redshift=initial_redshift,
+                                final_redshift=final_redshift, links=True,
                                 enzo_parameters={'CosmologyComovingBoxSize':float}, 
                                 **kwargs)
 
@@ -85,7 +111,7 @@ class LightRay(EnzoSimulation):
 
         for q in range(len(self.light_ray_solution)):
             if (q == len(self.light_ray_solution) - 1):
-                z_next = self.FinalRedshift
+                z_next = self.final_redshift
             else:
                 z_next = self.light_ray_solution[q+1]['redshift']
 
@@ -130,16 +156,62 @@ class LightRay(EnzoSimulation):
             boxFractionUsed += self.light_ray_solution[q]['TraversalBoxFraction']
 
         if filename is not None:
-            self._write_light_ray_solution(filename, \
-                                               extra_info={'EnzoParameterFile':self.EnzoParameterFile, 
-                                                           'RandomSeed':seed,
-                                                           'InitialRedshift':self.InitialRedshift, 
-                                                           'FinalRedshift':self.FinalRedshift})
+            self._write_light_ray_solution(filename, 
+                                           extra_info={'enzo_parameter_file':self.enzo_parameter_file, 
+                                                       'RandomSeed':seed,
+                                                       'initial_redshift':self.initial_redshift, 
+                                                       'final_redshift':self.final_redshift})
 
     def make_light_ray(self, seed=None, fields=None, 
                        solution_filename=None, data_filename=None,
                        get_nearest_galaxy=False, get_los_velocity=False, **kwargs):
-        "Create a light ray and get field values for each lixel."
+        """
+        Create a light ray and get field values for each lixel.  A light ray consists of 
+        a list of field values for cells intersected by the ray and the path length of 
+        the ray through those cells.  Light ray data can be written out to an hdf5 file.
+
+        :param seed (int): seed for the random number generator.  Default: None.
+        :param fields (list): a list of fields for which to get data.  Default: None.
+        :param solution_filename (string): path to a text file where the trajectories of each 
+        subray is written out.  Default: None.
+        :param data_filename (string): path to output file for ray data.  Default: None.
+        :param get_nearest_galaxy (bool): if True, the HaloProfiler will be used to calculate 
+        the distance and mass of the nearest halo for each point in the ray.  This option 
+        requires additional information to be included.  See below for an example.  
+        Default: False.
+        :param get_los_velocity (bool): if True, the line of sight velocity is calculated for 
+        each point in the ray.  Default: False.
+
+        GETTING THE NEAREST GALAXIES
+        The light ray tool will use the HaloProfiler to calculate the distance and mass 
+        of the nearest halo to that pixel.  In order to do this, three additional keyword 
+        arguments must be supplied to tell the HaloProfiler what to do.
+
+        :param halo_profiler_kwargs (dict): a dictionary of standard HaloProfiler keyword 
+        arguments and values to be given to the HaloProfiler.
+               EXAMPLE: halo_profiler_kwargs = {'halo_list_format': {'id':0, 
+                                                                     'center':[4, 5, 6]},
+                                                                     'TotalMassMsun':1},
+                                                'halo_list_file': 'HopAnalysis.out'}
+
+        :param halo_profiler_actions (list): a list of actions to be performed by the 
+        HaloProfiler.  Each item in the list should be a dictionary with the following 
+        entries: "function", "args", and "kwargs", for the function to be performed, 
+        the arguments supplied to that function, and the keyword arguments.
+               EXAMPLE: halo_profiler_actions = [{'function': make_profiles,
+                                                  'args': None,
+                                                  'kwargs': {'filename': 'VirializedHalos.out'}},
+                                                 {'function': add_halo_filter,
+                                                  'args': VirialFilter,
+                                                  'kwargs': {'overdensity_field': 'ActualOverdensity',
+                                                             'virial_overdensity': 200,
+                                                             'virial_filters': [['TotalMassMsun','>=','1e14']],
+                                                             'virial_quantities': ['TotalMassMsun','RadiusMpc']}}]
+
+        :param halo_list (string): 'all' to use the full halo list, or 'filtered' to use 
+        the filtered halo list created after calling make_profiles.
+               EXAMPLE: halo_list = 'filtered'
+        """
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed, filename=solution_filename)
@@ -163,7 +235,7 @@ class LightRay(EnzoSimulation):
             mylog.info("Proc %04d: creating ray segment at z = %f." % 
                        (my_rank, segment['redshift']))
             if segment['next'] is None:
-                next_redshift = self.FinalRedshift
+                next_redshift = self.final_redshift
             else:
                 next_redshift = segment['next']['redshift']
 
