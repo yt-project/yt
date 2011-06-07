@@ -164,7 +164,8 @@ class LightRay(EnzoSimulation):
 
     def make_light_ray(self, seed=None, fields=None, 
                        solution_filename=None, data_filename=None,
-                       get_nearest_galaxy=False, get_los_velocity=False, **kwargs):
+                       get_nearest_galaxy=False, get_los_velocity=False, 
+                       halo_mass_field='TotalMassMsun_200', **kwargs):
         """
         Create a light ray and get field values for each lixel.  A light ray consists of 
         a list of field values for cells intersected by the ray and the path length of 
@@ -184,7 +185,7 @@ class LightRay(EnzoSimulation):
 
         GETTING THE NEAREST GALAXIES
         The light ray tool will use the HaloProfiler to calculate the distance and mass 
-        of the nearest halo to that pixel.  In order to do this, three additional keyword 
+        of the nearest halo to that pixel.  In order to do this, four additional keyword 
         arguments must be supplied to tell the HaloProfiler what to do.
 
         :param halo_profiler_kwargs (dict): a dictionary of standard HaloProfiler keyword 
@@ -211,6 +212,9 @@ class LightRay(EnzoSimulation):
         :param halo_list (string): 'all' to use the full halo list, or 'filtered' to use 
         the filtered halo list created after calling make_profiles.
                EXAMPLE: halo_list = 'filtered'
+
+        :param halo_mass_field (string): the field from the halo list to use for mass.  
+        Default: 'TotalMassMsun_200'.
         """
 
         # Calculate solution.
@@ -293,7 +297,8 @@ class LightRay(EnzoSimulation):
             # Calculate distance to nearest object on halo list for each lixel.
             if get_nearest_galaxy:
                 sub_data['nearest_galaxy'], sub_data['nearest_galaxy_mass'] = \
-                    self._get_nearest_galaxy_distance(sub_data, halo_list)
+                    self._get_nearest_galaxy_distance(sub_data, halo_list,
+                                                      halo_mass_field=halo_mass_field)
                 sub_data['nearest_galaxy'] *= pf.units['mpccm']
 
             # Remove empty lixels.
@@ -371,7 +376,8 @@ class LightRay(EnzoSimulation):
         del hp
         return return_list
 
-    def _get_nearest_galaxy_distance(self, data, halo_list):
+    def _get_nearest_galaxy_distance(self, data, halo_list, 
+                                     halo_mass_field='TotalMassMsun_200'):
         """
         Calculate distance to nearest object in halo list for each lixel in data.
         Return list of distances and masses of nearest objects.
@@ -379,7 +385,7 @@ class LightRay(EnzoSimulation):
 
         # Create position array from halo list.
         halo_centers = na.array(map(lambda halo: halo['center'], halo_list))
-        halo_mass = na.array(map(lambda halo: halo['TotalMassMsun'], halo_list))
+        halo_mass = na.array(map(lambda halo: halo[halo_mass_field], halo_list))
 
         nearest_distance = na.zeros(data['x'].shape)
         nearest_mass = na.zeros(data['x'].shape)
