@@ -184,7 +184,7 @@ class LightRay(EnzoSimulation):
 
         GETTING THE NEAREST GALAXIES
         The light ray tool will use the HaloProfiler to calculate the distance and mass 
-        of the nearest halo to that pixel.  In order to do this, three additional keyword 
+        of the nearest halo to that pixel.  In order to do this, four additional keyword 
         arguments must be supplied to tell the HaloProfiler what to do.
 
         :param halo_profiler_kwargs (dict): a dictionary of standard HaloProfiler keyword 
@@ -211,6 +211,9 @@ class LightRay(EnzoSimulation):
         :param halo_list (string): 'all' to use the full halo list, or 'filtered' to use 
         the filtered halo list created after calling make_profiles.
                EXAMPLE: halo_list = 'filtered'
+
+        :param halo_mass_field (string): the field from the halo list to use for mass.  
+        Default: 'TotalMassMsun_200'.
         """
 
         # Calculate solution.
@@ -348,7 +351,8 @@ class LightRay(EnzoSimulation):
         return new_data                
 
     def _get_halo_list(self, dataset, halo_profiler_kwargs=None, 
-                       halo_profiler_actions=None, halo_list='all'):
+                       halo_profiler_actions=None, halo_list='all',
+                       halo_mass_field='TotalMassMsun_200'):
         "Load a list of halos for the dataset."
 
         if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
@@ -371,7 +375,8 @@ class LightRay(EnzoSimulation):
         del hp
         return return_list
 
-    def _get_nearest_galaxy_distance(self, data, halo_list):
+    def _get_nearest_galaxy_distance(self, data, halo_list, 
+                                     halo_mass_field='TotalMassMsun_200'):
         """
         Calculate distance to nearest object in halo list for each lixel in data.
         Return list of distances and masses of nearest objects.
@@ -379,7 +384,7 @@ class LightRay(EnzoSimulation):
 
         # Create position array from halo list.
         halo_centers = na.array(map(lambda halo: halo['center'], halo_list))
-        halo_mass = na.array(map(lambda halo: halo['TotalMassMsun'], halo_list))
+        halo_mass = na.array(map(lambda halo: halo[halo_mass_field], halo_list))
 
         nearest_distance = na.zeros(data['x'].shape)
         nearest_mass = na.zeros(data['x'].shape)
