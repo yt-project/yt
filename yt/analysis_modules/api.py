@@ -28,6 +28,9 @@ License:
 
 """
 
+from .absorption_spectrum.api import \
+    AbsorptionSpectrum
+
 from .coordinate_transformation.api import \
     spherical_regrid
 

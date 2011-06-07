@@ -5,6 +5,7 @@
 # Masses
 mass_hydrogen_cgs = 1.67e-24 # g
 mass_electron_cgs = 9.11e-28 # g
+amu_cgs           = 1.66053886e-24 # g
 # Velocities
 speed_of_light_cgs = 2.99792458e10 # cm/s, exact
 
@@ -24,7 +25,7 @@ rho_crit_now = 1.8788e-29 # g times h^2 (critical mass for closure, Cosmology)
 mass_mean_atomic_cosmology = 1.22
 mass_mean_atomic_galactic = 2.3
 
-# Conversion Factors:  X au * mpc_per_au = Y au
+# Conversion Factors:  X au * mpc_per_au = Y mpc
 # length
 mpc_per_mpc   = 1
 mpc_per_kpc   = 1e-3
