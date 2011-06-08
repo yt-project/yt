@@ -2139,9 +2139,6 @@ class AMRFixedResProjectionBase(AMR2DData):
         self._dls = {}
         self.domain_width = na.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
-        if not na.any((self.global_startindex + self.ActiveDimensions) >
-                       self.domain_width):
-            self.domain_width[:] = 0
         self._refresh_data()
 
     def _get_list_of_grids(self):
