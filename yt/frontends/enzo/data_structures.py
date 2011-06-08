@@ -408,35 +408,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info:
-                ff = self.parameter_file.field_info[field]
-                if "lambda" in str(ff._function): continue
-                # By allowing a backup, we don't mandate that it's found in our
-                # current field info.  This means we'll instead simply override
-                # it.
-                self.parameter_file.field_info.pop(field, None)
-            if field not in KnownEnzoFields:
-                mylog.info("Adding unknown field %s to list of fields", field)
-                cf = None
-                if self.parameter_file.has_key(field):
-                    def external_wrapper(f):
-                        def _convert_function(data):
-                            return data.convert(f)
-                        return _convert_function
-                    cf = external_wrapper(field)
-                # Note that we call add_field on the field_info directly.  This
-                # will allow the same field detection mechanism to work for 1D, 2D
-                # and 3D fields.
-                self.pf.field_info.add_field(
-                        field, NullFunc,
-                        convert_function=cf, take_log=False, units=r"Unknown")
-            else:
-                mylog.info("Adding known field %s to list of fields", field)
-                self.parameter_file.field_info[field] = KnownEnzoFields[field]
-            
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
         for field in self.parameter_file.field_info:
@@ -643,6 +614,7 @@ class EnzoStaticOutput(StaticOutput):
     """
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
+    _fieldinfo_known = KnownEnzoFields
     def __init__(self, filename, data_style=None,
                  parameter_override = None,
                  conversion_override = None,
