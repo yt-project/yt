@@ -566,7 +566,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                                                     antialias=False)
                         dataset_name = "%s_%s" % (hp['field'], hp['weight_field'])
                         if save_cube:
-                            if dataset_name in output.listnames(): del output[dataset_name]
+                            if dataset_name in output: del output[dataset_name]
                             output.create_dataset(dataset_name, data=frb[hp['field']])
                         if save_images:
                             filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 

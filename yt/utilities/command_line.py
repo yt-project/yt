@@ -686,6 +686,9 @@ class YTCommands(cmdln.Cmdln):
     def do_pasteboard_grab(self, subcmd, opts, username, paste_id):
         """
         Download from your or another user's pasteboard.
+
+        ${cmd_usage} 
+        ${cmd_option_list}
         """
         from yt.utilities.pasteboard import retrieve_pastefile
         retrieve_pastefile(username, paste_id, opts.output_fn)
@@ -693,6 +696,9 @@ class YTCommands(cmdln.Cmdln):
     def do_bugreport(self, subcmd, opts):
         """
         Report a bug in yt
+
+        ${cmd_usage} 
+        ${cmd_option_list}
         """
         print "==============================================================="
         print
@@ -803,6 +809,9 @@ class YTCommands(cmdln.Cmdln):
     def do_bootstrap_dev(self, subcmd, opts):
         """
         Bootstrap a yt development environment
+
+        ${cmd_usage} 
+        ${cmd_option_list}
         """
         from mercurial import hg, ui, commands
         import imp

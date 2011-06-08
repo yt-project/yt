@@ -403,7 +403,7 @@ def export_partitioned_grids(grid_list, fn, int_type=na.int64, float_type=na.flo
 
 def import_partitioned_grids(fn, int_type=na.int64, float_type=na.float64):
     f = h5py.File(fn, "r")
-    n_groups = len(f.listnames())
+    n_groups = len(f)
     grid_list = []
     dims = f["/PGrids/Dims"][:].astype(int_type)
     left_edges = f["/PGrids/LeftEdges"][:].astype(float_type)
