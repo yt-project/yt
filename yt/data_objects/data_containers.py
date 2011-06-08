@@ -1421,7 +1421,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 class AMRQuadTreeProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
-    _type_name = "quad_proj"
+    _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
@@ -1705,7 +1705,7 @@ class AMRQuadTreeProjBase(AMR2DData):
 class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
-    _type_name = "proj"
+    _type_name = "overlap_proj"
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,

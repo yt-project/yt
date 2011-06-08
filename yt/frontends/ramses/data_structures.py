@@ -38,6 +38,8 @@ import _ramses_reader
 from .fields import RAMSESFieldInfo
 from yt.utilities.definitions import \
     mpc_conversion
+from yt.utilities.amr_utils import \
+    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
 from yt.data_objects.field_info_container import \
@@ -168,7 +170,6 @@ class RAMSESHierarchy(AMRHierarchy):
             # left_index is integers of the index, with respect to this level
             left_index = na.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
             # we've got octs, so it's +2
-            right_index = left_index + 2
             pbar = get_pbar("Re-gridding ", left_index.shape[0])
             dlp = [None, None, None]
             i = 0
@@ -182,39 +183,42 @@ class RAMSESHierarchy(AMRHierarchy):
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
             unique_indices = na.unique(hilbert_indices)
-            for curve_index in unique_indices:
+            print "Level % 2i has % 10i unique indices for %0.3e octs" % (
+                        level, unique_indices.size, hilbert_indices.size)
+            all_indices = _ramses_reader.get_array_indices_lists(
+                        hilbert_indices, unique_indices)
+            for curve_index, my_octs in zip(unique_indices, all_indices):
                 #print "Handling", curve_index
-                my_octs = (hilbert_indices == curve_index)
+                #my_octs = (hilbert_indices == curve_index)
                 dleft_index = left_index[my_octs,:]
-                dright_index = left_index[my_octs,:] + 2
-                ddims = (dright_index * 0) + 2
                 dfl = fl[my_octs,:]
                 initial_left = na.min(dleft_index, axis=0)
-                idims = (na.max(dright_index, axis=0) - initial_left).ravel()
-                #if level > 6: insert_ipython()
+                idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
+                #if level > 10: insert_ipython()
                 #print initial_left, idims
                 psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                dleft_index, dright_index, ddims, dfl)
+                                dleft_index, dfl)
                 if psg.efficiency <= 0: continue
                 self.num_deep = 0
                 psgs.extend(self._recursive_patch_splitting(
                     psg, idims, initial_left, 
-                    dleft_index, dright_index, ddims, dfl))
+                    dleft_index, dfl))
+            print "Done with level % 2i" % (level)
             pbar.finish()
             self.proto_grids.append(psgs)
             sums = na.zeros(3, dtype='int64')
             mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
-            for g in self.proto_grids[level]:
-                sums += [s.sum() for s in g.sigs]
-            assert(na.all(sums == dims.prod(axis=1).sum()))
+            #for g in self.proto_grids[level]:
+            #    sums += [s.sum() for s in g.sigs]
+            #assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
     num_deep = 0
 
     @num_deep_inc
     def _recursive_patch_splitting(self, psg, dims, ind,
-            left_index, right_index, gdims, fl):
+            left_index, fl):
         min_eff = 0.1 # This isn't always respected.
         if self.num_deep > 40:
             # If we've recursed more than 100 times, we give up.
@@ -234,13 +238,13 @@ class RAMSESHierarchy(AMRHierarchy):
         li_l = ind.copy()
         if na.any(dims_l <= 0): return [psg]
         L = _ramses_reader.ProtoSubgrid(
-                li_l, dims_l, left_index, right_index, gdims, fl)
+                li_l, dims_l, left_index, fl)
         #print " " * self.num_deep + "L", tt, L.efficiency
         if L.efficiency > 1.0: raise RuntimeError
         if L.efficiency <= 0.0: L = []
         elif L.efficiency < min_eff:
             L = self._recursive_patch_splitting(L, dims_l, li_l,
-                    left_index, right_index, gdims, fl)
+                    left_index, fl)
         else:
             L = [L]
         dims_r = dims.copy()
@@ -249,13 +253,13 @@ class RAMSESHierarchy(AMRHierarchy):
         li_r[ax] += fp
         if na.any(dims_r <= 0): return [psg]
         R = _ramses_reader.ProtoSubgrid(
-                li_r, dims_r, left_index, right_index, gdims, fl)
+                li_r, dims_r, left_index, fl)
         #print " " * self.num_deep + "R", tt, R.efficiency
         if R.efficiency > 1.0: raise RuntimeError
         if R.efficiency <= 0.0: R = []
         elif R.efficiency < min_eff:
             R = self._recursive_patch_splitting(R, dims_r, li_r,
-                    left_index, right_index, gdims, fl)
+                    left_index, fl)
         else:
             R = [R]
         return L + R
@@ -278,18 +282,16 @@ class RAMSESHierarchy(AMRHierarchy):
                 gi += 1
         self.grids = na.array(grids, dtype='object')
 
-    def _get_grid_parents(self, grid, LE, RE):
-        mask = na.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(LE, RE)
-        mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
-        return self.grids[mask]
-
     def _populate_grid_objects(self):
+        mask = na.empty(self.grids.size, dtype='int32')
+        print self.grid_levels.dtype
         for gi,g in enumerate(self.grids):
-            parents = self._get_grid_parents(g,
-                            self.grid_left_edge[gi,:],
-                            self.grid_right_edge[gi,:])
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level - 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
                 g.Parent.extend(parents.tolist())
                 for p in parents: p.Children.append(g)

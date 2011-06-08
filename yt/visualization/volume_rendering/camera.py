@@ -497,7 +497,7 @@ class Camera(ParallelAnalysisInterface):
         --------
 
         >>> for i, snapshot in enumerate(cam.rotation(na.pi, 10)):
-        ...     iw.write_bitmap(snapshot, "rotation_%04i.png" % i)
+        ...     iw.write_bitmap(snapshot, 'rotation_%04i.png' % i)
         """
 
         dtheta = (1.0*theta)/n_steps

@@ -49,25 +49,29 @@ class LightCone(EnzoSimulation):
                  set_parameters=None, output_dir='LC', output_prefix='LightCone', **kwargs):
         """
         Initialize a LightCone object.
-        :param initial_redshift (float): the initial (highest) redshift for the light cone.  Default: 1.0.
-        :param final_redshift (float): the final (lowest) redshift for the light cone.  Default: 0.0.
+        :param initial_redshift (float): the initial (highest) redshift for the light cone.  
+        Default: 1.0.
+        :param final_redshift (float): the final (lowest) redshift for the light cone.  
+        Default: 0.0.
         :param observer_redshift (float): the redshift of the observer.  Default: 0.0.
-        :param field_of_view_in_arcminutes (float): the field of view of the image in units of arcminutes.  
-               Default: 600.0.
-        :param image_resolution_in_arcseconds (float): the size of each image pixel in units of arcseconds.  
-               Default: 60.0.
-                             :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to connect the 
-               initial and final redshift.  If false, the light cone solution will contain as many entries 
-               as possible within the redshift interval.  Default: True.
-        :param deltaz_min (float): specifies the minimum :math:`\Delta z` between consecutive datasets in 
-               the returned list.  Default: 0.0.
-        :param minimum_coherent_box_fraction (float): used with use_minimum_datasets set to False, this 
-               parameter specifies the fraction of the total box size to be traversed before rerandomizing 
-               the projection axis and center.  This was invented to allow light cones with thin slices to 
-               sample coherent large scale structure, but in practice does not work so well.  Try setting 
-               this parameter to 1 and see what happens.  Default: 0.0.
-        :param set_parameters (dict): dictionary of parameters to attach to pf.parameters.  Default: None.
-        :param output_dir (str): the directory in which images and data files will be written.  Default: 'LC'.
+        :param field_of_view_in_arcminutes (float): the field of view of the image in units of 
+        arcminutes.  Default: 600.0.
+        :param image_resolution_in_arcseconds (float): the size of each image pixel in units of 
+        arcseconds.  Default: 60.0.
+        :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to 
+        connect the initial and final redshift.  If false, the light cone solution will contain 
+        as many entries as possible within the redshift interval.  Default: True.
+        :param deltaz_min (float): specifies the minimum :math:`\Delta z` between consecutive 
+        datasets in the returned list.  Default: 0.0.
+        :param minimum_coherent_box_fraction (float): used with use_minimum_datasets set to 
+        False, this parameter specifies the fraction of the total box size to be traversed before 
+        rerandomizing the projection axis and center.  This was invented to allow light cones with 
+        thin slices to sample coherent large scale structure, but in practice does not work so 
+        well.  Try setting this parameter to 1 and see what happens.  Default: 0.0.
+        :param set_parameters (dict): dictionary of parameters to attach to pf.parameters.  
+        Default: None.
+        :param output_dir (str): the directory in which images and data files will be written.  
+        Default: 'LC'.
         :param output_prefix (str): the prefix of all images and data files.  Default: 'LightCone'.
         """
 
