@@ -1251,18 +1251,18 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
         /* It turns out that C89 doesn't define a mechanism for choosing the sign
            of the remainder.
          */
-        ci=cxi;//ci = (cxi % dw[0]);
-        //ci = (ci < 0) ? ci + dw[0] : ci;
+        ci = (cxi % dw[0]);
+        ci = (ci < 0) ? ci + dw[0] : ci;
         if ( ci >= gxe*refratio) break;
         gxi = floor(ci / refratio) - gxs;
         for(cyi=gys*refratio;cyi<=cye;cyi++) {
-          cj=cyi;//cj = cyi % dw[1];
-          //cj = (cj < 0) ? cj + dw[1] : cj;
+          cj = cyi % dw[1];
+          cj = (cj < 0) ? cj + dw[1] : cj;
           if ( cj >= gye*refratio) break;
           gyi = floor(cj / refratio) - gys;
           for(czi=gzs*refratio;czi<=cze;czi++) {
-            ck=czi;//ck = czi % dw[2];
-            //ck = (ck < 0) ? ck + dw[2] : ck;
+            ck = czi % dw[2];
+            ck = (ck < 0) ? ck + dw[2] : ck;
             if ( ck >= gze*refratio) break;
             gzi = floor(ck / refratio) - gzs;
             if (refratio == 1 || *(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)
