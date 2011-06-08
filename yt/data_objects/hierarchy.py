@@ -205,10 +205,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             exception = h5py.h5.H5Error
         try:
             node_loc = self._data_file[node]
-            if name in node_loc.listnames() and force:
+            if name in node_loc and force:
                 mylog.info("Overwriting node %s/%s", node, name)
                 del self._data_file[node][name]
-            elif name in node_loc.listnames() and passthrough:
+            elif name in node_loc and passthrough:
                 return
         except exception:
             pass
@@ -268,10 +268,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         myGroup = self._data_file['/']
         for group in node.split('/'):
             if group:
-                if group not in myGroup.listnames():
+                if group not in myGroup:
                     return None
                 myGroup = myGroup[group]
-        if name not in myGroup.listnames():
+        if name not in myGroup:
             return None
 
         full_name = "%s/%s" % (node, name)
