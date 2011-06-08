@@ -635,12 +635,60 @@ class YTCommands(cmdln.Cmdln):
         pp = PostInventory()
         pp.add_post(arg, desc=opts.desc)
 
+    @cmdln.option("-l", "--language", action="store",
+                  default = None, dest="language",
+                  help="Use syntax highlighter for the file in language")
+    @cmdln.option("-L", "--languages", action="store_true",
+                  default = False, dest="languages",
+                  help="Retrive a list of supported languages")
+    @cmdln.option("-e", "--encoding", action="store",
+                  default = 'utf-8', dest="encoding",
+                  help="Specify the encoding of a file (default is "
+                        "utf-8 or guessing if available)")
+    @cmdln.option("-b", "--open-browser", action="store_true",
+                  default = False, dest="open_browser",
+                  help="Open the paste in a web browser")
+    @cmdln.option("-p", "--private", action="store_true",
+                  default = False, dest="private",
+                  help="Paste as private")
+    @cmdln.option("-c", "--clipboard", action="store_true",
+                  default = False, dest="clipboard",
+                  help="File to output to; else, print.")
+    def do_pastebin(self, subcmd, opts, arg):
+        """
+        Post a script to an anonymous pastebin.
+
+        Usage: yt pastebin [options] <script>
+
+        ${cmd_option_list}
+        """
+        import yt.utilities.lodgeit as lo
+        lo.main( arg, languages=opts.languages, language=opts.language,
+                 encoding=opts.encoding, open_browser=opts.open_browser,
+                 private=opts.private, clipboard=opts.clipboard)
+
+    def do_pastebin_grab(self, subcmd, opts, arg):
+        """
+        Print an online pastebin to STDOUT for local use. Paste ID is 
+        the number at the end of the url.  So to locally access pastebin:
+        http://paste.enzotools.org/show/1688/
+
+        Usage: yt pastebin_grab <Paste ID> 
+        Ex: yt pastebin_grab 1688 > script.py
+
+        """
+        import yt.utilities.lodgeit as lo
+        lo.main( None, download=arg )
+
     @cmdln.option("-o", "--output", action="store",
                   default = None, dest="output_fn",
                   help="File to output to; else, print.")
-    def do_pastegrab(self, subcmd, opts, username, paste_id):
+    def do_pasteboard_grab(self, subcmd, opts, username, paste_id):
         """
         Download from your or another user's pasteboard.
+
+        ${cmd_usage} 
+        ${cmd_option_list}
         """
         from yt.utilities.pasteboard import retrieve_pastefile
         retrieve_pastefile(username, paste_id, opts.output_fn)
@@ -648,6 +696,9 @@ class YTCommands(cmdln.Cmdln):
     def do_bugreport(self, subcmd, opts):
         """
         Report a bug in yt
+
+        ${cmd_usage} 
+        ${cmd_option_list}
         """
         print "==============================================================="
         print
@@ -758,6 +809,9 @@ class YTCommands(cmdln.Cmdln):
     def do_bootstrap_dev(self, subcmd, opts):
         """
         Bootstrap a yt development environment
+
+        ${cmd_usage} 
+        ${cmd_option_list}
         """
         from mercurial import hg, ui, commands
         import imp
