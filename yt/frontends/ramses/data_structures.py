@@ -34,7 +34,10 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
-import _ramses_reader
+try:
+    import _ramses_reader
+except ImportError:
+    _ramses_reader = None
 from .fields import RAMSESFieldContainer
 from yt.utilities.definitions import \
     mpc_conversion
@@ -269,6 +272,8 @@ class RAMSESStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
+        if _ramses_reader is None:
+            import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
