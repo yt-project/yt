@@ -174,8 +174,12 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self._barrier()
         if not writeable and not exists: return
         if writeable:
-            self._data_mode = 'a'
-            if not exists: self.__create_data_file(fn)
+            try:
+                if not exists: self.__create_data_file(fn)
+                self._data_mode = 'a'
+            except IOError:
+                self._data_mode = None
+                return
         else:
             self._data_mode = 'r'
 
