@@ -200,9 +200,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
         if self._data_mode != 'a': return
         if "ArgsError" in dir(h5py.h5):
-            exception = h5py.h5.ArgsError
+            exception = (h5py.h5.ArgsError, KeyError)
         else:
-            exception = h5py.h5.H5Error
+            exception = (h5py.h5.H5Error, KeyError)
         try:
             node_loc = self._data_file[node]
             if name in node_loc and force:
