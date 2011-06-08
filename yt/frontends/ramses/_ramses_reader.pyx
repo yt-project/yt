@@ -741,8 +741,6 @@ cdef class ProtoSubgrid:
                    np.ndarray[np.int64_t, ndim=1] left_index,
                    np.ndarray[np.int64_t, ndim=1] dimensions, 
                    np.ndarray[np.int64_t, ndim=2] left_edges,
-                   np.ndarray[np.int64_t, ndim=2] right_edges,
-                   np.ndarray[np.int64_t, ndim=2] grid_dimensions,
                    np.ndarray[np.int64_t, ndim=2] grid_file_locations):
         # This also includes the shrinking step.
         cdef int i, ci, ng = left_edges.shape[0]
@@ -756,16 +754,16 @@ cdef class ProtoSubgrid:
             self.signature[i] = NULL
         for gi in range(ng):
             if left_edges[gi,0] > left_index[0]+dimensions[0] or \
-               right_edges[gi,0] < left_index[0] or \
+               left_edges[gi,0] + 2 < left_index[0] or \
                left_edges[gi,1] > left_index[1]+dimensions[1] or \
-               right_edges[gi,1] < left_index[1] or \
+               left_edges[gi,1] + 2 < left_index[1] or \
                left_edges[gi,2] > left_index[2]+dimensions[2] or \
-               right_edges[gi,2] < left_index[2]:
+               left_edges[gi,2] + 2 < left_index[2]:
                #print "Skipping grid", gi, "which lies outside out box"
                continue
             for i in range(3):
                 temp_l[i] = i64min(left_edges[gi,i], temp_l[i])
-                temp_r[i] = i64max(right_edges[gi,i], temp_r[i])
+                temp_r[i] = i64max(left_edges[gi,i] + 2, temp_r[i])
         for i in range(3):
             self.left_edge[i] = i64max(temp_l[i], left_index[i])
             self.right_edge[i] = i64min(temp_r[i], left_index[i] + dimensions[i])
@@ -790,15 +788,15 @@ cdef class ProtoSubgrid:
         for gi in range(ng):
             used = 0
             nnn = 0
-            for l0 in range(grid_dimensions[gi, 0]):
+            for l0 in range(2):
                 i0 = left_edges[gi, 0] + l0
                 if i0 < self.left_edge[0]: continue
                 if i0 >= self.right_edge[0]: break
-                for l1 in range(grid_dimensions[gi, 1]):
+                for l1 in range(2):
                     i1 = left_edges[gi, 1] + l1
                     if i1 < self.left_edge[1]: continue
                     if i1 >= self.right_edge[1]: break
-                    for l2 in range(grid_dimensions[gi, 2]):
+                    for l2 in range(2):
                         i2 = left_edges[gi, 2] + l2
                         if i2 < self.left_edge[2]: continue
                         if i2 >= self.right_edge[2]: break
@@ -969,3 +967,36 @@ def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
         hilbert_indices[o] = h
     return hilbert_indices
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind,
+                            np.ndarray[np.int64_t, ndim=1] uind):
+    cdef np.ndarray[np.int64_t, ndim=1] count = np.zeros(uind.shape[0], 'int64')
+    cdef int n, i
+    cdef np.int64_t mi, mui
+    for i in range(ind.shape[0]):
+        mi = ind[i]
+        for n in range(uind.shape[0]):
+            if uind[n] == mi:
+                count[n] += 1
+                break
+    cdef np.int64_t **inds
+    inds = <np.int64_t **> malloc(sizeof(np.int64_t *) * uind.shape[0])
+    cdef int *li = <int *> malloc(sizeof(int) * uind.shape[0])
+    cdef np.ndarray[np.int64_t, ndim=1] indices
+    all_indices = []
+    for n in range(uind.shape[0]):
+        indices = np.zeros(count[n], 'int64')
+        all_indices.append(indices)
+        inds[n] = <np.int64_t *> indices.data
+        li[n] = 0
+    for i in range(ind.shape[0]):
+        mi = ind[i]
+        for n in range(uind.shape[0]):
+            if uind[n] == mi:
+                inds[n][li[n]] = i
+                li[n] += 1
+                break
+    free(inds) # not inds[...]
+    free(li)
+    return all_indices

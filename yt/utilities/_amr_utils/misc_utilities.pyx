@@ -56,7 +56,7 @@ def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                         int level,
                         np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int64_t, ndim=2] levels,
+                        np.ndarray[np.int32_t, ndim=2] levels,
                         np.ndarray[np.int32_t, ndim=1] mask):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
