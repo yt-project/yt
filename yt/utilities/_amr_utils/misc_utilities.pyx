@@ -50,3 +50,26 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
             if v < mi: mi = v
             if v > ma: ma = v
     return (mi, ma)
+
+def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
+                        np.ndarray[np.float64_t, ndim=1] right_edge,
+                        int level,
+                        np.ndarray[np.float64_t, ndim=2] left_edges,
+                        np.ndarray[np.float64_t, ndim=2] right_edges,
+                        np.ndarray[np.int32_t, ndim=2] levels,
+                        np.ndarray[np.int32_t, ndim=1] mask):
+    cdef int i, n
+    cdef int nx = left_edges.shape[0]
+    cdef int inside 
+    for i in range(nx):
+        if levels[i,0] != level:
+            mask[i] = 0
+            continue
+        inside = 1
+        for n in range(3):
+            if left_edge[n] > right_edges[i,n] or \
+               right_edge[n] < left_edges[i,n]:
+                inside = 0
+                break
+        if inside == 1: mask[i] = 1
+        else: mask[i] = 0
