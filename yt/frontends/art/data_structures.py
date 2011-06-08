@@ -45,7 +45,10 @@ from yt.utilities.io_handler import \
     io_registry
 import yt.utilities.amr_utils as amr_utils
 
-import yt.frontends.ramses._ramses_reader as _ramses_reader
+try:
+    import yt.frontends.ramses._ramses_reader as _ramses_reader
+except ImportError:
+    _ramses_reader = None
 
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs
@@ -373,6 +376,8 @@ class ARTStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='art',
                  storage_filename = None):
+        if _ramses_reader is None:
+            import yt.frontends.ramses._ramses_reader as _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         
