@@ -50,11 +50,11 @@ OF SUCH DAMAGE.
 
 struct kdhyperrect {
 	int dim;
-	double *min, *max;              /* minimum/maximum coords */
+	npy_float64 *min, *max;              /* minimum/maximum coords */
 };
 
 struct kdnode {
-	double *pos;
+	npy_float64 *pos;
 	int dir;
 	void *data;
 
@@ -63,7 +63,7 @@ struct kdnode {
 
 struct res_node {
 	struct kdnode *item;
-	double dist_sq;
+	npy_float64 dist_sq;
 	struct res_node *next;
 };
 
@@ -84,15 +84,15 @@ struct kdres {
 
 
 static void clear_rec(struct kdnode *node, void (*destr)(void*));
-static int insert_rec(struct kdnode **node, const double *pos, void *data, int dir, int dim);
-static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
+static int insert_rec(struct kdnode **node, const npy_float64 *pos, void *data, int dir, int dim);
+static int rlist_insert(struct res_node *list, struct kdnode *item, npy_float64 dist_sq);
 static void clear_results(struct kdres *set);
 
-static struct kdhyperrect* hyperrect_create(int dim, const double *min, const double *max);
+static struct kdhyperrect* hyperrect_create(int dim, const npy_float64 *min, const npy_float64 *max);
 static void hyperrect_free(struct kdhyperrect *rect);
 static struct kdhyperrect* hyperrect_duplicate(const struct kdhyperrect *rect);
-static void hyperrect_extend(struct kdhyperrect *rect, const double *pos);
-static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos);
+static void hyperrect_extend(struct kdhyperrect *rect, const npy_float64 *pos);
+static npy_float64 hyperrect_dist_sq(struct kdhyperrect *rect, const npy_float64 *pos);
 
 #ifdef USE_LIST_NODE_ALLOCATOR
 static struct res_node *alloc_resnode(void);
@@ -159,7 +159,7 @@ void kd_data_destructor(struct kdtree *tree, void (*destr)(void*))
 }
 
 
-static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int dir, int dim)
+static int insert_rec(struct kdnode **nptr, const npy_float64 *pos, void *data, int dir, int dim)
 {
 	int new_dir;
 	struct kdnode *node;
@@ -188,7 +188,7 @@ static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int d
 	return insert_rec(&(*nptr)->right, pos, data, new_dir, dim);
 }
 
-int kd_insert(struct kdtree *tree, const double *pos, void *data)
+int kd_insert(struct kdtree *tree, const npy_float64 *pos, void *data)
 {
 	if (insert_rec(&tree->root, pos, data, 0, tree->dim)) {
 		return -1;
@@ -205,8 +205,8 @@ int kd_insert(struct kdtree *tree, const double *pos, void *data)
 
 int kd_insertf(struct kdtree *tree, const float *pos, void *data)
 {
-	static double sbuf[16];
-	double *bptr, *buf = 0;
+	static npy_float64 sbuf[16];
+	npy_float64 *bptr, *buf = 0;
 	int res, dim = tree->dim;
 
 	if(dim > 16) {
@@ -236,9 +236,9 @@ int kd_insertf(struct kdtree *tree, const float *pos, void *data)
 	return res;
 }
 
-int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data)
+int kd_insert3(struct kdtree *tree, npy_float64 x, npy_float64 y, npy_float64 z, void *data)
 {
-	double buf[3];
+	npy_float64 buf[3];
 	buf[0] = x;
 	buf[1] = y;
 	buf[2] = z;
@@ -247,16 +247,16 @@ int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data)
 
 int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data)
 {
-	double buf[3];
+	npy_float64 buf[3];
 	buf[0] = x;
 	buf[1] = y;
 	buf[2] = z;
 	return kd_insert(tree, buf, data);
 }
 
-static int find_nearest(struct kdnode *node, const double *pos, double range, struct res_node *list, int ordered, int dim)
+static int find_nearest(struct kdnode *node, const npy_float64 *pos, npy_float64 range, struct res_node *list, int ordered, int dim)
 {
-	double dist_sq, dx;
+	npy_float64 dist_sq, dx;
 	int i, ret, added_res = 0;
 
 	if(!node) return 0;
@@ -287,13 +287,13 @@ static int find_nearest(struct kdnode *node, const double *pos, double range, st
 	return added_res;
 }
 
-static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode **result, double *result_dist_sq, struct kdhyperrect* rect)
+static void kd_nearest_i(struct kdnode *node, const npy_float64 *pos, struct kdnode **result, npy_float64 *result_dist_sq, struct kdhyperrect* rect)
 {
 	int dir = node->dir;
 	int i, side;
-	double dummy, dist_sq;
+	npy_float64 dummy, dist_sq;
 	struct kdnode *nearer_subtree, *farther_subtree;
-	double *nearer_hyperrect_coord, *farther_hyperrect_coord;
+	npy_float64 *nearer_hyperrect_coord, *farther_hyperrect_coord;
 
 	/* Decide whether to go left or right in the tree */
 	dummy = pos[dir] - node->pos[dir];
@@ -348,12 +348,12 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	}
 }
 
-struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
+struct kdres *kd_nearest(struct kdtree *kd, const npy_float64 *pos)
 {
 	struct kdhyperrect *rect;
 	struct kdnode *result;
 	struct kdres *rset;
-	double dist_sq;
+	npy_float64 dist_sq;
 	int i;
 
 	if (!kd) return 0;
@@ -405,8 +405,8 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 
 struct kdres *kd_nearestf(struct kdtree *tree, const float *pos)
 {
-	static double sbuf[16];
-	double *bptr, *buf = 0;
+	static npy_float64 sbuf[16];
+	npy_float64 *bptr, *buf = 0;
 	int dim = tree->dim;
 	struct kdres *res;
 
@@ -437,9 +437,9 @@ struct kdres *kd_nearestf(struct kdtree *tree, const float *pos)
 	return res;
 }
 
-struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z)
+struct kdres *kd_nearest3(struct kdtree *tree, npy_float64 x, npy_float64 y, npy_float64 z)
 {
-	double pos[3];
+	npy_float64 pos[3];
 	pos[0] = x;
 	pos[1] = y;
 	pos[2] = z;
@@ -448,14 +448,14 @@ struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z)
 
 struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z)
 {
-	double pos[3];
+	npy_float64 pos[3];
 	pos[0] = x;
 	pos[1] = y;
 	pos[2] = z;
 	return kd_nearest(tree, pos);
 }
 
-struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos, double range)
+struct kdres *kd_nearest_range(struct kdtree *kd, const npy_float64 *pos, npy_float64 range)
 {
 	int ret;
 	struct kdres *rset;
@@ -481,8 +481,8 @@ struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos, double rang
 
 struct kdres *kd_nearest_rangef(struct kdtree *kd, const float *pos, float range)
 {
-	static double sbuf[16];
-	double *bptr, *buf = 0;
+	static npy_float64 sbuf[16];
+	npy_float64 *bptr, *buf = 0;
 	int dim = kd->dim;
 	struct kdres *res;
 
@@ -513,9 +513,9 @@ struct kdres *kd_nearest_rangef(struct kdtree *kd, const float *pos, float range
 	return res;
 }
 
-struct kdres *kd_nearest_range3(struct kdtree *tree, double x, double y, double z, double range)
+struct kdres *kd_nearest_range3(struct kdtree *tree, npy_float64 x, npy_float64 y, npy_float64 z, npy_float64 range)
 {
-	double buf[3];
+	npy_float64 buf[3];
 	buf[0] = x;
 	buf[1] = y;
 	buf[2] = z;
@@ -524,7 +524,7 @@ struct kdres *kd_nearest_range3(struct kdtree *tree, double x, double y, double 
 
 struct kdres *kd_nearest_range3f(struct kdtree *tree, float x, float y, float z, float range)
 {
-	double buf[3];
+	npy_float64 buf[3];
 	buf[0] = x;
 	buf[1] = y;
 	buf[2] = z;
@@ -559,7 +559,7 @@ int kd_res_next(struct kdres *rset)
 	return rset->riter != 0;
 }
 
-void *kd_res_item(struct kdres *rset, double *pos)
+void *kd_res_item(struct kdres *rset, npy_float64 *pos)
 {
 	if(rset->riter) {
 		if(pos) {
@@ -584,7 +584,7 @@ void *kd_res_itemf(struct kdres *rset, float *pos)
 	return 0;
 }
 
-void *kd_res_item3(struct kdres *rset, double *x, double *y, double *z)
+void *kd_res_item3(struct kdres *rset, npy_float64 *x, npy_float64 *y, npy_float64 *z)
 {
 	if(rset->riter) {
 		if(*x) *x = rset->riter->item->pos[0];
@@ -610,9 +610,9 @@ void *kd_res_item_data(struct kdres *set)
 }
 
 /* ---- hyperrectangle helpers ---- */
-static struct kdhyperrect* hyperrect_create(int dim, const double *min, const double *max)
+static struct kdhyperrect* hyperrect_create(int dim, const npy_float64 *min, const npy_float64 *max)
 {
-	size_t size = dim * sizeof(double);
+	size_t size = dim * sizeof(npy_float64);
 	struct kdhyperrect* rect = 0;
 
 	if (!(rect = malloc(sizeof(struct kdhyperrect)))) {
@@ -647,7 +647,7 @@ static struct kdhyperrect* hyperrect_duplicate(const struct kdhyperrect *rect)
 	return hyperrect_create(rect->dim, rect->min, rect->max);
 }
 
-static void hyperrect_extend(struct kdhyperrect *rect, const double *pos)
+static void hyperrect_extend(struct kdhyperrect *rect, const npy_float64 *pos)
 {
 	int i;
 
@@ -661,10 +661,10 @@ static void hyperrect_extend(struct kdhyperrect *rect, const double *pos)
 	}
 }
 
-static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos)
+static npy_float64 hyperrect_dist_sq(struct kdhyperrect *rect, const npy_float64 *pos)
 {
 	int i;
-	double result = 0;
+	npy_float64 result = 0;
 
 	for (i=0; i < rect->dim; i++) {
 		if (pos[i] < rect->min[i]) {
@@ -727,7 +727,7 @@ static void free_resnode(struct res_node *node)
 
 
 /* inserts the item. if dist_sq is >= 0, then do an ordered insert */
-static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq)
+static int rlist_insert(struct res_node *list, struct kdnode *item, npy_float64 dist_sq)
 {
 	struct res_node *rnode;
 
