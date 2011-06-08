@@ -181,29 +181,24 @@ class RAMSESHierarchy(AMRHierarchy):
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
             unique_indices = na.unique(hilbert_indices)
-            print "Level % 2i has % 10i unique indices for %0.3e octs" % (
+            mylog.debug("Level % 2i has % 10i unique indices for %0.3e octs",
                         level, unique_indices.size, hilbert_indices.size)
-            all_indices = _ramses_reader.get_array_indices_lists(
-                        hilbert_indices, unique_indices)
-            for curve_index, my_octs in zip(unique_indices, all_indices):
-                #print "Handling", curve_index
-                #my_octs = (hilbert_indices == curve_index)
-                dleft_index = left_index[my_octs,:]
-                dfl = fl[my_octs,:]
+            locs, lefts = _ramses_reader.get_array_indices_lists(
+                        hilbert_indices, unique_indices, left_index, fl)
+            for dleft_index, dfl in zip(lefts, locs):
                 initial_left = na.min(dleft_index, axis=0)
                 idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
-                #if level > 10: insert_ipython()
-                #print initial_left, idims
                 psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
                                 dleft_index, dfl)
                 if psg.efficiency <= 0: continue
                 self.num_deep = 0
-                psgs.extend(self._recursive_patch_splitting(
+                psgs.extend(_ramses_reader.recursive_patch_splitting(
                     psg, idims, initial_left, 
                     dleft_index, dfl))
-            print "Done with level % 2i" % (level)
+            mylog.debug("Done with level % 2i", level)
             pbar.finish()
             self.proto_grids.append(psgs)
+            print sum(len(psg.grid_file_locations) for psg in psgs)
             sums = na.zeros(3, dtype='int64')
             mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
@@ -212,56 +207,6 @@ class RAMSESHierarchy(AMRHierarchy):
             #assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
-    num_deep = 0
-
-    @num_deep_inc
-    def _recursive_patch_splitting(self, psg, dims, ind,
-            left_index, fl):
-        min_eff = 0.1 # This isn't always respected.
-        if self.num_deep > 40:
-            # If we've recursed more than 100 times, we give up.
-            psg.efficiency = min_eff
-            return [psg]
-        if psg.efficiency > min_eff or psg.efficiency < 0.0:
-            return [psg]
-        tt, ax, fp = psg.find_split()
-        if (fp % 2) != 0:
-            if dims[ax] != fp + 1:
-                fp += 1
-            else:
-                fp -= 1
-        #print " " * self.num_deep + "Got ax", ax, "fp", fp
-        dims_l = dims.copy()
-        dims_l[ax] = fp
-        li_l = ind.copy()
-        if na.any(dims_l <= 0): return [psg]
-        L = _ramses_reader.ProtoSubgrid(
-                li_l, dims_l, left_index, fl)
-        #print " " * self.num_deep + "L", tt, L.efficiency
-        if L.efficiency > 1.0: raise RuntimeError
-        if L.efficiency <= 0.0: L = []
-        elif L.efficiency < min_eff:
-            L = self._recursive_patch_splitting(L, dims_l, li_l,
-                    left_index, fl)
-        else:
-            L = [L]
-        dims_r = dims.copy()
-        dims_r[ax] -= fp
-        li_r = ind.copy()
-        li_r[ax] += fp
-        if na.any(dims_r <= 0): return [psg]
-        R = _ramses_reader.ProtoSubgrid(
-                li_r, dims_r, left_index, fl)
-        #print " " * self.num_deep + "R", tt, R.efficiency
-        if R.efficiency > 1.0: raise RuntimeError
-        if R.efficiency <= 0.0: R = []
-        elif R.efficiency < min_eff:
-            R = self._recursive_patch_splitting(R, dims_r, li_r,
-                    left_index, fl)
-        else:
-            R = [R]
-        return L + R
-        
     def _parse_hierarchy(self):
         # We have important work to do
         grids = []

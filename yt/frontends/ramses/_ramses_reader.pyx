@@ -654,17 +654,17 @@ cdef class RAMSES_tree_proxy:
                   np.ndarray[np.float64_t, ndim=3] data,
                   np.ndarray[np.int32_t, ndim=3] filled,
                   int level, int ref_factor,
-                  component_grid_info):
+                  np.ndarray[np.int64_t, ndim=2] component_grid_info):
         cdef int varindex = self.field_ind[field]
         cdef RAMSES_tree *local_tree = NULL
         cdef RAMSES_hydro_data *local_hydro_data = NULL
 
         cdef int gi, i, j, k, domain, offset
         cdef int ir, jr, kr
+        cdef int n
         cdef int offi, offj, offk, odind
         cdef np.int64_t di, dj, dk
-        cdef np.ndarray[np.int64_t, ndim=1] ogrid_info
-        cdef np.ndarray[np.int64_t, ndim=1] og_start_index
+        cdef np.int32_t og_start_index[3]
         cdef np.float64_t temp_data
         cdef np.int64_t end_index[3]
         cdef int to_fill = 0
@@ -672,15 +672,13 @@ cdef class RAMSES_tree_proxy:
         #   (k*2 + j)*2 + i
         for i in range(3):
             end_index[i] = start_index[i] + grid_dims[i]
-        for gi in range(len(component_grid_info)):
-            ogrid_info = component_grid_info[gi]
-            domain = ogrid_info[0]
-            #print "Loading", domain, ogrid_info
+        for gi in range(component_grid_info.shape[0]):
+            domain = component_grid_info[gi,0]
             self.ensure_loaded(field, domain - 1)
             local_tree = self.trees[domain - 1]
             local_hydro_data = self.hydro_datas[domain - 1][varindex]
-            offset = ogrid_info[1]
-            og_start_index = ogrid_info[3:]
+            offset = component_grid_info[gi,1]
+            for n in range(3): og_start_index[n] = component_grid_info[gi,3+n]
             for i in range(2*ref_factor):
                 di = i + og_start_index[0] * ref_factor
                 if di < start_index[0] or di >= end_index[0]: continue
@@ -709,22 +707,6 @@ cdef class RAMSES_tree_proxy:
                         to_fill += 1
         return to_fill
 
-#def recursive_patch_splitting(ProtoSubgrid psg,
-#        np.ndarray[np.int64_t, ndim=1] dims,
-#        np.ndarray[np.int64_t, ndim=1] inds,
-#        np.ndarray[np.int64_t, ndim=2] left_index,
-#        np.ndarray[np.int64_t, ndim=2] right_index,
-#        np.ndarray[np.int64_t, ndim=2] gdims,
-#        np.ndarray[np.int64_t, ndim=2] fl,
-#        int num_deep = 0):
-#    cdef float min_eff = 0.1
-#    if num_deep > 40:
-#        psg.efficiency = min_eff
-#        return [psg]
-#    if psg.efficiency > min_eff or psg.efficiency < 0.0:
-#        return [psg]
-#    cdef 
-#
 cdef class ProtoSubgrid:
     cdef np.int64_t *signature[3]
     cdef np.int64_t left_edge[3]
@@ -784,10 +766,10 @@ cdef class ProtoSubgrid:
         sig2 = self.sigs[2]
         efficiency = 0.0
         cdef int used
-        self.grid_file_locations = []
+        cdef np.ndarray[np.int32_t, ndim=1] mask
+        mask = np.zeros(ng, 'int32')
+        used = 0
         for gi in range(ng):
-            used = 0
-            nnn = 0
             for l0 in range(2):
                 i0 = left_edges[gi, 0] + l0
                 if i0 < self.left_edge[0]: continue
@@ -807,12 +789,19 @@ cdef class ProtoSubgrid:
                         i = i2 - self.left_edge[2]
                         sig2[i] += 1
                         efficiency += 1
-                        used = 1
-            if used == 1:
+                        used += 1
+                        mask[gi] = 1
+        cdef np.ndarray[np.int64_t, ndim=2] gfl
+        gfl = np.zeros((used, 6), 'int64')
+        used = 0
+        self.grid_file_locations = gfl
+        for gi in range(ng):
+            if mask[gi] == 1:
                 grid_file_locations[gi,3] = left_edges[gi, 0]
                 grid_file_locations[gi,4] = left_edges[gi, 1]
                 grid_file_locations[gi,5] = left_edges[gi, 2]
-                self.grid_file_locations.append(grid_file_locations[gi,:])
+                for i in range(6):
+                    gfl[used, i] = grid_file_locations[gi,i]
          
         self.dd = np.ones(3, dtype='int64')
         for i in range(3):
@@ -828,7 +817,7 @@ cdef class ProtoSubgrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def find_split(self):
+    cdef void find_split(self, int *tr):
         # First look for zeros
         cdef int i, center, ax
         cdef np.ndarray[ndim=1, dtype=np.int64_t] axes
@@ -842,7 +831,8 @@ cdef class ProtoSubgrid:
             for i in range(self.dimensions[ax]):
                 if sig[i] == 0 and i > 0 and i < self.dimensions[ax] - 1:
                     #print "zero: %s (%s)" % (i, self.dimensions[ax])
-                    return 0, ax, i
+                    tr[0] = 0; tr[1] = ax; tr[2] = i
+                    return
         zcstrength = 0
         zcp = 0
         zca = -1
@@ -866,7 +856,8 @@ cdef class ProtoSubgrid:
                         zca = ax
             free(sig2d)
         #print "zcp: %s (%s)" % (zcp, self.dimensions[ax])
-        return 1, ax, zcp
+        tr[0] = 1; tr[1] = ax; tr[2] = zcp
+        return
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -970,7 +961,9 @@ def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind,
-                            np.ndarray[np.int64_t, ndim=1] uind):
+                            np.ndarray[np.int64_t, ndim=1] uind,
+                            np.ndarray[np.int64_t, ndim=2] lefts,
+                            np.ndarray[np.int64_t, ndim=2] files):
     cdef np.ndarray[np.int64_t, ndim=1] count = np.zeros(uind.shape[0], 'int64')
     cdef int n, i
     cdef np.int64_t mi, mui
@@ -980,23 +973,89 @@ def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind,
             if uind[n] == mi:
                 count[n] += 1
                 break
-    cdef np.int64_t **inds
-    inds = <np.int64_t **> malloc(sizeof(np.int64_t *) * uind.shape[0])
+    cdef np.int64_t **alefts
+    cdef np.int64_t **afiles
+    afiles = <np.int64_t **> malloc(sizeof(np.int64_t *) * uind.shape[0])
+    alefts = <np.int64_t **> malloc(sizeof(np.int64_t *) * uind.shape[0])
     cdef int *li = <int *> malloc(sizeof(int) * uind.shape[0])
-    cdef np.ndarray[np.int64_t, ndim=1] indices
-    all_indices = []
+    cdef np.ndarray[np.int64_t, ndim=2] locations
+    cdef np.ndarray[np.int64_t, ndim=2] left
+    all_locations = []
+    all_lefts = []
     for n in range(uind.shape[0]):
-        indices = np.zeros(count[n], 'int64')
-        all_indices.append(indices)
-        inds[n] = <np.int64_t *> indices.data
+        locations = np.zeros((count[n], 6), 'int64')
+        left = np.zeros((count[n], 3), 'int64')
+        all_locations.append(locations)
+        all_lefts.append(left)
+        afiles[n] = <np.int64_t *> locations.data
+        alefts[n] = <np.int64_t *> left.data
         li[n] = 0
+    cdef int fi
     for i in range(ind.shape[0]):
         mi = ind[i]
         for n in range(uind.shape[0]):
             if uind[n] == mi:
-                inds[n][li[n]] = i
+                for fi in range(3):
+                    alefts[n][li[n] * 3 + fi] = lefts[i, fi]
+                for fi in range(6):
+                    afiles[n][li[n] * 6 + fi] = files[i, fi]
                 li[n] += 1
                 break
-    free(inds) # not inds[...]
-    free(li)
-    return all_indices
+    free(afiles)
+    free(alefts)
+    return all_locations, all_lefts
+
+def recursive_patch_splitting(ProtoSubgrid psg,
+        np.ndarray[np.int64_t, ndim=1] dims,
+        np.ndarray[np.int64_t, ndim=1] ind,
+        np.ndarray[np.int64_t, ndim=2] left_index,
+        np.ndarray[np.int64_t, ndim=2] fl,
+        int num_deep = 0):
+    cdef float min_eff = 0.1
+    cdef ProtoSubgrid L, R
+    cdef np.ndarray[np.int64_t, ndim=1] dims_l, li_l
+    cdef np.ndarray[np.int64_t, ndim=1] dims_r, li_r
+    cdef int tt, ax, fp, i, j, k, gi
+    cdef int tr[3]
+    if num_deep > 40:
+        psg.efficiency = min_eff
+        return [psg]
+    if psg.efficiency > min_eff or psg.efficiency < 0.0:
+        return [psg]
+    psg.find_split(tr)
+    tt = tr[0]
+    ax = tr[1]
+    fp = tr[2]
+    if (fp % 2) != 0:
+        if dims[ax] != fp + 1:
+            fp += 1
+        else:
+            fp -= 1
+    dims_l = dims.copy()
+    dims_l[ax] = fp
+    li_l = ind.copy()
+    for i in range(3):
+        if dims_l[i] <= 0: return [psg]
+    dims_r = dims.copy()
+    dims_r[ax] -= fp
+    li_r = ind.copy()
+    li_r[ax] += fp
+    for i in range(3):
+        if dims_r[i] <= 0: return [psg]
+    L = ProtoSubgrid(li_l, dims_l, left_index, fl)
+    if L.efficiency > 1.0: raise RuntimeError
+    if L.efficiency <= 0.0: rv_l = []
+    elif L.efficiency < min_eff:
+        rv_l = recursive_patch_splitting(L, dims_r, li_r,
+                left_index, fl, num_deep + 1)
+    else:
+        rv_l = [L]
+    R = ProtoSubgrid(li_r, dims_r, left_index, fl)
+    if R.efficiency > 1.0: raise RuntimeError
+    if R.efficiency <= 0.0: rv_r = []
+    elif R.efficiency < min_eff:
+        rv_r = recursive_patch_splitting(R, dims_r, li_r,
+                left_index, fl, num_deep + 1)
+    else:
+        rv_r = [R]
+    return rv_r + rv_l
