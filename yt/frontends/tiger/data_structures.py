@@ -31,7 +31,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 
-from .fields import TigerFieldInfo
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+from .fields import TigerFieldInfo, KnownTigerFields
 
 class TigerGrid(AMRGridPatch):
     _id_offset = 0
@@ -125,16 +127,13 @@ class TigerHierarchy(AMRHierarchy):
     def field_list(self):
         return self.file_mapping.keys()
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            add_tiger_field(field, lambda a, b: None)
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
 class TigerStaticOutput(StaticOutput):
     _hierarchy_class = TigerHierarchy
     _fieldinfo_fallback = TigerFieldInfo
+    _fieldinfo_known = KnownTigerFields
 
     def __init__(self, rhobname, root_size, max_grid_size=128,
                  data_style='tiger', storage_filename = None):

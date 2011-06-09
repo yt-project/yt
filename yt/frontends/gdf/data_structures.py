@@ -32,9 +32,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 
-from .fields import GDFFieldContainer
+from .fields import GDFFieldContainer, KnownGDFFields
 from yt.data_objects.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, NullFunc
 
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
@@ -130,9 +130,6 @@ class GDFHierarchy(AMRHierarchy):
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -145,6 +142,7 @@ class GDFHierarchy(AMRHierarchy):
 class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldContainer
+    _fieldinfo_known = GDFKnownFields
     
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):

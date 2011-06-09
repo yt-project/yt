@@ -36,10 +36,13 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.logger import ytLogger as mylog
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 
 from .fields import \
     StreamFieldContainer, \
-    add_stream_field
+    add_stream_field, \
+    KnownStreamFields
 
 class StreamGrid(AMRGridPatch):
     """
@@ -216,6 +219,7 @@ class StreamHierarchy(AMRHierarchy):
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_class = StreamFieldContainer
+    _fieldinfo_known = KnownStreamFields
     _data_style = 'stream'
 
     def __init__(self, stream_handler):

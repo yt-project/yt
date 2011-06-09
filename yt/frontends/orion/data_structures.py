@@ -56,10 +56,11 @@ from .definitions import \
 
 from .fields import \
     OrionFieldInfo, \
-    add_orion_field
+    add_orion_field, \
+    KnownOrionFields
 
 from yt.data_objects.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, NullFunc
 
 
 class OrionGrid(AMRGridPatch):
@@ -402,21 +403,6 @@ class OrionHierarchy(AMRHierarchy):
     def _detect_fields(self):
         pass
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_orion_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
-
     def _setup_derived_fields(self):
         pass
 
@@ -443,6 +429,7 @@ class OrionStaticOutput(StaticOutput):
     """
     _hierarchy_class = OrionHierarchy
     _fieldinfo_fallback = OrionFieldInfo
+    _fieldinfo_known = KnownOrionFields
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='orion_native', paranoia=False,

@@ -56,8 +56,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 
 from yt.data_objects.field_info_container import \
-    FieldInfoContainer
-from .fields import ChomboFieldInfo
+    FieldInfoContainer, NullFunc
+from .fields import ChomboFieldInfo, KnownChomboFields
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -163,9 +163,6 @@ class ChomboHierarchy(AMRHierarchy):
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -178,6 +175,7 @@ class ChomboHierarchy(AMRHierarchy):
 class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
+    _fieldinfo_known = KnownChomboFields
     
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):

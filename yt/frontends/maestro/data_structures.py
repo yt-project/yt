@@ -55,10 +55,11 @@ from .definitions import \
     maestro_FAB_header_pattern
 
 from yt.data_objects.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, NullFunc
 from .fields import \
     MaestroFieldInfo, \
-    add_maestro_field
+    add_maestro_field, \
+    KnownMaestroFields
 
 
 class MaestroGrid(AMRGridPatch):
@@ -393,21 +394,6 @@ class MaestroHierarchy(AMRHierarchy):
     def _detect_fields(self):
         pass
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
-
     def _setup_derived_fields(self):
         pass
 
@@ -434,6 +420,7 @@ class MaestroStaticOutput(StaticOutput):
     """
     _hierarchy_class = MaestroHierarchy
     _fieldinfo_fallback = MaestroFieldInfo
+    _fieldinfo_known = KnownMaestroFields
 
     def __init__(self, plotname, paramFilename=None, 
                  data_style='maestro', paranoia=False,

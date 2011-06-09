@@ -37,9 +37,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from .fields import GadgetFieldInfo
+from .fields import GadgetFieldInfo, KnownGadgetFields
 from yt.data_objects.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, NullFunc
 
 class GadgetGrid(AMRGridPatch):
     _id_offset = 0
@@ -137,16 +137,14 @@ class GadgetHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
             
-        
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = GadgetHierarchy
-    _fieldinfo_fallback = GadgetFieldContainer
+    _fieldinfo_fallback = GadgetFieldInfo
+    _fieldinfo_known = KnownGadgetFields
+
     def __init__(self, filename,storage_filename=None) :
         self.storage_filename = storage_filename
         self.field_info = FieldInfoContainer.create_with_fallback(
