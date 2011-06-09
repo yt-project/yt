@@ -2189,6 +2189,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         for i,grid in enumerate(self._get_grids()):
             mylog.debug("Getting fields from %s", i)
             self._get_data_from_grid(grid, fields_to_get, dls)
+        mylog.info("IO completed; summing")
         for field in fields_to_get:
             self[field] = self._mpi_Allsum_double(self[field])
             conv = self.pf.units[self.pf.field_info[field].projection_conversion]
