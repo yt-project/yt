@@ -1236,7 +1236,7 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
                   for(n=0;n<n_fields;n++){
                     *(npy_float64*) PyArray_GETPTR2(c_data[n], x_loc+ri, y_loc+rj)
                       +=  *(npy_float64*) PyArray_GETPTR3(g_data[n],
-                          gxi-gxs, gyi-gys, gzi-gzs) * dls[n] / refratio;
+                          gxi-gxs, gyi-gys, gzi-gzs) * dls[n];
                   }
                 }
               }
