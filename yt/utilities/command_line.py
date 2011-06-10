@@ -556,7 +556,8 @@ class YTCommands(cmdln.Cmdln):
         """
         pf = _fix_pf(arg)
         pf.h.print_stats()
-        v, c = pf.h.find_max("Density")
+        if "Density" in pf.h.field_list:
+            v, c = pf.h.find_max("Density")
         print "Maximum density: %0.5e at %s" % (v, c)
         if opts.output is not None:
             t = pf.current_time * pf['years']
