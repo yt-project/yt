@@ -67,8 +67,8 @@ def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
             continue
         inside = 1
         for n in range(3):
-            if left_edge[n] > right_edges[i,n] or \
-               right_edge[n] < left_edges[i,n]:
+            if left_edge[n] >= right_edges[i,n] or \
+               right_edge[n] <= left_edges[i,n]:
                 inside = 0
                 break
         if inside == 1: mask[i] = 1

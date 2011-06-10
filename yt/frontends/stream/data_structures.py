@@ -36,6 +36,8 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.amr_utils import \
+    get_box_grids_level
 
 from .fields import \
     StreamFieldContainer, \
@@ -94,7 +96,7 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields):
+                 fields, io = None):
         self.left_edges = left_edges
         self.right_edges = right_edges
         self.dimensions = dimensions
@@ -104,6 +106,7 @@ class StreamHandler(object):
         self.processor_ids = processor_ids
         self.num_grids = self.levels.size
         self.fields = fields
+        self.io = io
 
     def get_fields(self):
         return self.fields.all_fields
@@ -154,18 +157,22 @@ class StreamHierarchy(AMRHierarchy):
         self.grid_procs = self.stream_handler.processor_ids
         self.grid_particle_count[:] = self.stream_handler.particle_count
         mylog.debug("Copying reverse tree")
-        reverse_tree = self.stream_handler.parent_ids.tolist()
-        # Initial setup:
-        mylog.debug("Reconstructing parent-child relationships")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
-        self.filenames = ["-1"] * self.num_grids
-        for id,pid in enumerate(reverse_tree):
+        for id in xrange(self.num_grids):
             self.grids.append(self.grid(id, self))
-            self.grids[-1].Level = self.grid_levels[id, 0]
-            if pid >= 0:
-                self.grids[-1]._parent_id = pid
-                self.grids[pid]._children_ids.append(self.grids[-1].id)
+            self.grids[id].Level = self.grid_levels[id, 0]
+        parent_ids = self.stream_handler.parent_ids
+        if parent_ids is not None:
+            reverse_tree = self.stream_handler.parent_ids.tolist()
+            # Initial setup:
+            for id,pid in enumerate(reverse_tree):
+                if pid >= 0:
+                    self.grids[-1]._parent_id = pid
+                    self.grids[pid]._children_ids.append(self.grids[-1].id)
+        else:
+            mylog.debug("Reconstructing parent-child relationships")
+            self._reconstruct_parent_child()
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
@@ -175,6 +182,22 @@ class StreamHierarchy(AMRHierarchy):
             grid.proc_num = self.grid_procs[i]
         self.grids = na.array(self.grids, dtype='object')
         mylog.debug("Prepared")
+
+    def _reconstruct_parent_child(self):
+        mask = na.empty(len(self.grids), dtype='int32')
+        mylog.debug("First pass; identifying child grids")
+        for i, grid in enumerate(self.grids):
+            get_box_grids_level(self.grid_left_edge[i,:],
+                                self.grid_right_edge[i,:],
+                                self.grid_levels[i] + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            ids = na.where(mask.astype("bool"))
+            grid._children_ids = ids[0] # where is a tuple
+        mylog.debug("Second pass; identifying parents")
+        for i, grid in enumerate(self.grids): # Second pass
+            for child in grid.Children:
+                child._parent_id = i
 
     def _initialize_grid_arrays(self):
         AMRHierarchy._initialize_grid_arrays(self)
@@ -211,7 +234,10 @@ class StreamHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.stream_handler)
+        if self.stream_handler.io is not None:
+            self.io = self.stream_handler.io
+        else:
+            self.io = io_registry[self.data_style](self.stream_handler)
 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
