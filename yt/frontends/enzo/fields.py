@@ -28,6 +28,7 @@ import numpy as na
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
+    TranslationFunc, \
     FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \

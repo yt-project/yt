@@ -71,6 +71,11 @@ class FieldInfoContainer(dict): # Resistance has utility
         obj.fallback = fallback
         return obj
 
+def TranslationFunc(field_name):
+    def _TranslationFunc(field, data):
+        return data[field]
+    return _TranslationFunc
+
 def NullFunc(field, data):
     return
 

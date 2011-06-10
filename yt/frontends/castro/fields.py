@@ -27,6 +27,8 @@ from yt.utilities.physical_constants import \
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
+    NullFunc, \
+    TranslationFunc, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -35,32 +37,31 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 
 CastroFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_castro_field = CastroFieldInfo.add_field
+add_field = CastroFieldInfo.add_field
 
-
-add_field = add_castro_field
+KnownCastroFields = FieldInfoContainer()
+add_castro_field = KnownCastroFields.add_field
 
 # def _convertDensity(data):
 #     return data.convert("Density")
-add_field("density", function=lambda a, b: None, take_log=True,
-          validators = [ValidateDataField("density")],
-          units=r"\rm{g}/\rm{cm}^3")
+add_castro_field("density", function=NullFunc, take_log=True,
+          units=r"\rm{g}/\rm{cm}^3",
 CastroFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 #CastroFieldInfo["density"]._convert_function=_convertDensity
 
-add_field("eden", function=lambda a, b: None, take_log=True,
+add_castro_field("eden", function=NullFunc, take_log=True,
           validators = [ValidateDataField("eden")],
           units=r"\rm{erg}/\rm{cm}^3")
 
-add_field("xmom", function=lambda a, b: None, take_log=False,
+add_castro_field("xmom", function=NullFunc, take_log=False,
           validators = [ValidateDataField("xmom")],
           units=r"\rm{g}/\rm{cm^2\ s}")
 
-add_field("ymom", function=lambda a, b: None, take_log=False,
+add_castro_field("ymom", function=NullFunc, take_log=False,
           validators = [ValidateDataField("ymom")],
           units=r"\rm{gm}/\rm{cm^2\ s}")
 
-add_field("zmom", function=lambda a, b: None, take_log=False,
+add_castro_field("zmom", function=NullFunc, take_log=False,
           validators = [ValidateDataField("zmom")],
           units=r"\rm{g}/\rm{cm^2\ s}")
 
@@ -75,16 +76,11 @@ translation_dict = {"x-velocity": "xvel",
                     "z-momentum": "zmom"
                    }
 
-def _generate_translation(mine, theirs):
-    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
-
 for f, v in translation_dict.items():
-    if v not in CastroFieldInfo:
-        add_field(v, function=lambda a, b: None, take_log=False,
-                  validators = [ValidateDataField(v)])
-    #print "Setting up translator from %s to %s" % (v, f)
-    _generate_translation(v, f)
+    add_field(theirs, function=TranslationFunc(mine),
+              take_log=KnownCastroFields[theirs].take_log)
 
+# Now fallbacks, in case these fields are not output
 def _xVelocity(field, data):
     """generate x-velocity from x-momentum and density
 
@@ -97,9 +93,6 @@ def _yVelocity(field, data):
     """generate y-velocity from y-momentum and density
 
     """
-    #try:
-    #    return data["xvel"]
-    #except KeyError:
     return data["ymom"]/data["density"]
 add_field("y-velocity", function=_yVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
@@ -147,3 +140,27 @@ add_field("ParticleMassMsun",
           particle_type=True, convert_function=_convertParticleMassMsun,
           particle_convert_function=_ParticleMassMsun)
 
+# Fundamental fields that are usually/always output:
+#   density
+#   xmom
+#   ymom
+#   zmom
+#   rho_E
+#   rho_e
+#   Temp
+#
+# "Derived" fields that are sometimes output:
+#   x_velocity
+#   y_velocity
+#   z_velocity
+#   magvel
+#   grav_x
+#   grav_y
+#   grav_z
+#   maggrav
+#   magvort
+#   pressure
+#   entropy
+#   divu
+#   eint_e (e as derived from the "rho e" variable)
+#   eint_E (e as derived from the "rho E" variable)
