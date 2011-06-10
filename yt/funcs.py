@@ -435,6 +435,10 @@ def _rdbeta(key):
 # If we recognize one of the arguments on the command line as indicating a
 # different mechanism for handling tracebacks, we attach one of those handlers
 # and remove the argument from sys.argv.
+#
+# This fallback is for Paraview:
+if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
+# Now, we check.
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
     del sys.argv[sys.argv.index("--paste")]
