@@ -1247,6 +1247,24 @@ class YTCommands(cmdln.Cmdln):
         while 1:
             time.sleep(1)
 
+    def do_intents(self, subcmd, opts, *intents):
+        """
+        ${cmd_name}: What are your ... intentions?
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        from yt.utilities.cookbook import Intent
+        if len(intents) == 0:
+            Intent.list_intents()
+        else:
+            intent = Intent.select_intent(intents[0])
+            if intent is None:
+                print "Could not find %s" % intents[0]
+                return 1
+            intent_inst = intent(intents[1:])
+            intent_inst.run()
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]
