@@ -386,7 +386,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs = cs.getvalue()
-        ret = p.pastes.newPaste('pytb', cs, None, '', '', True)
+        ret = p.pastes.newPaste('python', cs, None, '', '', True)
+        site = "http://paste.enzotools.org/show/%s" % ret
+        return {'status': 'SUCCESS', 'site': site}
+
+    @lockit
+    def paste_text(self, to_paste):
+        import xmlrpclib, cStringIO
+        p = xmlrpclib.ServerProxy(
+            "http://paste.enzotools.org/xmlrpc/",
+            allow_none=True)
+        ret = p.pastes.newPaste('python', to_paste, None, '', '', True)
         site = "http://paste.enzotools.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
 

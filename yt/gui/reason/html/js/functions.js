@@ -173,6 +173,29 @@ function new_cell(input, result, raw_input) {
                     { xtype: 'button',
                       width: 24,
                       height: 24,
+                      iconCls: 'upload',
+                      tooltip: 'Upload to Pastebin',
+                      listeners: {
+                          click: function(f, e) {
+                            yt_rpc.ExtDirectREPL.paste_text({to_paste:raw_input},
+                              function(f, a) {
+                                if (a.result['status'] == 'SUCCESS') {
+                                    var alert_text = 'Pasted cell to:<br>' + 
+                                    a.result['site']
+                                    var alert_text_rec = 'Pasted cell to: ' + 
+                                    a.result['site']
+                                    Ext.Msg.alert('Pastebin', alert_text);
+                                    var record = new logging_store.recordType(
+                                        {record: alert_text_rec });
+                                    logging_store.add(record, number_log_records++);
+                              }
+                            });
+                          }
+                        }
+                    },
+                    { xtype: 'button',
+                      width: 24,
+                      height: 24,
                       iconCls: 'doubleuparrow',
                       tooltip: 'Copy into current cell',
                       listeners: {
