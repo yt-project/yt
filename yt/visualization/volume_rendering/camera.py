@@ -607,10 +607,12 @@ class HEALpixCamera(Camera):
         pbar.finish()
 
         if self._mpi_get_rank() is 0 and fn is not None:
+            # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
             phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
             pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
+            image *= self.radius * self.pf['cm']
             img = na.log10(image[:,0,0][pixi]).reshape((800,800))
 
             fig = matplotlib.figure.Figure((10, 5))
