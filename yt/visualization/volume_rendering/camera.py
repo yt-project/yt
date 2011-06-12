@@ -318,7 +318,7 @@ class Camera(ParallelAnalysisInterface):
                                       self.unit_vectors[1])
         return vector_plane
 
-    def snapshot(self, fn = None):
+    def snapshot(self, fn = None, clip_ratio = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -329,6 +329,9 @@ class Camera(ParallelAnalysisInterface):
         fn : string, optional
             If supplied, the image will be saved out to this before being
             returned.  Scaling will be to the maximum value.
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
 
         Returns
         -------
@@ -352,7 +355,10 @@ class Camera(ParallelAnalysisInterface):
         pbar.finish()
 
         if self._mpi_get_rank() is 0 and fn is not None:
-            write_bitmap(image, fn)
+            if clip_ratio is not None:
+                write_bitmap(image, fn, clip_ratio*image.std())
+            else:
+                write_bitmap(image, fn)
 
         return image
 
