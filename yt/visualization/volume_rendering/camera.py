@@ -31,12 +31,14 @@ from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
-    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource
+    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
+    arr_ang2pix_nest
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from numpy import pi
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -604,6 +606,22 @@ class HEALpixCamera(Camera):
             pbar.update(total_cells)
         pbar.finish()
 
+        if self._mpi_get_rank() is 0 and fn is not None:
+            import matplotlib.figure
+            import matplotlib.backends.backend_agg
+            phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
+            pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
+            img = na.log10(image[:,0,0][pixi]).reshape((800,800))
+
+            fig = matplotlib.figure.Figure((10, 5))
+            ax = fig.add_subplot(1,1,1,projection='mollweide')
+            implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+            cb = fig.colorbar(implot, orientation='horizontal')
+            cb.set_label(r"$\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+            ax.xaxis.set_ticks(())
+            ax.yaxis.set_ticks(())
+            canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+            canvas.print_figure(fn)
         return image
 
 
