@@ -139,7 +139,9 @@ class ExecutionThread(threading.Thread):
         self.repl.payload_handler.add_payload(
             {'type': 'cell_results',
              'output': result,
-             'input': highlighter(code)})
+             'input': highlighter(code),
+             'raw_input': code},
+            )
 
 def deliver_image(im):
     if hasattr(im, 'read'):
@@ -546,6 +548,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         """ % dict(pfname = pfname)
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall, hide = True)
+        self.execution_thread.queue.join()
         pf = self.locals['_tpf']
         levels = pf.h.grid_levels
         left_edge = pf.h.grid_left_edge
@@ -579,6 +582,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         """ % dict(pfname = pfname)
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall, hide = True)
+        self.execution_thread.queue.join()
         pf = self.locals['_tpf']
         corners = pf.h.grid_corners
         levels = pf.h.grid_levels
