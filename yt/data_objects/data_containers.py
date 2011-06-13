@@ -1431,14 +1431,14 @@ class AMRQuadTreeProjBase(AMR2DData):
         This is a data object corresponding to a line integral through the
         simulation domain.
 
-        This object is typically accessed through the `quad_proj` object that
+        This object is typically accessed through the `proj` object that
         hangs off of hierarchy objects.  AMRQuadProj is a projection of a
         `field` along an `axis`.  The field can have an associated
         `weight_field`, in which case the values are multiplied by a weight
         before being summed, and then divided by the sum of that weight; the
         two fundamental modes of operating are direct line integral (no
         weighting) and average along a line of sight (weighting.)  What makes
-        `quad_proj` different from the standard projection mechanism is that it
+        `proj` different from the standard projection mechanism is that it
         utilizes a quadtree data structure, rather than the old mechanism for
         projections.  It will not run in parallel, but serial runs should be
         substantially faster.  Note also that lines of sight are integrated at
