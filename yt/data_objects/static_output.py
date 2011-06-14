@@ -62,12 +62,13 @@ class StaticOutput(object):
             _cached_pfs[apath] = obj
         return _cached_pfs[apath]
 
-    def __init__(self, filename, data_style=None):
+    def __init__(self, filename, data_style=None, file_style=None):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *data_style* which will be passed on to children.
         """
         self.data_style = data_style
+        self.file_style = file_style
         self.parameter_filename = str(filename)
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))

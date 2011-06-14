@@ -132,10 +132,13 @@ class EnzoHierarchy(AMRHierarchy):
     _strip_path = False
     grid = EnzoGrid
 
-    def __init__(self, pf, data_style, file_style="%s.cpu%%04i"):
+    def __init__(self, pf, data_style):
         
         self.data_style = data_style
-        self._bn = file_style
+        if pf.file_style != None:
+            self._bn = pf.file_style
+        else:
+            self._bn = "%s.cpu%%04i"
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
@@ -634,6 +637,7 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
+                 file_style = None,
                  parameter_override = None,
                  conversion_override = None,
                  storage_filename = None):
@@ -653,7 +657,7 @@ class EnzoStaticOutput(StaticOutput):
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, filename, data_style)
+        StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
         rp = os.path.join(self.directory, "rates.out")
