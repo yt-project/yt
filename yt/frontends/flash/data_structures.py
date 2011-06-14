@@ -297,9 +297,9 @@ class FLASHStaticOutput(StaticOutput):
 
         # Determine domain dimensions
         try:
-            nxb = self._find_parameter("integer", "nxb", handle = self._handle)
-            nyb = self._find_parameter("integer", "nyb", handle = self._handle)
-            nzb = self._find_parameter("integer", "nzb", handle = self._handle)
+            nxb = self._find_parameter("integer", "nxb", scalar = True, handle = self._handle)
+            nyb = self._find_parameter("integer", "nyb", scalar = True, handle = self._handle)
+            nzb = self._find_parameter("integer", "nzb", scalar = True, handle = self._handle)
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
