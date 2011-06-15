@@ -1536,7 +1536,7 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
-        return QuadTree(na.array([xd,yd]), nvals)
+        return QuadTree(na.array([xd,yd], dtype='int64'), nvals)
 
     def _get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
