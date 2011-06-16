@@ -38,38 +38,38 @@ add_chombo_field = ChomboFieldInfo.add_field
 
 add_field = add_chombo_field
 
-add_field("density", function=lambda a,b: None, take_log=True,
+add_field("density", function=NullFunc, take_log=True,
           validators = [ValidateDataField("density")],
           units=r"\rm{g}/\rm{cm}^3")
 
 ChomboFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 
-add_field("X-momentum", function=lambda a,b: None, take_log=False,
+add_field("X-momentum", function=NullFunc, take_log=False,
           validators = [ValidateDataField("X-Momentum")],
           units=r"",display_name=r"B_x")
 ChomboFieldInfo["X-momentum"]._projected_units=r""
 
-add_field("Y-momentum", function=lambda a,b: None, take_log=False,
+add_field("Y-momentum", function=NullFunc, take_log=False,
           validators = [ValidateDataField("Y-Momentum")],
           units=r"",display_name=r"B_y")
 ChomboFieldInfo["Y-momentum"]._projected_units=r""
 
-add_field("Z-momentum", function=lambda a,b: None, take_log=False,
+add_field("Z-momentum", function=NullFunc, take_log=False,
           validators = [ValidateDataField("Z-Momentum")],
           units=r"",display_name=r"B_z")
 ChomboFieldInfo["Z-momentum"]._projected_units=r""
 
-add_field("X-magnfield", function=lambda a,b: None, take_log=False,
+add_field("X-magnfield", function=NullFunc, take_log=False,
           validators = [ValidateDataField("X-Magnfield")],
           units=r"",display_name=r"B_x")
 ChomboFieldInfo["X-magnfield"]._projected_units=r""
 
-add_field("Y-magnfield", function=lambda a,b: None, take_log=False,
+add_field("Y-magnfield", function=NullFunc, take_log=False,
           validators = [ValidateDataField("Y-Magnfield")],
           units=r"",display_name=r"B_y")
 ChomboFieldInfo["Y-magnfield"]._projected_units=r""
 
-add_field("Z-magnfield", function=lambda a,b: None, take_log=False,
+add_field("Z-magnfield", function=NullFunc, take_log=False,
           validators = [ValidateDataField("Z-Magnfield")],
           units=r"",display_name=r"B_z")
 ChomboFieldInfo["Z-magnfield"]._projected_units=r""
