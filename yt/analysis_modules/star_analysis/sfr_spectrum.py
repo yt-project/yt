@@ -328,6 +328,8 @@ class SpectrumBuilder(object):
             if star_metallicity_constant is not None:
                 self.star_metal = na.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
+            if star_metallicity_fraction is not None:
+                self.star_metal = star_metallicity_fraction
         else:
             # Get the data we need.
             ct = self._data_source["creation_time"]

@@ -139,6 +139,10 @@ class EnzoHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style):
         
         self.data_style = data_style
+        if pf.file_style != None:
+            self._bn = pf.file_style
+        else:
+            self._bn = "%s.cpu%%04i"
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
@@ -197,7 +201,11 @@ class EnzoHierarchy(AMRHierarchy):
             self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
-            list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
+            try:
+                list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
+            except:
+                print "Could not find dataset.  Defaulting to packed HDF5"
+                list_of_sets = []
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 'enzo_packed_3d'
@@ -288,7 +296,6 @@ class EnzoHierarchy(AMRHierarchy):
             second_grid.Level = first_grid.Level
         self.grid_levels[sgi] = second_grid.Level
 
-    _bn = "%s.cpu%%04i"
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
         if not ytcfg.getboolean("yt","serialize"): return False
@@ -616,6 +623,7 @@ class EnzoStaticOutput(StaticOutput):
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
     def __init__(self, filename, data_style=None,
+                 file_style = None,
                  parameter_override = None,
                  conversion_override = None,
                  storage_filename = None):
@@ -635,7 +643,7 @@ class EnzoStaticOutput(StaticOutput):
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, filename, data_style)
+        StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
         rp = os.path.join(self.directory, "rates.out")

@@ -279,7 +279,7 @@ class DualEPS(object):
         if isinstance(plot, VMPlot):
             if units == None:
                 # Determine the best units
-                astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'Mpc']
+                astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'mpc']
                 best_fit = 0
                 while plot.width*plot.pf[astro_units[best_fit]] > 1e3 and \
                           best_fit < len(astro_units):

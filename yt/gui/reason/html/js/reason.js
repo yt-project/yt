@@ -55,11 +55,11 @@ var handle_payload = function(pp) {
 }
 
 var repl_input = new Ext.FormPanel({
-    title: 'YT Input',
     url: 'push',
-    flex: 0.2,
     layout: 'fit',
     padding: 5,
+    height: '100%',
+    flex: 1.0,
     items: [{
         id: 'input_line',
         xtype: 'textarea',
@@ -103,14 +103,37 @@ var repl_input = new Ext.FormPanel({
 });
 
 
-
+var CellInputContainer = new Ext.Panel({
+    title: 'YT Input',
+    flex: 0.3,
+    layout: {type: 'hbox',
+             pack: 'start',
+             align: 'stretch',
+             },
+    items: [ repl_input,
+            { xtype: 'button',
+              width: 24,
+              height: 24,
+              iconCls: 'doubledownarrow',
+              tooltip: 'Execute Cell',
+              listeners: {
+                  click: function(f, e) {
+                    disable_input();
+                    yt_rpc.ExtDirectREPL.execute({
+                        code:repl_input.get('input_line').getValue()},
+                    handle_result);
+                  }
+              },
+            }
+           ]
+});
 
 
 var OutputContainer = new Ext.Panel({
     title: 'YT Output',
     id: 'output_container',
     autoScroll: true,
-    flex: 0.8,
+    flex: 0.7,
     items: []
 });
 
@@ -141,6 +164,11 @@ var treePanel = new Ext.tree.TreePanel({
                 null, {preventDefault: true});
             }
         },
+        dblclick: {
+            fn: function(node, e) {
+                treePanel.fireEvent("contextmenu", node, e);
+            }
+        },
         contextmenu: {
             fn: function(node, event){
                 var rightclickMenu;
@@ -156,10 +184,10 @@ var treePanel = new Ext.tree.TreePanel({
                 } else if (node.attributes.objdata.type == 'pf') {
                   rightClickMenu = new Ext.menu.Menu({
                       items: [
-                          {
+                          /*{
                               text: 'View Grids',
                               handler: getGridViewerHandler(node),
-                          }, {
+                          },*/ {
                               text: 'View Grid Data',
                               handler: getGridDataViewerHandler(node),
                           }, {
@@ -171,10 +199,10 @@ var treePanel = new Ext.tree.TreePanel({
                           /*}, {
                               text: 'Create Sphere',
                               handler: getSphereCreator(node), */
-                          }, {
+                          }, /*{
                               text: 'View Streamlines',
                               handler: getStreamlineViewerHandler(node),
-                          }
+                          }, */
                       ]
                   });
                 }
@@ -263,7 +291,7 @@ Ext.onReady(function(){
                         closable: false,
                         autoScroll: false,
                         iconCls: 'console',
-                        items: [repl_input, OutputContainer]
+                        items: [CellInputContainer, OutputContainer]
                     }, 
                 ]
             }

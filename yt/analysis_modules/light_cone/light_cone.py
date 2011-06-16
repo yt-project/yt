@@ -520,7 +520,7 @@ class LightCone(EnzoSimulation):
 
         output = h5py.File(filename, "a")
 
-        node_exists = field_node in output.listnames()
+        node_exists = field_node in output
 
         if node_exists:
             if over_write:

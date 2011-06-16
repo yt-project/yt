@@ -880,7 +880,7 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     npy_int64 gxs, gys, gzs, gxe, gye, gze;
     npy_int64 cxs, cys, czs, cxe, cye, cze;
     npy_int64 ixs, iys, izs, ixe, iye, ize;
-    npy_int64 gxi, gyi, gzi, cxi, cyi, czi;
+    int gxi, gyi, gzi, cxi, cyi, czi;
     npy_int64 cdx, cdy, cdz;
     npy_int64 dw[3];
     int i;
@@ -1014,17 +1014,17 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
         ci = (cxi % dw[0]);
         ci = (ci < 0) ? ci + dw[0] : ci;
         if ( ci < gxs*refratio || ci >= gxe*refratio) continue;
-        gxi = floor(ci / refratio) - gxs;
+        gxi = ((int) (ci / refratio)) - gxs;
         for(cyi=cys;cyi<=cye;cyi++) {
             cj = cyi % dw[1];
             cj = (cj < 0) ? cj + dw[1] : cj;
             if ( cj < gys*refratio || cj >= gye*refratio) continue;
-            gyi = floor(cj / refratio) - gys;
+            gyi = ((int) (cj / refratio)) - gys;
             for(czi=czs;czi<=cze;czi++) {
                 ck = czi % dw[2];
                 ck = (ck < 0) ? ck + dw[2] : ck;
                 if ( ck < gzs*refratio || ck >= gze*refratio) continue;
-                gzi = floor(ck / refratio) - gzs;
+                gzi = ((int) (ck / refratio)) - gzs;
                     if ((ll) || (*(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)) 
                 {
                 for(n=0;n<n_fields;n++){
@@ -1214,43 +1214,75 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     cye = (cys + cdy - 1);
     cze = (czs + cdz - 1);
 
-    /* It turns out that C89 doesn't define a mechanism for choosing the sign
-       of the remainder.
-    */
     int x_loc, y_loc; // For access into the buffer
-    for(cxi=cxs;cxi<=cxe;cxi++) {
+
+    /* We check here if the domain is important or not.
+       If it's not, then, well, we get to use the fast version. */
+    if (dw[0] == dw[1] == dw[2] == 0) {
+      for(gxi=gxs,cxi=gxs*refratio;gxi<gxe;gxi++,cxi+=refratio) {
+        for(gyi=gys,cyi=gys*refratio;gyi<gye;gyi++,cyi+=refratio) {
+          for(gzi=gzs,czi=gzs*refratio;gzi<gze;gzi++,czi+=refratio) {
+            if ((refratio!=1) &&
+                (*(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi)==0)) continue;
+            switch (axis) {
+              case 0: x_loc = cyi-cys; y_loc = czi-czs; break;
+              case 1: x_loc = cxi-cxs; y_loc = czi-czs; break;
+              case 2: x_loc = cxi-cys; y_loc = cyi-cys; break;
+            }
+            //fprintf(stderr, "%d %d %d %d %d\n", x_loc, y_loc, gxi, gyi, gzi);
+            for(ri=0;ri<refratio;ri++){
+              for(rj=0;rj<refratio;rj++){
+                for(n=0;n<n_fields;n++){
+                  for(n=0;n<n_fields;n++){
+                    *(npy_float64*) PyArray_GETPTR2(c_data[n], x_loc+ri, y_loc+rj)
+                      +=  *(npy_float64*) PyArray_GETPTR3(g_data[n],
+                          gxi-gxs, gyi-gys, gzi-gzs) * dls[n];
+                  }
+                }
+              }
+            }
+            total+=1;
+          }
+        }
+      }
+    } else {
+      /* Gotta go the slow route. */
+      for(cxi=gxs*refratio;cxi<=cxe;cxi++) {
+        /* It turns out that C89 doesn't define a mechanism for choosing the sign
+           of the remainder.
+         */
         ci = (cxi % dw[0]);
         ci = (ci < 0) ? ci + dw[0] : ci;
-        if ( ci < gxs*refratio || ci >= gxe*refratio) continue;
+        if ( ci >= gxe*refratio) break;
         gxi = floor(ci / refratio) - gxs;
-        for(cyi=cys;cyi<=cye;cyi++) {
-            cj = cyi % dw[1];
-            cj = (cj < 0) ? cj + dw[1] : cj;
-            if ( cj < gys*refratio || cj >= gye*refratio) continue;
-            gyi = floor(cj / refratio) - gys;
-            for(czi=czs;czi<=cze;czi++) {
-                ck = czi % dw[2];
-                ck = (ck < 0) ? ck + dw[2] : ck;
-                if ( ck < gzs*refratio || ck >= gze*refratio) continue;
-                gzi = floor(ck / refratio) - gzs;
-                    if (refratio == 1 || *(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)
-                {
-                switch (axis) {
-                  case 0: x_loc = cyi-cys; y_loc = czi-czs; break;
-                  case 1: x_loc = cxi-cxs; y_loc = czi-czs; break;
-                  case 2: x_loc = cxi-cys; y_loc = cyi-cys; break;
-                }
-                for(n=0;n<n_fields;n++){
-                    *(npy_float64*) PyArray_GETPTR2(c_data[n], x_loc, y_loc)
-                    +=  *(npy_float64*) PyArray_GETPTR3(g_data[n], gxi, gyi, gzi) 
-                        * dls[n] / refratio;
-                }
-                total += 1;
-                }
+        for(cyi=gys*refratio;cyi<=cye;cyi++) {
+          cj = cyi % dw[1];
+          cj = (cj < 0) ? cj + dw[1] : cj;
+          if ( cj >= gye*refratio) break;
+          gyi = floor(cj / refratio) - gys;
+          for(czi=gzs*refratio;czi<=cze;czi++) {
+            ck = czi % dw[2];
+            ck = (ck < 0) ? ck + dw[2] : ck;
+            if ( ck >= gze*refratio) break;
+            gzi = floor(ck / refratio) - gzs;
+            if (refratio == 1 || *(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)
+            {
+              switch (axis) {
+                case 0: x_loc = cyi-cys; y_loc = czi-czs; break;
+                case 1: x_loc = cxi-cxs; y_loc = czi-czs; break;
+                case 2: x_loc = cxi-cys; y_loc = cyi-cys; break;
+              }
+              for(n=0;n<n_fields;n++){
+                *(npy_float64*) PyArray_GETPTR2(c_data[n], x_loc, y_loc)
+                  +=  *(npy_float64*) PyArray_GETPTR3(g_data[n], gxi, gyi, gzi) 
+                  * dls[n] / refratio;
+              }
+              total += 1;
             }
+          }
         }
+      }
     }
-
     Py_DECREF(g_start);
     Py_DECREF(c_start);
     Py_DECREF(g_dims);

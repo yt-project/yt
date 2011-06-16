@@ -31,12 +31,14 @@ from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
-    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource
+    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
+    arr_ang2pix_nest
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from numpy import pi
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -318,7 +320,7 @@ class Camera(ParallelAnalysisInterface):
                                       self.unit_vectors[1])
         return vector_plane
 
-    def snapshot(self, fn = None):
+    def snapshot(self, fn = None, clip_ratio = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -329,6 +331,9 @@ class Camera(ParallelAnalysisInterface):
         fn : string, optional
             If supplied, the image will be saved out to this before being
             returned.  Scaling will be to the maximum value.
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
 
         Returns
         -------
@@ -352,7 +357,10 @@ class Camera(ParallelAnalysisInterface):
         pbar.finish()
 
         if self._mpi_get_rank() is 0 and fn is not None:
-            write_bitmap(image, fn)
+            if clip_ratio is not None:
+                write_bitmap(image, fn, clip_ratio*image.std())
+            else:
+                write_bitmap(image, fn)
 
         return image
 
@@ -598,6 +606,24 @@ class HEALpixCamera(Camera):
             pbar.update(total_cells)
         pbar.finish()
 
+        if self._mpi_get_rank() is 0 and fn is not None:
+            # This assumes Density; this is a relatively safe assumption.
+            import matplotlib.figure
+            import matplotlib.backends.backend_agg
+            phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
+            pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
+            image *= self.radius * self.pf['cm']
+            img = na.log10(image[:,0,0][pixi]).reshape((800,800))
+
+            fig = matplotlib.figure.Figure((10, 5))
+            ax = fig.add_subplot(1,1,1,projection='mollweide')
+            implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+            cb = fig.colorbar(implot, orientation='horizontal')
+            cb.set_label(r"$\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+            ax.xaxis.set_ticks(())
+            ax.yaxis.set_ticks(())
+            canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+            canvas.print_figure(fn)
         return image
 
 

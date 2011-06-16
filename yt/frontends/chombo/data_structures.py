@@ -104,7 +104,7 @@ class ChomboHierarchy(AMRHierarchy):
         self._fhandle = h5py.File(self.hierarchy_filename)
 
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._fhandle.listnames()[1:]
+        self._levels = [fn for fn in self._fhandle if fn != "Chombo_global"]
         AMRHierarchy.__init__(self,pf,data_style)
 
         self._fhandle.close()
@@ -131,7 +131,7 @@ class ChomboHierarchy(AMRHierarchy):
         
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
-        levels = f.listnames()[1:]
+        levels = [fn for fn in f if fn != "Chombo_global"]
         self.grids = []
         i = 0
         for lev in levels:
@@ -302,8 +302,7 @@ class ChomboStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            if (fileh.listnames())[0] == 'Chombo_global':
-                return True
+            return "Chombo_global" in fileh["/"]
         except:
             pass
         return False

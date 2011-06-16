@@ -29,7 +29,6 @@ License:
 """
 
 from .contour_finder import \
-    GridConsiderationQueue, \
     coalesce_join_tree, \
     identify_contours
 

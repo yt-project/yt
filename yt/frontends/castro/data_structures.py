@@ -353,8 +353,8 @@ class CastroHierarchy(AMRHierarchy):
             g._particle_offset = pg[2]
         self.grid_particle_count[:,0] = self.pgrid_info[:,1]
         del self.pgrid_info
-        self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
-        self.grid_levels = self.grid_levels.reshape((self.num_grids,1))
+        gls = na.concatenate([level.ngrids*[level.level] for level in self.levels])
+        self.grid_levels[:] = gls.reshape((self.num_grids,1))
         grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels], axis=0)
         self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
         self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
@@ -608,6 +608,7 @@ class CastroStaticOutput(StaticOutput):
             line = a_file.readline().strip()
             a_file.close()
             self.parameters["CosmologyCurrentRedshift"] = 1/float(line) - 1
+            self.cosmological_scale_factor = float(line)
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
@@ -656,7 +657,18 @@ class CastroStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        self._setup_nounits_units()
+        if self.cosmological_simulation:
+            cf = 1e5*(self.cosmological_scale_factor)
+            for ax in 'xyz':
+                self.units['particle_velocity_%s' % ax] = cf
+            self.units['particle_mass'] = 1.989e33
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+        
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
@@ -671,10 +683,3 @@ class CastroStaticOutput(StaticOutput):
 
     def _setup_nounits_units(self):
         z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
