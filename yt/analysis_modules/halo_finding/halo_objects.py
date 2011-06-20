@@ -60,6 +60,7 @@ class Halo(object):
     """
     A data source that returns particle information about the members of a
     HOP-identified halo.
+
     """
     __metaclass__ = ParallelDummy # This will proxy up our methods
     _distributed = False
@@ -70,16 +71,18 @@ class Halo(object):
     extra_wrap = ["__getitem__"]
 
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
-        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
-        tasks=None, rms_vel=None):
+                 max_dens_point=None, group_total_mass=None, max_radius=None,
+                 bulk_vel=None, tasks=None, rms_vel=None):
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
         self.pf = self.data.pf
+
         if indices is not None:
             self.indices = halo_list._base_indices[indices]
         else:
             self.indices = None
+
         # We assume that if indices = None, the instantiator has OTHER plans
         # for us -- i.e., setting it somehow else
         self.size = size
@@ -94,13 +97,10 @@ class Halo(object):
         self.overdensity = None
 
     def center_of_mass(self):
-        r"""Calculate and return the center of mass.
+        """Calculate and return the center of mass.
 
         The center of mass of the halo is directly calculated and returned.
-        
-        Examples
-        --------
-        >>> com = halos[0].center_of_mass()
+
         """
         c_vec = self.maximum_density_location() - na.array([0.5,0.5,0.5])
         pm = self["ParticleMassMsun"]
@@ -119,6 +119,7 @@ class Halo(object):
         Examples
         --------
         >>> max_dens = halos[0].maximum_density()
+
         """
         return self._max_dens[self.id][0]
 
@@ -131,6 +132,7 @@ class Halo(object):
         Examples
         --------
         >>> max_dens_loc = halos[0].maximum_density_location()
+
         """
         return na.array([
                 self._max_dens[self.id][1],
@@ -146,6 +148,7 @@ class Halo(object):
         Examples
         --------
         >>> halos[0].total_mass()
+
         """
         return self["ParticleMassMsun"].sum()
 
@@ -158,6 +161,7 @@ class Halo(object):
         Examples
         --------
         >>> bv = halos[0].bulk_velocity()
+
         """
         pm = self["ParticleMassMsun"]
         vx = (self["particle_velocity_x"] * pm).sum()
@@ -176,6 +180,7 @@ class Halo(object):
         Examples
         --------
         >>> rms_vel = halos[0].rms_velocity()
+
         """
         bv = self.bulk_velocity()
         pm = self["ParticleMassMsun"]
@@ -366,8 +371,7 @@ class Halo(object):
         h = self.pf.hubble_constant
         Om_matter = self.pf.omega_matter
         z = self.pf.current_redshift
-        period = self.pf.domain_right_edge - \
-            self.pf.domain_left_edge
+        period = self.pf.domain_right_edge - self.pf.domain_left_edge
         cm = self.pf["cm"]
         thissize = max(self.size, self.indices.size)
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
