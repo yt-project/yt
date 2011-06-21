@@ -63,7 +63,7 @@ class CastroGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
                  dimensions, start, stop, paranoia=False, **kwargs):
-        AMRGridPatch.__init__(self, index,**kwargs)
+        super(CastroGrid, self).__init__(self, index, **kwargs)
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia
@@ -123,20 +123,20 @@ class CastroGrid(AMRGridPatch):
 class CastroHierarchy(AMRHierarchy):
     grid = CastroGrid
     def __init__(self, pf, data_style='castro_native'):
+        super(CastroHierarchy, self).__init__(self, pf, self.data_style)
+
         self.field_info = CastroFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir, 'Header')
         self.directory = pf.fullpath
         self.data_style = data_style
-        #self._setup_classes()
 
         # This also sets up the grid objects
         self.read_global_header(header_filename,
                                 self.parameter_file.paranoid_read) 
         self.read_particle_header()
         self.__cache_endianness(self.levels[-1].grids[-1])
-        AMRHierarchy.__init__(self, pf, self.data_style)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
@@ -487,8 +487,9 @@ class CastroLevel:
 
 class CastroStaticOutput(StaticOutput):
     """
-    This class is a stripped down class that simply reads and parses
-    *filename*, without looking at the Castro hierarchy.
+    This class is a stripped down class that simply reads and parses *filename*,
+    without looking at the Castro hierarchy.
+
     """
     _hierarchy_class = CastroHierarchy
     _fieldinfo_fallback = CastroFieldInfo
@@ -497,7 +498,8 @@ class CastroStaticOutput(StaticOutput):
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='castro_native', paranoia=False,
                  storage_filename = None):
-        """need to override for Castro file structure.
+        """
+        Need to override for Castro file structure.
 
         the paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
@@ -508,6 +510,8 @@ class CastroStaticOutput(StaticOutput):
          * ASCII (not implemented in yt)
 
         """
+        super(CastroStaticOutput, self).__init__(self, plotname.rstrip("/"),
+                                                 data_style='castro_native')
         self.storage_filename = storage_filename
         self.paranoid_read = paranoia
         self.parameter_filename = paramFilename
@@ -516,10 +520,8 @@ class CastroStaticOutput(StaticOutput):
 
         self.fparameters = {}
 
-        StaticOutput.__init__(self, plotname.rstrip("/"),
-                              data_style='castro_native')
         self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
+                              self._fieldinfo_fallback)
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'castro' # always PPM DE
