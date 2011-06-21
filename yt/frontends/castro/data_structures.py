@@ -73,7 +73,7 @@ class CastroGrid(AMRGridPatch):
         self.index = index
         self.level = level
 
-    def get_global_start_index(self):
+    def get_global_startindex(self):
         return self.start_index
 
     def _prepare_grid(self):
