@@ -27,15 +27,11 @@ import re
 import os
 import weakref
 import itertools
-import numpy as na
+from collections import defaultdict
+from string import strip, rstrip
+from stat import ST_CTIME
 
-from collections import \
-    defaultdict
-from string import \
-    strip, \
-    rstrip
-from stat import \
-    ST_CTIME
+import numpy as na
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -65,7 +61,8 @@ from .fields import \
 
 class CastroGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions, start, stop, paranoia=False,**kwargs):
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
+                 dimensions, start, stop, paranoia=False, **kwargs):
         AMRGridPatch.__init__(self, index,**kwargs)
         self.filename = filename
         self._offset = offset
@@ -84,12 +81,11 @@ class CastroGrid(AMRGridPatch):
         return self.start_index
 
     def _prepare_grid(self):
-        """
-        Copies all the appropriate attributes from the hierarchy
-        """
+        """ Copies all the appropriate attributes from the hierarchy. """
         # This is definitely the slowest part of generating the hierarchy
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
+
         h = self.hierarchy # cache it
         #self.StartIndices = h.gridStartIndices[self.id]
         #self.EndIndices = h.gridEndIndices[self.id]
@@ -101,6 +97,7 @@ class CastroGrid(AMRGridPatch):
         self.field_indexes = h.field_indexes
         self.Children = h.gridTree[self.id]
         pIDs = h.gridReverseTree[self.id]
+
         if len(pIDs) > 0:
             self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
         else:
@@ -135,7 +132,8 @@ class CastroHierarchy(AMRHierarchy):
         #self._setup_classes()
 
         # This also sets up the grid objects
-        self.read_global_header(header_filename, self.parameter_file.paranoid_read) 
+        self.read_global_header(header_filename,
+                                self.parameter_file.paranoid_read) 
         self.read_particle_header()
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self, pf, self.data_style)
@@ -144,18 +142,16 @@ class CastroHierarchy(AMRHierarchy):
         self._populate_hierarchy()
         
     def read_global_header(self, filename, paranoid_read):
-        """
-        read the global header file for an Castro plotfile output.
-        """
+        """ Read the global header file for an Castro plotfile output. """
         counter = 0
-        header_file = open(filename,'r')
+        header_file = open(filename, 'r')
         self.__global_header_lines = header_file.readlines()
 
         # parse the file
         self.castro_version = self.__global_header_lines[0].rstrip()
-        self.n_fields      = int(self.__global_header_lines[1])
+        self.n_fields = int(self.__global_header_lines[1])
 
-        counter = self.n_fields+2
+        counter = self.n_fields + 2
         self.field_list = []
         for i, line in enumerate(self.__global_header_lines[2:counter]):
             self.field_list.append(line.rstrip())
@@ -167,12 +163,14 @@ class CastroHierarchy(AMRHierarchy):
         self.dimension = int(self.__global_header_lines[counter])
         if self.dimension != 3:
             raise RunTimeError("Castro must be in 3D to use yt.")
+
         counter += 1
         self.Time = float(self.__global_header_lines[counter])
         counter += 1
         self.finest_grid_level = int(self.__global_header_lines[counter])
         self.n_levels = self.finest_grid_level + 1
         counter += 1
+
         # quantities with _unnecessary are also stored in the inputs
         # file and are not needed.  they are read in and stored in
         # case in the future we want to enable a "backwards" way of
@@ -182,14 +180,16 @@ class CastroHierarchy(AMRHierarchy):
         counter += 1
         self.domainRightEdge_unnecessary = na.array(map(float, self.__global_header_lines[counter].split()))
         counter += 1
-        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split() #na.array(map(int, self.__global_header_lines[counter].split()))
+        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split()
+        #na.array(map(int, self.__global_header_lines[counter].split()))
         counter += 1
         self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
         #domain_re.search(self.__global_header_lines[counter]).groups()
         counter += 1
         self.timestepsPerLevel_unnecessary = self.__global_header_lines[counter]
         counter += 1
-        self.dx = na.zeros((self.n_levels,3))
+
+        self.dx = na.zeros((self.n_levels, 3))
         for i, line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
             self.dx[i] = na.array(map(float, line.split()))
         counter += self.n_levels
@@ -201,10 +201,11 @@ class CastroHierarchy(AMRHierarchy):
         # this is just to debug. eventually it should go away.
         linebreak = int(self.__global_header_lines[counter])
         if linebreak != 0:
-            raise RunTimeError("INTERNAL ERROR! This should be a zero.")
+            raise RunTimeError("INTERNAL ERROR! Header is unexpected size")
         counter += 1
 
-        # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
+        # Each level is one group with ngrids on it. each grid has 3 lines of 2 reals
+        # BoxLib madness
         self.levels = []
         grid_counter = 0
         file_finder_pattern = r"FabOnDisk: (\w+_D_[0-9]{4}) (\d+)\n"
@@ -216,25 +217,26 @@ class CastroHierarchy(AMRHierarchy):
 
         for level in range(0, self.n_levels):
             tmp = self.__global_header_lines[counter].split()
-            # should this be grid_time or level_time??
+            # Should this be grid_time or level_time??
             lev, ngrids, grid_time = int(tmp[0]), int(tmp[1]), float(tmp[2])
             counter += 1
             nsteps = int(self.__global_header_lines[counter])
             counter += 1
             self.levels.append(CastroLevel(lev, ngrids))
-            # open level header, extract file names and offsets for
-            # each grid
-            # read slightly out of order here: at the end of the lo, hi
-            # pairs for x, y, z is a *list* of files types in the Level
-            # directory. each type has Header and a number of data
-            # files (one per processor)
+            # Open level header, extract file names and offsets for each grid.
+            # Read slightly out of order here: at the end of the lo, hi pairs
+            # for x, y, z is a *list* of files types in the Level directory. 
+            # Each type has Header and a number of data files
+            # (one per processor)
             tmp_offset = counter + 3*ngrids
             nfiles = 0
             key_off = 0
             files =   {} # dict(map(lambda a: (a,[]), self.field_list))
             offsets = {} # dict(map(lambda a: (a,[]), self.field_list))
-            while nfiles+tmp_offset < len(self.__global_header_lines) and data_files_finder.match(self.__global_header_lines[nfiles+tmp_offset]):
-                filen = os.path.join(self.parameter_file.fullplotdir, \
+
+            while (nfiles + tmp_offset < len(self.__global_header_lines) and
+                   data_files_finder.match(self.__global_header_lines[nfiles+tmp_offset])):
+                filen = os.path.join(self.parameter_file.fullplotdir,
                                      self.__global_header_lines[nfiles+tmp_offset].strip())
                 # open each "_H" header file, and get the number of
                 # components within it
@@ -242,18 +244,22 @@ class CastroHierarchy(AMRHierarchy):
                 start_stop_index = re_dim_finder.findall(level_header_file) # just take the last one
                 grid_file_offset = re_file_finder.findall(level_header_file)
                 ncomp_this_file = int(level_header_file.split('\n')[2])
+
                 for i in range(ncomp_this_file):
                     key = self.field_list[i+key_off]
                     f, o = zip(*grid_file_offset)
                     files[key] = f
                     offsets[key] = o
                     self.field_indexes[key] = i
+
                 key_off += ncomp_this_file
                 nfiles += 1
+
             # convert dict of lists to list of dicts
             fn = []
             off = []
-            lead_path = os.path.join(self.parameter_file.fullplotdir,'Level_%i'%level)
+            lead_path = os.path.join(self.parameter_file.fullplotdir,
+                                     'Level_%i' % level)
             for i in range(ngrids):
                 fi = [os.path.join(lead_path, files[key][i]) for key in self.field_list]
                 of = [int(offsets[key][i]) for key in self.field_list]
@@ -264,20 +270,20 @@ class CastroHierarchy(AMRHierarchy):
                 gfn = fn[grid]  # filename of file containing this grid
                 gfo = off[grid] # offset within that file
                 xlo, xhi = map(float, self.__global_header_lines[counter].split())
-                counter+=1
+                counter += 1
                 ylo, yhi = map(float, self.__global_header_lines[counter].split())
-                counter+=1
+                counter += 1
                 zlo, zhi = map(float, self.__global_header_lines[counter].split())
-                counter+=1
+                counter += 1
                 lo = na.array([xlo, ylo, zlo])
                 hi = na.array([xhi, yhi, zhi])
                 dims, start, stop = self.__calculate_grid_dimensions(start_stop_index[grid])
                 self.levels[-1].grids.append(self.grid(lo, hi, grid_counter, level, gfn, gfo, dims, start, stop, paranoia=paranoid_read, hierarchy=self))
-                grid_counter += 1 # this is global, and shouldn't be reset
-                                  # for each level
+                grid_counter += 1   # this is global, and shouldn't be reset
+                                    # for each level
 
             # already read the filenames above...
-            counter+=nfiles
+            counter += nfiles
             self.num_grids = grid_counter
             self.float_type = 'float64'
 
@@ -290,50 +296,53 @@ class CastroHierarchy(AMRHierarchy):
         if not self.parameter_file.use_particles:
             self.pgrid_info = na.zeros((self.num_grids, 3), dtype='int64')
             return
+
         self.field_list += castro_particle_field_names[:]
-        header = open(os.path.join(self.parameter_file.fullplotdir,
-                        "DM", "Header"))
+        header = open(os.path.join(self.parameter_file.fullplotdir, "DM",
+                                   "Header"))
         version = header.readline()
         ndim = header.readline()
         nfields = header.readline()
         ntotalpart = int(header.readline())
         dummy = header.readline() # nextid
         maxlevel = int(header.readline()) # max level
+
         # Skip over how many grids on each level; this is degenerate
         for i in range(maxlevel+1): dummy = header.readline()
         grid_info = na.fromiter((int(i)
-                    for line in header.readlines()
-                    for i in line.split()
-                    ),
-            dtype='int64', count=3*self.num_grids).reshape((self.num_grids, 3))
+                                 for line in header.readlines()
+                                 for i in line.split()),
+                                dtype='int64',
+                                count=3*self.num_grids).reshape((self.num_grids, 3))
         self.pgrid_info = grid_info
 
     def __cache_endianness(self, test_grid):
         """
-        Cache the endianness and bytes perreal of the grids by using a
-        test grid and assuming that all grids have the same
-        endianness. This is a pretty safe assumption since Castro uses
-        one file per processor, and if you're running on a cluster
-        with different endian processors, then you're on your own!
+        Cache the endianness and bytes perreal of the grids by using a test grid
+        and assuming that all grids have the same endianness. This is a pretty
+        safe assumption since Castro uses one file per processor, and if you're
+        running on a cluster with different endian processors, then you're on
+        your own!
+
         """
-        # open the test file & grab the header
-        inFile = open(os.path.expanduser(test_grid.filename[self.field_list[0]]),'rb')
-        header = inFile.readline()
-        inFile.close()
+        # open the test file and grab the header
+        in_file = open(os.path.expanduser(test_grid.filename[self.field_list[0]]), 'rb')
+        header = in_file.readline()
+        in_file.close()
         header.strip()
         
-        # parse it. the patter is in CastroDefs.py
-        headerRe = re.compile(castro_FAB_header_pattern)
-        bytesPerReal, endian, start, stop, centerType, nComponents = headerRe.search(header).groups()
-        self._bytesPerReal = int(bytesPerReal)
-        if self._bytesPerReal == int(endian[0]):
+        # Parse it. The pattern is in castro.definitions.py
+        header_re = re.compile(castro_FAB_header_pattern)
+        bytes_per_real, endian, start, stop, centerType, n_components = header_re.search(header).groups()
+        self._bytes_per_real = int(bytes_per_real)
+        if self._bytes_per_real == int(endian[0]):
             dtype = '<'
-        elif self._bytesPerReal == int(endian[-1]):
+        elif self._bytes_per_real == int(endian[-1]):
             dtype = '>'
         else:
             raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
 
-        dtype += ('f%i' % self._bytesPerReal) # always a floating point
+        dtype += ('f%i' % self._bytes_per_real) # always a floating point
         self._dtype = dtype
 
     def __calculate_grid_dimensions(self, start_stop):
