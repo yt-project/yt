@@ -91,7 +91,6 @@ if __name__ == "__main__":
     rtr.watcher = watcher
     tests_to_run = []
     for m, vals in mapping.items():
-        print vals, opts.test_pattern
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
         tests_to_run += new_tests
