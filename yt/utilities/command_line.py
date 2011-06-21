@@ -556,7 +556,8 @@ class YTCommands(cmdln.Cmdln):
         """
         pf = _fix_pf(arg)
         pf.h.print_stats()
-        v, c = pf.h.find_max("Density")
+        if "Density" in pf.h.field_list:
+            v, c = pf.h.find_max("Density")
         print "Maximum density: %0.5e at %s" % (v, c)
         if opts.output is not None:
             t = pf.current_time * pf['years']
@@ -1245,6 +1246,24 @@ class YTCommands(cmdln.Cmdln):
         child.readlines()
         while 1:
             time.sleep(1)
+
+    def do_intents(self, subcmd, opts, *intents):
+        """
+        ${cmd_name}: What are your ... intentions?
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        from yt.utilities.cookbook import Intent
+        if len(intents) == 0:
+            Intent.list_intents()
+        else:
+            intent = Intent.select_intent(intents[0])
+            if intent is None:
+                print "Could not find %s" % intents[0]
+                return 1
+            intent_inst = intent(intents[1:])
+            intent_inst.run()
 
 def run_main():
     for co in ["--parallel", "--paste"]:

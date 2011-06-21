@@ -42,3 +42,6 @@ from .output_tests import \
 from .default_tests import \
     TestFieldStatistics, \
     TestAllProjections
+
+from .xunit import \
+    Xunit

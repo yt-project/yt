@@ -58,6 +58,7 @@ cdef inline np.float64_t fclip(np.float64_t f,
 cdef extern from "math.h":
     double exp(double x)
     float expf(float x)
+    long double expl(long double x)
     double floor(double x)
     double ceil(double x)
     double fmod(double x, double y)
@@ -742,7 +743,7 @@ cdef class PartitionedGrid:
     cdef void add_stars(self, kdtree_utils.kdres *ballq,
             np.float64_t dt, np.float64_t pos[3], np.float64_t *rgba):
         cdef int i, n, ns
-        cdef double px, py, pz
+        cdef np.float64_t px, py, pz
         cdef np.float64_t gexp, gaussian
         cdef np.float64_t* colors = NULL
         ns = kdtree_utils.kd_res_size(ballq)
@@ -754,7 +755,7 @@ cdef class PartitionedGrid:
             gexp = (px - pos[0])*(px - pos[0]) \
                  + (py - pos[1])*(py - pos[1]) \
                  + (pz - pos[2])*(pz - pos[2])
-            gaussian = self.star_coeff * exp(-gexp/self.star_sigma_num)
+            gaussian = self.star_coeff * expl(-gexp/self.star_sigma_num)
             for i in range(3): rgba[i] += gaussian*dt*colors[i]
         kdtree_utils.kd_res_rewind(ballq)
         

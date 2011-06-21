@@ -29,7 +29,7 @@ from yt.funcs import *
 import _colormap_data as cmd
 import yt.utilities.amr_utils as au
 
-def scale_image(image):
+def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
     from [0,255].
 
@@ -41,13 +41,17 @@ def scale_image(image):
     --------
 
         >>> image = scale_image(image)
+
+        >>> image = scale_image(image, min=0, max=1000)
     """
     if isinstance(image, na.ndarray) and image.dtype == na.uint8:
         return image
     if isinstance(image, (types.TupleType, types.ListType)):
         image, mi, ma = image
-    else:
-        mi, ma = image.min(), image.max()
+    if mi is None:
+        mi = image.min()
+    if ma is None:
+        ma = image.max()
     image = (na.clip((image-mi)/(ma-mi) * 255, 0, 255)).astype('uint8')
     return image
 

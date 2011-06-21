@@ -139,7 +139,9 @@ class ExecutionThread(threading.Thread):
         self.repl.payload_handler.add_payload(
             {'type': 'cell_results',
              'output': result,
-             'input': highlighter(code)})
+             'input': highlighter(code),
+             'raw_input': code},
+            )
 
 def deliver_image(im):
     if hasattr(im, 'read'):
@@ -384,7 +386,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs = cs.getvalue()
-        ret = p.pastes.newPaste('pytb', cs, None, '', '', True)
+        ret = p.pastes.newPaste('python', cs, None, '', '', True)
+        site = "http://paste.enzotools.org/show/%s" % ret
+        return {'status': 'SUCCESS', 'site': site}
+
+    @lockit
+    def paste_text(self, to_paste):
+        import xmlrpclib, cStringIO
+        p = xmlrpclib.ServerProxy(
+            "http://paste.enzotools.org/xmlrpc/",
+            allow_none=True)
+        ret = p.pastes.newPaste('python', to_paste, None, '', '', True)
         site = "http://paste.enzotools.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
 
@@ -546,6 +558,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         """ % dict(pfname = pfname)
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall, hide = True)
+        self.execution_thread.queue.join()
         pf = self.locals['_tpf']
         levels = pf.h.grid_levels
         left_edge = pf.h.grid_left_edge
@@ -579,6 +592,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         """ % dict(pfname = pfname)
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall, hide = True)
+        self.execution_thread.queue.join()
         pf = self.locals['_tpf']
         corners = pf.h.grid_corners
         levels = pf.h.grid_levels

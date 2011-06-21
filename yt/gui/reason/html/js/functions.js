@@ -54,7 +54,7 @@ function cell_finished(result) {
         } else if (payload['type'] == 'cell_results') {
             text = "<pre>"+payload['output']+"</pre>";
             formatted_input = payload['input']
-            cell = new_cell(formatted_input, text);
+            cell = new_cell(formatted_input, text, payload['raw_input']);
             OutputContainer.add(cell);
             OutputContainer.doLayout();
             notebook.doLayout();
@@ -154,23 +154,70 @@ function fill_tree(my_pfs) {
     });
 }
 
-function new_cell(input, result) {
+function new_cell(input, result, raw_input) {
     var name = "cell_" + cell_count;
     var CellPanel = new Ext.Panel(
         { 
             id: name, 
             //title: "Cell " + cell_count,
             items: [
-                new Ext.Panel({
-                    id:name+"_input",
-                    html:input,
-                }),
-                new Ext.Panel({
-                    id:name+"_result",
-                    autoScroll:true,
-                    width: "100%",
-                    html:result,
-                })
+                { xtype:'panel',
+                  layout: 'hbox',
+                  id:name+"_input",
+                  items: [
+                    { xtype:'panel',
+                      html:input,
+                      flex:1,
+                      boxMinHeight: 40,
+                    },
+                    { xtype: 'button',
+                      width: 24,
+                      height: 24,
+                      iconCls: 'upload',
+                      tooltip: 'Upload to Pastebin',
+                      listeners: {
+                          click: function(f, e) {
+                            yt_rpc.ExtDirectREPL.paste_text({to_paste:raw_input},
+                              function(f, a) {
+                                if (a.result['status'] == 'SUCCESS') {
+                                    var alert_text = 'Pasted cell to:<br>' + 
+                                    a.result['site']
+                                    var alert_text_rec = 'Pasted cell to: ' + 
+                                    a.result['site']
+                                    Ext.Msg.alert('Pastebin', alert_text);
+                                    var record = new logging_store.recordType(
+                                        {record: alert_text_rec });
+                                    logging_store.add(record, number_log_records++);
+                              }
+                            });
+                          }
+                        }
+                    },
+                    { xtype: 'button',
+                      width: 24,
+                      height: 24,
+                      iconCls: 'doubleuparrow',
+                      tooltip: 'Copy into current cell',
+                      listeners: {
+                          click: function(f, e) {
+                            repl_input.get('input_line').setValue(raw_input);
+                          }
+                      },
+                    },
+                  ],
+                },
+                { xtype:'panel',
+                  layout: 'hbox',
+                  items: [
+                    { xtype:'panel',
+                      id:name+"_result",
+                      autoScroll:true,
+                      flex: 1,
+                      html:result,
+                      boxMinHeight: 40,
+                    },
+                  ],
+                },
             ]
         }
     );
