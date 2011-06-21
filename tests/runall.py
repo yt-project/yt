@@ -4,7 +4,8 @@ ytcfg["yt","serialize"] = "False"
 
 from yt.utilities.answer_testing.api import \
     RegressionTestRunner, clear_registry, create_test, \
-    TestFieldStatistics, TestAllProjections, registry_entries
+    TestFieldStatistics, TestAllProjections, registry_entries, \
+    Xunit
 
 from yt.utilities.command_line import get_yt_version
 
@@ -78,12 +79,16 @@ if __name__ == "__main__":
         sys.exit(1)
     # Now we modify our compare name and self name to include the pf.
     compare_id = opts.compare_name
-    if compare_id is not None: compare_id += "_%s_%s" % (pf, pf._hash())
+    watcher = None
+    if compare_id is not None:
+        compare_id += "_%s_%s" % (pf, pf._hash())
+        watcher = Xunit()
     this_id = opts.this_name + "_%s_%s" % (pf, pf._hash())
     rtr = RegressionTestRunner(this_id, compare_id,
             results_path = opts.storage_dir,
             compare_results_path = opts.storage_dir,
             io_log = [opts.parameter_file])
+    rtr.watcher = watcher
     tests_to_run = []
     for m, vals in mapping.items():
         print vals, opts.test_pattern
@@ -93,5 +98,7 @@ if __name__ == "__main__":
         load_tests(m, cwd)
     for test_name in sorted(tests_to_run):
         rtr.run_test(test_name)
+    if watcher is not None:
+        rtr.watcher.report()
     for test_name, result in sorted(rtr.passed_tests.items()):
         print "TEST %s: %s" % (test_name, result)
