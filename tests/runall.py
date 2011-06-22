@@ -1,6 +1,6 @@
 from yt.config import ytcfg
-ytcfg["yt","loglevel"] = "50"
-ytcfg["yt","serialize"] = "False"
+ytcfg["yt", "loglevel"] = "50"
+ytcfg["yt", "serialize"] = "False"
 
 from yt.utilities.answer_testing.api import \
     RegressionTestRunner, clear_registry, create_test, \
@@ -26,6 +26,7 @@ import itertools
 #
 
 cwd = os.path.dirname(globals().get("__file__", os.getcwd()))
+#cwd = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 def load_tests(iname, idir):
     f, filename, desc = imp.find_module(iname, [idir])
@@ -48,50 +49,60 @@ def find_and_initialize_tests():
 
 if __name__ == "__main__":
     mapping = find_and_initialize_tests()
-    test_storage_directory = ytcfg.get("yt","test_storage_dir")
+    test_storage_directory = ytcfg.get("yt", "test_storage_dir")
     my_hash = get_yt_version()
+
     parser = optparse.OptionParser()
     parser.add_option("-f", "--parameter-file", dest="parameter_file",
-                      default = os.path.join(cwd, "DD0010/moving7_0010"),
-                      help = "The parameter file value to feed to 'load' to test against",
-                      )
+                      default=os.path.join(cwd, "DD0010/moving7_0010"),
+                      help="The parameter file value to feed to 'load' to test against")
     parser.add_option("-l", "--list", dest="list_tests", action="store_true",
-                      default = False, help = "List all tests and then exit")
+                      default=False, help="List all tests and then exit")
     parser.add_option("-t", "--tests", dest="test_pattern", default="*",
-                      help = "The test name pattern to match.  Can include wildcards.")
+                      help="The test name pattern to match.  Can include wildcards.")
     parser.add_option("-o", "--output", dest="storage_dir",
                       default=test_storage_directory,
-                      help = "Base directory for storing test output.")
+                      help="Base directory for storing test output.")
     parser.add_option("-c", "--compare", dest="compare_name",
                       default=None,
-                      help = "The name against which we will compare")
+                      help="The name against which we will compare")
     parser.add_option("-n", "--name", dest="this_name",
                       default=my_hash,
-                      help = "The name we'll call this set of tests")
+                      help="The name we'll call this set of tests")
     opts, args = parser.parse_args()
+
     if opts.list_tests:
         print "\n    ".join(sorted(itertools.chain(*mapping.values())))
         sys.exit(0)
+
+    # Load the test pf and make sure it's good.
     pf = load(opts.parameter_file)
     if pf is None:
         print "Couldn't load the specified parameter file."
         sys.exit(1)
+
     # Now we modify our compare name and self name to include the pf.
     compare_id = opts.compare_name
-    if compare_id is not None: compare_id += "_%s_%s" % (pf, pf._hash())
+    if compare_id is not None:
+        compare_id += "_%s_%s" % (pf, pf._hash())
     this_id = opts.this_name + "_%s_%s" % (pf, pf._hash())
+
     rtr = RegressionTestRunner(this_id, compare_id,
-            results_path = opts.storage_dir,
-            compare_results_path = opts.storage_dir,
-            io_log = [opts.parameter_file])
+                               results_path=opts.storage_dir,
+                               compare_results_path=opts.storage_dir,
+                               io_log=[opts.parameter_file])
+
     tests_to_run = []
     for m, vals in mapping.items():
         print vals, opts.test_pattern
         new_tests = fnmatch.filter(vals, opts.test_pattern)
+
         if len(new_tests) == 0: continue
         tests_to_run += new_tests
         load_tests(m, cwd)
+
     for test_name in sorted(tests_to_run):
         rtr.run_test(test_name)
+
     for test_name, result in sorted(rtr.passed_tests.items()):
         print "TEST %s: %s" % (test_name, result)
