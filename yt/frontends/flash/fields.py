@@ -33,10 +33,12 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-FLASHFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_flash_field = FLASHFieldInfo.add_field
 
-add_field = add_flash_field
+KnownFLASHFields = FieldInfoContainer()
+add_flash_field = KnownFLASHFields.add_field
+
+FLASHFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = FLASHFieldInfo.add_field
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #

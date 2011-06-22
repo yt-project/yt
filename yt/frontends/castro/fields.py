@@ -24,8 +24,6 @@ License:
 
 """
 
-from yt.utilities.physical_constants import \
-    mh, kboltz
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
@@ -37,20 +35,34 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.utilities.physical_constants import mh, kboltz
 
-CastroFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = CastroFieldInfo.add_field
+translation_dict = {
+    "x-velocity": "xvel",
+    "y-velocity": "yvel",
+    "z-velocity": "zvel",
+    "Density": "density",
+    "Total_Energy": "eden",
+    "Temperature": "temperature",
+    "x-momentum": "xmom",
+    "y-momentum": "ymom",
+    "z-momentum": "zmom"
+}
 
+# Setup containers for fields possibly in the output files
 KnownCastroFields = FieldInfoContainer()
 add_castro_field = KnownCastroFields.add_field
 
-# def _convertDensity(data):
-#     return data.convert("Density")
+# and always derived ones
+CastroFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = CastroFieldInfo.add_field
+
+# Start adding fields
 add_castro_field("density", function=NullFunc, take_log=True,
                  units=r"\rm{g}/\rm{cm}^3")
 
-CastroFieldInfo["density"]._projected_units = r"\rm{g}/\rm{cm}^2"
-#CastroFieldInfo["density"]._convert_function=_convertDensity
+# fix projected units
+KnownCastroFields["density"]._projected_units = r"\rm{g}/\rm{cm}^2"
 
 add_castro_field("eden", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("eden")],
@@ -68,20 +80,11 @@ add_castro_field("zmom", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("zmom")],
                  units=r"\rm{g}/\rm{cm^2\ s}")
 
-translation_dict = {"x-velocity": "xvel",
-                    "y-velocity": "yvel",
-                    "z-velocity": "zvel",
-                    "Density": "density",
-                    "Total_Energy": "eden",
-                    "Temperature": "temperature",
-                    "x-momentum": "xmom",
-                    "y-momentum": "ymom",
-                    "z-momentum": "zmom"
-                   }
-
-for f, v in translation_dict.items():
-    add_field(theirs, function=TranslationFunc(mine),
-              take_log=KnownCastroFields[theirs].take_log)
+# Now populate derived fields
+for mine, theirs in translation_dict.items():
+    if KnownCastroFields.has_key(theirs):
+        add_field(theirs, function=TranslationFunc(mine),
+                  take_log=KnownCastroFields[theirs].take_log)
 
 # Now fallbacks, in case these fields are not output
 def _xVelocity(field, data):

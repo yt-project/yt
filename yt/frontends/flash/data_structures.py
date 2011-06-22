@@ -40,10 +40,8 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import \
-    FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
+from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1

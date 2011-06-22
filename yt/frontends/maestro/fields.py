@@ -36,11 +36,11 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
+KnownMaestroFields = FieldInfoContainer()
+add_maestro_field = KnownMaestroFields.add_field
+
 MaestroFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_maestro_field = MaestroFieldInfo.add_field
-
-
-add_field = add_maestro_field
+add_field = MaestroFieldInfo.add_field
 
 add_field("density", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("density")],

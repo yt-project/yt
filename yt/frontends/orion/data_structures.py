@@ -23,50 +23,41 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import re
 import os
+import re
 import weakref
+
+from collections import defaultdict
+from string import strip, rstrip
+from stat import ST_CTIME
+
 import numpy as na
 
-from collections import \
-    defaultdict
-from string import \
-    strip, \
-    rstrip
-from stat import \
-    ST_CTIME
-
 from yt.funcs import *
-from yt.data_objects.grid_patch import \
-           AMRGridPatch
-from yt.data_objects.hierarchy import \
-           AMRHierarchy
-from yt.data_objects.static_output import \
-           StaticOutput
-from yt.utilities.definitions import \
-    mpc_conversion
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.hierarchy import AMRHierarchy
+from yt.data_objects.static_output import StaticOutput
+from yt.utilities.definitions import mpc_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     parallel_root_only
+    parallel_root_only
 
 from .definitions import \
     orion2enzoDict, \
     parameterDict, \
     yt2orionFieldsDict, \
     orion_FAB_header_pattern
-
 from .fields import \
     OrionFieldInfo, \
     add_orion_field, \
     KnownOrionFields
 
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
-
 
 class OrionGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False,**kwargs):
-        AMRGridPatch.__init__(self, index,**kwargs)
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
+                 dimensions, start, stop, paranoia=False, **kwargs):
+        AMRGridPatch.__init__(self, index, **kwargs)
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia

@@ -34,19 +34,17 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
+
+KnownOrionFields = FieldInfoContainer()
+add_orion_field = KnownOrionFields.add_field
+
 OrionFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_orion_field = OrionFieldInfo.add_field
+add_field = OrionFieldInfo.add_field
 
-
-add_field = add_orion_field
-
-# def _convertDensity(data):
-#     return data.convert("Density")
 add_field("density", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("density")],
           units=r"\rm{g}/\rm{cm}^3")
 OrionFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
-#OrionFieldInfo["density"]._convert_function=_convertDensity
 
 add_field("eden", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("eden")],

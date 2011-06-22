@@ -26,12 +26,16 @@ License:
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
+    NullFunc, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+
+KnownChomboFields = FieldInfoContainer()
+add_chombo_field = KnownChomboFields.add_field
 
 ChomboFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_chombo_field = ChomboFieldInfo.add_field

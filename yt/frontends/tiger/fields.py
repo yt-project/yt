@@ -33,6 +33,9 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
+KnownTigerFields = FieldInfoContainer()
+add_tiger_field = KnownTigerFields.add_field
+
 TigerFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_tiger_field = TigerFieldInfo.add_field
+add_field = TigerFieldInfo.add_field
 

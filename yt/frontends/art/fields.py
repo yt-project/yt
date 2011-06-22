@@ -53,8 +53,6 @@ translation_dict = {"Density":"density",
                     "GasEnergy":"GasEnergy"
                    }
 
-def _generate_translation(mine, theirs):
-
 for f,v in translation_dict.items():
     add_art_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)])

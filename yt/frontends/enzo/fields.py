@@ -46,29 +46,33 @@ add_field = EnzoFieldInfo.add_field
 KnownEnzoFields = FieldInfoContainer()
 add_enzo_field = KnownEnzoFields.add_field
 
-_speciesList = ["HI","HII","Electron",
-               "HeI","HeII","HeIII",
-               "H2I","H2II","HM",
-               "DI","DII","HDI","Metal","PreShock"]
-_speciesMass = {"HI":1.0,"HII":1.0,"Electron":1.0,
-                "HeI":4.0,"HeII":4.0,"HeIII":4.0,
-                "H2I":2.0,"H2II":2.0,"HM":1.0,
-                "DI":2.0,"DII":2.0,"HDI":3.0}
+_speciesList = ["HI", "HII", "Electron",
+                "HeI", "HeII", "HeIII",
+                "H2I", "H2II", "HM",
+                "DI", "DII", "HDI", "Metal", "PreShock"]
+_speciesMass = {"HI": 1.0, "HII": 1.0, "Electron": 1.0,
+                "HeI": 4.0, "HeII": 4.0, "HeIII": 4.0,
+                "H2I": 2.0, "H2II": 2.0, "HM": 1.0,
+                "DI": 2.0, "DII": 2.0, "HDI": 3.0}
 
 def _SpeciesComovingDensity(field, data):
     sp = field.name.split("_")[0] + "_Density"
     ef = (1.0 + data.pf.current_redshift)**3.0
-    return data[sp]/ef
+    return data[sp] / ef
+
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
-    return data[sp]/data["Density"]
+    return data[sp] / data["Density"]
+
 def _SpeciesMass(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp] * data["CellVolume"]
+
 def _SpeciesNumberDensity(field, data):
     species = field.name.split("_")[0]
     sp = field.name.split("_")[0] + "_Density"
-    return data[sp]/_speciesMass[species]
+    return data[sp] / _speciesMass[species]
+
 def _convertCellMassMsun(data):
     return 5.027854e-34 # g^-1
 def _ConvertNumberDensity(data):
