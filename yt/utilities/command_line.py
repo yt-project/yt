@@ -85,7 +85,7 @@ _common_options = dict(
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type="string",
-                   dest="unit", default='1',
+                   dest="unit", default='unitary',
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type="float",
