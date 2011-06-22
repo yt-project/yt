@@ -35,12 +35,12 @@ from yt.funcs import *
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
+from yt.data_objects.field_info_container import NullFunc
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
-from object_finding_mixin import \
-    ObjectFindingMixin
+from object_finding_mixin import ObjectFindingMixin
 
 from .data_containers import data_object_registry
 
