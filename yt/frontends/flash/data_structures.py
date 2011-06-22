@@ -83,6 +83,12 @@ class FLASHHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s for s in self._handle["/unknown names"][:].flat]
+        facevars = [s for s in self._handle
+                    if s.startswith(("fcx","fcy","fcz")) and s[-1].isdigit()]
+        nfacevars = len(facevars)
+        if (nfacevars > 0) :
+            ncomp += nfacevars
+            self.field_list.append(facevars)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]

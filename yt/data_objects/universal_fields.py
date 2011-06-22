@@ -413,17 +413,15 @@ add_field("DensityPerturbation",function=_DensityPerturbation,units=r"")
 
 # This is rho_b / <rho_b>.
 def _Baryon_Overdensity(field, data):
-    return data['Density']
-def _Convert_Baryon_Overdensity(data):
     if data.pf.has_key('omega_baryon_now'):
         omega_baryon_now = data.pf['omega_baryon_now']
     else:
         omega_baryon_now = 0.0441
-    return 1 / (omega_baryon_now * rho_crit_now * 
-                (data.pf['CosmologyHubbleConstantNow']**2) * 
-                ((1+data.pf['CosmologyCurrentRedshift'])**3))
+    return data['Density'] / (omega_baryon_now * rho_crit_now * 
+                              (data.pf['CosmologyHubbleConstantNow']**2) * 
+                              ((1+data.pf['CosmologyCurrentRedshift'])**3))
 add_field("Baryon_Overdensity", function=_Baryon_Overdensity, 
-          convert_function=_Convert_Baryon_Overdensity, units=r"")
+          units=r"")
 
 # Weak lensing convergence.
 # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).

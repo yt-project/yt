@@ -259,6 +259,7 @@ class AMRKDTree(HomogenizedVolume):
         self.current_split_dim = 0
 
         self.pf = pf
+        self._id_offset = pf.h.grids[0]._id_offset
         if nprocs > len(pf.h.grids):
             print('Parallel rendering requires that the number of \n \
             grids in the dataset is greater or equal to the number of \n \
@@ -568,7 +569,7 @@ class AMRKDTree(HomogenizedVolume):
         None
         
         """
-        thisnode.grid = self.pf.hierarchy.grids[thisnode.grid - 1]
+        thisnode.grid = self.pf.hierarchy.grids[thisnode.grid - self._id_offset]
         
         dds = thisnode.grid.dds
         gle = thisnode.grid.LeftEdge
@@ -844,7 +845,7 @@ class AMRKDTree(HomogenizedVolume):
                     # Check if we have children and have not exceeded l_max
                     if len(thisgrid.Children) > 0 and thisgrid.Level < self.l_max:
                         # Get the children that are actually in the current volume
-                        children = [child.id - 1 for child in thisgrid.Children  
+                        children = [child.id - self._id_offset for child in thisgrid.Children  
                                     if na.all(child.LeftEdge < current_node.r_corner) & 
                                     na.all(child.RightEdge > current_node.l_corner)]
 
