@@ -156,6 +156,8 @@ class FieldDetector(defaultdict):
             pf = fake_parameter_file(lambda: 1)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.hubble_constant = pf.cosmological_simulation = 0.0
+            pf.domain_left_edge = na.zeros(3, 'float64')
+            pf.domain_right_edge = na.ones(3, 'float64')
         self.pf = pf
         class fake_hierarchy(object):
             class fake_io(object):

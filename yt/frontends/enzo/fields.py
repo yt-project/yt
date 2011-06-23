@@ -286,8 +286,11 @@ add_field("star_density", function=_spdensity,
 def _dmpdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
-    filter = data['creation_time'] <= 0.0
-    if not filter.any(): return blank
+    if 'creation_time' in data.keys():
+        filter = data['creation_time'] <= 0.0
+        if not filter.any(): return blank
+    else:
+        filter = na.ones(data.NumberOfParticles, dtype='bool')
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
                            data["particle_position_y"][filter].astype(na.float64),
                            data["particle_position_z"][filter].astype(na.float64),

@@ -85,7 +85,7 @@ _common_options = dict(
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type="string",
-                   dest="unit", default='1',
+                   dest="unit", default='unitary',
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type="float",
@@ -529,7 +529,13 @@ class YTCommands(cmdln.Cmdln):
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         if opts.host is not None:
-            bottle.run(server='rocket', host=opts.host)
+            colonpl = opts.host.find(":")
+            if colonpl >= 0:
+                port = int(opts.host.split(":")[-1])
+                opts.host = opts.host[:colonpl]
+            else:
+                port = 8080
+            bottle.run(server='rocket', host=opts.host, port=port)
         else:
             bottle.run(server='rocket')
 
