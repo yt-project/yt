@@ -529,7 +529,13 @@ class YTCommands(cmdln.Cmdln):
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         if opts.host is not None:
-            bottle.run(server='rocket', host=opts.host)
+            colonpl = opts.host.find(":")
+            if colonpl >= 0:
+                port = int(opts.host.split(":")[-1])
+                opts.host = opts.host[:colonpl]
+            else:
+                port = 8080
+            bottle.run(server='rocket', host=opts.host, port=port)
         else:
             bottle.run(server='rocket')
 
