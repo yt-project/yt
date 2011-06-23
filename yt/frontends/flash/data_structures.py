@@ -287,7 +287,7 @@ class FLASHStaticOutput(StaticOutput):
                 self._handle["file format version"][:])
         elif "sim info" in self._handle:
             self._flash_version = int(
-                self._handle["sim info"][:]["file format version"])
+                self._handle["sim info"]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         self.domain_left_edge = na.array(
