@@ -293,7 +293,7 @@ class FLASHStaticOutput(StaticOutput):
                 self._handle["file format version"][:])
         elif "sim info" in self._handle:
             self._flash_version = int(
-                self._handle["sim info"]["file format version"])
+                self._handle["sim info"][:]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         self.domain_left_edge = na.array(
@@ -338,6 +338,7 @@ class FLASHStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self._handle.close()
+        self._handle = None
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
