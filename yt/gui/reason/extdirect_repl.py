@@ -112,17 +112,17 @@ class ExecutionThread(threading.Thread):
             except Queue.Empty:
                 if self.repl.stopped: return
                 continue
-            print "Received the task", task
+            #print "Received the task", task
             if task['type'] == 'code':
                 self.execute_one(task['code'], task['hide'])
                 self.queue.task_done()
             elif task['type'] == 'add_widget':
                 #print "Adding new widget"
+                self.queue.task_done()
                 new_code = self.repl._add_widget(
                     task['name'], task['widget_data_name'])
                 #print "Got this command:", new_code
                 self.execute_one(new_code, hide=True)
-                self.queue.task_done()
                 #print "Executed!"
 
     def wait(self):
