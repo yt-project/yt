@@ -55,7 +55,9 @@ from yt.utilities.definitions import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 
-from .fields import ChomboFieldContainer
+from .fields import \
+     ChomboFieldContainer, \
+     add_field
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -100,11 +102,9 @@ class ChomboHierarchy(AMRHierarchy):
         self.hierarchy = os.path.abspath(self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = h5py.File(self.hierarchy_filename)
-
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._fhandle.listnames()[1:]
         AMRHierarchy.__init__(self,pf,data_style)
-
         self._fhandle.close()
 
     def _initialize_data_storage(self):
@@ -163,7 +163,7 @@ class ChomboHierarchy(AMRHierarchy):
 
     def _setup_unknown_fields(self):
         pass
-
+                
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -179,8 +179,8 @@ class ChomboStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
-        # hardcoded for now 
-        self.current_time = 0.0
+        fileh = h5py.File(filename,'r')
+        self.current_time = fileh.attrs['time']
         self.ini_filename = ini_filename
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
@@ -307,7 +307,6 @@ class ChomboStaticOutput(StaticOutput):
             pass
         return False
 
-
     @parallel_root_only
     def print_key_parameters(self):
         for a in ["current_time", "domain_dimensions", "domain_left_edge",
@@ -317,3 +316,13 @@ class ChomboStaticOutput(StaticOutput):
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
+            if hasattr(self, "cosmological_simulation") and \
+                   getattr(self, "cosmological_simulation"):
+                for a in ["current_redshift", "omega_lambda", "omega_matter",
+                          "hubble_constant"]:
+                    if not hasattr(self, a):
+                        mylog.error("Missing %s in parameter file definition!", a)
+                        continue
+                    v = getattr(self, a)
+                    mylog.info("Parameters: %-25s = %s", a, v)
+                    

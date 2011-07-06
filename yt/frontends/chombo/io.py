@@ -45,7 +45,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fhandle = h5py.File(grid.filename,'r')
         ncomp = int(fhandle['/'].attrs['num_components'])
 
-        return [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
+        return [c[1] for c in f['/'].attrs.listitems()[-ncomp-1:-1]]
     
     def _read_data_set(self,grid,field):
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')

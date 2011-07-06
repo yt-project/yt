@@ -43,7 +43,6 @@ add_field = add_chombo_field
 add_field("density", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("density")],
           units=r"\rm{g}/\rm{cm}^3")
-
 ChomboFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 
 add_field("X-momentum", function=lambda a,b: None, take_log=False,
@@ -76,6 +75,16 @@ add_field("Z-magnfield", function=lambda a,b: None, take_log=False,
           units=r"",display_name=r"B_z")
 ChomboFieldInfo["Z-magnfield"]._projected_units=r""
 
+add_field("energy-density", function=lambda a,b: None, take_log=True,
+                    validators = [ValidateDataField("energy-density")],
+                    units=r"\rm{erg}/\rm{cm}^3")
+ChomboFieldInfo["energy-density"]._projected_units =r""
+
+add_field("radiation-energy-density", function=lambda a,b: None, take_log=True,
+                    validators = [ValidateDataField("radiation-energy-density")],
+                    units=r"\rm{erg}/\rm{cm}^3")
+ChomboFieldInfo["radiation-energy-density"]._projected_units =r""
+
 def _MagneticEnergy(field,data):
     return (data["X-magnfield"]**2 +
             data["Y-magnfield"]**2 +
@@ -96,9 +105,6 @@ def _yVelocity(field,data):
     """generate y-velocity from y-momentum and density
 
     """
-    #try:
-    #    return data["xvel"]
-    #except KeyError:
     return data["Y-momentum"]/data["density"]
 add_field("y-velocity",function=_yVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
