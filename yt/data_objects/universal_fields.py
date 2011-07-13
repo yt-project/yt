@@ -525,12 +525,14 @@ def _DivV(field, data):
     ds = div_fac * data['dx'].flat[0]
     f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
     f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-    ds = div_fac * data['dy'].flat[0]
-    f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-    f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-    ds = div_fac * data['dz'].flat[0]
-    f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-    f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+    if data.pf.dimensionality > 1:
+        ds = div_fac * data['dy'].flat[0]
+        f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
+        f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    if data.pf.dimensionality > 2:
+        ds = div_fac * data['dz'].flat[0]
+        f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
+        f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
