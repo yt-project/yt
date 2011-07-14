@@ -663,7 +663,7 @@ def _TotalQuantity(data, fields):
     totals = []
     for field in fields:
         if data[field].size < 1:
-            totals.append(0)
+            totals.append(0.0)
             continue
         totals.append(data[field].sum())
     return len(fields), totals
