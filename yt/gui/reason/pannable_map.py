@@ -79,9 +79,12 @@ class PannableMapServer(object):
                                     self.pf.domain_right_edge[1],
                                     dd*DW[0] / (64*256),
                                     dd*DW[0])
-        cmi = na.log10(cmi)
-        cma = na.log10(cma)
-        to_plot = apply_colormap(na.log10(frb[self.field]), color_bounds = (cmi, cma))
+        if self.pf.field_info[self.field].take_log:
+            cmi = na.log10(cmi)
+            cma = na.log10(cma)
+            to_plot = apply_colormap(na.log10(frb[self.field]), color_bounds = (cmi, cma))
+        else:
+            to_plot = apply_colormap(frb[self.field], color_bounds = (cmi, cma))
         rv = write_png_to_string(to_plot)
         return rv
 

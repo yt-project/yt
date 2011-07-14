@@ -525,12 +525,14 @@ def _DivV(field, data):
     ds = div_fac * data['dx'].flat[0]
     f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
     f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-    ds = div_fac * data['dy'].flat[0]
-    f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-    f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-    ds = div_fac * data['dz'].flat[0]
-    f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-    f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+    if data.pf.dimensionality > 1:
+        ds = div_fac * data['dy'].flat[0]
+        f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
+        f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    if data.pf.dimensionality > 2:
+        ds = div_fac * data['dz'].flat[0]
+        f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
+        f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
@@ -930,3 +932,47 @@ add_field("MagneticEnergy",function=_MagneticEnergy,
                         ValidateDataField("By"),
                         ValidateDataField("Bz")])
 
+def _VorticitySquared(field, data):
+    mylog.debug("Generating vorticity on %s", data)
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["x-velocity"].shape)
+    dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
+             data["z-velocity"][1:-1,sl_left,1:-1]) \
+             / (div_fac*data["dy"].flat[0])
+    dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
+             data["y-velocity"][1:-1,1:-1,sl_left]) \
+             / (div_fac*data["dz"].flat[0])
+    new_field[1:-1,1:-1,1:-1] += (dvzdy - dvydz)**2.0
+    del dvzdy, dvydz
+    dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
+             data["x-velocity"][1:-1,1:-1,sl_left]) \
+             / (div_fac*data["dz"].flat[0])
+    dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
+             data["z-velocity"][sl_left,1:-1,1:-1]) \
+             / (div_fac*data["dx"].flat[0])
+    new_field[1:-1,1:-1,1:-1] += (dvxdz - dvzdx)**2.0
+    del dvxdz, dvzdx
+    dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
+             data["y-velocity"][sl_left,1:-1,1:-1]) \
+             / (div_fac*data["dx"].flat[0])
+    dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
+             data["x-velocity"][1:-1,sl_left,1:-1]) \
+             / (div_fac*data["dy"].flat[0])
+    new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
+    del dvydx, dvxdy
+    new_field = na.abs(new_field)
+    return new_field
+def _convertVorticitySquared(data):
+    return data.convert("cm")**-2.0
+add_field("VorticitySquared", function=_VorticitySquared,
+          validators=[ValidateSpatial(1)],
+          units=r"\rm{s}^{-2}",
+          convert_function=_convertVorticitySquared)
