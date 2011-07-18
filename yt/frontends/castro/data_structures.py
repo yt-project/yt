@@ -1,5 +1,5 @@
 """
-Data structures for Castro. 
+Data structures for Castro.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -69,7 +69,7 @@ class CastroGrid(AMRGridPatch):
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia
-        
+
         # should error check this
         self.ActiveDimensions = (dimensions.copy()).astype('int32')#.transpose()
         self.start_index = start.copy()#.transpose()
@@ -134,14 +134,14 @@ class CastroHierarchy(AMRHierarchy):
         #self._setup_classes()
 
         # This also sets up the grid objects
-        self.read_global_header(header_filename, self.parameter_file.paranoid_read) 
+        self.read_global_header(header_filename, self.parameter_file.paranoid_read)
         self.read_particle_header()
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self, pf, self.data_style)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
-        
+
     def read_global_header(self, filename, paranoid_read):
         """
         read the global header file for an Castro plotfile output.
@@ -280,7 +280,7 @@ class CastroHierarchy(AMRHierarchy):
             self.num_grids = grid_counter
             self.float_type = 'float64'
 
-        self.maxLevel = self.n_levels - 1 
+        self.maxLevel = self.n_levels - 1
         self.max_level = self.n_levels - 1
         header_file.close()
 
@@ -320,7 +320,7 @@ class CastroHierarchy(AMRHierarchy):
         header = inFile.readline()
         inFile.close()
         header.strip()
-        
+
         # parse it. the patter is in CastroDefs.py
         headerRe = re.compile(castro_FAB_header_pattern)
         bytesPerReal, endian, start, stop, centerType, nComponents = headerRe.search(header).groups()
@@ -340,7 +340,7 @@ class CastroHierarchy(AMRHierarchy):
         stop = na.array(map(int, start_stop[1].split(',')))
         dimension = stop - start + 1
         return dimension, start, stop
-        
+
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
@@ -437,7 +437,7 @@ class CastroHierarchy(AMRHierarchy):
                         particle_type=True)
 
     def _count_grids(self):
-        """this is already provided in 
+        """this is already provided in
 
         """
         pass
@@ -452,7 +452,7 @@ class CastroHierarchy(AMRHierarchy):
 
     def _parse_hierarchy(self):
         pass
-    
+
     def _detect_fields(self):
         pass
 
@@ -482,13 +482,13 @@ class CastroHierarchy(AMRHierarchy):
         self._data_file = None
         self._data_mode = None
         self._max_locations = {}
-    
+
 class CastroLevel:
     def __init__(self, level, ngrids):
         self.level = level
         self.ngrids = ngrids
         self.grids = []
-    
+
 
 class CastroStaticOutput(StaticOutput):
     """
@@ -554,7 +554,7 @@ class CastroStaticOutput(StaticOutput):
         maestro = os.path.exists(os.path.join(pname, "job_info"))
         orion = (not castro) and (not maestro)
         return castro
-        
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
@@ -596,7 +596,7 @@ class CastroStaticOutput(StaticOutput):
                         self.parameters[paramName] = t[0]
                     else:
                         self.parameters[paramName] = t
-                
+
             elif param.startswith("geometry.prob_hi"):
                 self.domain_right_edge = \
                     na.array([float(i) for i in vals.split()])
@@ -649,7 +649,7 @@ class CastroStaticOutput(StaticOutput):
         """
         Parses the BoxLib header file to get any parameters stored
         there. Hierarchy information is read out of this file in
-        CastroHierarchy. 
+        CastroHierarchy.
 
         Currently, only Time is read here.
         """
@@ -660,7 +660,7 @@ class CastroStaticOutput(StaticOutput):
         self.current_time = float(lines[3+n_fields])
 
 
-                
+
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
@@ -680,7 +680,7 @@ class CastroStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-        
+
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
