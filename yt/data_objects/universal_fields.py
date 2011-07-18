@@ -525,12 +525,14 @@ def _DivV(field, data):
     ds = div_fac * data['dx'].flat[0]
     f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
     f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-    ds = div_fac * data['dy'].flat[0]
-    f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-    f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-    ds = div_fac * data['dz'].flat[0]
-    f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-    f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+    if data.pf.dimensionality > 1:
+        ds = div_fac * data['dy'].flat[0]
+        f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
+        f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    if data.pf.dimensionality > 2:
+        ds = div_fac * data['dz'].flat[0]
+        f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
+        f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
@@ -624,17 +626,17 @@ add_field("AngularMomentumMSUNKMSMPC", function=_AngularMomentum,
 def _AngularMomentumX(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumX"]
 add_field("AngularMomentumX", function=_AngularMomentumX,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=False,
          validators=[ValidateParameter('center')])
 def _AngularMomentumY(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumY"]
 add_field("AngularMomentumY", function=_AngularMomentumY,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=False,
          validators=[ValidateParameter('center')])
 def _AngularMomentumZ(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumZ"]
 add_field("AngularMomentumZ", function=_AngularMomentumZ,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=False,
          validators=[ValidateParameter('center')])
 
 def _ParticleSpecificAngularMomentum(field, data):
