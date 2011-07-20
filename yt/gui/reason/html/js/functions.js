@@ -30,15 +30,15 @@ License:
 ***********************************************************************/
 
 function enable_input() {
-    repl_input.body.removeClass("cell_waiting");
-    repl_input.get('input_line').setReadOnly(false);
-    repl_input.get("input_line").focus();
-    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+    /*repl_input.body.removeClass("cell_waiting");*/
+    repl_input.getComponent('input_line').setReadOnly(false);
+    repl_input.getComponent("input_line").focus();
+    /*yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);*/
 }
 
 function disable_input() {
-    repl_input.get('input_line').setReadOnly(true);
-    repl_input.body.addClass("cell_waiting");
+    repl_input.getComponent('input_line').setReadOnly(true);
+    /*repl_input.body.addClass("cell_waiting");*/
 }
 
 function cell_finished(result) {
@@ -62,7 +62,7 @@ function cell_finished(result) {
                 /* Assume only one locking level */
                 repl_input.locked = false;
             } else {
-                repl_input.get("input_line").setValue("");
+                repl_input.getComponent("input_line").setValue("");
             }
             if (OutputContainer.items.length > 1) {
                 examine = cell;
@@ -84,13 +84,11 @@ function cell_finished(result) {
 	        OutputContainer.doLayout();
 	        number_images++;
         } else if (payload['type'] == 'cell_contents') {
-	        var input_line = repl_input.get("input_line");
+	        var input_line = repl_input.getComponent("input_line");
 	        input_line.setValue(payload['value']);
             repl_input.locked = true;
         } else if (payload['type'] == 'log_entry') {
-	        var record = new logging_store.recordType(
-		        {record: payload['log_entry'] });
-	        logging_store.add(record, number_log_records++);
+	        logging_store.add({record: payload['log_entry'] });
             new_log = true;
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
@@ -111,7 +109,7 @@ function cell_finished(result) {
         }
     });
     if (new_log == true){
-        viewport.get("status-region").getView().focusRow(number_log_records-1);
+        viewport.getComponent("status-region").getView().focusRow(number_log_records-1);
     }
     if (cell_resulted == true) {
         enable_input();
@@ -119,7 +117,7 @@ function cell_finished(result) {
 }
 
 function display_image(image_id) {
-    var image = Ext.get(image_id);
+    var image = Ext.getComponent(image_id);
     var src = image.dom.src;
     var virtualdom = '<html><title>Image Viewer</title><body><img src="' 
         + src + '"/></body></html>',
@@ -305,13 +303,13 @@ function sliceHandler(item,pressed){
                 allowBlank:false,
                 handler: function(checkbox, checked) {
                     if (checked == true) {
-                        this.ownerCt.get("slice_x_center").disable();
-                        this.ownerCt.get("slice_y_center").disable();
-                        this.ownerCt.get("slice_z_center").disable();
+                        this.ownerCt.getComponent("slice_x_center").disable();
+                        this.ownerCt.getComponent("slice_y_center").disable();
+                        this.ownerCt.getComponent("slice_z_center").disable();
                     } else {
-                        this.ownerCt.get("slice_x_center").enable();
-                        this.ownerCt.get("slice_y_center").enable();
-                        this.ownerCt.get("slice_z_center").enable();
+                        this.ownerCt.getComponent("slice_x_center").enable();
+                        this.ownerCt.getComponent("slice_y_center").enable();
+                        this.ownerCt.getComponent("slice_z_center").enable();
                     }
                 }
             },{
@@ -328,12 +326,12 @@ function sliceHandler(item,pressed){
                 {
                     text: 'Slice',
                     handler: function(b, e){
-                        var center = [Ext.get("slice_x_center").getValue(),
-                                      Ext.get("slice_y_center").getValue(),
-                                      Ext.get("slice_z_center").getValue()];
-                        var axis = Ext.get("slice_axis").getValue();
-                        var field = Ext.get("slice_field").getValue();
-                        var onmax = Ext.get("max_dens").getValue();
+                        var center = [Ext.getComponent("slice_x_center").getValue(),
+                                      Ext.getComponent("slice_y_center").getValue(),
+                                      Ext.getComponent("slice_z_center").getValue()];
+                        var axis = Ext.getComponent("slice_axis").getValue();
+                        var field = Ext.getComponent("slice_field").getValue();
+                        var onmax = Ext.getComponent("max_dens").getValue();
                         yt_rpc.ExtDirectREPL.create_slice({
                             pfname:node.attributes.objdata.varname,
                             center: center, axis:axis, field:field, onmax:onmax},
@@ -418,10 +416,10 @@ function phasePlotHandler(item,pressed){
                 {
                     text: 'Calculate',
                     handler: function(b, e){
-                        var x_field = Ext.get("x_field").getValue();
-                        var y_field = Ext.get("y_field").getValue();
-                        var z_field = Ext.get("z_field").getValue();
-                        var weight = Ext.get("weight").getValue();
+                        var x_field = Ext.getComponent("x_field").getValue();
+                        var y_field = Ext.getComponent("y_field").getValue();
+                        var z_field = Ext.getComponent("z_field").getValue();
+                        var weight = Ext.getComponent("weight").getValue();
                         yt_rpc.ExtDirectREPL.create_phase({
                                 objname: node.attributes.objdata.varname,
                                 /* Mirror image varnames ... */
@@ -500,10 +498,10 @@ function projectionHandler(item,pressed){
                 {
                     text: 'Project',
                     handler: function(b, e){
-                        var axis = Ext.get("axis").getValue();
-                        var field = Ext.get("field").getValue();
-                        var weight = Ext.get("weightField").getValue();
-                        var onmax = Ext.get("max_dens").getValue();
+                        var axis = Ext.getComponent("axis").getValue();
+                        var field = Ext.getComponent("field").getValue();
+                        var weight = Ext.getComponent("weightField").getValue();
+                        var onmax = Ext.getComponent("max_dens").getValue();
                         yt_rpc.ExtDirectREPL.create_proj({
                                 pfname: node.attributes.objdata.varname,
                                 axis: axis, field: field, weight: weight,
