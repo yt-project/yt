@@ -717,6 +717,7 @@ class NyxStaticOutput(StaticOutput):
 
         mylog.warning("Length units: setting 1.0 = 1.0 Mpc.")
         self.units.update(mpc_conversion)
+        self.units["Density"] = self.units["particle_mass"]/(self.units["cm"])**3
 
         # @todo: enzo-isms
         mylog.warning("Time units: setting 1.0 = Mpc/km s ~ 10^12 yr .")
@@ -730,7 +731,7 @@ class NyxStaticOutput(StaticOutput):
             self.units["particle_velocity_%s" % ax] = cf
 
         # misc
-        self.conversion_factors = defaultdict(lambda: 1.0)  # what is this for?
+        self.conversion_factors = defaultdict(lambda: 1.0)  # what is this for? - Steffen: this is to get 1.0 for values not in the dict
         self.time_units["1"] = 1
         self.units["1"] = 1.0
         self.units["unitary"] = 1.0 / (self.domain_right_edge -

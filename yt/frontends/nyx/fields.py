@@ -51,11 +51,13 @@ add_field("density", function=lambda a, b: None, take_log=True,
 nyx_fields["density"]._projected_units =r"\rm{M_{\odot}} / \rm{Mpc}^2"
 
 # Particle mass in units of $ M_{\odot}
+def _convertParticleMassMsun(data):
+    return (1/1.989e33)
 def _particle_mass_m_sun(field, data):
     return data["particle_mass"]
 add_field("ParticleMassMsun", function=_particle_mass_m_sun,
           validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
-          particle_type=True, take_log=True, units=r"\rm{M_{\odot}}")
+          particle_type=True, convert_function=_convertParticleMassMsun, take_log=True, units=r"\rm{M_{\odot}}")
 
 # Energy Density
 # @todo: ``energy_density``
