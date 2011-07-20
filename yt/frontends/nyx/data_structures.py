@@ -624,7 +624,7 @@ class NyxStaticOutput(StaticOutput):
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = na.array([float(i) for i in vals])
             elif param.startswith("particles.write_in_plotfile"):
-                self.use_particles = boxlib_bool_to_int(vals)
+                self.use_particles = boxlib_bool_to_int(vals[0])
 
         # aliases we need
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])

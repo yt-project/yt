@@ -9,6 +9,7 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("chombo")
     config.add_subpackage("enzo")
     config.add_subpackage("flash")
+    config.add_subpackage("nyx")
     config.add_subpackage("orion")
     config.add_subpackage("ramses")
     config.add_subpackage("tiger")
