@@ -551,6 +551,8 @@ class CastroStaticOutput(StaticOutput):
         pfn = os.path.join(pfname)
         if not os.path.exists(pfn): return False
         castro = any(("castro." in line for line in open(pfn)))
+        nyx = any(("nyx." in line for line in open(pfn)))
+        castro = castro and (not nyx) # it's only castro if it's not nyx
         maestro = os.path.exists(os.path.join(pname, "job_info"))
         orion = (not castro) and (not maestro)
         return castro
