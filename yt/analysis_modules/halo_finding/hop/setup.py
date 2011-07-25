@@ -15,5 +15,5 @@ def configuration(parent_package='',top_path=None):
                                      "hop_slice.c",
                                      "hop_smooth.c",])
     config.make_config_py() # installs __config__.py
-    config.make_svn_version_py()
+    #config.make_svn_version_py()
     return config
