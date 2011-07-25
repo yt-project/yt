@@ -228,7 +228,8 @@ class Halo(object):
         r"""Returns a sphere source.
 
         This will generate a new, empty sphere source centered on this halo,
-        with the maximum radius of the halo.
+        with the maximum radius of the halo. This can be used like any other
+        data container in yt.
         
         Parameters
         ----------
@@ -973,6 +974,34 @@ class LoadedHalo(Halo):
         >>> radius = halos[0].maximum_radius()
         """
         return self.max_radius
+
+    def get_sphere(self):
+        r"""Returns a sphere source.
+
+        This will generate a new, empty sphere source centered on this halo,
+        with the maximum radius of the halo. This can be used like any other
+        data container in yt.
+        
+        Parameters
+        ----------
+        center_of_mass : bool, optional
+            True chooses the center of mass when calculating the maximum radius.
+            False chooses from the maximum density location for HOP halos
+            (it has no effect for FOF halos).
+            Default = True.
+        
+        Returns
+        -------
+        sphere : `yt.data_objects.api.AMRSphereBase`
+            The empty data source.
+
+        Examples
+        --------
+        >>> sp = halos[0].get_sphere()
+        """
+        cen = self.center_of_mass()
+        r = self.maximum_radius()
+        return self.pf.h.sphere(cen, r)
 
 class HaloList(object):
 
