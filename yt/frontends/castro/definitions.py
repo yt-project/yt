@@ -5,7 +5,7 @@ Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008-20010 J.S. Oishi.  All Rights Reserved.
+  Copyright (C) 2008-2010 J.S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -89,4 +89,4 @@ castro_FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)
 castro_particle_field_names = \
     ['particle_position_%s' % ax for ax in 'xyz'] + \
     ['particle_mass'] +  \
-    ['particle_velocity_%s' % ax for ax in 'xyz'] 
+    ['particle_velocity_%s' % ax for ax in 'xyz']

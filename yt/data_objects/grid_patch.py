@@ -54,12 +54,13 @@ class AMRGridPatch(object):
                  'start_index', 'filename', '__weakref__', 'dds',
                  '_child_mask', '_child_indices', '_child_index_mask',
                  '_parent_id', '_children_ids']
-    def __init__(self, id, filename = None, hierarchy = None):
+
+    def __init__(self, id, filename=None, hierarchy=None):
         self.data = {}
         self.field_parameters = {}
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
-        self.pf = self.hierarchy.parameter_file # weakref already
+        self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
 
@@ -67,6 +68,7 @@ class AMRGridPatch(object):
         """
         Return the integer starting index for each dimension at the current
         level.
+
         """
         if self.start_index != None:
             return self.start_index
@@ -161,7 +163,7 @@ class AMRGridPatch(object):
 
     def keys(self):
         return self.data.keys()
-    
+
     def get_data(self, field):
         """
         Returns a field or set of fields for a key or set of keys
@@ -230,7 +232,7 @@ class AMRGridPatch(object):
         cond = na.logical_and(cond, self.RightEdge[y] >= LE[:,y])
         cond = na.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
         return cond
-   
+
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
 
@@ -373,7 +375,7 @@ class AMRGridPatch(object):
         mask[startIndex[0]:endIndex[0],
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
-        
+
     def __generate_child_mask(self):
         """
         Generates self.child_mask, which is zero where child grids exist (and
@@ -475,7 +477,7 @@ class AMRGridPatch(object):
             na.multiply(new_field, 0.125, new_field)
             if self.pf.field_info[field].take_log:
                 new_field = na.log10(new_field)
-            
+
             new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
             new_field[:,:, 0]  = 2.0*new_field[:,:,1] - new_field[:,:,2]
 
