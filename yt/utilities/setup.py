@@ -184,5 +184,5 @@ def configuration(parent_package='',top_path=None):
         define_macros = [("HAVE_XLOCALE_H", True)]
         )
     config.make_config_py() # installs __config__.py
-    config.make_svn_version_py()
+    #config.make_svn_version_py()
     return config

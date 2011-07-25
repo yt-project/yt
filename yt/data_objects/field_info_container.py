@@ -158,6 +158,7 @@ class FieldDetector(defaultdict):
                 pf.hubble_constant = pf.cosmological_simulation = 0.0
             pf.domain_left_edge = na.zeros(3, 'float64')
             pf.domain_right_edge = na.ones(3, 'float64')
+            pf.dimensionality = 3
         self.pf = pf
         class fake_hierarchy(object):
             class fake_io(object):

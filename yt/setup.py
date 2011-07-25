@@ -13,5 +13,5 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('utilities')
     config.add_subpackage('visualization')
     config.make_config_py()
-    config.make_svn_version_py()
+    #config.make_svn_version_py()
     return config
