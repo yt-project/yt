@@ -108,8 +108,8 @@ class ExecutionThread(threading.Thread):
         while 1:
             #print "Checking for a queue ..."
             try:
-                task = self.queue.get(True, 10)
-            except (Queue.Full, Queue.Empty):
+                task = self.queue.get(True, 1)
+            except Queue.Empty:
                 if self.repl.stopped: return
                 continue
             #print "Received the task", task
@@ -122,8 +122,11 @@ class ExecutionThread(threading.Thread):
                 new_code = self.repl._add_widget(
                     task['name'], task['widget_data_name'])
                 #print "Got this command:", new_code
-                self.repl.execute(new_code, hide=True)
+                self.execute_one(new_code, hide=True)
                 #print "Executed!"
+
+    def wait(self):
+        self.queue.join()
 
     def execute_one(self, code, hide):
         self.repl.executed_cell_texts.append(code)
@@ -135,13 +138,13 @@ class ExecutionThread(threading.Thread):
             print "====================                ===================="
             print result
             print "========================================================"
-        if hide: return
-        self.repl.payload_handler.add_payload(
-            {'type': 'cell_results',
-             'output': result,
-             'input': highlighter(code),
-             'raw_input': code},
-            )
+        if not hide:
+            self.repl.payload_handler.add_payload(
+                {'type': 'cell_results',
+                 'output': result,
+                 'input': highlighter(code),
+                 'raw_input': code},
+                )
 
 def deliver_image(im):
     if hasattr(im, 'read'):

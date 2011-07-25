@@ -1067,7 +1067,7 @@ class ParallelAnalysisInterface(object):
                 ncols, size = data.shape
         ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
         if size == 0:
-            data = na.empty((ncols,0), dtype='float64') # This only works for
+            data = na.zeros((ncols,0), dtype='float64') # This only works for
         size = data.shape[-1]
         sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
         outsize = na.array(size, dtype='int64')

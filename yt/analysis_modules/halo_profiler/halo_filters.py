@@ -33,30 +33,51 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
                  virial_filters=[['TotalMassMsun', '>=','1e14']],
                  virial_quantities=['TotalMassMsun', 'RadiusMpc'],
                  virial_index=None, use_log=False):
-    """
-    Filter halos by virial quantities.
+    r"""Filter halos by virial quantities.
+    
     Return values are a True or False whether the halo passed the filter, 
     along with a dictionary of virial quantities for the fields specified in 
     the virial_quantities keyword.  Thresholds for virial quantities are 
-    given with the virial_filters keyword in the following way: 
+    given with the virial_filters keyword in the following way:
     [field, condition, value].
-    :param: overdensity_field (str): the field used for interpolation with the 
-    specified critical value given with 'virial_overdensity'.  
-    Default: 'ActualOverdensity'.
-    :param: virial_overdensity (flt): the value used for interpolation.  
-    Default: 200.[['TotalMassMsun', '>=','1e14']]
-    :param: must_be_virialized (bool): if no values in the profile are above the 
-    value of virial_overdensity, the halo does not pass the filter.  
-    Default: True.
-    :param: virial_filters (list): conditional filters based on virial quantities 
-    given in the following way: [field, condition, value].  
-    Default: [['TotalMassMsun', '>=','1e14']].
-    :param: virial_quantities (list): fields for which interpolated values should 
-    be calculated and returned.  Default: ['TotalMassMsun', 'RadiusMpc'].
-    :param: virial_index (list): if given as a list, the index of the radial profile 
-    which is used for interpolation is placed here.  Default: None.
-    :param: use_log (bool): if True, interpolation is done in log space.  
-    Default: False.
+    
+    This is typically used as part of a call to `add_halo_filter`.
+    
+    Parameters
+    ----------
+    overdensity_field : string
+        The field used for interpolation with the 
+        specified critical value given with 'virial_overdensity'.  
+        Default='ActualOverdensity'.
+    virial_overdensity : float
+        The value used to determine the outer radius of the virialized halo.
+        Default: 200.
+    must_be_virialized : bool
+        If no values in the profile are above the 
+        value of virial_overdensity, the halo does not pass the filter.  
+        Default: True.
+    virial_filters : array_like
+        Conditional filters based on virial quantities 
+        given in the following way: [field, condition, value].  
+        Default: [['TotalMassMsun', '>=','1e14']].
+    virial_quantities : array_like
+        Fields for which interpolated values should 
+        be calculated and returned.  Default: ['TotalMassMsun', 'RadiusMpc'].
+    virial_index : array_like
+        If given as a list, the index of the radial profile 
+        which is used for interpolation is placed here.  Default: None.
+    use_log : bool
+        If True, interpolation is done in log space.  
+        Default: False.
+    
+    Examples
+    --------
+    >>> hp.add_halo_filter(HP.VirialFilter, must_be_virialized=True,
+                   overdensity_field='ActualOverdensity',
+                   virial_overdensity=200,
+                   virial_filters=[['TotalMassMsun','>=','1e14']],
+                   virial_quantities=['TotalMassMsun','RadiusMpc'])
+    
     """
 
     fields = deepcopy(virial_quantities)

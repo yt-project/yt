@@ -38,9 +38,6 @@ route_functions = {}
 route_watchers = []
 payloads = []
 
-orig_stdout = sys.stdout
-orig_stderr = sys.stderr
-
 def preroute(future_route, *args, **kwargs):
     def router(func):
         route_functions[future_route] = (args, kwargs, func)
@@ -153,8 +150,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             continue
             w._route_prefix = token
     repl.activate()
-    while not repl.execution_thread.queue.empty():
-        time.sleep(1)
+    repl.execution_thread.wait()
     print
     print
     print "============================================================================="
