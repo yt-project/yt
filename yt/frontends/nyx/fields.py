@@ -44,11 +44,15 @@ add_field = nyx_fields.add_field
 add_nyx_field = add_field  # alias for API
 
 # Density
-# @todo: I think this should be called ``gas_density``
 add_field("density", function=lambda a, b: None, take_log=True,
           validators=[ValidateDataField("density")],
-          units=r"\rm{M_{\odot}} / \rm{Mpc}^3")
-nyx_fields["density"]._projected_units =r"\rm{M_{\odot}} / \rm{Mpc}^2"
+          units=r"\rm{g}} / \rm{cm}^3",
+          projected_units =r"\rm{g}} / \rm{cm}^2")
+nyx_fields["density"]._projected_units =r"\rm{g}} / \rm{cm}^2"
+
+add_field("Density", function=lambda a, b: b["density"], take_log=True,
+          units=r"\rm{g}} / \rm{cm}^3",
+          projected_units =r"\rm{g}} / \rm{cm}^2")
 
 # Particle mass in units of $ M_{\odot}
 def _convertParticleMassMsun(data):
@@ -58,6 +62,11 @@ def _particle_mass_m_sun(field, data):
 add_field("ParticleMassMsun", function=_particle_mass_m_sun,
           validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
           particle_type=True, convert_function=_convertParticleMassMsun, take_log=True, units=r"\rm{M_{\odot}}")
+          
+add_field("Dark_Matter_Density", function=lambda a, b: b["particle_mass_density"], take_log=True,
+          units=r"\rm{g}} / \rm{cm}^3",particle_type=True,
+          projected_units =r"\rm{g}} / \rm{cm}^2")
+
 
 # Energy Density
 # @todo: ``energy_density``
@@ -141,3 +150,4 @@ def _temperature(field, data):
             data["ThermalEnergy"] / (kboltz * data["Density"]))
 add_field("Temperature", function=_temperature, take_log=False,
           units=r"\rm{Kelvin}")
+

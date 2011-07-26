@@ -88,3 +88,4 @@ fab_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\
 nyx_particle_field_names = ['particle_position_%s' % ax for ax in 'xyz'] + \
                            ['particle_mass'] +  \
                            ['particle_velocity_%s' % ax for ax in 'xyz']
+

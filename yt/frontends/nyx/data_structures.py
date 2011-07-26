@@ -673,7 +673,8 @@ class NyxStaticOutput(StaticOutput):
     def _parse_fparameter_file(self):
         """
         Parses the fortran parameter file for Nyx. Most of this will be useless,
-        but this is where it keeps mu = mass per particle/m_hydrogen.
+        but this is where it keeps mu = mass per particle/m_hydrogen. Also it
+        contains the cosmological variables.
 
         """
         # @todo: delete after new Nyx output
@@ -717,7 +718,9 @@ class NyxStaticOutput(StaticOutput):
 
         mylog.warning("Length units: setting 1.0 = 1.0 Mpc.")
         self.units.update(mpc_conversion)
-        self.units["Density"] = self.units["particle_mass"]/(self.units["cm"])**3
+        self.units["density"] = self.units["particle_mass"]/(self.units["cm"])**3
+        self.units["particle_mass_density"] = self.units["density"]
+        self.units["Density"] = 1
 
         # @todo: enzo-isms
         mylog.warning("Time units: setting 1.0 = Mpc/km s ~ 10^12 yr .")
