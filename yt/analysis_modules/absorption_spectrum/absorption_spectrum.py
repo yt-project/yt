@@ -144,8 +144,9 @@ class AbsorptionSpectrum(object):
             column_density = field_data[continuum['field_name']] * field_data['dl']
             delta_lambda = continuum['wavelength'] * field_data['redshift']
             if use_peculiar_velocity:
-                delta_lambda += continuum['wavelength'] * field_data['los_velocity'] / \
-                    speed_of_light_cgs
+                # include factor of (1 + z) because our velocity is in proper frame.
+                delta_lambda += continuum['wavelength'] * (1 + field_data['redshift']) * \
+                    field_data['los_velocity'] / speed_of_light_cgs
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = na.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
             left_index = na.digitize((this_wavelength * 
@@ -178,8 +179,9 @@ class AbsorptionSpectrum(object):
             column_density = field_data[line['field_name']] * field_data['dl']
             delta_lambda = line['wavelength'] * field_data['redshift']
             if use_peculiar_velocity:
-                delta_lambda += line['wavelength'] * field_data['los_velocity'] / \
-                    speed_of_light_cgs
+                # include factor of (1 + z) because our velocity is in proper frame.
+                delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
+                    field_data['los_velocity'] / speed_of_light_cgs
             thermal_b = km_per_cm * na.sqrt((2 * boltzmann_constant_cgs * 
                                              field_data['Temperature']) / 
                                             (amu_cgs * line['atomic_mass']))
