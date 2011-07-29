@@ -1366,7 +1366,11 @@ class LoadedHaloList(HaloList):
         locations = []
         for line in lines:
             line = line.split()
-            locations.append(line[1:])
+            # Prepend the hdf5 file names with the full path.
+            temp = []
+            for item in line[1:]:
+                temp.append(self.pf.fullpath + '/' + item)
+            locations.append(temp)
         lines.close()
         return locations
 
