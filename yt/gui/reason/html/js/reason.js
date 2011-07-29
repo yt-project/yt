@@ -55,7 +55,9 @@ var handle_payload = function(pp) {
 }
 
 var repl_input = new Ext.FormPanel({
+    title: 'YT Input',
     url: 'push',
+    flex: 0.2,
     layout: 'fit',
     padding: 5,
     height: '100%',
@@ -133,7 +135,7 @@ var OutputContainer = new Ext.Panel({
     title: 'YT Output',
     id: 'output_container',
     autoScroll: true,
-    flex: 0.7,
+    flex: 0.8,
     items: []
 });
 
