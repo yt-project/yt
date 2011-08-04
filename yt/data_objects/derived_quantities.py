@@ -159,7 +159,6 @@ def _MatterMass(data):
     """
     This function takes no arguments and returns the array sum of cell masses
     and particle masses.
-    Aug 2 2011 Eve Lee
     """
     cellvol = data["CellVolume"]
     matter_rho = data["Matter_Density"]
@@ -336,7 +335,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         of this derived quantity.
     include_particles : Bool
 	Should we add the mass contribution of particles
-	to calculate binding energy? -- Aug 2 2011 Eve Lee
+	to calculate binding energy?
 
     Examples
     --------
@@ -351,7 +350,6 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     """
     Changing data["CellMass"] to mass_to_use
     Add the mass contribution of particles if include_particles = True
-    Aug 2 2011 Eve Lee
     """
     if (include_particles):
 	mass_to_use = data.quantities["MatterMass"]()[0] 
@@ -394,9 +392,9 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     # This dict won't make a copy of the data, but it will make a copy to 
     # change if needed in the periodic section immediately below.
     local_data = {}
-    for label in ["x", "y", "z"]: # Separating CellMass from the for loop -- Aug 2 2011 Eve Lee
+    for label in ["x", "y", "z"]: # Separating CellMass from the for loop
         local_data[label] = data[label]
-    local_data["CellMass"] = mass_to_use # Adding CellMass separately -- Aug 2 2011 Eve Lee
+    local_data["CellMass"] = mass_to_use # Adding CellMass separately
 					 # NOTE: if include_particles = True, local_data["CellMass"]
 					 #       is not the same as data["CellMass"]!!!
     if periodic.any():
