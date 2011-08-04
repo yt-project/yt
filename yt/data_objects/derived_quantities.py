@@ -155,6 +155,20 @@ def _combTotalMass(data, baryon_mass, particle_mass):
 add_quantity("TotalMass", function=_TotalMass,
              combine_function=_combTotalMass, n_ret = 2)
 
+def _MatterMass(data):
+    """
+    This function takes no arguments and returns the array sum of cell masses
+    and particle masses.
+    Aug 2 2011 Eve Lee
+    """
+    cellvol = data["CellVolume"]
+    matter_rho = data["Matter_Density"]
+    return cellvol, matter_rho 
+def _combMatterMass(data, cellvol, matter_rho):
+    return cellvol*matter_rho
+add_quantity("MatterMass", function=_MatterMass,
+	     combine_function=_combMatterMass, n_ret=2)
+
 def _CenterOfMass(data,use_particles=False):
     """
     This function returns the location of the center
@@ -274,7 +288,7 @@ add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
     
 def _IsBound(data, truncate = True, include_thermal_energy = False,
-    treecode = True, opening_angle = 1.0, periodic_test = False):
+    treecode = True, opening_angle = 1.0, periodic_test = False, include_particles = True):
     r"""
     This returns whether or not the object is gravitationally bound. If this
     returns a value greater than one, it is bound, and otherwise not.
@@ -296,7 +310,10 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         used to calculate the potential between masses.
     periodic_test : Bool 
         Used for testing the periodic adjustment machinery
-        of this derived quantity. 
+        of this derived quantity.
+    include_particles : Bool
+	Should we add the mass contribution of particles
+	to calculate binding energy? -- Aug 2 2011 Eve Lee
 
     Examples
     --------
@@ -308,13 +325,22 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
     # One-cell objects are NOT BOUND.
     if data["CellMass"].size == 1: return [0.0]
-    kinetic = 0.5 * (data["CellMass"] * (
+    """
+    Changing data["CellMass"] to mass_to_use
+    Add the mass contribution of particles if include_particles = True
+    Aug 2 2011 Eve Lee
+    """
+    if (include_particles):
+	mass_to_use = data.quantities["MatterMass"]()[0] 
+    else:
+	mass_to_use = data["CellMass"]
+    kinetic = 0.5 * (mass_to_use * (
                        (data["x-velocity"] - bv_x)**2
                      + (data["y-velocity"] - bv_y)**2
                      + (data["z-velocity"] - bv_z)**2 )).sum()
     # Add thermal energy to kinetic energy
     if (include_thermal_energy):
-        thermal = (data["ThermalEnergy"] * data["CellMass"]).sum()
+        thermal = (data["ThermalEnergy"] * mass_to_use).sum()
         kinetic += thermal
     if periodic_test:
         kinetic = na.ones_like(kinetic)
@@ -345,8 +371,11 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     # This dict won't make a copy of the data, but it will make a copy to 
     # change if needed in the periodic section immediately below.
     local_data = {}
-    for label in ["x", "y", "z", "CellMass"]:
+    for label in ["x", "y", "z"]: # Separating CellMass from the for loop -- Aug 2 2011 Eve Lee
         local_data[label] = data[label]
+    local_data["CellMass"] = mass_to_use # Adding CellMass separately -- Aug 2 2011 Eve Lee
+					 # NOTE: if include_particles = True, local_data["CellMass"]
+					 #       is not the same as data["CellMass"]!!!
     if periodic.any():
         # Adjust local_data to re-center the clump to remove the periodicity
         # by the gap calculated above.
@@ -401,7 +430,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
             thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
             thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
-            vals = na.array([local_data["CellMass"][sel]], order='F')
+	    vals = na.array([local_data["CellMass"][sel]], order='F')
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
                na.ones_like(thisx).astype('float64'), treecode = 1)
         # Now we calculate the binding energy using a treecode.
