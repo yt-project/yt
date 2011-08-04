@@ -124,7 +124,10 @@ def get_memory_usage():
     """
     Returning resident size in megabytes
     """
-    pagesize = resource.getpagesize()
+    try:
+        pagesize = resource.getpagesize()
+    except NameError:
+        return 0
     pid = os.getpid()
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
