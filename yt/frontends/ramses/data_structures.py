@@ -376,6 +376,13 @@ class RAMSESStaticOutput(StaticOutput):
                                            * rheader['boxlen']
         self.domain_left_edge = na.zeros(3, dtype='float64')
         self.domain_dimensions = na.ones(3, dtype='int32') * 2
+        # This is likely not true, but I am not sure how to otherwise
+        # distinguish them.
+        self.cosmological_simulation = 1
+        self.current_redshift = 1.0 / (1.0 + rheader["aexp"])
+        self.omega_lambda = rheader["omega_l"]
+        self.omega_matter = rheader["omega_m"]
+        self.hubble_constant = rheader["H0"]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
