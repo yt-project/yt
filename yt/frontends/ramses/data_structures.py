@@ -379,7 +379,7 @@ class RAMSESStaticOutput(StaticOutput):
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
         self.cosmological_simulation = 1
-        self.current_redshift = 1.0 / (1.0 + rheader["aexp"])
+        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"]
