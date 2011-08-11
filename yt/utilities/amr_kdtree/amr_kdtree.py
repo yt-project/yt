@@ -813,8 +813,8 @@ class AMRKDTree(HomogenizedVolume):
         current_node.r_corner = r_corner
         # current_node.owner = my_rank
         current_node.id = 0
-        par_tree_depth = long(na.log2(nprocs))
-
+        par_tree_depth = int(na.log2(nprocs))
+        anprocs = 2**par_tree_depth
         while current_node is not None:
             # If we don't have any grids, that means we are revisiting
             # a dividing node, and there is nothing to be done.
@@ -825,8 +825,8 @@ class AMRKDTree(HomogenizedVolume):
 
             # This is where all the domain decomposition occurs.  
             if ((current_node.id + 1)>>par_tree_depth) == 1:
-                # There are nprocs nodes that meet this criteria
-                if (current_node.id+1-nprocs) is my_rank:
+                # There are anprocs nodes that meet this criteria
+                if (current_node.id+1-anprocs) is my_rank:
                     # I own this shared node
                     self.my_l_corner = current_node.l_corner
                     self.my_r_corner = current_node.r_corner
@@ -973,11 +973,11 @@ class AMRKDTree(HomogenizedVolume):
         if image is not None:
             self.image = image
         rounds = int(na.log2(nprocs))
-
+        anprocs = 2**rounds
         my_node = tree
         my_node_id = 0
         my_node.owner = 0
-        path = na.binary_repr(nprocs+my_rank)
+        path = na.binary_repr(anprocs+my_rank)
         for i in range(rounds):
             my_node.left_child.owner = my_node.owner
             my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))

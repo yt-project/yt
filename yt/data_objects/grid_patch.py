@@ -61,7 +61,7 @@ class AMRGridPatch(object):
         self.field_parameters = {}
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
-        self.pf = self.hierarchy.parameter_file # weakref already
+        self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
 
@@ -159,7 +159,7 @@ class AMRGridPatch(object):
 
     def keys(self):
         return self.data.keys()
-    
+
     def get_data(self, field):
         """ Returns a field or set of fields for a key or set of keys. """
         if not self.data.has_key(field):
@@ -227,7 +227,7 @@ class AMRGridPatch(object):
         cond = na.logical_and(cond, self.RightEdge[y] >= LE[:,y])
         cond = na.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
         return cond
-   
+
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
 
@@ -362,7 +362,7 @@ class AMRGridPatch(object):
         mask[startIndex[0]:endIndex[0],
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
-        
+
     def __generate_child_mask(self):
         """
         Generates self.child_mask, which is zero where child grids exist (and

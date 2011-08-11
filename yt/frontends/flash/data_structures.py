@@ -323,6 +323,7 @@ class FLASHStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self._handle.close()
+        self._handle = None
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

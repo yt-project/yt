@@ -29,6 +29,7 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 import _MPL
+import numpy as na
 
 class FixedResolutionBuffer(object):
     def __init__(self, data_source, bounds, buff_size, antialias = True,
@@ -96,15 +97,16 @@ class FixedResolutionBuffer(object):
         self.periodic = periodic
 
         # Handle periodicity, just in case
-        DLE = self.pf.domain_left_edge
-        DRE = self.pf.domain_right_edge
-        DD = float(self.periodic)*(DRE - DLE)
-        axis = self.data_source.axis
-        xax = x_dict[axis]
-        yax = y_dict[axis]
-        self._period = (DD[xax], DD[yax])
-        self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
-
+        if self.data_source.axis < 3:
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            DD = float(self.periodic)*(DRE - DLE)
+            axis = self.data_source.axis
+            xax = x_dict[axis]
+            yax = y_dict[axis]
+            self._period = (DD[xax], DD[yax])
+            self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
+        
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of %d by %d" % \

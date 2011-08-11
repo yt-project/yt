@@ -1,5 +1,5 @@
 """
-Data structures for Castro. 
+Data structures for Castro.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -138,7 +138,7 @@ class CastroHierarchy(AMRHierarchy):
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
-        
+
     def read_global_header(self, filename, paranoid_read):
         """ Read the global header file for an Castro plotfile output. """
         counter = 0
@@ -289,7 +289,7 @@ class CastroHierarchy(AMRHierarchy):
             self.num_grids = grid_counter
             self.float_type = 'float64'
 
-        self.maxLevel = self.n_levels - 1 
+        self.maxLevel = self.n_levels - 1
         self.max_level = self.n_levels - 1
         header_file.close()
 
@@ -332,7 +332,6 @@ class CastroHierarchy(AMRHierarchy):
         header = in_file.readline()
         in_file.close()
         header.strip()
-        
         # Parse it. The pattern is in castro.definitions.py
         header_re = re.compile(castro_FAB_header_pattern)
         bytes_per_real, endian, start, stop, centerType, n_components = header_re.search(header).groups()
@@ -352,7 +351,7 @@ class CastroHierarchy(AMRHierarchy):
         stop = na.array(map(int, start_stop[1].split(',')))
         dimension = stop - start + 1
         return dimension, start, stop
-        
+
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
 
@@ -482,7 +481,7 @@ class CastroHierarchy(AMRHierarchy):
 
     def _parse_hierarchy(self):
         pass
-    
+
     def _detect_fields(self):
         pass
 
@@ -574,10 +573,12 @@ class CastroStaticOutput(StaticOutput):
         if not os.path.exists(pfn):
             return False
         castro = any(("castro." in line for line in open(pfn)))
+        nyx = any(("nyx." in line for line in open(pfn)))
+        castro = castro and (not nyx) # it's only castro if it's not nyx
         maestro = os.path.exists(os.path.join(pname, "job_info"))
         orion = (not castro) and (not maestro)
         return castro
-        
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various dictionaries.

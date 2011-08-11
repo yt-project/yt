@@ -68,53 +68,101 @@ class HaloProfiler(ParallelAnalysisInterface):
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
                  velocity_center=['bulk', 'halo'], filter_quantities=['id','center'], 
                  use_critical_density=False):
-        """
-        Initialize a HaloProfiler object.
-        :param output_dir (str): if specified, all output will be put into this path instead of 
-               in the dataset directories.  Default: None.
-        :param halos (str): "multiple" for profiling more than one halo.  In this mode halos are read in 
-               from a list or identified with a halo finder.  In "single" mode, the one and only halo 
-               center is identified automatically as the location of the peak in the density field.  
-               Default: "multiple".
-        :param halo_list_file (str): name of file containing the list of halos.  The HaloProfiler will 
-               look for this file in the data directory.  Default: "HopAnalysis.out".
-        :param halo_list_format (str or dict): the format of the halo list file.  "yt_hop" for the format 
-               given by yt's halo finders.  "enzo_hop" for the format written by enzo_hop.  "p-groupfinder" 
-               for P-Groupfinder.  This keyword 
-               can also be given in the form of a dictionary specifying the column in which various 
-               properties can be found.  For example, {"id": 0, "center": [1, 2, 3], "mass": 4, "radius": 5}.  
-               Default: "yt_hop".
-        :param halo_finder_function (function): If halos is set to multiple and the file given by 
-               halo_list_file does not exit, the halo finding function specified here will be called.  
-               Default: HaloFinder (yt_hop).
-        :param halo_finder_args (tuple): args given with call to halo finder function.  Default: None.
-        :param halo_finder_kwargs (dict): kwargs given with call to halo finder function. Default: None.
-        :param recenter (str or function name): The name of a function that
-               recenters the halo.
-        :param halo_radius (float): if no halo radii are provided in the halo list file, this parameter is 
-               used to specify the radius out to which radial profiles will be made.  This keyword is also 
-               used when halos is set to single.  Default: 0.1.
-        :param radius_units (str): the units of halo_radius.  Default: "1" (code units).
-        :param n_profile_bins (int): the number of bins in the radial profiles.  Default: 50.
-        :param profile_output_dir (str): the subdirectory, inside the data directory, in which radial profile 
-               output files will be created.  The directory will be created if it does not exist.  
-               Default: "radial_profiles".
-        :param projection_output_dir (str): the subdirectory, inside the data directory, in which projection 
-               output files will be created.  The directory will be created if it does not exist.  
-               Default: "projections".
-        :param projection_width (float): the width of halo projections.  Default: 8.0.
-        :param projection_width_units (str): the units of projection_width. Default: "mpc".
-        :param project_at_level (int or "max"): the maximum refinement level to be included in projections.  
-               Default: "max" (maximum level within the dataset).
-        :param velocity_center (list): the method in which the halo bulk velocity is calculated (used for 
-               calculation of radial and tangential velocities.  Valid options are:
-     	          - ["bulk", "halo"] (Default): the velocity provided in the halo list
-                  - ["bulk", "sphere"]: the bulk velocity of the sphere centered on the halo center.
-    	          - ["max", field]: the velocity of the cell that is the location of the maximum of the field 
-                                    specified (used only when halos set to single).
-        :param filter_quantities (list): quantities from the original halo list file to be written out in the 
-               filtered list file.  Default: ['id','center'].
-        :param use_critical_density (bool): if True, the definition of overdensity for virial quantities is calculated with respect to the critical density.  If False, overdensity is with respect to mean matter density, which is lower by a factor of Omega_M.  Default: False.
+        r"""Initialize a Halo Profiler object.
+        
+        In order to run the halo profiler, the Halo Profiler object must be
+        instantiated. At the minimum, the path to a parameter file
+        must be provided as the first term.
+        
+        Parameters
+        ----------
+        
+        dataset : string, required
+            The path to the parameter file for the dataset to be analyzed.
+        output_dir : string, optional
+            If specified, all output will be put into this path instead of 
+            in the dataset directories.  Default: None.
+        halos :  {"multiple", "single"}, optional
+            For profiling more than one halo.  In this mode halos are read in 
+            from a list or identified with a halo finder.  In "single" mode,
+            the one and only halo 
+            center is identified automatically as the location of the peak
+            in the density field.  
+            Default: "multiple".
+        halo_list_file : string, optional
+            The name of a file containing the list of halos.  The HaloProfiler
+            will  look for this file in the data directory.
+            Default: "HopAnalysis.out".
+        halo_list_format : {string, dict}
+            The format of the halo list file.  "yt_hop" for the format 
+            given by yt's halo finders.  "enzo_hop" for the format written
+            by enzo_hop. "p-groupfinder"  for P-Groupfinder.  This keyword 
+            can also be given in the form of a dictionary specifying the
+            column in which various properties can be found.
+            For example, {"id": 0, "center": [1, 2, 3], "mass": 4, "radius": 5}.
+            Default: "yt_hop".
+        halo_finder_function : function
+            If halos is set to multiple and the file given by 
+            halo_list_file does not exit, the halo finding function
+            specified here will be called.  
+            Default: HaloFinder (yt_hop).
+        halo_finder_args : tuple
+            Args given with call to halo finder function.  Default: None.
+        halo_finder_kwargs : dict
+            kwargs given with call to halo finder function. Default: None.
+        recenter : {string, function
+            The name of a function that recenters the halo for analysis.
+            Default: None.
+        halo_radius : float
+            If no halo radii are provided in the halo list file, this
+            parameter is used to specify the radius out to which radial
+            profiles will be made.  This keyword is also 
+            used when halos is set to single.  Default: 0.1.
+        radius_units : string
+            The units of halo_radius.  Default: "1" (code units).
+        n_profile_bins : int
+            The number of bins in the radial profiles.  Default: 50.
+        profile_output_dir : str
+            The subdirectory, inside the data directory, in which radial profile 
+            output files will be created.
+            The directory will be created if it does not exist.  
+            Default: "radial_profiles".
+        projection_output_dir : str
+            The subdirectory, inside the data directory, in which projection 
+            output files will be created.
+            The directory will be created if it does not exist.  
+            Default: "projections".
+        projection_width : float
+            The width of halo projections.  Default: 8.0.
+        projection_width_units : string
+            The units of projection_width. Default: "mpc".
+        project_at_level : {"max", int}
+            The maximum refinement level to be included in projections.  
+            Default: "max" (maximum level within the dataset).
+        velocity_center  : array_like
+            The method in which the halo bulk velocity is calculated (used for 
+            calculation of radial and tangential velocities.  Valid options are:
+     	        * ["bulk", "halo"] (Default): the velocity provided in
+     	          the halo list
+                * ["bulk", "sphere"]: the bulk velocity of the sphere
+                  centered on the halo center.
+    	        * ["max", field]: the velocity of the cell that is the
+    	          location of the maximum of the field 
+                  specified (used only when halos set to single).
+        filter_quantities : array_like
+            Quantities from the original halo list file to be written out in the 
+            filtered list file.  Default: ['id','center'].
+        use_critical_density : bool
+            If True, the definition of overdensity for virial quantities
+            is calculated with respect to the critical density.
+            If False, overdensity is with respect to mean matter density,
+            which is lower by a factor of Omega_M.  Default: False.
+        
+        Examples
+        --------
+        >>> import yt.analysis_modules.halo_profiler.api as HP
+        >>> hp = HP.halo_profiler("DD0242/DD0242")
+        
         """
 
         self.dataset = dataset
@@ -239,24 +287,126 @@ class HaloProfiler(ParallelAnalysisInterface):
             return None
 
     def add_halo_filter(self, function, *args, **kwargs):
-        "Add a halo filter to the filter list."
+        r"""Filters can be added to create a refined list of halos based on
+        their profiles or to avoid profiling halos altogether based on
+        information given in the halo list file.
+        
+        It is often the case that one is looking to identify halos with a
+        specific set of properties. This can be accomplished through the
+        creation of filter functions. A filter function can take as many args
+        and kwargs as you like, as long as the first argument is a profile
+        object, or at least a dictionary which contains the profile arrays
+        for each field. Filter functions must return a list of two things.
+        The first is a True or False indicating whether the halo passed the
+        filter. The second is a dictionary containing quantities calculated 
+        for that halo that will be written to a file if the halo passes the
+        filter. A sample filter function based on virial quantities can be
+        found in yt/analysis_modules/halo_profiler/halo_filters.py.
+        
+        Parameters
+        ----------
+        function : function
+            The name of a halo filter function.
+        args : values
+            Arguments passed to the halo filter function.
+        kwargs : values
+            Arguments passed to the halo filter function.
+        
+        Examples
+        -------
+        >>> hp.add_halo_filter(HP.VirialFilter, must_be_virialized=True,
+                overdensity_field='ActualOverdensity',
+                virial_overdensity=200,
+                virial_filters=[['TotalMassMsun','>=','1e14']],
+                virial_quantities=['TotalMassMsun','RadiusMpc'])
+        
+        """
 
         self._halo_filters.append({'function':function, 'args':args, 'kwargs':kwargs})
 
     def add_profile(self, field, weight_field=None, accumulation=False):
-        "Add a field for profiling."
+        r"""Add a field for profiling.
+        
+        Once the halo profiler object has been instantiated,
+        fields can be added for profiling using this function. This function
+        may be called multiple times, once per field to be added.
+        
+        Parameters
+        ----------
+        field : string
+            The name of the field.
+        weight_field : {None, string}, optional
+            The field that will be used to weight the field `field` when
+            the radial binning is done. Default: None.
+        accumulation : bool
+            Whether or not the `field` values should be summed up with the
+            radius of the profile.
+        
+        Examples
+        >>> hp.add_profile('CellVolume', weight_field=None, accumulation=True)
+        >>> hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
+        >>> hp.add_profile('Density', weight_field=None, accumulation=False)
+        >>> hp.add_profile('Temperature', weight_field='CellMassMsun', accumulation=False)
+            
+        """
 
         self.profile_fields.append({'field':field, 'weight_field':weight_field, 'accumulation':accumulation})
 
     def add_projection(self, field, weight_field=None, cmap='algae'):
-        "Add a field for projection."
+        r"""Make a projection of the specified field.
+        
+        For the given field, a projection will be produced that can be saved
+        to HDF5 or image format. See `make_projections`.
+        
+        Parameters
+        ----------
+        field : string
+            The name of the field.
+        weight_field : string
+            The field that will be used to weight the field `field` when
+            the projection is done. Default: None.
+        cmap : string
+            The name of the matplotlib color map that will be used if an
+            image is made from the projection. Default="algae".
+        
+        Examples
+        --------
+        >>> hp.add_projection('Density', weight_field=None)
+        >>> hp.add_projection('Temperature', weight_field='Density')
+        >>> hp.add_projection('Metallicity', weight_field='Density')
+
+        """
 
         self.projection_fields.append({'field':field, 'weight_field':weight_field, 
                                        'cmap': cmap})
 
     @parallel_blocking_call
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
-        "Make radial profiles for all halos on the list."
+        r"""Make radial profiles for all halos in the list.
+        
+        After all the calls to `add_profile`, this will trigger the actual
+        calculations and output the profiles to disk.
+        
+        Paramters
+        ---------
+        filename : string
+            If set, a file will be written with all of the filtered halos
+            and the quantities returned by the filter functions.
+            Default=None.
+        prefilters : array_like
+            A single dataset can contain thousands or tens of thousands of
+            halos. Significant time can be saved by not profiling halos
+            that are certain to not pass any filter functions in place.
+            Simple filters based on quantities provided in the initial
+            halo list can be used to filter out unwanted halos using this
+            parameter.
+        
+        Examples
+        --------
+        >>> hp.make_profiles(filename="FilteredQuantities.out",
+                 prefilters=["halo['mass'] > 1e13"])
+        
+        """
 
         if len(self.all_halos) == 0:
             mylog.error("Halo list is empty, returning.")
@@ -354,9 +504,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         if filename is not None:
             self._write_filtered_halo_list(filename, **kwargs)
 
-    def _get_halo_profile(self, halo, filename, virial_filter=True, force_write=False):
-        """
-        Profile a single halo and write profile data to a file.
+    def _get_halo_profile(self, halo, filename, virial_filter=True,
+            force_write=False):
+        """Profile a single halo and write profile data to a file.
         If file already exists, read profile data from file.
         Return a dictionary of id, center, and virial quantities if virial_filter is True.
         """
@@ -455,8 +605,34 @@ class HaloProfiler(ParallelAnalysisInterface):
         return profile
 
     @parallel_blocking_call
-    def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True):
-        "Make projections of all halos using specified fields."
+    def make_projections(self, axes=[0, 1, 2], halo_list='filtered',
+            save_images=False, save_cube=True):
+        r"""Make projections of all halos using specified fields.
+        
+        After adding fields using `add_projection`, this starts the actual
+        calculations and saves the output to disk.
+        
+        Parameters
+        ---------
+        axes = array_like
+            A list of the axes to project along, using the usual 0,1,2
+            convention. Default=[0,1,2]
+        halo_list : {'filtered', 'all'}
+            Which set of halos to make profiles of, either ones passed by the
+            halo filters (if enabled/added), or all halos.
+            Default='filtered'.
+        save_images : bool
+            Whether or not to save images of the projections. Default=False.
+        save_cube : bool
+            Whether or not to save the HDF5 files of the halo projections.
+            Default=True.
+        
+        Examples
+        --------
+        >>> hp.make_projections(axes=[0, 1, 2], save_cube=True,
+            save_images=True, halo_list="filtered")
+        
+        """
 
         # Get list of halos for projecting.
         if halo_list == 'filtered':

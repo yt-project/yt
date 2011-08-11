@@ -222,7 +222,7 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum",
-                   "Bx", "By", "Bz", "Dust_Temperature_Density"]
+                   "Bx", "By", "Bz", "Dust_Temperature"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -263,6 +263,8 @@ add_enzo_field("Dark_Matter_Density", function=NullFunc,
 
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
 KnownEnzoFields["Temperature"].units = r"K"
+KnownEnzoFields["Dust_Temperature"]._units = r"\rm{K}"
+KnownEnzoFields["Dust_Temperature"].units = r"K"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
@@ -271,17 +273,6 @@ for ax in ['x','y','z']:
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
-
-# Dust temperature - raw field is T_dust * Density
-def _dust_temperature(field, data):
-    return data['Dust_Temperature_Density'] / data['Density']
-def _convert_dust_temperature(data):
-    ef = (1.0 + data.pf.current_redshift)**3.0
-    return data.convert("Density") / ef
-add_field("Dust_Temperature", function=_dust_temperature, 
-          convert_function=_convert_dust_temperature, take_log=True,
-          validators=[ValidateDataField('Dust_Temperature_Density')],
-          units = r"K")
 
 def _spdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
@@ -303,8 +294,11 @@ add_field("star_density", function=_spdensity,
 def _dmpdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
-    filter = data['creation_time'] <= 0.0
-    if not filter.any(): return blank
+    if 'creation_time' in data.keys():
+        filter = data['creation_time'] <= 0.0
+        if not filter.any(): return blank
+    else:
+        filter = na.ones(data.NumberOfParticles, dtype='bool')
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
                            data["particle_position_y"][filter].astype(na.float64),
                            data["particle_position_z"][filter].astype(na.float64),

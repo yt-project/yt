@@ -32,6 +32,7 @@ import math
 import weakref
 import exceptions
 import itertools
+import shelve
 
 from yt.funcs import *
 
@@ -408,6 +409,23 @@ class GridPropertiesMixin(object):
     __grid_levels = None
     grid_levels = property(__get_grid_levels, __set_grid_levels,
                              __del_grid_levels)
+
+
+    def __get_grid_dimensions(self):
+        if self.__grid_dimensions == None:
+            self.__grid_dimensions = na.array([g.ActiveDimensions for g in self._grids])
+        return self.__grid_dimensions
+
+    def __del_grid_dimensions(self):
+        del self.__grid_dimensions
+        self.__grid_dimensions = None
+
+    def __set_grid_dimensions(self, val):
+        self.__grid_dimensions = val
+
+    __grid_dimensions = None
+    grid_dimensions = property(__get_grid_dimensions, __set_grid_dimensions,
+                             __del_grid_dimensions)
 
 
 class AMR1DData(AMRData, GridPropertiesMixin):

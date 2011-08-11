@@ -83,21 +83,17 @@ def _MagneticEnergy(field,data):
             data["Y-magnfield"]**2 +
             data["Z-magnfield"]**2)/2.
 add_field("MagneticEnergy", function=_MagneticEnergy, take_log=True,
-          units=r"",display_name=r"B^2/8\pi")
+          units=r"", display_name=r"B^2 / 8 \pi")
 ChomboFieldInfo["MagneticEnergy"]._projected_units=r""
 
 def _xVelocity(field, data):
-    """generate x-velocity from x-momentum and density
-
-    """
+    """ Generate x-velocity from x-momentum and density. """
     return data["X-momentum"]/data["density"]
 add_field("x-velocity",function=_xVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
 
 def _yVelocity(field,data):
-    """generate y-velocity from y-momentum and density
-
-    """
+    """ Generate y-velocity from y-momentum and density. """
     #try:
     #    return data["xvel"]
     #except KeyError:
@@ -106,10 +102,7 @@ add_field("y-velocity",function=_yVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
 
 def _zVelocity(field,data):
-    """generate z-velocity from z-momentum and density
-
-    """
+    """ Generate z-velocity from z-momentum and density. """
     return data["Z-momentum"]/data["density"]
 add_field("z-velocity",function=_zVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
-    
