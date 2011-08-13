@@ -664,8 +664,13 @@ class EnzoStaticOutput(StaticOutput):
         if self["TopGridRank"] == 1: self._setup_1d()
         elif self["TopGridRank"] == 2: self._setup_2d()
 
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
+        if getattr(self, "field_info", None) is None:
+            # The setting up of fields occurs in the hierarchy, which is only
+            # instantiated once.  So we have to double check to make sure that,
+            # in the event of double-loads of a parameter file, we do not blow
+            # away the exising field_info.
+            self.field_info = FieldInfoContainer.create_with_fallback(
+                                self._fieldinfo_fallback)
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D

@@ -129,12 +129,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     def _setup_unknown_fields(self):
         known_fields = self.parameter_file._fieldinfo_known
         for field in self.field_list:
-            if field in self.parameter_file.field_info:
-                ff = self.parameter_file.field_info[field]
-                # By allowing a backup, we don't mandate that it's found in our
-                # current field info.  This means we'll instead simply override
-                # it.
-                self.parameter_file.field_info.pop(field, None)
+            # By allowing a backup, we don't mandate that it's found in our
+            # current field info.  This means we'll instead simply override
+            # it.
+            ff = self.parameter_file.field_info.pop(field, None)
             if field not in known_fields:
                 mylog.info("Adding unknown field %s to list of fields", field)
                 cf = None
