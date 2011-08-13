@@ -538,12 +538,10 @@ class AMROrthoRayBase(AMR1DData):
         return (self.px, self.py)
 
     def _get_list_of_grids(self):
-        # This bugs me, but we will give the tie to the LeftEdge
-        y = na.where( (self.px >=  self.pf.hierarchy.grid_left_edge[:,self.px_ax])
-                    & (self.px < self.pf.hierarchy.grid_right_edge[:,self.px_ax])
-                    & (self.py >=  self.pf.hierarchy.grid_left_edge[:,self.py_ax])
-                    & (self.py < self.pf.hierarchy.grid_right_edge[:,self.py_ax]))
-        self._grids = self.hierarchy.grids[y]
+        gi = au.ortho_ray_grids(self, 
+                self.hierarchy.grid_left_edges,
+                self.hierarchy.grid_right_edges)
+        self._grids = self.hierarchy.grids[gi]
 
     def _get_data_from_grid(self, grid, field):
         # We are orthogonal, so we can feel free to make assumptions
@@ -613,31 +611,10 @@ class AMRRayBase(AMR1DData):
         #self._refresh_data()
 
     def _get_list_of_grids(self):
-        # Get the value of the line at each LeftEdge and RightEdge
-        LE = self.pf.h.grid_left_edge
-        RE = self.pf.h.grid_right_edge
-        p = na.zeros(self.pf.h.num_grids, dtype='bool')
-        # Check left faces first
-        for i in range(3):
-            i1 = (i+1) % 3
-            i2 = (i+2) % 3
-            vs = self._get_line_at_coord(LE[:,i], i)
-            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
-                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
-            vs = self._get_line_at_coord(RE[:,i], i)
-            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
-                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
-        p = p | ( na.all( LE <= self.start_point, axis=1 ) 
-                & na.all( RE >= self.start_point, axis=1 ) )
-        p = p | ( na.all( LE <= self.end_point,   axis=1 ) 
-                & na.all( RE >= self.end_point,   axis=1 ) )
-        self._grids = self.hierarchy.grids[p]
-
-    def _get_line_at_coord(self, v, index):
-        # t*self.vec + self.start_point = self.end_point
-        t = (v - self.start_point[index])/self.vec[index]
-        t = t.reshape((t.shape[0],1))
-        return self.start_point + t*self.vec
+        gi = au.ray_grids(self,
+                self.hierarchy.grid_left_edges,
+                self.hierarchy.grid_right_edges)
+        self._grids = self.hierarchy.grids[gi]
 
     def _get_data_from_grid(self, grid, field):
         mask = na.logical_and(self._get_cut_mask(grid),
