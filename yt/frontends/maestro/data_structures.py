@@ -121,7 +121,6 @@ class MaestroGrid(AMRGridPatch):
 class MaestroHierarchy(AMRHierarchy):
     grid = MaestroGrid
     def __init__(self, pf, data_style='maestro'):
-        self.field_info = pf.field_info
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -444,8 +443,6 @@ class MaestroStaticOutput(StaticOutput):
         # this is the unit of time; NOT the current time
         self.parameters["Time"] = 1 # second
 
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
         self._parse_header_file()
 
 

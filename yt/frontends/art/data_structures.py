@@ -115,7 +115,6 @@ class ARTHierarchy(AMRHierarchy):
     
     def __init__(self, pf, data_style='art'):
         self.data_style = data_style
-        self.field_info = ARTFieldContainer()
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -370,8 +369,6 @@ class ARTStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'art'

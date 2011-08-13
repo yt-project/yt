@@ -63,7 +63,6 @@ class FLASHHierarchy(AMRHierarchy):
     
     def __init__(self,pf,data_style='chombo_hdf5'):
         self.data_style = data_style
-        self.field_info = FLASHFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -183,8 +182,6 @@ class FLASHStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.

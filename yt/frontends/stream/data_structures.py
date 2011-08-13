@@ -257,7 +257,6 @@ class StreamStaticOutput(StaticOutput):
         self.stream_handler = stream_handler
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
-        self.field_info = self._fieldinfo_class()
         self.units = {}
         self.time_units = {}
 

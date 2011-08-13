@@ -71,7 +71,6 @@ class GadgetHierarchy(AMRHierarchy):
     grid = GadgetGrid
 
     def __init__(self, pf, data_style='gadget_hdf5'):
-        self.field_info = GadgetFieldContainer()
         self.filename = pf.filename
         self.directory = os.path.dirname(pf.filename)
         self.data_style = data_style
@@ -147,8 +146,6 @@ class GadgetStaticOutput(StaticOutput):
 
     def __init__(self, filename,storage_filename=None) :
         self.storage_filename = storage_filename
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
         self.filename = filename
         
         StaticOutput.__init__(self, filename, 'gadget_infrastructure')

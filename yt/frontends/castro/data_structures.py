@@ -123,7 +123,6 @@ class CastroHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style='castro_native'):
         super(CastroHierarchy, self).__init__(self, pf, self.data_style)
 
-        self.field_info = CastroFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir, 'Header')
@@ -537,9 +536,6 @@ class CastroStaticOutput(StaticOutput):
         self.__ipfn = paramFilename
 
         self.fparameters = {}
-
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                              self._fieldinfo_fallback)
 
         # These should maybe not be hardcoded?
         ### TODO: this.

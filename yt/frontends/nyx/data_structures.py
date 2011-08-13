@@ -118,7 +118,6 @@ class NyxHierarchy(AMRHierarchy):
     grid = NyxGrid
 
     def __init__(self, pf, data_style="nyx_native"):
-        self.field_info = NyxFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         self.directory = pf.path
@@ -562,9 +561,6 @@ class NyxStaticOutput(StaticOutput):
         # runs ``self._parse_parameter_file()``, ``self._set_units()``, and
         # ``self.print_key_parameters()``
         StaticOutput.__init__(self, plotname.rstrip("/"), data_style=data_style)
-
-        # @todo: field pruning should happen here
-        self.field_info = self._fieldinfo_class()
 
         # @todo: check all of these and hopefully factor out of the constructor.
         # These should maybe not be hardcoded?

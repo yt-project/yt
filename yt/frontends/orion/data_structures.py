@@ -117,7 +117,6 @@ class OrionGrid(AMRGridPatch):
 class OrionHierarchy(AMRHierarchy):
     grid = OrionGrid
     def __init__(self, pf, data_style='orion_native'):
-        self.field_info = OrionFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -446,8 +445,6 @@ class OrionStaticOutput(StaticOutput):
 
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE

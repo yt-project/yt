@@ -108,7 +108,6 @@ class RAMSESHierarchy(AMRHierarchy):
     
     def __init__(self,pf,data_style='ramses'):
         self.data_style = data_style
-        self.field_info = RAMSESFieldContainer()
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -265,9 +264,6 @@ class RAMSESStaticOutput(StaticOutput):
             import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

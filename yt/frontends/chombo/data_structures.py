@@ -94,7 +94,6 @@ class ChomboHierarchy(AMRHierarchy):
         self.domain_left_edge = pf.domain_left_edge # need these to determine absolute grid locations
         self.domain_right_edge = pf.domain_right_edge # need these to determine absolute grid locations
         self.data_style = data_style
-        self.field_info = ChomboFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -184,8 +183,6 @@ class ChomboStaticOutput(StaticOutput):
         self.ini_filename = ini_filename
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
         
     def _set_units(self):
         """

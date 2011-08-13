@@ -149,8 +149,6 @@ class GDFStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self._handle = h5py.File(self.filename, "r")
         self.storage_filename = storage_filename
-        self.field_info = FieldInfoContainer.create_with_fallback(
-                            self._fieldinfo_fallback)
         self._handle.close()
         del self._handle
         
