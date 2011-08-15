@@ -32,6 +32,7 @@ import math
 import weakref
 import exceptions
 import itertools
+import shelve
 
 from yt.funcs import *
 
