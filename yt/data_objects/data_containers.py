@@ -1613,6 +1613,10 @@ class AMRQuadTreeProjBase(AMR2DData):
             dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
         coord_data = na.concatenate(coord_data, axis=0).transpose()
         field_data = na.concatenate(field_data, axis=0).transpose()
+        if self._weight is not None:
+            dls, convs = self._get_dls(self._grids[0], fields)
+            # We always get one extra for the weighting field
+            field_data *= convs[:-1]
         weight_data = na.concatenate(weight_data, axis=0).transpose()
         dxs = na.concatenate(dxs, axis=0).transpose()
         # We now convert to half-widths and center-points
@@ -1684,17 +1688,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             pbar.update(pi)
             grid.clear_data()
         pbar.finish()
-        lt = tree.get_all_from_level(level, False)
         return
-        if self._weight is not None:
-            field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
-        else:
-            field_data *= convs[...,na.newaxis]
-        mylog.info("Level %s done: %s final", \
-                   level, coord_data.shape[1])
-        dx = grids_to_project[0].dds[self.axis] # this is our dl
-        return coord_data, dx, field_data
-
 
     def _get_points_in_region(self, grid):
         pointI = self.source._get_point_indices(grid, use_child_mask=False)
