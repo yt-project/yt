@@ -148,7 +148,7 @@ class RegressionTestRunner(object):
         try:
             test.compare(old_result)
         except RegressionTestException, exc:
-            return (False, str(exc))
+            return (False, sys.exc_info())
         return (True, "Pass")
 
     def run_tests_from_file(self, filename):
