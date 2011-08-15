@@ -144,7 +144,7 @@ class RegressionTestRunner(object):
         try:
             old_result = self.old_results[test.name]
         except FileNotExistException:
-            return (False, "File %s does not exist." % test.name)
+            return (False, sys.exc_info())
         try:
             test.compare(old_result)
         except RegressionTestException, exc:

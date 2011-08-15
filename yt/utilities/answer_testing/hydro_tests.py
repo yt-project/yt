@@ -32,6 +32,7 @@ class TestProjection(YTStaticOutputTest):
 
     field = None
     axis = None
+    weight_field = None
 
     def run(self):
         # First we get our flattened projection -- this is the
