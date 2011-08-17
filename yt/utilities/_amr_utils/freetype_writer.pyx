@@ -69,6 +69,7 @@ cdef FT_Library library
 
 def initialize_library():
     # We do not clear the library from memory.
+    global initialized
     if initialized == 1: return
     cdef int error = FT_Init_FreeType(&library)
     if error: raise RuntimeError
