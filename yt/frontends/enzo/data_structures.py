@@ -743,55 +743,65 @@ class EnzoStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
-        for lineI, line in enumerate(lines):
-            if line.find("#") >= 1: # Keep the commented lines
-                line=line[:line.find("#")]
-            line=line.strip().rstrip()
-            if len(line) < 2:
-                continue
-            try:
-                param, vals = map(string.strip,map(string.rstrip,
-                                                   line.split("=")))
-            except ValueError:
-                mylog.error("ValueError: '%s'", line)
-            if parameterDict.has_key(param):
-                t = map(parameterDict[param], vals.split())
-                if len(t) == 1:
-                    self.parameters[param] = t[0]
+        data_labels = {}
+        data_label_factors = {}
+        for line in (l.strip() for l in lines):
+            if len(line) < 2: continue
+            param, vals = (i.strip() for i in line.split("="))
+            # First we try to decipher what type of value it is.
+            vals = vals.split()
+            # Special case approaching.
+            if "(do" in vals: vals = vals[:1]
+            if len(vals) == 0:
+                pcast = str # Assume NULL output
+            else:
+                v = vals[0]
+                # Figure out if it's castable to floating point:
+                try:
+                    float(v)
+                except ValueError:
+                    pcast = str
                 else:
-                    self.parameters[param] = t
-                if param.endswith("Units") and not param.startswith("Temperature"):
-                    dataType = param[:-5]
-                    self.conversion_factors[dataType] = self.parameters[param]
-            elif param.startswith("#DataCGS"):
+                    if any("." in v or "e+" in v or "e-" in v for v in vals):
+                        pcast = float
+                    else:
+                        pcast = int
+            # Now we figure out what to do with it.
+            if param.endswith("Units") and not param.startswith("Temperature"):
+                dataType = param[:-5]
+                # This one better be a float.
+                self.conversion_factors[dataType] = float(vals[0])
+            if param.startswith("#DataCGS") or \
+                 param.startswith("#CGSConversionFactor"):
                 # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                if lines[lineI-1].find("Label") >= 0:
-                    kk = lineI-1
-                elif lines[lineI-2].find("Label") >= 0:
-                    kk = lineI-2
-                dataType = lines[kk].split("=")[-1].rstrip().strip()
-                convFactor = float(line.split("=")[-1].split()[0])
-                self.conversion_factors[dataType] = convFactor
-            elif param.startswith("#CGSConversionFactor"):
-                dataType = param[20:].rstrip()
-                convFactor = float(line.split("=")[-1])
-                self.conversion_factors[dataType] = convFactor
-            elif param.startswith("DomainLeftEdge"):
-                self.domain_left_edge = \
-                self.parameters["DomainLeftEdge"] = \
-                    na.array([float(i) for i in vals.split()])
-            elif param.startswith("DomainRightEdge"):
-                self.domain_right_edge = \
-                self.parameters["DomainRightEdge"] = \
-                    na.array([float(i) for i in vals.split()])
+                # Which one does it belong to?
+                data_id = param[param.find("[")+1:param.find("]")]
+                data_label_factors[data_id] = float(vals[0])
+            if param.startswith("DataLabel"):
+                data_id = param[param.find("[")+1:param.find("]")]
+                data_labels[data_id] = vals[0]
+            if len(vals) == 0:
+                vals = ""
+            elif len(vals) == 1:
+                vals = pcast(vals[0])
+            else:
+                vals = na.array([pcast(i) for i in vals if i != "-99999"])
+            self.parameters[param] = vals
         for p, v in self._parameter_override.items():
             self.parameters[p] = v
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
+        for k, v in data_label_factors.items():
+            self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
+        self.domain_left_edge = self.parameters["DomainLeftEdge"].copy()
+        self.domain_right_edge = self.parameters["DomainRightEdge"].copy()
         self.current_time = self.parameters["InitialTime"]
+        # To be enabled when we can break old pickles:
+        #if "MetaDataSimulationUUID" in self.parameters:
+        #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
         if "CurrentTimeIdentifier" in self.parameters:
             self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         if self.parameters["ComovingCoordinates"]:
