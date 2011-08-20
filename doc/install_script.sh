@@ -269,10 +269,10 @@ function do_setup_py
 
 function get_enzotools
 {
-    echo "Downloading $1 from yt.enzotools.org"
+    echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
-    wget -nv "http://yt.enzotools.org/dependencies/$1" || do_exit
-    wget -nv "http://yt.enzotools.org/dependencies/$1.md5" || do_exit
+    wget -nv "http://yt-project.org/dependencies/$1" || do_exit
+    wget -nv "http://yt-project.org/dependencies/$1.md5" || do_exit
     ( which md5sum &> /dev/null ) || return # return if we don't have md5sum
     ( md5sum -c $1.md5 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
@@ -465,11 +465,11 @@ then
     elif [ ! -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
@@ -652,7 +652,7 @@ function print_afterword
     echo
     echo "For support, see the website and join the mailing list:"
     echo
-    echo "    http://yt.enzotools.org/"
+    echo "    http://yt-project.org/"
     echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
     echo
     echo "========================================================================"
