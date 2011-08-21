@@ -422,7 +422,7 @@ cdef class RAMSES_tree_proxy:
         cdef string *field_name
         self.field_names = []
         self.field_ind = {}
-        self.loaded = <int **> malloc(sizeof(int) * local_hydro_data.m_nvars)
+        self.loaded = <int **> malloc(sizeof(int*) * self.ndomains)
         for idomain in range(self.ndomains):
             self.loaded[idomain] = <int *> malloc(
                 sizeof(int) * local_hydro_data.m_nvars)
@@ -436,7 +436,6 @@ cdef class RAMSES_tree_proxy:
         # This all needs to be cleaned up in the deallocator
 
     def __dealloc__(self):
-        import traceback; traceback.print_stack()
         cdef int idomain, ifield
         # To ensure that 'delete' is used, not 'free',
         # we allocate temporary variables.
@@ -492,9 +491,9 @@ cdef class RAMSES_tree_proxy:
     def ensure_loaded(self, char *varname, int domain_index):
         # this domain_index must be zero-indexed
         cdef int varindex = self.field_ind[varname]
-        cdef string *field_name = new string(varname)
         if self.loaded[domain_index][varindex] == 1:
             return
+        cdef string *field_name = new string(varname)
         print "READING FROM DISK", varname, domain_index, varindex
         self.hydro_datas[domain_index][varindex].read(deref(field_name))
         self.loaded[domain_index][varindex] = 1
@@ -674,6 +673,7 @@ cdef class RAMSES_tree_proxy:
             end_index[i] = start_index[i] + grid_dims[i]
         for gi in range(component_grid_info.shape[0]):
             domain = component_grid_info[gi,0]
+            if domain == 0: continue
             self.ensure_loaded(field, domain - 1)
             local_tree = self.trees[domain - 1]
             local_hydro_data = self.hydro_datas[domain - 1][varindex]
@@ -802,6 +802,7 @@ cdef class ProtoSubgrid:
                 grid_file_locations[gi,5] = left_edges[gi, 2]
                 for i in range(6):
                     gfl[used, i] = grid_file_locations[gi,i]
+                used += 1
          
         self.dd = np.ones(3, dtype='int64')
         for i in range(3):
