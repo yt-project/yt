@@ -3,7 +3,7 @@ Import the components of the volume rendering extension
 
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 

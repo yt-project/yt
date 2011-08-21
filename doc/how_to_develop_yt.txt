@@ -31,10 +31,10 @@ How To Get The Source Code
 --------------------------
 
 yt is hosted on BitBucket, and you can see all of the yt repositories at
-http://hg.enzotools.org/ .  With the yt installation script you should have a
+http://hg.yt-project.org/ .  With the yt installation script you should have a
 copy of Mercurial.  You can clone the repository like so:
 
-   $ hg clone http://hg.enzotools.org/yt/
+   $ hg clone http://hg.yt-project.org/yt/
 
 You can update to any branch or revision by executing the command:
 
@@ -54,7 +54,7 @@ How To Submit Changes
 You can submit changes a couple different ways, but the easiest is to use the
 "fork" mechanism on BitBucket.  Just go here:
 
-http://hg.enzotools.org/yt/fork
+http://hg.yt-project.org/yt/fork
 
 and you're all set, ready to go.  You'll have to either clone a new copy of the
 repository or edit .hg/hgrc to point to the location of your new fork, first,
@@ -62,7 +62,7 @@ though.
 
 When you're ready to submit them to the main repository, simply go to:
 
-http://hg.enzotools.org/yt/fork
+http://hg.yt-project.org/yt/fork
 
 Make sure you notify "yt_analysis" and put in a little description.  That'll
 notify the core developers that you've got something ready to submit, and we
@@ -131,7 +131,7 @@ mark the current repository as a new named branch by executing:
 The next commit and all subsequent commits will be contained within that named
 branch.  At this point, add your branch here:
 
-http://yt.enzotools.org/wiki/ExistingBranches
+http://yt-project.org/wiki/ExistingBranches
 
 To merge changes in from another branch, you would execute:
 

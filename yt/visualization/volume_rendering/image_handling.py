@@ -3,7 +3,7 @@ Export/Import of volume rendered images.
 
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 

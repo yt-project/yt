@@ -4,7 +4,7 @@ Generalized Enzo output objects, both static and time-series.
 Presumably at some point EnzoRun will be absorbed into here.
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 

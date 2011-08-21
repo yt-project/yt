@@ -6,7 +6,7 @@ Affiliation: UC Berkeley
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Casey W. Stark, Matthew Turk.  All Rights Reserved.
 

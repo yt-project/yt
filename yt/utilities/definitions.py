@@ -3,7 +3,7 @@ Various definitions for various other modules and routines
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 
 @todo: Move into yt.Defs, along with enki.EnkiDefs
 License:

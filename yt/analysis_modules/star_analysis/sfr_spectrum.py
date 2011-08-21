@@ -3,7 +3,7 @@ StarAnalysis - Functions to analyze stars.
 
 Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego / CASS
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Stephen Skory (and others).  All Rights Reserved.
 

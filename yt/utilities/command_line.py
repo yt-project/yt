@@ -3,7 +3,7 @@ A means of running standalone commands with a shared set of options.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -678,7 +678,7 @@ class YTCommands(cmdln.Cmdln):
         """
         Print an online pastebin to STDOUT for local use. Paste ID is 
         the number at the end of the url.  So to locally access pastebin:
-        http://paste.enzotools.org/show/1688/
+        http://paste.yt-project.org/show/1688/
 
         Usage: yt pastebin_grab <Paste ID> 
         Ex: yt pastebin_grab 1688 > script.py
@@ -714,7 +714,7 @@ class YTCommands(cmdln.Cmdln):
         print "==============================================================="
         print "At any time in advance of the upload of the bug, you should feel free"
         print "to ctrl-C out and submit the bug report manually by going here:"
-        print "   http://hg.enzotools.org/yt/issues/new"
+        print "   http://hg.yt-project.org/yt/issues/new"
         print 
         print "Also, in order to submit a bug through this interface, you"
         print "need a Bitbucket account. If you don't have one, exit this "
@@ -722,12 +722,12 @@ class YTCommands(cmdln.Cmdln):
         print
         print "Have you checked the existing bug reports to make"
         print "sure your bug has not already been recorded by someone else?"
-        print "   http://hg.enzotools.org/yt/issues?status=new&status=open"
+        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
         print
         print "Finally, are you sure that your bug is, in fact, a bug? It might"
         print "simply be a misunderstanding that could be cleared up by"
         print "visiting the yt irc channel or getting advice on the email list:"
-        print "   http://yt.enzotools.org/irc.html"
+        print "   http://yt-project.org/irc.html"
         print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
         print
         summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
@@ -802,7 +802,7 @@ class YTCommands(cmdln.Cmdln):
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
-        url = "http://hg.enzotools.org/yt/issue/%s" % retval['local_id']
+        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
         print 
         print "==============================================================="
         print
@@ -855,12 +855,12 @@ class YTCommands(cmdln.Cmdln):
                 print "Okay, I understand.  You can check it out yourself."
                 print "This command will do it:"
                 print
-                print "$ hg clone http://hg.enzotools.org/yt-supplemental/ ",
+                print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
                 print "%s" % (supp_path)
                 print
                 sys.exit(1)
             rv = commands.clone(uu,
-                    "http://hg.enzotools.org/yt-supplemental/", supp_path)
+                    "http://hg.yt-project.org/yt-supplemental/", supp_path)
             if rv:
                 print "Something has gone wrong.  Quitting."
                 sys.exit(1)

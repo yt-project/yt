@@ -3,7 +3,7 @@ HaloProfiler re-centering functions.
 
 Author: Stephen Skory <s@skory.us>
 Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Stephen Skory.  All Rights Reserved.
 

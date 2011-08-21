@@ -4,7 +4,7 @@ DualEPS: A class to combine bitmap compression and vector graphics
 Author: John Wise <jwise@astro.princeton.edu>
 Date: April 2010
 Affiliation: Princeton
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 
 Requirements: PyX
 

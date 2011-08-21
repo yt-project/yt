@@ -5,7 +5,7 @@ Author: Casey W. Stark <caseywstark@gmail.com>
 Affiliation: UC Berkeley
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Casey W. Stark, J. S. Oishi, Matthew Turk.  All Rights
   Reserved.

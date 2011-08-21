@@ -3,7 +3,7 @@ AbsorptionSpectrum class and member functions.
 
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: Michigan State University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 

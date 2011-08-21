@@ -1,11 +1,11 @@
 """
 This is the preliminary interface to VTK.  Note that as of VTK 5.2, it still
 requires a patchset prepared here:
-http://yt.enzotools.org/files/vtk_composite_data.zip
+http://yt-project.org/files/vtk_composite_data.zip
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 

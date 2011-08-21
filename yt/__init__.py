@@ -6,8 +6,8 @@ of Enzo on various existing data, and analyzing output from Enzo in a
 wide-variety of methods.
 
 An ever-growing collection of documentation is also available at
-http://yt.enzotools.org/doc/ . Additionally, there is a
-project site at http://yt.enzotools.org/ with recipes, a wiki, a variety of
+http://yt-project.org/doc/ . Additionally, there is a
+project site at http://yt-project.org/ with recipes, a wiki, a variety of
 ways of peering into the version control, and a bug-reporting system.
 
 YT is divided into several packages.
@@ -62,7 +62,7 @@ categories goes here.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 

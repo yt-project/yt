@@ -3,7 +3,7 @@ Data structures for Castro.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2010 J. S. Oishi.  All Rights Reserved.
 
