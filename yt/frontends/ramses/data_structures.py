@@ -34,6 +34,7 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
+
 try:
     import _ramses_reader
 except ImportError:
@@ -272,8 +273,8 @@ class RAMSESStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
-        if _ramses_reader is None:
-            import _ramses_reader
+        # Here we want to initiate a traceback, if the reader is not built.
+        import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
