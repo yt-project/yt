@@ -1307,7 +1307,7 @@ class YTCommands(cmdln.Cmdln):
                             bb_url = value
                             break
         except error.RepoError:
-            print "Unable to create repo at:"
+            print "Unable to find repo at:"
             print "   %s" % (os.path.abspath(opts.repo))
             print
             print "Would you like to initialize one?  If this message"
@@ -1315,10 +1315,10 @@ class YTCommands(cmdln.Cmdln):
             print "Otherwise, type 'yes' at the prompt."
             print
             loki = raw_input("Create repo? ")
-            if loki.upper() != "YES":
+            if loki.upper().strip() != "YES":
                 print "Okay, rad -- we'll let you handle it and get back to",
                 print " us."
-                return
+                return 1
             commands.init(uu, dest=opts.repo)
             repo = hg.repository(uu, opts.repo)
             commands.add(uu, repo)
@@ -1333,6 +1333,7 @@ class YTCommands(cmdln.Cmdln):
             print "Type 'yes' to accept."
             print
             loki = raw_input("Upload to BitBucket? ")
+            if loki.upper().strip() != "YES": return 1
             hgrc_path = [cedit.config.defaultpath("user", uu)]
             hgrc_path = cedit.config.verifypaths(hgrc_path)
             uu.readconfig(hgrc_path[0])
