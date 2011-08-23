@@ -488,7 +488,7 @@ cdef class RAMSES_tree_proxy:
 
         return cell_count
 
-    def ensure_loaded(self, char *varname, int domain_index, int varindex = -1):
+    cdef ensure_loaded(self, char *varname, int domain_index, int varindex = -1):
         # this domain_index must be zero-indexed
         if varindex == -1: varindex = self.field_ind[varname]
         if self.loaded[domain_index][varindex] == 1:
@@ -676,7 +676,7 @@ cdef class RAMSES_tree_proxy:
         for gi in range(component_grid_info.shape[0]):
             domain = component_grid_info[gi,0]
             if domain == 0: continue
-            self.ensure_loaded(field, domain - 1, varindex = varindex)
+            self.ensure_loaded(field, domain - 1, varindex)
             local_tree = self.trees[domain - 1]
             local_hydro_data = self.hydro_datas[domain - 1][varindex]
             offset = component_grid_info[gi,1]
