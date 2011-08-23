@@ -789,8 +789,8 @@ cdef class ProtoSubgrid:
                         i = i2 - self.left_edge[2]
                         sig2[i] += 1
                         efficiency += 1
-                        used += 1
                         mask[gi] = 1
+            used += mask[gi]
         cdef np.ndarray[np.int64_t, ndim=2] gfl
         gfl = np.zeros((used, 6), 'int64')
         used = 0
