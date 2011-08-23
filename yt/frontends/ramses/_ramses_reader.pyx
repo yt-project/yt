@@ -488,9 +488,9 @@ cdef class RAMSES_tree_proxy:
 
         return cell_count
 
-    def ensure_loaded(self, char *varname, int domain_index):
+    def ensure_loaded(self, char *varname, int domain_index, int varindex = -1):
         # this domain_index must be zero-indexed
-        cdef int varindex = self.field_ind[varname]
+        if varindex == -1: varindex = self.field_ind[varname]
         if self.loaded[domain_index][varindex] == 1:
             return
         cdef string *field_name = new string(varname)
@@ -647,14 +647,16 @@ cdef class RAMSES_tree_proxy:
             data[i] = local_hydro_data.m_var_array[level][8*grid_id+i]
         return tr
 
-    def read_grid(self, char *field, 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def read_grid(self, int varindex, char *field,
                   np.ndarray[np.int64_t, ndim=1] start_index,
                   np.ndarray[np.int32_t, ndim=1] grid_dims,
                   np.ndarray[np.float64_t, ndim=3] data,
                   np.ndarray[np.int32_t, ndim=3] filled,
                   int level, int ref_factor,
                   np.ndarray[np.int64_t, ndim=2] component_grid_info):
-        cdef int varindex = self.field_ind[field]
         cdef RAMSES_tree *local_tree = NULL
         cdef RAMSES_hydro_data *local_hydro_data = NULL
 
@@ -674,7 +676,7 @@ cdef class RAMSES_tree_proxy:
         for gi in range(component_grid_info.shape[0]):
             domain = component_grid_info[gi,0]
             if domain == 0: continue
-            self.ensure_loaded(field, domain - 1)
+            self.ensure_loaded(field, domain - 1, varindex = varindex)
             local_tree = self.trees[domain - 1]
             local_hydro_data = self.hydro_datas[domain - 1][varindex]
             offset = component_grid_info[gi,1]
