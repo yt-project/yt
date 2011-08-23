@@ -294,6 +294,35 @@ def bb_apicall(endpoint, data, use_pass = True):
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
+def _get_yt_supp():
+    supp_path = os.path.join(os.environ["YT_DEST"], "src",
+                             "yt-supplemental")
+    # Now we check that the supplemental repository is checked out.
+    if not os.path.isdir(supp_path):
+        print
+        print "*** The yt-supplemental repository is not checked ***"
+        print "*** out.  I can do this for you, but because this ***"
+        print "*** is a delicate act, I require you to respond   ***"
+        print "*** to the prompt with the word 'yes'.            ***"
+        print
+        response = raw_input("Do you want me to try to check it out? ")
+        if response != "yes":
+            print
+            print "Okay, I understand.  You can check it out yourself."
+            print "This command will do it:"
+            print
+            print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
+            print "%s" % (supp_path)
+            print
+            sys.exit(1)
+        rv = commands.clone(uu,
+                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+        if rv:
+            print "Something has gone wrong.  Quitting."
+            sys.exit(1)
+    # Now we think we have our supplemental repository.
+    return supp_path
+
 class YTCommands(cmdln.Cmdln):
     name="yt"
 
@@ -839,32 +868,7 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        supp_path = os.path.join(os.environ["YT_DEST"], "src",
-                                 "yt-supplemental")
-        # Now we check that the supplemental repository is checked out.
-        if not os.path.isdir(supp_path):
-            print
-            print "*** The yt-supplemental repository is not checked ***"
-            print "*** out.  I can do this for you, but because this ***"
-            print "*** is a delicate act, I require you to respond   ***"
-            print "*** to the prompt with the word 'yes'.            ***"
-            print
-            response = raw_input("Do you want me to try to check it out? ")
-            if response != "yes":
-                print
-                print "Okay, I understand.  You can check it out yourself."
-                print "This command will do it:"
-                print
-                print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
-                print "%s" % (supp_path)
-                print
-                sys.exit(1)
-            rv = commands.clone(uu,
-                    "http://hg.yt-project.org/yt-supplemental/", supp_path)
-            if rv:
-                print "Something has gone wrong.  Quitting."
-                sys.exit(1)
-        # Now we think we have our supplemental repository.
+        supp_path = _get_yt_supp()
         print
         print "I have found the yt-supplemental repository at %s" % (supp_path)
         print
@@ -1252,6 +1256,177 @@ class YTCommands(cmdln.Cmdln):
         child.readlines()
         while 1:
             time.sleep(1)
+
+    @cmdln.option("-R", "--repo", action="store", type="string",
+                  dest="repo", default=".", help="Repository to upload")
+    def do_hubsubmit(self, subcmd, opts):
+        """
+        Submit a mercurial repository to the yt Hub
+        (http://hub.yt-project.org/), creating a BitBucket repo in the process
+        if necessary.
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        import imp
+        from mercurial import hg, ui, commands, error, config
+        uri = "http://hub.yt-project.org/3rdparty/API/api.php"
+        supp_path = _get_yt_supp()
+        try:
+            result = imp.find_module("cedit", [supp_path])
+        except ImportError:
+            print "I was unable to find the 'cedit' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        cedit = imp.load_module("cedit", *result)
+        try:
+            result = imp.find_module("hgbb", [supp_path + "/hgbb"])
+        except ImportError:
+            print "I was unable to find the 'hgbb' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        hgbb = imp.load_module("hgbb", *result)
+        uu = ui.ui()
+        try:
+            repo = hg.repository(uu, opts.repo)
+            conf = config.config()
+            if os.path.exists(os.path.join(opts.repo,".hg","hgrc")):
+                conf.read(os.path.join(opts.repo, ".hg", "hgrc"))
+            needs_bb = True
+            if "paths" in conf.sections():
+                default = conf['paths'].get("default", "")
+                if default.startswith("bb://") or "bitbucket.org" in default:
+                    needs_bb = False
+                    bb_url = default
+                else:
+                    for alias, value in conf["paths"].items():
+                        if value.startswith("bb://") or "bitbucket.org" in value:
+                            needs_bb = False
+                            bb_url = value
+                            break
+        except error.RepoError:
+            print "Unable to create repo at:"
+            print "   %s" % (os.path.abspath(opts.repo))
+            print
+            print "Would you like to initialize one?  If this message"
+            print "surprises you, you should perhaps press Ctrl-C to quit."
+            print "Otherwise, type 'yes' at the prompt."
+            print
+            loki = raw_input("Create repo? ")
+            if loki.upper() != "YES":
+                print "Okay, rad -- we'll let you handle it and get back to",
+                print " us."
+                return
+            commands.init(uu, dest=opts.repo)
+            repo = hg.repository(uu, opts.repo)
+            commands.add(uu, repo)
+            commands.commit(uu, repo, message="Initial automated import by yt")
+            needs_bb = True
+        if needs_bb:
+            print
+            print "Your repository is not yet on BitBucket, as near as I can tell."
+            print "Would you like to create a repository there and upload to it?"
+            print "Without this, I don't know what URL to submit!"
+            print
+            print "Type 'yes' to accept."
+            print
+            loki = raw_input("Upload to BitBucket? ")
+            hgrc_path = [cedit.config.defaultpath("user", uu)]
+            hgrc_path = cedit.config.verifypaths(hgrc_path)
+            uu.readconfig(hgrc_path[0])
+            bb_username = uu.config("bb", "username", None)
+            if bb_username is None:
+                print "Can't find your Bitbucket username.  Run the command:"
+                print
+                print "$ yt bootstrap_dev"
+                print
+                print "to get set up and ready to go."
+                return 1
+            bb_repo_name = os.path.basename(os.path.abspath(opts.repo))
+            print
+            print "I am now going to create the repository:"
+            print "    ", bb_repo_name
+            print "on BitBucket.org and upload this repository to that."
+            print "If that is not okay, please press Ctrl-C to quit."
+            print
+            loki = raw_input("Press Enter to continue.")
+            data = dict(name=bb_repo_name)
+            hgbb._bb_apicall(uu, 'repositories', data)
+            print
+            print "Created repository!  Now I will set this as the default path."
+            print
+            bb_url = "https://%s@bitbucket.org/%s/%s" % (
+                        bb_username, bb_username, bb_repo_name)
+            cedit.config.addsource(uu, repo, "default", bb_url)
+            commands.push(uu, repo, bb_url)
+        if bb_url.startswith("bb://"):
+            bb_username, bb_repo_name = bb_url.split("/")[-2:]
+            bb_url = "https://%s@bitbucket.org/%s/%s" % (
+                bb_username, bb_username, bb_repo_name)
+        # Now we can submit
+        import xml.etree.ElementTree as etree
+        print
+        print "Okay.  Now we're ready to submit to the Hub."
+        print "Remember, you can go to the Hub at any time at"
+        print " http://hub.yt-project.org/"
+        print
+        print "(Especially if you don't have a user yet!  We can wait.)"
+        print
+        hub_username = raw_input("What is your Hub username? ")
+        hub_password = getpass.getpass("What is your Hub password? ")
+        data = urllib.urlencode(dict(fn = "list",
+                                     username=hub_username,
+                                     password=hub_password))
+        req = urllib2.Request(uri, data)
+        rv = urllib2.urlopen(req).read()
+        try:
+            cats = etree.fromstring(rv)
+        except:
+            print "I think you entered your password wrong.  Please check!"
+            return
+
+        categories = {}
+
+        for cat in cats.findall("./cate"):
+            cat_id = int(cat.findall("id")[0].text)
+            cat_name = cat.findall("name")[0].text
+            categories[cat_id] = cat_name
+
+        print
+        for i, n in sorted(categories.items()):
+            print "%i. %s" % (i, n)
+        print
+        cat_id = int(raw_input("Which category number does your script fit into? "))
+        print
+        print "What is the title of your submission? (Usually a repository name) "
+        title = raw_input("Title? ")
+        print
+        print "What tags should be applied to this submission?  Separate with commas."
+        print "(e.g., enzo, flash, gadget, ramses, nyx, yt, visualization, analysis,"
+        print " utility, cosmology)"
+        print
+        tags = raw_input("Tags? ")
+        print
+        print "Give us a very brief summary of the project -- enough to get someone"
+        print "interested enough to click the link and see what it's about.  This"
+        print "should be a few sentences at most."
+        print
+        summary = raw_input("Summary? ")
+        print
+        print "Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out."
+        print
+        loki = raw_input()
+
+        data = urllib.urlencode(dict(fn = "post",
+                                     username=hub_username, password=hub_password,
+                                     url = bb_url, category = cat_id, title = title,
+                                     content = summary, tags = tags))
+        req = urllib2.Request(uri, data)
+        rv = urllib2.urlopen(req).read()
+        print rv
+    
 
 def run_main():
     for co in ["--parallel", "--paste"]:
