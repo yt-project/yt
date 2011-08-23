@@ -227,6 +227,7 @@ class RAMSESHierarchy(AMRHierarchy):
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
+        self.proto_grids = []
         self.grids = na.array(grids, dtype='object')
 
     def _populate_grid_objects(self):

@@ -797,9 +797,9 @@ cdef class ProtoSubgrid:
         self.grid_file_locations = gfl
         for gi in range(ng):
             if mask[gi] == 1:
-                grid_file_locations[gi,3] = left_edges[gi, 0]
-                grid_file_locations[gi,4] = left_edges[gi, 1]
-                grid_file_locations[gi,5] = left_edges[gi, 2]
+                grid_file_locations[gi,3] = left_edges[gi,0]
+                grid_file_locations[gi,4] = left_edges[gi,1]
+                grid_file_locations[gi,5] = left_edges[gi,2]
                 for i in range(6):
                     gfl[used, i] = grid_file_locations[gi,i]
                 used += 1
@@ -1047,7 +1047,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     if L.efficiency > 1.0: raise RuntimeError
     if L.efficiency <= 0.0: rv_l = []
     elif L.efficiency < min_eff:
-        rv_l = recursive_patch_splitting(L, dims_r, li_r,
+        rv_l = recursive_patch_splitting(L, dims_l, li_l,
                 left_index, fl, num_deep + 1)
     else:
         rv_l = [L]
