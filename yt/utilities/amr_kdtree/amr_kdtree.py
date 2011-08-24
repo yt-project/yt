@@ -298,7 +298,7 @@ class AMRKDTree(HomogenizedVolume):
         root_grids = pf.hierarchy.get_levels().next()
         rgdds = root_grids[0].dds
         self.domain_left_edge = (self.domain_left_edge/rgdds).astype('int64')*rgdds
-        self.domain_left_edge = ((self.domain_left_edge/rgdds).astype('int64')+1)*rgdds
+        self.domain_right_edge = ((self.domain_right_edge/rgdds).astype('int64')+1)*rgdds
         
         self.my_l_corner = self.domain_left_edge
         self.my_r_corner = self.domain_right_edge
