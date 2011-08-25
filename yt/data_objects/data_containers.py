@@ -2158,7 +2158,6 @@ class AMRFixedResProjectionBase(AMR2DData):
            na.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
@@ -3006,7 +3005,6 @@ class AMRFloatCoveringGridBase(AMR3DData):
            na.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
@@ -3133,7 +3131,6 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge - self.dds,
                             self.right_edge + self.dds)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge - self.dds,
@@ -3240,7 +3237,6 @@ class AMRCoveringGridBase(AMR3DData):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge - buffer,
                             self.right_edge + buffer)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge - buffer,
