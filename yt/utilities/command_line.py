@@ -367,9 +367,6 @@ class YTCommands(cmdln.Cmdln):
             print
             print "You have to update this installation manually."
             print
-        if vstring is not None and opts.outputfile is not None:
-            open(opts.outputfile, "w").write(vstring)
-
 
     @cmdln.option("-u", "--update-source", action="store_true",
                   default = False,
