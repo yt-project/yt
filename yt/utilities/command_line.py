@@ -365,7 +365,8 @@ class YTCommands(cmdln.Cmdln):
             print "Updated successfully."
         else:
             print
-            print "You have to update this installation manually."
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually."
             print
 
     @cmdln.option("-u", "--update-source", action="store_true",
