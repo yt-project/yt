@@ -441,7 +441,7 @@ class AMRGridPatch(object):
         if smoothed:
             #cube = self.hierarchy.smoothed_covering_grid(
             #    level, new_left_edge, new_right_edge, **kwargs)
-            cube = self.hierarchy.si_covering_grid(
+            cube = self.hierarchy.smoothed_covering_grid(
                 level, new_left_edge, **kwargs)
         else:
             cube = self.hierarchy.covering_grid(
