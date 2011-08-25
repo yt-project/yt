@@ -362,12 +362,10 @@ class YTCommands(cmdln.Cmdln):
             print "---"
             print
             print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                _update_hg(path)
             print "Updated successfully."
-        elif opts.update_source:
+        else:
             print
-            print "You have to update this installation yourself."
+            print "You have to update this installation manually."
             print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
