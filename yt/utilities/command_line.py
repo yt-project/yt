@@ -1409,7 +1409,44 @@ class YTCommands(cmdln.Cmdln):
         req = urllib2.Request(uri, data)
         rv = urllib2.urlopen(req).read()
         print rv
-    
+
+    def do_upload_image(self, subcmd, opts, filename):
+        """
+        Upload an image to imgur.com.  Must be PNG.
+
+        ${cmd_usage} 
+        ${cmd_option_list}
+        """
+        if not filename.endswith(".png"):
+            print "File must be a PNG file!"
+            return 1
+        import base64, json, pprint
+        image_data = base64.b64encode(open(filename).read())
+        api_key = 'f62d550859558f28c4c214136bc797c7'
+        parameters = {'key':api_key, 'image':image_data, type:'base64',
+                      'caption': "",
+                      'title': "%s uploaded by yt" % filename}
+        data = urllib.urlencode(parameters)
+        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        try:
+            response = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as e:
+            print "ERROR", e
+            return {'uploaded':False}
+        rv = json.loads(response)
+        if 'upload' in rv and 'links' in rv['upload']:
+            print
+            print "Image successfully uploaded!  You can find it at:"
+            print "    %s" % (rv['upload']['links']['imgur_page'])
+            print
+            print "If you'd like to delete it, visit this page:"
+            print "    %s" % (rv['upload']['links']['delete_page'])
+            print
+        else:
+            print
+            print "Something has gone wrong!  Here is the server response:"
+            print
+            pprint.pprint(rv)
 
 def run_main():
     for co in ["--parallel", "--paste"]:
