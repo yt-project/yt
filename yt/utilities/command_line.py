@@ -330,13 +330,48 @@ class YTCommands(cmdln.Cmdln):
         cmdln.Cmdln.__init__(self, *args, **kwargs)
         cmdln.Cmdln.do_help.aliases.append("h")
 
-    def do_loop(self, subcmd, opts, *args):
+    def do_update(self, subcmd, opts):
         """
-        Interactive loop
+        Update the yt installation to the most recent version
 
+        ${cmd_usage}
         ${cmd_option_list}
         """
-        self.cmdloop()
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
+        if "site-packages" not in path:
+            vstring = _get_hg_version(path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring.strip()
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            if opts.update_source:  
+                _update_hg(path)
+            print "Updated successfully."
+        elif opts.update_source:
+            print
+            print "You have to update this installation yourself."
+            print
+        if vstring is not None and opts.outputfile is not None:
+            open(opts.outputfile, "w").write(vstring)
+
 
     @cmdln.option("-u", "--update-source", action="store_true",
                   default = False,
@@ -346,7 +381,7 @@ class YTCommands(cmdln.Cmdln):
                   help="File into which the current revision number will be stored")
     def do_instinfo(self, subcmd, opts):
         """
-        ${cmd_name}: Get some information about the yt installation
+        Get some information about the yt installation
 
         ${cmd_usage}
         ${cmd_option_list}
@@ -388,7 +423,7 @@ class YTCommands(cmdln.Cmdln):
 
     def do_load(self, subcmd, opts, arg):
         """
-        Load a single dataset into an IPython instance.
+        Load a single dataset into an IPython instance
 
         ${cmd_option_list}
         """
@@ -427,7 +462,7 @@ class YTCommands(cmdln.Cmdln):
                       'halos','halo_hop_style','halo_radius','halo_radius_units'])
     def do_halos(self, subcmd, opts, arg):
         """
-        Run HaloProfiler on one dataset.
+        Run HaloProfiler on one dataset
 
         ${cmd_option_list}
         """
@@ -441,55 +476,6 @@ class YTCommands(cmdln.Cmdln):
             hp.make_profiles()
         if opts.make_projections:
             hp.make_projections()
-
-    @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
-                      "zlim", "nframes", "output", "cmap", "uboxes", "dex",
-                      "text"])
-    def do_zoomin(self, subcmd, opts, arg):
-        """
-        Create a set of zoomin frames
-
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        min_width = opts.min_width * pf.h.get_smallest_dx()
-        if opts.axis == 4:
-            axes = range(3)
-        else:
-            axes = [opts.axis]
-        pc = PlotCollection(pf)
-        for ax in axes: 
-            if opts.projection: p = pc.add_projection(opts.field, ax,
-                                    weight_field=opts.weight)
-            else: p = pc.add_slice(opts.field, ax)
-            if opts.unit_boxes: p.modify["units"](factor=8)
-            if opts.text is not None:
-                p.modify["text"](
-                    (0.02, 0.05), opts.text.replace(r"\n", "\n"),
-                    text_args=dict(size="medium", color="w"))
-        pc.set_width(opts.max_width,'1')
-        # Check the output directory
-        if not os.path.isdir(opts.output):
-            os.mkdir(opts.output)
-        # Figure out our zoom factor
-        # Recall that factor^nframes = min_width / max_width
-        # so factor = (log(min/max)/log(nframes))
-        mylog.info("min_width: %0.3e max_width: %0.3e nframes: %0.3e",
-                   min_width, opts.max_width, opts.nframes)
-        factor=10**(math.log10(min_width/opts.max_width)/opts.nframes)
-        mylog.info("Zoom factor: %0.3e", factor)
-        w = 1.0
-        for i in range(opts.nframes):
-            mylog.info("Setting width to %0.3e", w)
-            mylog.info("Saving frame %06i",i)
-            pc.set_width(w,"1")
-            if opts.zlim:
-                pc.set_zlim(*opts.zlim)
-            if opts.dex:
-                pc.set_zlim('min', None, opts.dex)
-            pc.set_cmap(opts.cmap)
-            pc.save(os.path.join(opts.output,"%s_frame%06i" % (pf,i)))
-            w = factor**i
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",
@@ -600,7 +586,7 @@ class YTCommands(cmdln.Cmdln):
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
     @add_cmd_options([])
-    def do_analyze(self, subcmd, opts, arg):
+    def _do_analyze(self, subcmd, opts, arg):
         """
         Produce a set of analysis for a given output.  This includes
         HaloProfiler results with r200, as per the recipe file in the cookbook,
@@ -692,7 +678,7 @@ class YTCommands(cmdln.Cmdln):
                   help="File to output to; else, print.")
     def do_pastebin(self, subcmd, opts, arg):
         """
-        Post a script to an anonymous pastebin.
+        Post a script to an anonymous pastebin
 
         Usage: yt pastebin [options] <script>
 
@@ -721,7 +707,7 @@ class YTCommands(cmdln.Cmdln):
                   help="File to output to; else, print.")
     def do_pasteboard_grab(self, subcmd, opts, username, paste_id):
         """
-        Download from your or another user's pasteboard.
+        Download from your or another user's pasteboard
 
         ${cmd_usage} 
         ${cmd_option_list}
@@ -1157,7 +1143,7 @@ class YTCommands(cmdln.Cmdln):
                   help="Add a debugging mode for cell execution")
     def do_serve(self, subcmd, opts):
         """
-        Run the Web GUI
+        Run the Web GUI Reason
         """
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
@@ -1208,7 +1194,7 @@ class YTCommands(cmdln.Cmdln):
                     port=int(opts.port), repl=hr)
 
     
-    def do_remote(self, subcmd, opts):
+    def _do_remote(self, subcmd, opts):
         import getpass, sys, socket, time, webbrowser
         import yt.utilities.pexpect as pex
 
