@@ -81,18 +81,20 @@ class VelocityCallback(PlotCallback):
         else:
             xv = "%s-velocity" % (x_names[plot.data.axis])
             yv = "%s-velocity" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor, self.scale, self.scale_units)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
     _type_name = "magnetic_field"
-    def __init__(self, factor=16):
+    def __init__(self, factor=16, scale=None, scale_units=None):
         """
         Adds a 'quiver' plot of magnetic field to the plot, skipping all but
         every *factor* datapoint
         """
         PlotCallback.__init__(self)
         self.factor = factor
+        self.scale  = scale
+        self.scale_units = scale_units
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -101,12 +103,12 @@ class MagFieldCallback(PlotCallback):
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units)
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor, scale, scale_units):
+    def __init__(self, field_x, field_y, factor, scale=None, scale_units=None):
         """
         Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
         from the associated data, skipping every *factor* datapoints
