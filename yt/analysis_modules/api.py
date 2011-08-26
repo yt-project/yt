@@ -79,7 +79,6 @@ from .hierarchy_subset.api import \
     ExtractedParameterFile
 
 from .level_sets.api import \
-    GridConsiderationQueue, \
     coalesce_join_tree, \
     identify_contours, \
     Clump, \
