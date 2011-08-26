@@ -3,9 +3,9 @@ FLASH-specific fields
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk, John ZuHone.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk, John ZuHone.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -61,8 +61,8 @@ translation_dict = {"x-velocity": "velx",
                     "y-velocity": "vely",
                     "z-velocity": "velz",
                     "Density": "dens",
-                    "Total_Energy": "ener",
-                    "Gas_Energy": "eint",
+                    "TotalEnergy": "ener",
+                    "GasEnergy": "eint",
                     "Temperature": "temp",
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",

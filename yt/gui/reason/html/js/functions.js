@@ -8,8 +8,8 @@ Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
-Homepage: http://yt.enzotools.org/
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -29,24 +29,48 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+function enable_input() {
+    repl_input.body.removeClass("cell_waiting");
+    repl_input.get('input_line').setReadOnly(false);
+    repl_input.get("input_line").focus();
+    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+}
+
+function disable_input() {
+    repl_input.get('input_line').setReadOnly(true);
+    repl_input.body.addClass("cell_waiting");
+}
+
 function cell_finished(result) {
     var new_log = false;
+    var cell_resulted = false;
+    var cell;
     Ext.each(result, 
     function(payload, index) {
-        if (payload['type'] == 'cell_results') {
+        if (payload['type'] == 'shutdown') {
+            task_runner.stop(heartbeat);
+            heartbeat_request = true;
+            return;
+        } else if (payload['type'] == 'cell_results') {
             text = "<pre>"+payload['output']+"</pre>";
             formatted_input = payload['input']
-            var cell = new_cell(formatted_input, text);
+            cell = new_cell(formatted_input, text, payload['raw_input']);
             OutputContainer.add(cell);
             OutputContainer.doLayout();
             notebook.doLayout();
-            repl_input.get("input_line").setValue("");
+            if (repl_input.locked == true) {
+                /* Assume only one locking level */
+                repl_input.locked = false;
+            } else {
+                repl_input.get("input_line").setValue("");
+            }
             if (OutputContainer.items.length > 1) {
                 examine = cell;
                 OutputContainer.body.dom.scrollTop = 
                 OutputContainer.body.dom.scrollHeight -
                 cell.body.dom.scrollHeight - 20;
             }
+            cell_resulted = true;
         } else if (payload['type'] == 'png_string') {
             OutputContainer.add(new Ext.Panel({
                 autoEl:{
@@ -62,6 +86,7 @@ function cell_finished(result) {
         } else if (payload['type'] == 'cell_contents') {
 	        var input_line = repl_input.get("input_line");
 	        input_line.setValue(payload['value']);
+            repl_input.locked = true;
         } else if (payload['type'] == 'log_entry') {
 	        var record = new logging_store.recordType(
 		        {record: payload['log_entry'] });
@@ -69,25 +94,28 @@ function cell_finished(result) {
             new_log = true;
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
-            var widget = new widget_types[widget_type](payload['varname']);
+            var widget = new widget_types[widget_type](payload['varname'],
+                                                       payload['data']);
             widget_list[widget.id] = widget;
+            /*
+               Sometimes instantiating a widget adds some objects ...
+               Plus, often when creating a widget we disable the 
+               entry of data and whatnot. 
+            */
+            cell_resulted = true;
         } else if (payload['type'] == 'widget_payload') {
             var widget = widget_list[payload['widget_id']];
             widget.accept_results(payload);
+        } else {
+            alert("Didn't know how to process " + payload['type']);
         }
     });
-    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
     if (new_log == true){
         viewport.get("status-region").getView().focusRow(number_log_records-1);
     }
-    repl_input.body.removeClass("cell_waiting");
-    repl_input.get('input_line').setReadOnly(false);
-    repl_input.get("input_line").focus();
-}
-
-function cell_sent() {
-    repl_input.get('input_line').setReadOnly(true);
-    repl_input.body.addClass("cell_waiting");
+    if (cell_resulted == true) {
+        enable_input();
+    }
 }
 
 function display_image(image_id) {
@@ -114,33 +142,82 @@ function fill_tree(my_pfs) {
             iconCls: 'pf_icon'}));
         this_pf = treePanel.root.lastChild
         Ext.each(pf.objects, function(obj, obj_index) {
+            examine = this_pf;
             this_pf.appendChild(new Ext.tree.TreeNode(
                 {text: obj.name,
                  leaf: true,
                  iconCls: 'data_obj',
-                 objdata: {varname: obj.varname, type: 'obj'},
+                 objdata: {varname: obj.varname, type: 'obj',
+                           pfdata: this_pf.attributes.objdata},
                  }));
         });
     });
 }
 
-function new_cell(input, result) {
+function new_cell(input, result, raw_input) {
     var name = "cell_" + cell_count;
     var CellPanel = new Ext.Panel(
         { 
             id: name, 
             //title: "Cell " + cell_count,
             items: [
-                new Ext.Panel({
-                    id:name+"_input",
-                    html:input,
-                }),
-                new Ext.Panel({
-                    id:name+"_result",
-                    autoScroll:true,
-                    width: "100%",
-                    html:result,
-                })
+                { xtype:'panel',
+                  layout: 'hbox',
+                  id:name+"_input",
+                  items: [
+                    { xtype:'panel',
+                      html:input,
+                      flex:1,
+                      boxMinHeight: 40,
+                    },
+                    { xtype: 'button',
+                      width: 24,
+                      height: 24,
+                      iconCls: 'upload',
+                      tooltip: 'Upload to Pastebin',
+                      listeners: {
+                          click: function(f, e) {
+                            yt_rpc.ExtDirectREPL.paste_text({to_paste:raw_input},
+                              function(f, a) {
+                                if (a.result['status'] == 'SUCCESS') {
+                                    var alert_text = 'Pasted cell to:<br>' + 
+                                    a.result['site']
+                                    var alert_text_rec = 'Pasted cell to: ' + 
+                                    a.result['site']
+                                    Ext.Msg.alert('Pastebin', alert_text);
+                                    var record = new logging_store.recordType(
+                                        {record: alert_text_rec });
+                                    logging_store.add(record, number_log_records++);
+                              }
+                            });
+                          }
+                        }
+                    },
+                    { xtype: 'button',
+                      width: 24,
+                      height: 24,
+                      iconCls: 'doubleuparrow',
+                      tooltip: 'Copy into current cell',
+                      listeners: {
+                          click: function(f, e) {
+                            repl_input.get('input_line').setValue(raw_input);
+                          }
+                      },
+                    },
+                  ],
+                },
+                { xtype:'panel',
+                  layout: 'hbox',
+                  items: [
+                    { xtype:'panel',
+                      id:name+"_result",
+                      autoScroll:true,
+                      flex: 1,
+                      html:result,
+                      boxMinHeight: 40,
+                    },
+                  ],
+                },
             ]
         }
     );
@@ -148,12 +225,39 @@ function new_cell(input, result) {
     return CellPanel;
 }
 
+function getGridViewerHandler(node){
+function gridViewerHandler(item, pressed){
+    yt_rpc.ExtDirectREPL.create_grid_viewer(
+        {pfname:node.attributes.objdata.varname},
+        handle_result);
+}
+return gridViewerHandler;
+}
+
+function getGridDataViewerHandler(node){
+function gridDataViewerHandler(item, pressed){
+    yt_rpc.ExtDirectREPL.create_grid_dataview(
+        {pfname:node.attributes.objdata.varname},
+        handle_result);
+}
+return gridDataViewerHandler;
+}
+
+function getStreamlineViewerHandler(node){
+function streamlineViewerHandler(item, pressed){
+    yt_rpc.ExtDirectREPL.create_streamline_viewer(
+        {pfname:node.attributes.objdata.varname},
+        handle_result);
+}
+return streamlineViewerHandler;
+}
+
 function getSliceHandler(node){
 function sliceHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
         width:320,
-        height:200,
+        height:250,
         modal:true,
         resizable:false,
         draggable:false,
@@ -191,6 +295,25 @@ function sliceHandler(item,pressed){
                 store:['X','Y','Z'],
                 width: 90,
                 allowBlank:false,
+                value: 'X',
+                triggerAction: 'all',
+            },{
+                xtype:'checkbox',
+                fieldLabel: 'Center on Max',
+                id: 'max_dens',
+                width: 90,
+                allowBlank:false,
+                handler: function(checkbox, checked) {
+                    if (checked == true) {
+                        this.ownerCt.get("slice_x_center").disable();
+                        this.ownerCt.get("slice_y_center").disable();
+                        this.ownerCt.get("slice_z_center").disable();
+                    } else {
+                        this.ownerCt.get("slice_x_center").enable();
+                        this.ownerCt.get("slice_y_center").enable();
+                        this.ownerCt.get("slice_z_center").enable();
+                    }
+                }
             },{
                 xtype:'combo',
                 fieldLabel: 'Field',
@@ -198,6 +321,8 @@ function sliceHandler(item,pressed){
                 store:node.attributes.objdata.field_list,
                 width: 200,
                 allowBlank:false,
+                value: 'Density',
+                triggerAction: 'all',
             }],
             buttons: [
                 {
@@ -208,16 +333,19 @@ function sliceHandler(item,pressed){
                                       Ext.get("slice_z_center").getValue()];
                         var axis = Ext.get("slice_axis").getValue();
                         var field = Ext.get("slice_field").getValue();
+                        var onmax = Ext.get("max_dens").getValue();
                         yt_rpc.ExtDirectREPL.create_slice({
                             pfname:node.attributes.objdata.varname,
-                            center: center, axis:axis, field:field},
+                            center: center, axis:axis, field:field, onmax:onmax},
                           handle_result);
+                        disable_input();
                         win.close();
                     }
                 },{
                     text: 'Cancel',
                     handler: function(b, e){
                         win.close();
+
                     }
                 }
             ]
@@ -234,13 +362,96 @@ function widget_call(varname, method) {
         {code: fcall}, cell_finished);
 }
 
+function getPhasePlotHandler(node){
+function phasePlotHandler(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:370,
+        height:220,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Phase Plot Details for ' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [ {
+                xtype:'combo',
+                fieldLabel: 'X Field',
+                id: 'x_field',
+                store:node.attributes.objdata.pfdata.field_list,
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'Density'
+            },{
+                xtype:'combo',
+                fieldLabel: 'Y Field',
+                id: 'y_field',
+                store:node.attributes.objdata.pfdata.field_list,
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'Temperature'
+            },{
+                xtype:'combo',
+                fieldLabel: 'Z Field',
+                id: 'z_field',
+                store:node.attributes.objdata.pfdata.field_list,
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'CellMassMsun'
+            },{
+                xtype:'combo',
+                fieldLabel: 'Weight Field',
+                id: 'weight',
+                store:['None'].concat(node.attributes.objdata.pfdata.field_list),
+                width: 230,
+                allowBlank:false,
+                triggerAction: 'all',
+                value: 'None'
+            }],
+            buttons: [
+                {
+                    text: 'Calculate',
+                    handler: function(b, e){
+                        var x_field = Ext.get("x_field").getValue();
+                        var y_field = Ext.get("y_field").getValue();
+                        var z_field = Ext.get("z_field").getValue();
+                        var weight = Ext.get("weight").getValue();
+                        yt_rpc.ExtDirectREPL.create_phase({
+                                objname: node.attributes.objdata.varname,
+                                /* Mirror image varnames ... */
+                                field_x: x_field,
+                                field_y: y_field,
+                                field_z: z_field,
+                                weight: weight,
+                                },
+                              handle_result);
+                        disable_input();
+                        win.close();
+                    }
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){win.close()}
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return phasePlotHandler;
+}
 
 function getProjectionHandler(node){
 function projectionHandler(item,pressed){
     var win = new Ext.Window({
         layout:'fit',
         width:370,
-        height:170,
+        height:220,
         modal:true,
         resizable:false,
         draggable:false,
@@ -257,6 +468,15 @@ function projectionHandler(item,pressed){
                 store:['X','Y','Z'],
                 width: 90,
                 allowBlank:false,
+                triggerAction: 'all',
+                value: 'X',
+            },{
+                xtype:'checkbox',
+                fieldLabel: 'Center on Max',
+                id: 'max_dens',
+                width: 90,
+                allowBlank:false,
+                /* No handler, because no center */
             },{
                 xtype:'combo',
                 fieldLabel: 'Field',
@@ -264,6 +484,8 @@ function projectionHandler(item,pressed){
                 store:node.attributes.objdata.field_list,
                 width: 230,
                 allowBlank:false,
+                triggerAction: 'all',
+                value: 'Density'
             },{
                 xtype:'combo',
                 fieldLabel: 'Weight Field',
@@ -271,6 +493,8 @@ function projectionHandler(item,pressed){
                 store:['None'].concat(node.attributes.objdata.field_list),
                 width: 230,
                 allowBlank:false,
+                triggerAction: 'all',
+                value: 'None'
             }],
             buttons: [
                 {
@@ -279,10 +503,13 @@ function projectionHandler(item,pressed){
                         var axis = Ext.get("axis").getValue();
                         var field = Ext.get("field").getValue();
                         var weight = Ext.get("weightField").getValue();
+                        var onmax = Ext.get("max_dens").getValue();
                         yt_rpc.ExtDirectREPL.create_proj({
                                 pfname: node.attributes.objdata.varname,
-                                axis: axis, field: field, weight: weight},
+                                axis: axis, field: field, weight: weight,
+                                onmax: onmax},
                               handle_result);
+                        disable_input();
                         win.close();
                     }
                 },{
@@ -295,4 +522,112 @@ function projectionHandler(item,pressed){
     win.show(this);
 }
 return projectionHandler;
+}
+
+function getSphereCreator(node){
+function sphereCreator(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:320,
+        height:250,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Sphere Creator ' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [{
+                xtype:'textfield',
+                fieldLabel: 'Center X',
+                id: 'slice_x_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Center Y',
+                id: 'slice_y_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Center Z',
+                id: 'slice_z_center',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Radius',
+                id: 'radius_value',
+                value: '0.5',
+                width: 90,
+                allowBlank:false,
+            },{
+                xtype:'combo',
+                fieldLabel: 'Unit',
+                id: 'radius_unit',
+                store:['unitary', '1', 'mpc', 'kpc', 'pc', 'au', 'rsun', 'cm'],
+                width: 90,
+                allowBlank:false,
+                value: 'Unitary',
+                triggerAction: 'all',
+            },{
+                xtype:'checkbox',
+                fieldLabel: 'Center on Max',
+                id: 'max_dens',
+                width: 90,
+                allowBlank:false,
+                handler: function(checkbox, checked) {
+                    if (checked == true) {
+                        this.ownerCt.get("slice_x_center").disable();
+                        this.ownerCt.get("slice_y_center").disable();
+                        this.ownerCt.get("slice_z_center").disable();
+                    } else {
+                        this.ownerCt.get("slice_x_center").enable();
+                        this.ownerCt.get("slice_y_center").enable();
+                        this.ownerCt.get("slice_z_center").enable();
+                    }
+                }
+            }],
+            buttons: [
+                {
+                    text: 'Slice',
+                    handler: function(b, e){
+                        var center = [Ext.get("slice_x_center").getValue(),
+                                      Ext.get("slice_y_center").getValue(),
+                                      Ext.get("slice_z_center").getValue()];
+                        var onmax = Ext.get("max_dens").getValue();
+                        var radius = [Ext.get("radius_value").getValue(),
+                                      Ext.get("radius_unit").getValue()]
+                        objargs = {radius: radius}
+                        if (onmax == true) {
+                            objargs['center'] = 'max';
+                        } else {
+                            objargs['center'] = center;
+                        }
+                        yt_rpc.ExtDirectREPL.object_creator({
+                            pfname:node.attributes.objdata.varname,
+                            objtype:'sphere', objargs:objargs},
+                          handle_result);
+                        disable_input();
+                        win.close();
+                    }
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){
+                        win.close();
+
+                    }
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return sphereCreator;
 }

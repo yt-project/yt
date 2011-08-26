@@ -1,7 +1,7 @@
 This directory contains the compiled yt documentation.  Development of the
 documentation happens in a mercurial repository, yt-doc, available at:
 
-http://hg.enzotools.org/yt-doc/
+http://hg.yt-project.org/yt-doc/
 
 It's written to be used with Sphinx, a tool designed for writing Python
 documentation.  Sphinx is available at this URL:
@@ -11,11 +11,11 @@ http://sphinx.pocoo.org/
 All of the pre-built HTML files, accessible with any web browser, are available
 in the build/ directory, as well as at:
 
-http://yt.enzotools.org/doc/index.html
+http://yt-project.org/doc/index.html
 
 You can also download a copy of the documentation and unzip it right here:
 
-wget http://yt.enzotools.org/doc/download.zip
+wget http://yt-project.org/doc/download.zip
 unzip download.zip
 
 Then open index.html with your favorite web browser, and be off!

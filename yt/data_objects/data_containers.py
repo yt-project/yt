@@ -5,9 +5,9 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -32,6 +32,7 @@ import math
 import weakref
 import exceptions
 import itertools
+import shelve
 
 from yt.funcs import *
 
@@ -410,6 +411,23 @@ class GridPropertiesMixin(object):
                              __del_grid_levels)
 
 
+    def __get_grid_dimensions(self):
+        if self.__grid_dimensions == None:
+            self.__grid_dimensions = na.array([g.ActiveDimensions for g in self._grids])
+        return self.__grid_dimensions
+
+    def __del_grid_dimensions(self):
+        del self.__grid_dimensions
+        self.__grid_dimensions = None
+
+    def __set_grid_dimensions(self, val):
+        self.__grid_dimensions = val
+
+    __grid_dimensions = None
+    grid_dimensions = property(__get_grid_dimensions, __set_grid_dimensions,
+                             __del_grid_dimensions)
+
+
 class AMR1DData(AMRData, GridPropertiesMixin):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):
@@ -581,8 +599,8 @@ class AMRRayBase(AMR1DData):
         --------
 
         >>> pf = load("RedshiftOutput0005")
-        >>> ray = pf.h._ray((0.2, 0.74), (0.4, 0.91))
-        >>> print ray["Density"], ray["t"]
+        >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+        >>> print ray["Density"], ray["t"], ray["dts"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = na.array(start_point, dtype='float64')
@@ -626,7 +644,10 @@ class AMRRayBase(AMR1DData):
                               grid.child_mask)
         if field == 'dts': return self._dts[grid.id][mask]
         if field == 't': return self._ts[grid.id][mask]
-        return grid[field][mask]
+        gf = grid[field]
+        if not iterable(gf):
+            gf = gf * na.ones(grid.child_mask.shape)
+        return gf[mask]
         
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -1418,7 +1439,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 class AMRQuadTreeProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
-    _type_name = "quad_proj"
+    _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
@@ -1428,14 +1449,14 @@ class AMRQuadTreeProjBase(AMR2DData):
         This is a data object corresponding to a line integral through the
         simulation domain.
 
-        This object is typically accessed through the `quad_proj` object that
+        This object is typically accessed through the `proj` object that
         hangs off of hierarchy objects.  AMRQuadProj is a projection of a
         `field` along an `axis`.  The field can have an associated
         `weight_field`, in which case the values are multiplied by a weight
         before being summed, and then divided by the sum of that weight; the
         two fundamental modes of operating are direct line integral (no
         weighting) and average along a line of sight (weighting.)  What makes
-        `quad_proj` different from the standard projection mechanism is that it
+        `proj` different from the standard projection mechanism is that it
         utilizes a quadtree data structure, rather than the old mechanism for
         projections.  It will not run in parallel, but serial runs should be
         substantially faster.  Note also that lines of sight are integrated at
@@ -1514,8 +1535,8 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _initialize_source(self, source = None):
         if source is None:
-            check, source = self._partition_hierarchy_2d(self.axis)
-            self._check_region = check
+            source = self.pf.h.all_data()
+            self._check_region = False
             #self._okay_to_serialize = (not check)
         else:
             self._distributed = False
@@ -1533,7 +1554,7 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
-        return QuadTree(na.array([xd,yd]), nvals)
+        return QuadTree(na.array([xd,yd], dtype='int64'), nvals)
 
     def _get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -1562,19 +1583,22 @@ class AMRQuadTreeProjBase(AMR2DData):
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
             print "Preloading %s grids and getting %s" % (
-                    len(self.source._grids), self._get_dependencies(fields))
-            self._preload(self.source._grids,
+                    len(self.source._get_grid_objs()),
+                    self._get_dependencies(fields))
+            self._preload([g for g in self._get_grid_objs()],
                           self._get_dependencies(fields), self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
         # having to do this by level, and instead do it by CPU file
         for level in range(0, self._max_level+1):
             if self.preload_style == 'level':
-                self._preload(self.source.select_grids(level),
+                self._preload([g for g in self._get_grid_objs()
+                                 if g.Level == level],
                               self._get_dependencies(fields), self.hierarchy.io)
             self._add_level_to_tree(tree, level, fields)
             mylog.debug("End of projecting level level %s, memory usage %0.3e", 
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
+        tree = self.merge_quadtree_buffers(tree)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -1588,9 +1612,11 @@ class AMRQuadTreeProjBase(AMR2DData):
             else:
                 ds = 0.0
             dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
-        del tree
         coord_data = na.concatenate(coord_data, axis=0).transpose()
         field_data = na.concatenate(field_data, axis=0).transpose()
+        if self._weight is None:
+            dls, convs = self._get_dls(self._grids[0], fields)
+            field_data *= convs
         weight_data = na.concatenate(weight_data, axis=0).transpose()
         dxs = na.concatenate(dxs, axis=0).transpose()
         # We now convert to half-widths and center-points
@@ -1606,7 +1632,6 @@ class AMRQuadTreeProjBase(AMR2DData):
         data['pdy'] = data['pdx'] # generalization is out the window!
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
-        data = self._mpi_catdict(data)
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
@@ -1651,7 +1676,9 @@ class AMRQuadTreeProjBase(AMR2DData):
                     to_add, weight_proj[used_points].ravel())
 
     def _add_level_to_tree(self, tree, level, fields):
-        grids_to_project = self.source.select_grids(level)
+        grids_to_project = [g for g in self._get_grid_objs()
+                            if g.Level == level]
+        if len(grids_to_project) == 0: return
         dls, convs = self._get_dls(grids_to_project[0], fields)
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \
@@ -1661,17 +1688,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             pbar.update(pi)
             grid.clear_data()
         pbar.finish()
-        lt = tree.get_all_from_level(level, False)
         return
-        if self._weight is not None:
-            field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
-        else:
-            field_data *= convs[...,na.newaxis]
-        mylog.info("Level %s done: %s final", \
-                   level, coord_data.shape[1])
-        dx = grids_to_project[0].dds[self.axis] # this is our dl
-        return coord_data, dx, field_data
-
 
     def _get_points_in_region(self, grid):
         pointI = self.source._get_point_indices(grid, use_child_mask=False)
@@ -1699,7 +1716,7 @@ class AMRQuadTreeProjBase(AMR2DData):
 class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
-    _type_name = "proj"
+    _type_name = "overlap_proj"
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
@@ -2141,7 +2158,6 @@ class AMRFixedResProjectionBase(AMR2DData):
            na.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
@@ -2183,6 +2199,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         for i,grid in enumerate(self._get_grids()):
             mylog.debug("Getting fields from %s", i)
             self._get_data_from_grid(grid, fields_to_get, dls)
+        mylog.info("IO completed; summing")
         for field in fields_to_get:
             self[field] = self._mpi_Allsum_double(self[field])
             conv = self.pf.units[self.pf.field_info[field].projection_conversion]
@@ -2906,7 +2923,7 @@ class AMRSphereBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
-        if isinstance(radius, tuple) and len(radius) == 2 and \
+        if isinstance(radius, (list, tuple)) and len(radius) == 2 and \
            isinstance(radius[1], types.StringTypes):
            radius = radius[0]/self.pf[radius[1]]
         if radius < self.hierarchy.get_smallest_dx():
@@ -2988,7 +3005,6 @@ class AMRFloatCoveringGridBase(AMR3DData):
            na.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
@@ -3115,7 +3131,6 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge - self.dds,
                             self.right_edge + self.dds)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge - self.dds,
@@ -3222,7 +3237,6 @@ class AMRCoveringGridBase(AMR3DData):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge - buffer,
                             self.right_edge + buffer)
-            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge - buffer,

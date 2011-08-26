@@ -3,7 +3,7 @@ Import the components of the volume rendering extension
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
@@ -403,7 +403,7 @@ def export_partitioned_grids(grid_list, fn, int_type=na.int64, float_type=na.flo
 
 def import_partitioned_grids(fn, int_type=na.int64, float_type=na.float64):
     f = h5py.File(fn, "r")
-    n_groups = len(f.listnames())
+    n_groups = len(f)
     grid_list = []
     dims = f["/PGrids/Dims"][:].astype(int_type)
     left_edges = f["/PGrids/LeftEdges"][:].astype(float_type)

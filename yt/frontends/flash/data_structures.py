@@ -3,9 +3,9 @@ FLASH-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -84,6 +84,12 @@ class FLASHHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s for s in self._handle["/unknown names"][:].flat]
+        facevars = [s for s in self._handle
+                    if s.startswith(("fcx","fcy","fcz")) and s[-1].isdigit()]
+        nfacevars = len(facevars)
+        if (nfacevars > 0) :
+            ncomp += nfacevars
+            self.field_list.append(facevars)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -294,6 +300,21 @@ class FLASHStaticOutput(StaticOutput):
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
         self.domain_right_edge = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+
+        # Determine domain dimensions
+        try:
+            nxb = self._find_parameter("integer", "nxb", scalar = True, handle = self._handle)
+            nyb = self._find_parameter("integer", "nyb", scalar = True, handle = self._handle)
+            nzb = self._find_parameter("integer", "nzb", scalar = True, handle = self._handle)
+        except KeyError:
+            nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
+                              for ax in 'xyz']
+        nblockx = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblocky = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblockz = self._find_parameter("integer", "nblockx", handle = self._handle)
+        self.domain_dimensions = \
+            na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+
         if self._flash_version == 7:
             self.current_time = float(
                 self._handle["simulation parameters"][:]["time"])
@@ -317,6 +338,7 @@ class FLASHStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self._handle.close()
+        self._handle = None
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

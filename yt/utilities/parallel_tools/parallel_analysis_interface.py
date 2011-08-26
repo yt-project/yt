@@ -3,9 +3,9 @@ Parallel data mapping techniques for yt
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -36,6 +36,8 @@ from yt.config import ytcfg
 from yt.utilities.definitions import \
     x_dict, y_dict
 import yt.utilities.logger
+from yt.utilities.amr_utils import \
+    QuadTree, merge_quadtrees
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
@@ -1065,7 +1067,7 @@ class ParallelAnalysisInterface(object):
                 ncols, size = data.shape
         ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
         if size == 0:
-            data = na.empty((ncols,0), dtype='float64') # This only works for
+            data = na.zeros((ncols,0), dtype='float64') # This only works for
         size = data.shape[-1]
         sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
         outsize = na.array(size, dtype='int64')
@@ -1252,6 +1254,74 @@ class ParallelAnalysisInterface(object):
     def _is_mine(self, obj):
         if not obj._distributed: return True
         return (obj._owner == MPI.COMM_WORLD.rank)
+
+    def _send_quadtree(self, target, qt, tgd, args):
+        sizebuf = na.zeros(1, 'int64')
+        buf = qt.tobuffer()
+        sizebuf[0] = buf[0].size
+        MPI.COMM_WORLD.Send([sizebuf, MPI.LONG], dest=target)
+        MPI.COMM_WORLD.Send([buf[0], MPI.INT], dest=target)
+        MPI.COMM_WORLD.Send([buf[1], MPI.DOUBLE], dest=target)
+        MPI.COMM_WORLD.Send([buf[2], MPI.DOUBLE], dest=target)
+        
+    def _recv_quadtree(self, target, tgd, args):
+        sizebuf = na.zeros(1, 'int64')
+        MPI.COMM_WORLD.Recv(sizebuf, source=target)
+        buf = [na.empty((sizebuf[0],), 'int32'),
+               na.empty((sizebuf[0], args[2]),'float64'),
+               na.empty((sizebuf[0],),'float64')]
+        MPI.COMM_WORLD.Recv([buf[0], MPI.INT], source=target)
+        MPI.COMM_WORLD.Recv([buf[1], MPI.DOUBLE], source=target)
+        MPI.COMM_WORLD.Recv([buf[2], MPI.DOUBLE], source=target)
+        qt = QuadTree(tgd, args[2])
+        qt.frombuffer(*buf)
+        return qt
+
+    @parallel_passthrough
+    def merge_quadtree_buffers(self, qt):
+        # This is a modified version of pairwise reduction from Lisandro Dalcin,
+        # in the reductions demo of mpi4py
+        size = MPI.COMM_WORLD.size
+        rank = MPI.COMM_WORLD.rank
+
+        mask = 1
+
+        args = qt.get_args() # Will always be the same
+        tgd = na.array([args[0], args[1]], dtype='int64')
+        sizebuf = na.zeros(1, 'int64')
+
+        while mask < size:
+            if (mask & rank) != 0:
+                target = (rank & ~mask) % size
+                #print "SENDING FROM %02i to %02i" % (rank, target)
+                self._send_quadtree(target, qt, tgd, args)
+                #qt = self._recv_quadtree(target, tgd, args)
+            else:
+                target = (rank | mask)
+                if target < size:
+                    #print "RECEIVING FROM %02i on %02i" % (target, rank)
+                    qto = self._recv_quadtree(target, tgd, args)
+                    merge_quadtrees(qt, qto)
+                    del qto
+                    #self._send_quadtree(target, qt, tgd, args)
+            mask <<= 1
+
+        if rank == 0:
+            buf = qt.tobuffer()
+            sizebuf[0] = buf[0].size
+        MPI.COMM_WORLD.Bcast([sizebuf, MPI.LONG], root=0)
+        if rank != 0:
+            buf = [na.empty((sizebuf[0],), 'int32'),
+                   na.empty((sizebuf[0], args[2]),'float64'),
+                   na.empty((sizebuf[0],),'float64')]
+        MPI.COMM_WORLD.Bcast([buf[0], MPI.INT], root=0)
+        MPI.COMM_WORLD.Bcast([buf[1], MPI.DOUBLE], root=0)
+        MPI.COMM_WORLD.Bcast([buf[2], MPI.DOUBLE], root=0)
+        self.refined = buf[0]
+        if rank != 0:
+            qt = QuadTree(tgd, args[2])
+            qt.frombuffer(*buf)
+        return qt
 
 __tocast = 'c'
 

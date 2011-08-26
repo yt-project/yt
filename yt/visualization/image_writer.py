@@ -2,7 +2,7 @@
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation:  UCSD
 License:
-  Copyright (C) 2010 Matthew Turk  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk  All Rights Reserved.
 
   This file is part of yt.
 
@@ -29,13 +29,29 @@ from yt.funcs import *
 import _colormap_data as cmd
 import yt.utilities.amr_utils as au
 
-def _scale_image(image):
+def scale_image(image, mi=None, ma=None):
+    r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
+    from [0,255].
+
+    Parameters
+    ----------
+    image : array_like or tuple of image info
+
+    Examples
+    --------
+
+        >>> image = scale_image(image)
+
+        >>> image = scale_image(image, min=0, max=1000)
+    """
     if isinstance(image, na.ndarray) and image.dtype == na.uint8:
         return image
     if isinstance(image, (types.TupleType, types.ListType)):
         image, mi, ma = image
-    else:
-        mi, ma = image.min(), image.max()
+    if mi is None:
+        mi = image.min()
+    if ma is None:
+        ma = image.max()
     image = (na.clip((image-mi)/(ma-mi) * 255, 0, 255)).astype('uint8')
     return image
 
@@ -86,16 +102,16 @@ def multi_image_composite(fn, red_channel, blue_channel,
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
-    red_channel = _scale_image(red_channel)
-    blue_channel = _scale_image(blue_channel)
+    red_channel = scale_image(red_channel)
+    blue_channel = scale_image(blue_channel)
     if green_channel is None:
         green_channel = na.zeros(red_channel.shape, dtype='uint8')
     else:
-        green_channel = _scale_image(green_channel)
+        green_channel = scale_image(green_channel)
     if alpha_channel is None:
         alpha_channel = na.zeros(red_channel.shape, dtype='uint8') + 255
     else:
-        alpha_channel = _scale_image(alpha_channel) 
+        alpha_channel = scale_image(alpha_channel) 
     image = na.array([red_channel, green_channel, blue_channel, alpha_channel])
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
@@ -209,6 +225,8 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
         mi = na.nanmin(image[~na.isinf(image)])
         ma = na.nanmax(image[~na.isinf(image)])
         color_bounds = mi, ma
+    else:
+        color_bounds = [func(c) for c in color_bounds]
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = na.clip(to_plot, 0, 255)
@@ -277,9 +295,10 @@ def map_to_colors(buff, cmap_name):
     return mapped.copy("C")
 
 def strip_colormap_data(fn = "color_map_data.py",
-            cmaps = ("jet", "algae", "hot", "gist_stern")):
+            cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu",
+                     "kamae")):
     import pprint
-    import _colormap_data as rcm
+    import color_maps as rcm
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")

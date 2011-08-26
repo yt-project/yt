@@ -5,11 +5,15 @@
 # Masses
 mass_hydrogen_cgs = 1.67e-24 # g
 mass_electron_cgs = 9.11e-28 # g
+amu_cgs           = 1.66053886e-24 # g
 # Velocities
 speed_of_light_cgs = 2.99792458e10 # cm/s, exact
 
 # Cross Sections
 cross_section_thompson_cgs = 6.65e-25 # cm^2
+
+# Charge
+charge_proton_cgs = 4.803e-28 # emu = 1.602e-19  Coulombs
 
 # Physical Constants
 boltzmann_constant_cgs = 1.3806504e-16 # erg K^-1
@@ -21,7 +25,7 @@ rho_crit_now = 1.8788e-29 # g times h^2 (critical mass for closure, Cosmology)
 mass_mean_atomic_cosmology = 1.22
 mass_mean_atomic_galactic = 2.3
 
-# Conversion Factors:  X au * mpc_per_au = Y au
+# Conversion Factors:  X au * mpc_per_au = Y mpc
 # length
 mpc_per_mpc   = 1
 mpc_per_kpc   = 1e-3
@@ -47,6 +51,7 @@ pc_per_cm     = 3.24e-19
 G = gravitational_constant_cgs
 me = mass_electron_cgs
 mp = mass_hydrogen_cgs
+qp = charge_proton_cgs
 mh = mp
 clight = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs

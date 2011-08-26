@@ -7,9 +7,9 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -47,7 +47,9 @@ from image_writer import \
     write_image, \
     map_to_colors, \
     splat_points, \
-    annotate_image
+    annotate_image, \
+    apply_colormap, \
+    scale_image
 
 from plot_modifications import \
     PlotCallback, \

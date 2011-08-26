@@ -3,7 +3,7 @@ Simle integrators for the radiative transfer equation
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
@@ -198,6 +198,7 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
         # If we've reached t = 1, we are done.
         grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
         if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
+            grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0
             grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
             break
         if tmax[0] < tmax[1]:

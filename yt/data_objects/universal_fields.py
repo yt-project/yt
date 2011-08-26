@@ -5,9 +5,9 @@ native.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -413,17 +413,15 @@ add_field("DensityPerturbation",function=_DensityPerturbation,units=r"")
 
 # This is rho_b / <rho_b>.
 def _Baryon_Overdensity(field, data):
-    return data['Density']
-def _Convert_Baryon_Overdensity(data):
-    if data.pf.parameters.has_key('omega_baryon_now'):
-        omega_baryon_now = data.pf.parameters['omega_baryon_now']
+    if data.pf.has_key('omega_baryon_now'):
+        omega_baryon_now = data.pf['omega_baryon_now']
     else:
         omega_baryon_now = 0.0441
-    return 1 / (omega_baryon_now * rho_crit_now * 
-                (data.pf['CosmologyHubbleConstantNow']**2) * 
-                ((1+data.pf['CosmologyCurrentRedshift'])**3))
+    return data['Density'] / (omega_baryon_now * rho_crit_now * 
+                              (data.pf['CosmologyHubbleConstantNow']**2) * 
+                              ((1+data.pf['CosmologyCurrentRedshift'])**3))
 add_field("Baryon_Overdensity", function=_Baryon_Overdensity, 
-          convert_function=_Convert_Baryon_Overdensity, units=r"")
+          units=r"")
 
 # Weak lensing convergence.
 # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
@@ -527,12 +525,14 @@ def _DivV(field, data):
     ds = div_fac * data['dx'].flat[0]
     f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
     f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-    ds = div_fac * data['dy'].flat[0]
-    f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-    f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-    ds = div_fac * data['dz'].flat[0]
-    f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-    f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+    if data.pf.dimensionality > 1:
+        ds = div_fac * data['dy'].flat[0]
+        f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
+        f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    if data.pf.dimensionality > 2:
+        ds = div_fac * data['dz'].flat[0]
+        f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
+        f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
@@ -626,17 +626,17 @@ add_field("AngularMomentumMSUNKMSMPC", function=_AngularMomentum,
 def _AngularMomentumX(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumX"]
 add_field("AngularMomentumX", function=_AngularMomentumX,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=False,
          validators=[ValidateParameter('center')])
 def _AngularMomentumY(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumY"]
 add_field("AngularMomentumY", function=_AngularMomentumY,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=False,
          validators=[ValidateParameter('center')])
 def _AngularMomentumZ(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumZ"]
 add_field("AngularMomentumZ", function=_AngularMomentumZ,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=False,
          validators=[ValidateParameter('center')])
 
 def _ParticleSpecificAngularMomentum(field, data):
@@ -932,3 +932,47 @@ add_field("MagneticEnergy",function=_MagneticEnergy,
                         ValidateDataField("By"),
                         ValidateDataField("Bz")])
 
+def _VorticitySquared(field, data):
+    mylog.debug("Generating vorticity on %s", data)
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["x-velocity"].shape)
+    dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
+             data["z-velocity"][1:-1,sl_left,1:-1]) \
+             / (div_fac*data["dy"].flat[0])
+    dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
+             data["y-velocity"][1:-1,1:-1,sl_left]) \
+             / (div_fac*data["dz"].flat[0])
+    new_field[1:-1,1:-1,1:-1] += (dvzdy - dvydz)**2.0
+    del dvzdy, dvydz
+    dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
+             data["x-velocity"][1:-1,1:-1,sl_left]) \
+             / (div_fac*data["dz"].flat[0])
+    dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
+             data["z-velocity"][sl_left,1:-1,1:-1]) \
+             / (div_fac*data["dx"].flat[0])
+    new_field[1:-1,1:-1,1:-1] += (dvxdz - dvzdx)**2.0
+    del dvxdz, dvzdx
+    dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
+             data["y-velocity"][sl_left,1:-1,1:-1]) \
+             / (div_fac*data["dx"].flat[0])
+    dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
+             data["x-velocity"][1:-1,sl_left,1:-1]) \
+             / (div_fac*data["dy"].flat[0])
+    new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
+    del dvydx, dvxdy
+    new_field = na.abs(new_field)
+    return new_field
+def _convertVorticitySquared(data):
+    return data.convert("cm")**-2.0
+add_field("VorticitySquared", function=_VorticitySquared,
+          validators=[ValidateSpatial(1)],
+          units=r"\rm{s}^{-2}",
+          convert_function=_convertVorticitySquared)

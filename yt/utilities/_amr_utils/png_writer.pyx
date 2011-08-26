@@ -3,9 +3,9 @@ A light interface to libpng
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -26,6 +26,9 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
+from libc.stdlib cimport malloc, realloc
+from libc.string cimport memcpy
+from cpython.string cimport PyString_FromStringAndSize
 
 from stdio cimport fopen, fclose, FILE
 
@@ -57,7 +60,7 @@ cdef extern from "png.h":
     ctypedef FILE            *png_FILE_p
 
     ctypedef struct png_struct:
-        pass
+        png_voidp io_ptr
     ctypedef png_struct      *png_structp
 
     ctypedef struct png_info:
@@ -99,9 +102,21 @@ cdef extern from "png.h":
     void png_set_sBIT(png_structp png_ptr, png_infop info_ptr,
         png_color_8p sig_bit)
 
+    ctypedef void (*png_rw_ptr) (png_structp, png_bytep, size_t)
+    ctypedef void (*png_flush_ptr) (png_structp)
+    void png_set_write_fn(png_structp png_ptr, png_voidp io_ptr,
+                          png_rw_ptr write_data_fn,
+                          png_flush_ptr output_flush_fn)
+    png_voidp png_get_io_ptr (png_structp png_ptr)
+
     void png_write_info(png_structp png_ptr, png_infop info_ptr)
+    void png_set_rows(png_structp png_ptr, png_infop info_ptr,
+                      png_bytep *row_pointers)
     void png_write_image(png_structp png_ptr, png_bytep *image)
     void png_write_end(png_structp png_ptr, png_infop info_ptr)
+    void png_write_png(png_structp png_ptr, png_infop info_ptr,
+                       int transforms, png_voidp params)
+    cdef int PNG_TRANSFORM_IDENTITY
 
     void png_destroy_write_struct(
         png_structp *png_ptr_ptr, png_infop *info_ptr_ptr)
@@ -200,6 +215,79 @@ def write_png(np.ndarray[np.uint8_t, ndim=3] buffer,
 
     fclose(fileobj)
     png_destroy_write_struct(&png_ptr, &info_ptr)
+
+
+# Much of this is inspired by and translated from this StackOverflow question:
+# http://stackoverflow.com/questions/1821806/how-to-encode-png-to-buffer-using-libpng
+
+cdef public struct mem_encode:
+    char *buffer
+    size_t size
+
+cdef public void my_png_write_data(png_structp png_ptr, png_bytep data,
+                                   size_t length):
+    cdef png_voidp temp = png_get_io_ptr(png_ptr)
+    cdef mem_encode *p = <mem_encode *> temp
+    cdef size_t nsize = p.size + length
+    if p.buffer != NULL:
+        p.buffer = <char *> realloc(p.buffer, nsize)
+    else:
+        p.buffer = <char *> malloc(nsize)
+    memcpy(p.buffer + p.size, data, length)
+    p.size += length
+
+cdef public void my_png_flush(png_structp png_ptr):
+    return
+
+def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100):
+
+    # This is something of a translation of the matplotlib _png module
+    cdef png_byte *pix_buffer = <png_byte *> buffer.data
+    cdef int width = buffer.shape[1]
+    cdef int height = buffer.shape[0]
+
+    cdef png_bytep *row_pointers
+    cdef png_structp png_ptr
+    cdef png_infop info_ptr
+
+    cdef png_color_8 sig_bit
+    cdef png_uint_32 row
+
+    row_pointers = <png_bytep *> alloca(sizeof(png_bytep) * height)
+
+    for row in range(height):
+        row_pointers[row] = pix_buffer + row * width * 4
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)
+    info_ptr = png_create_info_struct(png_ptr)
+    
+    # Um we are ignoring setjmp sorry guys
+
+    png_set_IHDR(png_ptr, info_ptr, width, height, 8,
+                 PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE)
+
+    cdef size_t dots_per_meter = <size_t> (dpi / (2.54 / 100.0))
+    png_set_pHYs(png_ptr, info_ptr, dots_per_meter, dots_per_meter,
+                 PNG_RESOLUTION_METER)
+
+    sig_bit.gray = 0
+    sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 8
+
+    png_set_sBIT(png_ptr, info_ptr, &sig_bit)
+
+    cdef mem_encode state 
+    state.buffer = NULL
+    state.size = 0
+
+    png_set_write_fn(png_ptr, <png_voidp> &state, my_png_write_data, NULL)
+    png_set_rows(png_ptr, info_ptr, row_pointers)
+    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL)
+
+    png_destroy_write_struct(&png_ptr, &info_ptr)
+
+    pp = PyString_FromStringAndSize(state.buffer, state.size)
+    if state.buffer != NULL: free(state.buffer)
+    return pp
 
 def add_points_to_image(
         np.ndarray[np.uint8_t, ndim=3] buffer,

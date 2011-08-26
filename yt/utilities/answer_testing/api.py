@@ -7,9 +7,9 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -32,8 +32,16 @@ from .runner import \
     RegressionTestRunner, \
     RegressionTestStorage, \
     run_main, \
-    clear_registry
+    clear_registry, \
+    registry_entries
 
 from .output_tests import \
     YTStaticOutputTest, \
     create_test
+
+from .default_tests import \
+    TestFieldStatistics, \
+    TestAllProjections
+
+from .xunit import \
+    Xunit

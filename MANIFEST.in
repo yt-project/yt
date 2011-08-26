@@ -1,0 +1,2 @@
+recursive-include yt/gui/reason/html/ *.html *.png *.ico *.js
+recursive-include yt/ *.pyx *.pxd *.hh *.h README* 

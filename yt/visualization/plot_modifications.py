@@ -5,11 +5,11 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
 Affiliation: UC Berkeley
-Author: Stephen Skory <sskory@physics.ucsd.edu>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -60,13 +60,17 @@ class PlotCallback(object):
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
-    def __init__(self, factor=16):
+    def __init__(self, factor=16, scale=None, scale_units=None):
         """
         Adds a 'quiver' plot of velocity to the plot, skipping all but
         every *factor* datapoint
+        *scale* is the data units per arrow length unit using *scale_units* 
+        (see matplotlib.axes.Axes.quiver for more info)
         """
         PlotCallback.__init__(self)
         self.factor = factor
+        self.scale  = scale
+        self.scale_units = scale_units
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -77,7 +81,7 @@ class VelocityCallback(PlotCallback):
         else:
             xv = "%s-velocity" % (x_names[plot.data.axis])
             yv = "%s-velocity" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor)
+            qcb = QuiverCallback(xv, yv, self.factor, self.scale, self.scale_units)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
@@ -102,16 +106,20 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor):
+    def __init__(self, field_x, field_y, factor, scale, scale_units):
         """
         Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
-        from the associated data, skipping every *factor* datapoints.
+        from the associated data, skipping every *factor* datapoints
+        *scale* is the data units per arrow length unit using *scale_units* 
+        (see matplotlib.axes.Axes.quiver for more info)
         """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
         self.bv_x = self.bv_y = 0
         self.factor = factor
+        self.scale = scale
+        self.scale_units = scale_units
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -137,7 +145,7 @@ class QuiverCallback(PlotCallback):
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
-        plot._axes.quiver(X,Y, pixX, pixY)
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)

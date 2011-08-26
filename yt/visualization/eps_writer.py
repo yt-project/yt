@@ -4,12 +4,12 @@ DualEPS: A class to combine bitmap compression and vector graphics
 Author: John Wise <jwise@astro.princeton.edu>
 Date: April 2010
 Affiliation: Princeton
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 
 Requirements: PyX
 
 License:
-  Copyright (C) 2010 John Wise.  All Rights Reserved.
+  Copyright (C) 2010-2011 John Wise.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -279,7 +279,7 @@ class DualEPS(object):
         if isinstance(plot, VMPlot):
             if units == None:
                 # Determine the best units
-                astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'Mpc']
+                astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'mpc']
                 best_fit = 0
                 while plot.width*plot.pf[astro_units[best_fit]] > 1e3 and \
                           best_fit < len(astro_units):

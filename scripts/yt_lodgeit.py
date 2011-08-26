@@ -33,7 +33,7 @@ from optparse import OptionParser
 
 SCRIPT_NAME = os.path.basename(sys.argv[0])
 VERSION = '0.3'
-SERVICE_URL = 'http://paste.enzotools.org/'
+SERVICE_URL = 'http://paste.yt-project.org/'
 SETTING_KEYS = ['author', 'title', 'language', 'private', 'clipboard',
                 'open_browser']
 

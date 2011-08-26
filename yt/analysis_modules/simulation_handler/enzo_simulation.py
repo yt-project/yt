@@ -3,9 +3,9 @@ EnzoSimulation class and member functions.
 
 Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Britton Smith.  All Rights Reserved.
+  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -39,45 +39,71 @@ from yt.convenience import \
     load
 
 class EnzoSimulation(object):
-    """
-    Super class for performing the same operation over all data dumps in 
+    r"""Super class for performing the same operation over all data dumps in 
     a simulation from one redshift to another.
     """
-    def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
+    def __init__(self, enzo_parameter_file, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
                  links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True, get_available_data=False,
                  get_data_by_force=False):
+        r"""Initialize an Enzo Simulation object.
+        
+        initial_time : float
+            The initial time in code units for the dataset list.  Default: None.
+        final_time : float
+            The final time in code units for the dataset list.  Default: None.
+        initial_redshift : float
+            The initial (highest) redshift for the dataset list. Only for 
+            cosmological simulations.  Default: None.
+        final_redshift : float
+            The final (lowest) redshift for the dataset list.
+            Only for cosmological 
+            simulations.  Default: None.
+        links : bool
+            If True, each entry in the dataset list will contain entries,
+            previous and next, that 
+            point to the previous and next entries on the dataset list.
+            Default: False.
+        enzo_parameters : dict
+            Adictionary specify additional parameters to be retrieved from the 
+            parameter file.  The format should be the name of the parameter
+            as the key and the variable type as 
+            the value.  For example, {'CosmologyComovingBoxSize':float}.
+            All parameter values will be stored in 
+            the dictionary attribute, enzoParameters.  Default: None.
+        get_time_outputs : bool
+            If False, the time datasets, specified in Enzo with the dtDataDump,
+            will not be added to the dataset list.  Default: True.
+        get_redshift_outputs : bool
+            If False, the redshift datasets will not be added to the
+            dataset list.  Default: True.
+        get_available_data : bool
+            If True, only datasets that are found to exist at the
+            file path are added 
+            to the list.  Default: False.
+        get_data_by_force : bool
+            If True, time data dumps are not calculated using dtDataDump.
+            Instead, the 
+            the working directory is searched for directories that match the
+            datadumpname keyword.  Each dataset 
+            is loaded up to get the time and redshift manually.
+            This is useful with collapse simulations that use 
+            OutputFirstTimeAtLevel or with simulations that make outputs based
+            on cycle numbers.  Default: False.
+        
+        Examples
+        --------
+        >>> import yt.analysis_modules.simulation_handler.api as ES
+        >>> es = ES.EnzoSimulation("my_simulation.par")
+
         """
-        Initialize an EnzoSimulation object.
-        :param initial_time (float): the initial time in code units for the dataset list.  Default: None.
-        :param final_time (float): the final time in code units for the dataset list.  Default: None.
-        :param initial_redshift (float): the initial (highest) redshift for the dataset list.  Only for 
-               cosmological simulations.  Default: None.
-        :param final_redshift (float): the final (lowest) redshift for the dataset list.  Only for cosmological 
-               simulations.  Default: None.
-        :param links (bool): if True, each entry in the dataset list will contain entries, previous and next, that 
-               point to the previous and next entries on the dataset list.  Default: False.
-        :param enzo_parameters (dict): a dictionary specify additional parameters to be retrieved from the 
-               parameter file.  The format should be the name of the parameter as the key and the variable type as 
-               the value.  For example, {'CosmologyComovingBoxSize':float}.  All parameter values will be stored in 
-               the dictionary attribute, enzoParameters.  Default: None.
-        :param get_time_outputs (bool): if False, the time datasets, specified in Enzo with the dtDataDump, will not 
-               be added to the dataset list.  Default: True.
-        :param get_redshift_outputs (bool): if False, the redshift datasets will not be added to the dataset list.  Default: True.
-        :param get_available_data (bool): if True, only datasets that are found to exist at the file path are added 
-               to the list.  Default: False.
-        :param get_data_by_force (bool): if True, time data dumps are not calculated using dtDataDump.  Instead, the 
-               the working directory is searched for directories that match the datadumpname keyword.  Each dataset 
-               is loaded up to get the time and redshift manually.  This is useful with collapse simulations that use 
-               OutputFirstTimeAtLevel or with simulations that make outputs based on cycle numbers.  Default: False.
-        """
-        self.EnzoParameterFile = EnzoParameterFile
+        self.enzo_parameter_file = enzo_parameter_file
         self.enzoParameters = {}
         self.redshift_outputs = []
         self.allOutputs = []
         self.InitialTime = initial_time
         self.FinalTime = final_time
-        self.InitialRedshift = initial_redshift
-        self.FinalRedshift = final_redshift
+        self.initial_redshift = initial_redshift
+        self.final_redshift = final_redshift
         self.links = links
         self.get_time_outputs = get_time_outputs
         self.get_redshift_outputs = get_redshift_outputs
@@ -202,20 +228,20 @@ class EnzoSimulation(object):
         """
 
         # Check for sufficient starting/ending parameters.
-        if self.InitialTime is None and self.InitialRedshift is None:
+        if self.InitialTime is None and self.initial_redshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
                'CosmologyInitialRedshift' in self.enzoParameters:
-                self.InitialRedshift = self.enzoParameters['CosmologyInitialRedshift']
+                self.initial_redshift = self.enzoParameters['CosmologyInitialRedshift']
             elif 'InitialTime' in self.enzoParameters:
                 self.InitialTime = self.enzoParameters['InitialTime']
             else:
                 mylog.error("Couldn't find parameter for initial time or redshift from parameter file.")
                 return None
 
-        if self.FinalTime is None and self.FinalRedshift is None:
+        if self.FinalTime is None and self.final_redshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
                'CosmologyFinalRedshift' in self.enzoParameters:
-                self.FinalRedshift = self.enzoParameters['CosmologyFinalRedshift']
+                self.final_redshift = self.enzoParameters['CosmologyFinalRedshift']
             elif 'StopTime' in self.enzoParameters:
                 self.FinalTime = self.enzoParameters['StopTime']
             else:
@@ -236,11 +262,11 @@ class EnzoSimulation(object):
                                                 OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
                                                 OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
                                                 InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
-            if self.InitialRedshift is not None:
-                self.InitialTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.InitialRedshift) / \
+            if self.initial_redshift is not None:
+                self.InitialTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.initial_redshift) / \
                     self.enzo_cosmology.TimeUnits
-            if self.FinalRedshift is not None:
-                self.FinalTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.FinalRedshift) / \
+            if self.final_redshift is not None:
+                self.FinalTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.final_redshift) / \
                     self.enzo_cosmology.TimeUnits
 
         # Get initial time of simulation.
@@ -286,7 +312,7 @@ class EnzoSimulation(object):
 
     def _read_enzo_parameter_file(self):
         "Reads an Enzo parameter file looking for cosmology and output parameters."
-        lines = open(self.EnzoParameterFile).readlines()
+        lines = open(self.enzo_parameter_file).readlines()
         for line in lines:
             if line.find("#") >= 0: # Keep the commented lines
                 line=line[:line.find("#")]
@@ -331,16 +357,38 @@ class EnzoSimulation(object):
 
     def imagine_minimal_splice(self, initial_redshift, final_redshift, decimals=3, filename=None, 
                                redshift_output_string='CosmologyOutputRedshift', start_index=0):
-        """
-        Create imaginary list of redshift outputs to maximally span a redshift interval.
-        :param decimals (int): The decimal place to which the output redshift will be rounded.  
-               If the decimal place in question is nonzero, the redshift will be rounded up to 
-               ensure continuity of the splice.  Default: 3.
-        :param filename (str): If provided, a file will be written with the redshift outputs in 
-               the form in which they should be given in the enzo parameter file.  Default: None.
-        :param redshift_output_string (str): The parameter accompanying the redshift outputs in the 
-               enzo parameter file.  Default: "CosmologyOutputRedshift".
-        :param start_index (int): The index of the first redshift output.  Default: 0.
+        r"""Create imaginary list of redshift outputs to maximally
+        span a redshift interval.
+        
+        If you want to run a cosmological simulation that will have just
+        enough data outputs to create a cosmology splice,
+        this method will calculate a list of redshifts outputs that will
+        minimally connect a redshift interval.
+        
+        Parameters
+        ----------
+        decimals : int
+            The decimal place to which the output redshift will be rounded.  
+            If the decimal place in question is nonzero, the redshift will
+            be rounded up to 
+            ensure continuity of the splice.  Default: 3.
+        filename : string
+            If provided, a file will be written with the redshift outputs in 
+            the form in which they should be given in the enzo parameter file.
+            Default: None.
+        redshift_output_string : string
+            The parameter accompanying the redshift outputs in the 
+            enzo parameter file.  Default: "CosmologyOutputRedshift".
+        start_index : int
+            The index of the first redshift output.  Default: 0.
+        
+        Examples
+        --------
+        >>> initial_redshift = 0.4
+        >>> final_redshift = 0.0
+        >>> outputs = es.imagine_minimal_splice(initial_redshift, final_redshift,
+            filename='outputs.out')
+
         """
 
         z = initial_redshift
@@ -370,21 +418,43 @@ class EnzoSimulation(object):
         return outputs
 
     def create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
-        """
-        Create list of datasets to be used for LightCones or LightRays.
-        :param minimal (bool): if True, the minimum number of datasets is used to connect the initial and final 
-               redshift.  If false, the list will contain as many entries as possible within the redshift 
-               interval.  Default: True.
-        :param deltaz_min (float): specifies the minimum delta z between consecutive datasets in the returned 
-               list.  Default: 0.0.
-        :param initial_redshift (float): the initial (highest) redshift in the cosmology splice list.  If none 
-               given, the highest redshift dataset present will be used.  Default: None.
-        :param final_redshift (float): the final (lowest) redshift in the cosmology splice list.  If none given, 
-               the lowest redshift dataset present will be used.  Default: None.
+        r"""Create list of datasets to be used for `LightCones` or `LightRays`.
+        
+        For cosmological simulations, the physical width of the simulation
+        box corresponds to some \Delta z, which varies with redshift.
+        Using this logic, one can stitch together a series of datasets to
+        create a continuous volume or length element from one redshift to
+        another. This method will return such a list
+        
+        Parameters
+        ----------
+        minimal : bool
+            If True, the minimum number of datasets is used to connect the
+            initial and final redshift.  If false, the list will contain as
+            many entries as possible within the redshift 
+            interval.  Default: True.
+        deltaz_min : float
+            Specifies the minimum delta z between consecutive datasets
+            in the returned 
+            list.  Default: 0.0.
+        initial_redshift : float
+            The initial (highest) redshift in the cosmology splice list. If none 
+            given, the highest redshift dataset present will be used.
+            Default: None.
+        final_redshift : float
+            The final (lowest) redshift in the cosmology splice list.
+            If none given, 
+            the lowest redshift dataset present will be used.  Default: None.
+        
+        Examples
+        --------
+        >>> cosmo = es.create_cosmology_splice(minimal=True, deltaz_min=0.0,
+            initial_redshift=1.0, final_redshift=0.0)
+        
         """
 
-        if initial_redshift is None: initial_redshift = self.InitialRedshift
-        if final_redshift is None: final_redshift = self.FinalRedshift
+        if initial_redshift is None: initial_redshift = self.initial_redshift
+        if final_redshift is None: final_redshift = self.final_redshift
 
         # Calculate maximum delta z for each data dump.
         self._calculate_deltaz_max()
@@ -452,10 +522,20 @@ class EnzoSimulation(object):
         return cosmology_splice
 
     def get_data_by_redshift(self, redshifts, tolerance=None):
-        """
-        : param redshifts: a list of redshifts.
-        : tolerance: if not None, do not return a dataset unless the redshift is within the tolerance value.
-        Get datasets for a list of redshifts.
+        r"""Get datasets at or near to given redshifts.
+        
+        Parameters
+        ----------
+        redshifts: array_like
+            A list of redshifts, given as floats.
+        tolerance : float
+            If not None, do not return a dataset unless the redshift is
+            within the tolerance value. Default = None.
+        
+        Examples
+        --------
+        >>> datasets = es.get_data_by_redshift([0, 1, 2], tolerance=0.1)
+        
         """
 
         redshifts = ensure_list(redshifts)
@@ -472,10 +552,20 @@ class EnzoSimulation(object):
         return my_datasets
 
     def get_data_by_time(self, times, tolerance=None):
-        """
-        : param redshifts: a list of times.
-        : tolerance: if not None, do not return a dataset unless the redshift is within the tolerance value.
-        Get datasets for a list of times.
+        r"""Get datasets at or near to given times.
+        
+        Parameters
+        ----------
+        times: array_like
+            A list of times, given in code units as floats.
+        tolerance : float
+            If not None, do not return a dataset unless the time is
+            within the tolerance value. Default = None.
+        
+        Examples
+        --------
+        >>> datasets = es.get_data_by_time([600, 500, 400], tolerance=10.)
+        
         """
 
         times = ensure_list(times)
@@ -486,7 +576,7 @@ class EnzoSimulation(object):
                     and self.allOutputs[0] not in my_datasets:
                 my_datasets.append(self.allOutputs[0])
             else:
-                mylog.error("No dataset added for z = %f." % my_time)
+                mylog.error("No dataset added for time = %f." % my_time)
 
         self.allOutputs.sort(key=lambda obj: obj['time'])
         return my_datasets

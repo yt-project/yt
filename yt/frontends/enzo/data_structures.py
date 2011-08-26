@@ -3,9 +3,9 @@ Data structures for Enzo
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -135,6 +135,10 @@ class EnzoHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style):
         
         self.data_style = data_style
+        if pf.file_style != None:
+            self._bn = pf.file_style
+        else:
+            self._bn = "%s.cpu%%04i"
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
@@ -193,7 +197,11 @@ class EnzoHierarchy(AMRHierarchy):
             self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
-            list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
+            try:
+                list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
+            except:
+                print "Could not find dataset.  Defaulting to packed HDF5"
+                list_of_sets = []
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 'enzo_packed_3d'
@@ -284,7 +292,6 @@ class EnzoHierarchy(AMRHierarchy):
             second_grid.Level = first_grid.Level
         self.grid_levels[sgi] = second_grid.Level
 
-    _bn = "%s.cpu%%04i"
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
         if not ytcfg.getboolean("yt","serialize"): return False
@@ -630,6 +637,7 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
+                 file_style = None,
                  parameter_override = None,
                  conversion_override = None,
                  storage_filename = None):
@@ -649,7 +657,7 @@ class EnzoStaticOutput(StaticOutput):
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, filename, data_style)
+        StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
         rp = os.path.join(self.directory, "rates.out")
@@ -676,9 +684,9 @@ class EnzoStaticOutput(StaticOutput):
         self._hierarchy_class = EnzoHierarchy1D
         self._fieldinfo_class = Enzo1DFieldContainer
         self.domain_left_edge = \
-            na.concatenate([self["DomainLeftEdge"], [0.0, 0.0]])
+            na.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
-            na.concatenate([self["DomainRightEdge"], [1.0, 1.0]])
+            na.concatenate([[self.domain_right_edge], [1.0, 1.0]])
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
@@ -735,55 +743,70 @@ class EnzoStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
-        for lineI, line in enumerate(lines):
-            if line.find("#") >= 1: # Keep the commented lines
-                line=line[:line.find("#")]
-            line=line.strip().rstrip()
-            if len(line) < 2:
-                continue
-            try:
-                param, vals = map(string.strip,map(string.rstrip,
-                                                   line.split("=")))
-            except ValueError:
-                mylog.error("ValueError: '%s'", line)
-            if parameterDict.has_key(param):
-                t = map(parameterDict[param], vals.split())
-                if len(t) == 1:
-                    self.parameters[param] = t[0]
+        data_labels = {}
+        data_label_factors = {}
+        for line in (l.strip() for l in lines):
+            if len(line) < 2: continue
+            param, vals = (i.strip() for i in line.split("="))
+            # First we try to decipher what type of value it is.
+            vals = vals.split()
+            # Special case approaching.
+            if "(do" in vals: vals = vals[:1]
+            if len(vals) == 0:
+                pcast = str # Assume NULL output
+            else:
+                v = vals[0]
+                # Figure out if it's castable to floating point:
+                try:
+                    float(v)
+                except ValueError:
+                    pcast = str
                 else:
-                    self.parameters[param] = t
-                if param.endswith("Units") and not param.startswith("Temperature"):
-                    dataType = param[:-5]
-                    self.conversion_factors[dataType] = self.parameters[param]
-            elif param.startswith("#DataCGS"):
+                    if any("." in v or "e+" in v or "e-" in v for v in vals):
+                        pcast = float
+                    else:
+                        pcast = int
+            # Now we figure out what to do with it.
+            if param.endswith("Units") and not param.startswith("Temperature"):
+                dataType = param[:-5]
+                # This one better be a float.
+                self.conversion_factors[dataType] = float(vals[0])
+            if param.startswith("#DataCGS") or \
+                 param.startswith("#CGSConversionFactor"):
                 # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                if lines[lineI-1].find("Label") >= 0:
-                    kk = lineI-1
-                elif lines[lineI-2].find("Label") >= 0:
-                    kk = lineI-2
-                dataType = lines[kk].split("=")[-1].rstrip().strip()
-                convFactor = float(line.split("=")[-1].split()[0])
-                self.conversion_factors[dataType] = convFactor
-            elif param.startswith("#CGSConversionFactor"):
-                dataType = param[20:].rstrip()
-                convFactor = float(line.split("=")[-1])
-                self.conversion_factors[dataType] = convFactor
-            elif param.startswith("DomainLeftEdge"):
-                self.domain_left_edge = \
-                self.parameters["DomainLeftEdge"] = \
-                    na.array([float(i) for i in vals.split()])
-            elif param.startswith("DomainRightEdge"):
-                self.domain_right_edge = \
-                self.parameters["DomainRightEdge"] = \
-                    na.array([float(i) for i in vals.split()])
+                # Which one does it belong to?
+                data_id = param[param.find("[")+1:param.find("]")]
+                data_label_factors[data_id] = float(vals[0])
+            if param.startswith("DataLabel"):
+                data_id = param[param.find("[")+1:param.find("]")]
+                data_labels[data_id] = vals[0]
+            if len(vals) == 0:
+                vals = ""
+            elif len(vals) == 1:
+                vals = pcast(vals[0])
+            else:
+                vals = na.array([pcast(i) for i in vals if i != "-99999"])
+            self.parameters[param] = vals
         for p, v in self._parameter_override.items():
             self.parameters[p] = v
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
+        for k, v in data_label_factors.items():
+            self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
+        if self.dimensionality > 1:
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"]).copy()
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"]).copy()
+        else:
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"])
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"])
+
         self.current_time = self.parameters["InitialTime"]
+        # To be enabled when we can break old pickles:
+        #if "MetaDataSimulationUUID" in self.parameters:
+        #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
         if "CurrentTimeIdentifier" in self.parameters:
             self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         if self.parameters["ComovingCoordinates"]:
@@ -817,7 +840,7 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
-        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)

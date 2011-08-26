@@ -5,9 +5,9 @@ Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: UC Berkeley
 Author: Chris Malone <chris.m.malone@gmail.com>
 Affiliation: SUNY Stony Brook
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2010 J. S. Oishi, Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 J. S. Oishi, Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

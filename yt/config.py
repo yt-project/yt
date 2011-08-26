@@ -5,9 +5,9 @@ Everything will be returned in a global config dictionary: ytcfg
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -47,6 +47,8 @@ ytcfgDefaults = dict(
     pluginfilename = 'my_plugins.py',
     parallel_traceback = 'False',
     pasteboard_repo = '',
+    test_storage_dir = '/does/not/exist',
+    enzo_db = '',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

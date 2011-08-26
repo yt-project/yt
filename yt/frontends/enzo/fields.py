@@ -3,9 +3,9 @@ Fields specific to Enzo
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -125,17 +125,17 @@ add_field("Cooling_Time", units=r"\rm{s}",
 
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
-        return data["Total_Energy"]
+        return data["TotalEnergy"]
     else:
         if data.pf["DualEnergyFormalism"]:
             return data["GasEnergy"]
         else:
-            return data["Total_Energy"] - 0.5*(
+            return data["TotalEnergy"] - 0.5*(
                    data["x-velocity"]**2.0
                  + data["y-velocity"]**2.0
                  + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
-          units=r"\rm{ergs}/\rm{cm^3}")
+          units=r"\rm{ergs}/\rm{g}")
 
 def _KineticEnergy(field, data):
     return 0.5*data["Density"] * ( data["x-velocity"]**2.0
@@ -154,9 +154,7 @@ add_field("KineticEnergy",function=_KineticEnergy,
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
 
-def _GasEnergy(field, data):
-    return data["Gas_Energy"] / _convertEnergy(data)
-add_field("GasEnergy", function=_GasEnergy,
+add_field("GasEnergy", function=lambda a, b: None,
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Gas_Energy(field, data):
@@ -164,9 +162,7 @@ def _Gas_Energy(field, data):
 add_field("Gas_Energy", function=_Gas_Energy,
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
-def _TotalEnergy(field, data):
-    return data["Total_Energy"] / _convertEnergy(data)
-add_field("TotalEnergy", function=_TotalEnergy,
+add_field("TotalEnergy", function=lambda a, b: None,
           display_name = "\mathrm{Total}\/\mathrm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
@@ -217,7 +213,7 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum",
-                   "Bx", "By", "Bz", "Dust_Temperature_Density"]
+                   "Bx", "By", "Bz", "Dust_Temperature"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -250,6 +246,8 @@ add_field("Dark_Matter_Density", function=lambda a,b: None,
 
 EnzoFieldInfo["Temperature"]._units = r"\rm{K}"
 EnzoFieldInfo["Temperature"].units = r"K"
+EnzoFieldInfo["Dust_Temperature"]._units = r"\rm{K}"
+EnzoFieldInfo["Dust_Temperature"].units = r"K"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
@@ -258,17 +256,6 @@ for ax in ['x','y','z']:
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
-
-# Dust temperature - raw field is T_dust * Density
-def _dust_temperature(field, data):
-    return data['Dust_Temperature_Density'] / data['Density']
-def _convert_dust_temperature(data):
-    ef = (1.0 + data.pf.current_redshift)**3.0
-    return data.convert("Density") / ef
-add_field("Dust_Temperature", function=_dust_temperature, 
-          convert_function=_convert_dust_temperature, take_log=True,
-          validators=[ValidateDataField('Dust_Temperature_Density')],
-          units = r"K")
 
 def _spdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
@@ -290,8 +277,11 @@ add_field("star_density", function=_spdensity,
 def _dmpdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
-    filter = data['creation_time'] <= 0.0
-    if not filter.any(): return blank
+    if 'creation_time' in data.keys():
+        filter = data['creation_time'] <= 0.0
+        if not filter.any(): return blank
+    else:
+        filter = na.ones(data.NumberOfParticles, dtype='bool')
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
                            data["particle_position_y"][filter].astype(na.float64),
                            data["particle_position_z"][filter].astype(na.float64),
@@ -480,3 +470,18 @@ def _yvel(field, data):
                     dtype='float64')
 add_enzo_1d_field("z-velocity", function=_zvel)
 add_enzo_1d_field("y-velocity", function=_yvel)
+
+def _convertBfield(data): 
+    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
+for field in ['Bx','By','Bz']:
+    f = EnzoFieldInfo[field]
+    f._convert_function=_convertBfield
+    f._units=r"\mathrm{Gau\ss}"
+    f.take_log=False
+
+def _Bmag(field, data):
+    """ magnitude of bvec
+    """
+    return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
+
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")

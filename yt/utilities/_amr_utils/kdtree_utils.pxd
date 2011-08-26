@@ -2,8 +2,8 @@
 A light interface to kdtree, from http://code.google.com/p/kdtree/
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
-Homepage: http://yt.enzotools.org/
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -34,18 +34,18 @@ cdef extern from "kdtree.h":
     kdtree *kd_create(int k)
     void kd_free(kdtree *tree)
     
-    int kd_insert3(kdtree *tree, double x, double y, double z, void *data)
-    kdres *kd_nearest3(kdtree *tree, double x, double y, double z)
+    int kd_insert3(kdtree *tree, np.float64_t x, np.float64_t y, np.float64_t z, void *data)
+    kdres *kd_nearest3(kdtree *tree, np.float64_t x, np.float64_t y, np.float64_t z)
 
-    kdres *kd_nearest_range3(kdtree *tree, double x, double y, double z,
-                             double range)
+    kdres *kd_nearest_range3(kdtree *tree, np.float64_t x, np.float64_t y, np.float64_t z,
+                             np.float64_t range)
 
     void kd_res_free(kdres *set)
     int kd_res_size(kdres *set)
     int kd_res_next(kdres *set)
     void kd_res_rewind(kdres *set)
 
-    void kd_res_item3(kdres *set, double *x, double *y, double *z)
+    void kd_res_item3(kdres *set, np.float64_t *x, np.float64_t *y, np.float64_t *z)
     void *kd_res_item_data(kdres *set)
 
     void kd_data_destructor(kdtree *tree, void (*destr)(void*))

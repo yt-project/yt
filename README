@@ -5,8 +5,8 @@ both NumPy and Matplotlib for fast arrays and visualization, respectively.
 
 Full documentation and a user community can be found at:
 
-http://yt.enzotools.org/
-http://yt.enzotools.org/doc/
+http://yt-project.org/
+http://yt-project.org/doc/
 
 If you have used Python before, and are comfortable with installing packages,
 you should find the setup.py script fairly straightforward: simply execute
@@ -20,6 +20,6 @@ In case of any problems, please email the yt-users mailing list, and if you're
 interested in helping out, see the developer documentation in
 doc/how_to_develop_yt.txt or at:
 
-http://yt.enzotools.org/doc/advanced/developing.html
+http://yt-project.org/doc/advanced/developing.html
 
 Enjoy!

@@ -3,9 +3,9 @@ Chombo-specific fields
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2009-2010 J. S. Oishi, Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2009-2011 J. S. Oishi, Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

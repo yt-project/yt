@@ -2,8 +2,8 @@
 API for yt.astro_objects
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
-Homepage: http://yt.enzotools.org/
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 

@@ -3,9 +3,9 @@ A two-pass contour finding algorithm
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -26,6 +26,7 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
+from stdlib cimport malloc, free
 
 cdef extern from "math.h":
     double fabs(double x)
@@ -37,6 +38,50 @@ cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
 cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
     if i0 < i1: return i0
     return i1
+
+cdef extern from "union_find.h":
+    ctypedef struct forest_node:
+        void *value
+        forest_node *parent
+        int rank
+
+    forest_node* MakeSet(void* value)
+    void Union(forest_node* node1, forest_node* node2)
+    forest_node* Find(forest_node* node)
+
+ctypedef struct CellIdentifier:
+    np.int64_t hindex
+    int level
+
+cdef class GridContourContainer:
+    cdef np.int64_t dims[3]
+    cdef np.int64_t start_indices[3]
+    cdef forest_node **join_tree
+    cdef np.int64_t ncells
+
+    def __init__(self, dimensions, indices):
+        cdef int i
+        self.ncells = 1
+        for i in range(3):
+            self.ncells *= dimensions[i]
+            self.dims[i] = dimensions[i]
+            self.start_indices[i] = indices[i]
+        self.join_tree = <forest_node **> malloc(sizeof(forest_node) 
+                                                 * self.ncells)
+        for i in range(self.ncells): self.join_tree[i] = NULL
+
+    def __dealloc__(self):
+        cdef int i
+        for i in range(self.ncells):
+            if self.join_tree[i] != NULL: free(self.join_tree[i])
+        free(self.join_tree)
+
+    #def construct_join_tree(self,
+    #            np.ndarray[np.float64_t, ndim=3] field,
+    #            np.ndarray[np.bool_t, ndim=3] mask):
+    #    # This only looks at the components of the grid that are actually
+    #    # inside this grid -- boundary conditions are handled later.
+    #    pass
 
 #@cython.boundscheck(False)
 #@cython.wraparound(False)

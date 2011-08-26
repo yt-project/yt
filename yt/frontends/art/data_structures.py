@@ -3,9 +3,9 @@ ART-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -45,7 +45,10 @@ from yt.utilities.io_handler import \
     io_registry
 import yt.utilities.amr_utils as amr_utils
 
-import yt.frontends.ramses._ramses_reader as _ramses_reader
+try:
+    import yt.frontends.ramses._ramses_reader as _ramses_reader
+except ImportError:
+    _ramses_reader = None
 
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs
@@ -124,9 +127,9 @@ class ARTHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         # This will need to be generalized to be used elsewhere.
-        self.field_list = [ 'Density','Total_Energy',
+        self.field_list = [ 'Density','TotalEnergy',
                             'x-momentum','y-momentum','z-momentum',
-                            'Pressure','Gamma','Gas_Energy',
+                            'Pressure','Gamma','GasEnergy',
                             'Metal_DensitySNII', 'Metal_DensitySNIa',
                             'Potential_New','Potential_Old']
     
@@ -373,6 +376,8 @@ class ARTStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='art',
                  storage_filename = None):
+        if _ramses_reader is None:
+            import yt.frontends.ramses._ramses_reader as _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         
@@ -434,7 +439,7 @@ class ARTStaticOutput(StaticOutput):
         self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))      
         self.conversion_factors["Density"] = \
             self.rho0*(aexpn**-3.0)
-        self.conversion_factors["Gas_Energy"] = \
+        self.conversion_factors["GasEnergy"] = \
             self.rho0*self.v0**2*(aexpn**-5.0)
         tr  = self.tr
         self.conversion_factors["Temperature"] = tr

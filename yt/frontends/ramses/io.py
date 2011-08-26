@@ -3,9 +3,9 @@ RAMSES-specific IO
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -41,10 +41,11 @@ class IOHandlerRAMSES(BaseIOHandler):
         to_fill = grid.ActiveDimensions.prod()
         grids = [grid]
         l_delta = 0
+        varindex = self.ramses_tree.field_ind[field]
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                to_fill -= self.ramses_tree.read_grid(field,
+                to_fill -= self.ramses_tree.read_grid(varindex, field,
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, g.Level, 2**l_delta, g.locations)
                 next_grids += g.Parent

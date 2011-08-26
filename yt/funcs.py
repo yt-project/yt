@@ -3,9 +3,9 @@ Useful functions.  If non-original, see function for citation.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -331,6 +331,9 @@ def get_pbar(title, maxval):
             pass
     elif "CODENODE" in os.environ:
         return DummyProgressBar()
+    elif ytcfg.getboolean("yt", "__withinreason"):
+        from yt.gui.reason.extdirect_repl import ExtProgressBar
+        return ExtProgressBar(title, maxval)
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),
@@ -384,14 +387,14 @@ def paste_traceback(exc_type, exc, tb):
     sys.__excepthook__(exc_type, exc, tb)
     import xmlrpclib, cStringIO
     p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = cStringIO.StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
     print
-    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
 
 def paste_traceback_detailed(exc_type, exc, tb):
@@ -406,11 +409,11 @@ def paste_traceback_detailed(exc_type, exc, tb):
     s = s.getvalue()
     print s
     p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
     print
-    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
 
 def traceback_writer_hook(file_suffix = ""):
@@ -432,6 +435,10 @@ def _rdbeta(key):
 # If we recognize one of the arguments on the command line as indicating a
 # different mechanism for handling tracebacks, we attach one of those handlers
 # and remove the argument from sys.argv.
+#
+# This fallback is for Paraview:
+if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
+# Now, we check.
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
     del sys.argv[sys.argv.index("--paste")]

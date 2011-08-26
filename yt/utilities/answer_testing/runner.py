@@ -1,3 +1,28 @@
+"""
+Runner mechanism for answer testing
+
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
+License:
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import matplotlib; matplotlib.use("Agg")
 import os, shelve, cPickle, sys, imp, tempfile
 
@@ -10,6 +35,17 @@ from output_tests import test_registry, MultipleOutputTest, \
 
 def clear_registry():
     test_registry.clear()
+
+class FileNotExistException(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __repr__(self):
+        return "FileNotExistException: %s" % (self.filename)
+
+
+def registry_entries():
+    return test_registry.keys()
 
 class RegressionTestStorage(object):
     def __init__(self, results_id, path = "."):
@@ -33,6 +69,8 @@ class RegressionTestStorage(object):
         f.close()
 
     def __getitem__(self, test_name):
+        if not os.path.exists(self._fn(test_name)):
+            raise FileNotExistException(self._fn(test_name))
         f = open(self._fn(test_name), "rb")
         tr = cPickle.load(f)
         f.close()
@@ -103,11 +141,14 @@ class RegressionTestRunner(object):
     def _compare(self, test):
         if self.old_results is None:
             return (True, "New Test")
-        old_result = self.old_results[test.name]
+        try:
+            old_result = self.old_results[test.name]
+        except FileNotExistException:
+            return (False, sys.exc_info())
         try:
             test.compare(old_result)
         except RegressionTestException, exc:
-            return (False, str(exc))
+            return (False, sys.exc_info())
         return (True, "Pass")
 
     def run_tests_from_file(self, filename):

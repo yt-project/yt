@@ -1,9 +1,9 @@
 """
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -465,7 +465,7 @@ class TransportAppender(object):
         self.transport = transport
 
     def __call__(self, val):
-        from yt.utilities.amr_utils import write_png_to_file
+        from yt.utilities.amr_utils import write_png_to_string
         from yt.visualization.image_writer import map_to_colors
         image = na.log10(val)
         mi = na.nanmin(image[~na.isinf(image)])
@@ -474,10 +474,7 @@ class TransportAppender(object):
         image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
         to_plot = map_to_colors(image, "algae")
         to_plot = na.clip(to_plot, 0, 255)
-        tf = tempfile.TemporaryFile()
-        write_png_to_file(to_plot, tf)
-        tf.seek(0)
-        s = tf.read()
+        s = write_png_to_string(to_plot)
         response_body = "data:image/png;base64," + base64.encodestring(s)
         tf.close()
         self.transport.append(response_body)

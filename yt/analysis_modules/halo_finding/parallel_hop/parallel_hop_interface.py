@@ -1,11 +1,11 @@
 """
 A implementation of the HOP algorithm that runs in parallel.
 
-Author: Stephen Skory <sskory@physics.ucsd.edu>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD/CASS
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2008-2011 Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 

@@ -3,8 +3,8 @@ Modifications and extensions to Bottle, to make it slightly more useful for
 yt's purposes
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: NSF / Columbia
-Homepage: http://yt.enzotools.org/
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -24,13 +24,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .bottle import server_names, debug, route, run, request
+from yt.utilities.bottle import \
+    server_names, debug, route, run, request, ServerAdapter
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
-import logging
+import logging, threading
 from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import *
+import sys
 
 route_functions = {}
 route_watchers = []
@@ -48,6 +50,14 @@ def notify_route(watcher):
 class PayloadHandler(object):
     _shared_state = {}
     _hold = False
+    payloads = None
+    recorded_payloads = None
+    lock = None
+    record = False
+    event = None
+    count = 0
+    debug = False
+
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -55,32 +65,44 @@ class PayloadHandler(object):
         return self
 
     def __init__(self):
-        self.payloads = []
+        if self.payloads is None: self.payloads = []
+        if self.lock is None: self.lock = threading.Lock()
+        if self.recorded_payloads is None: self.recorded_payloads = []
+        if self.event is None: self.event = threading.Event()
 
     def deliver_payloads(self):
-        if self._hold: return []
-        payloads = self.payloads
-        self.payloads = []
+        with self.lock:
+            if self._hold: return []
+            payloads = self.payloads
+            if self.record:
+                self.recorded_payloads += self.payloads
+            if self.debug:
+                orig_stderr.write("**** Delivering %s payloads\n" % (len(payloads)))
+                for p in payloads:
+                    orig_stderr.write("****    %s\n" % p['type'])
+            self.payloads = []
+            self.event.clear()
         return payloads
 
     def add_payload(self, to_add):
-        self.payloads.append(to_add)
+        with self.lock:
+            self.payloads.append(to_add)
+            self.count += 1
+            self.event.set()
+            if self.debug:
+                orig_stderr.write("**** Adding payload of type %s\n" % (to_add['type']))
 
-_ph = PayloadHandler()
+    def replay_payloads(self):
+        return self.recorded_payloads
 
-def append_payloads(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        reset = not _ph._hold
-        _ph._hold = True
-        func(self, *args, **kwargs)
-        # Assume it returns a dict
-        if not reset: return
-        # In case it sets it manually
-        _ph._hold = False
-        payloads = _ph.deliver_payloads()
-        return payloads
-    return wrapper
+
+class YTRocketServer(ServerAdapter):
+    server_info = {} # Hack to get back at instance vars
+    def run(self, handler):
+        from rocket import Rocket
+        server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
+        self.server_info[id(self)] = server
+        server.start()
 
 class BottleDirectRouter(DirectRouter):
     # This class implements a mechanism for auto-routing an ExtDirect-callable
@@ -104,16 +126,17 @@ class BottleDirectRouter(DirectRouter):
     def __call__(self):
         #print "Hi there, I just got this request:",
         val = request.body.read()
-        print val
+        #print val
         #import pdb;pdb.set_trace()
         rv = super(BottleDirectRouter, self).__call__(val)
         #print "With this response:", rv
         return rv
 
-def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
+def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
+                         repl = None, token = None):
     if pre_routed == None: pre_routed = route_functions
     debug(mode=True)
-    token = uuid.uuid1()
+    if token is None: token = uuid.uuid1()
     for r in pre_routed:
         args, kwargs, f = pre_routed[r]
         if r[0] == "/": r = r[1:]
@@ -126,6 +149,8 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
             print "WARNING: %s has no _route_prefix attribute.  Not notifying."
             continue
             w._route_prefix = token
+    repl.activate()
+    repl.execution_thread.wait()
     print
     print
     print "============================================================================="
@@ -166,16 +191,16 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099):
             thread.start()
         local_browse()
     try:
-        import rocket
-        server_name = "rocket"
+        import yt.utilities.rocket as rocket
+        server_type = YTRocketServer
         log = logging.getLogger('Rocket')
-        log.setLevel(logging.INFO)
-        kwargs = {'timeout': 600, 'max_threads': 1}
+        log.setLevel(logging.WARNING)
+        kwargs = {'timeout': 600, 'max_threads': 2}
+        if repl is not None:
+            repl.server = YTRocketServer.server_info
     except ImportError:
-        server_name = "wsgiref"
+        server_type = server_names.get("wsgiref")
         kwargs = {}
-    server_type = server_names.get(server_name)
     server = server_type(host='localhost', port=port, **kwargs)
-    #repl.locals['server'] = server
     mylog.info("Starting up the server.")
     run(server=server)

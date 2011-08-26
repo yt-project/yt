@@ -4,9 +4,9 @@ Data structures for Chombo.
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2010 Matthew Turk, J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 

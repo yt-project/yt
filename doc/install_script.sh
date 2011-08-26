@@ -269,10 +269,10 @@ function do_setup_py
 
 function get_enzotools
 {
-    echo "Downloading $1 from yt.enzotools.org"
+    echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
-    wget -nv "http://yt.enzotools.org/dependencies/$1" || do_exit
-    wget -nv "http://yt.enzotools.org/dependencies/$1.md5" || do_exit
+    wget -nv "http://yt-project.org/dependencies/$1" || do_exit
+    wget -nv "http://yt-project.org/dependencies/$1.md5" || do_exit
     ( which md5sum &> /dev/null ) || return # return if we don't have md5sum
     ( md5sum -c $1.md5 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
@@ -465,11 +465,11 @@ then
     elif [ ! -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
@@ -588,6 +588,12 @@ then
     echo "*******************************************************"
 fi
 
+# Add the environment scripts
+( cp ${YT_DIR}/doc/activate ${DEST_DIR}/bin/activate 2>&1 ) 1>> ${LOG_FILE}
+sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate
+( cp ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
+sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate.csh
+
 function print_afterword
 {
     echo
@@ -595,26 +601,30 @@ function print_afterword
     echo "========================================================================"
     echo
     echo "yt is now installed in $DEST_DIR ."
-    echo "To run from this new installation, the a few variables need to be"
-    echo "prepended with the following information:"
     echo
-    echo "YT_DEST         => $DEST_DIR"
-    echo "PATH            => $DEST_DIR/bin/"
-    echo "PYTHONPATH      => $DEST_DIR/lib/python2.7/site-packages/"
-    echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
+    echo "To run from this new installation, use the activate script for this "
+    echo "environment."
+    echo
+    echo "    $ source $DEST_DIR/bin/activate"
+    echo "    (yt)$ "
+    echo
+    echo "This modifies the environment variables YT_DEST, PATH, PYTHONPATH, and"
+    echo "LD_LIBRARY_PATH to match your new yt install. But don't worry - as soon"
+    echo "as you are done you can run 'deactivate' to return to your previous"
+    echo "shell environment.  If you use csh, just append .csh to the above."
     echo
     echo "For interactive data analysis and visualization, we recommend running"
     echo "the IPython interface, which will become more fully featured with time:"
     echo
-    echo "$DEST_DIR/bin/iyt"
+    echo "    $DEST_DIR/bin/iyt"
     echo
     echo "For command line analysis run:"
     echo
-    echo "$DEST_DIR/bin/yt"
+    echo "    $DEST_DIR/bin/yt"
     echo
     echo "To bootstrap a development environment for yt, run:"
     echo 
-    echo "$DEST_DIR/bin/yt bootstrap_dev"
+    echo "    $DEST_DIR/bin/yt bootstrap_dev"
     echo
     echo "Note of interest: this installation will use the directory:"
     echo "    $YT_DIR"
@@ -642,7 +652,7 @@ function print_afterword
     echo
     echo "For support, see the website and join the mailing list:"
     echo
-    echo "    http://yt.enzotools.org/"
+    echo "    http://yt-project.org/"
     echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
     echo
     echo "========================================================================"

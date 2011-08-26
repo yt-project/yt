@@ -3,9 +3,9 @@ AMR hierarchy container class
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -174,8 +174,12 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self._barrier()
         if not writeable and not exists: return
         if writeable:
-            self._data_mode = 'a'
-            if not exists: self.__create_data_file(fn)
+            try:
+                if not exists: self.__create_data_file(fn)
+                self._data_mode = 'a'
+            except IOError:
+                self._data_mode = None
+                return
         else:
             self._data_mode = 'r'
 
@@ -200,15 +204,15 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
         if self._data_mode != 'a': return
         if "ArgsError" in dir(h5py.h5):
-            exception = h5py.h5.ArgsError
+            exception = (h5py.h5.ArgsError, KeyError)
         else:
-            exception = h5py.h5.H5Error
+            exception = (h5py.h5.H5Error, KeyError)
         try:
             node_loc = self._data_file[node]
-            if name in node_loc.listnames() and force:
+            if name in node_loc and force:
                 mylog.info("Overwriting node %s/%s", node, name)
                 del self._data_file[node][name]
-            elif name in node_loc.listnames() and passthrough:
+            elif name in node_loc and passthrough:
                 return
         except exception:
             pass
@@ -268,10 +272,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         myGroup = self._data_file['/']
         for group in node.split('/'):
             if group:
-                if group not in myGroup.listnames():
+                if group not in myGroup:
                     return None
                 myGroup = myGroup[group]
-        if name not in myGroup.listnames():
+        if name not in myGroup:
             return None
 
         full_name = "%s/%s" % (node, name)

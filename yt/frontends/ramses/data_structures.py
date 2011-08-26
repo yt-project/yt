@@ -3,9 +3,9 @@ RAMSES-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -34,10 +34,16 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
-import _ramses_reader
+
+try:
+    import _ramses_reader
+except ImportError:
+    _ramses_reader = None
 from .fields import RAMSESFieldContainer
 from yt.utilities.definitions import \
     mpc_conversion
+from yt.utilities.amr_utils import \
+    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
 
@@ -166,7 +172,6 @@ class RAMSESHierarchy(AMRHierarchy):
             # left_index is integers of the index, with respect to this level
             left_index = na.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
             # we've got octs, so it's +2
-            right_index = left_index + 2
             pbar = get_pbar("Re-gridding ", left_index.shape[0])
             dlp = [None, None, None]
             i = 0
@@ -180,84 +185,32 @@ class RAMSESHierarchy(AMRHierarchy):
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
             unique_indices = na.unique(hilbert_indices)
-            for curve_index in unique_indices:
-                #print "Handling", curve_index
-                my_octs = (hilbert_indices == curve_index)
-                dleft_index = left_index[my_octs,:]
-                dright_index = left_index[my_octs,:] + 2
-                ddims = (dright_index * 0) + 2
-                dfl = fl[my_octs,:]
+            mylog.debug("Level % 2i has % 10i unique indices for %0.3e octs",
+                        level, unique_indices.size, hilbert_indices.size)
+            locs, lefts = _ramses_reader.get_array_indices_lists(
+                        hilbert_indices, unique_indices, left_index, fl)
+            for dleft_index, dfl in zip(lefts, locs):
                 initial_left = na.min(dleft_index, axis=0)
-                idims = (na.max(dright_index, axis=0) - initial_left).ravel()
-                #if level > 6: insert_ipython()
-                #print initial_left, idims
+                idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
                 psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                dleft_index, dright_index, ddims, dfl)
+                                dleft_index, dfl)
                 if psg.efficiency <= 0: continue
                 self.num_deep = 0
-                psgs.extend(self._recursive_patch_splitting(
+                psgs.extend(_ramses_reader.recursive_patch_splitting(
                     psg, idims, initial_left, 
-                    dleft_index, dright_index, ddims, dfl))
+                    dleft_index, dfl))
+            mylog.debug("Done with level % 2i", level)
             pbar.finish()
             self.proto_grids.append(psgs)
+            print sum(len(psg.grid_file_locations) for psg in psgs)
             sums = na.zeros(3, dtype='int64')
             mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
-            for g in self.proto_grids[level]:
-                sums += [s.sum() for s in g.sigs]
-            assert(na.all(sums == dims.prod(axis=1).sum()))
+            #for g in self.proto_grids[level]:
+            #    sums += [s.sum() for s in g.sigs]
+            #assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
-    num_deep = 0
-
-    @num_deep_inc
-    def _recursive_patch_splitting(self, psg, dims, ind,
-            left_index, right_index, gdims, fl):
-        min_eff = 0.1 # This isn't always respected.
-        if self.num_deep > 40:
-            # If we've recursed more than 100 times, we give up.
-            psg.efficiency = min_eff
-            return [psg]
-        if psg.efficiency > min_eff or psg.efficiency < 0.0:
-            return [psg]
-        tt, ax, fp = psg.find_split()
-        if (fp % 2) != 0:
-            if dims[ax] != fp + 1:
-                fp += 1
-            else:
-                fp -= 1
-        #print " " * self.num_deep + "Got ax", ax, "fp", fp
-        dims_l = dims.copy()
-        dims_l[ax] = fp
-        li_l = ind.copy()
-        if na.any(dims_l <= 0): return [psg]
-        L = _ramses_reader.ProtoSubgrid(
-                li_l, dims_l, left_index, right_index, gdims, fl)
-        #print " " * self.num_deep + "L", tt, L.efficiency
-        if L.efficiency > 1.0: raise RuntimeError
-        if L.efficiency <= 0.0: L = []
-        elif L.efficiency < min_eff:
-            L = self._recursive_patch_splitting(L, dims_l, li_l,
-                    left_index, right_index, gdims, fl)
-        else:
-            L = [L]
-        dims_r = dims.copy()
-        dims_r[ax] -= fp
-        li_r = ind.copy()
-        li_r[ax] += fp
-        if na.any(dims_r <= 0): return [psg]
-        R = _ramses_reader.ProtoSubgrid(
-                li_r, dims_r, left_index, right_index, gdims, fl)
-        #print " " * self.num_deep + "R", tt, R.efficiency
-        if R.efficiency > 1.0: raise RuntimeError
-        if R.efficiency <= 0.0: R = []
-        elif R.efficiency < min_eff:
-            R = self._recursive_patch_splitting(R, dims_r, li_r,
-                    left_index, right_index, gdims, fl)
-        else:
-            R = [R]
-        return L + R
-        
     def _parse_hierarchy(self):
         # We have important work to do
         grids = []
@@ -274,20 +227,19 @@ class RAMSESHierarchy(AMRHierarchy):
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
+        self.proto_grids = []
         self.grids = na.array(grids, dtype='object')
 
-    def _get_grid_parents(self, grid, LE, RE):
-        mask = na.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(LE, RE)
-        mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
-        return self.grids[mask]
-
     def _populate_grid_objects(self):
+        mask = na.empty(self.grids.size, dtype='int32')
+        print self.grid_levels.dtype
         for gi,g in enumerate(self.grids):
-            parents = self._get_grid_parents(g,
-                            self.grid_left_edge[gi,:],
-                            self.grid_right_edge[gi,:])
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level - 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
                 g.Parent.extend(parents.tolist())
                 for p in parents: p.Children.append(g)
@@ -322,6 +274,8 @@ class RAMSESStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
+        # Here we want to initiate a traceback, if the reader is not built.
+        import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
@@ -378,6 +332,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.domain_dimensions = na.ones(3, dtype='int32') * 2
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
+        mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
         self.cosmological_simulation = 1
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]

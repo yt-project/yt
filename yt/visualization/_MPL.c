@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+* Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 *
 * This file is part of yt.
 *
@@ -52,7 +52,9 @@ char _pixelizeDocstring[] =
 static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   PyObject *xp, *yp, *dxp, *dyp, *dp;
+  PyArrayObject *x, *y, *dx, *dy, *d;
   xp = yp = dxp = dyp = dp = NULL;
+  x = y = dx = dy = d = NULL;
   unsigned int rows, cols;
   int antialias = 1;
   double x_min, x_max, y_min, y_max;
@@ -78,34 +80,34 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       PyErr_Format( _pixelizeError, "Cannot scale to zero size.");
 
   // Get numeric arrays
-  PyArrayObject *x = (PyArrayObject *) PyArray_FromAny(xp,
+  x = (PyArrayObject *) PyArray_FromAny(xp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if (x == NULL) {
       PyErr_Format( _pixelizeError, "x is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *y = (PyArrayObject *) PyArray_FromAny(yp,
+  y = (PyArrayObject *) PyArray_FromAny(yp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((y == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "y is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *d = (PyArrayObject *) PyArray_FromAny(dp,
+  d = (PyArrayObject *) PyArray_FromAny(dp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((d == NULL) || (PyArray_SIZE(d) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "data is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *dx = (PyArrayObject *) PyArray_FromAny(dxp,
+  dx = (PyArrayObject *) PyArray_FromAny(dxp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dx == NULL) || (PyArray_SIZE(dx) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dx is of incorrect type (wanted 1D float)");
       goto _fail;
   }
-  PyArrayObject *dy = (PyArrayObject *) PyArray_FromAny(dyp,
+  dy = (PyArrayObject *) PyArray_FromAny(dyp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dy == NULL) || (PyArray_SIZE(dy) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dy is of incorrect type (wanted 1D float)");

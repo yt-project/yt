@@ -3,9 +3,9 @@ Import the components of the volume rendering extension
 
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Samuel Skillman.  All Rights Reserved.
+  Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -65,6 +65,11 @@ class Streamlines(ParallelAnalysisInterface):
     direction : real, optional
         Specifies the direction of integration.  The magnitude of this
         value has no effect, only the sign.
+    get_magnitude: bool, optional
+        Specifies whether the Streamlines.magnitudes array should be
+        filled with the magnitude of the vector field at each point in
+        the streamline.  This seems to be a ~10% hit to performance.
+        Default: False
     
     Examples
     --------
@@ -92,13 +97,15 @@ class Streamlines(ParallelAnalysisInterface):
     """
     def __init__(self, pf, positions, xfield='x-velocity', yfield='x-velocity',
                  zfield='x-velocity', volume=None,
-                 dx=None, length=None, direction=1):
+                 dx=None, length=None, direction=1,
+                 get_magnitude=False):
         self.pf = pf
         self.start_positions = na.array(positions)
         self.N = self.start_positions.shape[0]
         self.xfield = xfield
         self.yfield = yfield
         self.zfield = zfield
+        self.get_magnitude=get_magnitude
         self.direction = na.sign(direction)
         if volume is None:
             volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
@@ -112,6 +119,9 @@ class Streamlines(ParallelAnalysisInterface):
         self.length = length
         self.steps = int(length/dx)
         self.streamlines = na.zeros((self.N,self.steps,3), dtype='float64')
+        self.magnitudes = None
+        if self.get_magnitude:
+            self.magnitudes = na.zeros((self.N,self.steps), dtype='float64')
         
     def integrate_through_volume(self):
         nprocs = self._mpi_get_size()
@@ -120,10 +130,13 @@ class Streamlines(ParallelAnalysisInterface):
 
         pbar = get_pbar("Streamlining", self.N)
         for i,stream in enumerate(self.streamlines[my_rank::nprocs]):
+            thismag = None
+            if self.get_magnitude:
+                thismag = self.magnitudes[i,:]
             step = self.steps
             while (step > 1):
                 this_brick = self.volume.locate_brick(stream[-step,:])
-                step = self._integrate_through_brick(this_brick, stream, step)
+                step = self._integrate_through_brick(this_brick, stream, step, mag=thismag)
             pbar.update(i)
         pbar.finish()
         
@@ -132,14 +145,21 @@ class Streamlines(ParallelAnalysisInterface):
     @parallel_passthrough
     def _finalize_parallel(self,data):
         self.streamlines = self._mpi_allsum(self.streamlines)
+        self.magnitudes = self._mpi_allsum(self.magnitudes)
         
     def _integrate_through_brick(self, node, stream, step,
-                                 periodic=False):
+                                 periodic=False, mag=None):
         while (step > 1):
             self.volume.get_brick_data(node)
             brick = node.brick
             stream[-step+1] = stream[-step]
-            brick.integrate_streamline(stream[-step+1], self.direction*self.dx)
+            if mag is None:
+                brick.integrate_streamline(stream[-step+1], self.direction*self.dx, None)
+            else:
+                marr = [mag]
+                brick.integrate_streamline(stream[-step+1], self.direction*self.dx, marr)
+                mag[-step+1] = marr[0]
+                
             if na.any(stream[-step+1,:] <= self.pf.domain_left_edge) | \
                    na.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
@@ -152,9 +172,13 @@ class Streamlines(ParallelAnalysisInterface):
 
     def clean_streamlines(self):
         temp = na.empty(self.N, dtype='object')
+        temp2 = na.empty(self.N, dtype='object')
         for i,stream in enumerate(self.streamlines):
-            temp[i] = stream[na.all(stream != 0.0, axis=1)]
+            mask = na.all(stream != 0.0, axis=1)
+            temp[i] = stream[mask]
+            temp2[i] = self.magnitudes[i,mask]
         self.streamlines = temp
+        self.magnitudes = temp2
 
     def path(self, streamline_id):
         """

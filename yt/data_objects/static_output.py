@@ -4,9 +4,9 @@ Generalized Enzo output objects, both static and time-series.
 Presumably at some point EnzoRun will be absorbed into here.
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk, J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2007-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -47,11 +47,11 @@ class StaticOutput(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
-            output_type_registry[name]=cls
+            output_type_registry[name] = cls
             mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename=None, *args, **kwargs):
-        if not isinstance(filename, types.StringTypes): 
+        if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
             obj.__init__(filename, *args, **kwargs)
             return obj
@@ -62,27 +62,34 @@ class StaticOutput(object):
             _cached_pfs[apath] = obj
         return _cached_pfs[apath]
 
-    def __init__(self, filename, data_style=None):
+    def __init__(self, filename, data_style=None, file_style=None):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *data_style* which will be passed on to children.
         """
         self.data_style = data_style
+        self.file_style = file_style
+        self.conversion_factors = {}
+        self.parameters = {}
+
+        # path stuff
         self.parameter_filename = str(filename)
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
-        self._instantiated = time.time()
         if len(self.directory) == 0:
             self.directory = "."
-        self.conversion_factors = {}
-        self.parameters = {}
+
+        # to get the timing right, do this before the heavy lifting
+        self._instantiated = time.time()
+
         self._parse_parameter_file()
         self._set_units()
+
         # Because we need an instantiated class to check the pf's existence in
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
-        if ytcfg.getboolean('yt','serialize'):
+        if ytcfg.getboolean('yt', 'serialize'):
             try:
                 _pf_store.check_pf(self)
             except NoParameterShelf:
@@ -110,9 +117,7 @@ class StaticOutput(object):
         return False
 
     def __getitem__(self, key):
-        """
-        Returns _units, parameters, or _conversion_factors in that order
-        """
+        """ Returns units, parameters, or conversion_factors in that order. """
         for d in [self.units, self.time_units, self.parameters, \
                   self.conversion_factors]:
             if key in d: return d[key]
@@ -120,8 +125,9 @@ class StaticOutput(object):
 
     def keys(self):
         """
-        Returns a list of possible keys, from _units, parameters and
-        _conversion_factors
+        Returns a list of possible keys, from units, parameters and
+        conversion_factors.
+
         """
         return self.units.keys() \
              + self.time_units.keys() \
@@ -136,7 +142,7 @@ class StaticOutput(object):
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
-        for unit in ['mpc','kpc','pc','au','rsun','cm']:
+        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'cm']:
             vv = v*self[unit]
             if vv < max_nu and vv > 1.0:
                 good_u = unit
@@ -145,40 +151,36 @@ class StaticOutput(object):
 
     def has_key(self, key):
         """
-        Returns true or false
+        Checks units, parameters, and conversion factors. Returns a boolean.
+
         """
         return key in self.units or \
                key in self.time_units or \
                key in self.parameters or \
                key in self.conversion_factors
 
-    def _get_hierarchy(self):
-        if self.__hierarchy == None:
+    _instantiated_hierarchy = None
+    @property
+    def hierarchy(self):
+        if self._instantiated_hierarchy == None:
             if self._hierarchy_class == None:
                 raise RuntimeError("You should not instantiate StaticOutput.")
-            self.__hierarchy = self._hierarchy_class(self, data_style=self.data_style)
-        return self.__hierarchy
-
-    def _set_hierarchy(self, newh):
-        if self.__hierarchy != None:
-            mylog.warning("Overriding hierarchy attribute!  This is probably unwise!")
-        self.__hierarchy = newh
-
-    __hierarchy = None
-    hierarchy = property(_get_hierarchy, _set_hierarchy)
-    h = property(_get_hierarchy, _set_hierarchy)
+            self._instantiated_hierarchy = self._hierarchy_class(
+                self, data_style=self.data_style)
+        return self._instantiated_hierarchy
+    h = hierarchy  # alias
 
     @parallel_root_only
     def print_key_parameters(self):
         for a in ["current_time", "domain_dimensions", "domain_left_edge",
-                 "domain_right_edge", "cosmological_simulation"]:
+                  "domain_right_edge", "cosmological_simulation"]:
             if not hasattr(self, a):
                 mylog.error("Missing %s in parameter file definition!", a)
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
         if hasattr(self, "cosmological_simulation") and \
-            getattr(self, "cosmological_simulation"):
+           getattr(self, "cosmological_simulation"):
             for a in ["current_redshift", "omega_lambda", "omega_matter",
                       "hubble_constant"]:
                 if not hasattr(self, a):

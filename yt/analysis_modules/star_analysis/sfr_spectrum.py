@@ -1,11 +1,11 @@
 """
 StarAnalysis - Functions to analyze stars.
 
-Author: Stephen Skory <sskory@physics.ucsd.edu>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego / CASS
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Stephen Skory (and others).  All Rights Reserved.
+  Copyright (C) 2008-2011 Stephen Skory (and others).  All Rights Reserved.
 
   This file is part of yt.
 
@@ -328,6 +328,8 @@ class SpectrumBuilder(object):
             if star_metallicity_constant is not None:
                 self.star_metal = na.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
+            if star_metallicity_fraction is not None:
+                self.star_metal = star_metallicity_fraction
         else:
             # Get the data we need.
             ct = self._data_source["creation_time"]

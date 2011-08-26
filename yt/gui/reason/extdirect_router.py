@@ -40,6 +40,7 @@ class DirectRouter(object):
 
     Call an instance of this class with the JSON from an Ext.Direct request.
     """
+    exception_handler = None
     def __call__(self, body):
         """
         """
@@ -98,7 +99,13 @@ class DirectRouter(object):
         self._data = data
 
         # Finally, call the target method, passing in the data
-        result = _targetfn(**data)
+        try:
+            result = _targetfn(**data)
+        except Exception as e:
+            if self.exception_handler is not None:
+                result = self.exception_handler(e)
+            else:
+                raise e
 
         return {
             'type':'rpc',

@@ -4,9 +4,9 @@ Data structures for Chombo.
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2010 Matthew Turk, J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -52,6 +52,8 @@ from yt.data_objects.static_output import \
      StaticOutput
 from yt.utilities.definitions import \
      mpc_conversion
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+     parallel_root_only
 
 from .fields import ChomboFieldContainer
 
@@ -100,7 +102,7 @@ class ChomboHierarchy(AMRHierarchy):
         self._fhandle = h5py.File(self.hierarchy_filename)
 
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._fhandle.listnames()[1:]
+        self._levels = [fn for fn in self._fhandle if fn != "Chombo_global"]
         AMRHierarchy.__init__(self,pf,data_style)
 
         self._fhandle.close()
@@ -127,7 +129,7 @@ class ChomboHierarchy(AMRHierarchy):
         
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
-        levels = f.listnames()[1:]
+        levels = [fn for fn in f if fn != "Chombo_global"]
         self.grids = []
         i = 0
         for lev in levels:
@@ -299,10 +301,18 @@ class ChomboStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            if (fileh.listnames())[0] == 'Chombo_global':
-                return True
+            return "Chombo_global" in fileh["/"]
         except:
             pass
         return False
 
 
+    @parallel_root_only
+    def print_key_parameters(self):
+        for a in ["current_time", "domain_dimensions", "domain_left_edge",
+                  "domain_right_edge"]:
+            if not hasattr(self, a):
+                mylog.error("Missing %s in parameter file definition!", a)
+                continue
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)

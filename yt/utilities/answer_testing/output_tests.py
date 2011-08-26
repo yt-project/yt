@@ -1,3 +1,28 @@
+"""
+Base classes for answer testing
+
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
+License:
+  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 from yt.mods import *
 
 # We first create our dictionary of tests to run.  This starts out empty, and
@@ -93,8 +118,8 @@ class RegressionTest(object):
         """
         if a1.shape != a2.shape:
             raise ShapeMismatch(a1, a2)
-        delta = na.abs(a1 - a2)/(a1 + a2)
-        if delta.max() > acceptable:
+        delta = na.abs(a1 - a2).astype("float64")/(a1 + a2)
+        if na.nanmax(delta) > acceptable:
             raise ArrayDelta(delta, acceptable)
         return True
 
@@ -133,8 +158,11 @@ class MultipleOutputTest(RegressionTest):
         self.io_log = io_log
 
     def __iter__(self):
-        for line in open(self.io_log):
-            yield line[len(self.io_log_header):].split()[0].strip()
+        if isinstance(self.io_log, types.StringTypes):
+            for line in open(self.io_log):
+                yield line[len(self.io_log_header):].split()[0].strip()
+        elif isinstance(self.io_log, types.ListType):
+            for line in self.io_log: yield line
 
 def create_test(base, new_name, **attrs):
     """

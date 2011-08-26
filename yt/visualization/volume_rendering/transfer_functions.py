@@ -3,7 +3,7 @@ Simple transfer function editor
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
@@ -547,7 +547,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             if mi is None: mi = col_bounds[0] + dist/(10.0*N)
             if ma is None: ma = col_bounds[1] - dist/(10.0*N)
         if w is None: w = 0.001 * (ma-mi)/N
-        if alpha is None: alpha = na.logspace(-2.0, 0.0, N)
+        if alpha is None: alpha = na.logspace(-3.0, 0.0, N)
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 

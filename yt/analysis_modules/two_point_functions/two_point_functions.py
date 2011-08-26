@@ -1,11 +1,11 @@
 """
 Two Point Functions Framework.
 
-Author: Stephen Skory <stephenskory@yahoo.com>
+Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010 Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2010-2011 Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -610,7 +610,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 added_points = False
 
     @parallel_blocking_call
-    def write_out_means(self):
+    def write_out_means(self, fn = "%s.txt"):
         r"""Writes out the weighted-average value for each function for
         each dimension for each ruler length to a text file. The data is written
         to files of the name 'function_name.txt' in the current working
@@ -621,7 +621,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         >>> tpf.write_out_means()
         """
         for fset in self._fsets:
-            fp = self._write_on_root("%s.txt" % fset.function.__name__)
+            fp = self._write_on_root(fn % fset.function.__name__)
             fset._avg_bin_hits()
             line = "# length".ljust(sep)
             line += "count".ljust(sep)
@@ -643,7 +643,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             fp.close()
     
     @parallel_root_only
-    def write_out_arrays(self):
+    def write_out_arrays(self, fn = "%s.h5"):
         r"""Writes out the raw probability bins and the bin edges to an HDF5 file
         for each of the functions. The files are named 
         'function_name.txt' and saved in the current working directory.
@@ -654,7 +654,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         if self.mine == 0:
             for fset in self._fsets:
-                f = h5py.File("%s.h5" % fset.function.__name__, "w")
+                f = h5py.File(fn % fset.function.__name__, "w")
                 bin_names = []
                 prob_names = []
                 bin_counts = []

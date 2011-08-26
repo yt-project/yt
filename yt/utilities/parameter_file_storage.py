@@ -3,9 +3,9 @@ A simple CSV database for grabbing and storing parameter files
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -33,7 +33,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_simple_proxy
 
 output_type_registry = {}
-_field_names = ('hash','bn','fp','tt','ctid','class_name','last_seen')
+_field_names = ('hash', 'bn', 'fp', 'tt', 'ctid', 'class_name', 'last_seen')
 
 class NoParameterShelf(Exception):
     pass
@@ -49,6 +49,14 @@ class UnknownStaticOutputType(Exception):
         return "%s" % self.name
 
 class ParameterFileStore(object):
+    """
+    This class is designed to be a semi-persistent storage for parameter
+    files.  By identifying each parameter file with a unique hash, objects
+    can be stored independently of parameter files -- when an object is
+    loaded, the parameter file is as well, based on the hash.  For
+    storage concerns, only a few hundred will be retained in cache.
+
+    """
 
     _shared_state = {}
     _distributed = True
@@ -60,13 +68,11 @@ class ParameterFileStore(object):
         self.__dict__ = cls._shared_state
         return self
 
-    def __init__(self, in_memory = False):
+    def __init__(self, in_memory=False):
         """
-        This class is designed to be a semi-persistent storage for parameter
-        files.  By identifying each parameter file with a unique hash, objects
-        can be stored independently of parameter files -- when an object is
-        loaded, the parameter file is as well, based on the hash.  For
-        storage concerns, only a few hundred will be retained in cache.
+        Create the parameter file database if yt is configured to store them.
+        Otherwise, use read-only settings.
+
         """
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
             self._read_only = False
@@ -92,29 +98,23 @@ class ParameterFileStore(object):
         # these will be broadcast
 
     def _get_db_name(self):
-        base_file_name = ytcfg.get("yt","ParameterFileStore")
+        base_file_name = ytcfg.get("yt", "ParameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
         return os.path.expanduser("~/.yt/%s" % base_file_name)
 
     def get_pf_hash(self, hash):
-        """
-        This returns a parameter file based on a hash.
-        """
+        """ This returns a parameter file based on a hash. """
         return self._convert_pf(self._records[hash])
 
     def get_pf_ctid(self, ctid):
-        """
-        This returns a parameter file based on a CurrentTimeIdentifier.
-        """
+        """ This returns a parameter file based on a CurrentTimeIdentifier. """
         for h in self._records:
             if self._records[h]['ctid'] == ctid:
                 return self._convert_pf(self._records[h])
 
     def _adapt_pf(self, pf):
-        """
-        This turns a parameter file into a CSV entry
-        """
+        """ This turns a parameter file into a CSV entry. """
         return dict(bn=pf.basename,
                     fp=pf.fullpath,
                     tt=pf.current_time,
@@ -123,9 +123,7 @@ class ParameterFileStore(object):
                     last_seen=pf._instantiated)
 
     def _convert_pf(self, pf_dict):
-        """
-        This turns a CSV entry into a parameter file 
-        """
+        """ This turns a CSV entry into a parameter file. """
         bn = pf_dict['bn']
         fp = pf_dict['fp']
         fn = os.path.join(fp, bn)
@@ -145,7 +143,7 @@ class ParameterFileStore(object):
     def check_pf(self, pf):
         """
         This will ensure that the parameter file (*pf*) handed to it is
-        recorded in the storage unit.  In doing so, it will update path 
+        recorded in the storage unit.  In doing so, it will update path
         and "last_seen" information.
         """
         hash = pf._hash()
@@ -160,9 +158,7 @@ class ParameterFileStore(object):
             self.insert_pf(pf)
 
     def insert_pf(self, pf):
-        """
-        This will insert a new *pf* and flush the database to disk.
-        """
+        """ This will insert a new *pf* and flush the database to disk. """
         self._records[pf._hash()] = self._adapt_pf(pf)
         self.flush_db()
 
@@ -176,12 +172,14 @@ class ParameterFileStore(object):
         self.flush_db()
 
     def flush_db(self):
-        """
-        This flushes the storage to disk.
-        """
+        """ This flushes the storage to disk. """
         if self._read_only: return
         self._write_out()
         self.read_db()
+
+    def get_recent(self, n=10):
+        recs = sorted(self._records.values(), key=lambda a: -a['last_seen'])[:n]
+        return recs
 
     @parallel_simple_proxy
     def _write_out(self):
@@ -199,10 +197,8 @@ class ParameterFileStore(object):
 
     @parallel_simple_proxy
     def read_db(self):
-        """
-        This will read the storage device from disk.
-        """
-        f=open(self._get_db_name(), 'rb')
+        """ This will read the storage device from disk. """
+        f = open(self._get_db_name(), 'rb')
         vals = csv.DictReader(f, _field_names)
         db = {}
         for v in vals:
@@ -214,3 +210,22 @@ class ParameterFileStore(object):
 
 class ObjectStorage(object):
     pass
+
+class EnzoRunDatabase(object):
+    conn = None
+
+    def __init__(self, path = None):
+        if path is None:
+            path = ytcfg.get("yt", "enzo_db")
+            if len(path) == 0: raise Runtime
+        import sqlite3
+        self.conn = sqlite3.connect(path)
+
+    def find_uuid(self, u):
+        cursor = self.conn.execute(
+            "select pf_path from enzo_outputs where dset_uuid = '%s'" % (
+                u))
+        # It's a 'unique key'
+        result = cursor.fetchone()
+        if result is None: return None
+        return result[0]
