@@ -137,17 +137,9 @@ def get_memory_usage():
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
-    """
+    r"""
     Decorator for seeing how long a given function takes, depending on whether
     or not the global 'yt.timefunctions' config parameter is set.
-
-    This can be used like so:
-
-    .. code-block:: python
-
-       @time_execution
-    def some_longrunning_function(...):
-
     """
     @wraps(func)
     def wrapper(*arg, **kw):
