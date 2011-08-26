@@ -115,7 +115,7 @@ class ObjectFindingMixin(object):
         as the input *fields*.
         
         Parameters
-        ---------
+        ----------
         fields : string or list of strings
             The field(s) that will be returned.
         
