@@ -684,9 +684,9 @@ class EnzoStaticOutput(StaticOutput):
         self._hierarchy_class = EnzoHierarchy1D
         self._fieldinfo_class = Enzo1DFieldContainer
         self.domain_left_edge = \
-            na.concatenate([self["DomainLeftEdge"], [0.0, 0.0]])
+            na.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
-            na.concatenate([self["DomainRightEdge"], [1.0, 1.0]])
+            na.concatenate([[self.domain_right_edge], [1.0, 1.0]])
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
@@ -796,8 +796,13 @@ class EnzoStaticOutput(StaticOutput):
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
-        self.domain_left_edge = self.parameters["DomainLeftEdge"].copy()
-        self.domain_right_edge = self.parameters["DomainRightEdge"].copy()
+        if self.dimensionality > 1:
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"]).copy()
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"]).copy()
+        else:
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"])
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"])
+
         self.current_time = self.parameters["InitialTime"]
         # To be enabled when we can break old pickles:
         #if "MetaDataSimulationUUID" in self.parameters:
@@ -835,7 +840,7 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
-        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)

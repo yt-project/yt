@@ -289,18 +289,25 @@ class AMRKDTree(HomogenizedVolume):
         if le is None:
             self.domain_left_edge = pf.domain_left_edge
         else:
-            self.domain_left_edge = na.clip(na.array(le),pf.domain_left_edge, pf.domain_right_edge)
+            self.domain_left_edge = na.array(le)
         if re is None:
             self.domain_right_edge = pf.domain_right_edge
         else:
-            self.domain_right_edge = na.clip(na.array(re),pf.domain_left_edge, pf.domain_right_edge)
+            self.domain_right_edge = na.array(re)
 
+        root_grids = pf.hierarchy.get_levels().next()
+        rgdds = root_grids[0].dds
+        self.domain_left_edge = (self.domain_left_edge/rgdds).astype('int64')*rgdds
+        self.domain_right_edge = ((self.domain_right_edge/rgdds).astype('int64')+1)*rgdds
+
+        self.domain_left_edge = na.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
+        self.domain_right_edge = na.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
+        
         self.my_l_corner = self.domain_left_edge
         self.my_r_corner = self.domain_right_edge
 
         mylog.info('Making kd tree from le %s to %s'% (self.domain_left_edge, self.domain_right_edge))
-        root_grids = pf.hierarchy.get_levels().next()
-
+        
         root_l_data = na.array([grid.LeftEdge for grid in root_grids])
         root_r_data = na.array([grid.RightEdge for grid in root_grids])
         root_we_want = na.all(root_l_data < self.my_r_corner,axis=1)*\
