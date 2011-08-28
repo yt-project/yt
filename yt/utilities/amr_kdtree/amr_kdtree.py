@@ -789,6 +789,24 @@ class AMRKDTree(HomogenizedVolume):
                 v += na.prod(node.r_corner - node.l_corner)
         return v
 
+    def count_cells(self):
+        r"""Calculates the numbers of cells of the kd-Tree
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        Total volume of the tree.
+        
+        """
+        c = na.int64(0)
+        for node in self.depth_traverse():
+            if node.grid is not None:
+                c += na.prod(node.ri - node.li).astype('int64')
+        return c
+
     def _build(self, grids, parent, l_corner, r_corner):
         r"""Builds the AMR kd-Tree
 
