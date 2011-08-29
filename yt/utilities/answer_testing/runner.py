@@ -129,8 +129,11 @@ class RegressionTestRunner(object):
         self.plot_list[test.name] = test.plot()
         self.results[test.name] = test.result
         success, msg = self._compare(test)
-        if success == True: print "SUCCEEDED"
-        else: print "FAILED"
+        if self.old_results is None:
+            print "NO OLD RESULTS"
+        else:
+            if success == True: print "SUCCEEDED"
+            else: print "FAILED"
         self.passed_tests[test.name] = success
         if self.watcher is not None:
             if success == True:
