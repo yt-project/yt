@@ -401,6 +401,7 @@ cdef class RAMSES_tree_proxy:
         self.hydro_datas = <RAMSES_hydro_data ***>\
                        malloc(sizeof(RAMSES_hydro_data**) * self.rsnap.m_header.ncpu)
         self.ndomains = self.rsnap.m_header.ncpu
+        
         # Note we don't do ncpu + 1
         for idomain in range(self.rsnap.m_header.ncpu):
             # we don't delete local_tree
@@ -434,6 +435,13 @@ cdef class RAMSES_tree_proxy:
             self.field_names.append(field_name.c_str())
             self.field_ind[self.field_names[-1]] = ifield
         # This all needs to be cleaned up in the deallocator
+
+    def get_domain_boundaries(self):
+        bounds = []
+        for i in range(self.rsnap.m_header.ncpu):
+            bounds.append((self.rsnap.ind_min[i],
+                           self.rsnap.ind_max[i]))
+        return bounds
 
     def __dealloc__(self):
         cdef int idomain, ifield
