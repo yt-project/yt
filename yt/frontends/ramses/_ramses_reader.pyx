@@ -512,12 +512,13 @@ cdef class RAMSES_tree_proxy:
         # We delete and re-create
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
-        if self.loaded[domain_index][varindex] == 0: return
-        cdef RAMSES_hydro_data *temp_hdata = self.hydro_datas[domain_index][varindex]
-        del temp_hdata
-        self.hydro_datas[domain_index - 1][varindex] = \
-            new RAMSES_hydro_data(deref(self.trees[domain_index]))
-        self.loaded[domain_index][varindex] = 0
+        cdef RAMSES_hydro_data *temp_hdata
+        if self.loaded[domain_index][varindex] == 1:
+            temp_hdata = self.hydro_datas[domain_index][varindex]
+            del temp_hdata
+            self.hydro_datas[domain_index][varindex] = \
+                new RAMSES_hydro_data(deref(self.trees[domain_index]))
+            self.loaded[domain_index][varindex] = 0
         del field_name
 
     def get_file_info(self):

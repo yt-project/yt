@@ -65,6 +65,7 @@ class RAMSESGrid(AMRGridPatch):
         self.Parent = []
         self.Children = []
         self.locations = locations
+        self.domain = locations[0,0]
         self.start_index = start_index.copy()
 
     def _setup_dx(self):
@@ -245,7 +246,8 @@ class RAMSESHierarchy(AMRHierarchy):
                                 self.grid_levels, mask)
             parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
-                g.Parent.extend(parents.tolist())
+                g.Parent.extend((p for p in parents.tolist()
+                        if p.locations[0,0] == g.locations[0,0]))
                 for p in parents: p.Children.append(g)
             # Now we do overlapping siblings; note that one has to "win" with
             # siblings, so we assume the lower ID one will "win"
