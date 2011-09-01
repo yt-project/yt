@@ -4,8 +4,8 @@
     LodgeIt!
     ~~~~~~~~
 
-    A script that pastes stuff into the enzotools pastebin on
-    paste.enztools.org.
+    A script that pastes stuff into the yt-project pastebin on
+    paste.yt-project.org.
 
     Modified (very, very slightly) from the original script by the authors
     below.
