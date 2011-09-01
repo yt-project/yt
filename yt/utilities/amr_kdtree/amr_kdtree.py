@@ -261,7 +261,7 @@ class AMRKDTree(HomogenizedVolume):
         self.pf = pf
         self._id_offset = pf.h.grids[0]._id_offset
         if nprocs > len(pf.h.grids):
-            print('Parallel rendering requires that the number of \n \
+            mylog.info('Parallel rendering requires that the number of \n \
             grids in the dataset is greater or equal to the number of \n \
             processors.  Reduce number of processors.')
             raise(KeyError)
@@ -305,12 +305,10 @@ class AMRKDTree(HomogenizedVolume):
         vol_needed = na.prod(self.domain_right_edge-self.domain_left_edge)
 
         for i in range(self.pf.hierarchy.max_level):
-            print 'Examining Level %i' % i
             root_l_data = na.clip(na.array([grid.LeftEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
             root_r_data = na.clip(na.array([grid.RightEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
             
             vol = na.prod(root_r_data-root_l_data,axis=1).sum()
-            print vol, vol_needed
             if vol >= vol_needed:
                 covering_grids = root_grids
                 root_grids = levels.next()
@@ -329,7 +327,7 @@ class AMRKDTree(HomogenizedVolume):
         self.my_l_corner = self.domain_left_edge
         self.my_r_corner = self.domain_right_edge
 
-        mylog.info('Making kd tree from le %s to %s'% (self.domain_left_edge, self.domain_right_edge))
+        #mylog.info('Making kd tree from le %s to %s'% (self.domain_left_edge, self.domain_right_edge))
         
         root_l_data = na.array([grid.LeftEdge for grid in root_grids])
         root_r_data = na.array([grid.RightEdge for grid in root_grids])
@@ -361,7 +359,7 @@ class AMRKDTree(HomogenizedVolume):
 
         # Calculate the total volume spanned by the tree
         self.volume = self.count_volume()
-        mylog.debug('Cost is %d' % self.total_cost)
+        #mylog.debug('Cost is %d' % self.total_cost)
         mylog.debug('Volume is %e' % self.volume) 
 
         self.current_saved_grids = []
@@ -1039,7 +1037,7 @@ class AMRKDTree(HomogenizedVolume):
             except:
                 rounds = i-1
         for thisround in range(rounds,0,-1):
-            print my_rank, 'my node', my_node_id
+            #print my_rank, 'my node', my_node_id
             parent = my_node.parent
             #print parent['split_ax'], parent['split_pos']
             if viewpoint[parent.split_ax] <= parent.split_pos:
@@ -1049,7 +1047,7 @@ class AMRKDTree(HomogenizedVolume):
                 front = parent.left_child
                 back = parent.right_child 
 
-            mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
+            # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
                 
             # Send the images around
             if front.owner == my_rank:
