@@ -290,15 +290,38 @@ class AMRKDTree(HomogenizedVolume):
             self.domain_left_edge = pf.domain_left_edge
         else:
             self.domain_left_edge = na.array(le)
+
         if re is None:
             self.domain_right_edge = pf.domain_right_edge
         else:
             self.domain_right_edge = na.array(re)
 
-        root_grids = pf.hierarchy.get_levels().next()
+        self.domain_left_edge = na.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
+        self.domain_right_edge = na.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
+
+        levels = pf.hierarchy.get_levels()
+        root_grids = levels.next()
+        covering_grids = root_grids
+        vol_needed = na.prod(self.domain_right_edge-self.domain_left_edge)
+
+        for i in range(self.pf.hierarchy.max_level):
+            print 'Examining Level %i' % i
+            root_l_data = na.clip(na.array([grid.LeftEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
+            root_r_data = na.clip(na.array([grid.RightEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
+            
+            vol = na.prod(root_r_data-root_l_data,axis=1).sum()
+            print vol, vol_needed
+            if vol >= vol_needed:
+                covering_grids = root_grids
+                root_grids = levels.next()
+            else:
+                break
+            
+        root_grids = covering_grids
+        
         rgdds = root_grids[0].dds
-        self.domain_left_edge = (self.domain_left_edge/rgdds).astype('int64')*rgdds
-        self.domain_right_edge = ((self.domain_right_edge/rgdds).astype('int64')+1)*rgdds
+        self.domain_left_edge = ((self.domain_left_edge)/rgdds).astype('int64')*rgdds
+        self.domain_right_edge = (((self.domain_right_edge)/rgdds).astype('int64')+1)*rgdds
 
         self.domain_left_edge = na.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
         self.domain_right_edge = na.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
@@ -1004,15 +1027,17 @@ class AMRKDTree(HomogenizedVolume):
         my_node.owner = 0
         path = na.binary_repr(anprocs+my_rank)
         for i in range(rounds):
-            my_node.left_child.owner = my_node.owner
-            my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))
-            if path[i+1] is '0': 
-                my_node = my_node.left_child
-                my_node_id = my_node.id
-            else:
-                my_node = my_node.right_child
-                my_node_id = my_node.id
-            
+            try:
+                my_node.left_child.owner = my_node.owner
+                my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))
+                if path[i+1] is '0': 
+                    my_node = my_node.left_child
+                    my_node_id = my_node.id
+                else:
+                    my_node = my_node.right_child
+                    my_node_id = my_node.id
+            except:
+                rounds = i-1
         for thisround in range(rounds,0,-1):
             print my_rank, 'my node', my_node_id
             parent = my_node.parent
