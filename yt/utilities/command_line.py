@@ -161,6 +161,37 @@ _common_options = dict(
                    action="store_true",
                    dest="time", default=False,
                    help="Print time in years on image"),
+    contours    = dict(short="", long="--contours",
+                   action="store",type="int",
+                   dest="contours", default=None,
+                   help="Number of Contours for Rendering"),
+    contour_width  = dict(short="", long="--contour_width",
+                   action="store",type="float",
+                   dest="contour_width", default=None,
+                   help="Width of gaussians used for rendering."),
+    enhance   = dict(short="", long="--enhance",
+                   action="store_true",
+                   dest="enhance", default=False,
+                   help="Enhance!"),
+    range  = dict(short="", long="--range",
+                   action="store", type="float",
+                   dest="range", default=None,
+                   nargs=2,
+                   help="Range, command separated"),
+    up  = dict(short="", long="--up",
+                   action="store", type="float",
+                   dest="up", default=None,
+                   nargs=3,
+                   help="Up, command separated"),
+    viewpoint  = dict(short="", long="--viewpoint",
+                   action="store", type="float",
+                   dest="viewpoint", default=[1., 1., 1.],
+                   nargs=3,
+                   help="Viewpoint, command separated"),
+    pixels    = dict(short="", long="--pixels",
+                   action="store",type="int",
+                   dest="pixels", default=None,
+                   help="Number of Pixels for Rendering"),
     halos   = dict(short="", long="--halos",
                    action="store", type="string",
                    dest="halos",default="multiple",
@@ -1447,6 +1478,89 @@ class YTCommands(cmdln.Cmdln):
             print "Something has gone wrong!  Here is the server response:"
             print
             pprint.pprint(rv)
+
+    @add_cmd_options(["width", "unit", "center","enhance",'outputfn',
+                      "field", "cmap", "contours", "viewpoint",
+                      "pixels","up","range","log","contour_width"])
+    @check_args
+    def do_render(self, subcmd, opts, arg):
+        """
+        Create a simple volume rendering
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
+        center = opts.center
+        if opts.center == (-1,-1,-1):
+            mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        elif opts.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+        center = na.array(center)
+
+        L = opts.viewpoint
+        if L is None:
+            L = [1.]*3
+        L = na.array(opts.viewpoint)
+
+        unit = opts.unit
+        if unit is None:
+            unit = '1'
+        width = opts.width
+        if width is None:
+            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
+        width /= pf[unit]
+
+        N = opts.pixels
+        if N is None:
+            N = 512 
+        
+        up = opts.up
+        if up is None:
+            up = [0.,0.,1.]
+            
+        field = opts.field
+        if field is None:
+            field = 'Density'
+        
+        log = opts.takelog
+        if log is None:
+            log = True
+
+        if opts.range is None:
+            mi, ma = pf.h.all_data().quantities['Extrema'](field)[0]
+            if log:
+                mi, ma = na.log10(mi), na.log10(ma)
+        else:
+            mi, ma = range[0], range[1]
+
+        n_contours = opts.contours
+        if n_contours is None:
+            n_contours = 7
+
+        contour_width = opts.contour_width
+
+        cmap = opts.cmap
+        if cmap is None:
+            cmap = 'jet'
+        tf = ColorTransferFunction((mi-2, ma+2))
+        tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
+
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        image = cam.snapshot()
+        
+        if opts.enhance:
+            for i in range(3):
+                image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
+            image[image>1.0]=1.0
+            
+        save_name = opts.output
+        if save_name is None:
+            save_name = "%s"%pf+"_"+field+"_rendering.png"
+        if not '.png' in save_name:
+            save_name += '.png'
+        write_bitmap(image,save_name)
 
 def run_main():
     for co in ["--parallel", "--paste"]:
