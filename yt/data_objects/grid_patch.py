@@ -47,6 +47,7 @@ class AMRGridPatch(object):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
+    OverlappingSiblings = None
 
     __slots__ = ['data', 'field_parameters', 'id', 'hierarchy', 'pf',
                  'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
@@ -366,7 +367,7 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        rf = self.pf.refine_by
+        rf = self.pf.refine_by**(child.Level - self.Level)
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = na.maximum(0, cgi/rf - gi)
         endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,
@@ -384,6 +385,10 @@ class AMRGridPatch(object):
         self._child_mask = na.ones(self.ActiveDimensions, 'int32')
         for child in self.Children:
             self.__fill_child_mask(child, self._child_mask, 0)
+        if self.OverlappingSiblings is not None:
+            for sibling in self.OverlappingSiblings:
+                self.__fill_child_mask(sibling, self._child_mask, 0)
+        
         self._child_indices = (self._child_mask==0) # bool, possibly redundant
 
     def __generate_child_index_mask(self):
@@ -395,6 +400,10 @@ class AMRGridPatch(object):
         for child in self.Children:
             self.__fill_child_mask(child, self._child_index_mask,
                                    child.id)
+        if self.OverlappingSiblings is not None:
+            for sibling in self.OverlappingSiblings:
+                self.__fill_child_mask(sibling, self._child_index_mask,
+                                       sibling.id)
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()
@@ -441,7 +450,7 @@ class AMRGridPatch(object):
         if smoothed:
             #cube = self.hierarchy.smoothed_covering_grid(
             #    level, new_left_edge, new_right_edge, **kwargs)
-            cube = self.hierarchy.si_covering_grid(
+            cube = self.hierarchy.smoothed_covering_grid(
                 level, new_left_edge, **kwargs)
         else:
             cube = self.hierarchy.covering_grid(

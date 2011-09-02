@@ -23,10 +23,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from collections import defaultdict
 import numpy as na
 
 from yt.utilities.io_handler import \
     BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerRAMSES(BaseIOHandler):
     _data_style = "ramses"
@@ -58,3 +60,21 @@ class IOHandlerRAMSES(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         return self._read_data_set(grid, field)[sl]
 
+    def preload(self, grids, sets):
+        if len(grids) == 0: return
+        domain_keys = defaultdict(list)
+        pf_field_list = grids[0].pf.h.field_list
+        sets = [dset for dset in list(sets) if dset in pf_field_list]
+        exc = self._read_exception
+        for g in grids:
+            domain_keys[g.domain].append(g)
+        for domain, grids in domain_keys.items():
+            mylog.debug("Starting read of domain %s (%s)", domain, sets)
+            for field in sets:
+                for g in grids:
+                    self.queue[g.id][field] = self._read_data_set(g, field)
+                print "Clearing", field, domain
+                self.ramses_tree.clear_tree(field, domain - 1)
+        mylog.debug("Finished read of %s", sets)
+
+    def modify(self, data): return data

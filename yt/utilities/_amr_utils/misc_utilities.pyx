@@ -27,6 +27,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.ndarray[np.float64_t, ndim=1] py,
                      np.ndarray[np.float64_t, ndim=1] pdx,
@@ -51,18 +54,22 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
             if v > ma: ma = v
     return (mi, ma)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                         np.ndarray[np.float64_t, ndim=1] right_edge,
                         int level,
                         np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
+                        np.ndarray[np.int32_t, ndim=1] mask,
+                        int min_index = 0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
     cdef int inside 
     for i in range(nx):
-        if levels[i,0] != level:
+        if i < min_index or levels[i,0] != level:
             mask[i] = 0
             continue
         inside = 1
@@ -73,6 +80,31 @@ def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                 break
         if inside == 1: mask[i] = 1
         else: mask[i] = 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def get_box_grids_below_level(
+                        np.ndarray[np.float64_t, ndim=1] left_edge,
+                        np.ndarray[np.float64_t, ndim=1] right_edge,
+                        int level,
+                        np.ndarray[np.float64_t, ndim=2] left_edges,
+                        np.ndarray[np.float64_t, ndim=2] right_edges,
+                        np.ndarray[np.int32_t, ndim=2] levels,
+                        np.ndarray[np.int32_t, ndim=1] mask):
+    cdef int i, n
+    cdef int nx = left_edges.shape[0]
+    cdef int inside 
+    for i in range(nx):
+        mask[i] = 0
+        if levels[i,0] <= level:
+            inside = 1
+            for n in range(3):
+                if left_edge[n] >= right_edges[i,n] or \
+                   right_edge[n] <= left_edges[i,n]:
+                    inside = 0
+                    break
+            if inside == 1: mask[i] = 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
