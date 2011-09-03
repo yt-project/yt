@@ -133,7 +133,7 @@ class RegressionTestRunner(object):
             print "NO OLD RESULTS"
         else:
             if success == True: print "SUCCEEDED"
-            else: print "FAILED"
+            else: print "FAILED", msg
         self.passed_tests[test.name] = success
         if self.watcher is not None:
             if success == True:
