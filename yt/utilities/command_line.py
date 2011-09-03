@@ -1529,7 +1529,8 @@ class YTCommands(cmdln.Cmdln):
             log = True
 
         if opts.range is None:
-            mi, ma = pf.h.all_data().quantities['Extrema'](field)[0]
+            roi = pf.h.region(center, center-width, center+width)
+            mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
                 mi, ma = na.log10(mi), na.log10(ma)
         else:
