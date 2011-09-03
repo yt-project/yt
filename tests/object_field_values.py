@@ -9,6 +9,33 @@ from fields_to_test import field_list, particle_field_list
 class FieldHashesDontMatch(RegressionTestException):
     pass
 
+known_objects = {}
+
+def register_object(func):
+    known_objects[func.func_name] = func
+    return func
+
+@register_object
+def centered_sphere(self):
+    center = 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
+    width = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()
+    self.data_object = self.pf.h.sphere(center, width/0.25)
+
+@register_object
+def off_centered_sphere(self):
+    center = 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
+    width = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()
+    self.data_object = self.pf.h.sphere(center - 0.25 * width, width/0.25)
+
+@register_object
+def corner_sphere(self):
+    width = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()
+    self.data_object = self.pf.h.sphere(self.pf.domain_left_edge, width/0.25)
+
+@register_object
+def all_data(self):
+    self.data_object = self.pf.h.all_data()
+
 class YTFieldValuesTest(YTStaticOutputTest):
     def run(self):
         vals = self.data_object[self.field].copy()
@@ -18,42 +45,12 @@ class YTFieldValuesTest(YTStaticOutputTest):
     def compare(self, old_result):
         if self.result != old_result: raise FieldHashesDontMatch
 
-class CenteredSphere(YTFieldValuesTest):
-
     def setup(self):
-        YTFieldValuesTest.setup(self)
-        center = 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
-        width = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()
-        self.data_object = self.pf.h.sphere(center, width/0.25)
+        YTStaticOutputTest.setup(self)
+        known_objects[self.object_name](self)
 
-for field in field_list + particle_field_list:
-    create_test(CenteredSphere, "centered_sphere_%s" % (field), field = field)
+for object_name in known_objects:
+    for field in field_list + particle_field_list:
+        create_test(YTFieldValuesTest, "%s_%s" % (object_name, field),
+                    field = field, object_name = object_name)
 
-class OffCenteredSphere(YTFieldValuesTest):
-
-    def setup(self):
-        YTFieldValuesTest.setup(self)
-        center = 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
-        width = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()
-        self.data_object = self.pf.h.sphere(center - 0.25 * width, width/0.25)
-
-for field in field_list + particle_field_list:
-    create_test(OffCenteredSphere, "off_centered_sphere_%s" % (field), field = field)
-
-class CornerSphere(YTFieldValuesTest):
-
-    def setup(self):
-        YTFieldValuesTest.setup(self)
-        width = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()
-        self.data_object = self.pf.h.sphere(self.pf.domain_left_edge, width/0.25)
-
-for field in field_list + particle_field_list:
-    create_test(CornerSphere, "corner_sphere_%s" % (field), field = field)
-
-class AllData(YTFieldValuesTest):
-    def setup(self):
-        YTFieldValuesTest.setup(self)
-        self.data_object = self.pf.h.all_data()
-
-for field in field_list + particle_field_list:
-    create_test(AllData, "all_data_%s" % (field), field = field)
