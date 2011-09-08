@@ -1559,7 +1559,7 @@ class YTCommands(cmdln.Cmdln):
             
         save_name = opts.output
         if save_name is None:
-            save_name = "%s"%pf+"_"+field+'%i'%cam._mpi_get_rank()+"_rendering.png"
+            save_name = "%s"%pf+"_"+field+"_rendering.png"
         if not '.png' in save_name:
             save_name += '.png'
         if cam._mpi_get_rank() != -1:
