@@ -40,7 +40,7 @@ from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
-    QuadTree, get_box_grids_below_level
+    QuadTree, get_box_grids_below_level, ghost_zone_interpolate
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -3155,7 +3155,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             if self._use_pbar: pbar.finish()
 
     def _update_level_state(self, level, field = None):
-        dx = self.pf.h.select_grids(level)[0].dds
+        dx = ((self.pf.domain_right_edge - self.pf.domain_left_edge) /
+               self.pf.domain_dimensions.astype("float64"))
+        dx /= self.pf.refine_by**level
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
@@ -3180,26 +3182,23 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         old_dims = na.array(self[field].shape) - 1
         old_left = (self._old_global_startindex + 0.5) * rf 
         old_right = rf*old_dims + old_left
-        old_bounds = [old_left[0], old_right[0],
-                      old_left[1], old_right[1],
-                      old_left[2], old_right[2]]
-
         dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
         new_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
 
-        # x, y, z are the new bounds
-        x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
-                    ).astype('float64') + 0.5
-        x += self.global_startindex[0]
-        y += self.global_startindex[1]
-        z += self.global_startindex[2]
-        fake_grid = {'x':x,'y':y,'z':z}
-
-        interpolator = TrilinearFieldInterpolator(
-                        self[field], old_bounds, ['x','y','z'],
-                        truncate = True)
         self._cur_dims = new_dims.astype("int32")
-        self[field] = interpolator(fake_grid)
+
+        output_field = na.zeros(new_dims, dtype="float64")
+        input_bounds = na.array([[old_left[0], old_right[0]],
+                                 [old_left[1], old_right[1]],
+                                 [old_left[2], old_right[2]]])
+        new_left = self.global_startindex + 0.5
+        new_right = new_left + new_dims - 1
+        output_bounds = na.array([[new_left[0], new_right[0]],
+                                  [new_left[1], new_right[1]],
+                                  [new_left[2], new_right[2]]])
+        ghost_zone_interpolate(self[field], input_bounds,
+                               output_field, output_bounds)
+        self[field] = output_field
 
     def _get_data_from_grid(self, grid, fields, level):
         fields = ensure_list(fields)
