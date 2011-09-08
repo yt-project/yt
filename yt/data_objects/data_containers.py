@@ -3155,7 +3155,8 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             if self._use_pbar: pbar.finish()
 
     def _update_level_state(self, level, field = None):
-        dx = self.pf.h.select_grids(level)[0].dds
+        dx = ((self.pf.domain_right_edge - self.pf.domain_left_edge) /
+               self.pf.domain_dimensions.astype("float64"))
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
