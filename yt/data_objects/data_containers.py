@@ -3104,6 +3104,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
+        self._base_dx = (
+              (self.pf.domain_right_edge - self.pf.domain_left_edge) /
+               self.pf.domain_dimensions.astype("float64"))
         AMRCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
@@ -3155,10 +3158,10 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             if self._use_pbar: pbar.finish()
 
     def _update_level_state(self, level, field = None):
-        dx = ((self.pf.domain_right_edge - self.pf.domain_left_edge) /
-               self.pf.domain_dimensions.astype("float64"))
-        dx /= self.pf.refine_by**level
-        for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
+        dx = self._base_dx / self.pf.refine_by**level
+        self.data['cdx'] = dx[0]
+        self.data['cdy'] = dx[1]
+        self.data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
         self.global_startindex = na.rint(LL / dx).astype('int64') - 1
@@ -3167,37 +3170,28 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            self[field] = na.zeros(idims,dtype='float64')-999
+            self.data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
-            self[field] = na.zeros(idims,dtype='float64')-999
+            self.data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
     def _refine(self, dlevel, field):
         rf = float(self.pf.refine_by**dlevel)
 
-        old_dims = na.array(self[field].shape) - 1
-        old_left = (self._old_global_startindex + 0.5) * rf 
-        old_right = rf*old_dims + old_left
-        dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
-        new_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+        input_left = (self._old_global_startindex + 0.5) * rf 
+        dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
+        output_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int32') + 2
 
-        self._cur_dims = new_dims.astype("int32")
+        self._cur_dims = output_dims
 
-        output_field = na.zeros(new_dims, dtype="float64")
-        input_bounds = na.array([[old_left[0], old_right[0]],
-                                 [old_left[1], old_right[1]],
-                                 [old_left[2], old_right[2]]])
-        new_left = self.global_startindex + 0.5
-        new_right = new_left + new_dims - 1
-        output_bounds = na.array([[new_left[0], new_right[0]],
-                                  [new_left[1], new_right[1]],
-                                  [new_left[2], new_right[2]]])
-        ghost_zone_interpolate(self[field], input_bounds,
-                               output_field, output_bounds)
+        output_field = na.zeros(output_dims, dtype="float64")
+        output_left = self.global_startindex + 0.5
+        ghost_zone_interpolate(rf, self[field], input_left,
+                               output_field, output_left)
         self[field] = output_field
 
     def _get_data_from_grid(self, grid, fields, level):
