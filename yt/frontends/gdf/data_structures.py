@@ -32,7 +32,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 
-from .fields import GDFFieldContainer, KnownGDFFields
+from .fields import GDFFieldInfo, KnownGDFFields
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
@@ -139,8 +139,8 @@ class GDFHierarchy(AMRHierarchy):
 
 class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
-    _fieldinfo_fallback = GDFFieldContainer
-    _fieldinfo_known = GDFKnownFields
+    _fieldinfo_fallback = GDFFieldInfo
+    _fieldinfo_known = KnownGDFFields
     
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):

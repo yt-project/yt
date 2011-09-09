@@ -103,6 +103,7 @@ class ParameterFileStore(object):
         """
         This function ensures that the storage database exists and can be used.
         """
+        return
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
         try:
@@ -130,11 +131,13 @@ class ParameterFileStore(object):
 
     def get_pf_hash(self, hash):
         """ This returns a parameter file based on a hash. """
+        return
         output = self.output_model.get(dset_uuid = hash)
         return self._convert_pf(output)
 
     def _convert_pf(self, inst):
         """ This turns a model into a parameter file. """
+        return
         fn = inst.pf_path
         if inst.output_type not in output_type_registry:
             raise UnknownStaticOutputType(inst.output_type)
@@ -155,6 +158,7 @@ class ParameterFileStore(object):
         recorded in the storage unit.  In doing so, it will update path
         and "last_seen" information.
         """
+        return
         q = self.output_model.select().where(dset_uuid = pf._hash())
         q.execute()
         if q.count() == 0:

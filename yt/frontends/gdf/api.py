@@ -34,8 +34,8 @@ from .data_structures import \
       GDFStaticOutput
 
 from .fields import \
-      GDFFieldContainer, \
       GDFFieldInfo, \
+      KnownGDFFields, \
       add_gdf_field
 
 from .io import \

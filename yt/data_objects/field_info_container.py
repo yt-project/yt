@@ -76,6 +76,11 @@ class FieldInfoContainer(dict): # Resistance has utility
         obj.fallback = fallback
         return obj
 
+    def __contains__(self, key):
+        if dict.__contains__(self, key): return True
+        if self.fallback is None: return False
+        return self.fallback.has_key(key)
+
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
         return data[field]
@@ -179,7 +184,7 @@ class FieldDetector(defaultdict):
 
     def __missing__(self, item):
         FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(item) and FI[item]._function.func_name != '<lambda>':
+        if FI.has_key(item) and FI[item]._function.func_name != 'NullFunc':
             try:
                 vv = FI[item](self)
             except NeedsGridType as exc:
