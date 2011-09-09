@@ -40,7 +40,7 @@ from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
-    QuadTree, get_box_grids_below_level
+    QuadTree, get_box_grids_below_level, ghost_zone_interpolate
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -3104,6 +3104,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
+        self._base_dx = (
+              (self.pf.domain_right_edge - self.pf.domain_left_edge) /
+               self.pf.domain_dimensions.astype("float64"))
         AMRCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
@@ -3155,8 +3158,10 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             if self._use_pbar: pbar.finish()
 
     def _update_level_state(self, level, field = None):
-        dx = self.pf.h.select_grids(level)[0].dds
-        for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
+        dx = self._base_dx / self.pf.refine_by**level
+        self.data['cdx'] = dx[0]
+        self.data['cdy'] = dx[1]
+        self.data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
         self.global_startindex = na.rint(LL / dx).astype('int64') - 1
@@ -3165,41 +3170,29 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            self[field] = na.zeros(idims,dtype='float64')-999
+            self.data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
-            self[field] = na.zeros(idims,dtype='float64')-999
+            self.data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
     def _refine(self, dlevel, field):
         rf = float(self.pf.refine_by**dlevel)
 
-        old_dims = na.array(self[field].shape) - 1
-        old_left = (self._old_global_startindex + 0.5) * rf 
-        old_right = rf*old_dims + old_left
-        old_bounds = [old_left[0], old_right[0],
-                      old_left[1], old_right[1],
-                      old_left[2], old_right[2]]
+        input_left = (self._old_global_startindex + 0.5) * rf 
+        dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
+        output_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int32') + 2
 
-        dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
-        new_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+        self._cur_dims = output_dims
 
-        # x, y, z are the new bounds
-        x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
-                    ).astype('float64') + 0.5
-        x += self.global_startindex[0]
-        y += self.global_startindex[1]
-        z += self.global_startindex[2]
-        fake_grid = {'x':x,'y':y,'z':z}
-
-        interpolator = TrilinearFieldInterpolator(
-                        self[field], old_bounds, ['x','y','z'],
-                        truncate = True)
-        self._cur_dims = new_dims.astype("int32")
-        self[field] = interpolator(fake_grid)
+        output_field = na.zeros(output_dims, dtype="float64")
+        output_left = self.global_startindex + 0.5
+        ghost_zone_interpolate(rf, self[field], input_left,
+                               output_field, output_left)
+        self[field] = output_field
 
     def _get_data_from_grid(self, grid, fields, level):
         fields = ensure_list(fields)
