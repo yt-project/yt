@@ -29,13 +29,15 @@ License:
 """
 
 from .data_structures import \
-      ChomboGrid, \
-      ChomboHierarchy, \
-      ChomboStaticOutput
+      GDFGrid, \
+      GDFHierarchy, \
+      GDFStaticOutput
 
 from .fields import \
-      ChomboFieldInfo, \
-      add_chombo_field
+      GDFFieldContainer, \
+      GDFFieldInfo, \
+      add_gdf_field
 
 from .io import \
-      IOHandlerChomboHDF5
+      IOHandlerGDFHDF5
+
