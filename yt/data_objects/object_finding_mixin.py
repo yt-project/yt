@@ -3,7 +3,7 @@ AMR hierarchy container class
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -26,6 +26,9 @@ License:
 import numpy as na
 
 from yt.funcs import *
+from yt.utilities.amr_utils import \
+    get_box_grids_level, \
+    get_box_grids_below_level
 
 class ObjectFindingMixin(object):
 
@@ -115,7 +118,7 @@ class ObjectFindingMixin(object):
         as the input *fields*.
         
         Parameters
-        ---------
+        ----------
         fields : string or list of strings
             The field(s) that will be returned.
         
@@ -198,6 +201,36 @@ class ObjectFindingMixin(object):
                     nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
                     nre = nle + db
                     g, gi = self.get_box_grids(nle, nre)
+                    mask[gi] = True
+        return self.grids[mask], na.where(mask)
+
+    def get_box_grids_below_level(self, left_edge, right_edge, level):
+        # We discard grids if they are ABOVE the level
+        mask = na.empty(self.grids.size, dtype='int32')
+        get_box_grids_below_level(left_edge, right_edge,
+                            level,
+                            self.grid_left_edge, self.grid_right_edge,
+                            self.grid_levels, mask)
+        mask = mask.astype("bool")
+        return self.grids[mask], na.where(mask)
+
+    def get_periodic_box_grids_below_level(self, left_edge, right_edge, level):
+        left_edge = na.array(left_edge)
+        right_edge = na.array(right_edge)
+        mask = na.zeros(self.grids.shape, dtype='bool')
+        dl = self.parameter_file.domain_left_edge
+        dr = self.parameter_file.domain_right_edge
+        db = right_edge - left_edge
+        for off_x in [-1, 0, 1]:
+            nle = left_edge.copy()
+            nre = left_edge.copy()
+            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
+            for off_y in [-1, 0, 1]:
+                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
+                for off_z in [-1, 0, 1]:
+                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
+                    nre = nle + db
+                    g, gi = self.get_box_grids_below_level(nle, nre, level)
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
 

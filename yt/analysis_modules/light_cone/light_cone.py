@@ -3,7 +3,7 @@ LightCone class and member functions.
 
 Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
@@ -122,12 +122,20 @@ class LightCone(EnzoSimulation):
                                                                 deltaz_min=self.deltaz_min)
 
     def calculate_light_cone_solution(self, seed=None, filename=None):
-        """
-        Create list of projections to be added together to make the light cone.
-        :param seed (int): the seed for the random number generator.  Any light cone solution 
-               can be reproduced by giving the same random seed.  Default: None (each solution 
-               will be distinct).
-        :param filename (str): if given, a text file detailing the solution will be written out.  Default: None.
+        r"""Create list of projections to be added together to make the light cone.
+
+        Several sentences providing an extended description. Refer to
+        variables using back-ticks, e.g. `var`.
+
+        Parameters
+        ----------
+        seed : int
+            The seed for the random number generator.  Any light cone solution
+            can be reproduced by giving the same random seed.  Default: None
+            (each solution will be distinct).
+        filename : string
+            If given, a text file detailing the solution will be written out.
+            Default: None.
         """
 
         # Don't use box coherence with maximum projection depths.
@@ -209,13 +217,17 @@ class LightCone(EnzoSimulation):
             self._save_light_cone_solution(filename=filename)
 
     def get_halo_mask(self, mask_file=None, map_file=None, **kwargs):
-        """
-        Gets a halo mask from a file or makes a new one.
-        :param mask_file (str): specify an hdf5 file to output the halo mask.
-        :param map_file (str): specify a text file to output the halo map 
-               (locations in image of halos).
-        """
+        r"""Gets a halo mask from a file or makes a new one.
 
+        Parameters
+        ----------
+        mask_file : string, optional
+            An HDF5 file to which to output the halo mask
+        map_file : string, optional
+            A text file to which to output the halo map (locations in the
+            images of the halos
+
+        """
         # Get halo map if map_file given.
         if map_file is not None and not os.path.exists(map_file):
             light_cone_halo_map(self, map_file=map_file, **kwargs)
@@ -240,22 +252,34 @@ class LightCone(EnzoSimulation):
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False, node=None,
                            save_stack=True, save_slice_images=False, cmap_name='algae', 
                            flatten_stack=False, photon_field=False):
-        """
-        Create projections for light cone, then add them together.
-        :param weight_field (str): the weight field of the projection.  This has the same meaning as in standard 
-               projections.  Default: None.
-        :param apply_halo_mask (bool): if True, a boolean mask is apply to the light cone projection.  See below for a 
-               description of halo masks.  Default: False.
-        :param node (str): a prefix to be prepended to the node name under which the projection data is serialized.  
-               Default: None.
-        :param save_stack (bool): if True, the unflatted light cone data including each individual slice is written to 
-               an hdf5 file.  Default: True.
-        :param save_slice_images (bool): save images for each individual projection slice.  Default: False.
-        :param cmap_name (str): color map for images.  Default: 'algae'.
-        :param flatten_stack (bool): if True, the light cone stack is continually flattened each time a slice is added 
-               in order to save memory.  This is generally not necessary.  Default: False.
-        :param photon_field (bool): if True, the projection data for each slice is decremented by 4 Pi R^2`, where R 
-               is the luminosity distance between the observer and the slice redshift.  Default: False.
+        r"""Create projections for light cone, then add them together.
+
+        Parameters
+        ----------
+        weight_field : str
+            the weight field of the projection.  This has the same meaning as
+            in standard projections.  Default: None.
+        apply_halo_mask : bool
+            if True, a boolean mask is apply to the light cone projection.  See
+            below for a description of halo masks.  Default: False.
+        node : string
+            a prefix to be prepended to the node name under which the
+            projection data is serialized.  Default: None.
+        save_stack : bool
+            if True, the unflatted light cone data including each individual
+            slice is written to an hdf5 file.  Default: True.
+        save_slice_images : bool
+            save images for each individual projection slice.  Default: False.
+        cmap_name : string
+            color map for images.  Default: 'algae'.
+        flatten_stack : bool
+            if True, the light cone stack is continually flattened each time a
+            slice is added in order to save memory.  This is generally not
+            necessary.  Default: False.
+        photon_field : bool
+            if True, the projection data for each slice is decremented by 4 Pi
+            R^2`, where R is the luminosity distance between the observer and
+            the slice redshift.  Default: False.
         """
 
         # Clear projection stack.

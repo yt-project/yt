@@ -3,7 +3,7 @@ Runner mechanism for answer testing
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -129,8 +129,11 @@ class RegressionTestRunner(object):
         self.plot_list[test.name] = test.plot()
         self.results[test.name] = test.result
         success, msg = self._compare(test)
-        if success == True: print "SUCCEEDED"
-        else: print "FAILED"
+        if self.old_results is None:
+            print "NO OLD RESULTS"
+        else:
+            if success == True: print "SUCCEEDED"
+            else: print "FAILED", msg
         self.passed_tests[test.name] = success
         if self.watcher is not None:
             if success == True:
@@ -144,11 +147,11 @@ class RegressionTestRunner(object):
         try:
             old_result = self.old_results[test.name]
         except FileNotExistException:
-            return (False, "File %s does not exist." % test.name)
+            return (False, sys.exc_info())
         try:
             test.compare(old_result)
         except RegressionTestException, exc:
-            return (False, str(exc))
+            return (False, sys.exc_info())
         return (True, "Pass")
 
     def run_tests_from_file(self, filename):

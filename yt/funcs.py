@@ -3,7 +3,7 @@ Useful functions.  If non-original, see function for citation.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -137,17 +137,9 @@ def get_memory_usage():
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
-    """
+    r"""
     Decorator for seeing how long a given function takes, depending on whether
     or not the global 'yt.timefunctions' config parameter is set.
-
-    This can be used like so:
-
-    .. code-block:: python
-
-       @time_execution
-    def some_longrunning_function(...):
-
     """
     @wraps(func)
     def wrapper(*arg, **kw):
@@ -387,14 +379,14 @@ def paste_traceback(exc_type, exc, tb):
     sys.__excepthook__(exc_type, exc, tb)
     import xmlrpclib, cStringIO
     p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = cStringIO.StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
     print
-    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
 
 def paste_traceback_detailed(exc_type, exc, tb):
@@ -409,11 +401,11 @@ def paste_traceback_detailed(exc_type, exc, tb):
     s = s.getvalue()
     print s
     p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
     print
-    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
 
 def traceback_writer_hook(file_suffix = ""):

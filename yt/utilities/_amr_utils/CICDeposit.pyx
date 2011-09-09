@@ -3,7 +3,7 @@ Simle integrators for the radiative transfer equation
 
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: CASA/University of Colorado
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 

@@ -3,7 +3,7 @@ A implementation of the HOP algorithm that runs in parallel.
 
 Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD/CASS
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Stephen Skory.  All Rights Reserved.
 

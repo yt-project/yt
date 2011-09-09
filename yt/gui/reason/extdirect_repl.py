@@ -4,7 +4,7 @@ commands through ExtDirect calls
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -384,23 +384,23 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def paste_session(self):
         import xmlrpclib, cStringIO
         p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
         cs = cStringIO.StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs = cs.getvalue()
         ret = p.pastes.newPaste('python', cs, None, '', '', True)
-        site = "http://paste.enzotools.org/show/%s" % ret
+        site = "http://paste.yt-project.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
 
     @lockit
     def paste_text(self, to_paste):
         import xmlrpclib, cStringIO
         p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
         ret = p.pastes.newPaste('python', to_paste, None, '', '', True)
-        site = "http://paste.enzotools.org/show/%s" % ret
+        site = "http://paste.yt-project.org/show/%s" % ret
         return {'status': 'SUCCESS', 'site': site}
 
     _api_key = 'f62d550859558f28c4c214136bc797c7'

@@ -4,7 +4,7 @@ the namespace and getting the last argument on the command line.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -40,7 +40,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.config import ytcfg
 import yt.utilities.physical_constants as physical_constants
-from yt.utilities.cookbook import Intent
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \

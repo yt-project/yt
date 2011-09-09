@@ -3,7 +3,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 

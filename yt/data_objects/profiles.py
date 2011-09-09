@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: CASA, University of Colorado at Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -30,8 +30,8 @@ import numpy as na
 
 from yt.funcs import *
 
-from yt.utilities.data_point_utilities import Bin2DProfile, \
-    Bin3DProfile
+from yt.utilities.data_point_utilities import \
+    Bin1DProfile, Bin2DProfile, Bin3DProfile
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
@@ -239,22 +239,19 @@ class BinnedProfile1D(BinnedProfile):
         mi, inv_bin_indices = args # Args has the indices to use as input
         # check_cut is set if source != self._data_source
         # (i.e., lazy_reader)
-        source_data = self._get_field(source, field, check_cut)[mi]
-        if weight: weight_data = self._get_field(source, weight, check_cut)[mi]
+        source_data = self._get_field(source, field, check_cut)
+        if weight: weight_data = self._get_field(source, weight, check_cut)
+        else: weight_data = na.ones(source_data.shape, dtype='float64')
+        self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
         used_field = self._get_empty_field()
-        # Now we perform the actual binning
-        for bin in inv_bin_indices.keys():
-            # temp_field is *all* the points from source that go into this bin
-            temp_field = source_data[inv_bin_indices[bin]]
-            if weight:
-                # now w_i * v_i and store sum(w_i)
-                weight_field[bin] = weight_data[inv_bin_indices[bin]].sum()
-                temp_field *= weight_data[inv_bin_indices[bin]]
-            binned_field[bin] = temp_field.sum()
-            # inv_bin_indices is a tuple of indices
-            if inv_bin_indices[bin][0].size > 0: used_field[bin] = 1
+        mi = args[0]
+        bin_indices_x = args[1].ravel().astype('int64')
+        source_data = source_data[mi]
+        weight_data = weight_data[mi]
+        Bin1DProfile(bin_indices_x, weight_data, source_data,
+                     weight_field, binned_field, used_field)
         # Fix for laziness, because at the *end* we will be
         # summing up all of the histograms and dividing by the
         # weights.  Accumulation likely doesn't work with weighted
@@ -270,26 +267,21 @@ class BinnedProfile1D(BinnedProfile):
             raise EmptyProfileData()
         # Truncate at boundaries.
         if self.end_collect:
-            mi = na.arange(source_data.size)
+            sd = source_data[:]
         else:
-            mi = na.where( (source_data > self._bins.min())
-                         & (source_data < self._bins.max()))
-        sd = source_data[mi]
+            mi = ((source_data > self._bins.min())
+               &  (source_data < self._bins.max()))
+            sd = source_data[mi]
         if sd.size == 0:
             raise EmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization
         bin_indices = na.digitize(sd, self._bins)
         if self.end_collect: #limit the range of values to 0 and n_bins-1
-            bin_indices = na.minimum(na.maximum(1, bin_indices), self.n_bins) - 1
+            bin_indices = na.clip(bin_indices, 0, self.n_bins - 1)
         else: #throw away outside values
             bin_indices -= 1
           
-        # Now we set up our inverse bin indices
-        inv_bin_indices = {}
-        for bin in range(self[self.bin_field].size):
-            # Which fall into our bin?
-            inv_bin_indices[bin] = na.where(bin_indices == bin)
-        return (mi, inv_bin_indices)
+        return (mi, bin_indices)
 
     def choose_bins(self, bin_style):
         # Depending on the bin_style, choose from bin edges 0...N either:

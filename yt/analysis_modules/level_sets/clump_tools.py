@@ -3,7 +3,7 @@ Clump tools for use with the yt Clump object
 
 Author: David Collins <dcollins@physics.ucsd.edu>
 Affiliation: Center for Astrophysics and Space Sciences, U C San Diego
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 David Collins.  All Rights Reserved.
 

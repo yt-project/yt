@@ -5,7 +5,7 @@ Author: Casey W. Stark <caseywstark@gmail.com>
 Affiliation: UC Berkeley
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Casey W. Stark, J. S. Oishi, Matthew Turk.  All Rights
   Reserved.
@@ -547,10 +547,16 @@ class NyxStaticOutput(StaticOutput):
         """
         self.storage_filename = storage_filename
         self.parameter_filename = param_filename
-        self.parameter_file_path = os.path.abspath(self.parameter_filename)
         self.fparameter_filename = fparam_filename
-        self.fparameter_file_path = os.path.abspath(self.fparameter_filename)
+
         self.path = os.path.abspath(plotname)  # data folder
+
+        # silly inputs and probin file thing (this is on the Nyx todo list)
+        self.parameter_file_path = os.path.join(os.path.dirname(self.path),
+                                                self.parameter_filename)
+
+        self.fparameter_file_path = os.path.join(os.path.dirname(self.path),
+                                                 self.fparameter_filename)
 
         self.fparameters = {}
 

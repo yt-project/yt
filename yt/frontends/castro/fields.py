@@ -3,7 +3,7 @@ Castro-specific fields
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: UC Berkeley
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2010 J. S. Oishi, Matthew Turk.  All Rights Reserved.
 

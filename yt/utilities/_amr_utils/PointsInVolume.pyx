@@ -3,7 +3,7 @@ Checks for points contained in a volume
 
 Author: John Wise <jwise77@gmail.com>
 Affiliation: Princeton
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 John.  All Rights Reserved.
 

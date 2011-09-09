@@ -3,7 +3,7 @@ Data structures for Orion.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 J. S. Oishi.  All Rights Reserved.
 
@@ -424,16 +424,12 @@ class OrionStaticOutput(StaticOutput):
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='orion_native', paranoia=False,
                  storage_filename = None):
-        """need to override for Orion file structure.
-
-        the paramfile is usually called "inputs"
+        """
+        The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
-        as per BoxLib, data_style will be one of
-         * Native
-         * IEEE (not implemented in yt)
-         * ASCII (not implemented in yt)
-
+        as per BoxLib, data_style will be Native (implemented here), IEEE (not
+        yet implemented) or ASCII (not yet implemented.)
         """
         self.storage_filename = storage_filename
         self.paranoid_read = paranoia

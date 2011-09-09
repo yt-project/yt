@@ -4,7 +4,7 @@ yt's purposes
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -99,7 +99,7 @@ class PayloadHandler(object):
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
     def run(self, handler):
-        from rocket import Rocket
+        from yt.utilities.rocket import Rocket
         server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
         self.server_info[id(self)] = server
         server.start()

@@ -3,7 +3,7 @@ Import stuff for light cone generator.
 
 Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 

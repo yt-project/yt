@@ -3,7 +3,7 @@ Gadget-specific fields
 
 Author: Christopher E Moody <juxtaposicion@gmail.com>
 Affiliation: UC Santa Cruz
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Christopher E Moody, Matthew Turk.  All Rights Reserved.
 

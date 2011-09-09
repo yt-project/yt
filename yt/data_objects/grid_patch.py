@@ -48,6 +48,7 @@ class AMRGridPatch(object):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
+    OverlappingSiblings = None
 
     __slots__ = ['data', 'field_parameters', 'id', 'hierarchy', 'pf',
                  'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
@@ -372,6 +373,10 @@ class AMRGridPatch(object):
         self._child_mask = na.ones(self.ActiveDimensions, 'int32')
         for child in self.Children:
             self.__fill_child_mask(child, self._child_mask, 0)
+        if self.OverlappingSiblings is not None:
+            for sibling in self.OverlappingSiblings:
+                self.__fill_child_mask(sibling, self._child_mask, 0)
+        
         self._child_indices = (self._child_mask==0) # bool, possibly redundant
 
     def __generate_child_index_mask(self):
@@ -384,6 +389,10 @@ class AMRGridPatch(object):
         for child in self.Children:
             self.__fill_child_mask(child, self._child_index_mask,
                                    child.id)
+        if self.OverlappingSiblings is not None:
+            for sibling in self.OverlappingSiblings:
+                self.__fill_child_mask(sibling, self._child_index_mask,
+                                       sibling.id)
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()
@@ -430,8 +439,8 @@ class AMRGridPatch(object):
                   'use_pbar': False, 'fields': fields}
 
         if smoothed:
-            cube = self.hierarchy.si_covering_grid(level, new_left_edge,
-                                                   **kwargs)
+            cube = self.hierarchy.smoothed_covering_grid(
+                level, new_left_edge, **kwargs)
         else:
             cube = self.hierarchy.covering_grid(level, new_left_edge, **kwargs)
 

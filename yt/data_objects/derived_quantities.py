@@ -5,7 +5,7 @@ points -- are excluded here, and left to the EnzoDerivedFields.)
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -173,9 +173,13 @@ def _CenterOfMass(data, use_cells=True, use_particles=False):
     This function returns the location of the center
     of mass. By default, it computes of the *non-particle* data in the object. 
 
-    :param use_cells: if True, will include the cell mass (default: True)
-    :param use_particles: if True, will include the particles in the 
-    object (default: False)
+    Parameters
+    ----------
+
+    use_cells : bool
+        If True, will include the cell mass (default: True)
+    use_particles : bool
+        if True, will include the particles in the object (default: False)
     """
     x = y = z = den = 0
     if use_cells: 

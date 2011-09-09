@@ -3,7 +3,7 @@ Hydro tests
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -32,6 +32,7 @@ class TestProjection(YTStaticOutputTest):
 
     field = None
     axis = None
+    weight_field = None
 
     def run(self):
         # First we get our flattened projection -- this is the

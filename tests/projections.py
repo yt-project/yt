@@ -8,9 +8,9 @@ for axis in range(3):
     for field in field_list:
         create_test(TestProjection, "projection_test_%s_%s" % (axis, field),
                     field = field, axis = axis)
+        create_test(TestProjection, "projection_test_%s_%s_Density" % (axis, field),
+                    field = field, axis = axis, weight_field = "Density")
 
 for field in field_list:
     create_test(TestGasDistribution, "profile_density_test_%s" % field,
                 field_x = "Density", field_y = field)
-
-
