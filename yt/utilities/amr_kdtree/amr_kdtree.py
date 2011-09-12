@@ -547,11 +547,14 @@ class AMRKDTree(HomogenizedVolume):
                 data = [d[current_node.li[0]:current_node.ri[0]+1,
                           current_node.li[1]:current_node.ri[1]+1,
                           current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
-
-                current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
-                                                        current_node.l_corner.copy(), 
-                                                        current_node.r_corner.copy(), 
-                                                        current_node.dims.astype('int64'))
+                
+                if na.any(current_node.r_corner-current_node.l_corner == 0):
+                    current_node.brick = None
+                else:
+                    current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+                                                         current_node.l_corner.copy(), 
+                                                         current_node.r_corner.copy(), 
+                                                         current_node.dims.astype('int64'))
                 self.bricks.append(current_node.brick)
                 self.brick_dimensions.append(current_node.dims)
         self.bricks = na.array(self.bricks)
@@ -1010,7 +1013,8 @@ class AMRKDTree(HomogenizedVolume):
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
-                yield node.brick
+                if node.brick is not None:
+                    yield node.brick
          
         self.reduce_tree_images(self.tree, front_center)
         self._barrier()
