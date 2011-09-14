@@ -1612,13 +1612,15 @@ class AMRQuadTreeProjBase(AMR2DData):
             else:
                 ds = 0.0
             dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
-        coord_data = na.concatenate(coord_data, axis=0).transpose()
-        field_data = na.concatenate(field_data, axis=0).transpose()
+        coord_data = na.concatenate(coord_data, axis=0)
+        coord_data.shape = (coord_data.shape[1], coord_data.shape[0])
+        field_data = na.concatenate(field_data, axis=0)
+        field_data.shape = (field_data.shape[1], field_data.shape[0])
         if self._weight is None:
             dls, convs = self._get_dls(self._grids[0], fields)
             field_data *= convs
-        weight_data = na.concatenate(weight_data, axis=0).transpose()
-        dxs = na.concatenate(dxs, axis=0).transpose()
+        weight_data = na.concatenate(weight_data, axis=0)
+        dxs = na.concatenate(dxs, axis=0)
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
