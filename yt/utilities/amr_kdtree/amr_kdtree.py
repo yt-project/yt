@@ -60,6 +60,38 @@ def _lchild_id(id): return (id<<1) + 1
 def _rchild_id(id): return (id<<1) + 2
 def _parent_id(id): return (id-1)>>1
 
+steps = na.array([[-1, -1, -1],
+                  [-1, -1,  0],
+                  [-1, -1,  1],
+                  [-1,  0, -1],
+                  [-1,  0,  0],
+                  [-1,  0,  1],
+                  [-1,  1, -1],
+                  [-1,  1,  0],
+                  [-1,  1,  1],
+                  
+                  [ 0, -1, -1],
+                  [ 0, -1,  0],
+                  [ 0, -1,  1],
+                  [ 0,  0, -1],
+                  # [ 0,  0,  0],
+                  [ 0,  0,  1],
+                  [ 0,  1, -1],
+                  [ 0,  1,  0],
+                  [ 0,  1,  1],
+                  
+                  [ 1, -1, -1],
+                  [ 1, -1,  0],
+                  [ 1, -1,  1],
+                  [ 1,  0, -1],
+                  [ 1,  0,  0],
+                  [ 1,  0,  1],
+                  [ 1,  1, -1],
+                  [ 1,  1,  0],
+                  [ 1,  1,  1]
+                  ])
+
+
 class MasterNode(object):
     r"""
     A MasterNode object is the building block of the AMR kd-Tree.
@@ -259,6 +291,7 @@ class AMRKDTree(HomogenizedVolume):
         self.current_split_dim = 0
 
         self.pf = pf
+        self.sdx = self.pf.h.get_smallest_dx()
         self._id_offset = pf.h.grids[0]._id_offset
         if nprocs > len(pf.h.grids):
             mylog.info('Parallel rendering requires that the number of \n \
@@ -487,6 +520,37 @@ class AMRKDTree(HomogenizedVolume):
             brick, le=le, re=re, periodic=periodic)]
         return grids
 
+    def locate_neighbors_from_position(self, position):
+        position = na.array(position)
+        grid = self.locate_brick(position).grid
+        ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
+        return self.locate_neighbors(grid,ci)
+
+    def locate_neighbors(self, grid, ci):
+        center_dds = grid.dds
+        position = na.array([grid['x'][tuple(ci)],
+                             grid['y'][tuple(ci)],
+                             grid['z'][tuple(ci)]])[:]
+        grids = na.empty(26, dtype='object')
+        cis = na.empty([26,3], dtype='int64')
+        offs = 0.5*(center_dds + self.sdx)
+        new_cis = ci + steps
+        in_grid = na.all((new_cis >=0)*
+                         (new_cis < grid.ActiveDimensions),axis=1)
+        new_positions = position + steps*offs
+        grids[in_grid] = grid
+        get_them = na.argwhere(in_grid != True).ravel()
+        cis[in_grid] = new_cis[in_grid]
+
+        if (in_grid != True).sum()>0:
+            grids[in_grid != True] = \
+                [self.locate_brick(new_positions[i]).grid for i in get_them]
+            cis[in_grid != True] = \
+                [(new_positions[i]-grids[i].LeftEdge)/
+                 grids[i].dds for i in get_them]
+        cis = [tuple(ci) for ci in cis]
+        return grids, cis
+
     def locate_brick(self, position):
         r"""Given a position, find the node that contains it.
 
@@ -506,7 +570,7 @@ class AMRKDTree(HomogenizedVolume):
             if node.grid is not None:
                 return node
             else:
-                if position[node.split_ax] <= node.split_pos:
+                if position[node.split_ax] < node.split_pos:
                     node = node.left_child
                 else:
                     node = node.right_child
