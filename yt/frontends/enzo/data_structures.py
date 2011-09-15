@@ -758,6 +758,8 @@ class EnzoStaticOutput(StaticOutput):
                 else:
                     if any("." in v or "e+" in v or "e-" in v for v in vals):
                         pcast = float
+                    elif v == "inf":
+                        pcast = str
                     else:
                         pcast = int
             # Now we figure out what to do with it.
