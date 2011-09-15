@@ -229,10 +229,6 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
 
         if self._data_mode != 'a': return
-        if "ArgsError" in dir(h5py.h5):
-            exception = (h5py.h5.ArgsError, KeyError)
-        else:
-            exception = (h5py.h5.H5Error, KeyError)
         try:
             node_loc = self._data_file[node]
             if name in node_loc and force:
@@ -240,7 +236,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                 del self._data_file[node][name]
             elif name in node_loc and passthrough:
                 return
-        except exception:
+        except:
             pass
         myGroup = self._data_file['/']
         for q in node.split('/'):
