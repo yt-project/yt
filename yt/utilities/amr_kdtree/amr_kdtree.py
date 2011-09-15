@@ -521,24 +521,79 @@ class AMRKDTree(HomogenizedVolume):
         return grids
 
     def locate_neighbors_from_position(self, position):
+        r"""Given a position, finds the 26 neighbor grids 
+        and cell indices.
+
+        This is a mostly a wrapper for locate_neighbors.
+        
+        Parameters
+        ----------
+        position: array-like
+            Position of interest
+
+        Returns
+        -------
+        grids: Numpy array of Grid objects
+        cis: List of neighbor cell index tuples
+
+        Both of these are neighbors that, relative to the current cell
+        index (i,j,k), are ordered as: 
+        
+        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...  
+        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...  
+        (i+1, j+1, k-1), (i-1, j-1, k ), (i+1, j+1, k+1)
+
+        That is they start from the lower left and proceed to upper
+        right varying the third index most frequently. Note that the
+        center cell (i,j,k) is ommitted.
+        
+        """
         position = na.array(position)
         grid = self.locate_brick(position).grid
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)
 
     def locate_neighbors(self, grid, ci):
+        r"""Given a grid and cell index, finds the 26 neighbor grids 
+        and cell indices.
+        
+        Parameters
+        ----------
+        grid: Grid Object
+            Grid containing the cell of interest
+        ci: array-like
+            The cell index of the cell of interest
+
+        Returns
+        -------
+        grids: Numpy array of Grid objects
+        cis: List of neighbor cell index tuples
+
+        Both of these are neighbors that, relative to the current cell
+        index (i,j,k), are ordered as: 
+        
+        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...  
+        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...  
+        (i+1, j+1, k-1), (i-1, j-1, k ), (i+1, j+1, k+1)
+
+        That is they start from the lower left and proceed to upper
+        right varying the third index most frequently. Note that the
+        center cell (i,j,k) is ommitted.
+        
+        """
+        ci = na.array(ci)
         center_dds = grid.dds
-        position = na.array([grid['x'][tuple(ci)],
-                             grid['y'][tuple(ci)],
-                             grid['z'][tuple(ci)]])[:]
+        position = grid.LeftEdge + (na.array(ci)+0.5)*grid.dds
         grids = na.empty(26, dtype='object')
         cis = na.empty([26,3], dtype='int64')
         offs = 0.5*(center_dds + self.sdx)
+
         new_cis = ci + steps
         in_grid = na.all((new_cis >=0)*
                          (new_cis < grid.ActiveDimensions),axis=1)
         new_positions = position + steps*offs
         grids[in_grid] = grid
+                
         get_them = na.argwhere(in_grid != True).ravel()
         cis[in_grid] = new_cis[in_grid]
 
@@ -554,6 +609,8 @@ class AMRKDTree(HomogenizedVolume):
     def locate_brick(self, position):
         r"""Given a position, find the node that contains it.
 
+        Will modify the position to account for periodicity.
+        
         Parameters
         ----------
         pos: array_like
@@ -566,6 +623,12 @@ class AMRKDTree(HomogenizedVolume):
         
         """
         node = self.tree
+        w = self.pf.domain_right_edge-self.pf.domain_left_edge
+        for i in range(3):
+            if position[i] < self.pf.domain_left_edge[i]:
+                position[i] += w[i]
+            if position[i] > self.pf.domain_right_edge[i]:
+                position[i] -= w[i]
         while True:
             if node.grid is not None:
                 return node
