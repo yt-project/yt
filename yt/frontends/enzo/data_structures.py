@@ -220,10 +220,9 @@ class EnzoHierarchy(AMRHierarchy):
     # Sets are sorted, so that won't work!
     def _parse_hierarchy(self):
         def _next_token_line(token, f):
-            line = f.readline()
-            while token not in line:
-                line = f.readline()
-            return line.split()[2:]
+            for line in f:
+                if line.startswith(token):
+                    return line.split()[2:]
         if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
             if self._parse_binary_hierarchy(): return
         t1 = time.time()
@@ -234,7 +233,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        f.readline() # Blank at top
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
@@ -248,15 +246,11 @@ class EnzoHierarchy(AMRHierarchy):
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             np.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
-            line = f.readline()
-            while len(line) > 2:
+            for line in f:
+                if len(line) < 2: break
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
-                    line = f.readline()
-                    continue
-                params = line.split()
-                line = f.readline()
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, np)
         self.grids = na.array(self.grids, dtype='object')

@@ -71,7 +71,7 @@ class AMRGridPatch(object):
         level.
 
         """
-        if self.start_index != None:
+        if self.start_index is not None:
             return self.start_index
         if self.Parent == None:
             iLE = self.LeftEdge - self.pf.domain_left_edge
