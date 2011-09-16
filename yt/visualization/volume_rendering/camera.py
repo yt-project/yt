@@ -413,7 +413,7 @@ class Camera(ParallelAnalysisInterface):
             self.zoom(f)
             yield self.snapshot()
 
-    def move_to(self, final, n_steps, final_width=None):
+    def move_to(self, final, n_steps, final_width=None, exponential=True):
         r"""Loop over a look_at
 
         This will yield `n_steps` snapshots until the current view has been
@@ -428,6 +428,9 @@ class Camera(ParallelAnalysisInterface):
         final_width: float or array_like, optional
             Specifies the final width after `n_steps`.  Useful for
             moving and zooming at the same time.
+        exponential : boolean
+            Specifies whether the move/zoom transition follows an
+            exponential path toward the destination or linear
             
         Examples
         --------
@@ -437,13 +440,27 @@ class Camera(ParallelAnalysisInterface):
         """
         self.center = na.array(self.center)
         dW = None
-        if final_width is not None:
-            if not iterable(final_width):
-                width = na.array([final_width, final_width, final_width]) # front/back, left/right, top/bottom
-            dW = (1.0*final_width-na.array(self.width))/n_steps
-        dx = (na.array(final)-self.center)*1.0/n_steps
+        if exponential:
+            if final_width is not None:
+                if not iterable(final_width):
+                    width = na.array([final_width, final_width, final_width]) 
+                    # front/back, left/right, top/bottom
+                final_zoom = final_width/na.array(self.width)
+                dW = final_zoom**(1.0/n_steps)
+            position_diff = (na.array(final)/self.center)*1.0
+            dx = position_diff**(1.0/n_steps)
+        else:
+            if final_width is not None:
+                if not iterable(final_width):
+                    width = na.array([final_width, final_width, final_width]) 
+                    # front/back, left/right, top/bottom
+                dW = (1.0*final_width-na.array(self.width))/n_steps
+            dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
-            self.switch_view(center=self.center+dx, width=self.width+dW)
+            if exponential:
+                self.switch_view(center=self.center*dx, width=self.width*dW)
+            else:
+                self.switch_view(center=self.center+dx, width=self.width+dW)
             yield self.snapshot()
 
     def rotate(self, theta, rot_vector=None):
