@@ -120,7 +120,15 @@ class ParameterFileStore(object):
             _field_spec,
         )
         self.output_model._meta.pk_name = "dset_uuid"
-        self.conn.connect()
+        try:
+            self.conn.connect()
+        except:
+            self.conn = None
+        try:
+            self.output_model.create_table()
+        except:
+            pass
+        self.conn = None
 
     def _get_db_name(self):
         base_file_name = ytcfg.get("yt", "ParameterFileStore")
@@ -129,12 +137,14 @@ class ParameterFileStore(object):
         return os.path.expanduser("~/.yt/%s" % base_file_name)
 
     def get_pf_hash(self, hash):
+        if self.conn is None: return
         """ This returns a parameter file based on a hash. """
         output = self.output_model.get(dset_uuid = hash)
         return self._convert_pf(output)
 
     def _convert_pf(self, inst):
         """ This turns a model into a parameter file. """
+        if self.conn is None: return
         fn = inst.pf_path
         if inst.output_type not in output_type_registry:
             raise UnknownStaticOutputType(inst.output_type)
@@ -155,6 +165,7 @@ class ParameterFileStore(object):
         recorded in the storage unit.  In doing so, it will update path
         and "last_seen" information.
         """
+        if self.conn is None: return
         q = self.output_model.select().where(dset_uuid = pf._hash())
         q.execute()
         if q.count() == 0:
@@ -170,6 +181,7 @@ class ParameterFileStore(object):
 
     def insert_pf(self, pf):
         """ This will insert a new *pf* and flush the database to disk. """
+        if self.conn is None: return
         q = self.output_model.insert(
                     dset_uuid = pf._hash(),
                     output_type = pf.__class__.__name__,
