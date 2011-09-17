@@ -195,7 +195,7 @@ class SingleBrickVolume(object):
     def initialize_source(self):
         pass
 
-    def traverse(self, back, front):
+    def traverse(self, back, front, image):
         for b in self.bricks: yield b
 
     def reset_cast(self):
