@@ -793,11 +793,15 @@ class EnzoStaticOutput(StaticOutput):
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         if self.dimensionality > 1:
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"]).copy()
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"]).copy()
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                                             "float64").copy()
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+                                             "float64").copy()
         else:
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"])
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"])
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                                             "float64")
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+                                             "float64")
 
         self.current_time = self.parameters["InitialTime"]
         # To be enabled when we can break old pickles:
