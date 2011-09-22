@@ -173,9 +173,9 @@ _common_options = dict(
                    action="store_true",
                    dest="enhance", default=False,
                    help="Enhance!"),
-    range  = dict(short="", long="--range",
+    valrange  = dict(short="-r", long="--range",
                    action="store", type="float",
-                   dest="range", default=None,
+                   dest="valrange", default=None,
                    nargs=2,
                    help="Range, space separated"),
     up  = dict(short="", long="--up",
@@ -1481,7 +1481,7 @@ class YTCommands(cmdln.Cmdln):
 
     @add_cmd_options(["width", "unit", "center","enhance",'outputfn',
                       "field", "cmap", "contours", "viewpoint",
-                      "pixels","up","range","log","contour_width"])
+                      "pixels","up","valrange","log","contour_width"])
     @check_args
     def do_render(self, subcmd, opts, arg):
         """
@@ -1528,13 +1528,14 @@ class YTCommands(cmdln.Cmdln):
         if log is None:
             log = True
 
-        if opts.range is None:
+        myrange = opts.valrange
+        if myrange is None:
             roi = pf.h.region(center, center-width, center+width)
             mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
                 mi, ma = na.log10(mi), na.log10(ma)
         else:
-            mi, ma = range[0], range[1]
+            mi, ma = myrange[0], myrange[1]
 
         n_contours = opts.contours
         if n_contours is None:
@@ -1550,7 +1551,7 @@ class YTCommands(cmdln.Cmdln):
 
         cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
         image = cam.snapshot()
-        
+
         if opts.enhance:
             for i in range(3):
                 image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
@@ -1561,7 +1562,9 @@ class YTCommands(cmdln.Cmdln):
             save_name = "%s"%pf+"_"+field+"_rendering.png"
         if not '.png' in save_name:
             save_name += '.png'
-        write_bitmap(image,save_name)
+        if cam._mpi_get_rank() != -1:
+            write_bitmap(image,save_name)
+        
 
 def run_main():
     for co in ["--parallel", "--paste"]:

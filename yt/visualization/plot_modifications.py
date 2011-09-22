@@ -60,17 +60,23 @@ class PlotCallback(object):
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
-    def __init__(self, factor=16, scale=None, scale_units=None):
+    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         """
         Adds a 'quiver' plot of velocity to the plot, skipping all but
-        every *factor* datapoint
-        *scale* is the data units per arrow length unit using *scale_units* 
-        (see matplotlib.axes.Axes.quiver for more info)
+        every *factor* datapoint. *scale* is the data units per arrow
+        length unit using *scale_units* (see
+        matplotlib.axes.Axes.quiver for more info). if *normalize* is
+        True, the velocity fields will be scaled by their local
+        (in-plane) length, allowing morphological features to be more
+        clearly seen for fields with substantial variation in field
+        strength (normalize is not implemented and thus ignored for
+        Cutting Planes).
         """
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -81,20 +87,26 @@ class VelocityCallback(PlotCallback):
         else:
             xv = "%s-velocity" % (x_names[plot.data.axis])
             yv = "%s-velocity" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
     _type_name = "magnetic_field"
-    def __init__(self, factor=16, scale=None, scale_units=None):
+    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         """
         Adds a 'quiver' plot of magnetic field to the plot, skipping all but
-        every *factor* datapoint
+        every *factor* datapoint. *scale* is the data units per arrow
+        length unit using *scale_units* (see
+        matplotlib.axes.Axes.quiver for more info). if *normalize* is
+        True, the magnetic fields will be scaled by their local
+        (in-plane) length, allowing morphological features to be more
+        clearly seen for fields with substantial variation in field strength.
         """
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -103,12 +115,12 @@ class MagFieldCallback(PlotCallback):
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor, scale=None, scale_units=None):
+    def __init__(self, field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
         """
         Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
         from the associated data, skipping every *factor* datapoints
@@ -122,6 +134,7 @@ class QuiverCallback(PlotCallback):
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -147,6 +160,10 @@ class QuiverCallback(PlotCallback):
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        if self.normalize:
+            nn = na.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)

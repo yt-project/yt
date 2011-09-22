@@ -120,7 +120,7 @@ cdef extern from "FixedInterpolator.h":
     void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
                        np.float64_t vl[3], np.float64_t dds[3],
                        np.float64_t x, np.float64_t y, np.float64_t z,
-                       int x0, int y0, int z0, int direction)
+                       int vind1, int vind2)
 
 #cdef extern int *edge_table
 #cdef extern int **tri_table
@@ -1138,6 +1138,7 @@ cdef class PartitionedGrid:
         [0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
         [0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
         [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]]
+
         cdef int i, j, k, n
         cdef int offset
         cdef np.float64_t gv[8]
@@ -1151,64 +1152,57 @@ cdef class PartitionedGrid:
         cdef Triangle *current = NULL
         x = self.left_edge[0]
         for i in range(self.dims[0]):
-            x += self.dds[0]
             y = self.left_edge[1]
             for j in range(self.dims[1]):
-                y += self.dds[1]
                 z = self.left_edge[2]
                 for k in range(self.dims[2]):
-                    z += self.dds[2]
                     offset = i * (self.dims[1] + 1) * (self.dims[2] + 1) \
                            + j * (self.dims[2] + 1) + k
                     intdata = self.data[field_id] + offset
                     offset_fill(self.dims, intdata, gv)
                     cubeindex = 0
-                    if gv[0] < isovalue: cubeindex |= 1
-                    if gv[1] < isovalue: cubeindex |= 2
-                    if gv[2] < isovalue: cubeindex |= 4
-                    if gv[3] < isovalue: cubeindex |= 8
-                    if gv[4] < isovalue: cubeindex |= 16
-                    if gv[5] < isovalue: cubeindex |= 32
-                    if gv[6] < isovalue: cubeindex |= 64
-                    if gv[7] < isovalue: cubeindex |= 128
-                    #print cubeindex
-                    if edge_table[cubeindex] == 0: continue
+                    for n in range(8):
+                        if gv[n] < isovalue:
+                            cubeindex |= (1 << n)
+                    if edge_table[cubeindex] == 0:
+                        z += self.dds[2]
+                        continue
                     if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
                         vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
-                                      self.dds, x, y, z, 0,0,0,1)
+                                      self.dds, x, y, z, 0, 1)
                     if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
                         vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
-                                      self.dds, x, y, z, 1,0,0,2)
+                                      self.dds, x, y, z, 1, 2)
                     if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
                         vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
-                                      self.dds, x, y, z, 1,0,0,-1)
+                                      self.dds, x, y, z, 2, 3)
                     if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
                         vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
-                                      self.dds, x, y, z, 0,1,0,-2)
+                                      self.dds, x, y, z, 3, 0)
                     if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
                         vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
-                                      self.dds, x, y, z, 0,0,1,1)
+                                      self.dds, x, y, z, 4, 5)
                     if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
                         vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
-                                      self.dds, x, y, z, 1,0,1,2)
+                                      self.dds, x, y, z, 5, 6)
                     if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
                         vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
-                                      self.dds, x, y, z, 1,1,1,-1)
+                                      self.dds, x, y, z, 6, 7)
                     if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
                         vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
-                                      self.dds, x, y, z, 0,1,1,-2)
+                                      self.dds, x, y, z, 7, 4)
                     if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
                         vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
-                                      self.dds, x, y, z, 0,0,0,3)
+                                      self.dds, x, y, z, 0, 4)
                     if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
                         vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
-                                      self.dds, x, y, z, 1,0,0,3)
+                                      self.dds, x, y, z, 1, 5)
                     if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
                         vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
-                                      self.dds, x, y, z, 1,1,0,3)
+                                      self.dds, x, y, z, 2, 6)
                     if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
                         vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
-                                      self.dds, x, y, z, 0,1,0,3)
+                                      self.dds, x, y, z, 3, 7)
                     n = 0
                     while 1:
                         current = AddTriangle(current, 
@@ -1219,6 +1213,9 @@ cdef class PartitionedGrid:
                         if first == NULL: first = current
                         n += 3
                         if tri_table[cubeindex][n] == -1: break
+                    z += self.dds[2]
+                y += self.dds[1]
+            x += self.dds[0]
         # Hallo, we are all done.
         cdef np.ndarray[np.float64_t, ndim=2] vertices 
         vertices = np.zeros((ntriang*3,3), dtype='float64')

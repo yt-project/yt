@@ -3,6 +3,7 @@ import os, re
 from yt.mods import *
 from yt.data_objects.data_containers import AMRData
 namespace = locals().copy()
+namespace.pop("__builtins__", None)
 
 doc = """\
 

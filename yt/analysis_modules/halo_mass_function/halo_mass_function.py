@@ -700,7 +700,7 @@ class TransferFunction(object):
 def SQR(a):
     return a*a
 
-def integrate_inf(fcn, error=1e-7, initial_guess=10):
+def integrate_inf(fcn, error=1e-3, initial_guess=10):
     """
     Integrate a function *fcn* from zero to infinity, stopping when the answer
     changes by less than *error*. Hopefully someday we can do something
