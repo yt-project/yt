@@ -2972,7 +2972,8 @@ class AMRCoveringGridBase(AMR3DData):
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
-        AMR3DData.__init__(self, center=None, fields=fields, pf=pf, **kwargs)
+        AMR3DData.__init__(self, center=kwargs.pop("center", None),
+                           fields=fields, pf=pf, **kwargs)
         self.left_edge = na.array(left_edge)
         self.level = level
         self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
@@ -3147,7 +3148,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                     self._update_level_state(last_level + 1)
                     self._refine(1, field)
                     last_level = grid.Level
-                self._get_data_from_grid(grid, field, grid.Level)
+                self._get_data_from_grid(grid, field)
             if self.level > 0:
                 self[field] = self[field][1:-1,1:-1,1:-1]
             if na.any(self[field] == -999):
@@ -3194,7 +3195,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                                output_field, output_left)
         self[field] = output_field
 
-    def _get_data_from_grid(self, grid, fields, level):
+    def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]

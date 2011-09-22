@@ -447,6 +447,9 @@ class AMRGridPatch(object):
         kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
                   'num_ghost_zones':n_zones,
                   'use_pbar':False, 'fields':fields}
+        # This should update the arguments to set the field parameters to be
+        # those of this grid.
+        kwargs.update(self.field_parameters)
         if smoothed:
             #cube = self.hierarchy.smoothed_covering_grid(
             #    level, new_left_edge, new_right_edge, **kwargs)
