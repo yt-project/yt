@@ -162,7 +162,8 @@ class GDFStaticOutput(StaticOutput):
             self._parse_parameter_file()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_right_edge).max()
+        self.units['cm'] = 1.0
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
@@ -206,4 +207,6 @@ class GDFStaticOutput(StaticOutput):
             pass
         return False
 
-
+    def __repr__(self):
+        return self.basename.rsplit(".", 1)[0]
+        
