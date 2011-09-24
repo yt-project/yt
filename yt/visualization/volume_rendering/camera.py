@@ -413,7 +413,7 @@ class Camera(ParallelAnalysisInterface):
             self.zoom(f)
             yield self.snapshot()
 
-    def move_to(self, final, n_steps, final_width=None):
+    def move_to(self, final, n_steps, final_width=None, yield_snapshots=True):
         r"""Loop over a look_at
 
         This will yield `n_steps` snapshots until the current view has been
@@ -439,13 +439,15 @@ class Camera(ParallelAnalysisInterface):
         dW = None
         if final_width is not None:
             if not iterable(final_width):
-                width = na.array([final_width, final_width, final_width]) # front/back, left/right, top/bottom
+                final_width = na.array([final_width, final_width, final_width]) # front/back, left/right, top/bottom
             dW = (1.0*final_width-na.array(self.width))/n_steps
         dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             self.switch_view(center=self.center+dx, width=self.width+dW)
-            yield self.snapshot()
-
+            if yield_snapshots:
+                yield self.snapshot()
+            else:
+                yield self
     def rotate(self, theta, rot_vector=None):
         r"""Rotate by a given angle
 
