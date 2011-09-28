@@ -39,6 +39,10 @@ translation_dict = {"x-velocity": "velocity_x",
                     "y-velocity": "velocity_y",
                     "z-velocity": "velocity_z"}
                     
+# translation_dict = {"mag_field_x": "cell_centered_B_x ",
+#                     "mag_field_y": "cell_centered_B_y ",
+#                     "mag_field_z": "cell_centered_B_z "}
+
 class GDFFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
     _field_list = {}

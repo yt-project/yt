@@ -95,11 +95,12 @@ class GDFHierarchy(AMRHierarchy):
         self.num_grids = self._fhandle['/grid_parent_id'].shape[0]
         
     def _parse_hierarchy(self):
-        f = self._fhandle # shortcut
+        f = self._fhandle 
         
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
         levels = f.listnames()[1:]
+        dxs=[]
         self.grids = []
         for i, grid in enumerate(f['data'].keys()):
             self.grids.append(self.grid(i, self, f['grid_level'][i],
@@ -107,10 +108,11 @@ class GDFHierarchy(AMRHierarchy):
                                         f['grid_dimensions'][i]))
             self.grids[-1]._level_id = f['grid_level'][i]
 
-        dx = (self.parameter_file.domain_right_edge-
-              self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-        dx = dx/self.parameter_file.refine_by**(f['grid_level'][:])
-
+            dx = (self.parameter_file.domain_right_edge-
+                  self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
+            dx = dx/self.parameter_file.refine_by**(f['grid_level'][i])
+            dxs.append(dx)
+        dx = na.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*f['grid_left_index'][:]
         self.grid_dimensions = f['grid_dimensions'][:]
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
@@ -150,7 +152,7 @@ class GDFStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
-        self.field_info = self._fieldinfo_class()
+        self.field_info = self._fieldinfo_class()        
         
     def _set_units(self):
         """
@@ -185,6 +187,7 @@ class GDFStaticOutput(StaticOutput):
         self.unique_identifier = sp["unique_identifier"]
         self.cosmological_simulation = sp["cosmological_simulation"]
         if sp["num_ghost_zones"] != 0: raise RuntimeError
+        self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
         if self.cosmological_simulation:
@@ -195,6 +198,8 @@ class GDFStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+        self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
+        
         del self._handle
             
     @classmethod
