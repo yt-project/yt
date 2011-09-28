@@ -267,11 +267,11 @@ class BinnedProfile1D(BinnedProfile):
             raise EmptyProfileData()
         # Truncate at boundaries.
         if self.end_collect:
-            sd = source_data[:]
+            mi = na.ones_like(source_data).astype('bool')
         else:
             mi = ((source_data > self._bins.min())
                &  (source_data < self._bins.max()))
-            sd = source_data[mi]
+        ds = source_data[mi]
         if sd.size == 0:
             raise EmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization
