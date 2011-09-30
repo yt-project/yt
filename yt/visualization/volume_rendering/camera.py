@@ -707,10 +707,16 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, c, L, W, N, field, weight = None):
-    tf = ProjectionTransferFunction(weighted = weight is not None)
+    # We manually modify the ProjectionTransferFunction to get it to work the
+    # way we want, with a second field that's also passed through.
     fields = [field]
     if weight is not None:
-        fields.append(weight)
+        # This is a temporary field, which we will remove at the end.
+        pf.field_info.add_field("temp_weightfield",
+            function=lambda a,b:b[field]*b[weight])
+        fields = ["temp_weightfield", weight]
+        tf = ProjectionTransferFunction(n_fields = 2)
+    tf = ProjectionTransferFunction(n_fields = len(fields))
     cam = pf.h.camera(c, L, W, N, tf, fields = fields,
                       log_fields = [False] * len(fields))
     vals = cam.snapshot()
@@ -720,5 +726,5 @@ def off_axis_projection(pf, c, L, W, N, field, weight = None):
         image *= dl
     else:
         image /= vals[:,:,1]
-    #if weight is not None: insert_ipython()
+        pf.field_info._field_list.pop("temp_weightfield")
     return vals, image
