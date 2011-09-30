@@ -561,7 +561,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         return image
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
-    def __init__(self, x_bounds = (-1e60, 1e60)):
+    def __init__(self, x_bounds = (-1e60, 1e60), weighted = False):
         r"""A transfer function that defines a simple projection.
 
         To generate an interpolated, off-axis projection through a dataset,
@@ -587,13 +587,15 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
         self.nbins = 2
         self.linear_mapping = TransferFunction(x_bounds, 2)
         self.linear_mapping.pass_through = 1
-        self.add_field_table(self.linear_mapping, 0)
-        self.alpha = TransferFunction(x_bounds, 2)
-        self.alpha.y *= 0.0
-        self.alpha.y += 1.0
-        self.add_field_table(self.alpha, 0)
+        if weighted:
+            self.add_field_table(self.linear_mapping, 0, weight_field_id = 1)
+            self.add_field_table(self.linear_mapping, 1)
+        else:
+            self.add_field_table(self.linear_mapping, 0)
         self.link_channels(0, [0,1,2]) # same emission for all rgb
-        self.link_channels(2, [3,4,5]) # this will remove absorption
+        if weighted:
+            self.link_channels(1, [1])
+        self.link_channels(3, [3,4,5]) # this will remove absorption
 
 class PlanckTransferFunction(MultiVariateTransferFunction):
     def __init__(self, T_bounds, rho_bounds, nbins=256,

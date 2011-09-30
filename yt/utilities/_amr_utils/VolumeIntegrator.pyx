@@ -267,9 +267,12 @@ cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
 
 cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                             np.float64_t *dvs):
-    cdef np.float64_t bv, dy, dd, tf
+    cdef np.float64_t bv, dy, dd, tf, rv
     cdef int bin_id
-    if fit.pass_through == 1: return dvs[fit.field_id]
+    if fit.pass_through == 1:
+        rv = dvs[fit.field_id]
+        if fit.weight_field_id != -1: rv *= dvs[fit.weight_field_id]
+        return rv
     if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
@@ -289,7 +292,6 @@ cdef class TransferFunctionProxy:
     # correspond to multiple tables, and each field table will only have
     # interpolate called once.
     cdef FieldInterpolationTable field_tables[6]
-    cdef np.float64_t istorage[6]
 
     # Here are the field tables that correspond to each of the six channels.
     # We have three emission channels, three absorption channels.
@@ -314,7 +316,6 @@ cdef class TransferFunctionProxy:
         self.tf_obj = tf_obj
 
         self.n_field_tables = tf_obj.n_field_tables
-        for i in range(6): self.istorage[i] = 0.0
 
         self.my_field_tables = []
         for i in range(self.n_field_tables):
@@ -345,7 +346,7 @@ cdef class TransferFunctionProxy:
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
                                   np.float64_t *rgba, np.float64_t *grad):
         cdef int i, fid, use
-        cdef np.float64_t ta, tf, trgba[6], dot_prod
+        cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
         # NOTE: We now disable this.  I have left it to ease the process of
         # potentially, one day, re-including it.
         #use = 0
@@ -355,14 +356,15 @@ cdef class TransferFunctionProxy:
         #       (dvs[fid] <= self.field_tables[i].bounds[1]):
         #        use = 1
         #        break
+        for i in range(6): istorage[i] = 0.0
         for i in range(self.n_field_tables):
-            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
+            istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
         # We have to do this after the interpolation
         for i in range(self.n_field_tables):
             fid = self.field_tables[i].weight_table_id
-            if fid != -1: self.istorage[i] *= self.istorage[fid]
+            if fid != -1: istorage[i] *= istorage[fid]
         for i in range(6):
-            trgba[i] = self.istorage[self.field_table_ids[i]]
+            trgba[i] = istorage[self.field_table_ids[i]]
             #print i, trgba[i],
         #print
         # A few words on opacity.  We're going to be integrating equation 1.23

@@ -705,3 +705,20 @@ class StereoPairCamera(Camera):
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
         return (left_camera, right_camera)
+
+def off_axis_projection(pf, c, L, W, N, field, weight = None):
+    tf = ProjectionTransferFunction(weighted = weight is not None)
+    fields = [field]
+    if weight is not None:
+        fields.append(weight)
+    cam = pf.h.camera(c, L, W, N, tf, fields = fields,
+                      log_fields = [False] * len(fields))
+    vals = cam.snapshot()
+    image = vals[:,:,0].copy()
+    if weight is None:
+        dl = W * pf.units[pf.field_info[field].projection_conversion]
+        image *= dl
+    else:
+        image /= vals[:,:,1]
+    #if weight is not None: insert_ipython()
+    return vals, image
