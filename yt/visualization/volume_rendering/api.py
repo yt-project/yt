@@ -41,4 +41,5 @@ from grid_partitioner import HomogenizedVolume, \
 from image_handling import export_rgba, import_rgba, \
                            plot_channel, plot_rgb
 from software_sampler import VolumeRendering
-from camera import Camera, PerspectiveCamera, StereoPairCamera
+from camera import Camera, PerspectiveCamera, StereoPairCamera, \
+    off_axis_projection
