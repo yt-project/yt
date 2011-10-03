@@ -707,7 +707,7 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None):
+                        field, weight = None, volume = None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -736,6 +736,9 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
         than a sum.
+    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+        The volume to ray cast through.  Can be specified for finer-grained
+        control, but otherwise will be automatically generated.
 
     Returns
     -------
@@ -762,7 +765,8 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     tf = ProjectionTransferFunction(n_fields = len(fields))
     cam = pf.h.camera(center, normal_vector, width, resolution, tf,
                       fields = fields,
-                      log_fields = [False] * len(fields))
+                      log_fields = [False] * len(fields),
+                      volume = volume)
     vals = cam.snapshot()
     image = vals[:,:,0]
     if weight is None:
