@@ -885,9 +885,50 @@ cdef class PartitionedGrid:
         # Hallo, we are all done.
         cdef np.ndarray[np.float64_t, ndim=2] vertices 
         vertices = np.zeros((triangles.count*3,3), dtype='float64')
-        print "Found ", triangles.count, "triangles"
         FillAndWipeTriangles(vertices, triangles.first)
         return vertices
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def march_cubes_grid(np.float64_t isovalue,
+                     np.ndarray[np.float64_t, ndim=3] values,
+                     np.ndarray[np.int32_t, ndim=3] mask,
+                     np.ndarray[np.float64_t, ndim=1] left_edge,
+                     np.ndarray[np.float64_t, ndim=1] dxs):
+    cdef int dims[3]
+    cdef int i, j, k, n
+    cdef int offset
+    cdef np.float64_t gv[8]
+    cdef np.float64_t *intdata = NULL
+    cdef np.float64_t x, y, z
+    cdef TriangleCollection triangles
+    for i in range(3): dims[i] = values.shape[i] - 1
+    triangles.first = triangles.current = NULL
+    triangles.count = 0
+    cdef np.float64_t *data = <np.float64_t *> values.data
+    cdef np.float64_t *dds = <np.float64_t *> dxs.data
+    x = left_edge[0]
+    for i in range(dims[0]):
+        y = left_edge[1]
+        for j in range(dims[1]):
+            z = left_edge[2]
+            for k in range(dims[2]):
+                if mask[i,j,k] == 1:
+                    offset = i * (dims[1] + 1) * (dims[2] + 1) \
+                           + j * (dims[2] + 1) + k
+                    intdata = data + offset
+                    offset_fill(dims, intdata, gv)
+                    march_cubes(gv, isovalue, dds, x, y, z,
+                                &triangles)
+                z += dds[2]
+            y += dds[1]
+        x += dds[0]
+    # Hallo, we are all done.
+    cdef np.ndarray[np.float64_t, ndim=2] vertices 
+    vertices = np.zeros((triangles.count*3,3), dtype='float64')
+    FillAndWipeTriangles(vertices, triangles.first)
+    return vertices
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1232,7 +1273,6 @@ cdef march_cubes(np.float64_t gv[8], np.float64_t isovalue,
                       dds, x, y, z, 3, 7)
     n = 0
     while 1:
-        print "Adding triangle"
         triangles.current = AddTriangle(triangles.current,
                     vertlist[tri_table[cubeindex][n  ]],
                     vertlist[tri_table[cubeindex][n+1]],
