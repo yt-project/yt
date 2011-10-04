@@ -604,7 +604,7 @@ class AMRKDTree(HomogenizedVolume):
         for i in range(2**nprocs):
             if ((i + 1)>>par_tree_depth) == 1:
                 # There are nprocs nodes that meet this criteria
-                if (i+1-nprocs) is not my_rank:
+                if (i+1-nprocs) != my_rank:
                     self.tree_dict.pop(i)
                     continue
         for node in self.tree_dict.itervalues():
@@ -833,7 +833,7 @@ class AMRKDTree(HomogenizedVolume):
             # This is where all the domain decomposition occurs.  
             if ((current_node.id + 1)>>par_tree_depth) == 1:
                 # There are anprocs nodes that meet this criteria
-                if (current_node.id+1-anprocs) is my_rank:
+                if (current_node.id+1-anprocs) == my_rank:
                     # I own this shared node
                     self.my_l_corner = current_node.l_corner
                     self.my_r_corner = current_node.r_corner
@@ -843,7 +843,7 @@ class AMRKDTree(HomogenizedVolume):
                     continue
                 
             # If we are down to one grid, we are either in it or the parent grid
-            if len(current_node.grids) is 1:
+            if len(current_node.grids) == 1:
                 thisgrid = current_node.grids[0]
                 # If we are completely contained by that grid
                 if (thisgrid.LeftEdge[0] <= current_node.l_corner[0]) and (thisgrid.RightEdge[0] >= current_node.r_corner[0]) and \
@@ -871,7 +871,7 @@ class AMRKDTree(HomogenizedVolume):
                     continue
 
             # If we don't have any grids, this volume belongs to the parent        
-            if len(current_node.grids) is 0:
+            if len(current_node.grids) == 0:
                 set_leaf(current_node, current_node.parent_grid, current_node.l_corner, current_node.r_corner)
                 # print 'This volume does not have a child grid, so it belongs to my parent!'
                 current_node, previous_node = self.step_depth(current_node, previous_node)
