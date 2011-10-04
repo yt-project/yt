@@ -398,7 +398,9 @@ class YTCommands(cmdln.Cmdln):
         else:
             print
             print "YT site-packages not in path, so you must"
-            print "update this installation manually."
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
 
     @cmdln.option("-u", "--update-source", action="store_true",
@@ -444,7 +446,10 @@ class YTCommands(cmdln.Cmdln):
             print "Updated successfully."
         elif opts.update_source:
             print
-            print "You have to update this installation yourself."
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
