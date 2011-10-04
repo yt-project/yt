@@ -393,6 +393,7 @@ class YTCommands(cmdln.Cmdln):
             print "---"
             print
             print "This installation CAN be automatically updated."
+            _update_hg(path)
             print "Updated successfully."
         else:
             print
