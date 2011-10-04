@@ -918,16 +918,18 @@ class TextLabelCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-        if self.data_coords:
+        kwargs = self.text_args.copy()
+        if self.data_coords and len(plot.image._A.shape) == 2:
             if len(self.pos) == 3:
                 pos = (self.pos[x_dict[plot.data.axis]],
                        self.pos[y_dict[plot.data.axis]])
             else: pos = self.pos
             x,y = self.convert_to_pixels(plot, pos)
         else:
-            x = plot.image._A.shape[0] * self.pos[0]
-            y = plot.image._A.shape[1] * self.pos[1]
-        plot._axes.text(x, y, self.text, **self.text_args)
+            x, y = self.pos
+            if not self.data_coords:
+                kwargs["transform"] = plot._axes.transAxes
+        plot._axes.text(x, y, self.text, **kwargs)
 
 class ParticleCallback(PlotCallback):
     _type_name = "particles"
