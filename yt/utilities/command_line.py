@@ -716,6 +716,12 @@ class YTCommands(cmdln.Cmdln):
                  encoding=opts.encoding, open_browser=opts.open_browser,
                  private=opts.private, clipboard=opts.clipboard)
 
+    def do_test(self, subcmd, opts):
+        """
+        Testing
+        """
+        print "Testing"
+
     def do_pastebin_grab(self, subcmd, opts, arg):
         """
         Print an online pastebin to STDOUT for local use. Paste ID is 
