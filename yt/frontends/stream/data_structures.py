@@ -166,10 +166,10 @@ class StreamHierarchy(AMRHierarchy):
         if parent_ids is not None:
             reverse_tree = self.stream_handler.parent_ids.tolist()
             # Initial setup:
-            for id,pid in enumerate(reverse_tree):
+            for gid,pid in enumerate(reverse_tree):
                 if pid >= 0:
-                    self.grids[-1]._parent_id = pid
-                    self.grids[pid]._children_ids.append(self.grids[-1].id)
+                    self.grids[id]._parent_id = pid
+                    self.grids[pid]._children_ids.append(self.grids[gid].id)
         else:
             mylog.debug("Reconstructing parent-child relationships")
             self._reconstruct_parent_child()
