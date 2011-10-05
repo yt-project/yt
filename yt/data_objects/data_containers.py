@@ -40,7 +40,8 @@ from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
-    QuadTree, get_box_grids_below_level, ghost_zone_interpolate
+    QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
+    march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -2410,6 +2411,41 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         return self.__quantities
     __quantities = None
     quantities = property(__get_quantities)
+
+    def extract_isocontours(self, field, value, filename = None,
+                            recenter = False):
+        verts = []
+        for g in self._grids:
+            mask = self._get_cut_mask(g) * g.child_mask
+            vals = g.get_vertex_centered_data(field)
+            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds)
+            verts.append(my_verts)
+        verts = na.concatenate(verts)
+        if recenter:
+            mi = na.min(verts, axis=0)
+            ma = na.max(verts, axis=0)
+            verts = (verts - mi) / (ma - mi).max()
+        if filename is not None:
+            f = open(filename, "w")
+            for v1 in verts:
+                f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
+            for i in range(len(verts)/3):
+                f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
+        return verts
+
+    def calculate_isocontour_flux(self, field, value,
+                    field_x, field_y, field_z):
+        flux = 0.0
+        for g in self._grids:
+            mask = self._get_cut_mask(g) * g.child_mask
+            vals = g.get_vertex_centered_data(field)
+            xv, yv, zv = [g.get_vertex_centered_data(f) for f in 
+                         [field_x, field_y, field_z]]
+            my_flux = march_cubes_grid_flux(value, vals, xv, yv, zv,
+                        mask, g.LeftEdge, g.dds)
+            print my_flux
+            flux += my_flux
+        return flux
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                 log_space=True, cumulative=True, cache=False):

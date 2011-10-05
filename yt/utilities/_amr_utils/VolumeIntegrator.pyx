@@ -98,6 +98,14 @@ cdef int CountTriangles(Triangle *first):
         this = this.next
     return count
 
+cdef void WipeTriangles(Triangle *first):
+    cdef Triangle *this = first
+    cdef Triangle *last
+    while this != NULL:
+        last = this
+        this = this.next
+        free(last)
+
 cdef void FillAndWipeTriangles(np.ndarray[np.float64_t, ndim=2] vertices,
                                Triangle *first):
     cdef int count = 0
@@ -933,7 +941,126 @@ def march_cubes_grid(np.float64_t isovalue,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef march_cubes(np.float64_t gv[8], np.float64_t isovalue,
+def march_cubes_grid_flux(
+                     np.float64_t isovalue,
+                     np.ndarray[np.float64_t, ndim=3] values,
+                     np.ndarray[np.float64_t, ndim=3] v1,
+                     np.ndarray[np.float64_t, ndim=3] v2,
+                     np.ndarray[np.float64_t, ndim=3] v3,
+                     np.ndarray[np.int32_t, ndim=3] mask,
+                     np.ndarray[np.float64_t, ndim=1] left_edge,
+                     np.ndarray[np.float64_t, ndim=1] dxs):
+    cdef int dims[3]
+    cdef int i, j, k, n, m
+    cdef int offset
+    cdef np.float64_t gv[8]
+    cdef np.float64_t *intdata = NULL
+    cdef TriangleCollection triangles
+    cdef Triangle *current = NULL
+    cdef Triangle *last = NULL
+    cdef np.float64_t *data = <np.float64_t *> values.data
+    cdef np.float64_t *v1data = <np.float64_t *> v1.data
+    cdef np.float64_t *v2data = <np.float64_t *> v2.data
+    cdef np.float64_t *v3data = <np.float64_t *> v3.data
+    cdef np.float64_t *dds = <np.float64_t *> dxs.data
+    cdef np.float64_t flux = 0.0
+    cdef np.float64_t center[3], point[3], normal[3], wval, temp, area, s
+    cdef np.float64_t cell_pos[3], fv[3], idds[3]
+    for i in range(3):
+        dims[i] = values.shape[i] - 1
+        idds[i] = 1.0 / dds[i]
+    triangles.first = triangles.current = NULL
+    triangles.count = 0
+    cell_pos[0] = left_edge[0]
+    for i in range(dims[0]):
+        cell_pos[1] = left_edge[1]
+        for j in range(dims[1]):
+            cell_pos[2] = left_edge[2]
+            for k in range(dims[2]):
+                if mask[i,j,k] == 1:
+                    offset = i * (dims[1] + 1) * (dims[2] + 1) \
+                           + j * (dims[2] + 1) + k
+                    intdata = data + offset
+                    offset_fill(dims, intdata, gv)
+                    march_cubes(gv, isovalue, dds,
+                                cell_pos[0], cell_pos[1], cell_pos[2],
+                                &triangles)
+                    # Now our triangles collection has a bunch.  We now
+                    # calculate fluxes for each.
+                    if last == NULL and triangles.first != NULL:
+                        current = triangles.first
+                        last = NULL
+                    elif last != NULL:
+                        current = last.next
+                    while current != NULL:
+                        # Calculate the center of the triangle
+                        wval = 0.0
+                        for n in range(3):
+                            center[n] = 0.0
+                        for n in range(3):
+                            for m in range(3):
+                                point[m] = (current.p[n][m]-cell_pos[m])*idds[m]
+                            # Now we calculate the value at this point
+                            temp = offset_interpolate(dims, point, intdata)
+                            #print "something", temp, point[0], point[1], point[2]
+                            wval += temp
+                            for m in range(3):
+                                center[m] += temp * point[m]
+                        # Now we divide by our normalizing factor
+                        for n in range(3):
+                            center[n] /= wval
+                        # We have our center point of the triangle, in 0..1
+                        # coordinates.  So now we interpolate our three
+                        # fields.
+                        fv[0] = offset_interpolate(dims, center, v1data + offset)
+                        fv[1] = offset_interpolate(dims, center, v2data + offset)
+                        fv[2] = offset_interpolate(dims, center, v3data + offset)
+                        # We interpolate again the actual value data
+                        wval = offset_interpolate(dims, center, intdata)
+                        # Now we have our flux vector and our field value!
+                        # We just need a cross product with which we can
+                        # dot it.
+                        normal[0] = ( current.p[0][1] * current.p[1][2]
+                                    - current.p[0][2] * current.p[1][1])
+                        normal[1] = ( current.p[0][2] * current.p[1][0]
+                                    - current.p[0][0] * current.p[1][2])
+                        normal[2] = ( current.p[0][0] * current.p[1][1]
+                                    - current.p[0][1] * current.p[1][0])
+                        # Dump this somewhere for now
+                        temp = wval * (fv[0] * normal[0] +
+                                       fv[1] * normal[1] +
+                                       fv[2] * normal[2])
+                        # Now we need the area of the triangle.  This will take
+                        # a lot of time to calculate compared to the rest.
+                        # We use Heron's formula.
+                        for n in range(3):
+                            fv[n] = 0.0
+                        for n in range(3):
+                            fv[0] += (current.p[0][n] - current.p[2][n])**2.0
+                            fv[1] += (current.p[1][n] - current.p[0][n])**2.0
+                            fv[2] += (current.p[2][n] - current.p[1][n])**2.0
+                        s = 0.0
+                        for n in range(3):
+                            fv[n] = fv[n]**0.5
+                            s += 0.5 * fv[n]
+                        area = (s*(s-fv[0])*(s-fv[1])*(s-fv[2]))
+                        area = area**0.5
+                        flux += temp*area
+                        last = current
+                        if current.next == NULL: break
+                        current = current.next
+                cell_pos[2] += dds[2]
+            cell_pos[1] += dds[1]
+        cell_pos[0] += dds[0]
+    # Hallo, we are all done.
+    WipeTriangles(triangles.first)
+    return flux
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef int march_cubes(
+                 np.float64_t gv[8], np.float64_t isovalue,
                  np.float64_t dds[3],
                  np.float64_t x, np.float64_t y, np.float64_t z,
                  TriangleCollection *triangles):
@@ -1231,10 +1358,12 @@ cdef march_cubes(np.float64_t gv[8], np.float64_t isovalue,
     cdef np.float64_t vertlist[12][3]
     cdef int cubeindex = 0
     cdef int n
+    cdef int nt = 0
     for n in range(8):
         if gv[n] < isovalue:
             cubeindex |= (1 << n)
-    if edge_table[cubeindex] == 0: return
+    if edge_table[cubeindex] == 0:
+        return 0
     if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
         vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
                       dds, x, y, z, 0, 1)
@@ -1278,10 +1407,12 @@ cdef march_cubes(np.float64_t gv[8], np.float64_t isovalue,
                     vertlist[tri_table[cubeindex][n+1]],
                     vertlist[tri_table[cubeindex][n+2]])
         triangles.count += 1
+        nt += 1
         if triangles.first == NULL:
             triangles.first = triangles.current
         n += 3
         if tri_table[cubeindex][n] == -1: break
+    return nt
     
 
 cdef class GridFace:
