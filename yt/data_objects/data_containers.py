@@ -2725,7 +2725,8 @@ class AMRInclinedBox(AMR3DData):
                                       grid.RightEdge, grid.dds,
                                       grid.child_mask, 1)
             if v: grids.append(grid)
-        self._grids = na.array(grids, dtype='object')
+        self._grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self._grids[gi] = g
             
 
     def _is_fully_enclosed(self, grid):
@@ -2938,7 +2939,8 @@ class AMRSphereBase(AMR3DData):
         # Now we sort by level
         grids = grids.tolist()
         grids.sort(key=lambda x: (x.Level, x.LeftEdge[0], x.LeftEdge[1], x.LeftEdge[2]))
-        self._grids = na.array(grids, dtype='object')
+        self._grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self._grids[gi] = g
 
     def _is_fully_enclosed(self, grid):
         r = na.abs(grid._corners - self.center)

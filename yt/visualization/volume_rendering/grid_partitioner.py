@@ -107,7 +107,6 @@ class HomogenizedVolume(ParallelAnalysisInterface):
             pbar.update(i)
             bricks += self._partition_grid(g)
         pbar.finish()
-        bricks = na.array(bricks, dtype='object')
         self.initialize_bricks(bricks)
 
     def initialize_bricks(self, bricks):
@@ -120,14 +119,15 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
         self.brick_parents = na.zeros( NB, dtype='int64')
         self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
+        self.bricks = na.empty(len(bricks), dtype='object')
         for i,b in enumerate(bricks):
             self.brick_left_edges[i,:] = b.LeftEdge
             self.brick_right_edges[i,:] = b.RightEdge
             self.brick_parents[i] = b.parent_grid_id
             self.brick_dimensions[i,:] = b.my_data[0].shape
+            self.bricks[i] = b
         # Vertex-centered means we subtract one from the shape
         self.brick_dimensions -= 1
-        self.bricks = na.array(bricks, dtype='object')
 
     def reflect_across_boundaries(self):
         mylog.warning("Note that this doesn't fix ghost zones, so there may be artifacts at domain boundaries!")

@@ -115,7 +115,9 @@ class GDFHierarchy(AMRHierarchy):
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
-        self.grids = na.array(self.grids, dtype='object')
+        temp_grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(self.grids): temp_grids[gi] = g
+        self.grids = temp_grids
 
     def _populate_grid_objects(self):
         for g in self.grids:

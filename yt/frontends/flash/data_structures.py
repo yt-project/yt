@@ -131,9 +131,9 @@ class FLASHHierarchy(AMRHierarchy):
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
         self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
-        g = [self.grid(i+1, self, self.grid_levels[i,0])
-                for i in xrange(self.num_grids)]
-        self.grids = na.array(g, dtype='object')
+        self.grids = na.empty(self.num_grids, dtype='object')
+        for i in xrange(self.num_grids):
+            self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
 
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
