@@ -2481,20 +2481,28 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         return verts
 
     def calculate_isocontour_flux(self, field, value,
-                    field_x, field_y, field_z):
+                    field_x, field_y, field_z, fluxing_field = None):
         r"""This identifies isocontours on a cell-by-cell basis, with no
         consideration of global connectedness, and calculates the flux over
         those contours.
 
         This function will conduct marching cubes on all the cells in a given
         data container (grid-by-grid), and then for each identified triangular
-        segment of an isocontour in a given cell, calculate the normal and area
-        of that triangle, the area of that triangle, and then return:
+        segment of an isocontour in a given cell, calculate the gradient (i.e.,
+        normal) in the isocontoured field, interpolate the local value of the
+        "fluxing" field, the area of the triangle, and then return:
 
-        area * local_value * (n dot v)
+        area * local_flux_value * (n dot v)
 
         Where area, local_value, and the vector v are interpolated at the barycenter
-        (weighted by the vertex values) of the triangle.
+        (weighted by the vertex values) of the triangle.  Note that this
+        specifically allows for the field fluxing across the surface to be
+        *different* from the field being contoured.  If the fluxing_field is
+        not specified, it is assumed to be 1.0 everywhere, and the raw flux
+        with no local-weighting is returned.
+
+        Additionally, the returned flux is defined as flux *into* the surface,
+        not flux *out of* the surface.
         
         Parameters
         ----------
@@ -2510,6 +2518,9 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             The y-component field
         field_z : string
             The z-component field
+        fluxing_field : string, optional
+            The field whose passage over the surface is of interest.  If not
+            specified, assumed to be 1.0 everywhere.
 
         Returns
         -------
@@ -2525,22 +2536,26 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         Examples
         --------
         This will create a data object, find a nice value in the center, and
-        calculate a flux over it.
+        calculate the metal flux over it.
 
         >>> dd = pf.h.all_data()
         >>> rho = dd.quantities["WeightedAverageQuantity"](
         ...     "Density", weight="CellMassMsun")
         >>> flux = dd.calculate_isocontour_flux("Density", rho,
-        ...     "x-velocity", "y-velocity", "z-velocity")
+        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
         """
         flux = 0.0
         for g in self._grids:
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
+            if fluxing_field is None:
+                ff = na.ones(vals.shape, dtype="float64")
+            else:
+                ff = g.get_vertex_centered_data(fluxing_field)
             xv, yv, zv = [g.get_vertex_centered_data(f) for f in 
                          [field_x, field_y, field_z]]
             flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
-                        mask, g.LeftEdge, g.dds)
+                        ff, mask, g.LeftEdge, g.dds)
         return flux
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,

@@ -947,6 +947,7 @@ def march_cubes_grid_flux(
                      np.ndarray[np.float64_t, ndim=3] v1,
                      np.ndarray[np.float64_t, ndim=3] v2,
                      np.ndarray[np.float64_t, ndim=3] v3,
+                     np.ndarray[np.float64_t, ndim=3] flux_field,
                      np.ndarray[np.int32_t, ndim=3] mask,
                      np.ndarray[np.float64_t, ndim=1] left_edge,
                      np.ndarray[np.float64_t, ndim=1] dxs):
@@ -962,6 +963,7 @@ def march_cubes_grid_flux(
     cdef np.float64_t *v1data = <np.float64_t *> v1.data
     cdef np.float64_t *v2data = <np.float64_t *> v2.data
     cdef np.float64_t *v3data = <np.float64_t *> v3.data
+    cdef np.float64_t *fdata = <np.float64_t *> flux_field.data
     cdef np.float64_t *dds = <np.float64_t *> dxs.data
     cdef np.float64_t flux = 0.0
     cdef np.float64_t center[3], point[3], wval, temp, area, s
@@ -1016,7 +1018,7 @@ def march_cubes_grid_flux(
                         fv[1] = offset_interpolate(dims, center, v2data + offset)
                         fv[2] = offset_interpolate(dims, center, v3data + offset)
                         # We interpolate again the actual value data
-                        wval = offset_interpolate(dims, center, intdata)
+                        wval = offset_interpolate(dims, center, fdata + offset)
                         # Now we have our flux vector and our field value!
                         # We just need a normal vector with which we can
                         # dot it.  The normal should be equal to the gradient
