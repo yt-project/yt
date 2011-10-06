@@ -127,8 +127,8 @@ cdef extern from "FixedInterpolator.h":
     np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3], np.float64_t *data)
     np.float64_t trilinear_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                        np.float64_t *data)
-    np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
-                                       np.float64_t *data, np.float64_t *grad)
+    void eval_gradient(int ds[3], np.float64_t dp[3], np.float64_t *data,
+                       np.float64_t grad[3])
     void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
     void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
                        np.float64_t vl[3], np.float64_t dds[3],
@@ -964,8 +964,8 @@ def march_cubes_grid_flux(
     cdef np.float64_t *v3data = <np.float64_t *> v3.data
     cdef np.float64_t *dds = <np.float64_t *> dxs.data
     cdef np.float64_t flux = 0.0
-    cdef np.float64_t center[3], point[3], normal[3], wval, temp, area, s
-    cdef np.float64_t cell_pos[3], fv[3], idds[3]
+    cdef np.float64_t center[3], point[3], wval, temp, area, s
+    cdef np.float64_t cell_pos[3], fv[3], idds[3], normal[3]
     for i in range(3):
         dims[i] = values.shape[i] - 1
         idds[i] = 1.0 / dds[i]
@@ -1018,18 +1018,18 @@ def march_cubes_grid_flux(
                         # We interpolate again the actual value data
                         wval = offset_interpolate(dims, center, intdata)
                         # Now we have our flux vector and our field value!
-                        # We just need a cross product with which we can
-                        # dot it.
-                        normal[0] = ( current.p[0][1] * current.p[1][2]
-                                    - current.p[0][2] * current.p[1][1])
-                        normal[1] = ( current.p[0][2] * current.p[1][0]
-                                    - current.p[0][0] * current.p[1][2])
-                        normal[2] = ( current.p[0][0] * current.p[1][1]
-                                    - current.p[0][1] * current.p[1][0])
+                        # We just need a normal vector with which we can
+                        # dot it.  The normal should be equal to the gradient
+                        # in the center of the triangle, or thereabouts.
+                        eval_gradient(dims, center, intdata, normal)
+                        temp = 0.0
+                        for n in range(3):
+                            temp += normal[n]*normal[n]
+                        temp = temp**0.5
                         # Dump this somewhere for now
                         temp = wval * (fv[0] * normal[0] +
                                        fv[1] * normal[1] +
-                                       fv[2] * normal[2])
+                                       fv[2] * normal[2])/temp
                         # Now we need the area of the triangle.  This will take
                         # a lot of time to calculate compared to the rest.
                         # We use Heron's formula.
