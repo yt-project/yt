@@ -1027,7 +1027,8 @@ def march_cubes_grid_flux(
                         temp = 0.0
                         for n in range(3):
                             temp += normal[n]*normal[n]
-                        temp = temp**0.5
+                        # Take the negative, to ensure it points inwardly
+                        temp = -(temp**0.5)
                         # Dump this somewhere for now
                         temp = wval * (fv[0] * normal[0] +
                                        fv[1] * normal[1] +
