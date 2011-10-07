@@ -324,7 +324,8 @@ class ARTHierarchy(AMRHierarchy):
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
-        self.grids = na.array(grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _get_grid_parents(self, grid, LE, RE):
         mask = na.zeros(self.num_grids, dtype='bool')

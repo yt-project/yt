@@ -544,12 +544,13 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
                 self.grids[pid-1]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
+        self.grids = na.empty(len(grids), dtype='object')
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
-        self.grids = na.array(self.grids, dtype='object')
+            self.grids[gi] = grid
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):
