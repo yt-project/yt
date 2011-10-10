@@ -862,11 +862,11 @@ cdef class ProtoSubgrid:
             tr[2,i] = self.dimensions[i]
         return tr
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t graycode(np.int64_t x):
     return x^(x>>1)
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t igraycode(np.int64_t x):
     cdef np.int64_t i, j
     if x == 0:
@@ -878,7 +878,7 @@ cdef np.int64_t igraycode(np.int64_t x):
         j += 1
     return i
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t direction(np.int64_t x, np.int64_t n):
     #assert x < 2**n
     if x == 0:
@@ -888,7 +888,7 @@ cdef np.int64_t direction(np.int64_t x, np.int64_t n):
     else:
         return tsb(x, n)%n
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
     #assert x < 2**width
     cdef np.int64_t i = 0
@@ -897,34 +897,34 @@ cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
         i += 1
     return i
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t bitrange(np.int64_t x, np.int64_t width,
                          np.int64_t start, np.int64_t end):
     return x >> (width-end) & ((2**(end-start))-1)
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t rrot(np.int64_t x, np.int64_t i, np.int64_t width):
     i = i%width
     x = (x>>i) | (x<<width-i)
     return x&(2**width-1)
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t lrot(np.int64_t x, np.int64_t i, np.int64_t width):
     i = i%width
     x = (x<<i) | (x>>width-i)
     return x&(2**width-1)
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t transform(np.int64_t entry, np.int64_t direction,
                           np.int64_t width, np.int64_t x):
     return rrot((x^entry), direction + 1, width)
 
-@cython.cdivision
+@cython.cdivision(True)
 cdef np.int64_t entry(np.int64_t x):
     if x == 0: return 0
     return graycode(2*((x-1)/2))
 
-@cython.cdivision
+@cython.cdivision(True)
 def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
     # This is inspired by the scurve package by user cortesi on GH.
     cdef int o, i
