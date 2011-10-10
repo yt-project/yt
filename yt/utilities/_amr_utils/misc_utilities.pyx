@@ -153,7 +153,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
     cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
     n_grids = data.shape[0]
-    cdef np.float64_t **uniquedims, *uniques
+    cdef np.float64_t **uniquedims, *uniques, split
     uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
     for i in range(3):
         uniquedims[i] = <np.float64_t *> \
@@ -190,5 +190,17 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         #print "Setting tarr: ", i, uniquedims[best_dim][i]
         tarr[i] = uniquedims[best_dim][i]
     tarr.sort()
+    split = tarr[my_split]
+    cdef np.ndarray[np.uint8_t, ndim=1] less_ids = np.empty(n_grids, dtype='uint8')
+    cdef np.ndarray[np.uint8_t, ndim=1] greater_ids = np.empty(n_grids, dtype='uint8')
+    for i in range(n_grids):
+        if data[i, 0, best_dim] < split:
+            less_ids[i] = 1
+        else:
+            less_ids[i] = 0
+        if data[i, 1, best_dim] > split:
+            greater_ids[i] = 1
+        else:
+            greater_ids[i] = 0
     # Return out unique values
-    return best_dim, tarr[my_split]
+    return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")

@@ -48,11 +48,11 @@ def corner_bounds(split_dim, split, current_left = None, current_right = None):
     chosen by specifying the `current_left` or `current_right`.
     """
     if(current_left is not None):
-        new_left = na.array([current_left[0],current_left[1],current_left[2]])
+        new_left = current_left.copy()
         new_left[split_dim] = split
         return new_left
     elif(current_right is not None):
-        new_right = na.array([current_right[0],current_right[1],current_right[2]])
+        new_right = current_right.copy()
         new_right[split_dim] = split
         return new_right
 
@@ -736,7 +736,8 @@ class AMRKDTree(HomogenizedVolume):
         thisnode.ri = na.rint((thisnode.r_corner-gle)/dds).astype('int32')
         thisnode.dims = (thisnode.ri - thisnode.li).astype('int32')
         # Here the cost is actually inversely proportional to 4**Level (empirical)
-        thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
+        #thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
+        thisnode.cost = 1.0
         # Here is the old way
         # thisnode.cost = na.prod(thisnode.dims).astype('int64')
 
@@ -1060,9 +1061,9 @@ class AMRKDTree(HomogenizedVolume):
         # For some reason doing dim 0 separately is slightly faster.
         # This could be rewritten to all be in the loop below.
 
-        best_dim, split = kdtree_get_choices(data, current_node.l_corner,
-                                       current_node.r_corner)
-        return data[:,:,best_dim], best_dim, split
+        best_dim, split, less_ids, greater_ids = \
+            kdtree_get_choices(data, current_node.l_corner, current_node.r_corner)
+        return data[:,:,best_dim], best_dim, split, less_ids, greater_ids
 
     def _build_dividing_node(self, current_node):
         '''
@@ -1070,12 +1071,14 @@ class AMRKDTree(HomogenizedVolume):
         left and right children.
         '''
         
-        data,best_dim,split = self._get_choices(current_node)
+        data,best_dim,split,less_ids,greater_ids = self._get_choices(current_node)
 
         current_node.split_ax = best_dim
         current_node.split_pos = split
-        less_ids = na.nonzero(data[:,0] < split)[0]
-        greater_ids = na.nonzero(split < data[:,1])[0]
+        #less_ids0 = (data[:,0] < split)
+        #greater_ids0 = (split < data[:,1])
+        #assert(na.all(less_ids0 == less_ids))
+        #assert(na.all(greater_ids0 == greater_ids))
         
         current_node.left_child = MasterNode(my_id=_lchild_id(current_node.id),
                                              parent=current_node,
