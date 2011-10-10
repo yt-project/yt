@@ -143,8 +143,8 @@ class ChomboHierarchy(AMRHierarchy):
                                start = si, stop = ei)
                 self.grids.append(pg)
                 self.grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*si.astype(self.float_type) + self.domain_left_edge
-                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1) + self.domain_left_edge
+                self.grid_left_edge[i] = dx*si.astype(self.float_type) #AJC + self.domain_left_edge
+                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1) #AJC + self.domain_left_edge
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
@@ -230,14 +230,21 @@ class ChomboStaticOutput(StaticOutput):
         if os.path.isfile('pluto.ini'):
             self._parse_pluto_file('pluto.ini')
         elif os.path.isfile('orion2.ini'):
+            # AJC - this shouldn't be nesecary anymore, now
+            # that orion2 has fixed the pluto domian-offset glitch
             self._parse_pluto_file('orion2.ini')
         else:
             self.unique_identifier = \
-                                   int(os.stat(self.parameter_filename)[ST_CTIME])
-            self.domain_left_edge = na.array([0.,0.,0.])
+                int(os.stat(self.parameter_filename)[ST_CTIME])
+            self.domain_left_edge = self.__calc_left_edge()
             self.domain_right_edge = self.__calc_right_edge()
             self.dimensionality = 3
-            self.refine_by = 2
+            # AJC - make refine_by a list because different levels
+            # can have different refinment ratios.
+            self.refine_by = []
+            fileh = h5py.File(self.parameter_filename,'r')
+            for level in range(0,fileh.attrs['max_level']):
+                self.refine_by.append(fileh['/level_'+str(level)].attrs['ref_ratio'])
 
     def _parse_pluto_file(self, ini_filename):
         """
@@ -289,6 +296,17 @@ class ChomboStaticOutput(StaticOutput):
         self.domain_right_edge = na.array([high1,high2,high3])
         self.domain_dimensions = na.array([N1,N2,N3])
         self.refine_by = self.parameters["RefineBy"]
+
+    # AJC - added this routine
+    # Note that vanilla Chombo files (independent of pluto or orion2)
+    # do not always have left_edge = [0,0,0]
+    def __calc_left_edge(self):
+        fileh = h5py.File(self.parameter_filename,'r')
+        dx0 = fileh['/level_0'].attrs['dx']
+        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[0:3])
+        fileh.close()
+        return RE
+
             
     def __calc_right_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
