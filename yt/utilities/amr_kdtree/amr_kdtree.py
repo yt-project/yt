@@ -28,7 +28,7 @@ License:
 import numpy as na
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
-from yt.utilities.amr_utils import PartitionedGrid
+from yt.utilities.amr_utils import PartitionedGrid, kdtree_get_choices
 from yt.utilities.performance_counters import yt_counters, time_function
 import yt.utilities.parallel_tools.parallel_analysis_interface as PT
 from copy import deepcopy
@@ -1060,18 +1060,8 @@ class AMRKDTree(HomogenizedVolume):
         # For some reason doing dim 0 separately is slightly faster.
         # This could be rewritten to all be in the loop below.
 
-        best_dim = 0
-        best_choices = na.unique(data[:,:,0][(current_node.l_corner[0] < data[:,:,0]) &
-                                             (data[:,:,0] < current_node.r_corner[0])])
-        
-        for d in range(1,3):
-            choices = na.unique(data[:,:,d][(current_node.l_corner[d] < data[:,:,d]) &
-                                            (data[:,:,d] < current_node.r_corner[d])])
-
-            if choices.size > best_choices.size:
-                best_choices, best_dim = choices, d
-
-        split = best_choices[(len(best_choices)-1)/2]
+        best_dim, split = kdtree_get_choices(data, current_node.l_corner,
+                                       current_node.r_corner)
         return data[:,:,best_dim], best_dim, split
 
     def _build_dividing_node(self, current_node):
