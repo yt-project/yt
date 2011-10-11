@@ -278,6 +278,17 @@ class FixedResolutionBuffer(object):
         else: data=self[field]
         numdisplay.display(data)    
 
+    @property
+    def limits(self):
+        rv = dict(x = None, y = None, z = None)
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        xn = axis_names[xax]
+        yn = axis_names[yax]
+        rv[xn] = (self.bounds[0], self.bounds[1])
+        rv[yn] = (self.bounds[2], self.bounds[3])
+        return rv
+
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
     This object is a subclass of :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
