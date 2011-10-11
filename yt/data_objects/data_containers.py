@@ -829,6 +829,25 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for grid in self._grids:
             temp = grid[field]
 
+    def to_frb(self, width, resolution, center = None):
+        if center is None:
+            center = self.get_field_parameter("center")
+            if center is None:
+                center = (self.pf.domain_right_edge
+                        + self.pf.domain_left_edge)/2.0
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        bounds = (center[xax] - width/2.0, center[xax] + width/2.0,
+                  center[yax] - width/2.0, center[yax] + width/2.0)
+        frb = FixedResolutionBuffer(self, bounds, resolution)
+        return frb
+
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
         """
         This returns a uniform grid of points between *LE* and *RE*,

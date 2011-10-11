@@ -120,6 +120,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         # Called by subclass
         self.object_types = []
         self.objects = []
+        self.plots = []
         for name, cls in sorted(data_object_registry.items()):
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
