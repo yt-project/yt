@@ -2432,7 +2432,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
     quantities = property(__get_quantities)
 
     def extract_isocontours(self, field, value, filename = None,
-                            rescale = False):
+                            rescale = False, sample_values = None):
         r"""This identifies isocontours on a cell-by-cell basis, with no
         consideration of global connectedness, and returns the vertices of the
         Triangles in that isocontour.
@@ -2481,12 +2481,23 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         ...             "triangles.obj", True)
         """
         verts = []
+        samples = []
         for g in self._grids:
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
-            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds)
+            if sample_values is not None:
+                svals = g.get_vertex_centered_data(sample_values)
+            else:
+                svals = None
+            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds,
+                                        svals)
+            if sample_values is not None:
+                my_verts, svals = my_verts
+                samples.append(svals)
             verts.append(my_verts)
         verts = na.concatenate(verts)
+        if sample_values is not None:
+            samples = na.concatenate(samples)
         if rescale:
             mi = na.min(verts, axis=0)
             ma = na.max(verts, axis=0)
@@ -2497,6 +2508,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts)/3):
                 f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
+        if sample_values is not None:
+            return verts, samples
         return verts
 
     def calculate_isocontour_flux(self, field, value,

@@ -69,6 +69,7 @@ cdef extern from "math.h":
 cdef struct Triangle:
     Triangle *next
     np.float64_t p[3][3]
+    np.float64_t val
 
 cdef struct TriangleCollection:
     int count
@@ -97,6 +98,17 @@ cdef int CountTriangles(Triangle *first):
         count += 1
         this = this.next
     return count
+
+cdef void FillTriangleValues(np.ndarray[np.float64_t, ndim=1] values,
+                             Triangle *first):
+    cdef Triangle *this = first
+    cdef Triangle *last
+    cdef int i = 0
+    while this != NULL:
+        values[i] = this.val
+        i += 1
+        last = this
+        this = this.next
 
 cdef void WipeTriangles(Triangle *first):
     cdef Triangle *this = first
@@ -903,38 +915,77 @@ def march_cubes_grid(np.float64_t isovalue,
                      np.ndarray[np.float64_t, ndim=3] values,
                      np.ndarray[np.int32_t, ndim=3] mask,
                      np.ndarray[np.float64_t, ndim=1] left_edge,
-                     np.ndarray[np.float64_t, ndim=1] dxs):
+                     np.ndarray[np.float64_t, ndim=1] dxs,
+                     obj_sample = None):
     cdef int dims[3]
-    cdef int i, j, k, n
+    cdef int i, j, k, n, m, nt
     cdef int offset
-    cdef np.float64_t gv[8]
+    cdef np.float64_t gv[8], pos[3], point[3], idds[3]
     cdef np.float64_t *intdata = NULL
-    cdef np.float64_t x, y, z
+    cdef np.float64_t *sdata = NULL
+    cdef np.float64_t x, y, z, do_sample
+    cdef np.ndarray[np.float64_t, ndim=3] sample
+    cdef np.ndarray[np.float64_t, ndim=1] sampled
     cdef TriangleCollection triangles
-    for i in range(3): dims[i] = values.shape[i] - 1
+    cdef Triangle *last, *current
+    if obj_sample is not None:
+        sample = obj_sample
+        sdata = <np.float64_t *> sample.data
+        do_sample = 1
+    else:
+        do_sample = 0
+    for i in range(3):
+        dims[i] = values.shape[i] - 1
+        idds[i] = 1.0 / dxs[i]
     triangles.first = triangles.current = NULL
+    last = current = NULL
     triangles.count = 0
     cdef np.float64_t *data = <np.float64_t *> values.data
     cdef np.float64_t *dds = <np.float64_t *> dxs.data
-    x = left_edge[0]
+    pos[0] = left_edge[0]
     for i in range(dims[0]):
-        y = left_edge[1]
+        pos[1] = left_edge[1]
         for j in range(dims[1]):
-            z = left_edge[2]
+            pos[2] = left_edge[2]
             for k in range(dims[2]):
                 if mask[i,j,k] == 1:
                     offset = i * (dims[1] + 1) * (dims[2] + 1) \
                            + j * (dims[2] + 1) + k
                     intdata = data + offset
                     offset_fill(dims, intdata, gv)
-                    march_cubes(gv, isovalue, dds, x, y, z,
+                    nt = march_cubes(gv, isovalue, dds, pos[0], pos[1], pos[2],
                                 &triangles)
-                z += dds[2]
-            y += dds[1]
-        x += dds[0]
+                    if do_sample == 1 and nt > 0:
+                        # At each triangle's center, sample our secondary field
+                        if last == NULL and triangles.first != NULL:
+                            current = triangles.first
+                            last = NULL
+                        elif last != NULL:
+                            current = last.next
+                        while current != NULL:
+                            for n in range(3):
+                                point[n] = 0.0
+                            for n in range(3):
+                                for m in range(3):
+                                    point[m] += (current.p[n][m]-pos[m])*idds[m]
+                            for n in range(3):
+                                point[n] /= 3.0
+                            current.val = offset_interpolate(dims, point,
+                                                             sdata + offset)
+                            last = current
+                            if current.next == NULL: break
+                            current = current.next
+                pos[2] += dds[2]
+            pos[1] += dds[1]
+        pos[0] += dds[0]
     # Hallo, we are all done.
     cdef np.ndarray[np.float64_t, ndim=2] vertices 
     vertices = np.zeros((triangles.count*3,3), dtype='float64')
+    if do_sample == 1:
+        sampled = np.zeros(triangles.count, dtype='float64')
+        FillTriangleValues(sampled, triangles.first)
+        FillAndWipeTriangles(vertices, triangles.first)
+        return vertices, sampled
     FillAndWipeTriangles(vertices, triangles.first)
     return vertices
 
