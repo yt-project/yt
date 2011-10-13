@@ -63,7 +63,7 @@ class ShapeMismatch(RegressionTestException):
         self.current_shape = current_shape
 
     def __repr__(self):
-        return "Shape Mismatch: old_buffer %s, current_buffer %0.5e" % (
+        return "Shape Mismatch: old_buffer %s, current_buffer %s" % (
             self.old_shape, self.current_shape)
 
 class RegressionTest(object):
