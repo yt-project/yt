@@ -49,12 +49,12 @@ class ValueDelta(RegressionTestException):
         self.acceptable = acceptable
 
     def __repr__(self):
-        return "ValueDelta: Delta %0.5e, max of %0.5e" % (
+        return "ValueDelta: Delta %s, max of %s" % (
             self.delta, self.acceptable)
 
 class ArrayDelta(ValueDelta):
     def __repr__(self):
-        return "ArrayDelta: Delta %0.5e, max of %0.5e" % (
+        return "ArrayDelta: Delta %s, max of %s" % (
             self.delta, self.acceptable)
 
 class ShapeMismatch(RegressionTestException):
