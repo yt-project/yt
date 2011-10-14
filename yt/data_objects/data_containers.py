@@ -40,7 +40,8 @@ from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
-    QuadTree, get_box_grids_below_level, ghost_zone_interpolate
+    QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
+    march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -827,6 +828,25 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
             temp = grid[field]
+
+    def to_frb(self, width, resolution, center = None):
+        if center is None:
+            center = self.get_field_parameter("center")
+            if center is None:
+                center = (self.pf.domain_right_edge
+                        + self.pf.domain_left_edge)/2.0
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        bounds = (center[xax] - width/2.0, center[xax] + width/2.0,
+                  center[yax] - width/2.0, center[yax] + width/2.0)
+        frb = FixedResolutionBuffer(self, bounds, resolution)
+        return frb
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
         """
@@ -2410,6 +2430,165 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         return self.__quantities
     __quantities = None
     quantities = property(__get_quantities)
+
+    def extract_isocontours(self, field, value, filename = None,
+                            rescale = False, sample_values = None):
+        r"""This identifies isocontours on a cell-by-cell basis, with no
+        consideration of global connectedness, and returns the vertices of the
+        Triangles in that isocontour.
+
+        This function simply returns the vertices of all the triangles
+        calculated by the marching cubes algorithm; for more complex
+        operations, such as identifying connected sets of cells above a given
+        threshold, see the extract_connected_sets function.  This is more
+        useful for calculating, for instance, total isocontour area, or
+        visualizing in an external program (such as `MeshLab
+        <http://meshlab.sf.net>`_.)
+        
+        Parameters
+        ----------
+        field : string
+            Any field that can be obtained in a data object.  This is the field
+            which will be isocontoured.
+        value : float
+            The value at which the isocontour should be calculated.
+        filename : string, optional
+            If supplied, this file will be filled with the vertices in .obj
+            format.  Suitable for loading into meshlab.
+        rescale : bool, optional
+            If true, the vertices will be rescaled within their min/max.
+
+        Returns
+        -------
+        verts : array of floats
+            The array of vertices, x,y,z.  Taken in threes, these are the
+            triangle vertices.
+
+        References
+        ----------
+
+        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+        Examples
+        --------
+        This will create a data object, find a nice value in the center, and
+        output the vertices to "triangles.obj" after rescaling them.
+
+        >>> dd = pf.h.all_data()
+        >>> rho = dd.quantities["WeightedAverageQuantity"](
+        ...     "Density", weight="CellMassMsun")
+        >>> verts = dd.extract_isocontours("Density", rho,
+        ...             "triangles.obj", True)
+        """
+        verts = []
+        samples = []
+        for g in self._grids:
+            mask = self._get_cut_mask(g) * g.child_mask
+            vals = g.get_vertex_centered_data(field)
+            if sample_values is not None:
+                svals = g.get_vertex_centered_data(sample_values)
+            else:
+                svals = None
+            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds,
+                                        svals)
+            if sample_values is not None:
+                my_verts, svals = my_verts
+                samples.append(svals)
+            verts.append(my_verts)
+        verts = na.concatenate(verts)
+        if sample_values is not None:
+            samples = na.concatenate(samples)
+        if rescale:
+            mi = na.min(verts, axis=0)
+            ma = na.max(verts, axis=0)
+            verts = (verts - mi) / (ma - mi).max()
+        if filename is not None:
+            f = open(filename, "w")
+            for v1 in verts:
+                f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
+            for i in range(len(verts)/3):
+                f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
+        if sample_values is not None:
+            return verts, samples
+        return verts
+
+    def calculate_isocontour_flux(self, field, value,
+                    field_x, field_y, field_z, fluxing_field = None):
+        r"""This identifies isocontours on a cell-by-cell basis, with no
+        consideration of global connectedness, and calculates the flux over
+        those contours.
+
+        This function will conduct marching cubes on all the cells in a given
+        data container (grid-by-grid), and then for each identified triangular
+        segment of an isocontour in a given cell, calculate the gradient (i.e.,
+        normal) in the isocontoured field, interpolate the local value of the
+        "fluxing" field, the area of the triangle, and then return:
+
+        area * local_flux_value * (n dot v)
+
+        Where area, local_value, and the vector v are interpolated at the barycenter
+        (weighted by the vertex values) of the triangle.  Note that this
+        specifically allows for the field fluxing across the surface to be
+        *different* from the field being contoured.  If the fluxing_field is
+        not specified, it is assumed to be 1.0 everywhere, and the raw flux
+        with no local-weighting is returned.
+
+        Additionally, the returned flux is defined as flux *into* the surface,
+        not flux *out of* the surface.
+        
+        Parameters
+        ----------
+        field : string
+            Any field that can be obtained in a data object.  This is the field
+            which will be isocontoured and used as the "local_value" in the
+            flux equation.
+        value : float
+            The value at which the isocontour should be calculated.
+        field_x : string
+            The x-component field
+        field_y : string
+            The y-component field
+        field_z : string
+            The z-component field
+        fluxing_field : string, optional
+            The field whose passage over the surface is of interest.  If not
+            specified, assumed to be 1.0 everywhere.
+
+        Returns
+        -------
+        flux : float
+            The summed flux.  Note that it is not currently scaled; this is
+            simply the code-unit area times the fields.
+
+        References
+        ----------
+
+        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+        Examples
+        --------
+        This will create a data object, find a nice value in the center, and
+        calculate the metal flux over it.
+
+        >>> dd = pf.h.all_data()
+        >>> rho = dd.quantities["WeightedAverageQuantity"](
+        ...     "Density", weight="CellMassMsun")
+        >>> flux = dd.calculate_isocontour_flux("Density", rho,
+        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
+        """
+        flux = 0.0
+        for g in self._grids:
+            mask = self._get_cut_mask(g) * g.child_mask
+            vals = g.get_vertex_centered_data(field)
+            if fluxing_field is None:
+                ff = na.ones(vals.shape, dtype="float64")
+            else:
+                ff = g.get_vertex_centered_data(fluxing_field)
+            xv, yv, zv = [g.get_vertex_centered_data(f) for f in 
+                         [field_x, field_y, field_z]]
+            flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
+                        ff, mask, g.LeftEdge, g.dds)
+        return flux
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                 log_space=True, cumulative=True, cache=False):

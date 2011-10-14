@@ -271,7 +271,7 @@ class BinnedProfile1D(BinnedProfile):
         else:
             mi = ((source_data > self._bins.min())
                &  (source_data < self._bins.max()))
-        ds = source_data[mi]
+        sd = source_data[mi]
         if sd.size == 0:
             raise EmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization

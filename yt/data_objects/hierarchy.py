@@ -120,10 +120,16 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         # Called by subclass
         self.object_types = []
         self.objects = []
+        self.plots = []
         for name, cls in sorted(data_object_registry.items()):
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cname, cls, dd)
+        if self.pf.refine_by != 2 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Refine by something other than two: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
         self.object_types.sort()
 
     # Now all the object related stuff

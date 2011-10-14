@@ -211,13 +211,11 @@ def parallel_splitter(f1, f2):
     """
     @wraps(f1)
     def in_order(*args, **kwargs):
-        MPI.COMM_WORLD.Barrier()
         if MPI.COMM_WORLD.rank == 0:
             f1(*args, **kwargs)
         MPI.COMM_WORLD.Barrier()
         if MPI.COMM_WORLD.rank != 0:
             f2(*args, **kwargs)
-        MPI.COMM_WORLD.Barrier()
     if not parallel_capable: return f1
     return in_order
 
@@ -1255,9 +1253,8 @@ class ParallelAnalysisInterface(object):
         if not obj._distributed: return True
         return (obj._owner == MPI.COMM_WORLD.rank)
 
-    def _send_quadtree(self, target, qt, tgd, args):
+    def _send_quadtree(self, target, buf, tgd, args):
         sizebuf = na.zeros(1, 'int64')
-        buf = qt.tobuffer()
         sizebuf[0] = buf[0].size
         MPI.COMM_WORLD.Send([sizebuf, MPI.LONG], dest=target)
         MPI.COMM_WORLD.Send([buf[0], MPI.INT], dest=target)
@@ -1273,9 +1270,7 @@ class ParallelAnalysisInterface(object):
         MPI.COMM_WORLD.Recv([buf[0], MPI.INT], source=target)
         MPI.COMM_WORLD.Recv([buf[1], MPI.DOUBLE], source=target)
         MPI.COMM_WORLD.Recv([buf[2], MPI.DOUBLE], source=target)
-        qt = QuadTree(tgd, args[2])
-        qt.frombuffer(*buf)
-        return qt
+        return buf
 
     @parallel_passthrough
     def merge_quadtree_buffers(self, qt):
@@ -1294,13 +1289,16 @@ class ParallelAnalysisInterface(object):
             if (mask & rank) != 0:
                 target = (rank & ~mask) % size
                 #print "SENDING FROM %02i to %02i" % (rank, target)
-                self._send_quadtree(target, qt, tgd, args)
+                buf = qt.tobuffer()
+                self._send_quadtree(target, buf, tgd, args)
                 #qt = self._recv_quadtree(target, tgd, args)
             else:
                 target = (rank | mask)
                 if target < size:
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
-                    qto = self._recv_quadtree(target, tgd, args)
+                    buf = self._recv_quadtree(target, tgd, args)
+                    qto = QuadTree(tgd, args[2])
+                    qto.frombuffer(*buf)
                     merge_quadtrees(qt, qto)
                     del qto
                     #self._send_quadtree(target, qt, tgd, args)
