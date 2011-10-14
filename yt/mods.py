@@ -77,6 +77,9 @@ from yt.frontends.ramses.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
+from yt.frontends.gdf.api import \
+    GDFStaticOutput, GDFFieldInfo, add_gdf_field
+
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
 

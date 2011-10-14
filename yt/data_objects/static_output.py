@@ -104,6 +104,8 @@ class StaticOutput(object):
         return self.basename
 
     def _hash(self):
+        if "MetaDataDatasetUUID" in self.parameters:
+            return self["MetaDataDatasetUUID"]
         s = "%s;%s;%s" % (self.basename,
             self.current_time, self.unique_identifier)
         try:

@@ -737,15 +737,33 @@ cdef class PartitionedGrid:
         dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
         cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
                         + ci[1] * (self.dims[2] + 1) + ci[2]
+        # The initial and final values can be linearly interpolated between; so
+        # we just have to calculate our initial and final values.
+        cdef np.float64_t slopes[6]
         for i in range(3):
-            cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
-            # this gets us dp as the current first sample position
-            pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
-            dp[i] = pos[i] - cell_left[i]
+            dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+            dp[i] -= ci[i] * self.dds[i] + self.left_edge[i]
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
-            local_dds[i] = v_dir[i] * dt
+        for i in range(self.n_fields):
+            slopes[i] = offset_interpolate(self.dims, dp,
+                            self.data[i] + offset)
+        for i in range(3):
+            dp[i] += ds[i] * tf.ns
+        cdef np.float64_t temp
+        for i in range(self.n_fields):
+            temp = slopes[i]
+            slopes[i] -= offset_interpolate(self.dims, dp,
+                             self.data[i] + offset)
+            slopes[i] *= -1.0/tf.ns
+            self.dvs[i] = temp
         if self.star_list != NULL:
+            for i in range(3):
+                cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
+                # this gets us dp as the current first sample position
+                pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+                dp[i] -= tf.ns * ds[i]
+                local_dds[i] = v_dir[i] * dt
             ballq = kdtree_utils.kd_nearest_range3(
                 self.star_list, cell_left[0] + self.dds[0]*0.5,
                                 cell_left[1] + self.dds[1]*0.5,
@@ -753,15 +771,16 @@ cdef class PartitionedGrid:
                                 self.star_er + 0.9*self.dds[0])
                                             # ~0.866 + a bit
         for dti in range(tf.ns): 
-            for i in range(self.n_fields):
-                self.dvs[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
             #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
             #    continue
-            if self.star_list != NULL: self.add_stars(ballq, dt, pos, rgba)
+            if self.star_list != NULL:
+                self.add_stars(ballq, dt, pos, rgba)
+                for i in range(3):
+                    dp[i] += ds[i]
+                    pos[i] += local_dds[i]
             tf.eval_transfer(dt, self.dvs, rgba, grad)
-            for i in range(3):
-                dp[i] += ds[i]
-                pos[i] += local_dds[i]
+            for i in range(self.n_fields):
+                self.dvs[i] += slopes[i]
         if ballq != NULL: kdtree_utils.kd_res_free(ballq)
 
     @cython.boundscheck(False)
