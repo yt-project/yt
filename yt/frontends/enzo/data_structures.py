@@ -794,6 +794,10 @@ class EnzoStaticOutput(StaticOutput):
         self.dimensionality = self.parameters["TopGridRank"]
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
+            if len(self.domain_dimensions) < 3:
+                tmp = self.domain_dimensions.tolist()
+                tmp.append(1)
+                self.domain_dimensions = na.array(tmp)
             self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
                                              "float64").copy()
             self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
