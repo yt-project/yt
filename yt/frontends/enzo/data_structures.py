@@ -245,7 +245,7 @@ class EnzoHierarchy(AMRHierarchy):
             fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             np.append(int(_next_token_line("NumberOfParticles", f)[0]))
-            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
+            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
             for line in f:
                 if len(line) < 2: break
                 if line.startswith("Pointer:"):
