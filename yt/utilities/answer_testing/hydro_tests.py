@@ -37,7 +37,8 @@ class TestProjection(YTStaticOutputTest):
     def run(self):
         # First we get our flattened projection -- this is the
         # Density, px, py, pdx, and pdy
-        proj = self.pf.h.proj(self.axis, self.field)
+        proj = self.pf.h.proj(self.axis, self.field,
+                              weight_field=self.weight_field)
         # Now let's stick it in a buffer
         pixelized_proj = self.pixelize(proj, self.field)
         # We just want the values, so this can be stored
@@ -60,8 +61,37 @@ class TestProjection(YTStaticOutputTest):
         pylab.clf()
         pylab.imshow(self.result[1][self.field],
             interpolation='nearest', origin='lower')
-        fn = "%s_%s_projection.png" % (self.pf, self.field)
+        fn = "%s_%s_%s_projection.png" % (self.pf, self.field,
+                                          self.weight_field)
         pylab.savefig(fn)
+        return [fn]
+
+class TestOffAxisProjection(YTStaticOutputTest):
+
+    field = None
+    weight_field = None
+
+    def run(self):
+        # Here proj will just be the data array.
+        proj = off_axis_projection(self.pf, 
+                                   (0.5 * (self.pf.domain_left_edge + 
+                                           self.pf.domain_right_edge)),
+                                   [1., 1., 1.], 1., 400,
+                                   self.field, weight=self.weight_field)
+
+        # values.
+        self.result = proj
+
+    def compare(self, old_result):
+        proj  = self.result
+        oproj = old_result
+
+        self.compare_array_delta(proj, oproj, 1e-7)
+
+    def plot(self):
+        fn = "%s_%s_%s_off-axis_projection.png" % \
+            (self.pf, self.field, self.weight_field)
+        write_image(self.result, fn)
         return [fn]
 
 # Now we create all our tests.  We are using the create_test

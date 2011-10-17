@@ -73,6 +73,9 @@ if __name__ == "__main__":
     parser.add_option("-n", "--name", dest="this_name",
                       default=my_hash,
                       help = "The name we'll call this set of tests")
+    parser.add_option("", "--parallel", dest="parallel",
+                      default=False,
+                      help = "Run in parallel?")
     opts, args = parser.parse_args()
     if opts.list_tests:
         print "\n    ".join(sorted(itertools.chain(*mapping.values())))
@@ -103,5 +106,11 @@ if __name__ == "__main__":
         rtr.run_test(test_name)
     if watcher is not None:
         rtr.watcher.report()
+    failures = 0
+    passes = 1
     for test_name, result in sorted(rtr.passed_tests.items()):
         print "TEST %s: %s" % (test_name, result)
+        if result: passes += 1
+        else: failures += 1
+    print "Number of passes  : %s" % passes
+    print "Number of failures: %s" % failures
