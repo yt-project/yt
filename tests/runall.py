@@ -101,7 +101,7 @@ if __name__ == "__main__":
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
-        keys = registry_entries()
+        keys = set(registry_entries())
         tests_to_run += [t for t in new_tests if t in keys]
         load_tests(m, cwd)
     for test_name in sorted(tests_to_run):
