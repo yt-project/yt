@@ -48,6 +48,7 @@ def find_and_initialize_tests():
     return mapping
 
 if __name__ == "__main__":
+    clear_registry()
     mapping = find_and_initialize_tests()
     test_storage_directory = ytcfg.get("yt","test_storage_dir")
     try:
@@ -72,6 +73,9 @@ if __name__ == "__main__":
     parser.add_option("-n", "--name", dest="this_name",
                       default=my_hash,
                       help = "The name we'll call this set of tests")
+    parser.add_option("", "--parallel", dest="parallel",
+                      default=False,
+                      help = "Run in parallel?")
     opts, args = parser.parse_args()
     if opts.list_tests:
         print "\n    ".join(sorted(itertools.chain(*mapping.values())))
@@ -96,7 +100,8 @@ if __name__ == "__main__":
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
-        tests_to_run += new_tests
+        keys = set(registry_entries())
+        tests_to_run += [t for t in new_tests if t in keys]
         load_tests(m, cwd)
     for test_name in sorted(tests_to_run):
         rtr.run_test(test_name)
