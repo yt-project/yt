@@ -3,7 +3,7 @@ import numpy as na
 
 from yt.utilities.answer_testing.output_tests import \
     YTStaticOutputTest, RegressionTestException, create_test
-from yt.funcs import ensure_list
+from yt.funcs import ensure_list, iterable
 from fields_to_test import field_list, particle_field_list
 
 class FieldHashesDontMatch(RegressionTestException):
@@ -86,7 +86,15 @@ class YTDerivedQuantityTest(YTStaticOutputTest):
         known_objects[self.object_name](self)
 
     def compare(self, old_result):
-        if self.result != old_result: raise FieldHashesDontMatch
+        if hasattr(self.result, 'tostring'):
+            self.compare_array_delta(self.result, old_result, 1e-7)
+            return
+        elif iterable(self.result):
+            a1 = na.array(self.result)
+            a2 = na.array(old_result)
+            self.compare_array_delta(a1, a2, 1e-7)
+        else:
+            if self.result != old_result: raise FieldHashesDontMatch
 
     def run(self):
         # This only works if it takes no arguments
