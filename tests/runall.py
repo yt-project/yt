@@ -37,7 +37,7 @@ def load_tests(iname, idir):
 def find_and_initialize_tests():
     mapping = {}
     for f in glob.glob(os.path.join(cwd,"*.py")):
-        clear_registry()
+        #clear_registry()
         iname = os.path.basename(f[:-3])
         try:
             load_tests(iname, cwd)
