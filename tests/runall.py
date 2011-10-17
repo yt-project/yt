@@ -78,7 +78,8 @@ if __name__ == "__main__":
                       help = "Run in parallel?")
     opts, args = parser.parse_args()
     if opts.list_tests:
-        print "\n    ".join(sorted(itertools.chain(*mapping.values())))
+        tests = list(set(sorted(itertools.chain(*mapping.values()))))
+        print "\n    ".join(tests)
         sys.exit(0)
     pf = load(opts.parameter_file)
     if pf is None:
@@ -100,9 +101,9 @@ if __name__ == "__main__":
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
+        load_tests(m, cwd)
         keys = set(registry_entries())
         tests_to_run += [t for t in new_tests if t in keys]
-        load_tests(m, cwd)
     for test_name in sorted(tests_to_run):
         rtr.run_test(test_name)
     if watcher is not None:
