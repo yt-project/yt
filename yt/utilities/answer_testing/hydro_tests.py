@@ -100,12 +100,12 @@ class TestRay(YTStaticOutputTest):
 
     def run(self):
         na.random.random(4333)
-        start_point = na.random.random(pf.dimensionality) * \
-            (pf.domain_right_edge - pf.domain_left_edge) + \
-            pf.domain_left_edge
-        end_point   = na.random.random(pf.dimensionality) * \
-            (pf.domain_right_edge - pf.domain_left_edge) + \
-            pf.domain_left_edge
+        start_point = na.random.random(self.pf.dimensionality) * \
+            (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
+            self.pf.domain_left_edge
+        end_point   = na.random.random(self.pf.dimensionality) * \
+            (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
+            self.pf.domain_left_edge
 
         # Here proj will just be the data array.
         ray = self.pf.h.ray(start_point, end_point, field=self.field)
