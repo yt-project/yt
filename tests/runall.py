@@ -37,7 +37,7 @@ def load_tests(iname, idir):
 def find_and_initialize_tests():
     mapping = {}
     for f in glob.glob(os.path.join(cwd,"*.py")):
-        #clear_registry()
+        clear_registry()
         iname = os.path.basename(f[:-3])
         try:
             load_tests(iname, cwd)
@@ -49,6 +49,7 @@ def find_and_initialize_tests():
     return mapping
 
 if __name__ == "__main__":
+    clear_registry()
     mapping = find_and_initialize_tests()
     test_storage_directory = ytcfg.get("yt","test_storage_dir")
     try:
@@ -100,7 +101,8 @@ if __name__ == "__main__":
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
-        tests_to_run += new_tests
+        keys = registry_entries()
+        tests_to_run += [t for t in new_tests if t in keys]
         load_tests(m, cwd)
     for test_name in sorted(tests_to_run):
         rtr.run_test(test_name)
