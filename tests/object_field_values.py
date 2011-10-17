@@ -85,7 +85,7 @@ class YTDerivedQuantityTest(YTStaticOutputTest):
         YTStaticOutputTest.setup(self)
         known_objects[self.object_name](self)
 
-    def compare(self, old_results):
+    def compare(self, old_result):
         if self.result != old_result: raise FieldHashesDontMatch
 
     def run(self):
