@@ -103,5 +103,11 @@ if __name__ == "__main__":
         rtr.run_test(test_name)
     if watcher is not None:
         rtr.watcher.report()
+    failures = 0
+    passes = 1
     for test_name, result in sorted(rtr.passed_tests.items()):
         print "TEST %s: %s" % (test_name, result)
+        if result: passes += 1
+        else: failures += 1
+    print "Number of passes  : %s" % passes
+    print "Number of failures: %s" % failures
