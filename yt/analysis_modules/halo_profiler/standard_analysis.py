@@ -57,7 +57,6 @@ analysis_field_list += ["%s_Fraction" % (s) for s in
     ["HI","HII","HeI","HeII","HeIII","H2I","H2II","HM","Electron",
     "DI","DII","HDI","Metal"]
 ]
-    
 
 class StandardRadialAnalysis(object):
     def __init__(self, pf, center, radius, n_bins = 128, inner_radius = None):
