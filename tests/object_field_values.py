@@ -54,3 +54,25 @@ for object_name in known_objects:
         create_test(YTFieldValuesTest, "%s_%s" % (object_name, field),
                     field = field, object_name = object_name)
 
+class YTDerivedQuantityTest(YTStaticOutputTest):
+    def setup(self):
+        YTStaticOutputTest.setup(self)
+        known_objects[self.object_name](self)
+
+    def compare(self, old_results):
+        if self.result != old_result: raise FieldHashesDontMatch
+
+    def run(self):
+        # This only works if it takes no arguments
+        self.result = self.data_object.quantities[self.dq_name]()
+
+dq_names = ["TotalMass", "AngularMomentumVector", "CenterOfMass",
+            "BulkVelocity", "BaryonSpinParameter", "ParticleSpinParameter"]
+
+# Extrema, WeightedAverageQuantity, TotalQuantity, MaxLocation,
+# MinLocation
+
+for object_name in known_objects:
+    for dq in dq_names:
+        create_test(YTDerivedQuantityTest, "%s_%s" % (object_name, dq),
+                    dq_name = dq, object_name = object_name)
