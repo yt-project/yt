@@ -28,6 +28,7 @@ import os, shelve, cPickle, sys, imp, tempfile
 
 from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 import yt.utilities.cmdln as cmdln
+from yt.funcs import *
 from .xunit import Xunit
 
 from output_tests import test_registry, MultipleOutputTest, \
@@ -54,12 +55,14 @@ class RegressionTestStorage(object):
             self._path = os.path.join(path, "results")
         else:
             self._path = os.path.join(path, "results_%s" % self.id)
-        if not os.path.isdir(self._path): os.mkdir(self._path)
+        if not os.path.isdir(self._path): 
+            only_on_root(os.mkdir, self._path)
         if os.path.isfile(self._path): raise RuntimeError
 
     def _fn(self, tn):
         return os.path.join(self._path, tn)
 
+    @rootonly
     def __setitem__(self, test_name, result):
         # We have to close our shelf manually,
         # as the destructor does not necessarily do this.
