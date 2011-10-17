@@ -1086,3 +1086,34 @@ class FakeProfile(ParallelAnalysisInterface):
 
     def keys(self):
         return self._data.keys()
+
+standard_fields = [
+    ("Density", "CellMassMsun", False),
+    ("Temperature", "CellMassMsun", False),
+    ("VelocityMagnitude", "CellMassMsun", False),
+    ("Ones", None, False),
+    ("Entropy", "CellMassMsun", False),
+    ("RadialVelocity", "CellMassMsun", False),
+    ("SpecificAngularMomentumX", "CellMassMsun", False),
+    ("SpecificAngularMomentumY", "CellMassMsun", False),
+    ("SpecificAngularMomentumZ", "CellMassMsun", False),
+    ("CoolingTime", "CellMassMsun", False),
+    ("DynamicalTime", "CellMassMsun", False),
+    ("CellMassMsun", None, True),
+    ("TotalMassMsun", None, True),
+    ("Dark_Matter_Density", "CellMassMsun", False),
+    #("ParticleSpecificAngularMomentumX", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumY", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumZ", "ParticleMassMsun"),
+    ("OverDensity", "CellMassMsun", False),
+    #("ParticleMassMsun", None),
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+    #("StarParticleMassMsun", None), 
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+]
+
+standard_fields += [("%s_Fraction" % (s), "CellMassMsun", False)
+    for s in ["HI","HII","HeI","HeII","HeIII","H2I","H2II",
+    "HM","Electron", "DI","DII","HDI","Metal"]
+]
+

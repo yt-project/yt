@@ -643,16 +643,18 @@ class YTCommands(cmdln.Cmdln):
                            virial_quantities=['TotalMassMsun','RadiusMpc'])
 
         # Add profile fields.
-        hp.add_profile('CellVolume',weight_field=None,accumulation=True)
-        hp.add_profile('TotalMassMsun',weight_field=None,accumulation=True)
-        hp.add_profile('Density',weight_field=None,accumulation=False)
-        hp.add_profile('Temperature',weight_field='CellMassMsun',accumulation=False)
+        pf = hp.pf
+        all_fields = pf.h.field_list + pf.h.derived_field_list
+        for field, wv, acc in HP.standard_fields:
+            if field not in all_fields: continue
+            hp.add_profile(field, wv, acc)
         hp.make_profiles(filename="FilteredQuantities.out")
 
         # Add projection fields.
         hp.add_projection('Density',weight_field=None)
         hp.add_projection('Temperature',weight_field='Density')
-        hp.add_projection('Metallicity',weight_field='Density')
+        if "Metallicity" in all_fields:
+            hp.add_projection('Metallicity',weight_field='Density')
 
         # Make projections for all three axes using the filtered halo list and
         # save data to hdf5 files.
