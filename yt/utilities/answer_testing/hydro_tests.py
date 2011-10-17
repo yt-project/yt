@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import matplotlib; matplotlib.use("Agg")
+import matplotlib
 import pylab
 from yt.mods import *
 from output_tests import SingleOutputTest, YTStaticOutputTest, create_test

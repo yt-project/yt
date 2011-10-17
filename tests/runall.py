@@ -1,3 +1,4 @@
+import matplotlib; matplotlib.use('Agg')
 from yt.config import ytcfg
 ytcfg["yt","loglevel"] = "50"
 ytcfg["yt","serialize"] = "False"

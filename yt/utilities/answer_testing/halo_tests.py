@@ -1,5 +1,5 @@
 from yt.mods import *
-import matplotlib; matplotlib.use("Agg")
+import matplotlib
 import pylab
 from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
 from yt.analysis_modules.halo_finding.api import *
