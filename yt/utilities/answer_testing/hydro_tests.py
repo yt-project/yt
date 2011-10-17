@@ -101,7 +101,7 @@ class TestSlice(YTStaticOutputTest):
 
     def run(self):
         # Here proj will just be the data array.
-        slice = self.ph.h.slice(self.axis, 
+        slice = self.pf.h.slice(self.axis, 
                                 (0.5 * (self.pf.domain_left_edge + 
                                         self.pf.domain_right_edge))[self.axis],
                                 fields=self.field)
