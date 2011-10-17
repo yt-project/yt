@@ -54,3 +54,51 @@ for object_name in known_objects:
         create_test(YTFieldValuesTest, "%s_%s" % (object_name, field),
                     field = field, object_name = object_name)
 
+class YTDerivedQuantityTest(YTStaticOutputTest):
+    def setup(self):
+        YTStaticOutputTest.setup(self)
+        known_objects[self.object_name](self)
+
+    def compare(self, old_results):
+        if self.result != old_result: raise FieldHashesDontMatch
+
+    def run(self):
+        # This only works if it takes no arguments
+        self.result = self.data_object.quantities[self.dq_name]()
+
+dq_names = ["TotalMass", "AngularMomentumVector", "CenterOfMass",
+            "BulkVelocity", "BaryonSpinParameter", "ParticleSpinParameter"]
+
+# Extrema, WeightedAverageQuantity, TotalQuantity, MaxLocation,
+# MinLocation
+
+for object_name in known_objects:
+    for dq in dq_names:
+        create_test(YTDerivedQuantityTest, "%s_%s" % (object_name, dq),
+                    dq_name = dq, object_name = object_name)
+
+class YTDerivedQuantityTestField(YTDerivedQuantityTest):
+    def run(self):
+        self.result = self.data_object.quantities[self.dq_name](
+            self.field_name)
+
+for object_name in known_objects:
+    for field in field_list:
+        for dq in ["Extrema", "TotalQuantity", "MaxLocation", "MinLocation"]:
+            create_test(YTDerivedQuantityTestField,
+                        "%s_%s" % (object_name, field),
+                        field_name = field, dq_name = dq,
+                        object_name = object_name)
+
+class YTDerivedQuantityTest_WeightedAverageQuantity(YTDerivedQuantityTest):
+    def run(self):
+        self.result = self.data_object.quantities["WeightedAverageQuantity"](
+            self.field_name, weight="CellMassMsun")
+
+for object_name in known_objects:
+    for field in field_list:
+        create_test(YTDerivedQuantityTest_WeightedAverageQuantity,
+                    "%s_%s" % (object_name, field),
+                    field_name = field, 
+                    object_name = object_name)
+
