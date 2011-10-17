@@ -37,7 +37,7 @@ def all_data(tobj):
     tobj.data_object = tobj.pf.h.all_data()
 
 _new_known_objects = {}
-for field in field_list:
+for field in ["Density"]:#field_list:
     for object_name in known_objects:
         def _rfunc(oname, fname):
             def func(tobj):
