@@ -94,6 +94,31 @@ class TestOffAxisProjection(YTStaticOutputTest):
         write_image(self.result, fn)
         return [fn]
 
+class TestSlice(YTStaticOutputTest):
+
+    field = None
+    axis = None
+
+    def run(self):
+        # Here proj will just be the data array.
+        slice = self.ph.h.slice(self.axis, 
+                                (0.5 * (self.pf.domain_left_edge + 
+                                        self.pf.domain_right_edge))[self.axis],
+                                fields=self.field)
+        # values.
+        self.result = slice.data
+
+    def compare(self, old_result):
+        slice  = self.result
+        oslice = old_result
+
+        self.compare_data_arrays(slice, oslice)
+
+    def plot(self):
+        fn = "%s_%s_slice.png" % (self.pf, self.field)
+        write_image(self.result[self.field], fn)
+        return [fn]
+
 # Now we create all our tests.  We are using the create_test
 # function, which is a relatively simple function that takes the base class,
 # a name, and any parameters that the test requires.
