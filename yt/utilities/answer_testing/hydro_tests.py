@@ -102,3 +102,21 @@ class TestGasDistribution(YTStaticOutputTest):
 for field in ["Temperature", "x-velocity"]:
     create_test(TestGasDistribution, "profile_density_test_%s" % field,
                 field_x = "Density", field_y = field)
+
+class Test2DGasDistribution(TestGasDistribution):
+    x_bins = 128
+    y_bins = 128
+    field_z = "CellMassMsun"
+    weight = None
+    def run(self):
+        # We're NOT going to use the low-level profiling API here,
+        # because we are avoiding the calculations of min/max,
+        # as those should be tested in another test.
+        pc = PlotCollection(self.pf, center=self.sim_center)
+        p = pc.add_phase_object(self.entire_simulation,
+            [self.field_x, self.field_y, self.field_z], x_bins = self.x_bins, y_bins = self.y_bins,
+            weight=self.weight)
+        # The arrays are all stored in a dictionary hanging off the profile
+        # object
+        self.result = p.data._data
+
