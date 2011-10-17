@@ -76,3 +76,29 @@ for object_name in known_objects:
     for dq in dq_names:
         create_test(YTDerivedQuantityTest, "%s_%s" % (object_name, dq),
                     dq_name = dq, object_name = object_name)
+
+class YTDerivedQuantityTestField(YTDerivedQuantityTest):
+    def run(self):
+        self.result = self.data_object.quantities[self.dq_name](
+            self.field_name)
+
+for object_name in known_objects:
+    for field in field_list:
+        for dq in ["Extrema", "TotalQuantity", "MaxLocation", "MinLocation"]:
+            create_test(YTDerivedQuantityTestField,
+                        "%s_%s" % (object_name, field),
+                        field_name = field, dq_name = dq,
+                        object_name = object_name)
+
+class YTDerivedQuantityTest_WeightedAverageQuantity(YTDerivedQuantityTest):
+    def run(self):
+        self.result = self.data_object.quantities["WeightedAverageQuantity"](
+            self.field_name, weight="CellMassMsun")
+
+for object_name in known_objects:
+    for field in field_list:
+        create_test(YTDerivedQuantityTest_WeightedAverageQuantity,
+                    "%s_%s" % (object_name, field),
+                    field_name = field, 
+                    object_name = object_name)
+
