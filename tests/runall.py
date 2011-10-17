@@ -6,7 +6,6 @@ from yt.utilities.answer_testing.api import \
     RegressionTestRunner, clear_registry, create_test, \
     TestFieldStatistics, TestAllProjections, registry_entries, \
     Xunit
-
 from yt.utilities.command_line import get_yt_version
 
 from yt.mods import *
