@@ -33,6 +33,14 @@ def corner_sphere(self):
     self.data_object = self.pf.h.sphere(self.pf.domain_left_edge, width/0.25)
 
 @register_object
+def disk(self):
+    center = (self.pf.domain_right_edge + self.pf.domain_left_edge)/2.
+    radius = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()/10.
+    height = (self.pf.domain_right_edge - self.pf.domain_left_edge).max()/10.
+    normal = na.array([1.]*3)
+    self.data_object = self.pf.h.disk(center, normal, radius, height)
+    
+@register_object
 def all_data(self):
     self.data_object = self.pf.h.all_data()
 
