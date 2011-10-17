@@ -67,6 +67,8 @@ class YTFieldValuesTest(YTStaticOutputTest):
 
 for object_name in known_objects:
     for field in field_list + particle_field_list:
+        if "cut_region" in object_name and field in particle_field_list:
+            continue
         create_test(YTFieldValuesTest, "%s_%s" % (object_name, field),
                     field = field, object_name = object_name)
     
@@ -90,6 +92,11 @@ dq_names = ["TotalMass", "AngularMomentumVector", "CenterOfMass",
 
 for object_name in known_objects:
     for dq in dq_names:
+        # Some special exceptions
+        if "cut_region" in object_name and (
+            "SpinParameter" in dq or
+            "TotalMass" in dq):
+            continue
         create_test(YTDerivedQuantityTest, "%s_%s" % (object_name, dq),
                     dq_name = dq, object_name = object_name)
 
