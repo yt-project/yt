@@ -99,7 +99,7 @@ class TestRay(YTStaticOutputTest):
     field = None
 
     def run(self):
-        na.random.random(4333)
+        na.random.seed(4333)
         start_point = na.random.random(self.pf.dimensionality) * \
             (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
             self.pf.domain_left_edge
