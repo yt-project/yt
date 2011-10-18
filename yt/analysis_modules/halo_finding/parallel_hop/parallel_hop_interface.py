@@ -683,8 +683,11 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Shift the values over effectively by concatenating them in the same
         # order as the values have been shifted in _globally_assign_chainIDs()
         yt_counters("global chain MPI stuff.")
-        self.densest_in_chain = self._mpi_catarray(self.densest_in_chain)
-        self.densest_in_chain_real_index = self._mpi_catarray(self.densest_in_chain_real_index)
+        self.densest_in_chain = self._par_combine_object(self.densest_in_chain,
+                datatype="array", op="cat")
+        self.densest_in_chain_real_index = self._par_combine_object(
+                self.densest_in_chain_real_index,
+                datatype="array", op="cat")
         yt_counters("global chain MPI stuff.")
         # Sort the chains by density here. This is an attempt to make it such
         # that the merging stuff in a few steps happens in the same order
@@ -838,7 +841,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # sending.
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
         self.global_padded_count = self._par_combine_object(
-                self.global_padded_count, datatype = "dict", opt = "join")
+                self.global_padded_count, datatype = "dict", op = "join")
         # Send/receive 'em.
         self._communicate_uphill_info()
         del self.global_padded_count
@@ -934,7 +937,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # that it's not worth the effort right now to make this one spot better.
         global_annulus_count = {self.mine:send_count}
         self.global_annulus_count = self._par_combine_object(
-                self.global_annulus_count, datatype = "dict", opt = "join")
+                global_annulus_count, datatype = "dict", op = "join")
         # Set up the receiving arrays.
         recv_real_indices = dict.fromkeys(self.neighbors)
         recv_chainIDs = dict.fromkeys(self.neighbors)

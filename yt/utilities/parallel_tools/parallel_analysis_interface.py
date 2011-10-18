@@ -609,10 +609,6 @@ class ParallelAnalysisInterface(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def _mpi_catarray(self, data):
-        return self._par_combine_object(data, datatype = "array", op = "cat")
-
-    @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
         data = MPI.COMM_WORLD.bcast(data, root=0)
         return data

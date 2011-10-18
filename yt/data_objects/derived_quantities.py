@@ -103,13 +103,14 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         # Note that we do some fancy footwork here.
-        # _mpi_catarray and its affiliated alltoall function
+        # _par_combine_object and its affiliated alltoall function
         # assume that the *long* axis is the last one.  However,
         # our long axis is the first one!
         rv = []
         for my_list in self.retvals:
             data = na.array(my_list).transpose()
-            rv.append(self._mpi_catarray(data).transpose())
+            rv.append(self._par_combine_object(data.transpose(),
+                        datatype="array", op="cat"))
         self.retvals = rv
         
     def _call_func_unlazy(self, args, kwargs):
