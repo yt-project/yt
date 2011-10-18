@@ -683,8 +683,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Shift the values over effectively by concatenating them in the same
         # order as the values have been shifted in _globally_assign_chainIDs()
         yt_counters("global chain MPI stuff.")
-        self.densest_in_chain = self._mpi_concatenate_array_double(self.densest_in_chain)
-        self.densest_in_chain_real_index = self._mpi_concatenate_array_long(self.densest_in_chain_real_index)
+        self.densest_in_chain = self._mpi_catarray(self.densest_in_chain)
+        self.densest_in_chain_real_index = self._mpi_catarray(self.densest_in_chain_real_index)
         yt_counters("global chain MPI stuff.")
         # Sort the chains by density here. This is an attempt to make it such
         # that the merging stuff in a few steps happens in the same order

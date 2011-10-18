@@ -573,7 +573,6 @@ class ParallelAnalysisInterface(object):
         ne = tasks[ne[0],ne[1],ne[2]]
         return ne
         
-        
     def _barrier(self):
         if not self._distributed: return
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
@@ -732,117 +731,6 @@ class ParallelAnalysisInterface(object):
         # Convert back to a dict.
         del data
         data = dict(itertools.izip(root_keys,root_values))
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_long(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.concatenate((data, new_data))
-            size = data.size
-            del new_data
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        # Now we distribute the full array.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del data
-            data = na.empty(size, dtype='int64')
-        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_double(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
-                data = na.concatenate((data, new_data))
-            size = data.size
-            del new_data
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
-        # Now we distribute the full array.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del data
-            data = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_on_root_double(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
-                data = na.concatenate((data, new_data))
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_on_root_int(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='int32')
-                MPI.COMM_WORLD.Recv([new_data, MPI.INT], i, 0)
-                data = na.concatenate((data, new_data))
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.INT], 0, 0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_on_root_long(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.concatenate((data, new_data))
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_minimum_array_long(self, data):
-        """
-        Specifically for parallelHOP. For the identical array on each task,
-        it merges the arrays together, taking the lower value at each index.
-        """
-        self._barrier()
-        size = data.size # They're all the same size, of course
-        if MPI.COMM_WORLD.rank == 0:
-            new_data = na.empty(size, dtype='int64')
-            for i in range(1, MPI.COMM_WORLD.size):
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.minimum(data, new_data)
-            del new_data
-        else:
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        # Redistribute from root
-        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
         return data
 
     @parallel_passthrough
@@ -1006,15 +894,6 @@ class ParallelAnalysisInterface(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def __mpi_recvlist(self, data):
-        # First we receive, then we make a new list.
-        data = ensure_list(data)
-        for i in range(1,MPI.COMM_WORLD.size):
-            buf = ensure_list(MPI.COMM_WORLD.recv(source=i, tag=0))
-            data += buf
-        return data
-
-    @parallel_passthrough
     def _mpi_catlist(self, data):
         self._barrier()
         if MPI.COMM_WORLD.rank == 0:
@@ -1024,16 +903,6 @@ class ParallelAnalysisInterface(object):
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
         data = MPI.COMM_WORLD.bcast(data, root=0)
         self._barrier()
-        return data
-
-    @parallel_passthrough
-    def __mpi_recvarrays(self, data):
-        # First we receive, then we make a new list.
-        for i in range(1,MPI.COMM_WORLD.size):
-            buf = _recv_array(source=i, tag=0)
-            if buf is not None:
-                if data is None: data = buf
-                else: data = na.concatenate([data, buf])
         return data
 
     @parallel_passthrough

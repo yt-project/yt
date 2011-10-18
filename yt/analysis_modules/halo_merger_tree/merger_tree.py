@@ -548,11 +548,11 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         child_IDs_tosend = child_IDs[child_send]
         child_halos_tosend = child_halos[child_send]
         
-        parent_IDs_tosend = self._mpi_concatenate_array_on_root_long(parent_IDs_tosend)
-        parent_masses_tosend = self._mpi_concatenate_array_on_root_double(parent_masses_tosend)
-        parent_halos_tosend = self._mpi_concatenate_array_on_root_int(parent_halos_tosend)
-        child_IDs_tosend = self._mpi_concatenate_array_on_root_long(child_IDs_tosend)
-        child_halos_tosend = self._mpi_concatenate_array_on_root_int(child_halos_tosend)
+        parent_IDs_tosend = self._mpi_catarray(parent_IDs_tosend)
+        parent_masses_tosend = self._mpi_catarray(parent_masses_tosend)
+        parent_halos_tosend = self._mpi_catarray(parent_halos_tosend)
+        child_IDs_tosend = self._mpi_catarray(child_IDs_tosend)
+        child_halos_tosend = self._mpi_catarray(child_halos_tosend)
 
         # Resort the received particles.
         Psort = parent_IDs_tosend.argsort()

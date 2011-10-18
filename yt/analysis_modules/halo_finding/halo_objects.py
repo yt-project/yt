@@ -1988,7 +1988,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         else:
             root_points = na.empty([])
         my_points.shape = (1, n_random*3)
-        root_points = self._mpi_concatenate_array_on_root_double(my_points[0])
+        root_points = self._mpi_catarray(my_points[0])
         del my_points
         if mine == 0:
             root_points.shape = (tot_random, 3)
