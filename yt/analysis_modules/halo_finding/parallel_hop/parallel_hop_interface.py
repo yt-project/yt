@@ -837,7 +837,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Now we make a global dict of how many particles each task is
         # sending.
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
-        self.global_padded_count = self._par_object_combine(
+        self.global_padded_count = self._par_combine_object(
                 self.global_padded_count, datatype = "dict", opt = "join")
         # Send/receive 'em.
         self._communicate_uphill_info()
