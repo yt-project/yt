@@ -1076,6 +1076,12 @@ class ParallelAnalysisInterface(object):
         mpi_type = get_mpi_type(dtype)
         return MPI.COMM_WORLD.Irecv([data, mpi_type], source, tag)
 
+    def _mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
+        if not self._distributed: return -1
+        if dtype is None: dtype = data.dtype
+        mpi_type = get_mpi_type(dtype)
+        return MPI.COMM_WORLD.Isend([data, mpi_type], dest, tag)
+
     def _mpi_Isend_long(self, data, dest, tag=0):
         if not self._distributed: return -1
         return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, tag)

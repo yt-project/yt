@@ -104,7 +104,7 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
             if p == m: continue
             if len(ind_list) == 0: continue
             # Now, we actually send our index lists.
-            send_hooks.append(self._mpi_Isend_long(ind_list, p, 0))
+            send_hooks.append(self._mpi_nonblocking_send(ind_list, p, 0))
         # Now we post receives for all of the data buffers.
         mylog.debug("Sending data")
         for i in self._mpi_Request_Waititer(recv_hooks):
@@ -115,8 +115,7 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
             ind_list = recv_buffers[i]
             dsend_buffers.append(self._create_buffer(ind_list))
             self._pack_buffer(ind_list, dsend_buffers[-1])
-            dsend_hooks.append(self._mpi_Isend_double(
-                dsend_buffers[-1], p, 1))
+            dsend_hooks.append(self._mpi_nonblocking_send(dsend_buffers[-1], p, 1))
         mylog.debug("Waiting on data receives: %s", len(drecv_hooks))
         for i in self._mpi_Request_Waititer(drecv_hooks):
             mylog.debug("Unpacking from %s", proc_hooks[i])
