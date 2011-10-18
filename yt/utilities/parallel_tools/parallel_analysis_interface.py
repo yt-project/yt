@@ -500,29 +500,6 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_maxdict(self, data):
-        """
-        For each key in data, find the maximum value across all tasks, and
-        then broadcast it back.
-        """
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                temp_data = MPI.COMM_WORLD.recv(source=i, tag=0)
-                for key in temp_data:
-                    try:
-                        old_value = data[key]
-                    except KeyError:
-                        # This guarantees the new value gets added.
-                        old_value = None
-                    if old_value < temp_data[key]:
-                        data[key] = temp_data[key]
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
-        return data
-
     def _mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
@@ -634,7 +611,6 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
-        #self._barrier()
         data = MPI.COMM_WORLD.bcast(data, root=0)
         return data
 
