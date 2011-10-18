@@ -452,7 +452,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                     (field, fset.too_high[i], fset.too_low[i]))
             for length in self.lengths:
                 fset.length_bin_hits[length] = \
-                    self._mpi_Allsum_long(fset.length_bin_hits[length])
+                    self._mpi_allsum(fset.length_bin_hits[length])
                 # Find out how many were successfully binned.
                 fset.binned[length] = fset.length_bin_hits[length].sum()
                 # Normalize the counts.
