@@ -275,7 +275,7 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
         self.brick_parents = na.zeros( NB, dtype='int64')
         self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
-        self.brick_owners = na.ones(NB, dtype='int32') * self._mpi_get_rank()
+        self.brick_owners = na.ones(NB, dtype='int32') * self._par_rank
         self._object_owners = self.brick_owners
         for i,b in enumerate(bricks):
             self.brick_left_edges[i,:] = b.LeftEdge
@@ -307,7 +307,7 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         bricks = self.bricks
         self.bricks = na.array([None] * self.brick_owners.size, dtype='object')
         # Copy our bricks back in
-        self.bricks[self.brick_owners == self._mpi_get_rank()] = bricks[:]
+        self.bricks[self.brick_owners == self._par_rank] = bricks[:]
 
     def _create_buffer(self, ind_list):
         # Note that we have vertex-centered data, so we add one before taking

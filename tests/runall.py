@@ -74,8 +74,6 @@ if __name__ == "__main__":
     parser.add_option("-n", "--name", dest="this_name",
                       default=my_hash,
                       help = "The name we'll call this set of tests")
-    parser.add_option("", "--parallel", dest="parallel",
-                      default=False, help = "Run in parallel?")
     opts, args = parser.parse_args()
     if opts.list_tests:
         tests_to_run = []
