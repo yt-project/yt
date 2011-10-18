@@ -292,9 +292,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self._barrier()
         # Now we send the data.
         for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(send_real_indices[neighbor], neighbor))
-            hooks.append(self._mpi_Isend_double(send_points[neighbor], neighbor))
-            hooks.append(self._mpi_Isend_double(send_mass[neighbor], neighbor))
+            hooks.append(self._mpi_nonblocking_send(send_real_indices[neighbor], neighbor))
+            hooks.append(self._mpi_nonblocking_send(send_points[neighbor], neighbor))
+            hooks.append(self._mpi_nonblocking_send(send_mass[neighbor], neighbor))
         # Now we use the data, after all the comms are done.
         self._mpi_Request_Waitall(hooks)
         yt_counters("MPI stuff.")
@@ -780,8 +780,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self._barrier()
         # Send padded particles to our neighbors.
         for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(self.uphill_real_indices, neighbor))
-            hooks.append(self._mpi_Isend_long(self.uphill_chainIDs, neighbor))
+            hooks.append(self._mpi_nonblocking_send(self.uphill_real_indices, neighbor))
+            hooks.append(self._mpi_nonblocking_send(self.uphill_chainIDs, neighbor))
         # Now actually use the data once it's good to go.
         self._mpi_Request_Waitall(hooks)
         self.__max_memory()
@@ -949,8 +949,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self._barrier()
         # Now we send them.
         for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(real_indices, neighbor))
-            hooks.append(self._mpi_Isend_long(chainIDs, neighbor))
+            hooks.append(self._mpi_nonblocking_send(real_indices, neighbor))
+            hooks.append(self._mpi_nonblocking_send(chainIDs, neighbor))
         # Now we use them when they're nice and ripe.
         self._mpi_Request_Waitall(hooks)
         self.__max_memory()
