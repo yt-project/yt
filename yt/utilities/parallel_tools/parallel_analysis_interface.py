@@ -204,9 +204,9 @@ def parallel_passthrough(func):
     output; otherwise, the function gets called.  Used as a decorator.
     """
     @wraps(func)
-    def passage(self, data):
+    def passage(self, data, **kwargs):
         if not self._distributed: return data
-        return func(self, data)
+        return func(self, data, **kwargs)
     return passage
 
 def parallel_blocking_call(func):
@@ -447,25 +447,25 @@ class ParallelAnalysisInterface(object):
             raise RuntimeError("Fatal error. Exiting.")
         return None
 
-    @parallel_passthrough
     def _mpi_minimum_array_long(self, data):
-        """
-        Specifically for parallelHOP. For the identical array on each task,
-        it merges the arrays together, taking the lower value at each index.
-        """
-        self._barrier()
-        size = data.size # They're all the same size, of course
-        if MPI.COMM_WORLD.rank == 0:
-            new_data = na.empty(size, dtype='int64')
-            for i in range(1, MPI.COMM_WORLD.size):
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.minimum(data, new_data)
-            del new_data
-        else:
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        # Redistribute from root
-        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
-        return data
+        return self._mpi_reduce(data, op=MPI.MIN)
+#         """
+#         Specifically for parallelHOP. For the identical array on each task,
+#         it merges the arrays together, taking the lower value at each index.
+#         """
+#         self._barrier()
+#         size = data.size # They're all the same size, of course
+#         if MPI.COMM_WORLD.rank == 0:
+#             new_data = na.empty(size, dtype='int64')
+#             for i in range(1, MPI.COMM_WORLD.size):
+#                 MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
+#                 data = na.minimum(data, new_data)
+#             del new_data
+#         else:
+#             MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
+#         # Redistribute from root
+#         MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
+#         return data
 
     @parallel_passthrough
     def _mpi_catdict(self, data):
@@ -649,25 +649,25 @@ class ParallelAnalysisInterface(object):
         if not self._distributed: return
         io_handler.preload(grids, fields)
 
-    @parallel_passthrough
     def _mpi_double_array_max(self,data):
-        """
-        Finds the na.maximum of a distributed array and returns the result
-        back to all. The array should be the same length on all tasks!
-        """
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            recv_data = na.empty(data.size, dtype='float64')
-            for i in xrange(1, MPI.COMM_WORLD.size):
-                MPI.COMM_WORLD.Recv([recv_data, MPI.DOUBLE], source=i, tag=0)
-                data = na.maximum(data, recv_data)
-        else:
-            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], dest=0, tag=0)
-        MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
-        return data
+        return self._mpi_reduce(data, op=MPI.MAX)
+#         """
+#         Finds the na.maximum of a distributed array and returns the result
+#         back to all. The array should be the same length on all tasks!
+#         """
+#         self._barrier()
+#         if MPI.COMM_WORLD.rank == 0:
+#             recv_data = na.empty(data.size, dtype='float64')
+#             for i in xrange(1, MPI.COMM_WORLD.size):
+#                 MPI.COMM_WORLD.Recv([recv_data, MPI.DOUBLE], source=i, tag=0)
+#                 data = na.maximum(data, recv_data)
+#         else:
+#             MPI.COMM_WORLD.Send([data, MPI.DOUBLE], dest=0, tag=0)
+#         MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
+#         return data
 
     @parallel_passthrough
-    def _mpi_allsum(self, data, dtype=None):
+    def _mpi_reduce(self, data, dtype=None, op=MPI.SUM):
         if isinstance(data, na.ndarray) and data.dtype != na.bool:
             if dtype is None:
                 dtype = data.dtype
@@ -675,22 +675,21 @@ class ParallelAnalysisInterface(object):
                 data = data.astype(dtype)
             temp = data.copy()
             MPI.COMM_WORLD.Allreduce([temp,get_mpi_type(dtype)], 
-                                     [data,get_mpi_type(dtype)], op=MPI.SUM)
+                                     [data,get_mpi_type(dtype)], op)
             return data
         else:
             # We use old-school pickling here on the assumption the arrays are
             # relatively small ( < 1e7 elements )
-            return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
+            return MPI.COMM_WORLD.allreduce(data, op)
 
-    @parallel_passthrough
     def _mpi_allmax(self, data):
-        self._barrier()
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.MAX)
-
-    @parallel_passthrough
+        return self._mpi_reduce(data, op=MPI.MAX)
+    
     def _mpi_allmin(self, data):
-        self._barrier()
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
+        return self._mpi_reduce(data, op=MPI.MIN)
+
+    def _mpi_allsum(self, data):
+        return self._mpi_reduce(data, op=MPI.SUM)
 
     ###
     # Non-blocking stuff.
