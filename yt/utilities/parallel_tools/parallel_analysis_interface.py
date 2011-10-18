@@ -82,6 +82,23 @@ if exe_name in \
 else:
     parallel_capable = False
 
+
+# Set up translation table
+if parallel_capable:
+    dtype_names = dict(
+            float32 = MPI.FLOAT,
+            float64 = MPI.DOUBLE,
+            int32   = MPI.INT,
+            int64   = MPI.LONG
+    )
+else:
+    dtype_names = dict(
+            float32 = "MPI.FLOAT",
+            float64 = "MPI.DOUBLE",
+            int32   = "MPI.INT",
+            int64   = "MPI.LONG"
+    )
+
 class ObjectIterator(object):
     """
     This is a generalized class that accepts a list of objects and then
