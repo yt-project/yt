@@ -657,21 +657,6 @@ class ParallelAnalysisInterface(object):
             # relatively small ( < 1e7 elements )
             return MPI.COMM_WORLD.allreduce(data, op)
 
-#     def _mpi_double_array_max(self,data):
-#         return self._mpi_allreduce(data, op='max')
-
-#     def _mpi_minimum_array_long(self, data):
-#         return self._mpi_allreduce(data, op='min')
-
-#     def _mpi_allmax(self, data):
-#         return self._mpi_allreduce(data, op='max')
-    
-#     def _mpi_allmin(self, data):
-#         return self._mpi_allreduce(data, op='min')
-
-#     def _mpi_allsum(self, data):
-#         return self._mpi_allreduce(data, op='sum')
-
     ###
     # Non-blocking stuff.
     ###
