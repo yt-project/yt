@@ -319,35 +319,6 @@ class ParallelAnalysisInterface(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
-    def _partition_hierarchy_2d_inclined(self, unit_vectors, origin, widths,
-                                         box_vectors, resolution = (1.0, 1.0)):
-        if not self._distributed:
-            ib = self.hierarchy.inclined_box(origin, box_vectors)
-            return False, ib, resolution
-        # We presuppose that unit_vectors is already unitary.  If it's not,
-        # caveat emptor.
-        uv = na.array(unit_vectors)
-        inv_mat = na.linalg.pinv(uv)
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
-        mi = MPI.COMM_WORLD.rank
-        cx, cy = na.unravel_index(mi, cc)
-        resolution = (1.0/cc[0], 1.0/cc[1])
-        # We are rotating with respect to the *origin*, not the back center,
-        # so we go from 0 .. width.
-        px = na.mgrid[0.0:1.0:(cc[0]+1)*1j][cx] * widths[0]
-        py = na.mgrid[0.0:1.0:(cc[1]+1)*1j][cy] * widths[1]
-        nxo = inv_mat[0,0]*px + inv_mat[0,1]*py + origin[0]
-        nyo = inv_mat[1,0]*px + inv_mat[1,1]*py + origin[1]
-        nzo = inv_mat[2,0]*px + inv_mat[2,1]*py + origin[2]
-        nbox_vectors = na.array(
-                       [unit_vectors[0] * widths[0]/cc[0],
-                        unit_vectors[1] * widths[1]/cc[1],
-                        unit_vectors[2] * widths[2]],
-                        dtype='float64')
-        norigin = na.array([nxo, nyo, nzo])
-        box = self.hierarchy.inclined_box(norigin, nbox_vectors)
-        return True, box, resolution
-        
     def _partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
@@ -463,102 +434,6 @@ class ParallelAnalysisInterface(object):
                     break
                 nextdim = (nextdim + 1) % 3
         return cuts
-        
-
-    def _partition_hierarchy_3d_bisection(self, axis, bins, counts, top_bounds = None,\
-        old_group = None, old_comm = None, cut=None, old_cc=None):
-        """
-        Partition the volume into evenly weighted subvolumes using the distribution
-        in counts. The bisection happens in the MPI communicator group old_group.
-        You may need to set "MPI_COMM_MAX" and "MPI_GROUP_MAX" environment 
-        variables.
-        """
-        counts = counts.astype('int64')
-        if not self._distributed:
-            LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
-        
-        # First time through the world is the current group.
-        if old_group == None or old_comm == None:
-            old_group = MPI.COMM_WORLD.Get_group()
-            old_comm = MPI.COMM_WORLD
-        
-        # Figure out the gridding based on the deepness of cuts.
-        if old_cc is None:
-            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        else:
-            cc = old_cc
-        cc[cut[0]] /= cut[1]
-        # Set the boundaries of the full bounding box for this group.
-        if top_bounds == None:
-            LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        else:
-            LE, RE = top_bounds
-
-        ra = old_group.Get_rank() # In this group, not WORLD, unless it's the first time.
-        
-        # First find the total number of particles in my group.
-        parts = old_comm.allreduce(int(counts.sum()), op=MPI.SUM)
-        # Now the full sum in the bins along this axis in this group.
-        full_counts = na.empty(counts.size, dtype='int64')
-        old_comm.Allreduce([counts, MPI.LONG], [full_counts, MPI.LONG], op=MPI.SUM)
-        # Find the bin that passes the cut points.
-        midpoints = [LE[axis]]
-        sum = 0
-        bin = 0
-        for step in xrange(1,cut[1]):
-            while sum < ((parts*step)/cut[1]):
-                lastsum = sum
-                sum += full_counts[bin]
-                bin += 1
-            # Bin edges
-            left_edge = bins[bin-1]
-            right_edge = bins[bin]
-            # Find a better approx of the midpoint cut line using a linear approx.
-            a = float(sum - lastsum) / (right_edge - left_edge)
-            midpoints.append(left_edge + (0.5 - (float(lastsum) / parts / 2)) / a)
-            #midpoint = (left_edge + right_edge) / 2.
-        midpoints.append(RE[axis])
-        # Now we need to split the members of this group into chunks. 
-        # The values that go into the _ranks are the ranks of the tasks
-        # in *this* communicator group, which go zero to size - 1. They are not
-        # the same as the global ranks!
-        groups = {}
-        ranks = {}
-        old_group_size = old_group.Get_size()
-        for step in xrange(cut[1]):
-            groups[step] = na.arange(step*old_group_size/cut[1], (step+1)*old_group_size/cut[1])
-            # [ (start, stop, step), ]
-            ranks[step] = [ (groups[step][0], groups[step][-1], 1), ] 
-        
-        # Based on where we are, adjust our LE or RE, depending on axis. At the
-        # same time assign the new MPI group membership.
-        for step in xrange(cut[1]):
-            if ra in groups[step]:
-                LE[axis] = midpoints[step]
-                RE[axis] = midpoints[step+1]
-                new_group = old_group.Range_incl(ranks[step])
-                new_comm = old_comm.Create(new_group)
-        
-        if old_cc is not None:
-            old_group.Free()
-            old_comm.Free()
-        
-        new_top_bounds = (LE,RE)
-        
-        # Using the new boundaries, regrid.
-        mi = new_comm.rank
-        cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
-
-        my_LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        my_RE = na.array([x[1], y[1], z[1]], dtype='float64')
-        
-        # Return a new subvolume and associated stuff.
-        return new_group, new_comm, my_LE, my_RE, new_top_bounds, cc,\
-            self.hierarchy.region_strict(self.center, my_LE, my_RE)
 
     def _barrier(self):
         if not self._distributed: return
@@ -749,19 +624,6 @@ class ParallelAnalysisInterface(object):
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
         data = MPI.COMM_WORLD.bcast(data, root=0)
         self._barrier()
-        return data
-
-    @parallel_passthrough
-    def _mpi_cat_na_array(self,data):
-        self._barrier()
-        comm = MPI.COMM_WORLD
-        if comm.rank == 0:
-            for i in range(1,comm.size):
-                buf = comm.recv(source=i, tag=0)
-                data = na.concatenate([data,buf])
-        else:
-            comm.send(data, 0, tag = 0)
-        data = comm.bcast(data, root=0)
         return data
 
     @parallel_passthrough
