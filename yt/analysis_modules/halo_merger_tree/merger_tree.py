@@ -168,10 +168,10 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         if self.sleep <= 0.:
             self.sleep = 5
         # MPI stuff
-        self.mine = self._mpi_get_rank()
+        self.mine = self._par_rank
         if self.mine is None:
             self.mine = 0
-        self.size = self._mpi_get_size()
+        self.size = self._par_size
         if self.size is None:
             self.size = 1
         # Get to work.

@@ -53,8 +53,8 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
         owners = self._object_owners[desired_indices]
         mylog.debug("Owner list: %s", na.unique1d(owners))
         # Even if we have a million bricks, this should not take long.
-        s = self._mpi_get_size()
-        m = self._mpi_get_rank()
+        s = self._par_size
+        m = self._par_rank
         requests = dict( ( (i, []) for i in xrange(s) ) )
         for i, p in izip(desired_indices, owners):
             requests[p].append(i)

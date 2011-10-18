@@ -729,11 +729,17 @@ class ParallelAnalysisInterface(object):
     # End non-blocking stuff.
     ###
 
-    def _mpi_get_size(self):
+    ###
+    # Parallel rank and size properties.
+    ###
+
+    @property
+    def _par_size(self):
         if not self._distributed: return 1
         return MPI.COMM_WORLD.size
 
-    def _mpi_get_rank(self):
+    @property
+    def _par_rank(self):
         if not self._distributed: return 0
         return MPI.COMM_WORLD.rank
 

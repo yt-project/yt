@@ -1855,20 +1855,20 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # analyzing a subvolume.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if ytcfg.getboolean("yt","inline") == False and \
-            resize and self._mpi_get_size() != 1 and subvolume is None:
-            random.seed(self._mpi_get_rank())
+            resize and self._par_size != 1 and subvolume is None:
+            random.seed(self._par_rank)
             cut_list = self._partition_hierarchy_3d_bisection_list()
             root_points = self._subsample_points()
             self.bucket_bounds = []
-            if self._mpi_get_rank() == 0:
+            if self._par_rank == 0:
                 self._recursive_divide(root_points, topbounds, 0, cut_list)
             self.bucket_bounds = self._mpi_bcast_pickled(self.bucket_bounds)
-            my_bounds = self.bucket_bounds[self._mpi_get_rank()]
+            my_bounds = self.bucket_bounds[self._par_rank]
             LE, RE = my_bounds[0], my_bounds[1]
             self._data_source = self.hierarchy.region_strict([0.]*3, LE, RE)
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
-        if self._mpi_get_size() == 1:
+        if self._par_size == 1:
             self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
@@ -1964,8 +1964,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         random_points = int(self.sample * n_parts)
         # We want to get a representative selection of random particles in
         # each subvolume.
-        adjust = float(local_parts) / ( float(n_parts) / self._mpi_get_size())
-        n_random = int(adjust * float(random_points) / self._mpi_get_size())
+        adjust = float(local_parts) / ( float(n_parts) / self._par_size)
+        n_random = int(adjust * float(random_points) / self._par_size)
         mylog.info("Reading in %d random particles." % n_random)
         # Get unique random particles.
         my_points = na.empty((n_random, 3), dtype='float64')

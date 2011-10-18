@@ -107,8 +107,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.constant_theta = theta
         self.constant_phi = phi
         # MPI stuff.
-        self.size = self._mpi_get_size()
-        self.mine = self._mpi_get_rank()
+        self.size = self._par_size
+        self.mine = self._par_rank
         self.vol_ratio = vol_ratio
         if self.vol_ratio == -1:
             self.vol_ratio = self.size
