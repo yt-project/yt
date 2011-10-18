@@ -2651,6 +2651,31 @@ class ExtractedRegionBase(AMR3DData):
     _type_name = "extracted_region"
     _con_args = ('_base_region', '_indices')
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
+        """An arbitrarily defined data container that allows for selection
+        of all data meeting certain criteria.
+
+        In order to create an arbitrarily selected set of data, the
+        ExtractedRegion takes a `base_region` and a set of `indices`
+        and creates a region within the `base_region` consisting of
+        all data indexed by the `indices`. Note that `indices` must be
+        precomputed. This does not work well for parallelized
+        operations.
+
+        Parameters
+        ----------
+        base_region : yt data source
+            A previously selected data source.
+        indices : array_like
+            An array of indices
+
+        Other Parameters
+        ----------------
+        force_refresh : bool
+           Force a refresh of the data. Defaults to True.
+        
+        Examples
+        --------
+        """
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
@@ -2933,10 +2958,22 @@ class AMRRegionBase(AMR3DData):
     _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """
-        We create an object with a set of three *left_edge* coordinates,
-        three *right_edge* coordinates, and a *center* that need not be the
-        center.
+        """A 3D region of data with an arbitrary center.
+
+        Takes an array of three *left_edge* coordinates, three
+        *right_edge* coordinates, and a *center* that can be anywhere
+        in the domain. If the selected region extends past the edges
+        of the domain, no data will be found there, though the
+        object's `left_edge` or `right_edge` are not modified.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the region
+        left_edge : array_like
+            The left edge of the region
+        right_edge : array_like
+            The right edge of the region
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
@@ -2990,10 +3027,25 @@ class AMRPeriodicRegionBase(AMR3DData):
     _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """
-        We create an object with a set of three *left_edge* coordinates,
-        three *right_edge* coordinates, and a *center* that need not be the
-        center.
+        """A 3D region of data that with periodic boundary
+        conditions if the selected region extends beyond the
+        simulation domain.
+
+        Takes an array of three *left_edge* coordinates, three
+        *right_edge* coordinates, and a *center* that can be anywhere
+        in the domain. The selected region can extend past the edges
+        of the domain, in which case periodic boundary conditions will
+        be applied to fill the region.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the region
+        left_edge : array_like
+            The left edge of the region
+        right_edge : array_like
+            The right edge of the region
+
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = na.array(left_edge)
@@ -3056,7 +3108,15 @@ class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
     """
     _type_name = "periodic_region_strict"
     _dx_pad = 0.0
+    def __init__(self, center, left_edge, right_edge, fields = None,
+                 pf = None, **kwargs):
+        """same as periodic region, but does not include cells unless
+        the selected region encompasses their centers.
 
+        """
+        AMRPeriodicRegionBase.__init__(self, center, left_edge, right_edge, 
+                                       fields = None, pf = None, **kwargs)
+    
 class AMRGridCollectionBase(AMR3DData):
     """
     An arbitrary selection of grids, within which we accept all points.
@@ -3097,9 +3157,20 @@ class AMRSphereBase(AMR3DData):
     _type_name = "sphere"
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, fields = None, pf = None, **kwargs):
-        """
-        The most famous of all the data objects, we define it via a
-        *center* and a *radius*.
+        """A sphere f points defined by a *center* and a *radius*.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the sphere.
+        radius : float
+            The radius of the sphere.
+
+        Examples
+        --------
+        >>> pf = load("DD0010/moving7_0010")
+        >>> c = [0.5,0.5,0.5]
+        >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
@@ -3153,6 +3224,19 @@ class AMRCoveringGridBase(AMR3DData):
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
+        """A 3D region with all data extracted to a single, specified
+        resolution.
+        
+        Parameters
+        ----------
+        level : int
+            The resolution level data is uniformly gridded at
+        left_edge : array_like
+            The left edge of the region to be extracted
+        right_edge : array_like
+            The right edge of the region to be extracted
+
+        """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = na.array(left_edge)
@@ -3286,6 +3370,24 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
+        """A 3D region with all data extracted and interpolated to a
+        single, specified resolution.
+
+        Smoothed covering grids start at level 0, interpolating to
+        fill the region to level 1, replacing any cells actually
+        covered by level 1 data, and then recursively repeating this
+        process until it reaches the specified `level`.
+        
+        Parameters
+        ----------
+        level : int
+            The resolution level data is uniformly gridded at
+        left_edge : array_like
+            The left edge of the region to be extracted
+        right_edge : array_like
+            The right edge of the region to be extracted
+
+        """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
                self.pf.domain_dimensions.astype("float64"))
