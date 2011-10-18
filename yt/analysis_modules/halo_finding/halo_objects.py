@@ -752,7 +752,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             for i in xrange(self.bin_count):
                 self.mass_bins[i+1] += self.mass_bins[i]
         # Sum up the mass_bins globally
-        self.mass_bins = self._mpi_Allsum_double(self.mass_bins)
+        self.mass_bins = self._mpi_allsum(self.mass_bins)
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4./3. * math.pi * rho_crit * \
@@ -1479,7 +1479,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             del diff_subchain
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
-        self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
+        self.bulk_vel = self._mpi_allsum(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         yt_counters("bulk vel. computing")
@@ -1501,7 +1501,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 rms_vel_temp[u][1] = marks[i+1] - marks[i]
             del vel, marks, uniq_subchain
         # Bring it together.
-        rms_vel_temp = self._mpi_Allsum_double(rms_vel_temp)
+        rms_vel_temp = self._mpi_allsum(rms_vel_temp)
         self.rms_vel = na.empty(self.group_count, dtype='float64')
         for groupID in xrange(self.group_count):
             # Here we do the Mean and the Root.

@@ -1330,7 +1330,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        self.max_dens_point = self._mpi_Allsum_double(max_dens_point)
+        self.max_dens_point = self._mpi_allsum(max_dens_point)
         del max_dens_point
         yt_counters("max dens point")
         # Now CoM.
@@ -1385,9 +1385,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                     CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
                     CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        self.group_sizes = self._mpi_Allsum_long(size)
-        CoM_M = self._mpi_Allsum_double(CoM_M)
-        self.Tot_M = self._mpi_Allsum_double(Tot_M)
+        self.group_sizes = self._mpi_allsum(size)
+        CoM_M = self._mpi_allsum(CoM_M)
+        self.Tot_M = self._mpi_allsum(Tot_M)
         self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]

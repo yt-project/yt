@@ -1033,32 +1033,13 @@ class ParallelAnalysisInterface(object):
             if dtype != data.dtype:
                 data = data.astype(dtype)
             temp = data.copy()
-            MPI.COMM_WORLD.Allreduce([temp,dtype_names[dtype]], 
-                                     [data,dtype_names[dtype]], op=MPI.SUM)
+            MPI.COMM_WORLD.Allreduce([temp,get_mpi_type(dtype)], 
+                                     [data,get_mpi_type(dtype)], op=MPI.SUM)
             return data
         else:
             # We use old-school pickling here on the assumption the arrays are
             # relatively small ( < 1e7 elements )
             return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
-
-
-    @parallel_passthrough
-    def _mpi_Allsum_double(self, data):
-        self._barrier()
-        # Non-pickling float allsum of a float array, data.
-        temp = data.copy()
-        MPI.COMM_WORLD.Allreduce([temp, MPI.DOUBLE], [data, MPI.DOUBLE], op=MPI.SUM)
-        del temp
-        return data
-
-    @parallel_passthrough
-    def _mpi_Allsum_long(self, data):
-        self._barrier()
-        # Non-pickling float allsum of an int array, data.
-        temp = data.copy()
-        MPI.COMM_WORLD.Allreduce([temp, MPI.LONG], [data, MPI.LONG], op=MPI.SUM)
-        del temp
-        return data
 
     @parallel_passthrough
     def _mpi_allmax(self, data):
