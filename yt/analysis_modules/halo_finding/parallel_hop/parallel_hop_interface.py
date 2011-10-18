@@ -878,7 +878,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # it. Therefore each key (a chain) in this dict is unique, but the items
         # the keys point to are not necessarily unique.
         chainID_translate_map_global = \
-            self._mpi_minimum_array_long(chainID_translate_map_local)
+            self._mpi_allreduce(chainID_translate_map_local, op='min')
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
@@ -1202,7 +1202,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         del Set_list
         # To bring it all together, find the minimum values at each entry
         # globally.
-        lookup = self._mpi_minimum_array_long(lookup)
+        lookup = self._mpi_allreduce(lookup, op='min')
         # Now apply this to reverse_map
         for chainID,groupID in enumerate(self.reverse_map):
             if groupID == -1:
@@ -1330,7 +1330,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        self.max_dens_point = self._mpi_allsum(max_dens_point)
+        self.max_dens_point = self._mpi_allreduce(max_dens_point, op='sum')
         del max_dens_point
         yt_counters("max dens point")
         # Now CoM.
@@ -1385,9 +1385,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                     CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
                     CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        self.group_sizes = self._mpi_allsum(size)
-        CoM_M = self._mpi_allsum(CoM_M)
-        self.Tot_M = self._mpi_allsum(Tot_M)
+        self.group_sizes = self._mpi_allreduce(size, op='sum')
+        CoM_M = self._mpi_allreduce(CoM_M, op='sum')
+        self.Tot_M = self._mpi_allreduce(Tot_M, op='sum')
         self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
@@ -1405,7 +1405,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 max_radius[u] = na.max(dist[marks[i]:marks[i+1]])
         # Find the maximum across all tasks.
         mylog.info('Fraction of particles in this region in groups: %f' % (float(calc)/self.size))
-        self.max_radius = self._mpi_double_array_max(max_radius)
+        self.max_radius = self._mpi_allreduce(max_radius, op='max')
         self.max_radius = na.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
