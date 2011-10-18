@@ -936,7 +936,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # but there's so many places in this that need to be globally synched
         # that it's not worth the effort right now to make this one spot better.
         global_annulus_count = {self.mine:send_count}
-        self.global_annulus_count = self._par_combine_object(
+        global_annulus_count = self._par_combine_object(
                 global_annulus_count, datatype = "dict", op = "join")
         # Set up the receiving arrays.
         recv_real_indices = dict.fromkeys(self.neighbors)
