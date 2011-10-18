@@ -458,7 +458,6 @@ class ParallelAnalysisInterface(object):
             raise RuntimeError("Fatal error. Exiting.")
         return None
 
-    @parallel_passthrough
     def _mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
