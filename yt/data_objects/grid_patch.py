@@ -50,7 +50,7 @@ class AMRGridPatch(object):
     _con_args = ('id', 'filename')
     OverlappingSiblings = None
 
-    __slots__ = ['data', 'field_parameters', 'id', 'hierarchy', 'pf',
+    __slots__ = ['field_data', 'field_parameters', 'id', 'hierarchy', 'pf',
                  'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',

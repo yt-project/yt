@@ -36,7 +36,6 @@ import shelve
 
 from yt.funcs import *
 
-from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
