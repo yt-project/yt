@@ -110,6 +110,7 @@ if __name__ == "__main__":
         keys = set(registry_entries())
         tests_to_run += [t for t in new_tests if t in keys]
     for test_name in sorted(tests_to_run):
+        print "RUNNING TEST", test_name
         rtr.run_test(test_name)
     if watcher is not None:
         rtr.watcher.report()

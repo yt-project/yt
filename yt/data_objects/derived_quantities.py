@@ -109,8 +109,8 @@ class DerivedQuantity(ParallelAnalysisInterface):
         rv = []
         for my_list in self.retvals:
             data = na.array(my_list).transpose()
-            rv.append(self._par_combine_object(data.transpose(),
-                        datatype="array", op="cat"))
+            rv.append(self._par_combine_object(data,
+                        datatype="array", op="cat").transpose())
         self.retvals = rv
         
     def _call_func_unlazy(self, args, kwargs):
