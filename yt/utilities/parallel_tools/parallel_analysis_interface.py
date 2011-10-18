@@ -752,19 +752,6 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_cat_na_array(self,data):
-        self._barrier()
-        comm = MPI.COMM_WORLD
-        if comm.rank == 0:
-            for i in range(1,comm.size):
-                buf = comm.recv(source=i, tag=0)
-                data = na.concatenate([data,buf])
-        else:
-            comm.send(data, 0, tag = 0)
-        data = comm.bcast(data, root=0)
-        return data
-
-    @parallel_passthrough
     def _mpi_catarray(self, data):
         if data is None:
             ncols = -1
