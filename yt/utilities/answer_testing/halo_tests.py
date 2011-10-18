@@ -23,8 +23,6 @@ class TestHaloCountHOP(YTStaticOutputTest):
     def plot(self):
         return []
 
-create_test(TestHaloCountHOP, "halo_count_test_HOP", threshold=80.0)
-
 # Tests the number of halos returned by the FOF halo finder on a dataset
 class TestHaloCountFOF(YTStaticOutputTest):
     link = 0.2
@@ -44,8 +42,6 @@ class TestHaloCountFOF(YTStaticOutputTest):
     def plot(self):
         return []
 
-create_test(TestHaloCountFOF, "halo_count_test_FOF", threshold=80.0)
-
 # Tests the number of halos returned by the Parallel HOP halo finder on a 
 # dataset
 class TestHaloCountPHOP(YTStaticOutputTest):
@@ -63,8 +59,6 @@ class TestHaloCountPHOP(YTStaticOutputTest):
 
     def plot(self):
         return []
-
-create_test(TestHaloCountPHOP, "halo_count_test_PHOP", threshold=80.0)
 
 class TestHaloComposition(YTStaticOutputTest):
     threshold=80.0
@@ -87,11 +81,9 @@ class TestHaloComposition(YTStaticOutputTest):
                 return False
         return True
     
-create_test(TestHaloComposition, "halo_composition_test", threshold=80.0)
-
 # Tests the content of the halos returned by the HOP halo finder on a dataset 
 # by comparing the hash of the arrays of all the particles contained in each
-# halo.
+# halo.  Evidently breaks on parallel runtime.  DO NOT USE.
 class TestHaloCompositionHashHOP(YTStaticOutputTest):
     threshold=80.0
     
@@ -103,7 +95,7 @@ class TestHaloCompositionHashHOP(YTStaticOutputTest):
         IDs = []
         for halo in halos:
             IDs.append(halo["particle_index"])
-        IDs = np.array(np.concatenate((IDs)))
+        IDs = np.concatenate(IDs)
         self.result = IDs
     
     def compare(self, old_result):
@@ -118,7 +110,7 @@ class TestHaloCompositionHashHOP(YTStaticOutputTest):
 
 # Tests the content of the halos returned by the FOF halo finder on a dataset 
 # by comparing the hash of the arrays of all the particles contained in each
-# halo.
+# halo.  Evidently breaks on parallel runtime.  DO NOT USE.
 class TestHaloCompositionHashFOF(YTStaticOutputTest):
     link = 0.2
     padding = 0.02
@@ -132,7 +124,7 @@ class TestHaloCompositionHashFOF(YTStaticOutputTest):
         IDs = []
         for halo in halos:
             IDs.append(halo["particle_index"])
-        IDs = np.array(np.concatenate((IDs)))
+        IDs = np.concatenate(IDs)
         self.result = IDs
     
     def compare(self, old_result):
@@ -147,7 +139,7 @@ class TestHaloCompositionHashFOF(YTStaticOutputTest):
 
 # Tests the content of the halos returned by the Parallel HOP halo finder on a 
 # dataset by comparing the hash of the arrays of all the particles contained 
-# in each halo.
+# in each halo.  Evidently breaks on parallel runtime.  DO NOT USE.
 class TestHaloCompositionHashPHOP(YTStaticOutputTest):
     threshold=80.0
     
@@ -159,7 +151,7 @@ class TestHaloCompositionHashPHOP(YTStaticOutputTest):
         IDs = []
         for halo in halos:
             IDs.append(halo["particle_index"])
-        IDs = np.array(np.concatenate((IDs)))
+        IDs = np.concatenate(IDs)
         self.result = IDs
     
     def compare(self, old_result):

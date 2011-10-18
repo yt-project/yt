@@ -810,7 +810,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             self[field] = temp_data[field] 
         # We finalize
         if temp_data != {}:
-            temp_data = self._mpi_catdict(temp_data)
+            temp_data = self._par_object_combine(temp_data,
+                    datatype='dict', op='cat')
         # And set, for the next group
         for field in temp_data.keys():
             self[field] = temp_data[field]
@@ -998,12 +999,14 @@ class AMRSliceBase(AMR2DData):
             points.append(self._generate_grid_coords(grid))
         if len(points) == 0:
             points = None
-            t = self._mpi_catarray(None)
+            t = self._par_combine_object(None, datatype="array", op="cat")
         else:
             points = na.concatenate(points)
-            # We have to transpose here so that _mpi_catarray works properly, as
-            # it and the alltoall assume the long axis is the last one.
-            t = self._mpi_catarray(points.transpose())
+            # We have to transpose here so that _par_combine_object works
+            # properly, as it and the alltoall assume the long axis is the last
+            # one.
+            t = self._par_combine_object(points.transpose(),
+                        datatype="array", op="cat")
         self['px'] = t[0,:]
         self['py'] = t[1,:]
         self['pz'] = t[2,:]
@@ -1218,7 +1221,7 @@ class AMRCuttingPlaneBase(AMR2DData):
             points.append(self._generate_grid_coords(grid))
         if len(points) == 0: points = None
         else: points = na.concatenate(points)
-        t = self._mpi_catarray(points)
+        t = self._par_combine_object(points, datatype="array", op="cat")
         pos = (t[:,0:3] - self.center)
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
@@ -2041,7 +2044,7 @@ class AMRProjBase(AMR2DData):
         data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
-        data = self._mpi_catdict(data)
+        data = self._par_object_combine(temp_data, datatype='dict', op='cat')
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()

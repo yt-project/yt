@@ -459,61 +459,6 @@ class ParallelAnalysisInterface(object):
         return None
 
     @parallel_passthrough
-    def _mpi_catdict(self, data):
-        field_keys = data.keys()
-        field_keys.sort()
-        size = data[field_keys[0]].shape[-1]
-        sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
-        outsize = na.array(size, dtype='int64')
-        MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
-                                 [sizes, 1, MPI.LONG] )
-        # This nested concatenate is to get the shapes to work out correctly;
-        # if we just add [0] to sizes, it will broadcast a summation, not a
-        # concatenation.
-        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
-        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
-        for key in field_keys:
-            dd = data[key]
-            rv = _alltoallv_array(dd, arr_size, offsets, sizes)
-            data[key] = rv
-        return data
-
-    @parallel_passthrough
-    def _mpi_joindict(self, data):
-        #self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        #self._barrier()
-        return data
-
-    @parallel_passthrough
-    def _mpi_maxdict(self, data):
-        """
-        For each key in data, find the maximum value across all tasks, and
-        then broadcast it back.
-        """
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                temp_data = MPI.COMM_WORLD.recv(source=i, tag=0)
-                for key in temp_data:
-                    try:
-                        old_value = data[key]
-                    except KeyError:
-                        # This guarantees the new value gets added.
-                        old_value = None
-                    if old_value < temp_data[key]:
-                        data[key] = temp_data[key]
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
-        return data
-
     def _mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
@@ -582,50 +527,89 @@ class ParallelAnalysisInterface(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def _mpi_catlist(self, data):
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvlist(data)
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
-        return data
-
-    @parallel_passthrough
-    def _mpi_catarray(self, data):
-        if data is None:
-            ncols = -1
-            size = 0
-        else:
-            if len(data) == 0:
+    def _par_combine_object(self, data, op, datatype = None):
+        # op can be chosen from:
+        #   cat
+        #   join
+        # data is selected to be of types:
+        #   na.ndarray
+        #   dict
+        #   data field dict
+        if datatype is not None:
+            pass
+        elif isinstance(data, types.DictType):
+            datatype == "dict"
+        elif isinstance(data, na.ndarray):
+            datatype == "array"
+        elif isinstance(data, types.ListType):
+            datatype == "list"
+        # Now we have our datatype, and we conduct our operation
+        if datatype == "dict" and op == "join":
+            if MPI.COMM_WORLD.rank == 0:
+                for i in range(1,MPI.COMM_WORLD.size):
+                    data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
+            else:
+                MPI.COMM_WORLD.send(data, dest=0, tag=0)
+            data = MPI.COMM_WORLD.bcast(data, root=0)
+            return data
+        elif datatype == "dict" and op == "cat":
+            field_keys = data.keys()
+            field_keys.sort()
+            size = data[field_keys[0]].shape[-1]
+            sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+            outsize = na.array(size, dtype='int64')
+            MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+                                     [sizes, 1, MPI.LONG] )
+            # This nested concatenate is to get the shapes to work out correctly;
+            # if we just add [0] to sizes, it will broadcast a summation, not a
+            # concatenation.
+            offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+            arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+            for key in field_keys:
+                dd = data[key]
+                rv = _alltoallv_array(dd, arr_size, offsets, sizes)
+                data[key] = rv
+            return data
+        elif datatype == "array" and op == "cat":
+            if data is None:
                 ncols = -1
                 size = 0
-            elif len(data.shape) == 1:
-                ncols = 1
-                size = data.shape[0]
             else:
-                ncols, size = data.shape
-        ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
-        if size == 0:
-            data = na.zeros((ncols,0), dtype='float64') # This only works for
-        size = data.shape[-1]
-        sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
-        outsize = na.array(size, dtype='int64')
-        MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
-                                 [sizes, 1, MPI.LONG] )
-        # This nested concatenate is to get the shapes to work out correctly;
-        # if we just add [0] to sizes, it will broadcast a summation, not a
-        # concatenation.
-        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
-        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
-        data = _alltoallv_array(data, arr_size, offsets, sizes)
-        return data
+                if len(data) == 0:
+                    ncols = -1
+                    size = 0
+                elif len(data.shape) == 1:
+                    ncols = 1
+                    size = data.shape[0]
+                else:
+                    ncols, size = data.shape
+            ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
+            if size == 0:
+                data = na.zeros((ncols,0), dtype='float64') # This only works for
+            size = data.shape[-1]
+            sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+            outsize = na.array(size, dtype='int64')
+            MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+                                     [sizes, 1, MPI.LONG] )
+            # This nested concatenate is to get the shapes to work out correctly;
+            # if we just add [0] to sizes, it will broadcast a summation, not a
+            # concatenation.
+            offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+            arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+            data = _alltoallv_array(data, arr_size, offsets, sizes)
+            return data
+        elif datatype == "list" and op == "cat":
+            if MPI.COMM_WORLD.rank == 0:
+                data = self.__mpi_recvlist(data)
+            else:
+                MPI.COMM_WORLD.send(data, dest=0, tag=0)
+            mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
+            data = MPI.COMM_WORLD.bcast(data, root=0)
+            return data
+        raise NotImplementedError
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
-        #self._barrier()
         data = MPI.COMM_WORLD.bcast(data, root=0)
         return data
 
