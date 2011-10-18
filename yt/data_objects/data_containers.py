@@ -120,6 +120,12 @@ def cache_vc_data(func):
         return self._vc_data[field][grid.id]
     return check_cache
 
+class YTFieldData(dict):
+    """
+    A Container object for field data, instead of just having it be a dict.
+    """
+    pass
+
 class FakeGridForParticles(object):
     """
     Mock up a grid to insert particle positions and radii
