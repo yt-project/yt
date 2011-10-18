@@ -171,7 +171,7 @@ class TestGasDistribution(YTStaticOutputTest):
             weight=self.weight)
         # The arrays are all stored in a dictionary hanging off the profile
         # object
-        self.result = p.data.field_data
+        self.result = p.data.data
                     
     def compare(self, old_result):
         self.compare_data_arrays(
@@ -201,5 +201,5 @@ class Test2DGasDistribution(TestGasDistribution):
             weight=self.weight)
         # The arrays are all stored in a dictionary hanging off the profile
         # object
-        self.result = p.data.field_data
+        self.result = p.data.data
 
