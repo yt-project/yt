@@ -1,11 +1,10 @@
 from yt.utilities.answer_testing.output_tests import \
     SingleOutputTest, create_test
 from yt.utilities.answer_testing.halo_tests import \
-    TestHaloCompositionHashHOP, TestHaloCompositionHashFOF, \
-    TestHaloCompositionHashPHOP 
+    TestHaloCountHOP, TestHaloCountFOF, TestHaloCountPHOP 
 
-create_test(TestHaloCompositionHashHOP, "halo_composition_test_hash_HOP", threshold=80.0)
+create_test(TestHaloCountHOP, "halo_count_HOP", threshold=80.0)
 
-create_test(TestHaloCompositionHashFOF, "halo_composition_test_hash_FOF", threshold=80.0)
+create_test(TestHaloCountFOF, "halo_count_FOF", link=0.2, padding=0.02)
 
-create_test(TestHaloCompositionHashPHOP, "halo_composition_test_hash_PHOP", threshold=80.0)
+create_test(TestHaloCountPHOP, "halo_count_PHOP", threshold=80.0)
