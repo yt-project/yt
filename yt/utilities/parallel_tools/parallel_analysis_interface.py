@@ -865,17 +865,21 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_allsum(self, data):
-        #self._barrier()
-        # We use old-school pickling here on the assumption the arrays are
-        # relatively small ( < 1e7 elements )
+    def _mpi_allsum(self, data, dtype=None):
         if isinstance(data, na.ndarray) and data.dtype != na.bool:
-            tr = na.zeros_like(data)
-            if not data.flags.c_contiguous: data = data.copy()
-            MPI.COMM_WORLD.Allreduce(data, tr, op=MPI.SUM)
-            return tr
+            if dtype is None:
+                dtype = data.dtype
+            if dtype != data.dtype:
+                data = data.astype(dtype)
+            temp = data.copy()
+            MPI.COMM_WORLD.Allreduce([temp,dtype_names[dtype]], 
+                                     [data,dtype_names[dtype]], op=MPI.SUM)
+            return data
         else:
+            # We use old-school pickling here on the assumption the arrays are
+            # relatively small ( < 1e7 elements )
             return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
+
 
     @parallel_passthrough
     def _mpi_Allsum_double(self, data):
@@ -914,6 +918,12 @@ class ParallelAnalysisInterface(object):
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
         return MPI.COMM_WORLD.Irecv([data, mpi_type], source, tag)
+
+    def _mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
+        if not self._distributed: return -1
+        if dtype is None: dtype = data.dtype
+        mpi_type = get_mpi_type(dtype)
+        return MPI.COMM_WORLD.Isend([data, mpi_type], dest, tag)
 
     def _mpi_Isend_long(self, data, dest, tag=0):
         if not self._distributed: return -1

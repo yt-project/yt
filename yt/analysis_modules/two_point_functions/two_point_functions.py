@@ -376,7 +376,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # I send when I *think* things should finish.
             self.send_done = na.ones(1, dtype='int64') * \
                 (self.size / self.vol_ratio -1) + self.comm_cycle_count
-            self.done_hooks.append(self._mpi_Isend_long(self.send_done, \
+            self.done_hooks.append(self._mpi_nonblocking_send(self.send_done, \
                     0, tag=15))
         else:
             # As root, I need to mark myself!
@@ -429,11 +429,11 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         Send the data arrays to the right-hand neighbor.
         """
-        self.send_hooks.append(self._mpi_Isend_double(self.points,\
+        self.send_hooks.append(self._mpi_nonblocking_send(self.points,\
             (self.mine+1)%self.size, tag=10))
-        self.send_hooks.append(self._mpi_Isend_double(self.fields_vals,\
+        self.send_hooks.append(self._mpi_nonblocking_send(self.fields_vals,\
             (self.mine+1)%self.size, tag=20))
-        self.send_hooks.append(self._mpi_Isend_long(self.gen_array, \
+        self.send_hooks.append(self._mpi_nonblocking_send(self.gen_array, \
             (self.mine+1)%self.size, tag=40))
 
     def _allsum_bin_hits(self):
