@@ -99,6 +99,12 @@ else:
             int64   = "MPI.LONG"
     )
 
+# Because the dtypes will == correctly but do not hash the same, we need this
+# function for dictionary access.
+def get_mpi_type(dtype):
+    for dt, val in dtype_names.items():
+        if dt == dtype: return val
+
 class ObjectIterator(object):
     """
     This is a generalized class that accepts a list of objects and then
