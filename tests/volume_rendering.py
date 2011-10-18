@@ -33,8 +33,4 @@ class VolumeRenderingConsistency(YTStaticOutputTest):
     def compare(self, old_result):
         if not na.all(self.result==old_result):
             raise VolumeRenderingInconsistent()
-        else:
-            pass
-
-        # self.compare_array_delta(old_result, self.result, 0.0)
 

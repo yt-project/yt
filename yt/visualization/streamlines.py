@@ -124,8 +124,8 @@ class Streamlines(ParallelAnalysisInterface):
             self.magnitudes = na.zeros((self.N,self.steps), dtype='float64')
         
     def integrate_through_volume(self):
-        nprocs = self._mpi_get_size()
-        my_rank = self._mpi_get_rank()
+        nprocs = self._par_size
+        my_rank = self._par_rank
         self.streamlines[my_rank::nprocs,0,:] = self.start_positions[my_rank::nprocs]
 
         pbar = get_pbar("Streamlining", self.N)
@@ -144,8 +144,8 @@ class Streamlines(ParallelAnalysisInterface):
        
     @parallel_passthrough
     def _finalize_parallel(self,data):
-        self.streamlines = self._mpi_allsum(self.streamlines)
-        self.magnitudes = self._mpi_allsum(self.magnitudes)
+        self.streamlines = self._mpi_allreduce(self.streamlines, op='sum')
+        self.magnitudes = self._mpi_allreduce(self.magnitudes, op='sum')
         
     def _integrate_through_brick(self, node, stream, step,
                                  periodic=False, mag=None):

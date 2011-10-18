@@ -107,8 +107,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.constant_theta = theta
         self.constant_phi = phi
         # MPI stuff.
-        self.size = self._mpi_get_size()
-        self.mine = self._mpi_get_rank()
+        self.size = self._par_size
+        self.mine = self._par_rank
         self.vol_ratio = vol_ratio
         if self.vol_ratio == -1:
             self.vol_ratio = self.size
@@ -363,7 +363,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         for task in xrange(self.size):
             if task == self.mine: continue
             self.recv_done[task] = na.zeros(1, dtype='int64')
-            self.done_hooks.append(self._mpi_Irecv_long(self.recv_done[task], \
+            self.done_hooks.append(self._mpi_nonblocking_recv(self.recv_done[task], \
                 task, tag=15))
     
     def _send_done_to_root(self):
@@ -376,7 +376,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # I send when I *think* things should finish.
             self.send_done = na.ones(1, dtype='int64') * \
                 (self.size / self.vol_ratio -1) + self.comm_cycle_count
-            self.done_hooks.append(self._mpi_Isend_long(self.send_done, \
+            self.done_hooks.append(self._mpi_nonblocking_send(self.send_done, \
                     0, tag=15))
         else:
             # As root, I need to mark myself!
@@ -418,22 +418,22 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.recv_fields_vals = na.zeros((self.comm_size, len(self.fields)*2), \
             dtype='float64')
         self.recv_gen_array = na.zeros(self.size, dtype='int64')
-        self.recv_hooks.append(self._mpi_Irecv_double(self.recv_points, \
+        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_points, \
             (self.mine-1)%self.size, tag=10))
-        self.recv_hooks.append(self._mpi_Irecv_double(self.recv_fields_vals, \
+        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_fields_vals, \
             (self.mine-1)%self.size, tag=20))
-        self.recv_hooks.append(self._mpi_Irecv_long(self.recv_gen_array, \
+        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_gen_array, \
             (self.mine-1)%self.size, tag=40))
 
     def _send_arrays(self):
         """
         Send the data arrays to the right-hand neighbor.
         """
-        self.send_hooks.append(self._mpi_Isend_double(self.points,\
+        self.send_hooks.append(self._mpi_nonblocking_send(self.points,\
             (self.mine+1)%self.size, tag=10))
-        self.send_hooks.append(self._mpi_Isend_double(self.fields_vals,\
+        self.send_hooks.append(self._mpi_nonblocking_send(self.fields_vals,\
             (self.mine+1)%self.size, tag=20))
-        self.send_hooks.append(self._mpi_Isend_long(self.gen_array, \
+        self.send_hooks.append(self._mpi_nonblocking_send(self.gen_array, \
             (self.mine+1)%self.size, tag=40))
 
     def _allsum_bin_hits(self):
@@ -441,8 +441,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         Add up the hits to all the bins globally for all functions.
         """
         for fset in self._fsets:
-            fset.too_low = self._mpi_allsum(fset.too_low)
-            fset.too_high = self._mpi_allsum(fset.too_high)
+            fset.too_low = self._mpi_allreduce(fset.too_low, op='sum')
+            fset.too_high = self._mpi_allreduce(fset.too_high, op='sum')
             fset.binned = {}
             if self.mine == 0:
                 mylog.info("Function %s had values out of range for these fields:" % \
@@ -452,7 +452,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                     (field, fset.too_high[i], fset.too_low[i]))
             for length in self.lengths:
                 fset.length_bin_hits[length] = \
-                    self._mpi_Allsum_long(fset.length_bin_hits[length])
+                    self._mpi_allreduce(fset.length_bin_hits[length], op='sum')
                 # Find out how many were successfully binned.
                 fset.binned[length] = fset.length_bin_hits[length].sum()
                 # Normalize the counts.

@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import matplotlib
 from yt.mods import *
 
 # We first create our dictionary of tests to run.  This starts out empty, and

@@ -1,3 +1,4 @@
+import matplotlib; matplotlib.use('Agg')
 from yt.config import ytcfg
 ytcfg["yt","loglevel"] = "50"
 ytcfg["yt","serialize"] = "False"
@@ -6,7 +7,6 @@ from yt.utilities.answer_testing.api import \
     RegressionTestRunner, clear_registry, create_test, \
     TestFieldStatistics, TestAllProjections, registry_entries, \
     Xunit
-
 from yt.utilities.command_line import get_yt_version
 
 from yt.mods import *
@@ -49,6 +49,7 @@ def find_and_initialize_tests():
     return mapping
 
 if __name__ == "__main__":
+    clear_registry()
     mapping = find_and_initialize_tests()
     test_storage_directory = ytcfg.get("yt","test_storage_dir")
     try:
@@ -73,12 +74,17 @@ if __name__ == "__main__":
     parser.add_option("-n", "--name", dest="this_name",
                       default=my_hash,
                       help = "The name we'll call this set of tests")
-    parser.add_option("", "--parallel", dest="parallel",
-                      default=False,
-                      help = "Run in parallel?")
     opts, args = parser.parse_args()
     if opts.list_tests:
-        print "\n    ".join(sorted(itertools.chain(*mapping.values())))
+        tests_to_run = []
+        for m, vals in mapping.items():
+            new_tests = fnmatch.filter(vals, opts.test_pattern)
+            if len(new_tests) == 0: continue
+            load_tests(m, cwd)
+            keys = set(registry_entries())
+            tests_to_run += [t for t in new_tests if t in keys]
+        tests = list(set(tests_to_run))
+        print "\n    ".join(tests)
         sys.exit(0)
     pf = load(opts.parameter_file)
     if pf is None:
@@ -100,8 +106,9 @@ if __name__ == "__main__":
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
-        tests_to_run += new_tests
         load_tests(m, cwd)
+        keys = set(registry_entries())
+        tests_to_run += [t for t in new_tests if t in keys]
     for test_name in sorted(tests_to_run):
         rtr.run_test(test_name)
     if watcher is not None:

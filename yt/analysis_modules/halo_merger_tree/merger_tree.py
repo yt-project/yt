@@ -168,10 +168,10 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         if self.sleep <= 0.:
             self.sleep = 5
         # MPI stuff
-        self.mine = self._mpi_get_rank()
+        self.mine = self._par_rank
         if self.mine is None:
             self.mine = 0
-        self.size = self._mpi_get_size()
+        self.size = self._par_size
         if self.size is None:
             self.size = 1
         # Get to work.
@@ -548,11 +548,11 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         child_IDs_tosend = child_IDs[child_send]
         child_halos_tosend = child_halos[child_send]
         
-        parent_IDs_tosend = self._mpi_concatenate_array_on_root_long(parent_IDs_tosend)
-        parent_masses_tosend = self._mpi_concatenate_array_on_root_double(parent_masses_tosend)
-        parent_halos_tosend = self._mpi_concatenate_array_on_root_int(parent_halos_tosend)
-        child_IDs_tosend = self._mpi_concatenate_array_on_root_long(child_IDs_tosend)
-        child_halos_tosend = self._mpi_concatenate_array_on_root_int(child_halos_tosend)
+        parent_IDs_tosend = self._mpi_catarray(parent_IDs_tosend)
+        parent_masses_tosend = self._mpi_catarray(parent_masses_tosend)
+        parent_halos_tosend = self._mpi_catarray(parent_halos_tosend)
+        child_IDs_tosend = self._mpi_catarray(child_IDs_tosend)
+        child_halos_tosend = self._mpi_catarray(child_halos_tosend)
 
         # Resort the received particles.
         Psort = parent_IDs_tosend.argsort()
@@ -599,7 +599,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             (matched, parent_IDs_tosend.size, child_IDs_tosend.size))
 
         # Now we sum up the contributions globally.
-        self.child_mass_arr = self._mpi_Allsum_double(self.child_mass_arr)
+        self.child_mass_arr = self._mpi_allsum(self.child_mass_arr)
         
         # Turn these Msol masses into percentages of the parent.
         line = "SELECT HaloMass FROM Halos WHERE SnapCurrentTimeIdentifier=%d \

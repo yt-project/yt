@@ -284,17 +284,17 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("MPI stuff.")
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_double(recv_points[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_double(recv_mass[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_real_indices[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_points[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_mass[opp_neighbor], opp_neighbor))
         # Let's wait here to be absolutely sure that all the receive buffers
         # have been created before any sending happens!
         self._barrier()
         # Now we send the data.
         for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(send_real_indices[neighbor], neighbor))
-            hooks.append(self._mpi_Isend_double(send_points[neighbor], neighbor))
-            hooks.append(self._mpi_Isend_double(send_mass[neighbor], neighbor))
+            hooks.append(self._mpi_nonblocking_send(send_real_indices[neighbor], neighbor))
+            hooks.append(self._mpi_nonblocking_send(send_points[neighbor], neighbor))
+            hooks.append(self._mpi_nonblocking_send(send_mass[neighbor], neighbor))
         # Now we use the data, after all the comms are done.
         self._mpi_Request_Waitall(hooks)
         yt_counters("MPI stuff.")
@@ -683,8 +683,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Shift the values over effectively by concatenating them in the same
         # order as the values have been shifted in _globally_assign_chainIDs()
         yt_counters("global chain MPI stuff.")
-        self.densest_in_chain = self._mpi_concatenate_array_double(self.densest_in_chain)
-        self.densest_in_chain_real_index = self._mpi_concatenate_array_long(self.densest_in_chain_real_index)
+        self.densest_in_chain = self._mpi_catarray(self.densest_in_chain)
+        self.densest_in_chain_real_index = self._mpi_catarray(self.densest_in_chain_real_index)
         yt_counters("global chain MPI stuff.")
         # Sort the chains by density here. This is an attempt to make it such
         # that the merging stuff in a few steps happens in the same order
@@ -774,14 +774,14 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Set up the receives, but don't actually use them.
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(self._mpi_Irecv_long(temp_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_long(temp_chainIDs[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(temp_indices[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(temp_chainIDs[opp_neighbor], opp_neighbor))
         # Make sure all the receive buffers are set before continuing.
         self._barrier()
         # Send padded particles to our neighbors.
         for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(self.uphill_real_indices, neighbor))
-            hooks.append(self._mpi_Isend_long(self.uphill_chainIDs, neighbor))
+            hooks.append(self._mpi_nonblocking_send(self.uphill_real_indices, neighbor))
+            hooks.append(self._mpi_nonblocking_send(self.uphill_chainIDs, neighbor))
         # Now actually use the data once it's good to go.
         self._mpi_Request_Waitall(hooks)
         self.__max_memory()
@@ -878,7 +878,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # it. Therefore each key (a chain) in this dict is unique, but the items
         # the keys point to are not necessarily unique.
         chainID_translate_map_global = \
-            self._mpi_minimum_array_long(chainID_translate_map_local)
+            self._mpi_allreduce(chainID_translate_map_local, op='min')
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
@@ -943,14 +943,14 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Set up the receving hooks.
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_long(recv_chainIDs[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_real_indices[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_chainIDs[opp_neighbor], opp_neighbor))
         # Make sure the recv buffers are set before continuing.
         self._barrier()
         # Now we send them.
         for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(real_indices, neighbor))
-            hooks.append(self._mpi_Isend_long(chainIDs, neighbor))
+            hooks.append(self._mpi_nonblocking_send(real_indices, neighbor))
+            hooks.append(self._mpi_nonblocking_send(chainIDs, neighbor))
         # Now we use them when they're nice and ripe.
         self._mpi_Request_Waitall(hooks)
         self.__max_memory()
@@ -1155,7 +1155,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         Set_list = []
         # We only want the holes that are modulo mine.
         keys = na.arange(groupID, dtype='int64')
-        size = self._mpi_get_size()
+        size = self._par_size
         select = (keys % size == self.mine)
         groupIDs = keys[select]
         mine_groupIDs = set([]) # Records only ones modulo mine.
@@ -1202,7 +1202,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         del Set_list
         # To bring it all together, find the minimum values at each entry
         # globally.
-        lookup = self._mpi_minimum_array_long(lookup)
+        lookup = self._mpi_allreduce(lookup, op='min')
         # Now apply this to reverse_map
         for chainID,groupID in enumerate(self.reverse_map):
             if groupID == -1:
@@ -1330,7 +1330,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        self.max_dens_point = self._mpi_Allsum_double(max_dens_point)
+        self.max_dens_point = self._mpi_allreduce(max_dens_point, op='sum')
         del max_dens_point
         yt_counters("max dens point")
         # Now CoM.
@@ -1385,9 +1385,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                     CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
                     CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        self.group_sizes = self._mpi_Allsum_long(size)
-        CoM_M = self._mpi_Allsum_double(CoM_M)
-        self.Tot_M = self._mpi_Allsum_double(Tot_M)
+        self.group_sizes = self._mpi_allreduce(size, op='sum')
+        CoM_M = self._mpi_allreduce(CoM_M, op='sum')
+        self.Tot_M = self._mpi_allreduce(Tot_M, op='sum')
         self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
@@ -1405,7 +1405,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 max_radius[u] = na.max(dist[marks[i]:marks[i+1]])
         # Find the maximum across all tasks.
         mylog.info('Fraction of particles in this region in groups: %f' % (float(calc)/self.size))
-        self.max_radius = self._mpi_double_array_max(max_radius)
+        self.max_radius = self._mpi_allreduce(max_radius, op='max')
         self.max_radius = na.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")

@@ -45,3 +45,8 @@ from .default_tests import \
 
 from .xunit import \
     Xunit
+
+from .halo_tests import \
+    TestHaloCompositionHashHOP, \
+    TestHaloCompositionHashFOF, \
+    TestHaloCompositionHashPHOP

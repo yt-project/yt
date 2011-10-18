@@ -582,8 +582,14 @@ class HaloProfiler(ParallelAnalysisInterface):
             except EmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
+            # Figure out which fields to add simultaneously
+            field_groupings = defaultdict(lambda: defaultdict(list))
             for hp in self.profile_fields:
-                profile.add_fields(hp['field'], weight=hp['weight_field'], accumulation=hp['accumulation'])
+                field_groupings[hp['weight_field']][hp['accumulation']].append(hp['field'])
+            for weight_field in field_groupings:
+                for accum, fields in field_groupings[weight_field].items():
+                    profile.add_fields(fields, weight=weight_field,
+                                       accumulation=accum)
 
         if virial_filter:
             self._add_actual_overdensity(profile)
@@ -1080,3 +1086,34 @@ class FakeProfile(ParallelAnalysisInterface):
 
     def keys(self):
         return self._data.keys()
+
+standard_fields = [
+    ("Density", "CellMassMsun", False),
+    ("Temperature", "CellMassMsun", False),
+    ("VelocityMagnitude", "CellMassMsun", False),
+    ("Ones", None, False),
+    ("Entropy", "CellMassMsun", False),
+    ("RadialVelocity", "CellMassMsun", False),
+    ("SpecificAngularMomentumX", "CellMassMsun", False),
+    ("SpecificAngularMomentumY", "CellMassMsun", False),
+    ("SpecificAngularMomentumZ", "CellMassMsun", False),
+    ("CoolingTime", "CellMassMsun", False),
+    ("DynamicalTime", "CellMassMsun", False),
+    ("CellMassMsun", None, True),
+    ("TotalMassMsun", None, True),
+    ("Dark_Matter_Density", "CellMassMsun", False),
+    #("ParticleSpecificAngularMomentumX", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumY", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumZ", "ParticleMassMsun"),
+    ("OverDensity", "CellMassMsun", False),
+    #("ParticleMassMsun", None),
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+    #("StarParticleMassMsun", None), 
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+]
+
+standard_fields += [("%s_Fraction" % (s), "CellMassMsun", False)
+    for s in ["HI","HII","HeI","HeII","HeIII","H2I","H2II",
+    "HM","Electron", "DI","DII","HDI","Metal"]
+]
+

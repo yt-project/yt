@@ -82,6 +82,39 @@ if exe_name in \
 else:
     parallel_capable = False
 
+# Set up translation table
+if parallel_capable:
+    dtype_names = dict(
+            float32 = MPI.FLOAT,
+            float64 = MPI.DOUBLE,
+            int32   = MPI.INT,
+            int64   = MPI.LONG
+    )
+    op_names = dict(
+        sum = MPI.SUM,
+        min = MPI.MIN,
+        max = MPI.MAX
+    )
+
+else:
+    dtype_names = dict(
+            float32 = "MPI.FLOAT",
+            float64 = "MPI.DOUBLE",
+            int32   = "MPI.INT",
+            int64   = "MPI.LONG"
+    )
+    op_names = dict(
+            sum = "MPI.SUM",
+            min = "MPI.MIN",
+            max = "MPI.MAX"
+    )
+
+# Because the dtypes will == correctly but do not hash the same, we need this
+# function for dictionary access.
+def get_mpi_type(dtype):
+    for dt, val in dtype_names.items():
+        if dt == dtype: return val
+
 class ObjectIterator(object):
     """
     This is a generalized class that accepts a list of objects and then
@@ -182,9 +215,9 @@ def parallel_passthrough(func):
     output; otherwise, the function gets called.  Used as a decorator.
     """
     @wraps(func)
-    def passage(self, data):
+    def passage(self, data, **kwargs):
         if not self._distributed: return data
-        return func(self, data)
+        return func(self, data, **kwargs)
     return passage
 
 def parallel_blocking_call(func):
@@ -297,35 +330,6 @@ class ParallelAnalysisInterface(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
-    def _partition_hierarchy_2d_inclined(self, unit_vectors, origin, widths,
-                                         box_vectors, resolution = (1.0, 1.0)):
-        if not self._distributed:
-            ib = self.hierarchy.inclined_box(origin, box_vectors)
-            return False, ib, resolution
-        # We presuppose that unit_vectors is already unitary.  If it's not,
-        # caveat emptor.
-        uv = na.array(unit_vectors)
-        inv_mat = na.linalg.pinv(uv)
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
-        mi = MPI.COMM_WORLD.rank
-        cx, cy = na.unravel_index(mi, cc)
-        resolution = (1.0/cc[0], 1.0/cc[1])
-        # We are rotating with respect to the *origin*, not the back center,
-        # so we go from 0 .. width.
-        px = na.mgrid[0.0:1.0:(cc[0]+1)*1j][cx] * widths[0]
-        py = na.mgrid[0.0:1.0:(cc[1]+1)*1j][cy] * widths[1]
-        nxo = inv_mat[0,0]*px + inv_mat[0,1]*py + origin[0]
-        nyo = inv_mat[1,0]*px + inv_mat[1,1]*py + origin[1]
-        nzo = inv_mat[2,0]*px + inv_mat[2,1]*py + origin[2]
-        nbox_vectors = na.array(
-                       [unit_vectors[0] * widths[0]/cc[0],
-                        unit_vectors[1] * widths[1]/cc[1],
-                        unit_vectors[2] * widths[2]],
-                        dtype='float64')
-        norigin = na.array([nxo, nyo, nzo])
-        box = self.hierarchy.inclined_box(norigin, nbox_vectors)
-        return True, box, resolution
-        
     def _partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
@@ -441,139 +445,7 @@ class ParallelAnalysisInterface(object):
                     break
                 nextdim = (nextdim + 1) % 3
         return cuts
-        
 
-    def _partition_hierarchy_3d_bisection(self, axis, bins, counts, top_bounds = None,\
-        old_group = None, old_comm = None, cut=None, old_cc=None):
-        """
-        Partition the volume into evenly weighted subvolumes using the distribution
-        in counts. The bisection happens in the MPI communicator group old_group.
-        You may need to set "MPI_COMM_MAX" and "MPI_GROUP_MAX" environment 
-        variables.
-        """
-        counts = counts.astype('int64')
-        if not self._distributed:
-            LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
-        
-        # First time through the world is the current group.
-        if old_group == None or old_comm == None:
-            old_group = MPI.COMM_WORLD.Get_group()
-            old_comm = MPI.COMM_WORLD
-        
-        # Figure out the gridding based on the deepness of cuts.
-        if old_cc is None:
-            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        else:
-            cc = old_cc
-        cc[cut[0]] /= cut[1]
-        # Set the boundaries of the full bounding box for this group.
-        if top_bounds == None:
-            LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        else:
-            LE, RE = top_bounds
-
-        ra = old_group.Get_rank() # In this group, not WORLD, unless it's the first time.
-        
-        # First find the total number of particles in my group.
-        parts = old_comm.allreduce(int(counts.sum()), op=MPI.SUM)
-        # Now the full sum in the bins along this axis in this group.
-        full_counts = na.empty(counts.size, dtype='int64')
-        old_comm.Allreduce([counts, MPI.LONG], [full_counts, MPI.LONG], op=MPI.SUM)
-        # Find the bin that passes the cut points.
-        midpoints = [LE[axis]]
-        sum = 0
-        bin = 0
-        for step in xrange(1,cut[1]):
-            while sum < ((parts*step)/cut[1]):
-                lastsum = sum
-                sum += full_counts[bin]
-                bin += 1
-            # Bin edges
-            left_edge = bins[bin-1]
-            right_edge = bins[bin]
-            # Find a better approx of the midpoint cut line using a linear approx.
-            a = float(sum - lastsum) / (right_edge - left_edge)
-            midpoints.append(left_edge + (0.5 - (float(lastsum) / parts / 2)) / a)
-            #midpoint = (left_edge + right_edge) / 2.
-        midpoints.append(RE[axis])
-        # Now we need to split the members of this group into chunks. 
-        # The values that go into the _ranks are the ranks of the tasks
-        # in *this* communicator group, which go zero to size - 1. They are not
-        # the same as the global ranks!
-        groups = {}
-        ranks = {}
-        old_group_size = old_group.Get_size()
-        for step in xrange(cut[1]):
-            groups[step] = na.arange(step*old_group_size/cut[1], (step+1)*old_group_size/cut[1])
-            # [ (start, stop, step), ]
-            ranks[step] = [ (groups[step][0], groups[step][-1], 1), ] 
-        
-        # Based on where we are, adjust our LE or RE, depending on axis. At the
-        # same time assign the new MPI group membership.
-        for step in xrange(cut[1]):
-            if ra in groups[step]:
-                LE[axis] = midpoints[step]
-                RE[axis] = midpoints[step+1]
-                new_group = old_group.Range_incl(ranks[step])
-                new_comm = old_comm.Create(new_group)
-        
-        if old_cc is not None:
-            old_group.Free()
-            old_comm.Free()
-        
-        new_top_bounds = (LE,RE)
-        
-        # Using the new boundaries, regrid.
-        mi = new_comm.rank
-        cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
-
-        my_LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        my_RE = na.array([x[1], y[1], z[1]], dtype='float64')
-        
-        # Return a new subvolume and associated stuff.
-        return new_group, new_comm, my_LE, my_RE, new_top_bounds, cc,\
-            self.hierarchy.region_strict(self.center, my_LE, my_RE)
-
-    def _mpi_find_neighbor_3d(self, shift):
-        """ Given a shift array, 1x3 long, find the task ID
-        of that neighbor. For example, shift=[1,0,0] finds the neighbor
-        immediately to the right in the positive x direction. Each task
-        has 26 neighbors, of which some may be itself depending on the number
-        and arrangement of tasks.
-        """
-        if not self._distributed: return 0
-        shift = na.array(shift)
-        cc = na.array(MPI.Compute_dims(MPI.COMM_WORLD.size, 3))
-        mi = MPI.COMM_WORLD.rank
-        si = MPI.COMM_WORLD.size
-        # store some facts about myself
-        mi_cx,mi_cy,mi_cz = na.unravel_index(mi,cc)
-        mi_ar = na.array([mi_cx,mi_cy,mi_cz])
-        # these are identical on all tasks
-        # should these be calculated once and stored?
-        #dLE = na.empty((si,3), dtype='float64') # positions not needed yet...
-        #dRE = na.empty((si,3), dtype='float64')
-        tasks = na.empty((cc[0],cc[1],cc[2]), dtype='int64')
-        
-        for i in range(si):
-            cx,cy,cz = na.unravel_index(i,cc)
-            tasks[cx,cy,cz] = i
-            #x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-            #y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-            #z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
-            #dLE[i, :] = na.array([x[0], y[0], z[0]], dtype='float64')
-            #dRE[i, :] = na.array([x[1], y[1], z[1]], dtype='float64')
-        
-        # find the neighbor
-        ne = (mi_ar + shift) % cc
-        ne = tasks[ne[0],ne[1],ne[2]]
-        return ne
-        
-        
     def _barrier(self):
         if not self._distributed: return
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
@@ -587,311 +459,14 @@ class ParallelAnalysisInterface(object):
         return None
 
     @parallel_passthrough
-    def _mpi_catrgb(self, data):
-        self._barrier()
-        data, final = data
-        if MPI.COMM_WORLD.rank == 0:
-            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
-            nsize = final[0]/cc[0], final[1]/cc[1]
-            new_image = na.zeros((final[0], final[1], 6), dtype='float64')
-            new_image[0:nsize[0],0:nsize[1],:] = data[:]
-            for i in range(1,MPI.COMM_WORLD.size):
-                cy, cx = na.unravel_index(i, cc)
-                mylog.debug("Receiving image from % into bits %s:%s, %s:%s",
-                    i, nsize[0]*cx,nsize[0]*(cx+1),
-                       nsize[1]*cy,nsize[1]*(cy+1))
-                buf = _recv_array(source=i, tag=0).reshape(
-                    (nsize[0],nsize[1],6))
-                new_image[nsize[0]*cy:nsize[0]*(cy+1),
-                          nsize[1]*cx:nsize[1]*(cx+1),:] = buf[:]
-            data = new_image
-        else:
-            _send_array(data.ravel(), dest=0, tag=0)
-        data = MPI.COMM_WORLD.bcast(data)
-        return (data, final)
-
-    @parallel_passthrough
     def _mpi_catdict(self, data):
-        field_keys = data.keys()
-        field_keys.sort()
-        size = data[field_keys[0]].shape[-1]
-        sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
-        outsize = na.array(size, dtype='int64')
-        MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
-                                 [sizes, 1, MPI.LONG] )
-        # This nested concatenate is to get the shapes to work out correctly;
-        # if we just add [0] to sizes, it will broadcast a summation, not a
-        # concatenation.
-        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
-        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
-        for key in field_keys:
-            dd = data[key]
-            rv = _alltoallv_array(dd, arr_size, offsets, sizes)
-            data[key] = rv
-        return data
+        self._par_combine_object(data, op = "cat")
 
     @parallel_passthrough
     def _mpi_joindict(self, data):
-        #self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        #self._barrier()
-        return data
+        self._par_combine_object(data, op = "join")
 
     @parallel_passthrough
-    def _mpi_joindict_unpickled_double(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                keys = na.empty(size, dtype='int64')
-                values = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)
-                MPI.COMM_WORLD.Recv([values, MPI.DOUBLE], i, 0)
-                for i,key in enumerate(keys):
-                    data[key] = values[i]
-            # Now convert root's data to arrays.
-            size = len(data)
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='float64')
-            count = 0
-            for key in data:
-                root_keys[count] = key
-                root_values[count] = data[key]
-                count += 1
-        else:
-            MPI.COMM_WORLD.send(len(data), 0, 0)
-            keys = na.empty(len(data), dtype='int64')
-            values = na.empty(len(data), dtype='float64')
-            count = 0
-            for key in data:
-                keys[count] = key
-                values[count] = data[key]
-                count += 1
-            MPI.COMM_WORLD.Send([keys, MPI.LONG], 0, 0)
-            MPI.COMM_WORLD.Send([values, MPI.DOUBLE], 0, 0)
-        # Now send it back as arrays.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del keys, values
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.DOUBLE], root=0)
-        # Convert back to a dict.
-        del data
-        data = dict(itertools.izip(root_keys, root_values))
-        return data
-
-    @parallel_passthrough
-    def _mpi_joindict_unpickled_long(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                keys = na.empty(size, dtype='int64')
-                values = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)
-                MPI.COMM_WORLD.Recv([values, MPI.LONG], i, 0)
-                for i,key in enumerate(keys):
-                    data[key] = values[i]
-            # Now convert root's data to arrays.
-            size = len(data)
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='int64')
-            count = 0
-            for key in data:
-                root_keys[count] = key
-                root_values[count] = data[key]
-                count += 1
-        else:
-            MPI.COMM_WORLD.send(len(data), 0, 0)
-            keys = na.empty(len(data), dtype='int64')
-            values = na.empty(len(data), dtype='int64')
-            count = 0
-            for key in data:
-                keys[count] = key
-                values[count] = data[key]
-                count += 1
-            MPI.COMM_WORLD.Send([keys, MPI.LONG], 0, 0)
-            MPI.COMM_WORLD.Send([values, MPI.LONG], 0, 0)
-        # Now send it back as arrays.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del keys, values
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='int64')
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
-        # Convert back to a dict.
-        del data
-        data = dict(itertools.izip(root_keys,root_values))
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_long(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.concatenate((data, new_data))
-            size = data.size
-            del new_data
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        # Now we distribute the full array.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del data
-            data = na.empty(size, dtype='int64')
-        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_double(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
-                data = na.concatenate((data, new_data))
-            size = data.size
-            del new_data
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
-        # Now we distribute the full array.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del data
-            data = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_on_root_double(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
-                data = na.concatenate((data, new_data))
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_on_root_int(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='int32')
-                MPI.COMM_WORLD.Recv([new_data, MPI.INT], i, 0)
-                data = na.concatenate((data, new_data))
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.INT], 0, 0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_concatenate_array_on_root_long(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                new_data = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.concatenate((data, new_data))
-        else:
-            MPI.COMM_WORLD.send(data.size, 0, 0)
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_minimum_array_long(self, data):
-        """
-        Specifically for parallelHOP. For the identical array on each task,
-        it merges the arrays together, taking the lower value at each index.
-        """
-        self._barrier()
-        size = data.size # They're all the same size, of course
-        if MPI.COMM_WORLD.rank == 0:
-            new_data = na.empty(size, dtype='int64')
-            for i in range(1, MPI.COMM_WORLD.size):
-                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
-                data = na.minimum(data, new_data)
-            del new_data
-        else:
-            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
-        # Redistribute from root
-        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_bcast_long_dict_unpickled(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            size = len(data)
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        root_keys = na.empty(size, dtype='int64')
-        root_values = na.empty(size, dtype='int64')
-        if MPI.COMM_WORLD.rank == 0:
-            count = 0
-            for key in data:
-                root_keys[count] = key
-                root_values[count] = data[key]
-                count += 1
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            data = {}
-            for i,key in enumerate(root_keys):
-                data[key] = root_values[i]
-        return data
-
-    @parallel_passthrough
-    def _mpi_maxdict(self, data):
-        """
-        For each key in data, find the maximum value across all tasks, and
-        then broadcast it back.
-        """
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                temp_data = MPI.COMM_WORLD.recv(source=i, tag=0)
-                for key in temp_data:
-                    try:
-                        old_value = data[key]
-                    except KeyError:
-                        # This guarantees the new value gets added.
-                        old_value = None
-                    if old_value < temp_data[key]:
-                        data[key] = temp_data[key]
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
-        return data
-
     def _mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
@@ -938,61 +513,15 @@ class ParallelAnalysisInterface(object):
                 top_keys = na.concatenate([top_keys, recv_top_keys])
                 bot_keys = na.concatenate([bot_keys, recv_bot_keys])
                 vals = na.concatenate([vals, recv_vals])
-#                 for j, top_key in enumerate(top_keys):
-#                     if j%1000 == 0: mylog.info(j)
-#                     # Make sure there's an entry for top_key in data
-#                     try:
-#                         test = data[top_key]
-#                     except KeyError:
-#                         data[top_key] = {}
-#                     try:
-#                         old_value = data[top_key][bot_keys[j]]
-#                     except KeyError:
-#                         # This guarantees the new value gets added.
-#                         old_value = None
-#                     if old_value < vals[j]:
-#                         data[top_key][bot_keys[j]] = vals[j]
         else:
-#             top_keys = []
-#             bot_keys = []
-#             vals = []
-#             for top_key in data:
-#                 for bot_key in data[top_key]:
-#                     top_keys.append(top_key)
-#                     bot_keys.append(bot_key)
-#                     vals.append(data[top_key][bot_key])
-#             top_keys = na.array(top_keys, dtype='int64')
-#             bot_keys = na.array(bot_keys, dtype='int64')
-#             vals = na.array(vals, dtype='float64')
             size = top_keys.size
             MPI.COMM_WORLD.send(size, dest=0, tag=0)
             MPI.COMM_WORLD.Send([top_keys, MPI.LONG], dest=0, tag=0)
             MPI.COMM_WORLD.Send([bot_keys, MPI.LONG], dest=0, tag=0)
             MPI.COMM_WORLD.Send([vals, MPI.DOUBLE], dest=0, tag=0)
-        # Getting ghetto here, we're going to decompose the dict into arrays,
-        # send that, and then reconstruct it. When data is too big the pickling
-        # of the dict fails.
+        # We're going to decompose the dict into arrays, send that, and then
+        # reconstruct it. When data is too big the pickling of the dict fails.
         if MPI.COMM_WORLD.rank == 0:
-#             data = defaultdict(dict)
-#             for i,top_key in enumerate(top_keys):
-#                 try:
-#                     old = data[top_key][bot_keys[i]]
-#                 except KeyError:
-#                     old = None
-#                 if old < vals[i]:
-#                     data[top_key][bot_keys[i]] = vals[i]
-#             top_keys = []
-#             bot_keys = []
-#             vals = []
-#             for top_key in data:
-#                 for bot_key in data[top_key]:
-#                     top_keys.append(top_key)
-#                     bot_keys.append(bot_key)
-#                     vals.append(data[top_key][bot_key])
-#             del data
-#             top_keys = na.array(top_keys, dtype='int64')
-#             bot_keys = na.array(bot_keys, dtype='int64')
-#             vals = na.array(vals, dtype='float64')
             size = top_keys.size
         # Broadcast them using array methods
         size = MPI.COMM_WORLD.bcast(size, root=0)
@@ -1006,82 +535,88 @@ class ParallelAnalysisInterface(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def __mpi_recvlist(self, data):
-        # First we receive, then we make a new list.
-        data = ensure_list(data)
-        for i in range(1,MPI.COMM_WORLD.size):
-            buf = ensure_list(MPI.COMM_WORLD.recv(source=i, tag=0))
-            data += buf
-        return data
+    def _par_combine_object(self, data, op):
+        # op can be chosen from:
+        #   cat
+        #   join
+        # data is selected to be of types:
+        #   na.ndarray
+        #   dict
+        #   data field dict
+        if isinstance(data, types.DictType) and op == "join":
+            if MPI.COMM_WORLD.rank == 0:
+                for i in range(1,MPI.COMM_WORLD.size):
+                    data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
+            else:
+                MPI.COMM_WORLD.send(data, dest=0, tag=0)
+            data = MPI.COMM_WORLD.bcast(data, root=0)
+            return data
+        elif isinstance(data, types.DictType) and op == "cat":
+            field_keys = data.keys()
+            field_keys.sort()
+            size = data[field_keys[0]].shape[-1]
+            sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+            outsize = na.array(size, dtype='int64')
+            MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+                                     [sizes, 1, MPI.LONG] )
+            # This nested concatenate is to get the shapes to work out correctly;
+            # if we just add [0] to sizes, it will broadcast a summation, not a
+            # concatenation.
+            offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+            arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+            for key in field_keys:
+                dd = data[key]
+                rv = _alltoallv_array(dd, arr_size, offsets, sizes)
+                data[key] = rv
+            return data
+        elif isinstance(data, na.ndarray) and op == "cat":
+            if data is None:
+                ncols = -1
+                size = 0
+            else:
+                if len(data) == 0:
+                    ncols = -1
+                    size = 0
+                elif len(data.shape) == 1:
+                    ncols = 1
+                    size = data.shape[0]
+                else:
+                    ncols, size = data.shape
+            ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
+            if size == 0:
+                data = na.zeros((ncols,0), dtype='float64') # This only works for
+            size = data.shape[-1]
+            sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+            outsize = na.array(size, dtype='int64')
+            MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+                                     [sizes, 1, MPI.LONG] )
+            # This nested concatenate is to get the shapes to work out correctly;
+            # if we just add [0] to sizes, it will broadcast a summation, not a
+            # concatenation.
+            offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+            arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+            data = _alltoallv_array(data, arr_size, offsets, sizes)
+            return data
+        elif isinstance(data, types.ListType) and op == "cat":
+            if MPI.COMM_WORLD.rank == 0:
+                data = self.__mpi_recvlist(data)
+            else:
+                MPI.COMM_WORLD.send(data, dest=0, tag=0)
+            mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
+            data = MPI.COMM_WORLD.bcast(data, root=0)
+            return data
+        raise NotImplementedError
 
     @parallel_passthrough
     def _mpi_catlist(self, data):
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvlist(data)
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
-        return data
-
-    @parallel_passthrough
-    def __mpi_recvarrays(self, data):
-        # First we receive, then we make a new list.
-        for i in range(1,MPI.COMM_WORLD.size):
-            buf = _recv_array(source=i, tag=0)
-            if buf is not None:
-                if data is None: data = buf
-                else: data = na.concatenate([data, buf])
-        return data
-
-    @parallel_passthrough
-    def _mpi_cat_na_array(self,data):
-        self._barrier()
-        comm = MPI.COMM_WORLD
-        if comm.rank == 0:
-            for i in range(1,comm.size):
-                buf = comm.recv(source=i, tag=0)
-                data = na.concatenate([data,buf])
-        else:
-            comm.send(data, 0, tag = 0)
-        data = comm.bcast(data, root=0)
-        return data
+        self._par_combine_object(data, op = "cat")
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
-        if data is None:
-            ncols = -1
-            size = 0
-        else:
-            if len(data) == 0:
-                ncols = -1
-                size = 0
-            elif len(data.shape) == 1:
-                ncols = 1
-                size = data.shape[0]
-            else:
-                ncols, size = data.shape
-        ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
-        if size == 0:
-            data = na.zeros((ncols,0), dtype='float64') # This only works for
-        size = data.shape[-1]
-        sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
-        outsize = na.array(size, dtype='int64')
-        MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
-                                 [sizes, 1, MPI.LONG] )
-        # This nested concatenate is to get the shapes to work out correctly;
-        # if we just add [0] to sizes, it will broadcast a summation, not a
-        # concatenation.
-        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
-        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
-        data = _alltoallv_array(data, arr_size, offsets, sizes)
-        return data
+        self._par_combine_object(data, op = "cat")
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
-        #self._barrier()
         data = MPI.COMM_WORLD.bcast(data, root=0)
         return data
 
@@ -1097,82 +632,37 @@ class ParallelAnalysisInterface(object):
         io_handler.preload(grids, fields)
 
     @parallel_passthrough
-    def _mpi_double_array_max(self,data):
-        """
-        Finds the na.maximum of a distributed array and returns the result
-        back to all. The array should be the same length on all tasks!
-        """
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            recv_data = na.empty(data.size, dtype='float64')
-            for i in xrange(1, MPI.COMM_WORLD.size):
-                MPI.COMM_WORLD.Recv([recv_data, MPI.DOUBLE], source=i, tag=0)
-                data = na.maximum(data, recv_data)
-        else:
-            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], dest=0, tag=0)
-        MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
-        return data
-
-    @parallel_passthrough
-    def _mpi_allsum(self, data):
-        #self._barrier()
-        # We use old-school pickling here on the assumption the arrays are
-        # relatively small ( < 1e7 elements )
+    def _mpi_allreduce(self, data, dtype=None, op='sum'):
+        op = op_names[op]
         if isinstance(data, na.ndarray) and data.dtype != na.bool:
-            tr = na.zeros_like(data)
-            if not data.flags.c_contiguous: data = data.copy()
-            MPI.COMM_WORLD.Allreduce(data, tr, op=MPI.SUM)
-            return tr
+            if dtype is None:
+                dtype = data.dtype
+            if dtype != data.dtype:
+                data = data.astype(dtype)
+            temp = data.copy()
+            MPI.COMM_WORLD.Allreduce([temp,get_mpi_type(dtype)], 
+                                     [data,get_mpi_type(dtype)], op)
+            return data
         else:
-            return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
-
-    @parallel_passthrough
-    def _mpi_Allsum_double(self, data):
-        self._barrier()
-        # Non-pickling float allsum of a float array, data.
-        temp = data.copy()
-        MPI.COMM_WORLD.Allreduce([temp, MPI.DOUBLE], [data, MPI.DOUBLE], op=MPI.SUM)
-        del temp
-        return data
-
-    @parallel_passthrough
-    def _mpi_Allsum_long(self, data):
-        self._barrier()
-        # Non-pickling float allsum of an int array, data.
-        temp = data.copy()
-        MPI.COMM_WORLD.Allreduce([temp, MPI.LONG], [data, MPI.LONG], op=MPI.SUM)
-        del temp
-        return data
-
-    @parallel_passthrough
-    def _mpi_allmax(self, data):
-        self._barrier()
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.MAX)
-
-    @parallel_passthrough
-    def _mpi_allmin(self, data):
-        self._barrier()
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
+            # We use old-school pickling here on the assumption the arrays are
+            # relatively small ( < 1e7 elements )
+            return MPI.COMM_WORLD.allreduce(data, op)
 
     ###
     # Non-blocking stuff.
     ###
 
-    def _mpi_Irecv_long(self, data, source, tag=0):
+    def _mpi_nonblocking_recv(self, data, source, tag=0, dtype=None):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, tag)
+        if dtype is None: dtype = data.dtype
+        mpi_type = get_mpi_type(dtype)
+        return MPI.COMM_WORLD.Irecv([data, mpi_type], source, tag)
 
-    def _mpi_Irecv_double(self, data, source, tag=0):
+    def _mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, tag)
-
-    def _mpi_Isend_long(self, data, dest, tag=0):
-        if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, tag)
-
-    def _mpi_Isend_double(self, data, dest, tag=0):
-        if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, tag)
+        if dtype is None: dtype = data.dtype
+        mpi_type = get_mpi_type(dtype)
+        return MPI.COMM_WORLD.Isend([data, mpi_type], dest, tag)
 
     def _mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
@@ -1195,11 +685,17 @@ class ParallelAnalysisInterface(object):
     # End non-blocking stuff.
     ###
 
-    def _mpi_get_size(self):
+    ###
+    # Parallel rank and size properties.
+    ###
+
+    @property
+    def _par_size(self):
         if not self._distributed: return 1
         return MPI.COMM_WORLD.size
 
-    def _mpi_get_rank(self):
+    @property
+    def _par_rank(self):
         if not self._distributed: return 0
         return MPI.COMM_WORLD.rank
 

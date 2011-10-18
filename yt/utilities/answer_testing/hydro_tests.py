@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import matplotlib; matplotlib.use("Agg")
+import matplotlib
 import pylab
 from yt.mods import *
 from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
@@ -93,6 +93,34 @@ class TestOffAxisProjection(YTStaticOutputTest):
             (self.pf, self.field, self.weight_field)
         write_image(self.result, fn)
         return [fn]
+
+class TestRay(YTStaticOutputTest):
+
+    field = None
+
+    def run(self):
+        na.random.seed(4333)
+        start_point = na.random.random(self.pf.dimensionality) * \
+            (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
+            self.pf.domain_left_edge
+        end_point   = na.random.random(self.pf.dimensionality) * \
+            (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
+            self.pf.domain_left_edge
+
+        # Here proj will just be the data array.
+        ray = self.pf.h.ray(start_point, end_point, field=self.field)
+
+        # values.
+        self.result = ray[self.field]
+
+    def compare(self, old_result):
+        ray  = self.result
+        oray = old_result
+
+        self.compare_array_delta(ray, oray, 1e-7)
+
+    def plot(self):
+        return
 
 class TestSlice(YTStaticOutputTest):
 

@@ -119,10 +119,10 @@ class BinnedProfile(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         for key in self.__data:
-            self.__data[key] = self._mpi_allsum(self.__data[key])
+            self.__data[key] = self._mpi_allreduce(self.__data[key], op='sum')
         for key in self.__weight_data:
-            self.__weight_data[key] = self._mpi_allsum(self.__weight_data[key])
-        self.__used = self._mpi_allsum(self.__used)
+            self.__weight_data[key] = self._mpi_allreduce(self.__weight_data[key], op='sum')
+        self.__used = self._mpi_allreduce(self.__used, op='sum')
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:
