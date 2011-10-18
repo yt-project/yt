@@ -460,11 +460,11 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catdict(self, data):
-        self._par_combine_object(data, op = "cat")
+        self._par_combine_object(data, datatype = "dict", op = "cat")
 
     @parallel_passthrough
     def _mpi_joindict(self, data):
-        self._par_combine_object(data, op = "join")
+        self._par_combine_object(data, datatype = "dict", op = "join")
 
     @parallel_passthrough
     def _mpi_maxdict_dict(self, data):
@@ -535,7 +535,7 @@ class ParallelAnalysisInterface(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def _par_combine_object(self, data, op):
+    def _par_combine_object(self, data, op, datatype = None):
         # op can be chosen from:
         #   cat
         #   join
@@ -543,7 +543,16 @@ class ParallelAnalysisInterface(object):
         #   na.ndarray
         #   dict
         #   data field dict
-        if isinstance(data, types.DictType) and op == "join":
+        if datatype is not None:
+            pass
+        elif isinstance(data, types.DictType):
+            datatype == "dict"
+        elif isinstance(data, na.ndarray):
+            datatype == "array"
+        elif isinstance(data, types.ListType):
+            datatype == "list"
+        # Now we have our datatype, and we conduct our operation
+        if datatype == "dict" and op == "join":
             if MPI.COMM_WORLD.rank == 0:
                 for i in range(1,MPI.COMM_WORLD.size):
                     data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
@@ -551,7 +560,7 @@ class ParallelAnalysisInterface(object):
                 MPI.COMM_WORLD.send(data, dest=0, tag=0)
             data = MPI.COMM_WORLD.bcast(data, root=0)
             return data
-        elif isinstance(data, types.DictType) and op == "cat":
+        elif datatype == "dict" and op == "cat":
             field_keys = data.keys()
             field_keys.sort()
             size = data[field_keys[0]].shape[-1]
@@ -569,7 +578,7 @@ class ParallelAnalysisInterface(object):
                 rv = _alltoallv_array(dd, arr_size, offsets, sizes)
                 data[key] = rv
             return data
-        elif isinstance(data, na.ndarray) and op == "cat":
+        elif datatype == "array" and op == "cat":
             if data is None:
                 ncols = -1
                 size = 0
@@ -597,7 +606,7 @@ class ParallelAnalysisInterface(object):
             arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
             data = _alltoallv_array(data, arr_size, offsets, sizes)
             return data
-        elif isinstance(data, types.ListType) and op == "cat":
+        elif datatype == "list" and op == "cat":
             if MPI.COMM_WORLD.rank == 0:
                 data = self.__mpi_recvlist(data)
             else:
@@ -609,11 +618,11 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catlist(self, data):
-        self._par_combine_object(data, op = "cat")
+        self._par_combine_object(data, datatype = "list", op = "cat")
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
-        self._par_combine_object(data, op = "cat")
+        self._par_combine_object(data, datatype = "array", op = "cat")
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
