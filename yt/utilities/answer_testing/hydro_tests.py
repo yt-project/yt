@@ -43,9 +43,9 @@ class TestProjection(YTStaticOutputTest):
         pixelized_proj = self.pixelize(proj, self.field)
         # We just want the values, so this can be stored
         # independently of the parameter file.
-        # The .data attributes strip out everything other than the actual array
+        # The .field_data attributes strip out everything other than the actual array
         # values.
-        self.result = (proj.data, pixelized_proj.data)
+        self.result = (proj.field_data, pixelized_proj.field_data)
 
     def compare(self, old_result):
         proj, pixelized_proj = self.result
