@@ -363,7 +363,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         for task in xrange(self.size):
             if task == self.mine: continue
             self.recv_done[task] = na.zeros(1, dtype='int64')
-            self.done_hooks.append(self._mpi_Irecv_long(self.recv_done[task], \
+            self.done_hooks.append(self._mpi_nonblocking_recv(self.recv_done[task], \
                 task, tag=15))
     
     def _send_done_to_root(self):
@@ -418,11 +418,11 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.recv_fields_vals = na.zeros((self.comm_size, len(self.fields)*2), \
             dtype='float64')
         self.recv_gen_array = na.zeros(self.size, dtype='int64')
-        self.recv_hooks.append(self._mpi_Irecv_double(self.recv_points, \
+        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_points, \
             (self.mine-1)%self.size, tag=10))
-        self.recv_hooks.append(self._mpi_Irecv_double(self.recv_fields_vals, \
+        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_fields_vals, \
             (self.mine-1)%self.size, tag=20))
-        self.recv_hooks.append(self._mpi_Irecv_long(self.recv_gen_array, \
+        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_gen_array, \
             (self.mine-1)%self.size, tag=40))
 
     def _send_arrays(self):

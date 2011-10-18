@@ -1050,13 +1050,11 @@ class ParallelAnalysisInterface(object):
     # Non-blocking stuff.
     ###
 
-    def _mpi_Irecv_long(self, data, source, tag=0):
+    def _mpi_nonblocking_recv(self, data, source, tag=0, dtype=None):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, tag)
-
-    def _mpi_Irecv_double(self, data, source, tag=0):
-        if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, tag)
+        if dtype is None: dtype = data.dtype
+        mpi_type = get_mpi_type(dtype)
+        return MPI.COMM_WORLD.Irecv([data, mpi_type], source, tag)
 
     def _mpi_Isend_long(self, data, dest, tag=0):
         if not self._distributed: return -1

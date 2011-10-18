@@ -91,11 +91,13 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
                         size, p)
             proc_hooks[len(drecv_buffers)] = p
             drecv_buffers.append(self._create_buffer(requests[p]))
-            drecv_hooks.append(self._mpi_Irecv_double(drecv_buffers[-1], p, 1))
+            # does this work without specifying the type? (was double)
+            drecv_hooks.append(self._mpi_nonblocking_recv(drecv_buffers[-1], p, 1))
             recv_buffers.append(na.zeros(size, dtype='int64'))
             # Our index list goes on 0, our buffer goes on 1.  We know how big
             # the index list will be, now.
-            recv_hooks.append(self._mpi_Irecv_long(recv_buffers[-1], p, 0))
+            # does this work without specifying the type? (was long)
+            recv_hooks.append(self._mpi_nonblocking_recv(recv_buffers[-1], p, 0))
         # Send our index lists into hte waiting buffers
         mylog.debug("Sending index lists")
         for p, ind_list in requests.items():
