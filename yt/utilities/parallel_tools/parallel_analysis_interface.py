@@ -460,11 +460,11 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catdict(self, data):
-        self._par_combine_object(data, datatype = "dict", op = "cat")
+        return self._par_combine_object(data, datatype = "dict", op = "cat")
 
     @parallel_passthrough
     def _mpi_joindict(self, data):
-        self._par_combine_object(data, datatype = "dict", op = "join")
+        return self._par_combine_object(data, datatype = "dict", op = "join")
 
     @parallel_passthrough
     def _mpi_maxdict_dict(self, data):
@@ -618,11 +618,11 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catlist(self, data):
-        self._par_combine_object(data, datatype = "list", op = "cat")
+        return self._par_combine_object(data, datatype = "list", op = "cat")
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
-        self._par_combine_object(data, datatype = "array", op = "cat")
+        return self._par_combine_object(data, datatype = "array", op = "cat")
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
