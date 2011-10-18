@@ -134,7 +134,7 @@ class TestSlice(YTStaticOutputTest):
                                         self.pf.domain_right_edge))[self.axis],
                                 fields=self.field)
         # values.
-        self.result = slice.data
+        self.result = slice.field_data
 
     def compare(self, old_result):
         slice  = self.result

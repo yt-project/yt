@@ -1001,7 +1001,7 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
     for plot in projections:
         # Get name of data field.
         other_fields = {'px':True, 'py':True, 'pdx':True, 'pdy':True, 'weight_field':True}
-        for pfield in plot.data.keys():
+        for pfield in plot.field_data.keys():
             if not(other_fields.has_key(pfield)):
                 field = pfield
                 break
@@ -1056,12 +1056,12 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
         add2_y_weight_field = plot['weight_field'][plot['py'] - 0.5 * plot['pdy'] < 0]
 
         # Add the hanging cells back to the projection data.
-        plot.data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
-        plot.data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
-        plot.data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
-        plot.data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
-        plot.data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
-        plot.data['weight_field'] = na.concatenate([plot['weight_field'],
+        plot.field_data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
+        plot.field_data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
+        plot.field_data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
+        plot.field_data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
+        plot.field_data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
+        plot.field_data['weight_field'] = na.concatenate([plot['weight_field'],
                                                     add_x_weight_field, add_y_weight_field, 
                                                     add2_x_weight_field, add2_y_weight_field])
 

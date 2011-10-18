@@ -30,6 +30,7 @@ import weakref
 
 from yt.funcs import *
 
+from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.definitions import x_dict, y_dict
 from .field_info_container import \
     NeedsGridType, \
@@ -57,7 +58,7 @@ class AMRGridPatch(object):
                  '_parent_id', '_children_ids']
 
     def __init__(self, id, filename=None, hierarchy=None):
-        self.data = {}
+        self.field_data = YTFieldData()
         self.field_parameters = {}
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
@@ -140,36 +141,36 @@ class AMRGridPatch(object):
             raise exceptions.KeyError, field
 
     def has_key(self, key):
-        return (key in self.data)
+        return (key in self.field_data)
 
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
         """
-        if not self.data.has_key(key):
+        if not self.field_data.has_key(key):
             self.get_data(key)
-        return self.data[key]
+        return self.field_data[key]
 
     def __setitem__(self, key, val):
         """
         Sets a field to be some other value.
         """
-        self.data[key] = val
+        self.field_data[key] = val
 
     def __delitem__(self, key):
         """
         Deletes a field
         """
-        del self.data[key]
+        del self.field_data[key]
 
     def keys(self):
-        return self.data.keys()
+        return self.field_data.keys()
 
     def get_data(self, field):
         """
         Returns a field or set of fields for a key or set of keys
         """
-        if not self.data.has_key(field):
+        if not self.field_data.has_key(field):
             if field in self.hierarchy.field_list:
                 conv_factor = 1.0
                 if self.pf.field_info.has_key(field):
@@ -178,7 +179,7 @@ class AMRGridPatch(object):
                    self.NumberOfParticles == 0:
                     # because this gets upcast to float
                     self[field] = na.array([],dtype='int64')
-                    return self.data[field]
+                    return self.field_data[field]
                 try:
                     temp = self.hierarchy.io.pop(self, field)
                     self[field] = na.multiply(temp, conv_factor, temp)
@@ -191,7 +192,7 @@ class AMRGridPatch(object):
                     else: raise
             else:
                 self._generate_field(field)
-        return self.data[field]
+        return self.field_data[field]
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -205,7 +206,7 @@ class AMRGridPatch(object):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     @property
     def _corners(self):
@@ -247,7 +248,7 @@ class AMRGridPatch(object):
         """
         self._del_child_mask()
         self._del_child_indices()
-        self.data.clear()
+        self.field_data.clear()
         self._setup_dx()
 
     def check_child_masks(self):
@@ -304,11 +305,11 @@ class AMRGridPatch(object):
         :meth:`clear_derived_quantities`.
         """
         for key in self.keys():
-            del self.data[key]
-        del self.data
+            del self.field_data[key]
+        del self.field_data
         if hasattr(self,"retVal"):
             del self.retVal
-        self.data = {}
+        self.field_data = YTFieldData()
         self.clear_derived_quantities()
 
     def clear_derived_quantities(self):

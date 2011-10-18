@@ -573,7 +573,7 @@ class YTCommands(cmdln.Cmdln):
         else:
             p = pc.add_slice(opts.field, opts.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, opts.field)
+        mapper = PannableMapServer(p.field_data, opts.field)
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         if opts.host is not None:
@@ -677,7 +677,7 @@ class YTCommands(cmdln.Cmdln):
         pc_dummy = PlotCollection(pf, center=c)
         pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
                             weight="CellMassMsun")
-        ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
+        ph.modify["line"](pr.field_data["Density"], pr.field_data["Temperature"])
         pc.save()
 
     @cmdln.option("-d", "--desc", action="store",

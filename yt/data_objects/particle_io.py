@@ -91,8 +91,8 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)
         for [n, v] in zip(fields_to_read, rvs):
-            self.source.data[n] = v
-        print self.source.data.keys()
+            self.source.field_data[n] = v
+        print self.source.field_data.keys()
 
 class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
     periodic = False

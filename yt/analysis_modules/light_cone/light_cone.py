@@ -356,7 +356,7 @@ class LightCone(EnzoSimulation):
 
             # Save the last fixed resolution buffer for the plot collection, 
             # but replace the data with the full light cone projection data.
-            frb.data[field] = lightConeProjection
+            frb.field_data[field] = lightConeProjection
 
             # Write image.
             if save_slice_images:
@@ -370,7 +370,7 @@ class LightCone(EnzoSimulation):
             if apply_halo_mask:
                 if len(self.halo_mask) > 0:
                     mylog.info("Applying halo mask.")
-                    frb.data[field] *= self.halo_mask
+                    frb.field_data[field] *= self.halo_mask
                 else:
                     mylog.error("No halo mask loaded, call get_halo_mask.")
 
