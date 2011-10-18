@@ -36,6 +36,7 @@ import shelve
 
 from yt.funcs import *
 
+from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
@@ -70,11 +71,11 @@ def restore_grid_state(func):
     """
     def save_state(self, grid, field=None):
         old_params = grid.field_parameters
-        old_keys = grid.data.keys()
+        old_keys = grid.field_data.keys()
         grid.field_parameters = self.field_parameters
         tr = func(self, grid, field)
         grid.field_parameters = old_params
-        grid.data = dict( [(k, grid.data[k]) for k in old_keys] )
+        grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
         return tr
     return save_state
 
@@ -134,20 +135,20 @@ class FakeGridForParticles(object):
     def __init__(self, grid):
         self._corners = grid._corners
         self.field_parameters = {}
-        self.data = {'x':grid['particle_position_x'],
-                     'y':grid['particle_position_y'],
-                     'z':grid['particle_position_z'],
-                     'dx':grid['dx'],
-                     'dy':grid['dy'],
-                     'dz':grid['dz']}
+        self.field_data = YTFieldData({'x':grid['particle_position_x'],
+                                       'y':grid['particle_position_y'],
+                                       'z':grid['particle_position_z'],
+                                       'dx':grid['dx'],
+                                       'dy':grid['dy'],
+                                       'dz':grid['dz']})
         self.dds = grid.dds.copy()
         self.real_grid = grid
         self.child_mask = 1
-        self.ActiveDimensions = self.data['x'].shape
+        self.ActiveDimensions = self.field_data['x'].shape
         self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
         
     def __getitem__(self, field):
-        if field not in self.data.keys():
+        if field not in self.field_data.keys():
             if field == "RadiusCode":
                 center = self.field_parameters['center']
                 tempx = na.abs(self['x'] - center[0])
@@ -159,7 +160,7 @@ class FakeGridForParticles(object):
                 tr = na.sqrt( tempx**2.0 + tempy**2.0 + tempz**2.0 )
             else:
                 raise KeyError(field)
-        else: tr = self.data[field]
+        else: tr = self.field_data[field]
         return tr
 
 class AMRData(object):
@@ -193,7 +194,7 @@ class AMRData(object):
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
-        self.data = {}
+        self.field_data = YTFieldData()
         self.field_parameters = {}
         self.__set_default_field_parameters()
         self._cut_masks = {}
@@ -255,7 +256,7 @@ class AMRData(object):
         """
         Clears out all data from the AMRData instance, freeing memory.
         """
-        self.data.clear()
+        self.field_data.clear()
         if self._grids is not None:
             for grid in self._grids: grid.clear_data()
 
@@ -272,7 +273,7 @@ class AMRData(object):
         """
         Checks if a data field already exists.
         """
-        return self.data.has_key(key)
+        return self.field_data.has_key(key)
 
     def _refresh_data(self):
         """
@@ -282,24 +283,24 @@ class AMRData(object):
         self.get_data()
 
     def keys(self):
-        return self.data.keys()
+        return self.field_data.keys()
 
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
         """
-        if not self.data.has_key(key):
+        if not self.field_data.has_key(key):
             if key not in self.fields:
                 self.fields.append(key)
             self.get_data(key)
-        return self.data[key]
+        return self.field_data[key]
 
     def __setitem__(self, key, val):
         """
         Sets a field to be some other value.
         """
         if key not in self.fields: self.fields.append(key)
-        self.data[key] = val
+        self.field_data[key] = val
 
     def __delitem__(self, key):
         """
@@ -309,21 +310,21 @@ class AMRData(object):
             del self.fields[self.fields.index(key)]
         except ValueError:
             pass
-        del self.data[key]
+        del self.field_data[key]
 
     def _generate_field_in_grids(self, fieldName):
         pass
 
     _key_fields = None
     def write_out(self, filename, fields=None, format="%0.16e"):
-        if fields is None: fields=sorted(self.data.keys())
+        if fields is None: fields=sorted(self.field_data.keys())
         if self._key_fields is None: raise ValueError
         field_order = self._key_fields[:]
         for field in field_order: self[field]
         field_order += [field for field in fields if field not in field_order]
         fid = open(filename,"w")
         fid.write("\t".join(["#"] + field_order + ["\n"]))
-        field_data = na.array([self.data[field] for field in field_order])
+        field_data = na.array([self.field_data[field] for field in field_order])
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
@@ -471,11 +472,11 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         else:
             fields_to_get = ensure_list(fields)
         if not self.sort_by in fields_to_get and \
-            self.sort_by not in self.data:
+            self.sort_by not in self.field_data:
             fields_to_get.insert(0, self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
-            if self.data.has_key(field):
+            if self.field_data.has_key(field):
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             if field not in self.hierarchy.field_list and not in_grids:
@@ -484,7 +485,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
-            if not self.data.has_key(field):
+            if not self.field_data.has_key(field):
                 continue
             if self._sortkey is None:
                 self._sortkey = na.argsort(self[self.sort_by])
@@ -795,7 +796,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             fields_to_get = ensure_list(fields)
         temp_data = {}
         for field in fields_to_get:
-            if self.data.has_key(field): continue
+            if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
@@ -1429,7 +1430,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         temp_data = {}
         _size = self.dims * self.dims
         for field in fields_to_get:
-            if self.data.has_key(field): continue
+            if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
@@ -1598,7 +1599,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         else: fields = ensure_list(fields)
         # We need a new tree for every single set of fields we add
         self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.data]
+        fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         tree = self._get_tree(len(fields))
         coord_data = []
@@ -1988,7 +1989,7 @@ class AMRProjBase(AMR2DData):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
         self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.data]
+        fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         coord_data = []
         field_data = []
@@ -2310,7 +2311,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             fields_to_get = ensure_list(fields)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
-            if self.data.has_key(field):
+            if self.field_data.has_key(field):
                 continue
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
@@ -2322,14 +2323,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader:
                 self.particles.get_data(field)
-                if field not in self.data:
+                if field not in self.field_data:
                     if self._generate_field(field): continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
         for field in fields_to_get:
-            if not self.data.has_key(field):
+            if not self.field_data.has_key(field):
                 continue
             self[field] = self[field]
 
@@ -3202,7 +3203,7 @@ class AMRCoveringGridBase(AMR3DData):
             fields = ensure_list(fields)
         obtain_fields = []
         for field in fields:
-            if self.data.has_key(field): continue
+            if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 try:
                     #print "Generating", field
@@ -3315,7 +3316,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             fields_to_get = ensure_list(field)
         for field in fields_to_get:
             grid_count = 0
-            if self.data.has_key(field):
+            if self.field_data.has_key(field):
                 continue
             mylog.debug("Getting field %s from %s possible grids",
                        field, len(self._grids))
@@ -3347,9 +3348,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     def _update_level_state(self, level, field = None):
         dx = self._base_dx / self.pf.refine_by**level
-        self.data['cdx'] = dx[0]
-        self.data['cdy'] = dx[1]
-        self.data['cdz'] = dx[2]
+        self.field_data['cdx'] = dx[0]
+        self.field_data['cdy'] = dx[1]
+        self.field_data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
         self.global_startindex = na.rint(LL / dx).astype('int64') - 1
@@ -3358,13 +3359,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            self.data[field] = na.zeros(idims,dtype='float64')-999
+            self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
-            self.data[field] = na.zeros(idims,dtype='float64')-999
+            self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
     def _refine(self, dlevel, field):
