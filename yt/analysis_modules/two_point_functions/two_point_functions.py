@@ -441,8 +441,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         Add up the hits to all the bins globally for all functions.
         """
         for fset in self._fsets:
-            fset.too_low = self._mpi_allsum(fset.too_low)
-            fset.too_high = self._mpi_allsum(fset.too_high)
+            fset.too_low = self._mpi_allreduce(fset.too_low, op='sum')
+            fset.too_high = self._mpi_allreduce(fset.too_high, op='sum')
             fset.binned = {}
             if self.mine == 0:
                 mylog.info("Function %s had values out of range for these fields:" % \
@@ -452,7 +452,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                     (field, fset.too_high[i], fset.too_low[i]))
             for length in self.lengths:
                 fset.length_bin_hits[length] = \
-                    self._mpi_allsum(fset.length_bin_hits[length])
+                    self._mpi_allreduce(fset.length_bin_hits[length], op='sum')
                 # Find out how many were successfully binned.
                 fset.binned[length] = fset.length_bin_hits[length].sum()
                 # Normalize the counts.
