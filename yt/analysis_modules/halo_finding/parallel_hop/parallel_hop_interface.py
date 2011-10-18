@@ -284,9 +284,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("MPI stuff.")
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_double(recv_points[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_double(recv_mass[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_real_indices[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_points[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_mass[opp_neighbor], opp_neighbor))
         # Let's wait here to be absolutely sure that all the receive buffers
         # have been created before any sending happens!
         self._barrier()
@@ -774,8 +774,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Set up the receives, but don't actually use them.
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(self._mpi_Irecv_long(temp_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_long(temp_chainIDs[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(temp_indices[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(temp_chainIDs[opp_neighbor], opp_neighbor))
         # Make sure all the receive buffers are set before continuing.
         self._barrier()
         # Send padded particles to our neighbors.
@@ -943,8 +943,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Set up the receving hooks.
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_long(recv_chainIDs[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_real_indices[opp_neighbor], opp_neighbor))
+            hooks.append(self._mpi_nonblocking_recv(recv_chainIDs[opp_neighbor], opp_neighbor))
         # Make sure the recv buffers are set before continuing.
         self._barrier()
         # Now we send them.
