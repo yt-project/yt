@@ -837,7 +837,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Now we make a global dict of how many particles each task is
         # sending.
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
-        self.global_padded_count = self._mpi_joindict(self.global_padded_count)
+        self.global_padded_count = self._par_object_combine(
+                self.global_padded_count, datatype = "dict", opt = "join")
         # Send/receive 'em.
         self._communicate_uphill_info()
         del self.global_padded_count
@@ -932,7 +933,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # but there's so many places in this that need to be globally synched
         # that it's not worth the effort right now to make this one spot better.
         global_annulus_count = {self.mine:send_count}
-        global_annulus_count = self._mpi_joindict(global_annulus_count)
+        self.global_annulus_count = self._par_combine_object(
+                self.global_annulus_count, datatype = "dict", opt = "join")
         # Set up the receiving arrays.
         recv_real_indices = dict.fromkeys(self.neighbors)
         recv_chainIDs = dict.fromkeys(self.neighbors)

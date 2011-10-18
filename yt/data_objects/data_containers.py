@@ -804,7 +804,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             self[field] = temp_data[field] 
         # We finalize
         if temp_data != {}:
-            temp_data = self._mpi_catdict(temp_data)
+            temp_data = self._par_object_combine(temp_data,
+                    datatype='dict', op='cat')
         # And set, for the next group
         for field in temp_data.keys():
             self[field] = temp_data[field]
@@ -2035,7 +2036,7 @@ class AMRProjBase(AMR2DData):
         data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
-        data = self._mpi_catdict(data)
+        data = self._par_object_combine(temp_data, datatype='dict', op='cat')
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()

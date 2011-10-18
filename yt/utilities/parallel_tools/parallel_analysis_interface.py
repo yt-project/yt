@@ -459,14 +459,6 @@ class ParallelAnalysisInterface(object):
         return None
 
     @parallel_passthrough
-    def _mpi_catdict(self, data):
-        return self._par_combine_object(data, datatype = "dict", op = "cat")
-
-    @parallel_passthrough
-    def _mpi_joindict(self, data):
-        return self._par_combine_object(data, datatype = "dict", op = "join")
-
-    @parallel_passthrough
     def _mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
@@ -615,10 +607,6 @@ class ParallelAnalysisInterface(object):
             data = MPI.COMM_WORLD.bcast(data, root=0)
             return data
         raise NotImplementedError
-
-    @parallel_passthrough
-    def _mpi_catlist(self, data):
-        return self._par_combine_object(data, datatype = "list", op = "cat")
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
