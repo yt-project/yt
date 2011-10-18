@@ -685,121 +685,6 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_joindict_unpickled_double(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                keys = na.empty(size, dtype='int64')
-                values = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)
-                MPI.COMM_WORLD.Recv([values, MPI.DOUBLE], i, 0)
-                for i,key in enumerate(keys):
-                    data[key] = values[i]
-            # Now convert root's data to arrays.
-            size = len(data)
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='float64')
-            count = 0
-            for key in data:
-                root_keys[count] = key
-                root_values[count] = data[key]
-                count += 1
-        else:
-            MPI.COMM_WORLD.send(len(data), 0, 0)
-            keys = na.empty(len(data), dtype='int64')
-            values = na.empty(len(data), dtype='float64')
-            count = 0
-            for key in data:
-                keys[count] = key
-                values[count] = data[key]
-                count += 1
-            MPI.COMM_WORLD.Send([keys, MPI.LONG], 0, 0)
-            MPI.COMM_WORLD.Send([values, MPI.DOUBLE], 0, 0)
-        # Now send it back as arrays.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del keys, values
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.DOUBLE], root=0)
-        # Convert back to a dict.
-        del data
-        data = dict(itertools.izip(root_keys, root_values))
-        return data
-
-    @parallel_passthrough
-    def _mpi_joindict_unpickled_long(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                keys = na.empty(size, dtype='int64')
-                values = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)
-                MPI.COMM_WORLD.Recv([values, MPI.LONG], i, 0)
-                for i,key in enumerate(keys):
-                    data[key] = values[i]
-            # Now convert root's data to arrays.
-            size = len(data)
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='int64')
-            count = 0
-            for key in data:
-                root_keys[count] = key
-                root_values[count] = data[key]
-                count += 1
-        else:
-            MPI.COMM_WORLD.send(len(data), 0, 0)
-            keys = na.empty(len(data), dtype='int64')
-            values = na.empty(len(data), dtype='int64')
-            count = 0
-            for key in data:
-                keys[count] = key
-                values[count] = data[key]
-                count += 1
-            MPI.COMM_WORLD.Send([keys, MPI.LONG], 0, 0)
-            MPI.COMM_WORLD.Send([values, MPI.LONG], 0, 0)
-        # Now send it back as arrays.
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            del keys, values
-            root_keys = na.empty(size, dtype='int64')
-            root_values = na.empty(size, dtype='int64')
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
-        # Convert back to a dict.
-        del data
-        data = dict(itertools.izip(root_keys,root_values))
-        return data
-
-    @parallel_passthrough
-    def _mpi_bcast_long_dict_unpickled(self, data):
-        self._barrier()
-        size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            size = len(data)
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        root_keys = na.empty(size, dtype='int64')
-        root_values = na.empty(size, dtype='int64')
-        if MPI.COMM_WORLD.rank == 0:
-            count = 0
-            for key in data:
-                root_keys[count] = key
-                root_values[count] = data[key]
-                count += 1
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
-        if MPI.COMM_WORLD.rank != 0:
-            data = {}
-            for i,key in enumerate(root_keys):
-                data[key] = root_values[i]
-        return data
-
-    @parallel_passthrough
     def _mpi_maxdict(self, data):
         """
         For each key in data, find the maximum value across all tasks, and
@@ -869,61 +754,15 @@ class ParallelAnalysisInterface(object):
                 top_keys = na.concatenate([top_keys, recv_top_keys])
                 bot_keys = na.concatenate([bot_keys, recv_bot_keys])
                 vals = na.concatenate([vals, recv_vals])
-#                 for j, top_key in enumerate(top_keys):
-#                     if j%1000 == 0: mylog.info(j)
-#                     # Make sure there's an entry for top_key in data
-#                     try:
-#                         test = data[top_key]
-#                     except KeyError:
-#                         data[top_key] = {}
-#                     try:
-#                         old_value = data[top_key][bot_keys[j]]
-#                     except KeyError:
-#                         # This guarantees the new value gets added.
-#                         old_value = None
-#                     if old_value < vals[j]:
-#                         data[top_key][bot_keys[j]] = vals[j]
         else:
-#             top_keys = []
-#             bot_keys = []
-#             vals = []
-#             for top_key in data:
-#                 for bot_key in data[top_key]:
-#                     top_keys.append(top_key)
-#                     bot_keys.append(bot_key)
-#                     vals.append(data[top_key][bot_key])
-#             top_keys = na.array(top_keys, dtype='int64')
-#             bot_keys = na.array(bot_keys, dtype='int64')
-#             vals = na.array(vals, dtype='float64')
             size = top_keys.size
             MPI.COMM_WORLD.send(size, dest=0, tag=0)
             MPI.COMM_WORLD.Send([top_keys, MPI.LONG], dest=0, tag=0)
             MPI.COMM_WORLD.Send([bot_keys, MPI.LONG], dest=0, tag=0)
             MPI.COMM_WORLD.Send([vals, MPI.DOUBLE], dest=0, tag=0)
-        # Getting ghetto here, we're going to decompose the dict into arrays,
-        # send that, and then reconstruct it. When data is too big the pickling
-        # of the dict fails.
+        # We're going to decompose the dict into arrays, send that, and then
+        # reconstruct it. When data is too big the pickling of the dict fails.
         if MPI.COMM_WORLD.rank == 0:
-#             data = defaultdict(dict)
-#             for i,top_key in enumerate(top_keys):
-#                 try:
-#                     old = data[top_key][bot_keys[i]]
-#                 except KeyError:
-#                     old = None
-#                 if old < vals[i]:
-#                     data[top_key][bot_keys[i]] = vals[i]
-#             top_keys = []
-#             bot_keys = []
-#             vals = []
-#             for top_key in data:
-#                 for bot_key in data[top_key]:
-#                     top_keys.append(top_key)
-#                     bot_keys.append(bot_key)
-#                     vals.append(data[top_key][bot_key])
-#             del data
-#             top_keys = na.array(top_keys, dtype='int64')
-#             bot_keys = na.array(bot_keys, dtype='int64')
-#             vals = na.array(vals, dtype='float64')
             size = top_keys.size
         # Broadcast them using array methods
         size = MPI.COMM_WORLD.bcast(size, root=0)
