@@ -394,7 +394,7 @@ class Communicator(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
-    def _partition_region_3d(self, left_edge, right_edge, padding=0.0,
+    def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
         """
         Given a region, it subdivides it into smaller regions for parallel
@@ -421,7 +421,7 @@ class Communicator(object):
 
         return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
-    def _partition_hierarchy_3d_bisection_list(self):
+    def partition_hierarchy_3d_bisection_list(self):
         """
         Returns an array that is used to drive _partition_hierarchy_3d_bisection,
         below.
@@ -464,7 +464,7 @@ class Communicator(object):
                 nextdim = (nextdim + 1) % 3
         return cuts
 
-    def _barrier(self):
+    def barrier(self):
         if not self._distributed: return
         mylog.debug("Opening MPI Barrier on %s", self.comm.rank)
         self.comm.Barrier()
