@@ -156,6 +156,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         >>> MergerTree(rf, database = '/home/user/sim1-halos.db',
         ... halo_finder_function=parallelHF)
         """
+        ParallelAnalysisInterface.__init__(self)
         self.restart_files = restart_files # list of enzo restart files
         self.with_halos = na.ones(len(restart_files), dtype='bool')
         self.database = database # the sqlite database of haloes.
@@ -967,6 +968,7 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
         >>> MergerTreeDotOutput(halos=182842, database='/home/user/sim1-halos.db',
         ... dotfile = 'halo-182842.gv')
         """
+        ParallelAnalysisInterface.__init__(self)
         self.database = database
         self.link_min = link_min
         if halos is None:
@@ -1113,6 +1115,7 @@ class MergerTreeTextOutput(DatabaseFunctions, ParallelAnalysisInterface):
         >>> MergerTreeTextOutput(database='/home/user/sim1-halos.db',
         ... outfile='halos-db.txt')
         """
+        ParallelAnalysisInterface.__init__(self)
         self.database = database
         self.outfile = outfile
         result = self._open_database()

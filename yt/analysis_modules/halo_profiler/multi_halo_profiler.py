@@ -164,6 +164,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         >>> hp = HP.halo_profiler("DD0242/DD0242")
         
         """
+        ParallelAnalysisInterface.__init__(self)
 
         self.dataset = dataset
         self.output_dir = output_dir
@@ -1080,6 +1081,7 @@ class FakeProfile(ParallelAnalysisInterface):
     This is used to mimic a profile object when reading profile data from disk.
     """
     def __init__(self, pf):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self._data = {}
 

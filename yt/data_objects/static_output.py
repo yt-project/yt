@@ -162,7 +162,7 @@ class StaticOutput(object):
     _instantiated_hierarchy = None
     @property
     def hierarchy(self):
-        if self._instantiated_hierarchy == None:
+        if self._instantiated_hierarchy is None:
             if self._hierarchy_class == None:
                 raise RuntimeError("You should not instantiate StaticOutput.")
             self._instantiated_hierarchy = self._hierarchy_class(

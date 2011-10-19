@@ -1387,6 +1387,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         *dm_only* is set, only run it on the dark matter particles, otherwise
         on all particles.  Returns an iterable collection of *HopGroup* items.
         """
+        ParallelAnalysisInterface.__init__(self)
         self.threshold = threshold
         self.num_neighbors = num_neighbors
         self.bounds = bounds
@@ -1606,6 +1607,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
     def __init__(self, pf, ds, dm_only=True, padding=0.0):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (na.array(ds.right_edge) + na.array(ds.left_edge))/2.0

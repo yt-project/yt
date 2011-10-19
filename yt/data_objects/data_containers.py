@@ -770,6 +770,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         Prepares the AMR2DData, normal to *axis*.  If *axis* is 4, we are not
         aligned with any axis.
         """
+        ParallelAnalysisInterface.__init__(self)
         self.axis = axis
         AMRData.__init__(self, pf, fields, **kwargs)
         self.field = ensure_list(fields)[0]
@@ -815,7 +816,6 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         # And set, for the next group
         for field in temp_data.keys():
             self[field] = temp_data[field]
-
 
     def _generate_field(self, field):
         if self.pf.field_info.has_key(field):

@@ -79,6 +79,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         :param mass_column (int): The column of halo_file that contains the
         masses of the haloes. Default=4.
         """
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self.halo_file = halo_file
         self.omega_matter0 = omega_matter0

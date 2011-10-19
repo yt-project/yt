@@ -48,6 +48,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 
     def __init__(self, pf, data_style):
+        ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
 

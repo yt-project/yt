@@ -98,6 +98,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         ... length_number=10, length_range=[1./128, .5],
         ... length_type="log")
         """
+        ParallelAnalysisInterface.__init__(self)
         try:
             fKD
         except NameError:

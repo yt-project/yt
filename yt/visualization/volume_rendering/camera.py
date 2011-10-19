@@ -180,6 +180,7 @@ class Camera(ParallelAnalysisInterface):
         >>> image = cam.snapshot(fn='my_rendering.png')
 
         """
+        ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         if not iterable(resolution):
             resolution = (resolution, resolution)

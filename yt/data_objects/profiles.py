@@ -64,6 +64,7 @@ def preserve_source_parameters(func):
 # We could, but I think we instead want to deal with the root datasource.
 class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source, lazy_reader):
+        ParallelAnalysisInterface.__init__(self)
         self._data_source = data_source
         self.pf = data_source.pf
         self.field_data = YTFieldData()

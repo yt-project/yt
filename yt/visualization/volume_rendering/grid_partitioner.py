@@ -43,6 +43,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
     def __init__(self, fields = "Density", source = None, pf = None,
                  log_fields = None, no_ghost = False):
         # Typically, initialized as hanging off a hierarchy.  But, not always.
+        ParallelAnalysisInterface.__init__(self)
         self.no_ghost = no_ghost
         if pf is not None: self.pf = pf
         if source is None: source = self.pf.h.all_data()
