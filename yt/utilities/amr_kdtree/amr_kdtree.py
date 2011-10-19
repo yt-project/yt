@@ -1178,7 +1178,7 @@ class AMRKDTree(HomogenizedVolume):
             if front.owner == my_rank:
                 if front.owner == parent.owner:
                     mylog.debug( '%04i receiving image from %04i'%(my_rank,back.owner))
-                    arr2 = self.comm._recv_array(back.owner, tag=back.owner).reshape(
+                    arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
@@ -1202,7 +1202,7 @@ class AMRKDTree(HomogenizedVolume):
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i receiving image from %04i'%(my_rank,front.owner))
-                    arr2 = self.comm._recv_array(front.owner, tag=front.owner).reshape(
+                    arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
@@ -1225,7 +1225,7 @@ class AMRKDTree(HomogenizedVolume):
         if fn is None:
             fn = '%s_kd_bricks.h5'%self.pf
         if my_rank != 0:
-            self.comm._recv_array(my_rank-1, tag=my_rank-1)
+            self.comm.recv_array(my_rank-1, tag=my_rank-1)
         f = h5py.File(fn,"a")
         for node in self.depth_traverse():
             i = node.id
@@ -1244,7 +1244,7 @@ class AMRKDTree(HomogenizedVolume):
         if fn is None:
             fn = '%s_kd_bricks.h5' % self.pf
         if my_rank != 0:
-            self.comm._recv_array(my_rank-1, tag=my_rank-1)
+            self.comm.recv_array(my_rank-1, tag=my_rank-1)
         try:
             f = h5py.File(fn,"r")
             for node in self.depth_traverse():

@@ -839,7 +839,7 @@ class Communicator(object):
         self.comm.Send([arr, MPI.CHAR], dest=dest, tag=tag)
         del tmp
 
-    def _recv_array(self, source, tag = 0):
+    def recv_array(self, source, tag = 0):
         dt, ne = self.comm.recv(source=source, tag=tag)
         if dt is None and ne is None:
             return self.comm.recv(source=source, tag=tag)
