@@ -828,7 +828,7 @@ class Communicator(object):
         return qt
 
 
-    def _send_array(self, arr, dest, tag = 0):
+    def send_array(self, arr, dest, tag = 0):
         if not isinstance(arr, na.ndarray):
             self.comm.send((None,None), dest=dest, tag=tag)
             self.comm.send(arr, dest=dest, tag=tag)
