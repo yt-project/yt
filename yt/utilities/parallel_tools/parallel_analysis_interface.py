@@ -274,6 +274,33 @@ def parallel_root_only(func):
     if parallel_capable: return root_only
     return func
 
+class ProcessorPool(object):
+    comm = None
+    size = None
+    ranks = None
+    availabel_ranks = None
+    tasks = None
+    workgroups = {}
+    def __init__(self):
+        self.comm = communication_system.communicators[-1]
+        self.size = self.comm.size
+        self.ranks = range(self.size)
+        self.available_ranks = range(self.size)
+
+    def add_workgroup(self, size=None, ranks=None):
+        if size is None:
+            size = len(self.available_ranks)
+        if len(self.available_ranks) < size:
+            print 'Not enough resources available'
+            raise RuntimeError
+        if ranks is None:
+            ranks = [self.available_ranks.pop(0) for i in range(size)]
+        group = self.comm.comm.Get_group().Incl(ranks)
+        new_comm = self.comm.comm.Create(group)
+        if self.comm.rank in ranks:
+            communication_system.communicators.append(Communicator(new_comm))
+        self.workgroups[len(ranks)] = ranks
+
 def parallel_objects(objects, njobs):
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
@@ -673,7 +700,7 @@ class ParallelAnalysisInterface(object):
     _grids = None
     _distributed = None
 
-    def __init__(self, size=1):
+    def __init__(self):
         self.comm = communication_system.communicators[-1]
         self._grids = self.comm._grids
         self._distributed = self.comm._distributed
