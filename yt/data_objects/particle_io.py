@@ -92,7 +92,6 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
             conv_factors)
         for [n, v] in zip(fields_to_read, rvs):
             self.source.field_data[n] = v
-        print self.source.field_data.keys()
 
 class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
     periodic = False
