@@ -115,6 +115,8 @@ def get_mpi_type(dtype):
     for dt, val in dtype_names.items():
         if dt == dtype: return val
 
+__tocast = 'c'
+
 class ObjectIterator(object):
     """
     This is a generalized class that accepts a list of objects and then
@@ -312,7 +314,7 @@ class ParallelAnalysisInterface(object):
 class CommunicationSystem(object):
     communicators = []
     def push(self, size=None, ranks=None):
-        if size = None:
+        if size is None:
             size = len(available_ranks)
         if len(available_ranks) < size:
             raise RuntimeError
@@ -329,14 +331,15 @@ class CommunicationSystem(object):
 
 class Communicator(object):
     comm = None
+    _grids = None
+    _distributed = None
     def __init__(self, comm=MPI.COMM_WORLD):
         self.comm = comm
+        self._distributed = self.comm.size > 1
     """
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
     """
-    _grids = None
-    _distributed = (comm.size > 1)
 
     def _partition_hierarchy_2d(self, axis):
         if not self._distributed:
@@ -598,7 +601,7 @@ class Communicator(object):
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             for key in field_keys:
                 dd = data[key]
-                rv = _alltoallv_array(dd, arr_size, offsets, sizes)
+                rv = self._alltoallv_array(dd, arr_size, offsets, sizes)
                 data[key] = rv
             return data
         elif datatype == "array" and op == "cat":
@@ -627,7 +630,7 @@ class Communicator(object):
             # concatenation.
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
-            data = _alltoallv_array(data, arr_size, offsets, sizes)
+            data = self._alltoallv_array(data, arr_size, offsets, sizes)
             return data
         elif datatype == "list" and op == "cat":
             if self.comm.rank == 0:
@@ -841,55 +844,44 @@ class Communicator(object):
             qt.frombuffer(*buf)
         return qt
 
-__tocast = 'c'
 
-def _send_array(arr, dest, tag = 0):
-    if not isinstance(arr, na.ndarray):
-        MPI.COMM_WORLD.send((None,None), dest=dest, tag=tag)
-        MPI.COMM_WORLD.send(arr, dest=dest, tag=tag)
-        return
-    tmp = arr.view(__tocast) # Cast to CHAR
-    # communicate type and shape
-    MPI.COMM_WORLD.send((arr.dtype.str, arr.shape), dest=dest, tag=tag)
-    MPI.COMM_WORLD.Send([arr, MPI.CHAR], dest=dest, tag=tag)
-    del tmp
-
-def _recv_array(source, tag = 0):
-    dt, ne = MPI.COMM_WORLD.recv(source=source, tag=tag)
-    if dt is None and ne is None:
-        return MPI.COMM_WORLD.recv(source=source, tag=tag)
-    arr = na.empty(ne, dtype=dt)
-    tmp = arr.view(__tocast)
-    MPI.COMM_WORLD.Recv([tmp, MPI.CHAR], source=source, tag=tag)
-    return arr
-
-def _bcast_array(arr, root = 0):
-    if MPI.COMM_WORLD.rank == root:
+    def _send_array(self, arr, dest, tag = 0):
+        if not isinstance(arr, na.ndarray):
+            self.comm.send((None,None), dest=dest, tag=tag)
+            self.comm.send(arr, dest=dest, tag=tag)
+            return
         tmp = arr.view(__tocast) # Cast to CHAR
-        MPI.COMM_WORLD.bcast((arr.dtype.str, arr.shape), root=root)
-    else:
-        dt, ne = MPI.COMM_WORLD.bcast(None, root=root)
+        # communicate type and shape
+        self.comm.send((arr.dtype.str, arr.shape), dest=dest, tag=tag)
+        self.comm.Send([arr, MPI.CHAR], dest=dest, tag=tag)
+        del tmp
+
+    def _recv_array(self, source, tag = 0):
+        dt, ne = self.comm.recv(source=source, tag=tag)
+        if dt is None and ne is None:
+            return self.comm.recv(source=source, tag=tag)
         arr = na.empty(ne, dtype=dt)
         tmp = arr.view(__tocast)
-    MPI.COMM_WORLD.Bcast([tmp, MPI.CHAR], root=root)
-    return arr
+        self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
+        return arr
 
-def _alltoallv_array(send, total_size, offsets, sizes):
-    if len(send.shape) > 1:
-        recv = []
-        for i in range(send.shape[0]):
-            recv.append(_alltoallv_array(send[i,:].copy(), total_size, offsets, sizes))
-        recv = na.array(recv)
+    def _alltoallv_array(self, send, total_size, offsets, sizes):
+        if len(send.shape) > 1:
+            recv = []
+            for i in range(send.shape[0]):
+                recv.append(self._alltoallv_array(send[i,:].copy(), 
+                                                  total_size, offsets, sizes))
+            recv = na.array(recv)
+            return recv
+        offset = offsets[self.comm.rank]
+        tmp_send = send.view(__tocast)
+        recv = na.empty(total_size, dtype=send.dtype)
+        recv[offset:offset+send.size] = send[:]
+        dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
+        roff = [off * dtr for off in offsets]
+        rsize = [siz * dtr for siz in sizes]
+        tmp_recv = recv.view(__tocast)
+        self.comm.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
+                                  (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
-    offset = offsets[MPI.COMM_WORLD.rank]
-    tmp_send = send.view(__tocast)
-    recv = na.empty(total_size, dtype=send.dtype)
-    recv[offset:offset+send.size] = send[:]
-    dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
-    roff = [off * dtr for off in offsets]
-    rsize = [siz * dtr for siz in sizes]
-    tmp_recv = recv.view(__tocast)
-    MPI.COMM_WORLD.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
-                              (tmp_recv, (rsize, roff), MPI.CHAR))
-    return recv
     
