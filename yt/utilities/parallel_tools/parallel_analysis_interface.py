@@ -748,7 +748,7 @@ class Communicator(object):
         else:
             return cStringIO.StringIO()
 
-    def _get_filename(self, prefix, rank=None):
+    def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
         if rank == None:
             return "%s_%04i" % (prefix, self.comm.rank)
