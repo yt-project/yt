@@ -24,9 +24,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import h5py
-import numpy as na
-import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
@@ -36,7 +33,6 @@ from yt.data_objects.static_output import \
            StaticOutput
 
 from .fields import GDFFieldContainer
-import pdb
 
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
@@ -62,16 +58,14 @@ class GDFGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        # pdb.set_trace()
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
 class GDFHierarchy(AMRHierarchy):
 
     grid = GDFGrid
-
+    
     def __init__(self, pf, data_style='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
@@ -84,39 +78,46 @@ class GDFHierarchy(AMRHierarchy):
         pass
 
     def _detect_fields(self):
-        self.field_list = self._fhandle['field_types'].keys()
-
+        ncomp = int(self._fhandle['/'].attrs['num_components'])
+        self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
+    
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):
-        self.num_grids = self._fhandle['/grid_parent_id'].shape[0]
-
+        self.num_grids = 0
+        for lev in self._levels:
+            self.num_grids += self._fhandle[lev]['Processors'].len()
+        
     def _parse_hierarchy(self):
         f = self._fhandle # shortcut
-
+        
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
         levels = f.listnames()[1:]
         self.grids = []
-        for i, grid in enumerate(f['data'].keys()):
-            self.grids.append(self.grid(i, self, f['grid_level'][i],
-                                        f['grid_left_index'][i],
-                                        f['grid_dimensions'][i]))
-            self.grids[-1]._level_id = f['grid_level'][i]
-
-        dx = (self.parameter_file.domain_right_edge-
-              self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-        dx = dx/self.parameter_file.refine_by**(f['grid_level'][:])
-
-        self.grid_left_edge = self.parameter_file.domain_left_edge + dx*f['grid_left_index'][:]
-        self.grid_dimensions = f['grid_dimensions'][:]
-        self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
-        self.grid_particle_count = f['grid_particle_count'][:]
-        self.grids = na.array(self.grids, dtype='object')
-        # pdb.set_trace()
+        i = 0
+        for lev in levels:
+            level_number = int(re.match('level_(\d+)',lev).groups()[0])
+            boxes = f[lev]['boxes'].value
+            dx = f[lev].attrs['dx']
+            for level_id, box in enumerate(boxes):
+                si = na.array([box['lo_%s' % ax] for ax in 'ijk'])
+                ei = na.array([box['hi_%s' % ax] for ax in 'ijk'])
+                pg = self.grid(len(self.grids),self,level=level_number,
+                               start = si, stop = ei)
+                self.grids.append(pg)
+                self.grids[-1]._level_id = level_id
+                self.grid_left_edge[i] = dx*si.astype(self.float_type)
+                self.grid_right_edge[i] = dx*(ei.astype(self.float_type) + 1)
+                self.grid_particle_count[i] = 0
+                self.grid_dimensions[i] = ei - si + 1
+                i += 1
+        temp_grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(self.grids): temp_grids[gi] = g
+        self.grids = temp_grids
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -144,14 +145,16 @@ class GDFHierarchy(AMRHierarchy):
 class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
     _fieldinfo_class = GDFFieldContainer
-
+    
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
+        self._handle = h5py.File(self.filename, "r")
         self.storage_filename = storage_filename
-        self.filename = filename
         self.field_info = self._fieldinfo_class()
-
+        self._handle.close()
+        del self._handle
+        
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
@@ -162,25 +165,21 @@ class GDFStaticOutput(StaticOutput):
             self._parse_parameter_file()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_right_edge).max()
         seconds = 1
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
         # This should be improved.
-        self._handle = h5py.File(self.parameter_filename, "r")
         for field_name in self._handle["/field_types"]:
-            self.units[field_name] = self._handle["/field_types/%s" % field_name].attrs['field_to_cgs']
-        del self._handle
+            self.units[field_name] = self._handle["/%s/field_to_cgs" % field_name]
 
     def _parse_parameter_file(self):
-        self._handle = h5py.File(self.parameter_filename, "r")
         sp = self._handle["/simulation_parameters"].attrs
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
-        self.domain_dimensions = sp["domain_dimensions"][:]
-        self.refine_by = sp["refine_by"]
-        self.dimensionality = sp["dimensionality"]
-        self.current_time = sp["current_time"]
+        self.refine_by = sp["refine_by"][:]
+        self.dimensionality = sp["dimensionality"][:]
+        self.current_time = sp["current_time"][:]
         self.unique_identifier = sp["unique_identifier"]
         self.cosmological_simulation = sp["cosmological_simulation"]
         if sp["num_ghost_zones"] != 0: raise RuntimeError
@@ -194,8 +193,7 @@ class GDFStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
-        del self._handle
-
+        
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
@@ -206,6 +204,4 @@ class GDFStaticOutput(StaticOutput):
             pass
         return False
 
-    def __repr__(self):
-        return self.basename.rsplit(".", 1)[0]
 

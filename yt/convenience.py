@@ -32,7 +32,8 @@ from functools import wraps
 from yt.funcs import *
 from yt.config import ytcfg
 from yt.utilities.parameter_file_storage import \
-    output_type_registry
+    output_type_registry, \
+    EnzoRunDatabase
 
 def all_pfs(basedir='.', skip=None, max_depth=1, name_spec="*.hierarchy", **kwargs):
     """
@@ -91,6 +92,15 @@ def load(*args ,**kwargs):
     if len(candidates) == 1:
         return output_type_registry[candidates[0]](*args, **kwargs)
     if len(candidates) == 0:
+        if ytcfg.get("yt", "enzo_db") != '' \
+           and len(args) == 1 \
+           and isinstance(args[0], types.StringTypes):
+            erdb = EnzoRunDatabase()
+            fn = erdb.find_uuid(args[0])
+            n = "EnzoStaticOutput"
+            if n in output_type_registry \
+               and output_type_registry[n]._is_valid(fn):
+                return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
         return None
     mylog.error("Multiple output type candidates for %s:", args[0])
