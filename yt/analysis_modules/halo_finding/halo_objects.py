@@ -1028,19 +1028,14 @@ class HaloList(object):
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            if ytcfg.getboolean("yt","inline") == False:
-                tot_part = self._data_source[field].size
-                if field == "particle_index":
-                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
-                else:
-                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
+            tot_part = self._data_source[field].size
+            if field == "particle_index":
+                self.particle_fields[field] = self._data_source[field][ii].astype('int64')
             else:
-                tot_part = self._data_source[field].size
-                if field == "particle_index":
-                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
-                else:
-                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
+                self.particle_fields[field] = self._data_source[field][ii].astype('float64')
+            del self._data_source[field]
         self._base_indices = na.arange(tot_part)[ii]
+        gc.collect()
 
     def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
@@ -1412,13 +1407,18 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
             exit = True
         self._mpi_exit_test(exit)
+        # Try to do this in a memory conservative way.
+        na.divide(self.particle_fields['ParticleMassMsun'], self.total_mass,
+            self.particle_fields['ParticleMassMsun'])
+        na.divide(self.particle_fields["particle_position_x"],
+            self.old_period[0], self.particle_fields["particle_position_x"])
+        na.divide(self.particle_fields["particle_position_y"],
+            self.old_period[1], self.particle_fields["particle_position_y"])
+        na.divide(self.particle_fields["particle_position_z"],
+            self.old_period[2], self.particle_fields["particle_position_z"])
         obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
-            self.particle_fields["particle_position_x"] / self.old_period[0],
-            self.particle_fields["particle_position_y"] / self.old_period[1],
-            self.particle_fields["particle_position_z"] / self.old_period[2],
-            self.particle_fields["particle_index"],
-            self.particle_fields["ParticleMassMsun"]/self.total_mass,
+            self.particle_fields,
             self.threshold, rearrange=self.rearrange, premerge=self.premerge)
         self.densities, self.tags = obj.density, obj.chainID
         # I'm going to go ahead and delete self.densities because it's not
@@ -1445,15 +1445,12 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
         yt_counters("bulk vel. reading data")
-        pm = self.particle_fields["ParticleMassMsun"]
-        if ytcfg.getboolean("yt","inline") == False:
-            xv = self._data_source["particle_velocity_x"][self._base_indices]
-            yv = self._data_source["particle_velocity_y"][self._base_indices]
-            zv = self._data_source["particle_velocity_z"][self._base_indices]
-        else:
-            xv = self._data_source["particle_velocity_x"][self._base_indices]
-            yv = self._data_source["particle_velocity_y"][self._base_indices]
-            zv = self._data_source["particle_velocity_z"][self._base_indices]
+        pm = obj.mass
+        # Fix this back to un-normalized units.
+        na.multiply(pm, self.total_mass, pm)
+        xv = self._data_source["particle_velocity_x"][self._base_indices]
+        yv = self._data_source["particle_velocity_y"][self._base_indices]
+        zv = self._data_source["particle_velocity_z"][self._base_indices]
         yt_counters("bulk vel. reading data")
         yt_counters("bulk vel. computing")
         select = (self.tags >= 0)
@@ -1513,6 +1510,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.
         del obj
+        gc.collect()
         yt_counters("Precomp bulk vel.")
 
     def _parse_output(self):
@@ -1891,10 +1889,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         if num_particles is None:
-            if ytcfg.getboolean("yt","inline") == False:
-                data = self._data_source["particle_position_x"]
-            else:
-                data = self._data_source["particle_position_x"]
+            data = self._data_source["particle_position_x"]
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
@@ -1956,10 +1951,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
         if total_mass is None:
-            if ytcfg.getboolean("yt","inline") == False:
-                total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
-            else:
-                total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
+            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         # If we're using a subvolume, we now re-divide.
