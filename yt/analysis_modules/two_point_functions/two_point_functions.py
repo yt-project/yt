@@ -622,7 +622,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         >>> tpf.write_out_means()
         """
         for fset in self._fsets:
-            fp = self._write_on_root(fn % fset.function.__name__)
+            fp = self.comm.write_on_root(fn % fset.function.__name__)
             fset._avg_bin_hits()
             line = "# length".ljust(sep)
             line += "count".ljust(sep)
@@ -690,7 +690,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         for fset in self._fsets:
             # Only operate on correlation functions.
             if fset.corr_norm == None: continue
-            fp = self._write_on_root("%s_correlation.txt" % fset.function.__name__)
+            fp = self.comm.write_on_root("%s_correlation.txt" % fset.function.__name__)
             line = "# length".ljust(sep)
             line += "\\xi".ljust(sep)
             fp.write(line + "\n")

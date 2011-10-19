@@ -471,7 +471,7 @@ class Communicator(object):
 
     def mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
-        mine, statuses = self._mpi_info_dict(data)
+        mine, statuses = self.comm.mpi_info_dict(data)
         if True in statuses.values():
             raise RuntimeError("Fatal error. Exiting.")
         return None
@@ -705,7 +705,7 @@ class Communicator(object):
         if not self._distributed: return 0
         return self.comm.rank
 
-    def _mpi_info_dict(self, info):
+    def mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
         self.comm.barrier()
         data = None
@@ -720,24 +720,24 @@ class Communicator(object):
         self.comm.barrier()
         return self.comm.rank, data
 
-    def _get_dependencies(self, fields):
+    def get_dependencies(self, fields):
         deps = []
         fi = self.pf.field_info
         for field in fields:
             deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
         return list(set(deps))
 
-    def _claim_object(self, obj):
+    def claim_object(self, obj):
         if not self._distributed: return
         obj._owner = self.comm.rank
         obj._distributed = True
 
-    def _do_not_claim_object(self, obj):
+    def do_not_claim_object(self, obj):
         if not self._distributed: return
         obj._owner = -1
         obj._distributed = True
 
-    def _write_on_root(self, fn):
+    def write_on_root(self, fn):
         if not self._distributed: return open(fn, "w")
         if self.comm.rank == 0:
             return open(fn, "w")

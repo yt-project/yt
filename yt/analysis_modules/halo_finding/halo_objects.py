@@ -1548,7 +1548,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                     bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
                     rms_vel=self.rms_vel[index])
                 # I don't own this halo
-                self._do_not_claim_object(self._groups[index])
+                self.comm.do_not_claim_object(self._groups[index])
                 self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                     self.max_dens_point[index][2], self.max_dens_point[index][3]]
                 index += 1
@@ -1561,7 +1561,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index],
                 rms_vel=self.rms_vel[i])
             # This halo may be owned by many, including this task
-            self._claim_object(self._groups[index])
+            self.comm.claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[i][0], self.max_dens_point[i][1], \
                 self.max_dens_point[i][2], self.max_dens_point[i][3]]
             cp += counts[i+1]
@@ -1574,7 +1574,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
                 bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
                 rms_vel=self.rms_vel[index])
-            self._do_not_claim_object(self._groups[index])
+            self.comm.do_not_claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
@@ -1627,7 +1627,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                 max_dens[hi] = [max_dens_temp] + list(self._max_dens[halo.id])[1:4]
                 groups.append(self._halo_class(self, hi))
                 groups[-1].indices = halo.indices
-                self._claim_object(groups[-1])
+                self.comm.claim_object(groups[-1])
                 hi += 1
         del self._groups, self._max_dens # explicit >> implicit
         self._groups = groups
@@ -1640,7 +1640,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         # about processors and ownership and so forth.
         # _mpi_info_dict returns a dict of {proc: whatever} where whatever is
         # what is fed in on each proc.
-        mine, halo_info = self._mpi_info_dict(len(self))
+        mine, halo_info = self.comm.mpi_info_dict(len(self))
         nhalos = sum(halo_info.values())
         # Figure out our offset
         my_first_id = sum([v for k,v in halo_info.items() if k < mine])
@@ -1703,7 +1703,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
-        f = self._write_on_root(filename)
+        f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f)
 
     def write_particle_lists_txt(self, prefix):
@@ -1722,7 +1722,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
-        f = self._write_on_root("%s.txt" % prefix)
+        f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
     @parallel_blocking_call
@@ -1980,7 +1980,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         self._data_source.clear_data()
         del uni
         # Collect them on the root task.
-        mine, sizes = self._mpi_info_dict(n_random)
+        mine, sizes = self.comm.mpi_info_dict(n_random)
         if mine == 0:
             tot_random = sum(sizes.values())
             root_points = na.empty((tot_random, 3), dtype='float64')

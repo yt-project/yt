@@ -75,7 +75,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         tasks are our geometric neighbors.
         """
         self.neighbors = set([])
-        self.mine, global_bounds = self._mpi_info_dict(self.bounds)
+        self.mine, global_bounds = self.comm.mpi_info_dict(self.bounds)
         my_LE, my_RE = self.bounds
         # Put the vertices into a big list, each row is
         # array[x,y,z, taskID]
@@ -199,7 +199,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # lists us as their neighbor, we add them as our neighbor. This is 
         # probably not needed because the stuff above should be symmetric,
         # but it isn't a big issue.
-        self.mine, global_neighbors = self._mpi_info_dict(self.neighbors)
+        self.mine, global_neighbors = self.comm.mpi_info_dict(self.neighbors)
         for taskID in global_neighbors:
             if taskID == self.mine: continue
             if self.mine in global_neighbors[taskID]:
@@ -216,7 +216,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         if round == 'first':
             max_pad = na.max(self.padding)
-            self.mine, self.global_padding = self._mpi_info_dict(max_pad)
+            self.mine, self.global_padding = self.comm.mpi_info_dict(max_pad)
             self.max_padding = max(self.global_padding.itervalues())
         elif round == 'second':
             self.max_padding = 0.
@@ -235,7 +235,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         temp_LE = LE - LE_padding
         temp_RE = RE + RE_padding
         expanded_bounds = (temp_LE, temp_RE)
-        self.mine, global_exp_bounds = self._mpi_info_dict(expanded_bounds)
+        self.mine, global_exp_bounds = self.comm.mpi_info_dict(expanded_bounds)
         send_real_indices = {}
         send_points = {}
         send_mass = {}
@@ -266,7 +266,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         del points, shift_points, mass, real_indices
         yt_counters("Picking padding data to send.")
         # Communicate the sizes to send.
-        self.mine, global_send_count = self._mpi_info_dict(send_size)
+        self.mine, global_send_count = self.comm.mpi_info_dict(send_size)
         del send_size
         # Initialize the arrays to receive data.
         yt_counters("Initalizing recv arrays.")
@@ -665,7 +665,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         yt_counters("globally_assign_chainIDs")
         # First find out the number of chains on each processor.
-        self.mine, chain_info = self._mpi_info_dict(chain_count)
+        self.mine, chain_info = self.comm.mpi_info_dict(chain_count)
         self.nchains = sum(chain_info.values())
         # Figure out our offset.
         self.my_first_id = sum([v for k,v in chain_info.iteritems() if k < self.mine])
@@ -1483,7 +1483,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self.density = self.density[:self.real_size]
         # We'll make this a global object, which can be used to write a text
         # file giving the names of hdf5 files the particles for each halo.
-        self.mine, self.I_own = self._mpi_info_dict(self.I_own)
+        self.mine, self.I_own = self.comm.mpi_info_dict(self.I_own)
         self.halo_taskmap = defaultdict(set)
         for taskID in self.I_own:
             for groupID in self.I_own[taskID]:

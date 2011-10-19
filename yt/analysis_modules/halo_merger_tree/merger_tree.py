@@ -306,7 +306,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 file = open(self.database)
             hash = md5.md5(file.read()).hexdigest()
             file.close()
-            ignore, hashes = self._mpi_info_dict(hash)
+            ignore, hashes = self.comm.mpi_info_dict(hash)
             hashes = set(hashes.values())
             if len(hashes) == 1:
                 break
