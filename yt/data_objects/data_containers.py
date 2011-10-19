@@ -1627,7 +1627,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             mylog.debug("End of projecting level level %s, memory usage %0.3e", 
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
-        tree = self.merge_quadtree_buffers(tree)
+        tree = self.comm.merge_quadtree_buffers(tree)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
