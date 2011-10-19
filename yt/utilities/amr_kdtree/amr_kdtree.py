@@ -770,7 +770,7 @@ class AMRKDTree(HomogenizedVolume):
         if self.tree_dict[0].split_pos is None:
             self.tree_dict.pop(0)
     def merge_trees(self):
-        self.tree_dict = self._par_combine_object(self.tree_dict,
+        self.tree_dict = self.comm.par_combine_object(self.tree_dict,
                             datatype = "dict", op = "join")
 
     def rebuild_references(self):

@@ -100,7 +100,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                                       " not yet supported")
         if self.bricks is not None and source is None: return
         bricks = []
-        self._preload(self.source._grids, self.fields, self.pf.h.io)
+        self.comm.preload(self.source._grids, self.fields, self.pf.h.io)
         pbar = get_pbar("Partitioning ", len(self.source._grids))
         for i, g in enumerate(self.source._grids):
             pbar.update(i)

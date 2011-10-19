@@ -469,14 +469,14 @@ class Communicator(object):
         mylog.debug("Opening MPI Barrier on %s", self.comm.rank)
         self.comm.Barrier()
 
-    def _mpi_exit_test(self, data=False):
+    def mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
         mine, statuses = self._mpi_info_dict(data)
         if True in statuses.values():
             raise RuntimeError("Fatal error. Exiting.")
         return None
 
-    def _mpi_maxdict_dict(self, data):
+    def mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
         specificaly for a part of chainHOP.
@@ -544,7 +544,7 @@ class Communicator(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def _par_combine_object(self, data, op, datatype = None):
+    def par_combine_object(self, data, op, datatype = None):
         # op can be chosen from:
         #   cat
         #   join
@@ -626,15 +626,11 @@ class Communicator(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def _mpi_bcast_pickled(self, data):
+    def mpi_bcast_pickled(self, data):
         data = self.comm.bcast(data, root=0)
         return data
 
-    def _should_i_write(self):
-        if not self._distributed: return True
-        return (self.comm == 0)
-
-    def _preload(self, grids, fields, io_handler):
+    def preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
         mylog.debug("Preloading %s from %s grids", fields, len(grids))

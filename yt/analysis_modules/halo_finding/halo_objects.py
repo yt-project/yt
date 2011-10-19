@@ -1412,7 +1412,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self.particle_fields["particle_index"].size:
             mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
             exit = True
-        self._mpi_exit_test(exit)
+        self.comm.mpi_exit_test(exit)
         obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"] / self.old_period[0],
@@ -1864,7 +1864,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self.bucket_bounds = []
             if self.comm.rank == 0:
                 self._recursive_divide(root_points, topbounds, 0, cut_list)
-            self.bucket_bounds = self._mpi_bcast_pickled(self.bucket_bounds)
+            self.bucket_bounds = self.comm.mpi_bcast_pickled(self.bucket_bounds)
             my_bounds = self.bucket_bounds[self.comm.rank]
             LE, RE = my_bounds[0], my_bounds[1]
             self._data_source = self.hierarchy.region_strict([0.]*3, LE, RE)
@@ -1988,7 +1988,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         else:
             root_points = na.empty([])
         my_points.shape = (1, n_random*3)
-        root_points = self._par_combine_object(my_points[0],
+        root_points = self.comm.par_combine_object(my_points[0],
                 datatype="array", op="cat")
         del my_points
         if mine == 0:

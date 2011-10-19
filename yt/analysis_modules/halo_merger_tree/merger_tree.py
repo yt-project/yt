@@ -549,15 +549,15 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         child_IDs_tosend = child_IDs[child_send]
         child_halos_tosend = child_halos[child_send]
         
-        parent_IDs_tosend = self._par_combine_object(parent_IDs_tosend,
+        parent_IDs_tosend = self.comm.par_combine_object(parent_IDs_tosend,
                 datatype="array", op="cat")
-        parent_masses_tosend = self._par_combine_object(parent_masses_tosend,
+        parent_masses_tosend = self.comm.par_combine_object(parent_masses_tosend,
                 datatype="array", op="cat")
-        parent_halos_tosend = self._par_combine_object(parent_halos_tosend,
+        parent_halos_tosend = self.comm.par_combine_object(parent_halos_tosend,
                 datatype="array", op="cat")
-        child_IDs_tosend = self._par_combine_object(child_IDs_tosend,
+        child_IDs_tosend = self.comm.par_combine_object(child_IDs_tosend,
                 datatype="array", op="cat")
-        child_halos_tosend = self._par_combine_object(child_halos_tosend,
+        child_halos_tosend = self.comm.par_combine_object(child_halos_tosend,
                 datatype="array", op="cat")
 
         # Resort the received particles.

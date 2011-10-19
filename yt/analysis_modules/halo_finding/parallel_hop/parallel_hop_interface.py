@@ -684,9 +684,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Shift the values over effectively by concatenating them in the same
         # order as the values have been shifted in _globally_assign_chainIDs()
         yt_counters("global chain MPI stuff.")
-        self.densest_in_chain = self._par_combine_object(self.densest_in_chain,
+        self.densest_in_chain = self.comm.par_combine_object(self.densest_in_chain,
                 datatype="array", op="cat")
-        self.densest_in_chain_real_index = self._par_combine_object(
+        self.densest_in_chain_real_index = self.comm.par_combine_object(
                 self.densest_in_chain_real_index,
                 datatype="array", op="cat")
         yt_counters("global chain MPI stuff.")
@@ -841,7 +841,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Now we make a global dict of how many particles each task is
         # sending.
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
-        self.global_padded_count = self._par_combine_object(
+        self.global_padded_count = self.comm.par_combine_object(
                 self.global_padded_count, datatype = "dict", op = "join")
         # Send/receive 'em.
         self._communicate_uphill_info()
@@ -937,7 +937,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # but there's so many places in this that need to be globally synched
         # that it's not worth the effort right now to make this one spot better.
         global_annulus_count = {self.mine:send_count}
-        global_annulus_count = self._par_combine_object(
+        global_annulus_count = self.comm.par_combine_object(
                 global_annulus_count, datatype = "dict", op = "join")
         # Set up the receiving arrays.
         recv_real_indices = dict.fromkeys(self.neighbors)
@@ -1067,7 +1067,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         yt_counters("make_global_chain_densest_n")
         (self.top_keys, self.bot_keys, self.vals) = \
-            self._mpi_maxdict_dict(self.chain_densest_n)
+            self.comm.mpi_maxdict_dict(self.chain_densest_n)
         self.__max_memory()
         del self.chain_densest_n
         yt_counters("make_global_chain_densest_n")

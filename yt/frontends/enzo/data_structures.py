@@ -401,7 +401,7 @@ class EnzoHierarchy(AMRHierarchy):
                     field_list = field_list.union(gf)
         else:
             field_list = None
-        field_list = self._mpi_bcast_pickled(field_list)
+        field_list = self.comm.mpi_bcast_pickled(field_list)
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
