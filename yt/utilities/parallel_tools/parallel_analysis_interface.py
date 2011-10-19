@@ -638,7 +638,7 @@ class Communicator(object):
         io_handler.preload(grids, fields)
 
     @parallel_passthrough
-    def _mpi_allreduce(self, data, dtype=None, op='sum'):
+    def mpi_allreduce(self, data, dtype=None, op='sum'):
         op = op_names[op]
         if isinstance(data, na.ndarray) and data.dtype != na.bool:
             if dtype is None:
@@ -658,28 +658,28 @@ class Communicator(object):
     # Non-blocking stuff.
     ###
 
-    def _mpi_nonblocking_recv(self, data, source, tag=0, dtype=None):
+    def mpi_nonblocking_recv(self, data, source, tag=0, dtype=None):
         if not self._distributed: return -1
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
         return self.comm.Irecv([data, mpi_type], source, tag)
 
-    def _mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
+    def mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
         if not self._distributed: return -1
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
         return self.comm.Isend([data, mpi_type], dest, tag)
 
-    def _mpi_Request_Waitall(self, hooks):
+    def mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
         MPI.Request.Waitall(hooks)
 
-    def _mpi_Request_Waititer(self, hooks):
+    def mpi_Request_Waititer(self, hooks):
         for i in xrange(len(hooks)):
             req = MPI.Request.Waitany(hooks)
             yield req
 
-    def _mpi_Request_Testall(self, hooks):
+    def mpi_Request_Testall(self, hooks):
         """
         This returns False if any of the request hooks are un-finished,
         and True if they are all finished.

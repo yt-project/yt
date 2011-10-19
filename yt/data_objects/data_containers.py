@@ -1441,7 +1441,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             self[field] = na.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
-            self[field] = self._mpi_allreduce(\
+            self[field] = self.comm.mpi_allreduce(\
                 self[field], op='sum').reshape([self.dims]*2).transpose()
 
     def interpolate_discretize(self, *args, **kwargs):
@@ -2230,7 +2230,7 @@ class AMRFixedResProjectionBase(AMR2DData):
             self._get_data_from_grid(grid, fields_to_get, dls)
         mylog.info("IO completed; summing")
         for field in fields_to_get:
-            self[field] = self._mpi_allreduce(self[field], op='sum')
+            self[field] = self.comm.mpi_allreduce(self[field], op='sum')
             conv = self.pf.units[self.pf.field_info[field].projection_conversion]
             self[field] *= conv
 
