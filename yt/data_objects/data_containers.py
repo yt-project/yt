@@ -1841,7 +1841,7 @@ class AMRProjBase(AMR2DData):
 
     def _initialize_source(self, source = None):
         if source is None:
-            check, source = self._partition_hierarchy_2d(self.axis)
+            check, source = self.comm.partition_hierarchy_2d(self.axis)
             self._check_region = check
             #self._okay_to_serialize = (not check)
         else:

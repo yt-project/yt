@@ -324,7 +324,7 @@ class Communicator(object):
     functions for analyzing something in parallel.
     """
 
-    def _partition_hierarchy_2d(self, axis):
+    def partition_hierarchy_2d(self, axis):
         if not self._distributed:
            return False, self.hierarchy.grid_collection(self.center, 
                                                         self.hierarchy.grids)
