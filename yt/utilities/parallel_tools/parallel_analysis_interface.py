@@ -309,6 +309,18 @@ class ParallelAnalysisInterface(object):
     def _finalize_parallel(self):
         pass
 
+def parallel_objects(objects, njobs):
+    my_communicator = communication_system.communicators[-1]
+    my_size = my_communicator._par_size
+    my_rank = my_communicator._par_rank
+    all_new_comms = na.arange(my_size)
+    my_new_id = int(my_rank / njobs)
+    communication_system.push_with_ids(all_new_comms[my_new_id])
+
+    for obj in objects[my_new_id::njobs]:
+        yield obj
+    communication_system.communicators.pop()
+
 class CommunicationSystem(object):
     communicators = []
     def push(self, size=None, ranks=None):
@@ -323,7 +335,13 @@ class CommunicationSystem(object):
         new_comm = MPI.COMM_WORLD.Create(group)
         self.communicators.append(Communicator(new_comm))
         return new_comm
-        
+
+    def push_with_ids(self, ids):
+        group = self.communicators[-1].comm.Group.Incl(ids)
+        new_comm = self.communicators[-1].comm.Create(group)
+        self.communicators.append(Communicator(new_comm))
+        return new_comm
+
     def pop(self):
         self.communicators.pop()
 
