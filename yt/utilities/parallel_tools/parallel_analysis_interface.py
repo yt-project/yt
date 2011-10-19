@@ -348,7 +348,7 @@ class CommunicationSystem(object):
         self.communicators.pop()
 
 communication_system = CommunicationSystem()
-if parallel_enabled:
+if parallel_capable:
     communication_system.communicators.append(MPI.COMM_WORLD)
 
 class Communicator(object):
