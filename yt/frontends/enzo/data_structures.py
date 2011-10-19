@@ -384,7 +384,7 @@ class EnzoHierarchy(AMRHierarchy):
     def _detect_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
-        if self._par_rank == 0 or self._par_rank == None:
+        if self.comm.rank == 0 or self._par_rank == None:
             field_list = self.get_data("/", "DataFields")
             if field_list is None:
                 mylog.info("Gathering a field list (this may take a moment.)")
@@ -589,7 +589,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self.derived_field_list = self.__class__._cached_derived_field_list
 
     def _generate_random_grids(self):
-        my_rank = self._par_rank
+        my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
         if len(my_grids) > 40:
             starter = na.random.randint(0, 20)

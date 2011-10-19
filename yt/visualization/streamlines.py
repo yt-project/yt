@@ -125,8 +125,8 @@ class Streamlines(ParallelAnalysisInterface):
             self.magnitudes = na.zeros((self.N,self.steps), dtype='float64')
         
     def integrate_through_volume(self):
-        nprocs = self._par_size
-        my_rank = self._par_rank
+        nprocs = self.comm.size
+        my_rank = self.comm.rank
         self.streamlines[my_rank::nprocs,0,:] = self.start_positions[my_rank::nprocs]
 
         pbar = get_pbar("Streamlining", self.N)
