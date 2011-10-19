@@ -1077,21 +1077,6 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         Similar to above, but finds maximums for dicts of dicts. This is
         specificaly for a part of chainHOP.
         """
-        if not self._distributed:
-            top_keys = []
-            bot_keys = []
-            vals = []
-            for top_key in data:
-                for bot_key in data[top_key]:
-                    top_keys.append(top_key)
-                    bot_keys.append(bot_key)
-                    vals.append(data[top_key][bot_key])
-            top_keys = na.array(top_keys, dtype='int64')
-            bot_keys = na.array(bot_keys, dtype='int64')
-            vals = na.array(vals, dtype='float64')
-            return (top_keys, bot_keys, vals)
-        self.comm.barrier()
-        size = 0
         top_keys = []
         bot_keys = []
         vals = []
@@ -1103,40 +1088,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         top_keys = na.array(top_keys, dtype='int64')
         bot_keys = na.array(bot_keys, dtype='int64')
         vals = na.array(vals, dtype='float64')
-        del data
-        if self.comm.rank == 0:
-            for i in range(1,self.comm.size):
-                size = self.comm.recv(source=i, tag=0)
-                mylog.info('Global Hash Table Merge %d of %d size %d' % \
-                    (i,self.comm.size, size))
-                recv_top_keys = na.empty(size, dtype='int64')
-                recv_bot_keys = na.empty(size, dtype='int64')
-                recv_vals = na.empty(size, dtype='float64')
-                self.comm.Recv([recv_top_keys, MPI.LONG], source=i, tag=0)
-                self.comm.Recv([recv_bot_keys, MPI.LONG], source=i, tag=0)
-                self.comm.Recv([recv_vals, MPI.DOUBLE], source=i, tag=0)
-                top_keys = na.concatenate([top_keys, recv_top_keys])
-                bot_keys = na.concatenate([bot_keys, recv_bot_keys])
-                vals = na.concatenate([vals, recv_vals])
-        else:
-            size = top_keys.size
-            self.comm.send(size, dest=0, tag=0)
-            self.comm.Send([top_keys, MPI.LONG], dest=0, tag=0)
-            self.comm.Send([bot_keys, MPI.LONG], dest=0, tag=0)
-            self.comm.Send([vals, MPI.DOUBLE], dest=0, tag=0)
-        # We're going to decompose the dict into arrays, send that, and then
-        # reconstruct it. When data is too big the pickling of the dict fails.
-        if self.comm.rank == 0:
-            size = top_keys.size
-        # Broadcast them using array methods
-        size = self.comm.bcast(size, root=0)
-        if self.comm.rank != 0:
-            top_keys = na.empty(size, dtype='int64')
-            bot_keys = na.empty(size, dtype='int64')
-            vals = na.empty(size, dtype='float64')
-        self.comm.Bcast([top_keys,MPI.LONG], root=0)
-        self.comm.Bcast([bot_keys,MPI.LONG], root=0)
-        self.comm.Bcast([vals, MPI.DOUBLE], root=0)
+
+        data.clear()
+
+        top_keys = self.comm.par_combine_object(top_keys, datatype='array', op='cat')
+        bot_keys = self.comm.par_combine_object(bot_keys, datatype='array', op='cat')
+        vals     = self.comm.par_combine_object(vals, datatype='array', op='cat')
+
         return (top_keys, bot_keys, vals)
 
     def _build_groups(self):
