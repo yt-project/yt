@@ -1192,13 +1192,13 @@ class AMRKDTree(HomogenizedVolume):
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i sending my image to %04i'%(my_rank,back.owner))
-                    self.comm._send_array(self.image.ravel(), back.owner, tag=my_rank)
+                    self.comm.send_array(self.image.ravel(), back.owner, tag=my_rank)
 
                 
             if back.owner == my_rank:
                 if front.owner == parent.owner:
                     mylog.debug('%04i sending my image to %04i'%(my_rank, front.owner))
-                    self.comm._send_array(self.image.ravel(), front.owner, tag=my_rank)
+                    self.comm.send_array(self.image.ravel(), front.owner, tag=my_rank)
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i receiving image from %04i'%(my_rank,front.owner))
@@ -1238,7 +1238,7 @@ class AMRKDTree(HomogenizedVolume):
                         pass
         f.close()
         if my_rank != (nprocs-1):
-            self.comm._send_array([0],my_rank+1, tag=my_rank)
+            self.comm.send_array([0],my_rank+1, tag=my_rank)
         
     def load_kd_bricks(self,fn=None):
         if fn is None:
@@ -1268,7 +1268,7 @@ class AMRKDTree(HomogenizedVolume):
         except:
             pass
         if my_rank != (nprocs-1):
-            self.comm._send_array([0],my_rank+1, tag=my_rank)
+            self.comm.send_array([0],my_rank+1, tag=my_rank)
 
     def load_tree(self,fn):
         raise NotImplementedError()
