@@ -293,8 +293,10 @@ class CommunicationSystem(object):
     communicators = []
 
     def __init__(self):
-        self.communicators.append(Communicator(MPI.COMM_WORLD))
-
+        if parallel_capable:
+            self.communicators.append(Communicator(MPI.COMM_WORLD))
+        else:
+            self.communicators.append(Communicator(None))
     def push(self, size=None, ranks=None):
         if size is None:
             size = len(available_ranks)
@@ -325,12 +327,11 @@ class Communicator(object):
 
     def __init__(self, comm=None):
         self.comm = comm
-        self._distributed = self.comm.size > 1
+        self._distributed = comm is not None and self.comm.size > 1
     """
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
     """
-
 
     def barrier(self):
         if not self._distributed: return
