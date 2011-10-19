@@ -658,10 +658,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             if self.chainID[i] != -1:
                 self.chainID[i] = map[self.chainID[i]]
         del map
-        self.densest_in_chain = dic_new.copy()
-        del dic_new
-        self.densest_in_chain_real_index = dicri_new.copy()
-        del dicri_new
+        self.densest_in_chain = dic_new
+        self.densest_in_chain_real_index = dicri_new
         self.__max_memory()
         yt_counters("preconnect pregrouping.")
         mylog.info("Preconnected %d chains." % removed)
