@@ -540,7 +540,6 @@ class Communicator(object):
 
     def mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
-        self.comm.barrier()
         data = None
         if self.comm.rank == 0:
             data = {0:info}
@@ -550,7 +549,6 @@ class Communicator(object):
             self.comm.send(info, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
         data = self.comm.bcast(data, root=0)
-        self.comm.barrier()
         return self.comm.rank, data
 
     def claim_object(self, obj):
