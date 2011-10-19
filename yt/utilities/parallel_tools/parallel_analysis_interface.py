@@ -584,7 +584,7 @@ class Communicator(object):
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             for key in field_keys:
                 dd = data[key]
-                rv = self._alltoallv_array(dd, arr_size, offsets, sizes)
+                rv = self.comm.alltoallv_array(dd, arr_size, offsets, sizes)
                 data[key] = rv
             return data
         elif datatype == "array" and op == "cat":
@@ -613,7 +613,7 @@ class Communicator(object):
             # concatenation.
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
-            data = self._alltoallv_array(data, arr_size, offsets, sizes)
+            data = self.comm.alltoallv_array(data, arr_size, offsets, sizes)
             return data
         elif datatype == "list" and op == "cat":
             if self.comm.rank == 0:
@@ -848,11 +848,11 @@ class Communicator(object):
         self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
         return arr
 
-    def _alltoallv_array(self, send, total_size, offsets, sizes):
+    def alltoallv_array(self, send, total_size, offsets, sizes):
         if len(send.shape) > 1:
             recv = []
             for i in range(send.shape[0]):
-                recv.append(self._alltoallv_array(send[i,:].copy(), 
+                recv.append(self.comm.alltoallv_array(send[i,:].copy(), 
                                                   total_size, offsets, sizes))
             recv = na.array(recv)
             return recv
