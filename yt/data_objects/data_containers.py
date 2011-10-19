@@ -1613,16 +1613,16 @@ class AMRQuadTreeProjBase(AMR2DData):
         if self.preload_style == 'all':
             print "Preloading %s grids and getting %s" % (
                     len(self.source._get_grid_objs()),
-                    self.comm.get_dependencies(fields))
+                    self.get_dependencies(fields))
             self.comm.preload([g for g in self._get_grid_objs()],
-                          self.comm.get_dependencies(fields), self.hierarchy.io)
+                          self.get_dependencies(fields), self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
         # having to do this by level, and instead do it by CPU file
         for level in range(0, self._max_level+1):
             if self.preload_style == 'level':
                 self.comm.preload([g for g in self._get_grid_objs()
                                  if g.Level == level],
-                              self.comm.get_dependencies(fields), self.hierarchy.io)
+                              self.get_dependencies(fields), self.hierarchy.io)
             self._add_level_to_tree(tree, level, fields)
             mylog.debug("End of projecting level level %s, memory usage %0.3e", 
                         level, get_memory_usage()/1024.)
@@ -2002,13 +2002,13 @@ class AMRProjBase(AMR2DData):
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
             print "Preloading %s grids and getting %s" % (
-                    len(self.source._grids), self.comm.get_dependencies(fields))
+                    len(self.source._grids), self.get_dependencies(fields))
             self.comm.preload(self.source._grids,
-                          self.comm.get_dependencies(fields), self.hierarchy.io)
+                          self.get_dependencies(fields), self.hierarchy.io)
         for level in range(0, self._max_level+1):
             if self.preload_style == 'level':
                 self.comm.preload(self.source.select_grids(level),
-                              self.comm.get_dependencies(fields), self.hierarchy.io)
+                              self.get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
             my_coords, my_pdx, my_pdy, my_fields = \
                 self.__project_level(level, fields)

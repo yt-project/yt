@@ -384,7 +384,7 @@ class EnzoHierarchy(AMRHierarchy):
     def _detect_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
-        if self.comm.rank == 0 or self._par_rank == None:
+        if self.comm.rank == 0 or self.comm.rank == None:
             field_list = self.get_data("/", "DataFields")
             if field_list is None:
                 mylog.info("Gathering a field list (this may take a moment.)")

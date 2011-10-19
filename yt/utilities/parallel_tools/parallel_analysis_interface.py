@@ -115,8 +115,6 @@ def get_mpi_type(dtype):
     for dt, val in dtype_names.items():
         if dt == dtype: return val
 
-__tocast = 'c'
-
 class ObjectIterator(object):
     """
     This is a generalized class that accepts a list of objects and then
@@ -316,6 +314,8 @@ class Communicator(object):
     comm = None
     _grids = None
     _distributed = None
+    __tocast = 'c'
+
     def __init__(self, comm=MPI.COMM_WORLD):
         self.comm = comm
         self._distributed = self.comm.size > 1
@@ -720,13 +720,6 @@ class Communicator(object):
         self.comm.barrier()
         return self.comm.rank, data
 
-    def get_dependencies(self, fields):
-        deps = []
-        fi = self.pf.field_info
-        for field in fields:
-            deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
-        return list(set(deps))
-
     def claim_object(self, obj):
         if not self._distributed: return
         obj._owner = self.comm.rank
@@ -829,7 +822,7 @@ class Communicator(object):
             self.comm.send((None,None), dest=dest, tag=tag)
             self.comm.send(arr, dest=dest, tag=tag)
             return
-        tmp = arr.view(__tocast) # Cast to CHAR
+        tmp = arr.view(self.__tocast) # Cast to CHAR
         # communicate type and shape
         self.comm.send((arr.dtype.str, arr.shape), dest=dest, tag=tag)
         self.comm.Send([arr, MPI.CHAR], dest=dest, tag=tag)
@@ -840,7 +833,7 @@ class Communicator(object):
         if dt is None and ne is None:
             return self.comm.recv(source=source, tag=tag)
         arr = na.empty(ne, dtype=dt)
-        tmp = arr.view(__tocast)
+        tmp = arr.view(self.__tocast)
         self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
         return arr
 
@@ -853,13 +846,13 @@ class Communicator(object):
             recv = na.array(recv)
             return recv
         offset = offsets[self.comm.rank]
-        tmp_send = send.view(__tocast)
+        tmp_send = send.view(self.__tocast)
         recv = na.empty(total_size, dtype=send.dtype)
         recv[offset:offset+send.size] = send[:]
         dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
         roff = [off * dtr for off in offsets]
         rsize = [siz * dtr for siz in sizes]
-        tmp_recv = recv.view(__tocast)
+        tmp_recv = recv.view(self.__tocast)
         self.comm.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
@@ -896,6 +889,13 @@ class ParallelAnalysisInterface(object):
         if self._distributed:
             return ParallelObjectIterator(self, True, attr='_grids')
         return ObjectIterator(self, True, attr='_grids')
+
+    def get_dependencies(self, fields):
+        deps = []
+        fi = self.pf.field_info
+        for field in fields:
+            deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
+        return list(set(deps))
 
     def _initialize_parallel(self):
         pass
