@@ -99,6 +99,7 @@ class Streamlines(ParallelAnalysisInterface):
                  zfield='x-velocity', volume=None,
                  dx=None, length=None, direction=1,
                  get_magnitude=False):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self.start_positions = na.array(positions)
         self.N = self.start_positions.shape[0]

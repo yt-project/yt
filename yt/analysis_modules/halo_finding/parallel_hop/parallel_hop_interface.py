@@ -45,6 +45,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True,
             premerge=True):
+        ParallelAnalysisInterface.__init__(self)
         self.threshold = threshold
         self.rearrange = rearrange
         self.premerge = premerge

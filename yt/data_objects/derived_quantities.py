@@ -66,6 +66,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
                  combine_function, units = "",
                  n_ret = 0, force_unlazy=False):
         # We wrap the function with our object
+        ParallelAnalysisInterface.__init__(self)
         self.__doc__ = function.__doc__
         self.__name__ = name
         self.collection = collection
