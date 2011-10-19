@@ -1028,19 +1028,14 @@ class HaloList(object):
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            if ytcfg.getboolean("yt","inline") == False:
-                tot_part = self._data_source[field].size
-                if field == "particle_index":
-                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
-                else:
-                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
+            tot_part = self._data_source[field].size
+            if field == "particle_index":
+                self.particle_fields[field] = self._data_source[field][ii].astype('int64')
             else:
-                tot_part = self._data_source[field].size
-                if field == "particle_index":
-                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
-                else:
-                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
+                self.particle_fields[field] = self._data_source[field][ii].astype('float64')
+            del self._data_source[field]
         self._base_indices = na.arange(tot_part)[ii]
+        gc.collect()
 
     def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
@@ -1412,14 +1407,20 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self.particle_fields["particle_index"].size:
             mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
             exit = True
+
         self.comm.mpi_exit_test(exit)
+        # Try to do this in a memory conservative way.
+        na.divide(self.particle_fields['ParticleMassMsun'], self.total_mass,
+            self.particle_fields['ParticleMassMsun'])
+        na.divide(self.particle_fields["particle_position_x"],
+            self.old_period[0], self.particle_fields["particle_position_x"])
+        na.divide(self.particle_fields["particle_position_y"],
+            self.old_period[1], self.particle_fields["particle_position_y"])
+        na.divide(self.particle_fields["particle_position_z"],
+            self.old_period[2], self.particle_fields["particle_position_z"])
         obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
-            self.particle_fields["particle_position_x"] / self.old_period[0],
-            self.particle_fields["particle_position_y"] / self.old_period[1],
-            self.particle_fields["particle_position_z"] / self.old_period[2],
-            self.particle_fields["particle_index"],
-            self.particle_fields["ParticleMassMsun"]/self.total_mass,
+            self.particle_fields,
             self.threshold, rearrange=self.rearrange, premerge=self.premerge)
         self.densities, self.tags = obj.density, obj.chainID
         # I'm going to go ahead and delete self.densities because it's not
@@ -1446,15 +1447,12 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
         yt_counters("bulk vel. reading data")
-        pm = self.particle_fields["ParticleMassMsun"]
-        if ytcfg.getboolean("yt","inline") == False:
-            xv = self._data_source["particle_velocity_x"][self._base_indices]
-            yv = self._data_source["particle_velocity_y"][self._base_indices]
-            zv = self._data_source["particle_velocity_z"][self._base_indices]
-        else:
-            xv = self._data_source["particle_velocity_x"][self._base_indices]
-            yv = self._data_source["particle_velocity_y"][self._base_indices]
-            zv = self._data_source["particle_velocity_z"][self._base_indices]
+        pm = obj.mass
+        # Fix this back to un-normalized units.
+        na.multiply(pm, self.total_mass, pm)
+        xv = self._data_source["particle_velocity_x"][self._base_indices]
+        yv = self._data_source["particle_velocity_y"][self._base_indices]
+        zv = self._data_source["particle_velocity_z"][self._base_indices]
         yt_counters("bulk vel. reading data")
         yt_counters("bulk vel. computing")
         select = (self.tags >= 0)
@@ -1514,6 +1512,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.
         del obj
+        gc.collect()
         yt_counters("Precomp bulk vel.")
 
     def _parse_output(self):
@@ -1780,7 +1779,8 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, subvolume=None,threshold=160, dm_only=True, \
         resize=True, rearrange=True,\
-        fancy_padding=True, safety=1.5, premerge=True, sample=0.03):
+        fancy_padding=True, safety=1.5, premerge=True, sample=0.03, \
+        total_mass=None, num_particles=None):
         r"""Parallel HOP halo finder.
         
         Halos are built by:
@@ -1829,6 +1829,23 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         sample : float
             The fraction of the full dataset on which load-balancing is
             performed. Default = 0.03.
+        total_mass : float
+            If HOP is run on the same dataset mulitple times, the total mass
+            of particles in Msun units in the full volume can be supplied here
+            to save time.
+            This must correspond to the particles being operated on, meaning
+            if stars are included in the halo finding, they must be included
+            in this mass as well, and visa-versa.
+            If halo finding on a subvolume, this still corresponds with the
+            mass in the entire volume.
+            Default = None, which means the total mass is automatically
+            calculated.
+        num_particles : integer
+            The total number of particles in the volume, in the same fashion
+            as `total_mass` is calculated. Specifying this turns off
+            fancy_padding.
+            Default = None, which means the number of particles is
+            automatically calculated.
         
         Examples
         -------
@@ -1874,9 +1891,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
-        if ytcfg.getboolean("yt","inline") == False:
-            data = self._data_source["particle_position_x"]
-        else:
+        if num_particles is None:
             data = self._data_source["particle_position_x"]
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
@@ -1885,14 +1900,16 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         vol = l[0] * l[1] * l[2]
         full_vol = vol
         # We will use symmetric padding when a subvolume is being used.
-        if not fancy_padding or subvolume is not None:
-            avg_spacing = (float(vol) / data.size)**(1./3.)
+        if not fancy_padding or subvolume is not None or num_particles is not None:
+            if num_particles is None:
+                num_particles = data.size
+            avg_spacing = (float(vol) / num_particles)**(1./3.)
             # padding is a function of inter-particle spacing, this is an
             # approximation, but it's OK with the safety factor
             padding = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
             self.padding = (na.ones(3,dtype='float64')*padding, na.ones(3,dtype='float64')*padding)
             mylog.info('padding %s avg_spacing %f vol %f local_parts %d' % \
-                (str(self.padding), avg_spacing, vol, data.size))
+                (str(self.padding), avg_spacing, vol, num_particles))
         # Another approach to padding, perhaps more accurate.
         elif fancy_padding and self._distributed:
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
@@ -1936,8 +1953,9 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
-        total_mass = self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"].astype('float64')).sum(), 
-                                         op='sum')
+        if total_mass is None:
+            total_mass = self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"].astype('float64')).sum(), 
+                                                 op='sum')
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         # If we're using a subvolume, we now re-divide.
@@ -2057,7 +2075,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, subvolume=None, threshold=160, dm_only=True,
-            padding=0.02):
+            padding=0.02, total_mass=None):
         r"""HOP halo finder.
         
         Halos are built by:
@@ -2091,6 +2109,17 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             with duplicated particles for halo finidng to work. This number
             must be no smaller than the radius of the largest halo in the box
             in code units. Default = 0.02.
+        total_mass : float
+            If HOP is run on the same dataset mulitple times, the total mass
+            of particles in Msun units in the full volume can be supplied here
+            to save time.
+            This must correspond to the particles being operated on, meaning
+            if stars are included in the halo finding, they must be included
+            in this mass as well, and visa-versa.
+            If halo finding on a subvolume, this still corresponds with the
+            mass in the entire volume.
+            Default = None, which means the total mass is automatically
+            calculated.
         
         Examples
         --------
@@ -2110,12 +2139,13 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = \
             self.partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
-        if dm_only:
-            select = self._get_dm_indices()
-            total_mass = \
-                self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
-        else:
-            total_mass = self.comm.mpi_allreduce(self._data_source["ParticleMassMsun"].sum(dtype='float64'), op='sum')
+        if total_mass is None:
+            if dm_only:
+                select = self._get_dm_indices()
+                total_mass = \
+                    self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
+            else:
+                total_mass = self.comm.mpi_allreduce(self._data_source["ParticleMassMsun"].sum(dtype='float64'), op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
