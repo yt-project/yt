@@ -278,8 +278,8 @@ def parallel_root_only(func):
 
 def parallel_objects(objects, njobs):
     my_communicator = communication_system.communicators[-1]
-    my_size = my_communicator._par_size
-    my_rank = my_communicator._par_rank
+    my_size = my_communicator.size
+    my_rank = my_communicator.rank
     all_new_comms = na.arange(my_size)
     my_new_id = int(my_rank / njobs)
     communication_system.push_with_ids(all_new_comms[my_new_id])
@@ -700,12 +700,12 @@ class Communicator(object):
     ###
 
     @property
-    def _par_size(self):
+    def size(self):
         if not self._distributed: return 1
         return self.comm.size
 
     @property
-    def _par_rank(self):
+    def rank(self):
         if not self._distributed: return 0
         return self.comm.rank
 
