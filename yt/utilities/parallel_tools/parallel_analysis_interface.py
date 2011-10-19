@@ -276,41 +276,6 @@ def parallel_root_only(func):
     if parallel_capable: return root_only
     return func
 
-class ParallelAnalysisInterface(object):
-    comm = None
-    _grids = None
-    _distributed = None
-
-    def __init__(self, size=1):
-        self.comm = CommunicationSystem.pop()
-        self._grids = self.comm._grids
-        self._distributed = self.comm._distributed
-
-    def _get_objs(self, attr, *args, **kwargs):
-        if self._distributed:
-            rr = kwargs.pop("round_robin", False)
-            self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, attr=attr,
-                    round_robin=rr)
-        return ObjectIterator(self, attr=attr)
-
-    def _get_grids(self, *args, **kwargs):
-        if self._distributed:
-            self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, attr='_grids')
-        return ObjectIterator(self, attr='_grids')
-
-    def _get_grid_objs(self):
-        if self._distributed:
-            return ParallelObjectIterator(self, True, attr='_grids')
-        return ObjectIterator(self, True, attr='_grids')
-
-    def _initialize_parallel(self):
-        pass
-
-    def _finalize_parallel(self):
-        pass
-
 def parallel_objects(objects, njobs):
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator._par_size
@@ -346,10 +311,6 @@ class CommunicationSystem(object):
 
     def pop(self):
         self.communicators.pop()
-
-communication_system = CommunicationSystem()
-if parallel_capable:
-    communication_system.communicators.append(MPI.COMM_WORLD)
 
 class Communicator(object):
     comm = None
@@ -906,4 +867,45 @@ class Communicator(object):
         self.comm.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
+
+communication_system = CommunicationSystem()
+if parallel_capable:
+    communication_system.communicators.append(Communicator(MPI.COMM_WORLD))
+
+class ParallelAnalysisInterface(object):
+    comm = None
+    _grids = None
+    _distributed = None
+
+    def __init__(self, size=1):
+        self.comm = communication_system.communicators[-1]
+        self._grids = self.comm._grids
+        self._distributed = self.comm._distributed
+
+    def _get_objs(self, attr, *args, **kwargs):
+        if self._distributed:
+            rr = kwargs.pop("round_robin", False)
+            self._initialize_parallel(*args, **kwargs)
+            return ParallelObjectIterator(self, attr=attr,
+                    round_robin=rr)
+        return ObjectIterator(self, attr=attr)
+
+    def _get_grids(self, *args, **kwargs):
+        if self._distributed:
+            self._initialize_parallel(*args, **kwargs)
+            return ParallelObjectIterator(self, attr='_grids')
+        return ObjectIterator(self, attr='_grids')
+
+    def _get_grid_objs(self):
+        if self._distributed:
+            return ParallelObjectIterator(self, True, attr='_grids')
+        return ObjectIterator(self, True, attr='_grids')
+
+    def _initialize_parallel(self):
+        pass
+
+    def _finalize_parallel(self):
+        pass
+
+
     
