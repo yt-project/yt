@@ -30,7 +30,8 @@ from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.utilities.amr_utils import PartitionedGrid, kdtree_get_choices
 from yt.utilities.performance_counters import yt_counters, time_function
-import yt.utilities.parallel_tools.parallel_analysis_interface as PT
+from yt.utilities.parallel_tools.parallel_analysis_interface \
+    import ParallelAnalysisInterface 
 from copy import deepcopy
 from yt.config import ytcfg
 from time import time
@@ -286,6 +287,7 @@ class AMRKDTree(HomogenizedVolume):
         'split_pos': 0.5}
 
         """
+        ParallelAnalysisInterface.__init__(self)
         self.current_split_dim = 0
 
         self.pf = pf

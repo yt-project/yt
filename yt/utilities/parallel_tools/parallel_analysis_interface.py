@@ -288,6 +288,10 @@ def parallel_objects(objects, njobs):
 
 class CommunicationSystem(object):
     communicators = []
+
+    def __init__(self):
+        self.communicators.append(Communicator(MPI.COMM_WORLD))
+
     def push(self, size=None, ranks=None):
         if size is None:
             size = len(available_ranks)
@@ -302,7 +306,7 @@ class CommunicationSystem(object):
         return new_comm
 
     def push_with_ids(self, ids):
-        group = self.communicators[-1].comm.Group.Incl(ids)
+        group = self.communicators[-1].comm.Get_group().Incl(ids)
         new_comm = self.communicators[-1].comm.Create(group)
         self.communicators.append(Communicator(new_comm))
         return new_comm
@@ -316,7 +320,7 @@ class Communicator(object):
     _distributed = None
     __tocast = 'c'
 
-    def __init__(self, comm=MPI.COMM_WORLD):
+    def __init__(self, comm=None):
         self.comm = comm
         self._distributed = self.comm.size > 1
     """
@@ -324,145 +328,6 @@ class Communicator(object):
     functions for analyzing something in parallel.
     """
 
-    def partition_hierarchy_2d(self, axis):
-        if not self._distributed:
-           return False, self.hierarchy.grid_collection(self.center, 
-                                                        self.hierarchy.grids)
-
-        xax, yax = x_dict[axis], y_dict[axis]
-        cc = MPI.Compute_dims(self.comm.size, 2)
-        mi = self.comm.rank
-        cx, cy = na.unravel_index(mi, cc)
-        x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
-
-        DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        LE = na.ones(3, dtype='float64') * DLE
-        RE = na.ones(3, dtype='float64') * DRE
-        LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
-        RE[xax] = x[1] * (DRE[xax]-DLE[xax]) + DLE[xax]
-        LE[yax] = y[0] * (DRE[yax]-DLE[yax]) + DLE[yax]
-        RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
-        mylog.debug("Dimensions: %s %s", LE, RE)
-
-        reg = self.hierarchy.region_strict(self.center, LE, RE)
-        return True, reg
-
-    def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
-        LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
-        # We need to establish if we're looking at a subvolume, in which case
-        # we *do* want to pad things.
-        if (LE == self.pf.domain_left_edge).all() and \
-                (RE == self.pf.domain_right_edge).all():
-            subvol = False
-        else:
-            subvol = True
-        if not self._distributed and not subvol:
-            return False, LE, RE, ds
-        if not self._distributed and subvol:
-            return True, LE, RE, \
-            self.hierarchy.periodic_region_strict(self.center,
-                LE-padding, RE+padding)
-        elif ytcfg.getboolean("yt", "inline"):
-            # At this point, we want to identify the root grid tile to which
-            # this processor is assigned.
-            # The only way I really know how to do this is to get the level-0
-            # grid that belongs to this processor.
-            grids = self.pf.h.select_grids(0)
-            root_grids = [g for g in grids
-                          if g.proc_num == self.comm.rank]
-            if len(root_grids) != 1: raise RuntimeError
-            #raise KeyError
-            LE = root_grids[0].LeftEdge
-            RE = root_grids[0].RightEdge
-            return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
-
-        cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
-        mi = self.comm.rank % (self.comm.size / rank_ratio)
-        cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
-
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
-
-        if padding > 0:
-            return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center,
-                LE-padding, RE+padding)
-
-        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
-
-    def partition_region_3d(self, left_edge, right_edge, padding=0.0,
-            rank_ratio = 1):
-        """
-        Given a region, it subdivides it into smaller regions for parallel
-        analysis.
-        """
-        LE, RE = left_edge[:], right_edge[:]
-        if not self._distributed:
-            return LE, RE, re
-        
-        cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
-        mi = self.comm.rank % (self.comm.size / rank_ratio)
-        cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
-
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
-
-        if padding > 0:
-            return True, \
-                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
-                    RE+padding)
-
-        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
-
-    def partition_hierarchy_3d_bisection_list(self):
-        """
-        Returns an array that is used to drive _partition_hierarchy_3d_bisection,
-        below.
-        """
-
-        def factor(n):
-            if n == 1: return [1]
-            i = 2
-            limit = n**0.5
-            while i <= limit:
-                if n % i == 0:
-                    ret = factor(n/i)
-                    ret.append(i)
-                    return ret
-                i += 1
-            return [n]
-
-        cc = MPI.Compute_dims(self.comm.size, 3)
-        si = self.comm.size
-        
-        factors = factor(si)
-        xyzfactors = [factor(cc[0]), factor(cc[1]), factor(cc[2])]
-        
-        # Each entry of cuts is a two element list, that is:
-        # [cut dim, number of cuts]
-        cuts = []
-        # The higher cuts are in the beginning.
-        # We're going to do our best to make the cuts cyclic, i.e. x, then y,
-        # then z, etc...
-        lastdim = 0
-        for f in factors:
-            nextdim = (lastdim + 1) % 3
-            while True:
-                if f in xyzfactors[nextdim]:
-                    cuts.append([nextdim, f])
-                    topop = xyzfactors[nextdim].index(f)
-                    temp = xyzfactors[nextdim].pop(topop)
-                    lastdim = nextdim
-                    break
-                nextdim = (nextdim + 1) % 3
-        return cuts
 
     def barrier(self):
         if not self._distributed: return
@@ -471,7 +336,7 @@ class Communicator(object):
 
     def mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
-        mine, statuses = self.comm.mpi_info_dict(data)
+        mine, statuses = self.mpi_info_dict(data)
         if True in statuses.values():
             raise RuntimeError("Fatal error. Exiting.")
         return None
@@ -905,4 +770,143 @@ class ParallelAnalysisInterface(object):
         pass
 
 
+    def partition_hierarchy_2d(self, axis):
+        if not self._distributed:
+           return False, self.hierarchy.grid_collection(self.center, 
+                                                        self.hierarchy.grids)
+
+        xax, yax = x_dict[axis], y_dict[axis]
+        cc = MPI.Compute_dims(self.comm.size, 2)
+        mi = self.comm.rank
+        cx, cy = na.unravel_index(mi, cc)
+        x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
+
+        DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
+        LE = na.ones(3, dtype='float64') * DLE
+        RE = na.ones(3, dtype='float64') * DRE
+        LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
+        RE[xax] = x[1] * (DRE[xax]-DLE[xax]) + DLE[xax]
+        LE[yax] = y[0] * (DRE[yax]-DLE[yax]) + DLE[yax]
+        RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
+        mylog.debug("Dimensions: %s %s", LE, RE)
+
+        reg = self.hierarchy.region_strict(self.center, LE, RE)
+        return True, reg
+
+    def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+        LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
+        # We need to establish if we're looking at a subvolume, in which case
+        # we *do* want to pad things.
+        if (LE == self.pf.domain_left_edge).all() and \
+                (RE == self.pf.domain_right_edge).all():
+            subvol = False
+        else:
+            subvol = True
+        if not self._distributed and not subvol:
+            return False, LE, RE, ds
+        if not self._distributed and subvol:
+            return True, LE, RE, \
+            self.hierarchy.periodic_region_strict(self.center,
+                LE-padding, RE+padding)
+        elif ytcfg.getboolean("yt", "inline"):
+            # At this point, we want to identify the root grid tile to which
+            # this processor is assigned.
+            # The only way I really know how to do this is to get the level-0
+            # grid that belongs to this processor.
+            grids = self.pf.h.select_grids(0)
+            root_grids = [g for g in grids
+                          if g.proc_num == self.comm.rank]
+            if len(root_grids) != 1: raise RuntimeError
+            #raise KeyError
+            LE = root_grids[0].LeftEdge
+            RE = root_grids[0].RightEdge
+            return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
+
+        cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
+        mi = self.comm.rank % (self.comm.size / rank_ratio)
+        cx, cy, cz = na.unravel_index(mi, cc)
+        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                LE, RE, self.hierarchy.periodic_region_strict(self.center,
+                LE-padding, RE+padding)
+
+        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+    def partition_region_3d(self, left_edge, right_edge, padding=0.0,
+            rank_ratio = 1):
+        """
+        Given a region, it subdivides it into smaller regions for parallel
+        analysis.
+        """
+        LE, RE = left_edge[:], right_edge[:]
+        if not self._distributed:
+            return LE, RE, re
+        
+        cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
+        mi = self.comm.rank % (self.comm.size / rank_ratio)
+        cx, cy, cz = na.unravel_index(mi, cc)
+        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
+                    RE+padding)
+
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
+
+    def partition_hierarchy_3d_bisection_list(self):
+        """
+        Returns an array that is used to drive _partition_hierarchy_3d_bisection,
+        below.
+        """
+
+        def factor(n):
+            if n == 1: return [1]
+            i = 2
+            limit = n**0.5
+            while i <= limit:
+                if n % i == 0:
+                    ret = factor(n/i)
+                    ret.append(i)
+                    return ret
+                i += 1
+            return [n]
+
+        cc = MPI.Compute_dims(self.comm.size, 3)
+        si = self.comm.size
+        
+        factors = factor(si)
+        xyzfactors = [factor(cc[0]), factor(cc[1]), factor(cc[2])]
+        
+        # Each entry of cuts is a two element list, that is:
+        # [cut dim, number of cuts]
+        cuts = []
+        # The higher cuts are in the beginning.
+        # We're going to do our best to make the cuts cyclic, i.e. x, then y,
+        # then z, etc...
+        lastdim = 0
+        for f in factors:
+            nextdim = (lastdim + 1) % 3
+            while True:
+                if f in xyzfactors[nextdim]:
+                    cuts.append([nextdim, f])
+                    topop = xyzfactors[nextdim].index(f)
+                    temp = xyzfactors[nextdim].pop(topop)
+                    lastdim = nextdim
+                    break
+                nextdim = (nextdim + 1) % 3
+        return cuts
     

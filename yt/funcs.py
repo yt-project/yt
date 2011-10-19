@@ -314,7 +314,7 @@ def get_pbar(title, maxval):
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__topcomm_parallel"):
+    elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
     elif "SAGE_ROOT" in os.environ:
         try:
