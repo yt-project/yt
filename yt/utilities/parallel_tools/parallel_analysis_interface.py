@@ -296,6 +296,7 @@ class CommunicationSystem(object):
         self.communicators.append(Communicator(MPI.COMM_WORLD))
 
     def push(self, size=None, ranks=None):
+        raise NotImplementedError
         if size is None:
             size = len(available_ranks)
         if len(available_ranks) < size:
@@ -311,6 +312,9 @@ class CommunicationSystem(object):
     def push_with_ids(self, ids):
         group = self.communicators[-1].comm.Get_group().Incl(ids)
         new_comm = self.communicators[-1].comm.Create(group)
+        from yt.config import ytcfg
+        ytcfg["yt","__topcomm_parallel_size"] = new_comm.size
+        ytcfg["yt","__topcomm_parallel_rank"] = new_comm.rank
         self.communicators.append(Communicator(new_comm))
         return new_comm
 
