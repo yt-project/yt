@@ -51,8 +51,8 @@ if exe_name in \
     if parallel_capable:
         mylog.info("Parallel computation enabled: %s / %s",
                    MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
-        ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
+        ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
+        ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
         ytcfg["yt","__parallel"] = "True"
         if exe_name == "embed_enzo" or \
             ("_parallel" in dir(sys) and sys._parallel == True):
@@ -131,7 +131,7 @@ class ObjectIterator(object):
         if hasattr(gs[0], 'proc_num'):
             # This one sort of knows about MPI, but not quite
             self._objs = [g for g in gs if g.proc_num ==
-                          ytcfg.getint('yt','__parallel_rank')]
+                          ytcfg.getint('yt','__topcomm_parallel_rank')]
             self._use_all = True
         else:
             self._objs = gs
@@ -866,7 +866,8 @@ class Communicator(object):
 
 communication_system = CommunicationSystem()
 if parallel_capable:
-    communication_system.communicators.append(Communicator(MPI.COMM_WORLD))
+    ranks = na.arange(MPI.COMM_WORLD.size)
+    communication_system.push_with_ids(ranks)
 
 class ParallelAnalysisInterface(object):
     comm = None
