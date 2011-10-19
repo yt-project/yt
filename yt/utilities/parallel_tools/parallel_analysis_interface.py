@@ -584,7 +584,7 @@ class Communicator(object):
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             for key in field_keys:
                 dd = data[key]
-                rv = self._alltoallv_array(dd, arr_size, offsets, sizes)
+                rv = self.alltoallv_array(dd, arr_size, offsets, sizes)
                 data[key] = rv
             return data
         elif datatype == "array" and op == "cat":
@@ -613,7 +613,7 @@ class Communicator(object):
             # concatenation.
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
-            data = self._alltoallv_array(data, arr_size, offsets, sizes)
+            data = self.alltoallv_array(data, arr_size, offsets, sizes)
             return data
         elif datatype == "list" and op == "cat":
             if self.comm.rank == 0:
@@ -744,18 +744,18 @@ class Communicator(object):
         else:
             return cStringIO.StringIO()
 
-    def _get_filename(self, prefix, rank=None):
+    def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
         if rank == None:
             return "%s_%04i" % (prefix, self.comm.rank)
         else:
             return "%s_%04i" % (prefix, rank)
 
-    def _is_mine(self, obj):
+    def is_mine(self, obj):
         if not obj._distributed: return True
         return (obj._owner == self.comm.rank)
 
-    def _send_quadtree(self, target, buf, tgd, args):
+    def send_quadtree(self, target, buf, tgd, args):
         sizebuf = na.zeros(1, 'int64')
         sizebuf[0] = buf[0].size
         self.comm.Send([sizebuf, MPI.LONG], dest=target)
@@ -763,7 +763,7 @@ class Communicator(object):
         self.comm.Send([buf[1], MPI.DOUBLE], dest=target)
         self.comm.Send([buf[2], MPI.DOUBLE], dest=target)
         
-    def _recv_quadtree(self, target, tgd, args):
+    def recv_quadtree(self, target, tgd, args):
         sizebuf = na.zeros(1, 'int64')
         self.comm.Recv(sizebuf, source=target)
         buf = [na.empty((sizebuf[0],), 'int32'),
@@ -792,18 +792,18 @@ class Communicator(object):
                 target = (rank & ~mask) % size
                 #print "SENDING FROM %02i to %02i" % (rank, target)
                 buf = qt.tobuffer()
-                self._send_quadtree(target, buf, tgd, args)
-                #qt = self._recv_quadtree(target, tgd, args)
+                self.send_quadtree(target, buf, tgd, args)
+                #qt = self.recv_quadtree(target, tgd, args)
             else:
                 target = (rank | mask)
                 if target < size:
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
-                    buf = self._recv_quadtree(target, tgd, args)
+                    buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2])
                     qto.frombuffer(*buf)
                     merge_quadtrees(qt, qto)
                     del qto
-                    #self._send_quadtree(target, qt, tgd, args)
+                    #self.send_quadtree(target, qt, tgd, args)
             mask <<= 1
 
         if rank == 0:
@@ -824,7 +824,7 @@ class Communicator(object):
         return qt
 
 
-    def _send_array(self, arr, dest, tag = 0):
+    def send_array(self, arr, dest, tag = 0):
         if not isinstance(arr, na.ndarray):
             self.comm.send((None,None), dest=dest, tag=tag)
             self.comm.send(arr, dest=dest, tag=tag)
@@ -835,7 +835,7 @@ class Communicator(object):
         self.comm.Send([arr, MPI.CHAR], dest=dest, tag=tag)
         del tmp
 
-    def _recv_array(self, source, tag = 0):
+    def recv_array(self, source, tag = 0):
         dt, ne = self.comm.recv(source=source, tag=tag)
         if dt is None and ne is None:
             return self.comm.recv(source=source, tag=tag)
@@ -844,12 +844,12 @@ class Communicator(object):
         self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
         return arr
 
-    def _alltoallv_array(self, send, total_size, offsets, sizes):
+    def alltoallv_array(self, send, total_size, offsets, sizes):
         if len(send.shape) > 1:
             recv = []
             for i in range(send.shape[0]):
-                recv.append(self._alltoallv_array(send[i,:].copy(), 
-                                                  total_size, offsets, sizes))
+                recv.append(self.alltoallv_array(send[i,:].copy(), 
+                                                 total_size, offsets, sizes))
             recv = na.array(recv)
             return recv
         offset = offsets[self.comm.rank]

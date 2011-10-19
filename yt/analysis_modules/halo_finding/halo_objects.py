@@ -1240,11 +1240,11 @@ class HaloList(object):
             if group.tasks is not None:
                 fn = ""
                 for task in group.tasks:
-                    fn += "%s.h5 " % self._get_filename(prefix, rank=task)
+                    fn += "%s.h5 " % self.comm.get_filename(prefix, rank=task)
             elif self._distributed:
-                fn = "%s.h5" % self._get_filename(prefix, rank=group._owner)
+                fn = "%s.h5" % self.comm.get_filename(prefix, rank=group._owner)
             else:
-                fn = "%s.h5" % self._get_filename(prefix)
+                fn = "%s.h5" % self.comm.get_filename(prefix)
             gn = "Halo%08i" % (group.id)
             f.write("%s %s\n" % (gn, fn))
             f.flush()
@@ -1745,10 +1745,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
-        fn = "%s.h5" % self._get_filename(prefix)
+        fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
-            if not self._is_mine(halo): continue
+            if not self.comm.is_mine(halo): continue
             halo.write_particle_list(f)
 
     def dump(self, basename="HopAnalysis"):
