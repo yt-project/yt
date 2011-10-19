@@ -161,7 +161,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             ds = pf.h.periodic_region_strict([0.]*3, self.left_edge, 
                 self.right_edge)
             padded, self.LE, self.RE, self.ds = \
-            self._partition_hierarchy_3d(ds = ds, padding=0.,
+            self.comm.partition_hierarchy_3d(ds = ds, padding=0.,
                 rank_ratio = self.vol_ratio)
         else:
             self.left_edge = left_edge
@@ -169,10 +169,10 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # We do this twice, first with no 'buffer' to get the unbuffered
             # self.LE/RE, and then second to get a buffered self.ds.
             padded, self.LE, self.RE, temp = \
-                self._partition_region_3d(left_edge, right_edge,
+                self.comm.partition_region_3d(left_edge, right_edge,
                     rank_ratio=self.vol_ratio)
             padded, temp, temp, self.ds = \
-                self._partition_region_3d(left_edge - self.lengths[-1], \
+                self.comm.partition_region_3d(left_edge - self.lengths[-1], \
                 right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
         self.width = self.ds.right_edge - self.ds.left_edge

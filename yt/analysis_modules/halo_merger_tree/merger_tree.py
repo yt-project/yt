@@ -181,7 +181,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 os.unlink(self.database)
             except:
                 pass
-        self._barrier()
+        self.comm.barrier()
         self._open_create_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
@@ -204,7 +204,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # Now update the database with all the writes.
         mylog.info("Updating database with parent-child relationships.")
         self._copy_and_update_db()
-        self._barrier()
+        self.comm.barrier()
         mylog.info("Done!")
         
     def _read_halo_lists(self):
@@ -276,7 +276,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     line = 'INSERT into Halos VALUES (' + line[:-1] + ')'
                     self.cursor.execute(line, values)
                 self.conn.commit()
-            self._barrier()
+            self.comm.barrier()
             del hp
     
     def _open_create_database(self):
@@ -284,7 +284,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # doesn't already exist. Open it first on root, and then on the others.
         if self.mine == 0:
             self.conn = sql.connect(self.database)
-        self._barrier()
+        self.comm.barrier()
         self._ensure_db_sync()
         if self.mine != 0:
             self.conn = sql.connect(self.database)
@@ -295,7 +295,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # parallel file system funniness, things will go bad very quickly.
         # Therefore, just to be very, very careful, we will ensure that the
         # md5 hash of the file is identical across all tasks before proceeding.
-        self._barrier()
+        self.comm.barrier()
         for i in range(5):
             try:
                 file = open(self.database)
@@ -339,7 +339,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 self.conn.commit()
             except sql.OperationalError:
                 pass
-        self._barrier()
+        self.comm.barrier()
     
     def _find_likely_children(self, parentfile, childfile):
         # For each halo in the parent list, identify likely children in the 
@@ -718,7 +718,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             temp_cursor.close()
             temp_conn.close()
         self._close_database()
-        self._barrier()
+        self.comm.barrier()
         if self.mine == 0:
             os.rename(temp_name, self.database)
 

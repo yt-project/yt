@@ -1849,7 +1849,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         topbounds = na.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds=self._data_source,
+            self.comm.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
@@ -1859,7 +1859,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         if ytcfg.getboolean("yt","inline") == False and \
             resize and self.comm.size != 1 and subvolume is None:
             random.seed(self.comm.rank)
-            cut_list = self._partition_hierarchy_3d_bisection_list()
+            cut_list = self.comm.partition_hierarchy_3d_bisection_list()
             root_points = self._subsample_points()
             self.bucket_bounds = []
             if self.comm.rank == 0:
@@ -1945,7 +1945,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
             # Cut up the volume.
             padded, LE, RE, self._data_source = \
-                self._partition_hierarchy_3d(ds=self._data_source,
+                self.comm.partition_hierarchy_3d(ds=self._data_source,
                 padding=0.)
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
@@ -2108,7 +2108,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # a small part is actually going to be used.
         self.padding = 0.0
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
+            self.comm.partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
             select = self._get_dm_indices()
@@ -2124,7 +2124,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
         self.padding = padding #* pf["unitary"] # This should be clevererer
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds = self._data_source,
+            self.comm.partition_hierarchy_3d(ds = self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
@@ -2192,7 +2192,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.padding = 0.0 #* pf["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds=self._data_source,
+            self.comm.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         if link > 0.0:
             n_parts = self._mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
@@ -2210,7 +2210,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds=self._data_source,
+            self.comm.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary

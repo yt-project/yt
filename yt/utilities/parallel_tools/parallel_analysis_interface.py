@@ -348,7 +348,7 @@ class Communicator(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
-    def _partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+    def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
@@ -494,7 +494,7 @@ class Communicator(object):
             bot_keys = na.array(bot_keys, dtype='int64')
             vals = na.array(vals, dtype='float64')
             return (top_keys, bot_keys, vals)
-        self._barrier()
+        self.comm.barrier()
         size = 0
         top_keys = []
         bot_keys = []
@@ -711,7 +711,7 @@ class Communicator(object):
 
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
-        self._barrier()
+        self.comm.barrier()
         data = None
         if self.comm.rank == 0:
             data = {0:info}
@@ -721,7 +721,7 @@ class Communicator(object):
             self.comm.send(info, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
         data = self.comm.bcast(data, root=0)
-        self._barrier()
+        self.comm.barrier()
         return self.comm.rank, data
 
     def _get_dependencies(self, fields):

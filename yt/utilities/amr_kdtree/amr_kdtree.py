@@ -1138,7 +1138,7 @@ class AMRKDTree(HomogenizedVolume):
                     yield node.brick
          
         self.reduce_tree_images(self.tree, front_center)
-        self._barrier()
+        self.comm.barrier()
         
     def reduce_tree_images(self, tree, viewpoint, image=None):
         if image is not None:

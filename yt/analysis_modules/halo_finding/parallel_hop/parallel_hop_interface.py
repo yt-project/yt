@@ -290,7 +290,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             hooks.append(self._mpi_nonblocking_recv(recv_mass[opp_neighbor], opp_neighbor))
         # Let's wait here to be absolutely sure that all the receive buffers
         # have been created before any sending happens!
-        self._barrier()
+        self.comm.barrier()
         # Now we send the data.
         for neighbor in self.neighbors:
             hooks.append(self._mpi_nonblocking_send(send_real_indices[neighbor], neighbor))
@@ -781,7 +781,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             hooks.append(self._mpi_nonblocking_recv(temp_indices[opp_neighbor], opp_neighbor))
             hooks.append(self._mpi_nonblocking_recv(temp_chainIDs[opp_neighbor], opp_neighbor))
         # Make sure all the receive buffers are set before continuing.
-        self._barrier()
+        self.comm.barrier()
         # Send padded particles to our neighbors.
         for neighbor in self.neighbors:
             hooks.append(self._mpi_nonblocking_send(self.uphill_real_indices, neighbor))
@@ -952,7 +952,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             hooks.append(self._mpi_nonblocking_recv(recv_real_indices[opp_neighbor], opp_neighbor))
             hooks.append(self._mpi_nonblocking_recv(recv_chainIDs[opp_neighbor], opp_neighbor))
         # Make sure the recv buffers are set before continuing.
-        self._barrier()
+        self.comm.barrier()
         # Now we send them.
         for neighbor in self.neighbors:
             hooks.append(self._mpi_nonblocking_send(real_indices, neighbor))
