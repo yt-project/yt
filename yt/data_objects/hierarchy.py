@@ -178,7 +178,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             writeable = os.access(fn, os.W_OK)
         writeable = writeable and not ytcfg.getboolean('yt','onlydeserialize')
         # We now have our conditional stuff
-        self._barrier()
+        self.comm.barrier()
         if not writeable and not exists: return
         if writeable:
             try:

@@ -145,8 +145,8 @@ class Streamlines(ParallelAnalysisInterface):
        
     @parallel_passthrough
     def _finalize_parallel(self,data):
-        self.streamlines = self._mpi_allreduce(self.streamlines, op='sum')
-        self.magnitudes = self._mpi_allreduce(self.magnitudes, op='sum')
+        self.streamlines = self.comm.mpi_allreduce(self.streamlines, op='sum')
+        self.magnitudes = self.comm.mpi_allreduce(self.magnitudes, op='sum')
         
     def _integrate_through_brick(self, node, stream, step,
                                  periodic=False, mag=None):

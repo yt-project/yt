@@ -348,7 +348,7 @@ class Communicator(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
-    def _partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+    def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
@@ -394,7 +394,7 @@ class Communicator(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
-    def _partition_region_3d(self, left_edge, right_edge, padding=0.0,
+    def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
         """
         Given a region, it subdivides it into smaller regions for parallel
@@ -421,7 +421,7 @@ class Communicator(object):
 
         return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
-    def _partition_hierarchy_3d_bisection_list(self):
+    def partition_hierarchy_3d_bisection_list(self):
         """
         Returns an array that is used to drive _partition_hierarchy_3d_bisection,
         below.
@@ -464,19 +464,19 @@ class Communicator(object):
                 nextdim = (nextdim + 1) % 3
         return cuts
 
-    def _barrier(self):
+    def barrier(self):
         if not self._distributed: return
         mylog.debug("Opening MPI Barrier on %s", self.comm.rank)
         self.comm.Barrier()
 
-    def _mpi_exit_test(self, data=False):
+    def mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
-        mine, statuses = self._mpi_info_dict(data)
+        mine, statuses = self.comm.mpi_info_dict(data)
         if True in statuses.values():
             raise RuntimeError("Fatal error. Exiting.")
         return None
 
-    def _mpi_maxdict_dict(self, data):
+    def mpi_maxdict_dict(self, data):
         """
         Similar to above, but finds maximums for dicts of dicts. This is
         specificaly for a part of chainHOP.
@@ -494,7 +494,7 @@ class Communicator(object):
             bot_keys = na.array(bot_keys, dtype='int64')
             vals = na.array(vals, dtype='float64')
             return (top_keys, bot_keys, vals)
-        self._barrier()
+        self.comm.barrier()
         size = 0
         top_keys = []
         bot_keys = []
@@ -544,7 +544,7 @@ class Communicator(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def _par_combine_object(self, data, op, datatype = None):
+    def par_combine_object(self, data, op, datatype = None):
         # op can be chosen from:
         #   cat
         #   join
@@ -626,15 +626,11 @@ class Communicator(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def _mpi_bcast_pickled(self, data):
+    def mpi_bcast_pickled(self, data):
         data = self.comm.bcast(data, root=0)
         return data
 
-    def _should_i_write(self):
-        if not self._distributed: return True
-        return (self.comm == 0)
-
-    def _preload(self, grids, fields, io_handler):
+    def preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
         mylog.debug("Preloading %s from %s grids", fields, len(grids))
@@ -642,7 +638,7 @@ class Communicator(object):
         io_handler.preload(grids, fields)
 
     @parallel_passthrough
-    def _mpi_allreduce(self, data, dtype=None, op='sum'):
+    def mpi_allreduce(self, data, dtype=None, op='sum'):
         op = op_names[op]
         if isinstance(data, na.ndarray) and data.dtype != na.bool:
             if dtype is None:
@@ -662,28 +658,28 @@ class Communicator(object):
     # Non-blocking stuff.
     ###
 
-    def _mpi_nonblocking_recv(self, data, source, tag=0, dtype=None):
+    def mpi_nonblocking_recv(self, data, source, tag=0, dtype=None):
         if not self._distributed: return -1
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
         return self.comm.Irecv([data, mpi_type], source, tag)
 
-    def _mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
+    def mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
         if not self._distributed: return -1
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
         return self.comm.Isend([data, mpi_type], dest, tag)
 
-    def _mpi_Request_Waitall(self, hooks):
+    def mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
         MPI.Request.Waitall(hooks)
 
-    def _mpi_Request_Waititer(self, hooks):
+    def mpi_Request_Waititer(self, hooks):
         for i in xrange(len(hooks)):
             req = MPI.Request.Waitany(hooks)
             yield req
 
-    def _mpi_Request_Testall(self, hooks):
+    def mpi_Request_Testall(self, hooks):
         """
         This returns False if any of the request hooks are un-finished,
         and True if they are all finished.
@@ -709,9 +705,9 @@ class Communicator(object):
         if not self._distributed: return 0
         return self.comm.rank
 
-    def _mpi_info_dict(self, info):
+    def mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
-        self._barrier()
+        self.comm.barrier()
         data = None
         if self.comm.rank == 0:
             data = {0:info}
@@ -721,27 +717,27 @@ class Communicator(object):
             self.comm.send(info, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
         data = self.comm.bcast(data, root=0)
-        self._barrier()
+        self.comm.barrier()
         return self.comm.rank, data
 
-    def _get_dependencies(self, fields):
+    def get_dependencies(self, fields):
         deps = []
         fi = self.pf.field_info
         for field in fields:
             deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
         return list(set(deps))
 
-    def _claim_object(self, obj):
+    def claim_object(self, obj):
         if not self._distributed: return
         obj._owner = self.comm.rank
         obj._distributed = True
 
-    def _do_not_claim_object(self, obj):
+    def do_not_claim_object(self, obj):
         if not self._distributed: return
         obj._owner = -1
         obj._distributed = True
 
-    def _write_on_root(self, fn):
+    def write_on_root(self, fn):
         if not self._distributed: return open(fn, "w")
         if self.comm.rank == 0:
             return open(fn, "w")

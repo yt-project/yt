@@ -161,7 +161,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             ds = pf.h.periodic_region_strict([0.]*3, self.left_edge, 
                 self.right_edge)
             padded, self.LE, self.RE, self.ds = \
-            self._partition_hierarchy_3d(ds = ds, padding=0.,
+            self.comm.partition_hierarchy_3d(ds = ds, padding=0.,
                 rank_ratio = self.vol_ratio)
         else:
             self.left_edge = left_edge
@@ -169,10 +169,10 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # We do this twice, first with no 'buffer' to get the unbuffered
             # self.LE/RE, and then second to get a buffered self.ds.
             padded, self.LE, self.RE, temp = \
-                self._partition_region_3d(left_edge, right_edge,
+                self.comm.partition_region_3d(left_edge, right_edge,
                     rank_ratio=self.vol_ratio)
             padded, temp, temp, self.ds = \
-                self._partition_region_3d(left_edge - self.lengths[-1], \
+                self.comm.partition_region_3d(left_edge - self.lengths[-1], \
                 right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
         self.width = self.ds.right_edge - self.ds.left_edge
@@ -274,8 +274,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 self._setup_recv_arrays()
                 self._send_arrays()
                 t0 = time.time()
-                self._mpi_Request_Waitall(self.send_hooks)
-                self._mpi_Request_Waitall(self.recv_hooks)
+                self.comm.mpi_Request_Waitall(self.send_hooks)
+                self.comm.mpi_Request_Waitall(self.recv_hooks)
                 t1 = time.time()
                 t_waiting += (t1-t0)
                 if (self.recv_points < -1.).any() or (self.recv_points > 1.).any(): # or \
@@ -364,7 +364,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         for task in xrange(self.size):
             if task == self.mine: continue
             self.recv_done[task] = na.zeros(1, dtype='int64')
-            self.done_hooks.append(self._mpi_nonblocking_recv(self.recv_done[task], \
+            self.done_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_done[task], \
                 task, tag=15))
     
     def _send_done_to_root(self):
@@ -377,7 +377,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # I send when I *think* things should finish.
             self.send_done = na.ones(1, dtype='int64') * \
                 (self.size / self.vol_ratio -1) + self.comm_cycle_count
-            self.done_hooks.append(self._mpi_nonblocking_send(self.send_done, \
+            self.done_hooks.append(self.comm.mpi_nonblocking_send(self.send_done, \
                     0, tag=15))
         else:
             # As root, I need to mark myself!
@@ -391,7 +391,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         if self.mine == 0:
             # If other tasks aren't finished, this will return False.
-            status = self._mpi_Request_Testall(self.done_hooks)
+            status = self.comm.mpi_Request_Testall(self.done_hooks)
             # Convolve this with with root's status.
             status = status * (self.generated_points == self.total_values)
             if status == 1:
@@ -403,7 +403,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             status = 0
         # Broadcast the status from root - we stop only if root thinks we should
         # stop.
-        status = self._mpi_bcast_pickled(status)
+        status = self.comm.mpi_bcast_pickled(status)
         if status == 0: return True
         if self.comm_cycle_count < status:
             return True
@@ -419,22 +419,22 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.recv_fields_vals = na.zeros((self.comm_size, len(self.fields)*2), \
             dtype='float64')
         self.recv_gen_array = na.zeros(self.size, dtype='int64')
-        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_points, \
+        self.recv_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_points, \
             (self.mine-1)%self.size, tag=10))
-        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_fields_vals, \
+        self.recv_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_fields_vals, \
             (self.mine-1)%self.size, tag=20))
-        self.recv_hooks.append(self._mpi_nonblocking_recv(self.recv_gen_array, \
+        self.recv_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_gen_array, \
             (self.mine-1)%self.size, tag=40))
 
     def _send_arrays(self):
         """
         Send the data arrays to the right-hand neighbor.
         """
-        self.send_hooks.append(self._mpi_nonblocking_send(self.points,\
+        self.send_hooks.append(self.comm.mpi_nonblocking_send(self.points,\
             (self.mine+1)%self.size, tag=10))
-        self.send_hooks.append(self._mpi_nonblocking_send(self.fields_vals,\
+        self.send_hooks.append(self.comm.mpi_nonblocking_send(self.fields_vals,\
             (self.mine+1)%self.size, tag=20))
-        self.send_hooks.append(self._mpi_nonblocking_send(self.gen_array, \
+        self.send_hooks.append(self.comm.mpi_nonblocking_send(self.gen_array, \
             (self.mine+1)%self.size, tag=40))
 
     def _allsum_bin_hits(self):
@@ -442,8 +442,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         Add up the hits to all the bins globally for all functions.
         """
         for fset in self._fsets:
-            fset.too_low = self._mpi_allreduce(fset.too_low, op='sum')
-            fset.too_high = self._mpi_allreduce(fset.too_high, op='sum')
+            fset.too_low = self.comm.mpi_allreduce(fset.too_low, op='sum')
+            fset.too_high = self.comm.mpi_allreduce(fset.too_high, op='sum')
             fset.binned = {}
             if self.mine == 0:
                 mylog.info("Function %s had values out of range for these fields:" % \
@@ -453,7 +453,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                     (field, fset.too_high[i], fset.too_low[i]))
             for length in self.lengths:
                 fset.length_bin_hits[length] = \
-                    self._mpi_allreduce(fset.length_bin_hits[length], op='sum')
+                    self.comm.mpi_allreduce(fset.length_bin_hits[length], op='sum')
                 # Find out how many were successfully binned.
                 fset.binned[length] = fset.length_bin_hits[length].sum()
                 # Normalize the counts.
@@ -622,7 +622,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         >>> tpf.write_out_means()
         """
         for fset in self._fsets:
-            fp = self._write_on_root(fn % fset.function.__name__)
+            fp = self.comm.write_on_root(fn % fset.function.__name__)
             fset._avg_bin_hits()
             line = "# length".ljust(sep)
             line += "count".ljust(sep)
@@ -690,7 +690,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         for fset in self._fsets:
             # Only operate on correlation functions.
             if fset.corr_norm == None: continue
-            fp = self._write_on_root("%s_correlation.txt" % fset.function.__name__)
+            fp = self.comm.write_on_root("%s_correlation.txt" % fset.function.__name__)
             line = "# length".ljust(sep)
             line += "\\xi".ljust(sep)
             fp.write(line + "\n")

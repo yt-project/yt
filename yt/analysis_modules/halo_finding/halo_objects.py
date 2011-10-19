@@ -426,7 +426,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         """
         if self.max_dens_point is not None:
             return self.max_dens_point[0]
-        max = self._mpi_allreduce(self._max_dens[self.id][0], op='max')
+        max = self.comm.mpi_allreduce(self._max_dens[self.id][0], op='max')
         return max
 
     def maximum_density_location(self):
@@ -450,7 +450,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         else:
             value = na.array([0,0,0])
         # This works, and isn't appropriate but for now will be fine...
-        value = self._mpi_allreduce(value, op='sum')
+        value = self.comm.mpi_allreduce(value, op='sum')
         return value
 
     def center_of_mass(self):
@@ -479,8 +479,8 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         else:
             my_mass = 0.
             my_com = na.array([0.,0.,0.])
-        global_mass = self._mpi_allreduce(my_mass, op='sum')
-        global_com = self._mpi_allreduce(my_com, op='sum')
+        global_mass = self.comm.mpi_allreduce(my_mass, op='sum')
+        global_com = self.comm.mpi_allreduce(my_com, op='sum')
         return global_com / global_mass
 
     def total_mass(self):
@@ -499,7 +499,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             my_mass = self["ParticleMassMsun"].sum()
         else:
             my_mass = 0.
-        global_mass = self._mpi_allreduce(float(my_mass), op='sum')
+        global_mass = self.comm.mpi_allreduce(float(my_mass), op='sum')
         return global_mass
 
     def bulk_velocity(self):
@@ -528,7 +528,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             vy = 0.
             vz = 0.
         bv = na.array([vx,vy,vz,pm])
-        global_bv = self._mpi_allreduce(bv, op='sum')
+        global_bv = self.comm.mpi_allreduce(bv, op='sum')
         return global_bv[:3]/global_bv[3]
 
     def rms_velocity(self):
@@ -558,7 +558,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             ss = na.array([s, float(size)])
         else:
             ss = na.array([0.,0.])
-        global_ss = self._mpi_allreduce(ss, op='sum')
+        global_ss = self.comm.mpi_allreduce(ss, op='sum')
         ms = global_ss[0] / global_ss[1]
         return na.sqrt(ms) * global_ss[1]
 
@@ -598,7 +598,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             
         else:
             my_max = 0.
-        return self._mpi_allreduce(my_max, op='max')
+        return self.comm.mpi_allreduce(my_max, op='max')
 
     def get_size(self):
         if self.size is not None:
@@ -607,7 +607,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             my_size = self.indices.size
         else:
             my_size = 0
-        global_size = self._mpi_allreduce(my_size, op='sum')
+        global_size = self.comm.mpi_allreduce(my_size, op='sum')
         return global_size
 
     def __getitem__(self, key):
@@ -736,8 +736,8 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             dist_max = 0.0
         # In this parallel case, we're going to find the global dist extrema
         # and built identical bins on all tasks.
-        dist_min = self._mpi_allreduce(dist_min, op='min')
-        dist_max = self._mpi_allreduce(dist_max, op='max')
+        dist_min = self.comm.mpi_allreduce(dist_min, op='min')
+        dist_max = self.comm.mpi_allreduce(dist_max, op='max')
         # Set up the radial bins.
         # Multiply min and max to prevent issues with digitize below.
         self.radial_bins = na.logspace(math.log10(dist_min*.99 + TINY), 
@@ -752,7 +752,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             for i in xrange(self.bin_count):
                 self.mass_bins[i+1] += self.mass_bins[i]
         # Sum up the mass_bins globally
-        self.mass_bins = self._mpi_allreduce(self.mass_bins, op='sum')
+        self.mass_bins = self.comm.mpi_allreduce(self.mass_bins, op='sum')
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4./3. * math.pi * rho_crit * \
@@ -1412,7 +1412,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self.particle_fields["particle_index"].size:
             mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
             exit = True
-        self._mpi_exit_test(exit)
+        self.comm.mpi_exit_test(exit)
         obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"] / self.old_period[0],
@@ -1480,7 +1480,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             del diff_subchain
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
-        self.bulk_vel = self._mpi_allreduce(self.bulk_vel, op='sum')
+        self.bulk_vel = self.comm.mpi_allreduce(self.bulk_vel, op='sum')
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         yt_counters("bulk vel. computing")
@@ -1502,7 +1502,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 rms_vel_temp[u][1] = marks[i+1] - marks[i]
             del vel, marks, uniq_subchain
         # Bring it together.
-        rms_vel_temp = self._mpi_allreduce(rms_vel_temp, op='sum')
+        rms_vel_temp = self.comm.mpi_allreduce(rms_vel_temp, op='sum')
         self.rms_vel = na.empty(self.group_count, dtype='float64')
         for groupID in xrange(self.group_count):
             # Here we do the Mean and the Root.
@@ -1548,7 +1548,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                     bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
                     rms_vel=self.rms_vel[index])
                 # I don't own this halo
-                self._do_not_claim_object(self._groups[index])
+                self.comm.do_not_claim_object(self._groups[index])
                 self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                     self.max_dens_point[index][2], self.max_dens_point[index][3]]
                 index += 1
@@ -1561,7 +1561,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index],
                 rms_vel=self.rms_vel[i])
             # This halo may be owned by many, including this task
-            self._claim_object(self._groups[index])
+            self.comm.claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[i][0], self.max_dens_point[i][1], \
                 self.max_dens_point[i][2], self.max_dens_point[i][3]]
             cp += counts[i+1]
@@ -1574,7 +1574,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
                 bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
                 rms_vel=self.rms_vel[index])
-            self._do_not_claim_object(self._groups[index])
+            self.comm.do_not_claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
@@ -1627,7 +1627,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                 max_dens[hi] = [max_dens_temp] + list(self._max_dens[halo.id])[1:4]
                 groups.append(self._halo_class(self, hi))
                 groups[-1].indices = halo.indices
-                self._claim_object(groups[-1])
+                self.comm.claim_object(groups[-1])
                 hi += 1
         del self._groups, self._max_dens # explicit >> implicit
         self._groups = groups
@@ -1640,7 +1640,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         # about processors and ownership and so forth.
         # _mpi_info_dict returns a dict of {proc: whatever} where whatever is
         # what is fed in on each proc.
-        mine, halo_info = self._mpi_info_dict(len(self))
+        mine, halo_info = self.comm.mpi_info_dict(len(self))
         nhalos = sum(halo_info.values())
         # Figure out our offset
         my_first_id = sum([v for k,v in halo_info.items() if k < mine])
@@ -1703,7 +1703,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
-        f = self._write_on_root(filename)
+        f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f)
 
     def write_particle_lists_txt(self, prefix):
@@ -1722,7 +1722,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
-        f = self._write_on_root("%s.txt" % prefix)
+        f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
     @parallel_blocking_call
@@ -1849,7 +1849,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         topbounds = na.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds=self._data_source,
+            self.comm.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
@@ -1859,12 +1859,12 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         if ytcfg.getboolean("yt","inline") == False and \
             resize and self.comm.size != 1 and subvolume is None:
             random.seed(self.comm.rank)
-            cut_list = self._partition_hierarchy_3d_bisection_list()
+            cut_list = self.comm.partition_hierarchy_3d_bisection_list()
             root_points = self._subsample_points()
             self.bucket_bounds = []
             if self.comm.rank == 0:
                 self._recursive_divide(root_points, topbounds, 0, cut_list)
-            self.bucket_bounds = self._mpi_bcast_pickled(self.bucket_bounds)
+            self.bucket_bounds = self.comm.mpi_bcast_pickled(self.bucket_bounds)
             my_bounds = self.bucket_bounds[self.comm.rank]
             LE, RE = my_bounds[0], my_bounds[1]
             self._data_source = self.hierarchy.region_strict([0.]*3, LE, RE)
@@ -1936,7 +1936,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
-        total_mass = self._mpi_allreduce((self._data_source["ParticleMassMsun"].astype('float64')).sum(), 
+        total_mass = self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"].astype('float64')).sum(), 
                                          op='sum')
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
@@ -1945,7 +1945,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
             # Cut up the volume.
             padded, LE, RE, self._data_source = \
-                self._partition_hierarchy_3d(ds=self._data_source,
+                self.comm.partition_hierarchy_3d(ds=self._data_source,
                 padding=0.)
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
@@ -1959,7 +1959,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Read in a random subset of the points in each domain, and then
         # collect them on the root task.
         xp = self._data_source["particle_position_x"]
-        n_parts = self._mpi_allreduce(xp.size, op='sum')
+        n_parts = self.comm.mpi_allreduce(xp.size, op='sum')
         local_parts = xp.size
         random_points = int(self.sample * n_parts)
         # We want to get a representative selection of random particles in
@@ -1980,7 +1980,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         self._data_source.clear_data()
         del uni
         # Collect them on the root task.
-        mine, sizes = self._mpi_info_dict(n_random)
+        mine, sizes = self.comm.mpi_info_dict(n_random)
         if mine == 0:
             tot_random = sum(sizes.values())
             root_points = na.empty((tot_random, 3), dtype='float64')
@@ -1988,7 +1988,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         else:
             root_points = na.empty([])
         my_points.shape = (1, n_random*3)
-        root_points = self._par_combine_object(my_points[0],
+        root_points = self.comm.par_combine_object(my_points[0],
                 datatype="array", op="cat")
         del my_points
         if mine == 0:
@@ -2108,14 +2108,14 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # a small part is actually going to be used.
         self.padding = 0.0
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
+            self.comm.partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
             select = self._get_dm_indices()
             total_mass = \
-                self._mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
+                self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
         else:
-            total_mass = self._mpi_allreduce(self._data_source["ParticleMassMsun"].sum(dtype='float64'), op='sum')
+            total_mass = self.comm.mpi_allreduce(self._data_source["ParticleMassMsun"].sum(dtype='float64'), op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -2124,7 +2124,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
         self.padding = padding #* pf["unitary"] # This should be clevererer
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds = self._data_source,
+            self.comm.partition_hierarchy_3d(ds = self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
@@ -2192,10 +2192,10 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.padding = 0.0 #* pf["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds=self._data_source,
+            self.comm.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         if link > 0.0:
-            n_parts = self._mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
+            n_parts = self.comm.mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
             # get the average spacing between particles
             #l = pf.domain_right_edge - pf.domain_left_edge
             #vol = l[0] * l[1] * l[2]
@@ -2210,7 +2210,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
         padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d(ds=self._data_source,
+            self.comm.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
