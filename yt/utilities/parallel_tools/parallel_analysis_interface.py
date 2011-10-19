@@ -275,12 +275,14 @@ def parallel_root_only(func):
     return func
 
 class ParallelAnalysisInterface(object):
-    """
-    This is an interface specification providing several useful utility
-    functions for analyzing something in parallel.
-    """
+    comm = None
     _grids = None
-    _distributed = parallel_capable
+    _distributed = None
+
+    def __init__(self, size=1):
+        self.comm = CommunicationSystem.pop()
+        self._grids = self.comm._grids
+        self._distributed = self.comm._distributed
 
     def _get_objs(self, attr, *args, **kwargs):
         if self._distributed:
@@ -307,13 +309,43 @@ class ParallelAnalysisInterface(object):
     def _finalize_parallel(self):
         pass
 
+class CommunicationSystem(object):
+    communicators = []
+    def push(self, size=None, ranks=None):
+        if size = None:
+            size = len(available_ranks)
+        if len(available_ranks) < size:
+            raise RuntimeError
+        if ranks is None:
+            ranks = [available_ranks.pop() for i in range(size)]
+        
+        group = MPI.COMM_WORLD.Group.Incl(ranks)
+        new_comm = MPI.COMM_WORLD.Create(group)
+        self.communicators.append(Communicator(new_comm))
+        return new_comm
+        
+    def pop(self):
+        self.communicators.pop()
+
+class Communicator(object):
+    comm = None
+    def __init__(self, comm=MPI.COMM_WORLD):
+        self.comm = comm
+    """
+    This is an interface specification providing several useful utility
+    functions for analyzing something in parallel.
+    """
+    _grids = None
+    _distributed = (comm.size > 1)
+
     def _partition_hierarchy_2d(self, axis):
         if not self._distributed:
-           return False, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+           return False, self.hierarchy.grid_collection(self.center, 
+                                                        self.hierarchy.grids)
 
         xax, yax = x_dict[axis], y_dict[axis]
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
-        mi = MPI.COMM_WORLD.rank
+        cc = MPI.Compute_dims(self.comm.size, 2)
+        mi = self.comm.rank
         cx, cy = na.unravel_index(mi, cc)
         x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
@@ -352,15 +384,15 @@ class ParallelAnalysisInterface(object):
             # grid that belongs to this processor.
             grids = self.pf.h.select_grids(0)
             root_grids = [g for g in grids
-                          if g.proc_num == MPI.COMM_WORLD.rank]
+                          if g.proc_num == self.comm.rank]
             if len(root_grids) != 1: raise RuntimeError
             #raise KeyError
             LE = root_grids[0].LeftEdge
             RE = root_grids[0].RightEdge
             return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size / rank_ratio, 3)
-        mi = MPI.COMM_WORLD.rank % (MPI.COMM_WORLD.size / rank_ratio)
+        cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
+        mi = self.comm.rank % (self.comm.size / rank_ratio)
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -386,8 +418,8 @@ class ParallelAnalysisInterface(object):
         if not self._distributed:
             return LE, RE, re
         
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size / rank_ratio, 3)
-        mi = MPI.COMM_WORLD.rank % (MPI.COMM_WORLD.size / rank_ratio)
+        cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
+        mi = self.comm.rank % (self.comm.size / rank_ratio)
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -421,8 +453,8 @@ class ParallelAnalysisInterface(object):
                 i += 1
             return [n]
 
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        si = MPI.COMM_WORLD.size
+        cc = MPI.Compute_dims(self.comm.size, 3)
+        si = self.comm.size
         
         factors = factor(si)
         xyzfactors = [factor(cc[0]), factor(cc[1]), factor(cc[2])]
@@ -448,8 +480,8 @@ class ParallelAnalysisInterface(object):
 
     def _barrier(self):
         if not self._distributed: return
-        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
+        mylog.debug("Opening MPI Barrier on %s", self.comm.rank)
+        self.comm.Barrier()
 
     def _mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
@@ -490,39 +522,39 @@ class ParallelAnalysisInterface(object):
         bot_keys = na.array(bot_keys, dtype='int64')
         vals = na.array(vals, dtype='float64')
         del data
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+        if self.comm.rank == 0:
+            for i in range(1,self.comm.size):
+                size = self.comm.recv(source=i, tag=0)
                 mylog.info('Global Hash Table Merge %d of %d size %d' % \
-                    (i,MPI.COMM_WORLD.size, size))
+                    (i,self.comm.size, size))
                 recv_top_keys = na.empty(size, dtype='int64')
                 recv_bot_keys = na.empty(size, dtype='int64')
                 recv_vals = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([recv_top_keys, MPI.LONG], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([recv_bot_keys, MPI.LONG], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([recv_vals, MPI.DOUBLE], source=i, tag=0)
+                self.comm.Recv([recv_top_keys, MPI.LONG], source=i, tag=0)
+                self.comm.Recv([recv_bot_keys, MPI.LONG], source=i, tag=0)
+                self.comm.Recv([recv_vals, MPI.DOUBLE], source=i, tag=0)
                 top_keys = na.concatenate([top_keys, recv_top_keys])
                 bot_keys = na.concatenate([bot_keys, recv_bot_keys])
                 vals = na.concatenate([vals, recv_vals])
         else:
             size = top_keys.size
-            MPI.COMM_WORLD.send(size, dest=0, tag=0)
-            MPI.COMM_WORLD.Send([top_keys, MPI.LONG], dest=0, tag=0)
-            MPI.COMM_WORLD.Send([bot_keys, MPI.LONG], dest=0, tag=0)
-            MPI.COMM_WORLD.Send([vals, MPI.DOUBLE], dest=0, tag=0)
+            self.comm.send(size, dest=0, tag=0)
+            self.comm.Send([top_keys, MPI.LONG], dest=0, tag=0)
+            self.comm.Send([bot_keys, MPI.LONG], dest=0, tag=0)
+            self.comm.Send([vals, MPI.DOUBLE], dest=0, tag=0)
         # We're going to decompose the dict into arrays, send that, and then
         # reconstruct it. When data is too big the pickling of the dict fails.
-        if MPI.COMM_WORLD.rank == 0:
+        if self.comm.rank == 0:
             size = top_keys.size
         # Broadcast them using array methods
-        size = MPI.COMM_WORLD.bcast(size, root=0)
-        if MPI.COMM_WORLD.rank != 0:
+        size = self.comm.bcast(size, root=0)
+        if self.comm.rank != 0:
             top_keys = na.empty(size, dtype='int64')
             bot_keys = na.empty(size, dtype='int64')
             vals = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([top_keys,MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([bot_keys,MPI.LONG], root=0)
-        MPI.COMM_WORLD.Bcast([vals, MPI.DOUBLE], root=0)
+        self.comm.Bcast([top_keys,MPI.LONG], root=0)
+        self.comm.Bcast([bot_keys,MPI.LONG], root=0)
+        self.comm.Bcast([vals, MPI.DOUBLE], root=0)
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
@@ -544,26 +576,26 @@ class ParallelAnalysisInterface(object):
             datatype == "list"
         # Now we have our datatype, and we conduct our operation
         if datatype == "dict" and op == "join":
-            if MPI.COMM_WORLD.rank == 0:
-                for i in range(1,MPI.COMM_WORLD.size):
-                    data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
+            if self.comm.rank == 0:
+                for i in range(1,self.comm.size):
+                    data.update(self.comm.recv(source=i, tag=0))
             else:
-                MPI.COMM_WORLD.send(data, dest=0, tag=0)
-            data = MPI.COMM_WORLD.bcast(data, root=0)
+                self.comm.send(data, dest=0, tag=0)
+            data = self.comm.bcast(data, root=0)
             return data
         elif datatype == "dict" and op == "cat":
             field_keys = data.keys()
             field_keys.sort()
             size = data[field_keys[0]].shape[-1]
-            sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+            sizes = na.zeros(self.comm.size, dtype='int64')
             outsize = na.array(size, dtype='int64')
-            MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+            self.comm.Allgather([outsize, 1, MPI.LONG],
                                      [sizes, 1, MPI.LONG] )
             # This nested concatenate is to get the shapes to work out correctly;
             # if we just add [0] to sizes, it will broadcast a summation, not a
             # concatenation.
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
-            arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+            arr_size = self.comm.allreduce(size, op=MPI.SUM)
             for key in field_keys:
                 dd = data[key]
                 rv = _alltoallv_array(dd, arr_size, offsets, sizes)
@@ -582,39 +614,39 @@ class ParallelAnalysisInterface(object):
                     size = data.shape[0]
                 else:
                     ncols, size = data.shape
-            ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
+            ncols = self.comm.allreduce(ncols, op=MPI.MAX)
             if size == 0:
                 data = na.zeros((ncols,0), dtype='float64') # This only works for
             size = data.shape[-1]
-            sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+            sizes = na.zeros(self.comm.size, dtype='int64')
             outsize = na.array(size, dtype='int64')
-            MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+            self.comm.Allgather([outsize, 1, MPI.LONG],
                                      [sizes, 1, MPI.LONG] )
             # This nested concatenate is to get the shapes to work out correctly;
             # if we just add [0] to sizes, it will broadcast a summation, not a
             # concatenation.
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
-            arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+            arr_size = self.comm.allreduce(size, op=MPI.SUM)
             data = _alltoallv_array(data, arr_size, offsets, sizes)
             return data
         elif datatype == "list" and op == "cat":
-            if MPI.COMM_WORLD.rank == 0:
+            if self.comm.rank == 0:
                 data = self.__mpi_recvlist(data)
             else:
-                MPI.COMM_WORLD.send(data, dest=0, tag=0)
-            mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-            data = MPI.COMM_WORLD.bcast(data, root=0)
+                self.comm.send(data, dest=0, tag=0)
+            mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
+            data = self.comm.bcast(data, root=0)
             return data
         raise NotImplementedError
 
     @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
-        data = MPI.COMM_WORLD.bcast(data, root=0)
+        data = self.comm.bcast(data, root=0)
         return data
 
     def _should_i_write(self):
         if not self._distributed: return True
-        return (MPI.COMM_WORLD == 0)
+        return (self.comm == 0)
 
     def _preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
@@ -632,13 +664,13 @@ class ParallelAnalysisInterface(object):
             if dtype != data.dtype:
                 data = data.astype(dtype)
             temp = data.copy()
-            MPI.COMM_WORLD.Allreduce([temp,get_mpi_type(dtype)], 
+            self.comm.Allreduce([temp,get_mpi_type(dtype)], 
                                      [data,get_mpi_type(dtype)], op)
             return data
         else:
             # We use old-school pickling here on the assumption the arrays are
             # relatively small ( < 1e7 elements )
-            return MPI.COMM_WORLD.allreduce(data, op)
+            return self.comm.allreduce(data, op)
 
     ###
     # Non-blocking stuff.
@@ -648,13 +680,13 @@ class ParallelAnalysisInterface(object):
         if not self._distributed: return -1
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
-        return MPI.COMM_WORLD.Irecv([data, mpi_type], source, tag)
+        return self.comm.Irecv([data, mpi_type], source, tag)
 
     def _mpi_nonblocking_send(self, data, dest, tag=0, dtype=None):
         if not self._distributed: return -1
         if dtype is None: dtype = data.dtype
         mpi_type = get_mpi_type(dtype)
-        return MPI.COMM_WORLD.Isend([data, mpi_type], dest, tag)
+        return self.comm.Isend([data, mpi_type], dest, tag)
 
     def _mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
@@ -684,27 +716,27 @@ class ParallelAnalysisInterface(object):
     @property
     def _par_size(self):
         if not self._distributed: return 1
-        return MPI.COMM_WORLD.size
+        return self.comm.size
 
     @property
     def _par_rank(self):
         if not self._distributed: return 0
-        return MPI.COMM_WORLD.rank
+        return self.comm.rank
 
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
         self._barrier()
         data = None
-        if MPI.COMM_WORLD.rank == 0:
+        if self.comm.rank == 0:
             data = {0:info}
-            for i in range(1, MPI.COMM_WORLD.size):
-                data[i] = MPI.COMM_WORLD.recv(source=i, tag=0)
+            for i in range(1, self.comm.size):
+                data[i] = self.comm.recv(source=i, tag=0)
         else:
-            MPI.COMM_WORLD.send(info, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
+            self.comm.send(info, dest=0, tag=0)
+        mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
+        data = self.comm.bcast(data, root=0)
         self._barrier()
-        return MPI.COMM_WORLD.rank, data
+        return self.comm.rank, data
 
     def _get_dependencies(self, fields):
         deps = []
@@ -715,7 +747,7 @@ class ParallelAnalysisInterface(object):
 
     def _claim_object(self, obj):
         if not self._distributed: return
-        obj._owner = MPI.COMM_WORLD.rank
+        obj._owner = self.comm.rank
         obj._distributed = True
 
     def _do_not_claim_object(self, obj):
@@ -725,7 +757,7 @@ class ParallelAnalysisInterface(object):
 
     def _write_on_root(self, fn):
         if not self._distributed: return open(fn, "w")
-        if MPI.COMM_WORLD.rank == 0:
+        if self.comm.rank == 0:
             return open(fn, "w")
         else:
             return cStringIO.StringIO()
@@ -733,39 +765,39 @@ class ParallelAnalysisInterface(object):
     def _get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
         if rank == None:
-            return "%s_%04i" % (prefix, MPI.COMM_WORLD.rank)
+            return "%s_%04i" % (prefix, self.comm.rank)
         else:
             return "%s_%04i" % (prefix, rank)
 
     def _is_mine(self, obj):
         if not obj._distributed: return True
-        return (obj._owner == MPI.COMM_WORLD.rank)
+        return (obj._owner == self.comm.rank)
 
     def _send_quadtree(self, target, buf, tgd, args):
         sizebuf = na.zeros(1, 'int64')
         sizebuf[0] = buf[0].size
-        MPI.COMM_WORLD.Send([sizebuf, MPI.LONG], dest=target)
-        MPI.COMM_WORLD.Send([buf[0], MPI.INT], dest=target)
-        MPI.COMM_WORLD.Send([buf[1], MPI.DOUBLE], dest=target)
-        MPI.COMM_WORLD.Send([buf[2], MPI.DOUBLE], dest=target)
+        self.comm.Send([sizebuf, MPI.LONG], dest=target)
+        self.comm.Send([buf[0], MPI.INT], dest=target)
+        self.comm.Send([buf[1], MPI.DOUBLE], dest=target)
+        self.comm.Send([buf[2], MPI.DOUBLE], dest=target)
         
     def _recv_quadtree(self, target, tgd, args):
         sizebuf = na.zeros(1, 'int64')
-        MPI.COMM_WORLD.Recv(sizebuf, source=target)
+        self.comm.Recv(sizebuf, source=target)
         buf = [na.empty((sizebuf[0],), 'int32'),
                na.empty((sizebuf[0], args[2]),'float64'),
                na.empty((sizebuf[0],),'float64')]
-        MPI.COMM_WORLD.Recv([buf[0], MPI.INT], source=target)
-        MPI.COMM_WORLD.Recv([buf[1], MPI.DOUBLE], source=target)
-        MPI.COMM_WORLD.Recv([buf[2], MPI.DOUBLE], source=target)
+        self.comm.Recv([buf[0], MPI.INT], source=target)
+        self.comm.Recv([buf[1], MPI.DOUBLE], source=target)
+        self.comm.Recv([buf[2], MPI.DOUBLE], source=target)
         return buf
 
     @parallel_passthrough
     def merge_quadtree_buffers(self, qt):
         # This is a modified version of pairwise reduction from Lisandro Dalcin,
         # in the reductions demo of mpi4py
-        size = MPI.COMM_WORLD.size
-        rank = MPI.COMM_WORLD.rank
+        size = self.comm.size
+        rank = self.comm.rank
 
         mask = 1
 
@@ -795,14 +827,14 @@ class ParallelAnalysisInterface(object):
         if rank == 0:
             buf = qt.tobuffer()
             sizebuf[0] = buf[0].size
-        MPI.COMM_WORLD.Bcast([sizebuf, MPI.LONG], root=0)
+        self.comm.Bcast([sizebuf, MPI.LONG], root=0)
         if rank != 0:
             buf = [na.empty((sizebuf[0],), 'int32'),
                    na.empty((sizebuf[0], args[2]),'float64'),
                    na.empty((sizebuf[0],),'float64')]
-        MPI.COMM_WORLD.Bcast([buf[0], MPI.INT], root=0)
-        MPI.COMM_WORLD.Bcast([buf[1], MPI.DOUBLE], root=0)
-        MPI.COMM_WORLD.Bcast([buf[2], MPI.DOUBLE], root=0)
+        self.comm.Bcast([buf[0], MPI.INT], root=0)
+        self.comm.Bcast([buf[1], MPI.DOUBLE], root=0)
+        self.comm.Bcast([buf[2], MPI.DOUBLE], root=0)
         self.refined = buf[0]
         if rank != 0:
             qt = QuadTree(tgd, args[2])
