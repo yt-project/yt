@@ -755,7 +755,7 @@ class Communicator(object):
         else:
             return "%s_%04i" % (prefix, rank)
 
-    def _is_mine(self, obj):
+    def is_mine(self, obj):
         if not obj._distributed: return True
         return (obj._owner == self.comm.rank)
 

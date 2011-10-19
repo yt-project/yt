@@ -1748,7 +1748,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         fn = "%s.h5" % self._get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
-            if not self._is_mine(halo): continue
+            if not self.comm.is_mine(halo): continue
             halo.write_particle_list(f)
 
     def dump(self, basename="HopAnalysis"):
