@@ -315,8 +315,8 @@ class CommunicationSystem(object):
         group = self.communicators[-1].comm.Get_group().Incl(ids)
         new_comm = self.communicators[-1].comm.Create(group)
         from yt.config import ytcfg
-        ytcfg["yt","__topcomm_parallel_size"] = new_comm.size
-        ytcfg["yt","__topcomm_parallel_rank"] = new_comm.rank
+        ytcfg["yt","__topcomm_parallel_size"] = str(new_comm.size)
+        ytcfg["yt","__topcomm_parallel_rank"] = str(new_comm.rank)
         self.communicators.append(Communicator(new_comm))
         return new_comm
 
