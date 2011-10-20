@@ -320,7 +320,13 @@ class ProcessorPool(object):
         for wg in self.workgroups:
             self.free_workgroup(wg)
 
-def parallel_objects(objects, njobs):
+class ResultsStorage(object):
+    slots = ['result', 'result_id']
+    result = None
+    result_id = None
+
+def parallel_objects(objects, njobs, storage = None):
+    if not parallel_capable: raise RuntimeError
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
     my_rank = my_communicator.rank
@@ -330,10 +336,23 @@ def parallel_objects(objects, njobs):
             my_new_id = i
             break
     communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
+    obj_ids = na.arange(len(objects))
 
-    for obj in objects[my_new_id::njobs]:
-        yield obj
+    to_share = {}
+    for result_id, obj in zip(obj_ids, objects)[my_new_id::njobs]:
+        if storage is not None:
+            rstore = ResultsStorage()
+            rstore.result_id = result_id
+            yield rstore, obj
+            to_share[rstore.result_id] = rstore.result
+        else:
+            yield obj
     communication_system.communicators.pop()
+    if storage is not None:
+        # Now we have to broadcast it
+        new_storage = my_communicator.par_combine_object(
+                to_share, datatype = 'dict', op = 'join')
+        storage.update(new_storage)
 
 class CommunicationSystem(object):
     communicators = []
