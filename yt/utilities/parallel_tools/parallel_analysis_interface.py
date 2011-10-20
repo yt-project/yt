@@ -274,19 +274,24 @@ def parallel_root_only(func):
     if parallel_capable: return root_only
     return func
 
+class Workgroup(object):
+    def __init__(self, size, ranks):
+        self.size = size
+        self.ranks = ranks
+
 class ProcessorPool(object):
     comm = None
     size = None
     ranks = None
-    availabel_ranks = None
+    available_ranks = None
     tasks = None
-    workgroups = {}
+    workgroups = []
     def __init__(self):
         self.comm = communication_system.communicators[-1]
         self.size = self.comm.size
         self.ranks = range(self.size)
         self.available_ranks = range(self.size)
-
+    
     def add_workgroup(self, size=None, ranks=None):
         if size is None:
             size = len(self.available_ranks)
@@ -295,11 +300,24 @@ class ProcessorPool(object):
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
+        
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
             communication_system.communicators.append(Communicator(new_comm))
-        self.workgroups[len(ranks)] = ranks
+        self.workgroups.append(Workgroup(len(ranks), ranks))
+    
+    def free_workgroup(self, workgroup):
+        for i in workgroup.ranks:
+            if self.comm.rank == i:
+                communication_system.communicators.pop()
+            self.available_ranks.append(i) 
+        del workgroup
+        self.available_ranks.sort()
+
+    def free_all(self):
+        for wg in self.workgroups:
+            self.free_workgroup(wg)
 
 def parallel_objects(objects, njobs):
     my_communicator = communication_system.communicators[-1]
