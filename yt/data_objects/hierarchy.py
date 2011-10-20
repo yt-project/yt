@@ -48,6 +48,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 
     def __init__(self, pf, data_style):
+        ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
 
@@ -177,7 +178,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             writeable = os.access(fn, os.W_OK)
         writeable = writeable and not ytcfg.getboolean('yt','onlydeserialize')
         # We now have our conditional stuff
-        self._barrier()
+        self.comm.barrier()
         if not writeable and not exists: return
         if writeable:
             try:

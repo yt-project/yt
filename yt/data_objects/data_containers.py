@@ -70,11 +70,11 @@ def restore_grid_state(func):
     """
     def save_state(self, grid, field=None):
         old_params = grid.field_parameters
-        old_keys = grid.data.keys()
+        old_keys = grid.field_data.keys()
         grid.field_parameters = self.field_parameters
         tr = func(self, grid, field)
         grid.field_parameters = old_params
-        grid.data = dict( [(k, grid.data[k]) for k in old_keys] )
+        grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
         return tr
     return save_state
 
@@ -120,6 +120,12 @@ def cache_vc_data(func):
         return self._vc_data[field][grid.id]
     return check_cache
 
+class YTFieldData(dict):
+    """
+    A Container object for field data, instead of just having it be a dict.
+    """
+    pass
+
 class FakeGridForParticles(object):
     """
     Mock up a grid to insert particle positions and radii
@@ -128,20 +134,20 @@ class FakeGridForParticles(object):
     def __init__(self, grid):
         self._corners = grid._corners
         self.field_parameters = {}
-        self.data = {'x':grid['particle_position_x'],
-                     'y':grid['particle_position_y'],
-                     'z':grid['particle_position_z'],
-                     'dx':grid['dx'],
-                     'dy':grid['dy'],
-                     'dz':grid['dz']}
+        self.field_data = YTFieldData({'x':grid['particle_position_x'],
+                                       'y':grid['particle_position_y'],
+                                       'z':grid['particle_position_z'],
+                                       'dx':grid['dx'],
+                                       'dy':grid['dy'],
+                                       'dz':grid['dz']})
         self.dds = grid.dds.copy()
         self.real_grid = grid
         self.child_mask = 1
-        self.ActiveDimensions = self.data['x'].shape
+        self.ActiveDimensions = self.field_data['x'].shape
         self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
         
     def __getitem__(self, field):
-        if field not in self.data.keys():
+        if field not in self.field_data.keys():
             if field == "RadiusCode":
                 center = self.field_parameters['center']
                 tempx = na.abs(self['x'] - center[0])
@@ -153,7 +159,7 @@ class FakeGridForParticles(object):
                 tr = na.sqrt( tempx**2.0 + tempy**2.0 + tempz**2.0 )
             else:
                 raise KeyError(field)
-        else: tr = self.data[field]
+        else: tr = self.field_data[field]
         return tr
 
 class AMRData(object):
@@ -187,7 +193,7 @@ class AMRData(object):
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
-        self.data = {}
+        self.field_data = YTFieldData()
         self.field_parameters = {}
         self.__set_default_field_parameters()
         self._cut_masks = {}
@@ -249,7 +255,7 @@ class AMRData(object):
         """
         Clears out all data from the AMRData instance, freeing memory.
         """
-        self.data.clear()
+        self.field_data.clear()
         if self._grids is not None:
             for grid in self._grids: grid.clear_data()
 
@@ -266,7 +272,7 @@ class AMRData(object):
         """
         Checks if a data field already exists.
         """
-        return self.data.has_key(key)
+        return self.field_data.has_key(key)
 
     def _refresh_data(self):
         """
@@ -276,24 +282,24 @@ class AMRData(object):
         self.get_data()
 
     def keys(self):
-        return self.data.keys()
+        return self.field_data.keys()
 
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
         """
-        if not self.data.has_key(key):
+        if not self.field_data.has_key(key):
             if key not in self.fields:
                 self.fields.append(key)
             self.get_data(key)
-        return self.data[key]
+        return self.field_data[key]
 
     def __setitem__(self, key, val):
         """
         Sets a field to be some other value.
         """
         if key not in self.fields: self.fields.append(key)
-        self.data[key] = val
+        self.field_data[key] = val
 
     def __delitem__(self, key):
         """
@@ -303,21 +309,21 @@ class AMRData(object):
             del self.fields[self.fields.index(key)]
         except ValueError:
             pass
-        del self.data[key]
+        del self.field_data[key]
 
     def _generate_field_in_grids(self, fieldName):
         pass
 
     _key_fields = None
     def write_out(self, filename, fields=None, format="%0.16e"):
-        if fields is None: fields=sorted(self.data.keys())
+        if fields is None: fields=sorted(self.field_data.keys())
         if self._key_fields is None: raise ValueError
         field_order = self._key_fields[:]
         for field in field_order: self[field]
         field_order += [field for field in fields if field not in field_order]
         fid = open(filename,"w")
         fid.write("\t".join(["#"] + field_order + ["\n"]))
-        field_data = na.array([self.data[field] for field in field_order])
+        field_data = na.array([self.field_data[field] for field in field_order])
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
@@ -465,11 +471,11 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         else:
             fields_to_get = ensure_list(fields)
         if not self.sort_by in fields_to_get and \
-            self.sort_by not in self.data:
+            self.sort_by not in self.field_data:
             fields_to_get.insert(0, self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
-            if self.data.has_key(field):
+            if self.field_data.has_key(field):
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             if field not in self.hierarchy.field_list and not in_grids:
@@ -478,7 +484,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
-            if not self.data.has_key(field):
+            if not self.field_data.has_key(field):
                 continue
             if self._sortkey is None:
                 self._sortkey = na.argsort(self[self.sort_by])
@@ -764,6 +770,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         Prepares the AMR2DData, normal to *axis*.  If *axis* is 4, we are not
         aligned with any axis.
         """
+        ParallelAnalysisInterface.__init__(self)
         self.axis = axis
         AMRData.__init__(self, pf, fields, **kwargs)
         self.field = ensure_list(fields)[0]
@@ -789,7 +796,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             fields_to_get = ensure_list(fields)
         temp_data = {}
         for field in fields_to_get:
-            if self.data.has_key(field): continue
+            if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
@@ -804,11 +811,11 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             self[field] = temp_data[field] 
         # We finalize
         if temp_data != {}:
-            temp_data = self._mpi_catdict(temp_data)
+            temp_data = self.comm.par_combine_object(temp_data,
+                    datatype='dict', op='cat')
         # And set, for the next group
         for field in temp_data.keys():
             self[field] = temp_data[field]
-
 
     def _generate_field(self, field):
         if self.pf.field_info.has_key(field):
@@ -992,12 +999,14 @@ class AMRSliceBase(AMR2DData):
             points.append(self._generate_grid_coords(grid))
         if len(points) == 0:
             points = None
-            t = self._mpi_catarray(None)
+            t = self.comm.par_combine_object(None, datatype="array", op="cat")
         else:
             points = na.concatenate(points)
-            # We have to transpose here so that _mpi_catarray works properly, as
-            # it and the alltoall assume the long axis is the last one.
-            t = self._mpi_catarray(points.transpose())
+            # We have to transpose here so that _par_combine_object works
+            # properly, as it and the alltoall assume the long axis is the last
+            # one.
+            t = self.comm.par_combine_object(points.transpose(),
+                        datatype="array", op="cat")
         self['px'] = t[0,:]
         self['py'] = t[1,:]
         self['pz'] = t[2,:]
@@ -1212,7 +1221,7 @@ class AMRCuttingPlaneBase(AMR2DData):
             points.append(self._generate_grid_coords(grid))
         if len(points) == 0: points = None
         else: points = na.concatenate(points)
-        t = self._mpi_catarray(points)
+        t = self.comm.par_combine_object(points, datatype="array", op="cat")
         pos = (t[:,0:3] - self.center)
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
@@ -1423,7 +1432,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         temp_data = {}
         _size = self.dims * self.dims
         for field in fields_to_get:
-            if self.data.has_key(field): continue
+            if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
@@ -1432,8 +1441,8 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             self[field] = na.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
-            self[field] = self._mpi_allsum(\
-                self[field]).reshape([self.dims]*2).transpose()
+            self[field] = self.comm.mpi_allreduce(\
+                self[field], op='sum').reshape([self.dims]*2).transpose()
 
     def interpolate_discretize(self, *args, **kwargs):
         pass
@@ -1592,7 +1601,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         else: fields = ensure_list(fields)
         # We need a new tree for every single set of fields we add
         self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.data]
+        fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         tree = self._get_tree(len(fields))
         coord_data = []
@@ -1604,21 +1613,21 @@ class AMRQuadTreeProjBase(AMR2DData):
         if self.preload_style == 'all':
             print "Preloading %s grids and getting %s" % (
                     len(self.source._get_grid_objs()),
-                    self._get_dependencies(fields))
-            self._preload([g for g in self._get_grid_objs()],
-                          self._get_dependencies(fields), self.hierarchy.io)
+                    self.get_dependencies(fields))
+            self.comm.preload([g for g in self._get_grid_objs()],
+                          self.get_dependencies(fields), self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
         # having to do this by level, and instead do it by CPU file
         for level in range(0, self._max_level+1):
             if self.preload_style == 'level':
-                self._preload([g for g in self._get_grid_objs()
+                self.comm.preload([g for g in self._get_grid_objs()
                                  if g.Level == level],
-                              self._get_dependencies(fields), self.hierarchy.io)
+                              self.get_dependencies(fields), self.hierarchy.io)
             self._add_level_to_tree(tree, level, fields)
             mylog.debug("End of projecting level level %s, memory usage %0.3e", 
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
-        tree = self.merge_quadtree_buffers(tree)
+        tree = self.comm.merge_quadtree_buffers(tree)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -1832,7 +1841,7 @@ class AMRProjBase(AMR2DData):
 
     def _initialize_source(self, source = None):
         if source is None:
-            check, source = self._partition_hierarchy_2d(self.axis)
+            check, source = self.partition_hierarchy_2d(self.axis)
             self._check_region = check
             #self._okay_to_serialize = (not check)
         else:
@@ -1982,7 +1991,7 @@ class AMRProjBase(AMR2DData):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
         self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.data]
+        fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         coord_data = []
         field_data = []
@@ -1993,13 +2002,13 @@ class AMRProjBase(AMR2DData):
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
             print "Preloading %s grids and getting %s" % (
-                    len(self.source._grids), self._get_dependencies(fields))
-            self._preload(self.source._grids,
-                          self._get_dependencies(fields), self.hierarchy.io)
+                    len(self.source._grids), self.get_dependencies(fields))
+            self.comm.preload(self.source._grids,
+                          self.get_dependencies(fields), self.hierarchy.io)
         for level in range(0, self._max_level+1):
             if self.preload_style == 'level':
-                self._preload(self.source.select_grids(level),
-                              self._get_dependencies(fields), self.hierarchy.io)
+                self.comm.preload(self.source.select_grids(level),
+                              self.get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
             my_coords, my_pdx, my_pdy, my_fields = \
                 self.__project_level(level, fields)
@@ -2035,7 +2044,7 @@ class AMRProjBase(AMR2DData):
         data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
-        data = self._mpi_catdict(data)
+        data = self.comm.par_combine_object(temp_data, datatype='dict', op='cat')
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
@@ -2221,7 +2230,7 @@ class AMRFixedResProjectionBase(AMR2DData):
             self._get_data_from_grid(grid, fields_to_get, dls)
         mylog.info("IO completed; summing")
         for field in fields_to_get:
-            self[field] = self._mpi_Allsum_double(self[field])
+            self[field] = self.comm.mpi_allreduce(self[field], op='sum')
             conv = self.pf.units[self.pf.field_info[field].projection_conversion]
             self[field] *= conv
 
@@ -2304,7 +2313,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             fields_to_get = ensure_list(fields)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
-            if self.data.has_key(field):
+            if self.field_data.has_key(field):
                 continue
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
@@ -2316,14 +2325,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader:
                 self.particles.get_data(field)
-                if field not in self.data:
+                if field not in self.field_data:
                     if self._generate_field(field): continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
         for field in fields_to_get:
-            if not self.data.has_key(field):
+            if not self.field_data.has_key(field):
                 continue
             self[field] = self[field]
 
@@ -3198,7 +3207,7 @@ class AMRCoveringGridBase(AMR3DData):
             fields = ensure_list(fields)
         obtain_fields = []
         for field in fields:
-            if self.data.has_key(field): continue
+            if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 try:
                     #print "Generating", field
@@ -3311,7 +3320,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             fields_to_get = ensure_list(field)
         for field in fields_to_get:
             grid_count = 0
-            if self.data.has_key(field):
+            if self.field_data.has_key(field):
                 continue
             mylog.debug("Getting field %s from %s possible grids",
                        field, len(self._grids))
@@ -3343,9 +3352,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     def _update_level_state(self, level, field = None):
         dx = self._base_dx / self.pf.refine_by**level
-        self.data['cdx'] = dx[0]
-        self.data['cdy'] = dx[1]
-        self.data['cdz'] = dx[2]
+        self.field_data['cdx'] = dx[0]
+        self.field_data['cdy'] = dx[1]
+        self.field_data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
         self.global_startindex = na.rint(LL / dx).astype('int64') - 1
@@ -3354,13 +3363,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            self.data[field] = na.zeros(idims,dtype='float64')-999
+            self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
-            self.data[field] = na.zeros(idims,dtype='float64')-999
+            self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
     def _refine(self, dlevel, field):

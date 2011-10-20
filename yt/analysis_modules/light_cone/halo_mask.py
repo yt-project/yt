@@ -45,14 +45,14 @@ def light_cone_halo_mask(lightCone, cube_file=None, mask_file=None, **kwargs):
         light_cone_mask.append(_make_slice_mask(slice, halo_list, pixels))
 
     # Write out cube of masks from each slice.
-    if cube_file is not None and ytcfg.getint("yt", "__parallel_rank") == 0:
+    if cube_file is not None and ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
         mylog.info("Saving halo mask cube to %s." % cube_file)
         output = h5py.File(cube_file, 'a')
         output.create_dataset('haloMaskCube', data=na.array(light_cone_mask))
         output.close()
 
     # Write out final mask.
-    if mask_file is not None and ytcfg.getint("yt", "__parallel_rank") == 0:
+    if mask_file is not None and ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
         # Final mask is simply the product of the mask from each slice.
         mylog.info("Saving halo mask to %s." % mask_file)
         finalMask = na.ones(shape=(pixels, pixels))
@@ -76,7 +76,7 @@ def light_cone_halo_map(lightCone, map_file='halo_map.out', **kwargs):
         haloMap.extend(_make_slice_halo_map(slice, halo_list))
 
     # Write out file.
-    if ytcfg.getint("yt", "__parallel_rank") == 0:
+    if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
         mylog.info("Saving halo map to %s." % map_file)
         f = open(map_file, 'w')
         f.write("#z       x         y        M [Msun]  R [Mpc]   R [image]\n")

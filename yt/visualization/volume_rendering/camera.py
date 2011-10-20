@@ -180,6 +180,7 @@ class Camera(ParallelAnalysisInterface):
         >>> image = cam.snapshot(fn='my_rendering.png')
 
         """
+        ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         if not iterable(resolution):
             resolution = (resolution, resolution)
@@ -356,7 +357,7 @@ class Camera(ParallelAnalysisInterface):
             pbar.update(total_cells)
         pbar.finish()
 
-        if self._mpi_get_rank() is 0 and fn is not None:
+        if self.comm.rank is 0 and fn is not None:
             if clip_ratio is not None:
                 write_bitmap(image, fn, clip_ratio*image.std())
             else:
@@ -623,7 +624,7 @@ class HEALpixCamera(Camera):
             pbar.update(total_cells)
         pbar.finish()
 
-        if self._mpi_get_rank() is 0 and fn is not None:
+        if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg

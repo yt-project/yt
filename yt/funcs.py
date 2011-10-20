@@ -187,12 +187,13 @@ def rootonly(func):
        def some_root_only_function(...):
 
     """
-    @wraps(func)
-    def donothing(*args, **kwargs):
-        return
     from yt.config import ytcfg
-    if ytcfg.getint("yt","__parallel_rank") > 0: return donothing
-    return func
+    @wraps(func)
+    def check_parallel_rank(*args, **kwargs):
+        if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
+            return 
+        return func(*args, **kwargs)
+    return check_parallel_rank
 
 def deprecate(func):
     """
@@ -341,9 +342,13 @@ def only_on_root(func, *args, **kwargs):
     handed back.
     """
     from yt.config import ytcfg
+    if kwargs.pop("global_rootonly", False):
+        cfg_option = "__global_parallel_rank"
+    else:
+        cfg_option = "__topcomm_parallel_rank"
     if not ytcfg.getboolean("yt","__parallel"):
         return func(*args,**kwargs)
-    if ytcfg.getint("yt","__parallel_rank") > 0: return
+    if ytcfg.getint("yt", cfg_option) > 0: return
     return func(*args, **kwargs)
 
 #
