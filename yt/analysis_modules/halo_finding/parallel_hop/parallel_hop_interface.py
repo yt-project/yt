@@ -26,6 +26,7 @@ License:
 from collections import defaultdict
 import itertools, sys
 import numpy as na
+import gc
 
 from yt.funcs import *
 from yt.utilities.performance_counters import yt_counters, time_function
@@ -43,7 +44,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 class ParallelHOPHaloFinder(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
-            xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True,
+            particle_fields, threshold=160.0, rearrange=True,
             premerge=True):
         self.threshold = threshold
         self.rearrange = rearrange
@@ -54,12 +55,12 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self.padding = padding
         self.num_neighbors = num_neighbors
         self.bounds = bounds
-        self.xpos = xpos
-        self.ypos = ypos
-        self.zpos = zpos
+        self.xpos = particle_fields.pop("particle_position_x")
+        self.ypos = particle_fields.pop("particle_position_y")
+        self.zpos = particle_fields.pop("particle_position_z")
         self.real_size = len(self.xpos)
-        self.index = na.array(index, dtype='int64')
-        self.mass = mass
+        self.index = particle_fields.pop("particle_index")
+        self.mass = particle_fields.pop("ParticleMassMsun")
         self.padded_particles = []
         self.nMerge = 4
         yt_counters("chainHOP")
@@ -241,7 +242,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         send_size = {}
         # This will reduce the size of the loop over particles.
         yt_counters("Picking padding data to send.")
-        send_count = len(na.where(self.is_inside_annulus == True)[0])
+        send_count = self.is_inside_annulus.sum()
         points = na.empty((send_count, 3), dtype='float64')
         points[:,0] = self.xpos[self.is_inside_annulus]
         points[:,1] = self.ypos[self.is_inside_annulus]
@@ -261,7 +262,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             send_real_indices[neighbor] = real_indices[is_inside].copy()
             send_points[neighbor] = shift_points[is_inside].copy()
             send_mass[neighbor] = mass[is_inside].copy()
-            send_size[neighbor] = len(na.where(is_inside == True)[0])
+            send_size[neighbor] = is_inside.sum()
         del points, shift_points, mass, real_indices
         yt_counters("Picking padding data to send.")
         # Communicate the sizes to send.
@@ -342,13 +343,22 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("init kd tree")
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _parallelHOP.
-        fKD.dens = na.asfortranarray(na.zeros(self.size, dtype='float64'))
+        fKD.dens = na.zeros(self.size, dtype='float64', order='F')
         fKD.mass = na.concatenate((self.mass, self.mass_pad))
-        fKD.pos = na.asfortranarray(na.empty((3, self.size), dtype='float64'))
+        del self.mass
+        fKD.pos = na.empty((3, self.size), dtype='float64', order='F')
         # This actually copies the data into the fortran space.
-        fKD.pos[0, :] = na.concatenate((self.xpos, self.xpos_pad))
-        fKD.pos[1, :] = na.concatenate((self.ypos, self.ypos_pad))
-        fKD.pos[2, :] = na.concatenate((self.zpos, self.zpos_pad))
+        self.psize = self.xpos.size
+        fKD.pos[0, :self.psize] = self.xpos
+        fKD.pos[1, :self.psize] = self.ypos
+        fKD.pos[2, :self.psize] = self.zpos
+        del self.xpos, self.ypos, self.zpos
+        gc.collect()
+        fKD.pos[0, self.psize:] = self.xpos_pad
+        fKD.pos[1, self.psize:] = self.ypos_pad
+        fKD.pos[2, self.psize:] = self.zpos_pad
+        del self.xpos_pad, self.ypos_pad, self.zpos_pad
+        gc.collect()
         fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
         fKD.nn = self.num_neighbors
         # Plus 2 because we're looking for that neighbor, but only keeping 
@@ -1457,7 +1467,15 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
+        self.mass = fKD.mass[:self.psize]
+        self.mass_pad = fKD.mass[self.psize:]
         del fKD.dens, fKD.mass, fKD.dens
+        self.xpos = fKD.pos[0, :self.psize]
+        self.ypos = fKD.pos[1, :self.psize]
+        self.zpos = fKD.pos[2, :self.psize]
+        self.xpos_pad = fKD.pos[0, self.psize:]
+        self.ypos_pad = fKD.pos[1, self.psize:]
+        self.zpos_pad = fKD.pos[2, self.psize:]
         del fKD.pos, fKD.chunk_tags
         free_tree(0) # Frees the kdtree object.
         del self.densestNN
@@ -1483,7 +1501,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             for groupID in self.I_own[taskID]:
                 self.halo_taskmap[groupID].add(taskID)
         del self.I_own
-        del self.mass, self.xpos, self.ypos, self.zpos
+        del self.xpos, self.ypos, self.zpos
 
     def __add_to_array(self, arr, key, value, type):
         """
