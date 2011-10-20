@@ -275,9 +275,10 @@ def parallel_root_only(func):
     return func
 
 class Workgroup(object):
-    def __init__(self, size, ranks):
+    def __init__(self, size, ranks, comm):
         self.size = size
         self.ranks = ranks
+        self.comm = comm
 
 class ProcessorPool(object):
     comm = None
@@ -305,7 +306,7 @@ class ProcessorPool(object):
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
             communication_system.communicators.append(Communicator(new_comm))
-        self.workgroups.append(Workgroup(len(ranks), ranks))
+        self.workgroups.append(Workgroup(len(ranks), ranks, new_comm))
     
     def free_workgroup(self, workgroup):
         for i in workgroup.ranks:
