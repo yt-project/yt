@@ -500,7 +500,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         updated_halos.sort(key = lambda a:a['id'])
         self.all_halos = updated_halos
 
-        self.filtered_halos = self.comm.par_combine_object(self.filtered_halos)
+        self.filtered_halos = self.comm.par_combine_object(self.filtered_halos,
                             datatype="list", op="cat")
         self.filtered_halos.sort(key = lambda a:a['id'])
 
