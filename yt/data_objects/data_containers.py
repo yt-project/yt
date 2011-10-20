@@ -2422,7 +2422,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         Return an ExtractedRegion where the points contained in it are defined
         as the points in `this` data object with the given *indices*.
         """
-        return ExtractedRegionBase(self, indices)
+        fp = self.field_parameters.copy()
+        return ExtractedRegionBase(self, indices, **fp)
 
     def __get_quantities(self):
         if self.__quantities is None:
@@ -2651,7 +2652,8 @@ class ExtractedRegionBase(AMR3DData):
     _type_name = "extracted_region"
     _con_args = ('_base_region', '_indices')
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
-        cen = base_region.get_field_parameter("center")
+        cen = kwargs.pop("center", None)
+        if cen is None: cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
         self._base_region = base_region # We don't weakly reference because
