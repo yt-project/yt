@@ -2044,7 +2044,7 @@ class AMRProjBase(AMR2DData):
         data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
-        data = self.comm.par_combine_object(temp_data, datatype='dict', op='cat')
+        data = self.comm.par_combine_object(data, datatype='dict', op='cat')
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
