@@ -582,7 +582,8 @@ class HEALpixCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False):
-        if pf is not None: self.pf = pf
+	ParallelAnalysisInterface.__init__(self)
+	if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
         self.nside = nside
@@ -651,7 +652,8 @@ class AdaptiveHEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False,
                  rays_per_cell = 0.1, max_nside = 8192):
-        if pf is not None: self.pf = pf
+	ParallelAnalysisInterface.__init__(self)
+	if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
         self.use_kd = use_kd
@@ -703,7 +705,8 @@ class AdaptiveHEALpixCamera(Camera):
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
-        self.original_camera = original_camera
+	ParallelAnalysisInterface.__init__(self)
+	self.original_camera = original_camera
         self.relative_separation = relative_separation
 
     def split(self):
