@@ -741,8 +741,11 @@ class ParallelAnalysisInterface(object):
     _grids = None
     _distributed = None
 
-    def __init__(self):
-        self.comm = communication_system.communicators[-1]
+    def __init__(self, comm = None):
+        if comm is None:
+            self.comm = communication_system.communicators[-1]
+        else:
+            self.comm = comm
         self._grids = self.comm._grids
         self._distributed = self.comm._distributed
 
