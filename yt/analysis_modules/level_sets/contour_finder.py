@@ -77,8 +77,11 @@ def identify_contours(data_source, field, min_val, max_val,
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
         if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        old_field_parameters = grid.field_parameters
+        grid.field_parameters = data_source.field_parameters
         local_ind = na.where( (grid[field] > min_val)
                             & (grid[field] < max_val) & cm )
+        grid.field_parameters = old_field_parameters
         if local_ind[0].size == 0: continue
         kk = na.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
         grid["tempContours"] = na.ones(grid.ActiveDimensions, dtype='int64') * -1
