@@ -1837,7 +1837,7 @@ cdef class AdaptiveRaySource:
             r2[0] = (edge[i][0] - self.center[0])**2.0
             for j in range(2):
                 r2[1] = r2[0] + (edge[j][1] - self.center[1])**2.0
-                for k in range(3):
+                for k in range(2):
                     r2[2] = r2[1] + (edge[k][2] - self.center[2])**2.0
                     max_r2 = fmax(max_r2, r2[2])
         domega = 4.0 * 3.1415926 * max_r2 # Used to be / Nrays
@@ -1863,6 +1863,7 @@ cdef class AdaptiveRaySource:
         # Now we make four new ones
         cdef double v_dir[3]
         cdef AdaptiveRayPacket *prev = ray.prev
+        cdef AdaptiveRayPacket *new_ray
         # It is important to note here that brick_prev is a local variable for
         # the newly created rays, not the previous ray in this brick, as that
         # has already been passed on to its next brick
