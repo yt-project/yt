@@ -493,8 +493,6 @@ class Communicator(object):
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             data = self.alltoallv_array(data, arr_size, offsets, sizes)
-            # We want this to behave like an actual concatenate so we'll
-            # eliminate extra zeros that get added.
             return data
         elif datatype == "list" and op == "cat":
             if self.comm.rank == 0:
