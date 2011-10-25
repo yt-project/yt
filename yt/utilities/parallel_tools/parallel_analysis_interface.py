@@ -462,7 +462,10 @@ class Communicator(object):
             if data is None:
                 ncols = -1
                 size = 0
+                dtype = 'float64'
+                mylog.info('Warning: Array passed to par_combine_object was None. Setting dtype to float64. This may break things!')
             else:
+                dtype = data.dtype
                 if len(data) == 0:
                     ncols = -1
                     size = 0
@@ -472,8 +475,8 @@ class Communicator(object):
                 else:
                     ncols, size = data.shape
             ncols = self.comm.allreduce(ncols, op=MPI.MAX)
-            if size == 0:
-                data = na.zeros((ncols,0), dtype='float64') # This only works for
+            if ncols == 0:
+                    data = na.zeros(0, dtype=dtype) # This only works for
             size = data.shape[-1]
             sizes = na.zeros(self.comm.size, dtype='int64')
             outsize = na.array(size, dtype='int64')
@@ -485,6 +488,8 @@ class Communicator(object):
             offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             data = self.alltoallv_array(data, arr_size, offsets, sizes)
+            # We want this to behave like an actual concatenate so we'll
+            # eliminate extra zeros that get added.
             return data
         elif datatype == "list" and op == "cat":
             if self.comm.rank == 0:
