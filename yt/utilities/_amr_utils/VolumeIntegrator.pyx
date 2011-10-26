@@ -1835,21 +1835,33 @@ cdef class AdaptiveRaySource:
             # safe.
             ray2 = pray[0]
             for i in range(refined*4):
+                # If we have been refined, send the ray to its appropriate
+                # location.
                 self.send_ray_home(ray2, ledges, redges, grid_neighbors, dt)
+                # If it wants to go back in time that is fine but it needs to
+                # make sure it gets forward in time eventually
                 while ray2.pgi < pgi and ray2.t <= 1.0:
                     #print "Recursing", ray2.pgi, pgi, ray2.t, ray2.nside, ray2.ipix, dt
+                    # Now we grab a new set of neighbors and whatnot
                     pgn = pgs[ray2.pgi]
                     grid2_neighbors = self.find_neighbors(ray2.pgi, pgn.dds[0],
                                                           ledges, redges)
+                    # We just integrate, we don't bother with the full brick
+                    # integration.  This means no recursive refinement, and
+                    # potential undersampling
                     dt = self.integrate_ray(ray2, pgn, tf)
-                    self.send_ray_home(ray2, ledges, redges, grid2_neighbors,
-                                       dt, 1)
+                    # Now we send this ray home.  Hopefully it'll once again be
+                    # forward in time.
+                    self.send_ray_home(ray2, ledges, redges, grid2_neighbors, dt)
+                # This tosses us to the next one in line, of the four..
                 ray2 = ray2.next
+            # We use this because it's been set previously.
             ray = next
             # We check to see if anything has been *added* to the queue, via a
             # send_ray_home call, here.  Otherwise we might end up in the
             # situation that the final ray is refined, thus next is NULL, but
-            # there are more rays to work on.
+            # there are more rays to work on because they have been added via
+            # refinement.
             if ray == NULL and self.packet_pointers[pgi] != NULL:
                 ray = self.packet_pointers[pgi]
                 #print "Packet pointers!", ray.ipix
@@ -1952,7 +1964,6 @@ cdef class AdaptiveRaySource:
         cdef double v_dir[3]
         # We need a record of the previous one because we're inserting into a
         # linked list.
-        cdef AdaptiveRayPacket *prev = ray.prev
         for i in range(4):
             new_rays[i] = <AdaptiveRayPacket *> malloc(
                             sizeof(AdaptiveRayPacket))
