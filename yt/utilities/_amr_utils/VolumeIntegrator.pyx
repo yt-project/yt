@@ -1711,6 +1711,12 @@ cdef class AdaptiveRaySource:
             values[count, 1] = ray.value[1]
             values[count, 2] = ray.value[2]
             values[count, 3] = ray.value[3]
+            if ray.t < 0.5:
+                print "PROBLEM",
+                print count, ray.ipix, ray.nside, ray.t,
+                print "vd", ray.v_dir[0], ray.v_dir[1], ray.v_dir[2],
+                print "pos", ray.pos[0], ray.pos[1], ray.pos[2],
+                print "pgi", ray.pgi
             count += 1
             ray = ray.next
         return info, values
@@ -1753,7 +1759,7 @@ cdef class AdaptiveRaySource:
         cdef int i, j, npgi
         cdef np.float64_t offpos[3]
         for i in range(3):
-            offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-5*dt
+            offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-6*dt
         for j in range(grid_neighbors[0]):
             i = grid_neighbors[j+1]
             if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
@@ -1841,10 +1847,10 @@ cdef class AdaptiveRaySource:
             for i in range(refined*4):
                 # If we have been refined, send the ray to its appropriate
                 # location.
-                self.send_ray_home(ray2, ledges, redges, grid_neighbors, dt, 1)
+                self.send_ray_home(ray2, ledges, redges, grid_neighbors, 0.0, 1)
                 # If it wants to go back in time that is fine but it needs to
                 # make sure it gets forward in time eventually
-                while ray2.pgi < pgi and ray2.t <= 1.0:
+                while ray2.pgi <= pgi and ray2.t <= 1.0:
                     #print "Recursing", ray2.pgi, pgi, ray2.t, ray2.nside, ray2.ipix, dt
                     # Now we grab a new set of neighbors and whatnot
                     pgn = pgs[ray2.pgi]

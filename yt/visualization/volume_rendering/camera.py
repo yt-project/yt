@@ -703,6 +703,7 @@ class AdaptiveHEALpixCamera(Camera):
         pbar.finish()
         info, values = ray_source.get_rays()
         self.ray_source = ray_source
+        self.bricks = bricks
         return info, values
 
 class StereoPairCamera(Camera):
