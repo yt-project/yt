@@ -101,7 +101,7 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         >>> rcdnumdens = RadialColumnDensity(pf, 'NumberDensity', [0.5, 0.5, 0.5])
         >>> def _RCDNumberDensity(field, data, rcd = rcdnumdens):
                 return rcd._build_derived_field(data)
-        >>> add_field('RCDNumberDensity', _RCDNumberDensity)
+        >>> add_field('RCDNumberDensity', _RCDNumberDensity, units=r'1/\rm{cm}^2')
         """
         ParallelAnalysisInterface.__init__(self)
         self.pf = pf
