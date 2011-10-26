@@ -610,12 +610,13 @@ cdef class PartitionedGrid:
                                  np.float64_t v_dir[3],
                                  np.float64_t rgba[4],
                                  TransferFunctionProxy tf,
-                                 np.float64_t *return_t = NULL):
+                                 np.float64_t *return_t = NULL,
+                                 np.float64_t enter_t = -1.0):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t iv_dir[3]
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
-        cdef np.float64_t enter_t, dist, alpha, dt, exit_t
+        cdef np.float64_t dist, alpha, dt, exit_t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
         for i in range(3):
             if (v_dir[i] < 0):
@@ -651,6 +652,7 @@ cdef class PartitionedGrid:
            self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
            self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
             intersect_t = 0.0
+        if enter_t >= 0.0: intersect_t = enter_t
         if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
         for i in range(3):
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
@@ -1730,7 +1732,8 @@ cdef class AdaptiveRaySource:
         ray_value[1] = ray.value[1]
         ray_value[2] = ray.value[2]
         ray_value[3] = ray.value[3]
-        hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t)
+        hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t,
+                               ray.t)
         ray.value[0] = ray_value[0]
         ray.value[1] = ray_value[1]
         ray.value[2] = ray_value[2]
@@ -1817,13 +1820,13 @@ cdef class AdaptiveRaySource:
                     ray = ray.brick_next
                     continue
             # We start in this brick, and then we integrate to the edge
-            dt = self.integrate_ray(ray, pg, tf)
-            # Now the ray has moved, so we grab .brick_next first, then we
-            # move it to its new home
             self.packet_pointers[pgi] = next = ray.brick_next
             if ray.t >= 1.0:
                 ray = next
                 continue
+            dt = self.integrate_ray(ray, pg, tf)
+            # Now the ray has moved, so we grab .brick_next first, then we
+            # move it to its new home
             self.send_ray_home(ray, ledges, redges, grid_neighbors, dt, 1)
             # We now are moving into a new PG, which we check for refinement
             pgn = pgs[ray.pgi]
