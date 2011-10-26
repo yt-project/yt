@@ -840,7 +840,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         yt_counters("connect_chains_across_tasks")
         # Remote (lower dens) chain -> local (higher) chain.
-        chainID_translate_map_local = na.arange(self.nchains)
+        chainID_translate_map_local = na.arange(self.nchains, dtype='int64')
         # Build the stuff to send.
         self.uphill_real_indices = na.concatenate((
             self.index, self.index_pad))[self.padded_particles]
@@ -891,7 +891,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # it. Therefore each key (a chain) in this dict is unique, but the items
         # the keys point to are not necessarily unique.
         chainID_translate_map_global = \
-            self.comm.mpi_allreduce(chainID_translate_map_local, op='min')
+            self.comm.mpi_allreduce(chainID_translate_map_local, op='min',
+            dtype='int64')
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
@@ -1102,7 +1103,6 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         top_keys = self.comm.par_combine_object(top_keys, datatype='array', op='cat')
         bot_keys = self.comm.par_combine_object(bot_keys, datatype='array', op='cat')
         vals     = self.comm.par_combine_object(vals, datatype='array', op='cat')
-
         return (top_keys, bot_keys, vals)
 
     def _build_groups(self):
