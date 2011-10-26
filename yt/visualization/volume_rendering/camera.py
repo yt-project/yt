@@ -694,9 +694,10 @@ class AdaptiveHEALpixCamera(Camera):
                 self.center -= 1e-2 * min_dx
         ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
                                        self.initial_nside, self.radius,
-                                       bricks, self.max_nside)
+                                       bricks, left_edges, right_edges, self.max_nside)
         for i,brick in enumerate(bricks):
-            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges)
+            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges,
+                                       bricks)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()

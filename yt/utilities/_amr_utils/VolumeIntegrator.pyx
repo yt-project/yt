@@ -1613,7 +1613,7 @@ cdef struct AdaptiveRayPacket:
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
     AdaptiveRayPacket *brick_next
-    #int cgi
+    int pgi
 
 cdef class AdaptiveRaySource:
     cdef np.float64_t center[3]
@@ -1626,7 +1626,10 @@ cdef class AdaptiveRaySource:
     cdef AdaptiveRayPacket **lpacket_pointers
 
     def __cinit__(self, center, rays_per_cell, initial_nside,
-                  np.float64_t normalization, brick_list, int max_nside = 8192):
+                  np.float64_t normalization, brick_list, 
+                  np.ndarray[np.float64_t, ndim=2] ledges,
+                  np.ndarray[np.float64_t, ndim=2] redges,
+                  int max_nside = 8192):
         cdef int i
         self.max_nside = max_nside
         self.center[0] = center[0]
@@ -1649,6 +1652,10 @@ cdef class AdaptiveRaySource:
             self.lpacket_pointers[i] = self.packet_pointers[i] = NULL
         self.normalization = normalization
         self.nrays = 12*initial_nside*initial_nside
+        cdef int *grid_neighbors = <int*> malloc(sizeof(int) * (nbricks+1))
+        grid_neighbors[0] = nbricks
+        for i in range(nbricks):
+            grid_neighbors[i+1] = i
         for i in range(self.nrays):
             # Initialize rays here
             ray = <AdaptiveRayPacket *> malloc(sizeof(AdaptiveRayPacket))
@@ -1667,14 +1674,13 @@ cdef class AdaptiveRaySource:
             ray.pos[1] = self.center[1]
             ray.pos[2] = self.center[2]
             ray.brick_next = NULL
+            ray.pgi = -1
             if last != NULL:
                 last.next = ray
-                last.brick_next = ray
             else:
                 self.first = ray
+            self.send_ray_home(ray, ledges, redges, grid_neighbors, 0)
             last = ray
-        self.packet_pointers[0] = self.first
-        self.lpacket_pointers[0] = last
 
     def __dealloc__(self):
         cdef AdaptiveRayPacket *next
@@ -1684,6 +1690,7 @@ cdef class AdaptiveRaySource:
             free(ray)
             ray = next
         free(self.packet_pointers)
+        free(self.lpacket_pointers)
 
     def get_rays(self):
         cdef AdaptiveRayPacket *ray = self.first
@@ -1706,76 +1713,146 @@ cdef class AdaptiveRaySource:
             ray = ray.next
         return info, values
 
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf,
-                        int pgi, np.ndarray[np.float64_t, ndim=2] ledges,
-                                 np.ndarray[np.float64_t, ndim=2] redges):
-        cdef np.float64_t domega
-        domega = self.get_domega(pg.left_edge, pg.right_edge)
-        #print "dOmega", domega, self.nrays
-        cdef int count = 0
-        cdef int i, j
-        cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
-        cdef AdaptiveRayPacket *next
-        cdef int *grid_neighbors = self.find_neighbors(pgi, pg.dds[0], ledges, redges)
-        cdef np.float64_t enter_t, dt, offpos[3]
-        cdef int found_a_home, hit
-        #print "Grid: ", pgi, "has", grid_neighbors[0], "neighbors"
-        # Some compilers throw errors on the passing of the center, v_dir and
-        # value
+    cdef np.float64_t integrate_ray(self, AdaptiveRayPacket *ray,
+                      PartitionedGrid pg, TransferFunctionProxy tf):
         cdef np.float64_t self_center[3], ray_v_dir[3], ray_value[4]
         self_center[0] = self.center[0]
         self_center[1] = self.center[1]
         self_center[2] = self.center[2]
-        while ray != NULL:
-            # Note that we may end up splitting a ray such that it ends up
-            # outside the brick!  This will likely cause them to get lost.
-            #print count
-            count +=1
-            # We don't need to check for intersection anymore, as we are the
-            # Ruler of the planet Omicron Persei 8
-            #if self.intersects(ray, pg):
-            ray = self.refine_ray(ray, domega, pg.dds[0],
-                                  pg.left_edge, pg.right_edge)
-            enter_t = ray.t
-            ray_v_dir[0] = ray.v_dir[0]
-            ray_v_dir[1] = ray.v_dir[1]
-            ray_v_dir[2] = ray.v_dir[2]
-            ray_value[0] = ray.value[0]
-            ray_value[1] = ray.value[1]
-            ray_value[2] = ray.value[2]
-            ray_value[3] = ray.value[3]
-            hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t)
-            ray.value[0] = ray_value[0]
-            ray.value[1] = ray_value[1]
-            ray.value[2] = ray_value[2]
-            ray.value[3] = ray_value[3]
-            if hit == 0: dt = 0.0
-            else: dt = (ray.t - enter_t)/hit
-            for i in range(3):
-                ray.pos[i] = ray.v_dir[i] * ray.t + self.center[i]
-                offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-5*dt
-            # We set 'next' after the refinement has occurred
-            next = ray.brick_next
-            found_a_home = 0
-            for j in range(grid_neighbors[0]):
-                i = grid_neighbors[j+1]
+        enter_t = ray.t
+        ray_v_dir[0] = ray.v_dir[0]
+        ray_v_dir[1] = ray.v_dir[1]
+        ray_v_dir[2] = ray.v_dir[2]
+        ray_value[0] = ray.value[0]
+        ray_value[1] = ray.value[1]
+        ray_value[2] = ray.value[2]
+        ray_value[3] = ray.value[3]
+        hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t)
+        ray.value[0] = ray_value[0]
+        ray.value[1] = ray_value[1]
+        ray.value[2] = ray_value[2]
+        ray.value[3] = ray_value[3]
+        if hit == 0: dt = 0.0
+        else: dt = (ray.t - enter_t)/hit
+        for i in range(3):
+            ray.pos[i] = ray.v_dir[i] * ray.t + self.center[i]
+        return dt
+
+    cdef send_ray_home(self, AdaptiveRayPacket *ray,
+                       np.ndarray[np.float64_t, ndim=2] ledges,
+                       np.ndarray[np.float64_t, ndim=2] redges,
+                       int *grid_neighbors, np.float64_t dt,
+                       int skip_append = 0):
+        cdef int found_a_home = 0
+        cdef int i, j, npgi
+        cdef np.float64_t offpos[3]
+        for i in range(3):
+            offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-5*dt
+        for j in range(grid_neighbors[0]):
+            i = grid_neighbors[j+1]
+            if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
+                (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
+                (ledges[i, 2] <= offpos[2] <= redges[i, 2]) and
+                ray.pgi != i):
+                if not skip_append: self.append_to_packets(i, ray)
+                ray.pgi = i
+                npgi = i
+                found_a_home = 1
+                break
+        if found_a_home == 0:
+            #print "Non-neighboring area", ray.pgi, ray.ipix, ray.nside
+            for i in range(ledges.shape[0]):
                 if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
                     (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
                     (ledges[i, 2] <= offpos[2] <= redges[i, 2])):
-                    if self.lpacket_pointers[i] == NULL:
-                        self.packet_pointers[i] = \
-                        self.lpacket_pointers[i] = ray
-                        ray.brick_next = NULL
-                    else:
-                        self.lpacket_pointers[i].brick_next = ray
-                        self.lpacket_pointers[i] = ray
-                        ray.brick_next = NULL
-                    #ray.cgi = i
+                    #print "Found a home!", i, ray.ipix, ray.nside, ray.pgi
+                    if not skip_append: self.append_to_packets(i, ray)
+                    ray.pgi = i
+                    npgi = i
                     found_a_home = 1
                     break
+            if found_a_home == 0:
+                raise RuntimeError
+
+    cdef append_to_packets(self, int pgi, AdaptiveRayPacket *ray):
+        # packet_pointers are pointers to the *first* packet in a given brick
+        # lpacket_pointers point to the *final* packet in a given brick, for
+        # easy appending.
+        if self.lpacket_pointers[pgi] == NULL or \
+           self.packet_pointers[pgi] == NULL:
+            self.packet_pointers[pgi] = \
+            self.lpacket_pointers[pgi] = ray
+            ray.brick_next = NULL
+        else:
+            self.lpacket_pointers[pgi].brick_next = ray
+            self.lpacket_pointers[pgi] = ray
+            ray.brick_next = NULL
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf,
+                        int pgi, np.ndarray[np.float64_t, ndim=2] ledges,
+                                 np.ndarray[np.float64_t, ndim=2] redges,
+                                 pgs, int inside = -1):
+        cdef np.float64_t domega, dt
+        cdef PartitionedGrid pgn
+        #print "dOmega", domega, self.nrays
+        cdef intersects
+        cdef int i, j, npgi, refined
+        cdef AdaptiveRayPacket *ray2, *ray = self.packet_pointers[pgi]
+        cdef AdaptiveRayPacket *next
+        cdef AdaptiveRayPacket **pray
+        cdef int *grid_neighbors = self.find_neighbors(pgi, pg.dds[0], ledges, redges)
+        cdef int *grid2_neighbors
+        cdef np.float64_t enter_t, offpos[3]
+        cdef int found_a_home, hit
+        while ray != NULL:
+            #print "Integrating", pgi, ray.pgi, ray.ipix, ray.nside
+            if pgi != ray.pgi:
+                self.send_ray_home(ray, ledges, redges, grid_neighbors, dt)
+                if ray.pgi != pgi:
+                    ray = ray.brick_next
+                    continue
+            # We start in this brick, and then we integrate to the edge
+            dt = self.integrate_ray(ray, pg, tf)
+            # Now the ray has moved, so we grab .brick_next first, then we
+            # move it to its new home
+            self.packet_pointers[pgi] = next = ray.brick_next
+            if ray.t >= 1.0:
+                ray = next
+                continue
+            self.send_ray_home(ray, ledges, redges, grid_neighbors, dt)
+            # We now are moving into a new PG, which we check for refinement
+            pgn = pgs[ray.pgi]
+            domega = self.get_domega(pgn.left_edge, pgn.right_edge)
+            pray = &ray
+            refined = self.refine_ray(pray, domega, pgn.dds[0],
+                                      pgn.left_edge, pgn.right_edge)
+            # At this point we can no longer access ray, as it is no longer
+            # safe.
+            ray2 = pray[0]
+            for i in range(refined*4):
+                self.send_ray_home(ray2, ledges, redges, grid_neighbors, dt)
+                while ray2.pgi < pgi and ray2.t <= 1.0:
+                    #print "Recursing", ray2.pgi, pgi, ray2.t, ray2.nside, ray2.ipix, dt
+                    pgn = pgs[ray2.pgi]
+                    grid2_neighbors = self.find_neighbors(ray2.pgi, pgn.dds[0],
+                                                          ledges, redges)
+                    dt = self.integrate_ray(ray2, pgn, tf)
+                    self.send_ray_home(ray2, ledges, redges, grid2_neighbors,
+                                       dt, 1)
+                ray2 = ray2.next
             ray = next
+            # We check to see if anything has been *added* to the queue, via a
+            # send_ray_home call, here.  Otherwise we might end up in the
+            # situation that the final ray is refined, thus next is NULL, but
+            # there are more rays to work on.
+            if ray == NULL and self.packet_pointers[pgi] != NULL:
+                ray = self.packet_pointers[pgi]
+                #print "Packet pointers!", ray.ipix
         free(grid_neighbors)
 
     @cython.boundscheck(False)
@@ -1796,8 +1873,9 @@ cdef class AdaptiveRaySource:
         gre[0] = redges[this_grid, 0] + dds
         gre[1] = redges[this_grid, 1] + dds
         gre[2] = redges[this_grid, 2] + dds
-        for i in range(this_grid+1, ledges.shape[0]):
+        for i in range(ledges.shape[0]):
             # Check for overlap
+            if i == this_grid: continue
             if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
                 (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
                 (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
@@ -1805,8 +1883,9 @@ cdef class AdaptiveRaySource:
         cdef int *tr = <int *> malloc(sizeof(int) * (count + 1))
         tr[0] = count
         count = 0
-        for i in range(this_grid+1, ledges.shape[0]):
+        for i in range(ledges.shape[0]):
             # Check for overlap
+            if i == this_grid: continue
             if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
                 (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
                 (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
@@ -1822,6 +1901,19 @@ cdef class AdaptiveRaySource:
             if ray.pos[i] < pg.left_edge[i]: return 0
             if ray.pos[i] > pg.right_edge[i]: return 0
         return 1
+
+    cdef int find_owner(self, AdaptiveRayPacket *ray,
+                        int *neighbors,
+                        np.ndarray[np.float64_t, ndim=2] ledges,
+                        np.ndarray[np.float64_t, ndim=2] redges):
+        cdef int i, pgi = -1
+        for i in range(ledges.shape[0]):
+            pgi = i
+            if ((ray.pos[0] <= redges[i, 0] and ray.pos[0] >= ledges[i, 0]) and
+                (ray.pos[1] <= redges[i, 1] and ray.pos[1] >= ledges[i, 1]) and
+                (ray.pos[2] <= redges[i, 2] and ray.pos[2] >= ledges[i, 2])):
+                    return pgi
+        return -1
 
     cdef np.float64_t get_domega(self, np.float64_t left_edge[3],
                                        np.float64_t right_edge[3]):
@@ -1846,58 +1938,51 @@ cdef class AdaptiveRaySource:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef AdaptiveRayPacket *refine_ray(self, AdaptiveRayPacket *ray,
-                                       np.float64_t domega,
-                                       np.float64_t dx,
-                                       np.float64_t left_edge[3],
-                                       np.float64_t right_edge[3]):
-        # This should be recursive; we are not correctly applying split
-        # criteria multiple times.
+    cdef int refine_ray(self, AdaptiveRayPacket **pray,
+                        np.float64_t domega, np.float64_t dx,
+                        np.float64_t left_edge[3],
+                        np.float64_t right_edge[3]):
+        cdef AdaptiveRayPacket *ray = pray[0]
+        cdef AdaptiveRayPacket *new_rays[4]
         cdef long Nrays = 12 * ray.nside * ray.nside
         cdef int i, j
         if domega/Nrays < dx*dx/self.rays_per_cell:
-            #print ray.nside, domega/Nrays, dx, (domega/Nrays * self.rays_per_cell)/(dx*dx)
-            return ray
-        if ray.nside >= self.max_nside: return ray
-        #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
-        # Now we make four new ones
+            return 0
+        if ray.nside >= self.max_nside: return 0
         cdef double v_dir[3]
+        # We need a record of the previous one because we're inserting into a
+        # linked list.
         cdef AdaptiveRayPacket *prev = ray.prev
-        cdef AdaptiveRayPacket *new_ray
-        # It is important to note here that brick_prev is a local variable for
-        # the newly created rays, not the previous ray in this brick, as that
-        # has already been passed on to its next brick
-        cdef AdaptiveRayPacket *brick_prev = NULL
         for i in range(4):
-            new_ray = <AdaptiveRayPacket *> malloc(
+            new_rays[i] = <AdaptiveRayPacket *> malloc(
                             sizeof(AdaptiveRayPacket))
-            new_ray.nside = ray.nside * 2
-            new_ray.ipix = ray.ipix * 4 + i
-            new_ray.t = ray.t
-            #new_ray.cgi = ray.cgi
-            new_ray.prev = prev
-            if new_ray.prev != NULL:
-                new_ray.prev.next = new_ray
-            if brick_prev != NULL:
-                brick_prev.brick_next = new_ray
-            prev = brick_prev = new_ray
+            new_rays[i].nside = ray.nside * 2
+            new_rays[i].ipix = ray.ipix * 4 + i
+            new_rays[i].t = ray.t
             healpix_interface.pix2vec_nest(
-                    new_ray.nside, new_ray.ipix, v_dir)
+                    new_rays[i].nside, new_rays[i].ipix, v_dir)
             for j in range(3):
-                new_ray.v_dir[j] = v_dir[j] * self.normalization
-                new_ray.value[j] = ray.value[j]
-                new_ray.pos[j] = self.center[j] + ray.t * new_ray.v_dir[j]
-            new_ray.value[3] = ray.value[3]
-
-        new_ray.next = ray.next
-        new_ray.brick_next = ray.brick_next
-        if new_ray.next != NULL:
-            new_ray.next.prev = new_ray
+                new_rays[i].v_dir[j] = v_dir[j] * self.normalization
+                new_rays[i].value[j] = ray.value[j]
+                new_rays[i].pos[j] = self.center[j] + ray.t * new_rays[i].v_dir[j]
+            new_rays[i].value[3] = ray.value[3]
+        # Insert into the external list
+        if ray.prev != NULL:
+            ray.prev.next = new_rays[0]
+        new_rays[0].prev = ray.prev
+        new_rays[3].next = ray.next
+        if ray.next != NULL:
+            ray.next.prev = new_rays[3]
+        for i in range(3):
+            # Connect backward and forward
+            new_rays[i].next = new_rays[i+1]
+            new_rays[3-i].prev = new_rays[2-i]
         if self.first == ray:
-            self.first = new_ray.prev.prev.prev
-        free(ray)
+            self.first = new_rays[0]
         self.nrays += 3
-        return new_ray.prev.prev.prev
+        free(ray)
+        pray[0] = new_rays[0]
+        return 1
 
 # From Enzo:
 #   dOmega = 4 pi r^2/Nrays
