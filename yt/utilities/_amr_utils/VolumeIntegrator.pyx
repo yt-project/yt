@@ -1824,20 +1824,21 @@ cdef class AdaptiveRaySource:
             if ray.t >= 1.0:
                 ray = next
                 continue
-            self.send_ray_home(ray, ledges, redges, grid_neighbors, dt)
+            self.send_ray_home(ray, ledges, redges, grid_neighbors, dt, 1)
             # We now are moving into a new PG, which we check for refinement
             pgn = pgs[ray.pgi]
             domega = self.get_domega(pgn.left_edge, pgn.right_edge)
             pray = &ray
             refined = self.refine_ray(pray, domega, pgn.dds[0],
                                       pgn.left_edge, pgn.right_edge)
+            if refined == 0: self.append_to_packets(ray.pgi, ray)
             # At this point we can no longer access ray, as it is no longer
             # safe.
             ray2 = pray[0]
             for i in range(refined*4):
                 # If we have been refined, send the ray to its appropriate
                 # location.
-                self.send_ray_home(ray2, ledges, redges, grid_neighbors, dt)
+                self.send_ray_home(ray2, ledges, redges, grid_neighbors, dt, 1)
                 # If it wants to go back in time that is fine but it needs to
                 # make sure it gets forward in time eventually
                 while ray2.pgi < pgi and ray2.t <= 1.0:
@@ -1852,8 +1853,10 @@ cdef class AdaptiveRaySource:
                     dt = self.integrate_ray(ray2, pgn, tf)
                     # Now we send this ray home.  Hopefully it'll once again be
                     # forward in time.
-                    self.send_ray_home(ray2, ledges, redges, grid2_neighbors, dt)
+                    self.send_ray_home(ray2, ledges, redges, grid2_neighbors,
+                                       dt, 1)
                 # This tosses us to the next one in line, of the four..
+                self.append_to_packets(ray2.pgi, ray2)
                 ray2 = ray2.next
             # We use this because it's been set previously.
             ray = next
