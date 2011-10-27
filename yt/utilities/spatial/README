@@ -1,0 +1,35 @@
+Stephen Skory
+s@skory.us
+October 2011
+
+This directory is a modified version of the same directory that is part of
+the scipy.spatial package. It has been modified by me in the following
+ways:
+
+- In ckdtree.pyx, distances and searches over the
+  tree both take periodic boundary
+  conditions into account.
+
+- In ckdtree.pyx, all input and output arrays now
+  use 64-bit types: long and double.
+
+- In ckdtree.pyx, I've added two functions specifically for parallel HOP,
+  chainHOP_get_dens and find_chunk_nearest_neighbors.
+
+- In kdtree.py, I've commented out 'import scipy.sparse',
+  which means that any kdtree functionality that uses sparse
+  will not work. This is to avoid needing to build the rest
+  of scipy, which is a challenge and not necessary for just
+  the kdtree.
+
+- I've removed all of the qhull source and functionality.
+
+- I've removed the 'tests' directory.
+
+- I've removed anything having to do with Bento, the
+  python package manager.
+
+Anything that has been removed can be found in the original scipy
+source distribution.
+
+

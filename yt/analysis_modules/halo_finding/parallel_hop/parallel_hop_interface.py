@@ -38,6 +38,8 @@ try:
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
+from yt.utilities.spatial import cKDTree
+
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call, \
     ParallelAnalysisInterface
@@ -45,7 +47,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 class ParallelHOPHaloFinder(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             particle_fields, threshold=160.0, rearrange=True,
-            premerge=True):
+            premerge=True, tree='F'):
         ParallelAnalysisInterface.__init__(self)
         self.threshold = threshold
         self.rearrange = rearrange
@@ -64,6 +66,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self.mass = particle_fields.pop("ParticleMassMsun")
         self.padded_particles = []
         self.nMerge = 4
+        self.tree = tree
         yt_counters("chainHOP")
         self.max_mem = 0
         self.__max_memory()
@@ -342,34 +345,50 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         Set up the data objects that get passed to the kD-tree code.
         """
         yt_counters("init kd tree")
-        # Yes, we really do need to initialize this many arrays.
-        # They're deleted in _parallelHOP.
-        fKD.dens = na.zeros(self.size, dtype='float64', order='F')
-        fKD.mass = na.concatenate((self.mass, self.mass_pad))
-        del self.mass
-        fKD.pos = na.empty((3, self.size), dtype='float64', order='F')
-        # This actually copies the data into the fortran space.
-        self.psize = self.xpos.size
-        fKD.pos[0, :self.psize] = self.xpos
-        fKD.pos[1, :self.psize] = self.ypos
-        fKD.pos[2, :self.psize] = self.zpos
-        del self.xpos, self.ypos, self.zpos
-        gc.collect()
-        fKD.pos[0, self.psize:] = self.xpos_pad
-        fKD.pos[1, self.psize:] = self.ypos_pad
-        fKD.pos[2, self.psize:] = self.zpos_pad
-        del self.xpos_pad, self.ypos_pad, self.zpos_pad
-        gc.collect()
-        fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
-        fKD.nn = self.num_neighbors
-        # Plus 2 because we're looking for that neighbor, but only keeping 
-        # nMerge + 1 neighbor tags, skipping ourselves.
-        fKD.nMerge = self.nMerge + 2
-        fKD.nparts = self.size
-        fKD.sort = True # Slower, but needed in _connect_chains
-        fKD.rearrange = self.rearrange # True is faster, but uses more memory
-        # Now call the fortran.
-        create_tree(0)
+        if self.tree == 'F':
+            # Yes, we really do need to initialize this many arrays.
+            # They're deleted in _parallelHOP.
+            fKD.dens = na.zeros(self.size, dtype='float64', order='F')
+            fKD.mass = na.concatenate((self.mass, self.mass_pad))
+            del self.mass
+            fKD.pos = na.empty((3, self.size), dtype='float64', order='F')
+            # This actually copies the data into the fortran space.
+            self.psize = self.xpos.size
+            fKD.pos[0, :self.psize] = self.xpos
+            fKD.pos[1, :self.psize] = self.ypos
+            fKD.pos[2, :self.psize] = self.zpos
+            del self.xpos, self.ypos, self.zpos
+            gc.collect()
+            fKD.pos[0, self.psize:] = self.xpos_pad
+            fKD.pos[1, self.psize:] = self.ypos_pad
+            fKD.pos[2, self.psize:] = self.zpos_pad
+            del self.xpos_pad, self.ypos_pad, self.zpos_pad
+            gc.collect()
+            fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
+            fKD.nn = self.num_neighbors
+            # Plus 2 because we're looking for that neighbor, but only keeping 
+            # nMerge + 1 neighbor tags, skipping ourselves.
+            fKD.nMerge = self.nMerge + 2
+            fKD.nparts = self.size
+            fKD.sort = True # Slower, but needed in _connect_chains
+            fKD.rearrange = self.rearrange # True is faster, but uses more memory
+            # Now call the fortran.
+            create_tree(0)
+        elif self.tree == 'C':
+            self.mass = na.concatenate((self.mass, self.mass_pad))
+            self.pos = na.empty((self.size, 3), dtype='float64')
+            self.psize = self.xpos.size
+            self.pos[:self.psize, 0] = self.xpos
+            self.pos[:self.psize, 1] = self.ypos
+            self.pos[:self.psize, 2] = self.zpos
+            del self.xpos, self.ypos, self.zpos
+            gc.collect()
+            self.pos[self.psize:, 0] = self.xpos_pad
+            self.pos[self.psize:, 1] = self.ypos_pad
+            self.pos[self.psize:, 2] = self.zpos_pad
+            del self.xpos_pad, self.ypos_pad, self.zpos_pad
+            gc.collect()
+            self.kdtree = cKDTree(self.pos, leafsize = 32)
         self.__max_memory()
         yt_counters("init kd tree")
 
@@ -395,8 +414,12 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             self.is_inside = ( (points >= LE).all(axis=1) * \
                 (points < RE).all(axis=1) )
         elif round == 'second':
-            self.is_inside = ( (fKD.pos.T >= LE).all(axis=1) * \
-                (fKD.pos.T < RE).all(axis=1) )
+            if self.tree == 'F':
+                self.is_inside = ( (fKD.pos.T >= LE).all(axis=1) * \
+                    (fKD.pos.T < RE).all(axis=1) )
+            elif self.tree == 'C':
+                self.is_inside = ( (self.pos > LE).all(axis=1) * \
+                    (self.pos < RE).all(axis=1) )
         # Below we find out which particles are in the `annulus', one padding
         # distance inside the boundaries. First we find the particles outside
         # this inner boundary.
@@ -406,8 +429,12 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             inner = na.invert( (points >= temp_LE).all(axis=1) * \
                 (points < temp_RE).all(axis=1) )
         elif round == 'second' or round == 'third':
-            inner = na.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
-                (fKD.pos.T < temp_RE).all(axis=1) )
+            if self.tree == 'F':
+                inner = na.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
+                    (fKD.pos.T < temp_RE).all(axis=1) )
+            elif self.tree == 'C':
+                inner = na.invert( (self.pos >= temp_LE).all(axis=1) * \
+                    (self.pos < temp_RE).all(axis=1) )
         if round == 'first':
             del points
         # After inverting the logic above, we want points that are both
@@ -444,26 +471,44 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self.densestNN = na.empty(self.size,dtype='int64')
         # We find nearest neighbors in chunks.
         chunksize = 10000
-        fKD.chunk_tags = na.asfortranarray(na.empty((self.num_neighbors, chunksize), dtype='int64'))
-        start = 1 # Fortran counting!
-        finish = 0
-        while finish < self.size:
-            finish = min(finish+chunksize,self.size)
-            # Call the fortran. start and finish refer to the data locations
-            # in fKD.pos, and specify the range of particles to find nearest
-            # neighbors
-            fKD.start = start
-            fKD.finish = finish
-            find_chunk_nearest_neighbors()
-            chunk_NNtags = (fKD.chunk_tags[:,:finish-start+1] - 1).transpose()
-            # Find the densest nearest neighbors by referencing the already
-            # calculated density.
-            n_dens = na.take(self.density,chunk_NNtags)
-            max_loc = na.argmax(n_dens,axis=1)
-            for i in xrange(finish - start + 1): # +1 for fortran counting.
-                j = start + i - 1 # -1 for fortran counting.
-                self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
-            start = finish + 1
+        if self.tree == 'F':
+            fKD.chunk_tags = na.asfortranarray(na.empty((self.num_neighbors, chunksize), dtype='int64'))
+            start = 1 # Fortran counting!
+            finish = 0
+            while finish < self.size:
+                finish = min(finish+chunksize,self.size)
+                # Call the fortran. start and finish refer to the data locations
+                # in fKD.pos, and specify the range of particles to find nearest
+                # neighbors
+                fKD.start = start
+                fKD.finish = finish
+                find_chunk_nearest_neighbors()
+                chunk_NNtags = (fKD.chunk_tags[:,:finish-start+1] - 1).transpose()
+                # Find the densest nearest neighbors by referencing the already
+                # calculated density.
+                n_dens = na.take(self.density,chunk_NNtags)
+                max_loc = na.argmax(n_dens,axis=1)
+                for i in xrange(finish - start + 1): # +1 for fortran counting.
+                    j = start + i - 1 # -1 for fortran counting.
+                    self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
+                start = finish + 1
+        elif self.tree == 'C':
+            start = 0
+            finish = 0
+            while finish < self.size - 1:
+                finish = min(finish+chunksize, self.size)
+                # Unlike above, this function returns a new chunk_NNtags
+                # that is the right size every time. But this may not actually
+                # be as memory efficient - fragmenting?
+                chunk_NNtags = self.kdtree.find_chunk_nearest_neighbors(start, \
+                    finish, num_neighbors=self.num_neighbors)
+                n_dens = na.take(self.density, chunk_NNtags)
+                max_loc = na.argmax(n_dens, axis=1)
+                max_loc = na.argmax(n_dens,axis=1)
+                for i in xrange(finish - start):
+                    j = start + i
+                    self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
+                start = finish
         yt_counters("densestNN")
         self.__max_memory()
         del chunk_NNtags, max_loc, n_dens
@@ -568,12 +613,15 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         chain_map = defaultdict(set)
         for i in xrange(max(self.chainID)+1):
             chain_map[i].add(i)
-        # Plus 2 because we're looking for that neighbor, but only keeping 
-        # nMerge + 1 neighbor tags, skipping ourselves.
-        fKD.dist = na.empty(self.nMerge+2, dtype='float64')
-        fKD.tags = na.empty(self.nMerge+2, dtype='int64')
-        # We can change this here to make the searches faster.
-        fKD.nn = self.nMerge+2
+        if self.tree == 'F':
+            # Plus 2 because we're looking for that neighbor, but only keeping 
+            # nMerge + 1 neighbor tags, skipping ourselves.
+            fKD.dist = na.empty(self.nMerge+2, dtype='float64')
+            fKD.tags = na.empty(self.nMerge+2, dtype='int64')
+            # We can change this here to make the searches faster.
+            fKD.nn = self.nMerge + 2
+        elif self.tree == 'C':
+            nn = self.nMerge + 2
         yt_counters("preconnect kd tree search.")
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
@@ -586,9 +634,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             # We're only connecting >= peakthresh chains now.
             if part_max_dens < self.peakthresh: continue
             # Loop over nMerge closest nearest neighbors.
-            fKD.qv = fKD.pos[:, i]
-            find_nn_nearest_neighbors()
-            NNtags = fKD.tags[:] - 1
+            if self.tree == 'F':
+                fKD.qv = fKD.pos[:, i]
+                find_nn_nearest_neighbors()
+                NNtags = fKD.tags[:] - 1
+            elif self.tree == 'C':
+                qv = self.pos[i, :]
+                NNtags = self.kdtree.query(qv, nn)[1]
             same_count = 0
             for j in xrange(int(self.nMerge+1)):
                 thisNN = NNtags[j+1] # Don't consider ourselves at NNtags[0]
@@ -1002,10 +1054,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
         # Plus 2 because we're looking for that neighbor, but only keeping 
         # nMerge + 1 neighbor tags, skipping ourselves.
-        fKD.dist = na.empty(self.nMerge+2, dtype='float64')
-        fKD.tags = na.empty(self.nMerge+2, dtype='int64')
-        # We can change this here to make the searches faster.
-        fKD.nn = self.nMerge+2
+        if self.tree == 'F':
+            fKD.dist = na.empty(self.nMerge+2, dtype='float64')
+            fKD.tags = na.empty(self.nMerge+2, dtype='int64')
+            # We can change this here to make the searches faster.
+            fKD.nn = self.nMerge+2
+        elif self.tree == 'C':
+            nn = self.nMerge + 2
         for i in xrange(int(self.size)):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
@@ -1018,9 +1073,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             # Make sure we're skipping deleted chains.
             if part_max_dens == -1.0: continue
             # Loop over nMerge closest nearest neighbors.
-            fKD.qv = fKD.pos[:, i]
-            find_nn_nearest_neighbors()
-            NNtags = fKD.tags[:] - 1
+            if self.tree == 'F':
+                fKD.qv = fKD.pos[:, i]
+                find_nn_nearest_neighbors()
+                NNtags = fKD.tags[:] - 1
+            elif self.tree == 'C':
+                qv = self.pos[i, :]
+                NNtags = self.kdtree.query(qv, nn)[1]
             for j in xrange(int(self.nMerge+1)):
                 thisNN = NNtags[j+1] # Don't consider ourselves at NNtags[0]
                 thisNN_chainID = self.chainID[thisNN]
@@ -1345,11 +1404,14 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         select = (self.chainID != -1)
         calc = len(na.where(select == True)[0])
         loc = na.empty((calc, 3), dtype='float64')
-        loc[:, 0] = na.concatenate((self.xpos, self.xpos_pad))[select]
-        loc[:, 1] = na.concatenate((self.ypos, self.ypos_pad))[select]
-        loc[:, 2] = na.concatenate((self.zpos, self.zpos_pad))[select]
-        self.__max_memory()
-        del self.xpos_pad, self.ypos_pad, self.zpos_pad
+        if self.tree == 'F':
+            loc[:, 0] = na.concatenate((self.xpos, self.xpos_pad))[select]
+            loc[:, 1] = na.concatenate((self.ypos, self.ypos_pad))[select]
+            loc[:, 2] = na.concatenate((self.zpos, self.zpos_pad))[select]
+            self.__max_memory()
+            del self.xpos_pad, self.ypos_pad, self.zpos_pad
+        elif self.tree == 'C':
+            loc = self.pos[select]
         subchain = self.chainID[select]
         # First we need to find the maximum density point for all groups.
         # I think this will be faster than several vector operations that need
@@ -1470,10 +1532,17 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Loop over the particles to find NN for each.
         mylog.info('Finding nearest neighbors/density...')
         yt_counters("chainHOP_tags_dens")
-        chainHOP_tags_dens()
+        if self.tree == 'F':
+            chainHOP_tags_dens()
+        elif self.tree == 'C':
+            self.density = self.kdtree.chainHOP_get_dens(self.mass, \
+            num_neighbors = self.num_neighbors, nMerge = self.nMerge + 2)
         yt_counters("chainHOP_tags_dens")
-        self.density = fKD.dens.copy()
-        # Now each particle has NNtags, and a local self density.
+        if self.tree == 'F':
+            self.density = fKD.dens.copy()
+        elif self.tree == 'C':
+            pass
+        # Now each particle a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
@@ -1496,17 +1565,22 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
-        self.mass = fKD.mass[:self.psize]
-        self.mass_pad = fKD.mass[self.psize:]
-        del fKD.dens, fKD.mass, fKD.dens
-        self.xpos = fKD.pos[0, :self.psize]
-        self.ypos = fKD.pos[1, :self.psize]
-        self.zpos = fKD.pos[2, :self.psize]
-        self.xpos_pad = fKD.pos[0, self.psize:]
-        self.ypos_pad = fKD.pos[1, self.psize:]
-        self.zpos_pad = fKD.pos[2, self.psize:]
-        del fKD.pos, fKD.chunk_tags
-        free_tree(0) # Frees the kdtree object.
+        if self.tree == 'F':
+            self.mass = fKD.mass[:self.psize]
+            self.mass_pad = fKD.mass[self.psize:]
+            del fKD.dens, fKD.mass, fKD.dens
+            self.xpos = fKD.pos[0, :self.psize]
+            self.ypos = fKD.pos[1, :self.psize]
+            self.zpos = fKD.pos[2, :self.psize]
+            self.xpos_pad = fKD.pos[0, self.psize:]
+            self.ypos_pad = fKD.pos[1, self.psize:]
+            self.zpos_pad = fKD.pos[2, self.psize:]
+            del fKD.pos, fKD.chunk_tags
+            free_tree(0) # Frees the kdtree object.
+            gc.collect()
+        elif self.tree == 'C':
+            del self.kdtree
+            gc.collect()
         del self.densestNN
         mylog.info('Communicating group links globally...')
         self._make_global_chain_densest_n()
@@ -1530,7 +1604,10 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             for groupID in self.I_own[taskID]:
                 self.halo_taskmap[groupID].add(taskID)
         del self.I_own
-        del self.xpos, self.ypos, self.zpos
+        if self.tree == 'F':
+            del self.xpos, self.ypos, self.zpos
+        elif self.tree == 'C':
+            pass
 
     def __add_to_array(self, arr, key, value, type):
         """

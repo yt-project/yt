@@ -1376,7 +1376,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
               ["ParticleMassMsun", "particle_index"]
 
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
-        period, threshold=160.0, dm_only=True, rearrange=True, premerge=True):
+        period, threshold=160.0, dm_only=True, rearrange=True, premerge=True,
+        tree = 'F'):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -1393,6 +1394,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.period = na.array([1.]*3)
         self._data_source = data_source
         self.premerge = premerge
+        self.tree = tree
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
 
@@ -1421,7 +1423,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields,
-            self.threshold, rearrange=self.rearrange, premerge=self.premerge)
+            self.threshold, rearrange=self.rearrange, premerge=self.premerge,
+            tree = self.tree)
         self.densities, self.tags = obj.density, obj.chainID
         # I'm going to go ahead and delete self.densities because it's not
         # actually being used. I'm not going to remove it altogether because
@@ -1780,7 +1783,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, subvolume=None,threshold=160, dm_only=True, \
         resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03, \
-        total_mass=None, num_particles=None):
+        total_mass=None, num_particles=None, tree = 'F'):
         r"""Parallel HOP halo finder.
         
         Halos are built by:
@@ -1810,9 +1813,16 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             Default = False.
         resize : bool
             Turns load-balancing on or off. Default = True.
+        kdtree : string
+            Chooses which kD Tree to use. The Fortran one (kdtree = 'F') is
+            faster, but uses more memory. The Cython one (kdtree = 'C') is
+            slower but is more memory efficient.
+            Default = 'F'
         rearrange : bool
             Turns on faster nearest neighbor searches at the cost of increased
-            memory usage. Default = True.
+            memory usage.
+            This option only applies when using the Fortran tree.
+            Default = True.
         fancy_padding : bool
             True calculates padding independently for each face of each
             subvolume. Default = True.
@@ -1862,6 +1872,9 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         self.num_neighbors = 65
         self.safety = safety
         self.sample = sample
+        self.tree = tree
+        if self.tree != 'F' and self.tree != 'C':
+            mylog.error("No kD Tree specified!")
         period = pf.domain_right_edge - pf.domain_left_edge
         topbounds = na.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
@@ -1969,7 +1982,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, \
-        threshold=threshold, dm_only=dm_only, rearrange=rearrange, premerge=premerge)
+        threshold=threshold, dm_only=dm_only, rearrange=rearrange, premerge=premerge,
+        tree = self.tree)
         self._join_halolists()
         yt_counters("Final Grouping")
 
@@ -2120,6 +2134,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             mass in the entire volume.
             Default = None, which means the total mass is automatically
             calculated.
+
         
         Examples
         --------
