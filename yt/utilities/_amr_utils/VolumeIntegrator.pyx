@@ -1850,7 +1850,7 @@ cdef class AdaptiveRaySource:
                 self.send_ray_home(ray2, ledges, redges, grid_neighbors, 0.0, 1)
                 # If it wants to go back in time that is fine but it needs to
                 # make sure it gets forward in time eventually
-                while ray2.pgi <= pgi and ray2.t <= 1.0:
+                while ray2.pgi <= pgi and ray2.t < 1.0:
                     #print "Recursing", ray2.pgi, pgi, ray2.t, ray2.nside, ray2.ipix, dt
                     # Now we grab a new set of neighbors and whatnot
                     pgn = pgs[ray2.pgi]
@@ -1864,6 +1864,7 @@ cdef class AdaptiveRaySource:
                     # forward in time.
                     self.send_ray_home(ray2, ledges, redges, grid2_neighbors,
                                        dt, 1)
+                    free(grid2_neighbors)
                 # This tosses us to the next one in line, of the four..
                 self.append_to_packets(ray2.pgi, ray2)
                 ray2 = ray2.next
