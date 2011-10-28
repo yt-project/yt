@@ -186,10 +186,10 @@ var treePanel = new Ext.tree.TreePanel({
                 } else if (node.attributes.objdata.type == 'pf') {
                   rightClickMenu = new Ext.menu.Menu({
                       items: [
-                          /*{
+                          {
                               text: 'View Grids',
                               handler: getGridViewerHandler(node),
-                          },*/ {
+                          }, {
                               text: 'View Grid Data',
                               handler: getGridDataViewerHandler(node),
                           }, {

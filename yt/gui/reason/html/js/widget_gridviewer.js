@@ -165,7 +165,6 @@ var WidgetGridViewer = function(python_varname, widget_data) {
 		//gl.disable(gl.DEPTH_TEST);
 		program.setUniform('alpha',0.8);
 		gl.depthFunc(gl.LEQUAL);
-		examine = camera;
 		program.setBuffers({
 	    	    'shapeset': {
 	    		attribute: 'aVertexPosition',
@@ -180,18 +179,14 @@ var WidgetGridViewer = function(python_varname, widget_data) {
 		    
 		});
 
-		camera.modelView.id();
+		examine = camera;
+		camera.view.id();
 		camera.update();
-		
-		/*(function animloop(){
-		    draw();
-		    requestAnimFrame(animloop, canvas);
-		})();*/
 		
 		//Draw the scene
 		draw = function() {
 	    	    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	    	    program.setUniform('uMVMatrix', camera.modelView);
+	    	    program.setUniform('uMVMatrix', camera.view);
 	    	    program.setUniform('uPMatrix', camera.projection);
 	    	    program.setBuffer('shapeset');
 	    	    program.setBuffer('shapesetColors');
