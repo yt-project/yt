@@ -292,7 +292,7 @@ cd ${DEST_DIR}/src
 if [ -z "$HDF5_DIR" ]
 then
     echo "Downloading HDF5"
-    get_enzotools hdf5-1.8.6.tar.gz
+    get_enzotools hdf5-1.8.7.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
@@ -300,14 +300,14 @@ fi
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
-get_enzotools Python-2.7.1.tgz
-get_enzotools numpy-1.5.1.tar.gz
-get_enzotools matplotlib-1.0.0.tar.gz
+get_enzotools Python-2.7.2.tgz
+get_enzotools numpy-1.6.1.tar.gz
+get_enzotools matplotlib-1.1.0.tar.gz
 get_enzotools mercurial-1.8.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
-get_enzotools h5py-1.3.1.tar.gz
+get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.tar.gz
-get_enzotools Forthon-0.8.4.tar.gz
+get_enzotools Forthon-0.8.5.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
 get_enzotools PhiloGL-1.1.0.zip
@@ -392,11 +392,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.8.6/done ]
+    if [ ! -e hdf5-1.8.7/done ]
     then
-        [ ! -e hdf5-1.8.6 ] && tar xfz hdf5-1.8.6.tar.gz
+        [ ! -e hdf5-1.8.7 ] && tar xfz hdf5-1.8.7.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.8.6
+        cd hdf5-1.8.7
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
@@ -422,11 +422,11 @@ then
     fi
 fi
 
-if [ ! -e Python-2.7.1/done ]
+if [ ! -e Python-2.7.2/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.7.1 ] && tar xfz Python-2.7.1.tgz
-    cd Python-2.7.1
+    [ ! -e Python-2.7.2 ] && tar xfz Python-2.7.2.tgz
+    cd Python-2.7.2
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -488,7 +488,7 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.5.1 ${NUMPY_ARGS}
+do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -509,10 +509,10 @@ then
     echo "Setting CFLAGS ${CFLAGS}"
 fi
 # Now we set up the basedir for matplotlib:
-mkdir -p ${DEST_DIR}/src/matplotlib-1.0.0
-echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
-echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
-do_setup_py matplotlib-1.0.0
+mkdir -p ${DEST_DIR}/src/matplotlib-1.1.0
+echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.1.0/setup.cfg
+echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.1.0/setup.cfg
+do_setup_py matplotlib-1.1.0
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}
@@ -521,9 +521,9 @@ fi
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
-do_setup_py h5py-1.3.1
+do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15
-[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.4
+[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
