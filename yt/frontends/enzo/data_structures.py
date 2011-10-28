@@ -291,7 +291,7 @@ class EnzoHierarchy(AMRHierarchy):
         if not ytcfg.getboolean("yt","serialize"): return False
         try:
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
-        except h5py.h5.H5Error:
+        except:
             return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
