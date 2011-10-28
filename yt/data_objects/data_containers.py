@@ -2492,7 +2492,9 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         verts = []
         samples = []
-        for g in self._grids:
+        pb = get_pbar("Extracting Isocontours", len(self._grids))
+        for i, g in enumerate(self._grids):
+            pb.update(i)
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
             if sample_values is not None:
@@ -2505,6 +2507,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
+        pb.finish()
         verts = na.concatenate(verts)
         if sample_values is not None:
             samples = na.concatenate(samples)

@@ -458,3 +458,6 @@ elif "--detailed" in sys.argv:
 
 class NoCUDAException(Exception):
     pass
+
+class YTEmptyClass(object):
+    pass

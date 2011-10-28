@@ -1,5 +1,5 @@
 /**********************************************************************
-The Plot Window Widget
+The isocontour viewer widget
 
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
@@ -37,7 +37,8 @@ window.requestAnimFrame = (function(){
         };
 })();
 
-var WidgetGridViewer = function(python_varname, widget_data) {
+var exagain;
+var WidgetIsocontourViewer = function(python_varname, widget_data) {
     this.id = python_varname;
     this.widget_data = widget_data;
     examine = "canvas_" + python_varname;
@@ -153,9 +154,10 @@ var WidgetGridViewer = function(python_varname, widget_data) {
                 camera = app.camera;
 		var grids = new PhiloGL.O3D.Model({
             vertices : widget_data['vertex_positions'],
-            drawType : "LINES",
+            drawType : "TRIANGLES",
             colors : widget_data['vertex_colors'],
         });
+        exagain = grids;
         scene.add(grids);
 		gl.viewport(0, 0, canvas.width, canvas.height);
 		gl.clearColor(0, 0, 0, 1);
@@ -179,8 +181,8 @@ var WidgetGridViewer = function(python_varname, widget_data) {
     viewport.get("center-panel").add(
         {
             xtype: 'panel',
-            id: "gv_" + python_varname,
-            title: "WebGL Grid Viewer",
+            id: "iv_" + python_varname,
+            title: "WebGL Isocontour Viewer",
             iconCls: 'graph',
             autoScroll: true,
             layout:'absolute',
@@ -200,12 +202,12 @@ var WidgetGridViewer = function(python_varname, widget_data) {
         }
     );
 
-    viewport.get("center-panel").activate("gv_" + this.id);
+    viewport.get("center-panel").activate("iv_" + this.id);
     viewport.doLayout();
-    this.panel = viewport.get("center-panel").get("gv_" + python_varname);
+    this.panel = viewport.get("center-panel").get("iv_" + python_varname);
     this.panel.doLayout();
 
     this.accept_results = function(payload) { }
 }
 
-widget_types['grid_viewer'] = WidgetGridViewer;
+widget_types['isocontour_viewer'] = WidgetIsocontourViewer;
