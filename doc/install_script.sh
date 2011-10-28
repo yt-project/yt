@@ -307,7 +307,7 @@ get_enzotools mercurial-1.8.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.tar.gz
-get_enzotools Forthon-0.8.5.tar.gz
+get_enzotools Forthon-0.8.5.tgz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
 get_enzotools PhiloGL-1.1.0.zip
