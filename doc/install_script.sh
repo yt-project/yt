@@ -523,7 +523,7 @@ fi
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
 do_setup_py h5py-2.0.1
-do_setup_py Cython-0.15
+do_setup_py Cython-0.15.1
 [ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
