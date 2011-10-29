@@ -567,12 +567,12 @@ then
 fi
 
 # Now we open up PhiloGL
-if [ ! -e PhiloGL-1.1.0/done ]
+if [ ! -e PhiloGL-1.4.2/done ]
 then
-    ( unzip -o PhiloGL-1.1.0.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( echo "Symlinking PhiloGL-1.1.0 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
-    ln -sf PhiloGL-1.1.0 PhiloGL
-    touch PhiloGL-1.1.0/done
+    ( unzip -o PhiloGL-1.4.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking PhiloGL-1.4.2 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
+    ln -sf PhiloGL-1.4.2 PhiloGL
+    touch PhiloGL-1.4.2/done
 fi
 
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
