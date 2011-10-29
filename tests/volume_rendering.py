@@ -31,6 +31,8 @@ class VolumeRenderingConsistency(YTStaticOutputTest):
         self.result = image
 
     def compare(self, old_result):
-        if not na.all(self.result==old_result):
-            raise VolumeRenderingInconsistent()
+        # Compare the deltas; give a leeway of 1e-8
+        delta = na.nanmax( na.abs(self.result - old_result) /
+                                 (self.result + old_result) )
+        if delta > 1e-9: raise VolumeRenderingInconsistent()
 
