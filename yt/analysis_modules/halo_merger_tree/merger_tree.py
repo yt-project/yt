@@ -605,7 +605,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             (matched, parent_IDs_tosend.size, child_IDs_tosend.size))
 
         # Now we sum up the contributions globally.
-        self.child_mass_arr = self._mpi_allsum(self.child_mass_arr)
+        self.child_mass_arr = self.comm.mpi_allreduce(self.child_mass_arr)
         
         # Turn these Msol masses into percentages of the parent.
         line = "SELECT HaloMass FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
