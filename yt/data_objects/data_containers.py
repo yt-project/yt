@@ -62,6 +62,16 @@ from .field_info_container import \
     NeedsProperty, \
     NeedsParameter
 
+def force_array(item, shape):
+    try:
+        sh = item.shape
+        return item
+    except AttributeError:
+        if item:
+            return na.ones(shape, dtype='bool')
+        else:
+            return na.zeros(shape, dtype='bool')
+
 def restore_grid_state(func):
     """
     A decorator that takes a function with the API of (self, grid, field)
@@ -3403,6 +3413,140 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")
+
+class AMRBooleanRegionBase(AMR3DData):
+    """
+    A hybrid region built by boolean comparison between
+    existing regions.
+    """
+    _type_name = "boolean"
+    _con_args = {"regions"}
+    def __init__(self, regions, fields = None, pf = None, **kwargs):
+        """
+        This will build a hybrid region based on the boolean logic
+        of the regions.
+        
+        Parameters
+        ----------
+        regions : list
+            A list of region objects and strings describing the boolean logic
+            to use when building the hybrid region. The boolean logic can be
+            nested using parentheses.
+        
+        Examples
+        --------
+        >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
+            [0.6, 0.6, 0.6])
+        >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
+            [0.55, 0.55, 0.55])
+        >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
+        >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
+        >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
+            sp1, ")"])
+        """
+        # Center is meaningless, but we'll define it all the same.
+        AMR3DData.__init__(self, [0.5]*3, fields, pf, **kwargs)
+        self.regions = regions
+        self._all_regions = []
+        self._some_overlap = []
+        self._all_overlap = []
+        self._cut_masks = {}
+        self._get_all_regions()
+        self._make_overlaps()
+    
+    def _get_all_regions(self):
+        # Before anything, we simply find out which regions are involved in all
+        # of this process, uniquely.
+        for item in self.regions:
+            if isinstance(item, types.StringType): continue
+            self._all_regions.append(item)
+        self._all_regions = na.unique(self._all_regions)
+    
+    def _make_overlaps(self):
+        # Using the processed cut_masks, we'll figure out what grids
+        # are left in the hybrid region.
+        for region in self._all_regions:
+            region._get_list_of_grids()
+            for grid in region._grids:
+                if grid in self._some_overlap or grid in self._all_overlap:
+                    continue
+                # Get the cut_mask for this grid in this region, and see
+                # if there's any overlap with the overall cut_mask.
+                overall = self._get_cut_mask(grid)
+                local = force_array(region._get_cut_mask(grid),
+                    grid.ActiveDimensions)
+                if (local == na.bitwise_and(overall, local)).all():
+                    # All of local is in overall
+                    self._all_overlap.append(grid)
+                    continue
+                if (overall == local).any():
+                    # Some of local is in overall
+                    self._some_overlap.append(grid)
+                    continue
+    
+    def _is_fully_enclosed(self, grid):
+        return (grid in self._all_overlap)
+
+    def _get_list_of_grids(self):
+        self._grids = na.array(self._some_overlap + self._all_overlap,
+            dtype='object')
+
+    def _get_cut_mask(self, grid, field=None):
+        if self._is_fully_enclosed(grid):
+            return True # We do not want child masking here
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
+                and grid.id in self._cut_masks:
+            return self._cut_masks[grid.id]
+        # If we get this far, we have to generate the cut_mask.
+        return self._get_level_mask(self.regions, grid)
+    
+    def _get_level_mask(self, ops, grid):
+        level_masks = []
+        end = 0
+        for i, item in enumerate(ops):
+            if end > 0 and i < end:
+                # We skip over things inside parentheses on this level.
+                continue
+            if isinstance(item, AMRData):
+                # Add this regions cut_mask to level_masks
+                level_masks.append(force_array(item._get_cut_mask(grid),
+                    grid.ActiveDimensions))
+            elif item == "AND" or item == "NOT" or item == "OR":
+                level_masks.append(item)
+            elif item == "(":
+                # recurse down, and we'll append the results, which
+                # should be a single cut_mask
+                open_count = 0
+                for ii, item in enumerate(ops[i + 1:]):
+                    # We look for the matching closing parentheses to find
+                    # where we slice ops.
+                    if item == "(":
+                        open_count += 1
+                    if item == ")" and open_count > 0:
+                        open_count -= 1
+                    elif item == ")" and open_count == 0:
+                        end = i + ii + 1
+                        break
+                level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
+                    grid), grid.ActiveDimensions))
+        # Now we do the logic on our level_mask.
+        # There should be no nested logic anymore.
+        # The first item should be a cut_mask,
+        # so that will be our starting point.
+        this_cut_mask = level_masks[0]
+        for i, item in enumerate(level_masks):
+            # I could use a slice above, but I'll keep i consistent instead.
+            if i == 0: continue
+            if item == "AND":
+                # So, the next item in level_masks we want to AND.
+                na.bitwise_and(this_cut_mask, level_masks[i+1], this_cut_mask)
+            if item == "NOT":
+                # It's convenient to remember that NOT == AND NOT
+                na.bitwise_and(this_cut_mask, na.invert(level_masks[i+1]),
+                    this_cut_mask)
+            if item == "OR":
+                na.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
+        return this_cut_mask
 
 
 def _reconstruct_object(*args, **kwargs):

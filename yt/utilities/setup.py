@@ -148,6 +148,8 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("delaunay") # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
     config.add_data_files(('kdtree', ['kdtree/fKDpy.so',]))
+    config.add_extension('spatial', ["yt/utilities/spatial/ckdtree.pyx"],
+                 libraries=["m"])
     config.add_subpackage("parallel_tools")
     config.add_extension("data_point_utilities",
                 "yt/utilities/data_point_utilities.c", libraries=["m"])
