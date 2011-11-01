@@ -1,15 +1,11 @@
 """
-API for halo_profiler
+API for radial_column_density
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
+Author: Stephen Skory <s@skory.us>
+Affiliation: CU Boulder
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010-2011 Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -28,11 +24,5 @@ License:
 
 """
 
-from .halo_filters import \
-    VirialFilter
+from .radial_column_density import RadialColumnDensity
 
-from .multi_halo_profiler import \
-    HaloProfiler, \
-    FakeProfile, \
-    shift_projections, \
-    standard_fields

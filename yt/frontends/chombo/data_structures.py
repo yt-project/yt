@@ -82,7 +82,7 @@ class ChomboGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(AMRHierarchy):
 
@@ -148,7 +148,8 @@ class ChomboHierarchy(AMRHierarchy):
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
-        self.grids = na.array(self.grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _populate_grid_objects(self):
         for g in self.grids:

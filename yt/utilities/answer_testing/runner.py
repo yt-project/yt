@@ -23,11 +23,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import matplotlib; matplotlib.use("Agg")
+import matplotlib
 import os, shelve, cPickle, sys, imp, tempfile
 
 from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 import yt.utilities.cmdln as cmdln
+from yt.funcs import *
 from .xunit import Xunit
 
 from output_tests import test_registry, MultipleOutputTest, \
@@ -54,12 +55,14 @@ class RegressionTestStorage(object):
             self._path = os.path.join(path, "results")
         else:
             self._path = os.path.join(path, "results_%s" % self.id)
-        if not os.path.isdir(self._path): os.mkdir(self._path)
+        if not os.path.isdir(self._path): 
+            only_on_root(os.mkdir, self._path)
         if os.path.isfile(self._path): raise RuntimeError
 
     def _fn(self, tn):
         return os.path.join(self._path, tn)
 
+    @rootonly
     def __setitem__(self, test_name, result):
         # We have to close our shelf manually,
         # as the destructor does not necessarily do this.
@@ -79,7 +82,7 @@ class RegressionTestStorage(object):
 class RegressionTestRunner(object):
     def __init__(self, results_id, compare_id = None,
                  results_path = ".", compare_results_path = ".",
-                 io_log = "OutputLog"):
+                 io_log = "OutputLog", plot_tests = False):
         # This test runner assumes it has been launched with the current
         # working directory that of the test case itself.
         self.io_log = io_log
@@ -92,6 +95,7 @@ class RegressionTestRunner(object):
         self.results = RegressionTestStorage(results_id, path=results_path)
         self.plot_list = {}
         self.passed_tests = {}
+        self.plot_tests = plot_tests
 
     def run_all_tests(self):
         plot_list = []
@@ -126,7 +130,8 @@ class RegressionTestRunner(object):
         print self.id, "Running", test.name,
         test.setup()
         test.run()
-        self.plot_list[test.name] = test.plot()
+        if self.plot_tests:
+            self.plot_list[test.name] = test.plot()
         self.results[test.name] = test.result
         success, msg = self._compare(test)
         if self.old_results is None:

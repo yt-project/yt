@@ -381,8 +381,12 @@ class VMPlot(RavenPlot):
                     self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
-            newmin = na.nanmin(buff[bI])
-            newmax = na.nanmax(buff[bI])
+            if len(bI[0]) == 0:
+                newmin = 1e-99
+                newmax = 1e-99
+            else:
+                newmin = na.nanmin(buff[bI])
+                newmax = na.nanmax(buff[bI])
         else:
             newmin = na.nanmin(buff)
             newmax = na.nanmax(buff)

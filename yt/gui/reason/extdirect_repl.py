@@ -555,6 +555,38 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                                          'widget_data_name': '_twidget_data'})
 
     @lockit
+    def create_isocontours(self, pfname, field, value, sampling_field):
+        funccall = """
+        _tpf = %(pfname)s
+        _tfield = "%(field)s"
+        _tvalue = %(value)s
+        _tsample_values = "%(sampling_field)s"
+        _tdd = _tpf.h.all_data()
+        _tiso = _tdd.extract_isocontours(_tfield, _tvalue, rescale = True,
+                                         sample_values = _tsample_values)
+        from yt.funcs import YTEmptyClass
+        _tpw = YTEmptyClass()
+        print "GOT TPW"
+        _tpw._widget_name = 'isocontour_viewer'
+        _tpw._ext_widget_id = None
+        _tverts = _tiso[0].ravel().tolist()
+        _tc = (apply_colormap(na.log10(_tiso[1]))).squeeze()
+        _tcolors = na.empty((_tc.shape[0] * 3, 4), dtype='float32')
+        _tcolors[0::3,:] = _tc
+        _tcolors[1::3,:] = _tc
+        _tcolors[2::3,:] = _tc
+        _tcolors = (_tcolors.ravel()/255.0).tolist()
+        _twidget_data = {'vertex_positions': _tverts, 'vertex_colors': _tcolors}
+        """ % dict(pfname=pfname, value=value, sampling_field=sampling_field, field=field)
+        # There is a call to do this, but I have forgotten it ...
+        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
+        self.execute(funccall, hide = True)
+        self.execution_thread.queue.put({'type': 'add_widget',
+                                         'name' : '_tpw',
+                                         'widget_data_name': '_twidget_data'})
+
+
+    @lockit
     def create_grid_dataview(self, pfname):
         funccall = """
         _tpf = %(pfname)s

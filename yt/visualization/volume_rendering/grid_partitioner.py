@@ -29,8 +29,6 @@ import h5py
 
 from yt.utilities.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
     grid_points_in_volume, find_grids_in_inclined_box
-from yt.utilities.parallel_tools.distributed_object_collection import \
-    DistributedObjectCollection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_root_only
 
@@ -45,6 +43,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
     def __init__(self, fields = "Density", source = None, pf = None,
                  log_fields = None, no_ghost = False):
         # Typically, initialized as hanging off a hierarchy.  But, not always.
+        ParallelAnalysisInterface.__init__(self)
         self.no_ghost = no_ghost
         if pf is not None: self.pf = pf
         if source is None: source = self.pf.h.all_data()
@@ -101,13 +100,12 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                                       " not yet supported")
         if self.bricks is not None and source is None: return
         bricks = []
-        self._preload(self.source._grids, self.fields, self.pf.h.io)
+        self.comm.preload(self.source._grids, self.fields, self.pf.h.io)
         pbar = get_pbar("Partitioning ", len(self.source._grids))
         for i, g in enumerate(self.source._grids):
             pbar.update(i)
             bricks += self._partition_grid(g)
         pbar.finish()
-        bricks = na.array(bricks, dtype='object')
         self.initialize_bricks(bricks)
 
     def initialize_bricks(self, bricks):
@@ -120,14 +118,15 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
         self.brick_parents = na.zeros( NB, dtype='int64')
         self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
+        self.bricks = na.empty(len(bricks), dtype='object')
         for i,b in enumerate(bricks):
             self.brick_left_edges[i,:] = b.LeftEdge
             self.brick_right_edges[i,:] = b.RightEdge
             self.brick_parents[i] = b.parent_grid_id
             self.brick_dimensions[i,:] = b.my_data[0].shape
+            self.bricks[i] = b
         # Vertex-centered means we subtract one from the shape
         self.brick_dimensions -= 1
-        self.bricks = na.array(bricks, dtype='object')
 
     def reflect_across_boundaries(self):
         mylog.warning("Note that this doesn't fix ghost zones, so there may be artifacts at domain boundaries!")
@@ -200,176 +199,6 @@ class SingleBrickVolume(object):
 
     def reset_cast(self):
         pass
-
-class HomogenizedBrickCollection(DistributedObjectCollection):
-    def __init__(self, source):
-        # The idea here is that we have two sources -- the global_domain
-        # source, which would be a decomposition of the 3D domain, and a
-        # local_domain source, which is the set of bricks we want at the end.
-        self.source = source
-        self.pf = source.pf
-
-    @classmethod
-    def load_bricks(self, base_filename):
-        pass
-
-    def write_my_bricks(self, base_filename):
-        pass
-
-    def store_bricks(self, base_filename):
-        pass
-    
-    @parallel_root_only
-    def write_hierarchy(self, base_filename):
-        pass
-    
-    def _partition_grid(self, grid, fields, log_field = None):
-        fields = ensure_list(fields)
-        if log_field is None: log_field = [True] * len(fields)
-
-        # This is not super efficient, as it re-fills the regions once for each
-        # field.
-        vcds = []
-        for i,field in enumerate(fields):
-            vcd = grid.get_vertex_centered_data(field).astype('float64')
-            if log_field[i]: vcd = na.log10(vcd)
-            vcds.append(vcd)
-
-        GF = GridFaces(grid.Children + [grid])
-        PP = ProtoPrism(grid.id, grid.LeftEdge, grid.RightEdge, GF)
-
-        pgs = []
-        for P in PP.sweep(0):
-            sl = P.get_brick(grid.LeftEdge, grid.dds, grid.child_mask)
-            if len(sl) == 0: continue
-            dd = [d[sl[0][0]:sl[0][1]+1,
-                    sl[1][0]:sl[1][1]+1,
-                    sl[2][0]:sl[2][1]+1].copy() for d in vcds]
-            pgs.append(PartitionedGrid(grid.id, len(fields), dd,
-                        P.LeftEdge, P.RightEdge, sl[-1]))
-        return pgs
-
-    def _partition_local_grids(self, fields = "Density", log_field = None):
-        fields = ensure_list(fields)
-        bricks = []
-        # We preload.
-        # UNCOMMENT FOR PARALLELISM
-        #grid_list = list(self._get_grid_objs())
-        grid_list = list(self.source._grids)
-        self._preload(grid_list, fields, self.pf.h.io)
-        pbar = get_pbar("Partitioning ", len(grid_list))
-        # UNCOMMENT FOR PARALLELISM
-        #for i, g in enumerate(self._get_grids()):
-        print "THIS MANY GRIDS!", len(grid_list)
-        for i, g in enumerate(self.source._grids):
-            pbar.update(i)
-            bricks += self._partition_grid(g, fields, log_field)
-        pbar.finish()
-        bricks = na.array(bricks, dtype='object')
-        NB = len(bricks)
-        # Now we set up our (local for now) hierarchy.  Note that to calculate
-        # intersection, we only need to do the left edge & right edge.
-        #
-        # We're going to double up a little bit here in memory.
-        self.brick_left_edges = na.zeros( (NB, 3), dtype='float64')
-        self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
-        self.brick_parents = na.zeros( NB, dtype='int64')
-        self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
-        self.brick_owners = na.ones(NB, dtype='int32') * self._mpi_get_rank()
-        self._object_owners = self.brick_owners
-        for i,b in enumerate(bricks):
-            self.brick_left_edges[i,:] = b.LeftEdge
-            self.brick_right_edges[i,:] = b.RightEdge
-            self.brick_parents[i] = b.parent_grid_id
-            self.brick_dimensions[i,:] = b.my_data[0].shape
-        # Vertex-centered means we subtract one from the shape
-        self.brick_dimensions -= 1
-        self.bricks = na.array(bricks, dtype='object')
-        # UNCOMMENT FOR PARALLELISM
-        #self.join_lists()
-
-    def _get_object_info(self):
-        # We transpose here for the catdict operation
-        info_dict = dict(left_edges = self.brick_left_edges.transpose(),
-                         right_edges = self.brick_right_edges.transpose(),
-                         parents = self.brick_parents,
-                         owners = self.brick_owners,
-                         dimensions = self.brick_dimensions.transpose(),)
-        return info_dict
-
-    def _set_object_info(self, info_dict):
-        self.brick_left_edges = info_dict.pop("left_edges").transpose()
-        self.brick_right_edges = info_dict.pop("right_edges").transpose()
-        self.brick_parents = info_dict.pop("parents")
-        self.brick_dimensions = info_dict.pop("dimensions").transpose()
-        self.brick_owners = info_dict.pop("owners")
-        self._object_owners = self.brick_owners
-        bricks = self.bricks
-        self.bricks = na.array([None] * self.brick_owners.size, dtype='object')
-        # Copy our bricks back in
-        self.bricks[self.brick_owners == self._mpi_get_rank()] = bricks[:]
-
-    def _create_buffer(self, ind_list):
-        # Note that we have vertex-centered data, so we add one before taking
-        # the prod and the sum
-        total_size = (self.brick_dimensions[ind_list,:] + 1).prod(axis=1).sum()
-        mylog.debug("Creating buffer for %s bricks (%s)",
-                    len(ind_list), total_size)
-        my_buffer = na.zeros(total_size, dtype='float64')
-        return my_buffer
-
-    def _pack_buffer(self, ind_list, my_buffer):
-        si = 0
-        for index in ind_list:
-            d = self.bricks[index].my_data.ravel()
-            my_buffer[si:si+d.size] = d[:]
-            si += d.size
-
-    def _unpack_buffer(self, ind_list, my_buffer):
-        si = 0
-        for index in ind_list:
-            pgi = self.brick_parents[index]
-            LE = self.brick_left_edges[index,:].copy()
-            RE = self.brick_right_edges[index,:].copy()
-            dims = self.brick_dimensions[index,:].copy()
-            size = (dims + 1).prod()
-            data = my_buffer[si:si+size].reshape(dims + 1)
-            self.bricks[index] = PartitionedGrid(
-                    pgi, data, LE, RE, dims)
-            si += size
-
-    def _wipe_objects(self, indices):
-        self.bricks[indices] = None
-
-    def _collect_bricks(self, intersection_source):
-        if not self._distributed: return
-        # This entire routine should instead be set up to do:
-        #   alltoall broadcast of the *number* of requested bricks
-        #   non-blocking receives posted for int arrays
-        #   sizes of data calculated
-        #   concatenated data receives posted
-        #   send all data
-        #   get bricks back
-        # This presupposes that we are using the AMRInclinedBox as a data
-        # source.  If we're not, we ought to be.
-        needed_brick_i = find_grids_in_inclined_box(
-            intersection_source.box_vectors, intersection_source.center,
-            self.brick_left_edges, self.brick_right_edges)
-        needed_brick_i = na.where(needed_brick_i)[0]
-        self._collect_objects(needed_brick_i)
-
-    def _initialize_parallel(self):
-        pass
-
-    def _finalize_parallel(self):
-        pass
-
-    def get_brick(self, brick_id):
-        pass
-
-    @property
-    def _grids(self):
-        return self.source._grids
 
 class GridFaces(object):
     def __init__(self, grids):

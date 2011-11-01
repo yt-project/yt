@@ -623,7 +623,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         return image
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
-    def __init__(self, x_bounds = (-1e60, 1e60)):
+    def __init__(self, x_bounds = (-1e60, 1e60), n_fields = 1):
         r"""A transfer function that defines a simple projection.
 
         To generate an interpolated, off-axis projection through a dataset,
@@ -634,9 +634,11 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
 
         Parameters
         ----------
-        x_boudns : tuple of floats, optional
+        x_bounds : tuple of floats, optional
             If any of your values lie outside this range, they will be
             truncated.
+        n_fields : int, optional
+            How many fields we're going to project and pass through
 
         Notes
         -----
@@ -644,18 +646,18 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
         logging of fields.
 
         """
+        if n_fields > 3:
+            raise NotImplementedError
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
         self.nbins = 2
         self.linear_mapping = TransferFunction(x_bounds, 2)
         self.linear_mapping.pass_through = 1
-        self.add_field_table(self.linear_mapping, 0)
-        self.alpha = TransferFunction(x_bounds, 2)
-        self.alpha.y *= 0.0
-        self.alpha.y += 1.0
-        self.add_field_table(self.alpha, 0)
-        self.link_channels(0, [0,1,2]) # same emission for all rgb
-        self.link_channels(2, [3,4,5]) # this will remove absorption
+        self.link_channels(0, [0,1,2]) # same emission for all rgb, default
+        for i in range(n_fields):
+            self.add_field_table(self.linear_mapping, i)
+            self.link_channels(i, i)
+        self.link_channels(n_fields, [3,4,5]) # this will remove absorption
 
 class PlanckTransferFunction(MultiVariateTransferFunction):
     def __init__(self, T_bounds, rho_bounds, nbins=256,

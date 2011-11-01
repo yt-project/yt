@@ -85,7 +85,7 @@ class ARTGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def get_global_startindex(self):
         """
@@ -324,7 +324,8 @@ class ARTHierarchy(AMRHierarchy):
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
-        self.grids = na.array(grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _get_grid_parents(self, grid, LE, RE):
         mask = na.zeros(self.num_grids, dtype='bool')

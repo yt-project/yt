@@ -164,6 +164,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         >>> hp = HP.halo_profiler("DD0242/DD0242")
         
         """
+        ParallelAnalysisInterface.__init__(self)
 
         self.dataset = dataset
         self.output_dir = output_dir
@@ -494,11 +495,13 @@ class HaloProfiler(ParallelAnalysisInterface):
             updated_halos.append(halo)
         
         # And here is where we bring it all together.
-        updated_halos = self._mpi_catlist(updated_halos)
+        updated_halos = self.comm.par_combine_object(updated_halos,
+                            datatype="list", op="cat")
         updated_halos.sort(key = lambda a:a['id'])
         self.all_halos = updated_halos
 
-        self.filtered_halos = self._mpi_catlist(self.filtered_halos)
+        self.filtered_halos = self.comm.par_combine_object(self.filtered_halos,
+                            datatype="list", op="cat")
         self.filtered_halos.sort(key = lambda a:a['id'])
 
         if filename is not None:
@@ -582,8 +585,14 @@ class HaloProfiler(ParallelAnalysisInterface):
             except EmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
+            # Figure out which fields to add simultaneously
+            field_groupings = defaultdict(lambda: defaultdict(list))
             for hp in self.profile_fields:
-                profile.add_fields(hp['field'], weight=hp['weight_field'], accumulation=hp['accumulation'])
+                field_groupings[hp['weight_field']][hp['accumulation']].append(hp['field'])
+            for weight_field in field_groupings:
+                for accum, fields in field_groupings[weight_field].items():
+                    profile.add_fields(fields, weight=weight_field,
+                                       accumulation=accum)
 
         if virial_filter:
             self._add_actual_overdensity(profile)
@@ -995,7 +1004,7 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
     for plot in projections:
         # Get name of data field.
         other_fields = {'px':True, 'py':True, 'pdx':True, 'pdy':True, 'weight_field':True}
-        for pfield in plot.data.keys():
+        for pfield in plot.field_data.keys():
             if not(other_fields.has_key(pfield)):
                 field = pfield
                 break
@@ -1050,12 +1059,12 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
         add2_y_weight_field = plot['weight_field'][plot['py'] - 0.5 * plot['pdy'] < 0]
 
         # Add the hanging cells back to the projection data.
-        plot.data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
-        plot.data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
-        plot.data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
-        plot.data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
-        plot.data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
-        plot.data['weight_field'] = na.concatenate([plot['weight_field'],
+        plot.field_data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
+        plot.field_data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
+        plot.field_data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
+        plot.field_data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
+        plot.field_data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
+        plot.field_data['weight_field'] = na.concatenate([plot['weight_field'],
                                                     add_x_weight_field, add_y_weight_field, 
                                                     add2_x_weight_field, add2_y_weight_field])
 
@@ -1072,6 +1081,7 @@ class FakeProfile(ParallelAnalysisInterface):
     This is used to mimic a profile object when reading profile data from disk.
     """
     def __init__(self, pf):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self._data = {}
 
@@ -1080,3 +1090,34 @@ class FakeProfile(ParallelAnalysisInterface):
 
     def keys(self):
         return self._data.keys()
+
+standard_fields = [
+    ("Density", "CellMassMsun", False),
+    ("Temperature", "CellMassMsun", False),
+    ("VelocityMagnitude", "CellMassMsun", False),
+    ("Ones", None, False),
+    ("Entropy", "CellMassMsun", False),
+    ("RadialVelocity", "CellMassMsun", False),
+    ("SpecificAngularMomentumX", "CellMassMsun", False),
+    ("SpecificAngularMomentumY", "CellMassMsun", False),
+    ("SpecificAngularMomentumZ", "CellMassMsun", False),
+    ("CoolingTime", "CellMassMsun", False),
+    ("DynamicalTime", "CellMassMsun", False),
+    ("CellMassMsun", None, True),
+    ("TotalMassMsun", None, True),
+    ("Dark_Matter_Density", "CellMassMsun", False),
+    #("ParticleSpecificAngularMomentumX", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumY", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumZ", "ParticleMassMsun"),
+    ("OverDensity", "CellMassMsun", False),
+    #("ParticleMassMsun", None),
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+    #("StarParticleMassMsun", None), 
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+]
+
+standard_fields += [("%s_Fraction" % (s), "CellMassMsun", False)
+    for s in ["HI","HII","HeI","HeII","HeIII","H2I","H2II",
+    "HM","Electron", "DI","DII","HDI","Metal"]
+]
+

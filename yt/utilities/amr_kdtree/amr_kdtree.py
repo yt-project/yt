@@ -28,15 +28,14 @@ License:
 import numpy as na
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
-from yt.utilities.amr_utils import PartitionedGrid
+from yt.utilities.amr_utils import PartitionedGrid, kdtree_get_choices
 from yt.utilities.performance_counters import yt_counters, time_function
-import yt.utilities.parallel_tools.parallel_analysis_interface as PT
+from yt.utilities.parallel_tools.parallel_analysis_interface \
+    import ParallelAnalysisInterface 
 from copy import deepcopy
 from yt.config import ytcfg
 from time import time
 import h5py
-my_rank = ytcfg.getint("yt", "__parallel_rank")
-nprocs = ytcfg.getint("yt", "__parallel_size")
 
 def corner_bounds(split_dim, split, current_left = None, current_right = None):
     r"""
@@ -48,11 +47,11 @@ def corner_bounds(split_dim, split, current_left = None, current_right = None):
     chosen by specifying the `current_left` or `current_right`.
     """
     if(current_left is not None):
-        new_left = na.array([current_left[0],current_left[1],current_left[2]])
+        new_left = current_left.copy()
         new_left[split_dim] = split
         return new_left
     elif(current_right is not None):
-        new_right = na.array([current_right[0],current_right[1],current_right[2]])
+        new_right = current_right.copy()
         new_right[split_dim] = split
         return new_right
 
@@ -288,12 +287,13 @@ class AMRKDTree(HomogenizedVolume):
         'split_pos': 0.5}
 
         """
+        ParallelAnalysisInterface.__init__(self)
         self.current_split_dim = 0
 
         self.pf = pf
         self.sdx = self.pf.h.get_smallest_dx()
         self._id_offset = pf.h.grids[0]._id_offset
-        if nprocs > len(pf.h.grids):
+        if self.comm.size > len(pf.h.grids):
             mylog.info('Parallel rendering requires that the number of \n \
             grids in the dataset is greater or equal to the number of \n \
             processors.  Reduce number of processors.')
@@ -379,7 +379,7 @@ class AMRKDTree(HomogenizedVolume):
 
         # If the full amr kD-tree is requested, merge the results from
         # the parallel build.
-        if merge_trees and nprocs > 1:
+        if merge_trees and self.comm.size > 1:
             self.join_parallel_trees()            
             self.my_l_corner = self.domain_left_edge
             self.my_r_corner = self.domain_right_edge
@@ -736,7 +736,8 @@ class AMRKDTree(HomogenizedVolume):
         thisnode.ri = na.rint((thisnode.r_corner-gle)/dds).astype('int32')
         thisnode.dims = (thisnode.ri - thisnode.li).astype('int32')
         # Here the cost is actually inversely proportional to 4**Level (empirical)
-        thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
+        #thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
+        thisnode.cost = 1.0
         # Here is the old way
         # thisnode.cost = na.prod(thisnode.dims).astype('int64')
 
@@ -751,11 +752,11 @@ class AMRKDTree(HomogenizedVolume):
         self.rebuild_references()
                 
     def trim_references(self):
-        par_tree_depth = long(na.log2(nprocs))
-        for i in range(2**nprocs):
+        par_tree_depth = long(na.log2(self.comm.size))
+        for i in range(2**self.comm.size):
             if ((i + 1)>>par_tree_depth) == 1:
-                # There are nprocs nodes that meet this criteria
-                if (i+1-nprocs) is not my_rank:
+                # There are self.comm.size nodes that meet this criteria
+                if (i+1-self.comm.size) != self.comm.rank:
                     self.tree_dict.pop(i)
                     continue
         for node in self.tree_dict.itervalues():
@@ -769,7 +770,8 @@ class AMRKDTree(HomogenizedVolume):
         if self.tree_dict[0].split_pos is None:
             self.tree_dict.pop(0)
     def merge_trees(self):
-        self.tree_dict = self._mpi_joindict(self.tree_dict)
+        self.tree_dict = self.comm.par_combine_object(self.tree_dict,
+                            datatype = "dict", op = "join")
 
     def rebuild_references(self):
         self.tree = self.tree_dict[0]
@@ -987,9 +989,9 @@ class AMRKDTree(HomogenizedVolume):
         current_node.grids = grids
         current_node.l_corner = l_corner
         current_node.r_corner = r_corner
-        # current_node.owner = my_rank
+        # current_node.owner = self.comm.rank
         current_node.id = 0
-        par_tree_depth = int(na.log2(nprocs))
+        par_tree_depth = int(na.log2(self.comm.size))
         anprocs = 2**par_tree_depth
         while current_node is not None:
             # If we don't have any grids, that means we are revisiting
@@ -1002,7 +1004,7 @@ class AMRKDTree(HomogenizedVolume):
             # This is where all the domain decomposition occurs.  
             if ((current_node.id + 1)>>par_tree_depth) == 1:
                 # There are anprocs nodes that meet this criteria
-                if (current_node.id+1-anprocs) is my_rank:
+                if (current_node.id+1-anprocs) == self.comm.rank:
                     # I own this shared node
                     self.my_l_corner = current_node.l_corner
                     self.my_r_corner = current_node.r_corner
@@ -1012,7 +1014,7 @@ class AMRKDTree(HomogenizedVolume):
                     continue
                 
             # If we are down to one grid, we are either in it or the parent grid
-            if len(current_node.grids) is 1:
+            if len(current_node.grids) == 1:
                 thisgrid = current_node.grids[0]
                 # If we are completely contained by that grid
                 if (thisgrid.LeftEdge[0] <= current_node.l_corner[0]) and (thisgrid.RightEdge[0] >= current_node.r_corner[0]) and \
@@ -1040,7 +1042,7 @@ class AMRKDTree(HomogenizedVolume):
                     continue
 
             # If we don't have any grids, this volume belongs to the parent        
-            if len(current_node.grids) is 0:
+            if len(current_node.grids) == 0:
                 set_leaf(current_node, current_node.parent_grid, current_node.l_corner, current_node.r_corner)
                 # print 'This volume does not have a child grid, so it belongs to my parent!'
                 current_node, previous_node = self.step_depth(current_node, previous_node)
@@ -1060,19 +1062,9 @@ class AMRKDTree(HomogenizedVolume):
         # For some reason doing dim 0 separately is slightly faster.
         # This could be rewritten to all be in the loop below.
 
-        best_dim = 0
-        best_choices = na.unique(data[:,:,0][(current_node.l_corner[0] < data[:,:,0]) &
-                                             (data[:,:,0] < current_node.r_corner[0])])
-        
-        for d in range(1,3):
-            choices = na.unique(data[:,:,d][(current_node.l_corner[d] < data[:,:,d]) &
-                                            (data[:,:,d] < current_node.r_corner[d])])
-
-            if choices.size > best_choices.size:
-                best_choices, best_dim = choices, d
-
-        split = best_choices[(len(best_choices)-1)/2]
-        return data[:,:,best_dim], best_dim, split
+        best_dim, split, less_ids, greater_ids = \
+            kdtree_get_choices(data, current_node.l_corner, current_node.r_corner)
+        return data[:,:,best_dim], best_dim, split, less_ids, greater_ids
 
     def _build_dividing_node(self, current_node):
         '''
@@ -1080,12 +1072,14 @@ class AMRKDTree(HomogenizedVolume):
         left and right children.
         '''
         
-        data,best_dim,split = self._get_choices(current_node)
+        data,best_dim,split,less_ids,greater_ids = self._get_choices(current_node)
 
         current_node.split_ax = best_dim
         current_node.split_pos = split
-        less_ids = na.nonzero(data[:,0] < split)[0]
-        greater_ids = na.nonzero(split < data[:,1])[0]
+        #less_ids0 = (data[:,0] < split)
+        #greater_ids0 = (split < data[:,1])
+        #assert(na.all(less_ids0 == less_ids))
+        #assert(na.all(greater_ids0 == greater_ids))
         
         current_node.left_child = MasterNode(my_id=_lchild_id(current_node.id),
                                              parent=current_node,
@@ -1144,17 +1138,17 @@ class AMRKDTree(HomogenizedVolume):
                     yield node.brick
          
         self.reduce_tree_images(self.tree, front_center)
-        self._barrier()
+        self.comm.barrier()
         
     def reduce_tree_images(self, tree, viewpoint, image=None):
         if image is not None:
             self.image = image
-        rounds = int(na.log2(nprocs))
+        rounds = int(na.log2(self.comm.size))
         anprocs = 2**rounds
         my_node = tree
         my_node_id = 0
         my_node.owner = 0
-        path = na.binary_repr(anprocs+my_rank)
+        path = na.binary_repr(anprocs+self.comm.rank)
         for i in range(rounds):
             try:
                 my_node.left_child.owner = my_node.owner
@@ -1168,7 +1162,7 @@ class AMRKDTree(HomogenizedVolume):
             except:
                 rounds = i-1
         for thisround in range(rounds,0,-1):
-            #print my_rank, 'my node', my_node_id
+            #print self.comm.rank, 'my node', my_node_id
             parent = my_node.parent
             #print parent['split_ax'], parent['split_pos']
             if viewpoint[parent.split_ax] <= parent.split_pos:
@@ -1181,10 +1175,10 @@ class AMRKDTree(HomogenizedVolume):
             # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
                 
             # Send the images around
-            if front.owner == my_rank:
+            if front.owner == self.comm.rank:
                 if front.owner == parent.owner:
-                    mylog.debug( '%04i receiving image from %04i'%(my_rank,back.owner))
-                    arr2 = PT._recv_array(back.owner, tag=back.owner).reshape(
+                    mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
+                    arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
@@ -1197,18 +1191,17 @@ class AMRKDTree(HomogenizedVolume):
                         self.image[:,:,i  ] = self.image[:,:,i  ] + ta * arr2[:,:,i  ]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    mylog.debug('%04i sending my image to %04i'%(my_rank,back.owner))
-                    PT._send_array(self.image.ravel(), back.owner, tag=my_rank)
-
+                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank,back.owner))
+                    self.comm.send_array(self.image.ravel(), back.owner, tag=self.comm.rank)
                 
-            if back.owner == my_rank:
+            if back.owner == self.comm.rank:
                 if front.owner == parent.owner:
-                    mylog.debug('%04i sending my image to %04i'%(my_rank, front.owner))
-                    PT._send_array(self.image.ravel(), front.owner, tag=my_rank)
+                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank, front.owner))
+                    self.comm.send_array(self.image.ravel(), front.owner, tag=self.comm.rank)
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    mylog.debug('%04i receiving image from %04i'%(my_rank,front.owner))
-                    arr2 = PT._recv_array(front.owner, tag=front.owner).reshape(
+                    mylog.debug('%04i receiving image from %04i'%(self.comm.rank,front.owner))
+                    arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
@@ -1222,7 +1215,7 @@ class AMRKDTree(HomogenizedVolume):
                         # image[:,:,i+3] = arr2[:,:,i+3] + ta * image[:,:,i+3]
             # Set parent owner to back owner
             # my_node = (my_node-1)>>1
-            if my_rank == my_node.parent.owner: 
+            if self.comm.rank == my_node.parent.owner: 
                 my_node = my_node.parent
             else:
                 break
@@ -1230,8 +1223,8 @@ class AMRKDTree(HomogenizedVolume):
     def store_kd_bricks(self, fn=None):
         if fn is None:
             fn = '%s_kd_bricks.h5'%self.pf
-        if my_rank != 0:
-            PT._recv_array(my_rank-1, tag=my_rank-1)
+        if self.comm.rank != 0:
+            self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         f = h5py.File(fn,"a")
         for node in self.depth_traverse():
             i = node.id
@@ -1243,14 +1236,14 @@ class AMRKDTree(HomogenizedVolume):
                     except:
                         pass
         f.close()
-        if my_rank != (nprocs-1):
-            PT._send_array([0],my_rank+1, tag=my_rank)
+        if self.comm.rank != (self.comm.size-1):
+            self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
         
     def load_kd_bricks(self,fn=None):
         if fn is None:
             fn = '%s_kd_bricks.h5' % self.pf
-        if my_rank != 0:
-            PT._recv_array(my_rank-1, tag=my_rank-1)
+        if self.comm.rank != 0:
+            self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         try:
             f = h5py.File(fn,"r")
             for node in self.depth_traverse():
@@ -1273,8 +1266,8 @@ class AMRKDTree(HomogenizedVolume):
             f.close()
         except:
             pass
-        if my_rank != (nprocs-1):
-            PT._send_array([0],my_rank+1, tag=my_rank)
+        if self.comm.rank != (self.comm.size-1):
+            self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
 
     def load_tree(self,fn):
         raise NotImplementedError()

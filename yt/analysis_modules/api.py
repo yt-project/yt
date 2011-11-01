@@ -106,6 +106,9 @@ from .light_cone.api import \
     find_unique_solutions, \
     project_unique_light_cones
 
+from .radial_column_density.api import \
+    RadialColumnDensity
+
 from .simulation_handler.api import \
     EnzoSimulation
 

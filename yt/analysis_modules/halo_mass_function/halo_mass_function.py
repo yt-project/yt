@@ -79,6 +79,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         :param mass_column (int): The column of halo_file that contains the
         masses of the haloes. Default=4.
         """
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self.halo_file = halo_file
         self.omega_matter0 = omega_matter0
@@ -147,7 +148,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         # First the fit file.
         if fit:
             fitname = prefix + '-fit.dat'
-            fp = self._write_on_root(fitname)
+            fp = self.comm.write_on_root(fitname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
@@ -163,7 +164,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
             fp.close()
         if self.mode == 'haloes' and haloes:
             haloname = prefix + '-haloes.dat'
-            fp = self._write_on_root(haloname)
+            fp = self.comm.write_on_root(haloname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)

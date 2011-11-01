@@ -108,7 +108,7 @@ class LightCone(EnzoSimulation):
         self.pixels = int(self.field_of_view_in_arcminutes * 60.0 / \
                           self.image_resolution_in_arcseconds)
 
-        if ytcfg.getint("yt", "__parallel_rank") == 0:
+        if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
             # Create output directory.
             if (os.path.exists(self.output_dir)):
                 if not(os.path.isdir(self.output_dir)):
@@ -243,7 +243,7 @@ class LightCone(EnzoSimulation):
         else:
             halo_mask_cube = light_cone_halo_mask(self, mask_file=mask_file, **kwargs)
             # Collapse cube into final mask.
-            if ytcfg.getint("yt", "__parallel_rank") == 0:
+            if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
                 self.halo_mask = na.ones(shape=(self.pixels, self.pixels), dtype=bool)
                 for mask in halo_mask_cube:
                     self.halo_mask *= mask
@@ -302,7 +302,7 @@ class LightCone(EnzoSimulation):
             output['object'].parameters.update(self.set_parameters)
             frb = _light_cone_projection(output, field, self.pixels, 
                                          weight_field=weight_field, node=node)
-            if ytcfg.getint("yt", "__parallel_rank") == 0:
+            if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
                 if save_slice_images:
                     write_image(na.log10(frb[field]), "%s_%s.png" % (name, field), cmap_name=cmap_name)
 
@@ -342,7 +342,7 @@ class LightCone(EnzoSimulation):
             if (q < len(self.light_cone_solution) - 1):
                 del output['object']
 
-        if ytcfg.getint("yt", "__parallel_rank") == 0:
+        if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
             # Add up slices to make light cone projection.
             if (weight_field is None):
                 lightConeProjection = sum(self.projection_stack)
@@ -356,7 +356,7 @@ class LightCone(EnzoSimulation):
 
             # Save the last fixed resolution buffer for the plot collection, 
             # but replace the data with the full light cone projection data.
-            frb.data[field] = lightConeProjection
+            frb.field_data[field] = lightConeProjection
 
             # Write image.
             if save_slice_images:
@@ -370,7 +370,7 @@ class LightCone(EnzoSimulation):
             if apply_halo_mask:
                 if len(self.halo_mask) > 0:
                     mylog.info("Applying halo mask.")
-                    frb.data[field] *= self.halo_mask
+                    frb.field_data[field] *= self.halo_mask
                 else:
                     mylog.error("No halo mask loaded, call get_halo_mask.")
 

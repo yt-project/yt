@@ -393,11 +393,14 @@ class YTCommands(cmdln.Cmdln):
             print "---"
             print
             print "This installation CAN be automatically updated."
+            _update_hg(path)
             print "Updated successfully."
         else:
             print
             print "YT site-packages not in path, so you must"
-            print "update this installation manually."
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
 
     @cmdln.option("-u", "--update-source", action="store_true",
@@ -443,7 +446,10 @@ class YTCommands(cmdln.Cmdln):
             print "Updated successfully."
         elif opts.update_source:
             print
-            print "You have to update this installation yourself."
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
@@ -567,7 +573,7 @@ class YTCommands(cmdln.Cmdln):
         else:
             p = pc.add_slice(opts.field, opts.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, opts.field)
+        mapper = PannableMapServer(p.field_data, opts.field)
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         if opts.host is not None:
@@ -637,16 +643,18 @@ class YTCommands(cmdln.Cmdln):
                            virial_quantities=['TotalMassMsun','RadiusMpc'])
 
         # Add profile fields.
-        hp.add_profile('CellVolume',weight_field=None,accumulation=True)
-        hp.add_profile('TotalMassMsun',weight_field=None,accumulation=True)
-        hp.add_profile('Density',weight_field=None,accumulation=False)
-        hp.add_profile('Temperature',weight_field='CellMassMsun',accumulation=False)
+        pf = hp.pf
+        all_fields = pf.h.field_list + pf.h.derived_field_list
+        for field, wv, acc in HP.standard_fields:
+            if field not in all_fields: continue
+            hp.add_profile(field, wv, acc)
         hp.make_profiles(filename="FilteredQuantities.out")
 
         # Add projection fields.
         hp.add_projection('Density',weight_field=None)
         hp.add_projection('Temperature',weight_field='Density')
-        hp.add_projection('Metallicity',weight_field='Density')
+        if "Metallicity" in all_fields:
+            hp.add_projection('Metallicity',weight_field='Density')
 
         # Make projections for all three axes using the filtered halo list and
         # save data to hdf5 files.
@@ -669,7 +677,7 @@ class YTCommands(cmdln.Cmdln):
         pc_dummy = PlotCollection(pf, center=c)
         pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
                             weight="CellMassMsun")
-        ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
+        ph.modify["line"](pr.field_data["Density"], pr.field_data["Temperature"])
         pc.save()
 
     @cmdln.option("-d", "--desc", action="store",
@@ -1562,7 +1570,7 @@ class YTCommands(cmdln.Cmdln):
             save_name = "%s"%pf+"_"+field+"_rendering.png"
         if not '.png' in save_name:
             save_name += '.png'
-        if cam._mpi_get_rank() != -1:
+        if cam._par_rank != -1:
             write_bitmap(image,save_name)
         
 

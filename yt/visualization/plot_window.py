@@ -355,7 +355,7 @@ class PWViewerExtJS(PWViewer):
     def get_ticks(self, mi, ma, height = 400, take_log = False):
         # This will eventually change to work with non-logged fields
         ticks = []
-        if take_log:
+        if take_log and mi > 0.0 and ma > 0.0:
             ll = LogLocator() 
             tick_locs = ll(mi, ma)
             mi = na.log10(mi)

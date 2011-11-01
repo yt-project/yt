@@ -62,8 +62,7 @@ class GDFGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        # pdb.set_trace()
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class GDFHierarchy(AMRHierarchy):
 
@@ -118,7 +117,6 @@ class GDFHierarchy(AMRHierarchy):
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = f['grid_particle_count'][:]
         self.grids = na.array(self.grids, dtype='object')
-        # pdb.set_trace()
 
     def _populate_grid_objects(self):
         for g in self.grids:
