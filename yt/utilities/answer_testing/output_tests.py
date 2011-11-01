@@ -55,8 +55,11 @@ class ValueDelta(RegressionTestException):
 
 class ArrayDelta(ValueDelta):
     def __repr__(self):
-        return "ArrayDelta: Delta %s, max of %s, acceptable of %s" % (
-            self.delta, self.delta.max(), self.acceptable)
+        nabove = len(na.where(self.delta > self.acceptable)[0])
+        return "ArrayDelta: Delta %s, max of %s, acceptable of %s.\n" \
+               "%d of %d points above the acceptable limit" % \
+               (self.delta, self.delta.max(), self.acceptable, nabove,
+                self.delta.size)
 
 class ShapeMismatch(RegressionTestException):
     def __init__(self, old_shape, current_shape):
