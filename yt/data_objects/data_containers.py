@@ -2334,7 +2334,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             if force_particle_read == False and \
                self.pf.field_info.has_key(field) and \
                self.pf.field_info[field].particle_type and \
-               self.pf.h.io._particle_reader:
+               self.pf.h.io._particle_reader and \
+               not isinstance(self, AMRBooleanRegionBase):
                 self.particles.get_data(field)
                 if field not in self.field_data:
                     if self._generate_field(field): continue
