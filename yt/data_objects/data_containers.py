@@ -2355,7 +2355,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             tr = grid[field]
             if tr.size == 1: # dx, dy, dz, cellvolume
                 tr = tr * na.ones(grid.ActiveDimensions, dtype='float64')
-            if len(grid.Children) == 0 and self._is_fully_enclosed(grid):
+            if len(grid.Children) == 0 and grid.OverlappingSiblings is None \
+                and self._is_fully_enclosed(grid):
                 return tr.ravel()
             pointI = self._get_point_indices(grid)
             return tr[pointI].ravel()
