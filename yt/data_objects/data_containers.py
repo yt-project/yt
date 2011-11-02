@@ -96,7 +96,8 @@ def cache_mask(func):
     def check_cache(self, grid):
         if isinstance(grid, FakeGridForParticles):
             return func(self, grid)
-        elif grid.id not in self._cut_masks:
+        elif grid.id not in self._cut_masks or \
+                hasattr(self, "_boolean_touched"):
             cm = func(self, grid)
             self._cut_masks[grid.id] = cm
         return self._cut_masks[grid.id]
@@ -3460,6 +3461,8 @@ class AMRBooleanRegionBase(AMR3DData):
         for item in self.regions:
             if isinstance(item, types.StringType): continue
             self._all_regions.append(item)
+            # So cut_masks don't get messed up.
+            item._boolean_touched = True
         self._all_regions = na.unique(self._all_regions)
     
     def _make_overlaps(self):
@@ -3475,8 +3478,13 @@ class AMRBooleanRegionBase(AMR3DData):
                 overall = self._get_cut_mask(grid)
                 local = force_array(region._get_cut_mask(grid),
                     grid.ActiveDimensions)
-                if (local == na.bitwise_and(overall, local)).all():
-                    # All of local is in overall
+                # Below we don't want to match empty masks.
+                if overall.sum() == 0 and local.sum() == 0: continue
+                # The whole grid is in the hybrid region if a) its cut_mask
+                # in the original region is identical to the new one and b)
+                # the original region cut_mask is all ones.
+                if (local == na.bitwise_and(overall, local)).all() and \
+                        (local == True).all():
                     self._all_overlap.append(grid)
                     continue
                 if (overall == local).any():
@@ -3499,7 +3507,7 @@ class AMRBooleanRegionBase(AMR3DData):
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.
         return self._get_level_mask(self.regions, grid)
-    
+
     def _get_level_mask(self, ops, grid):
         level_masks = []
         end = 0
@@ -3546,6 +3554,8 @@ class AMRBooleanRegionBase(AMR3DData):
                     this_cut_mask)
             if item == "OR":
                 na.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
+        if not isinstance(grid, FakeGridForParticles):
+            self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask
 
 
