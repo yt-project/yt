@@ -2352,11 +2352,13 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             f = grid[field]
             return na.array([f[i,:][pointI] for i in range(3)])
         else:
+            tr = grid[field]
+            if tr.size == 1: # dx, dy, dz, cellvolume
+                tr = tr * na.ones(grid.ActiveDimensions, dtype='float64')
+            if len(grid.Children) == 0 and self._is_fully_enclosed(grid):
+                return tr.ravel()
             pointI = self._get_point_indices(grid)
-            if grid[field].size == 1: # dx, dy, dz, cellvolume
-                t = grid[field] * na.ones(grid.ActiveDimensions, dtype='float64')
-                return t[pointI].ravel()
-            return grid[field][pointI].ravel()
+            return tr[pointI].ravel()
 
     def _flush_data_to_grids(self, field, default_val, dtype='float32'):
         """
