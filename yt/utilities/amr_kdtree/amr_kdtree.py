@@ -1236,7 +1236,7 @@ class AMRKDTree(HomogenizedVolume):
                     except:
                         pass
         f.close()
-        if self.comm.rank != (nprocs-1):
+        if self.comm.rank != (self.comm.size-1):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
         
     def load_kd_bricks(self,fn=None):
@@ -1266,7 +1266,7 @@ class AMRKDTree(HomogenizedVolume):
             f.close()
         except:
             pass
-        if self.comm.rank != (nprocs-1):
+        if self.comm.rank != (self.comm.size-1):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
 
     def load_tree(self,fn):
