@@ -7,7 +7,7 @@ import numpy as np
 
 # Tests to make sure that grid quantities are identical that should
 # be identical for the AND operator.
-class TestBooleanANDGridQuantity(YTStaticOutputTest);
+class TestBooleanANDGridQuantity(YTStaticOutputTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -30,7 +30,7 @@ class TestBooleanANDGridQuantity(YTStaticOutputTest);
         return []
 
 # OR
-class TestBooleanORGridQuantity(YTStaticOutputTest);
+class TestBooleanORGridQuantity(YTStaticOutputTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -53,7 +53,7 @@ class TestBooleanORGridQuantity(YTStaticOutputTest);
         return []
 
 # NOT
-class TestBooleanNOTGridQuantity(YTStaticOutputTest);
+class TestBooleanNOTGridQuantity(YTStaticOutputTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -86,7 +86,7 @@ class TestBooleanNOTGridQuantity(YTStaticOutputTest);
 
 # Tests to make sure that particle quantities are identical that should
 # be identical for the AND operator.
-class TestBooleanANDParticleQuantity(YTStaticOutputTest);
+class TestBooleanANDParticleQuantity(YTStaticOutputTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -109,7 +109,7 @@ class TestBooleanANDParticleQuantity(YTStaticOutputTest);
         return []
 
 # OR
-class TestBooleanORParticleQuantity(YTStaticOutputTest);
+class TestBooleanORParticleQuantity(YTStaticOutputTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -132,7 +132,7 @@ class TestBooleanORParticleQuantity(YTStaticOutputTest);
         return []
 
 # NOT
-class TestBooleanNOTParticleQuantity(YTStaticOutputTest);
+class TestBooleanNOTParticleQuantity(YTStaticOutputTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
