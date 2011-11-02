@@ -28,7 +28,7 @@ License:
 
 import os
 import numpy as na
-from yt.utilities.amr_utils import read_castro_particles
+from yt.utilities.amr_utils import read_castro_particles, read_and_seek
 from yt.utilities.io_handler import BaseIOHandler
 
 from definitions import fab_header_pattern, nyx_particle_field_names, \
@@ -57,80 +57,24 @@ class IOHandlerNative(BaseIOHandler):
         if field in nyx_particle_field_names:
             return self._read_particle_field(grid, field)
         filen = os.path.expanduser(grid.filename[field])
-        off = grid._offset[field]
-        inFile = open(filen, 'rb')
-        inFile.seek(off)
-        header = inFile.readline()
-        header.strip()
-
-        """
-        if grid._paranoid:
-            mylog.warn("Castro Native reader: Paranoid read mode.")
-            header_re = re.compile(fab_header_pattern)
-            bytesPerReal, endian, start, stop, centerType, nComponents = \
-                headerRe.search(header).groups()
-
-            # we will build up a dtype string, starting with endian.
-            # @todo: this code is ugly.
-            bytesPerReal = int(bytesPerReal)
-            if bytesPerReal == int(endian[0]):
-                dtype = '<'
-            elif bytesPerReal == int(endian[-1]):
-                dtype = '>'
-            else:
-                raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
-
-            dtype += ('f%i' % bytesPerReal)  # always a floating point
-
-            # determine size of FAB
-            start = na.array(map(int, start.split(',')))
-            stop = na.array(map(int, stop.split(',')))
-
-            gridSize = stop - start + 1
-
-            error_count = 0
-            if (start != grid.start).any():
-                print "Paranoia Error: Cell_H and %s do not agree on grid start." % grid.filename
-                error_count += 1
-            if (stop != grid.stop).any():
-                print "Paranoia Error: Cell_H and %s do not agree on grid stop." % grid.filename
-                error_count += 1
-            if (gridSize != grid.ActiveDimensions).any():
-                print "Paranoia Error: Cell_H and %s do not agree on grid dimensions." % grid.filename
-                error_count += 1
-            if bytesPerReal != grid.hierarchy._bytesPerReal:
-                print "Paranoia Error: Cell_H and %s do not agree on bytes per real number." % grid.filename
-                error_count += 1
-            if (bytesPerReal == grid.hierarchy._bytesPerReal and dtype != grid.hierarchy._dtype):
-                print "Paranoia Error: Cell_H and %s do not agree on endianness." % grid.filename
-                error_count += 1
-
-            if error_count > 0:
-                raise RunTimeError("Paranoia unveiled %i differences between Cell_H and %s." % (error_count, grid.filename))
-        else:
-        """
-        start = grid.start_index
-        stop = grid.stop_index
-        dtype = grid.hierarchy._dtype
-        bytesPerReal = grid.hierarchy._bytesPerReal
-
-        nElements = grid.ActiveDimensions.prod()
-
+        offset1 = grid._offset[field]
         # one field has nElements * bytesPerReal bytes and is located
         # nElements * bytesPerReal * field_index from the offset location
-        if yt_to_nyx_fields_dict.has_key(field):
-            fieldname = yt_to_nyx_fields_dict[field]
-        else:
-            fieldname = field
+        bytesPerReal = grid.hierarchy._bytesPerReal
+
+        fieldname = yt_to_nyx_fields_dict.get(field, field)
         field_index = grid.field_indexes[fieldname]
-        inFile.seek(int(nElements*bytesPerReal*field_index),1)
-        field = na.fromfile(inFile, count=nElements, dtype=dtype)
+        nElements = grid.ActiveDimensions.prod()
+        offset2 = int(nElements*bytesPerReal*field_index)
+
+        dtype = grid.hierarchy._dtype
+        field = na.empty(nElements, dtype=grid.hierarchy._dtype)
+        read_and_seek(filen, offset1, offset2, field, nElements * bytesPerReal)
         field = field.reshape(grid.ActiveDimensions, order='F')
 
         # @todo: we can/should also check against the max and min in the header
         # file
 
-        inFile.close()
         return field
 
     def _read_data_slice(self, grid, field, axis, coord):
