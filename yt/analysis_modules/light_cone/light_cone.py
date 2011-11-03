@@ -42,7 +42,7 @@ from .halo_mask import light_cone_halo_map, \
 from .light_cone_projection import _light_cone_projection
 
 class LightCone(EnzoSimulation):
-    def __init__(self, EnzoParameterFile, initial_redshift=1.0, 
+    def __init__(self, enzo_parameter_file, initial_redshift=1.0, 
                  final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
@@ -100,7 +100,7 @@ class LightCone(EnzoSimulation):
         self.recycleRandomSeed = 0
 
         # Initialize EnzoSimulation machinery for getting dataset list.
-        EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=self.initial_redshift,
+        EnzoSimulation.__init__(self, enzo_parameter_file, initial_redshift=self.initial_redshift,
                                 final_redshift=self.final_redshift, links=True,
                                 enzo_parameters={'CosmologyComovingBoxSize':float}, **kwargs)
 
@@ -513,7 +513,7 @@ class LightCone(EnzoSimulation):
         else:
             f.write("Original Solution\n")
             f.write("OriginalRandomSeed = %s\n" % self.originalRandomSeed)
-        f.write("EnzoParameterFile = %s\n" % self.EnzoParameterFile)
+        f.write("enzo_parameter_file = %s\n" % self.enzo_parameter_file)
         f.write("\n")
         for q, output in enumerate(self.light_cone_solution):
             f.write("Proj %04d, %s, z = %f, depth/box = %f, width/box = %f, axis = %d, center = %f, %f, %f\n" %
