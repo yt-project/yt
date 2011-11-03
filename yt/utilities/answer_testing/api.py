@@ -51,7 +51,7 @@ from .halo_tests import \
     TestHaloCompositionHashFOF, \
     TestHaloCompositionHashPHOP
 
-from .boolean_region_test import \
+from .boolean_region_tests import \
     TestBooleanANDGridQuantity, \
     TestBooleanORGridQuantity, \
     TestBooleanNOTGridQuantity, \
