@@ -24,7 +24,7 @@ class TestBooleanANDGridQuantity(YTStaticOutputTest):
         self.result = (x2, x)
     
     def compare(self, old_result):
-        self.compare_array_delta(self.result[0], self.result[1])
+        self.compare_array_delta(self.result[0], self.result[1], 1e-10)
     
     def plot(self):
         return []
@@ -47,7 +47,7 @@ class TestBooleanORGridQuantity(YTStaticOutputTest):
         self.result = (x1, x)
     
     def compare(self, old_result):
-        self.compare_array_delta(self.result[0], self.result[1])
+        self.compare_array_delta(self.result[0], self.result[1], 1e-10)
     
     def plot(self):
         return []
@@ -79,7 +79,7 @@ class TestBooleanNOTGridQuantity(YTStaticOutputTest):
         self.result = (x, xo)
     
     def compare(self, old_result):
-        self.compare_array_delta(self.result[0], self.result[1])
+        self.compare_array_delta(self.result[0], self.result[1], 1e-10)
     
     def plot(self):
         return []
@@ -103,7 +103,7 @@ class TestBooleanANDParticleQuantity(YTStaticOutputTest):
         self.result = (x2, x)
     
     def compare(self, old_result):
-        self.compare_array_delta(self.result[0], self.result[1])
+        self.compare_array_delta(self.result[0], self.result[1], 1e-10)
     
     def plot(self):
         return []
@@ -126,7 +126,7 @@ class TestBooleanORParticleQuantity(YTStaticOutputTest):
         self.result = (x1, x)
     
     def compare(self, old_result):
-        self.compare_array_delta(self.result[0], self.result[1])
+        self.compare_array_delta(self.result[0], self.result[1], 1e-10)
     
     def plot(self):
         return []
@@ -158,7 +158,7 @@ class TestBooleanNOTParticleQuantity(YTStaticOutputTest):
         self.result = (x, xo)
     
     def compare(self, old_result):
-        self.compare_array_delta(self.result[0], self.result[1])
+        self.compare_array_delta(self.result[0], self.result[1], 1e-10)
     
     def plot(self):
         return []
