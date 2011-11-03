@@ -131,6 +131,7 @@ def projload(pf, axis, weight_field = None):
         proj[new_name] = b[f][:]
     proj.axis = axis
     proj.pf = pf
+    f.close()
     return proj
 
 def _chunk(arrlike, chunksize = 800000):

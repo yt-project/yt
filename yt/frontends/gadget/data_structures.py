@@ -194,7 +194,9 @@ class GadgetStaticOutput(StaticOutput):
             if add1 in fileh['/'].items():
                 if add2 in fileh['/'+add1].attrs.keys():
                     if fileh['/'+add1].attrs[add2] == format:
+                        fileh.close()
                         return True
-        except h5py.h5e.LowLevelIOError:
+            fileh.close()
+        except:
             pass
         return False

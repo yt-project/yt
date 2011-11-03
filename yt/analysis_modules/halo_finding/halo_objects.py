@@ -1752,6 +1752,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         for halo in self._groups:
             if not self.comm.is_mine(halo): continue
             halo.write_particle_list(f)
+        f.close()
 
     def dump(self, basename="HopAnalysis"):
         r"""Save the full halo data to disk.

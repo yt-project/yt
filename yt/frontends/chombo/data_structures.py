@@ -302,7 +302,9 @@ class ChomboStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            return "Chombo_global" in fileh["/"]
+            valid = "Chombo_global" in fileh["/"]
+            fileh.close()
+            return valid
         except:
             pass
         return False
