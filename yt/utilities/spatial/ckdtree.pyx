@@ -2,7 +2,7 @@
 # Released under the scipy license
 import numpy as np
 cimport numpy as np
-cimport stdlib
+cimport libc.stdlib as stdlib
 cimport cython
 
 import kdtree
@@ -138,6 +138,12 @@ cdef inline np.float64_t _distance_p(np.float64_t*x,np.float64_t*y,np.float64_t 
         for i in range(k):
             m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
             r += m
+            if r>upperbound:
+                return r
+    elif p==2:
+        for i in range(k):
+            m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
+            r += m*m
             if r>upperbound:
                 return r
     else:
@@ -377,14 +383,17 @@ cdef class cKDTree:
             np.float64_t p, 
             np.float64_t distance_upper_bound,
             np.float64_t*period):
+        assert(p == 2)
+        assert(eps == 0.0)
+        assert(distance_upper_bound == infinity)
         cdef heap q
         cdef heap neighbors
 
-        cdef int i, j
-        cdef np.float64_t t
+        cdef int i, j, i2, j2
+        cdef np.float64_t t, y
         cdef nodeinfo* inf
         cdef nodeinfo* inf2
-        cdef np.float64_t d
+        cdef np.float64_t d, di
         cdef np.float64_t m_left, m_right, m
         cdef np.float64_t epsfac
         cdef np.float64_t min_distance
@@ -420,28 +429,15 @@ cdef class cKDTree:
                 t = self.raw_mins[i]-x[i]
                 if t>inf.side_distances[i]:
                     inf.side_distances[i] = t
-            if p!=1 and p!=infinity:
-                inf.side_distances[i]=inf.side_distances[i]**p
+            inf.side_distances[i]=inf.side_distances[i]*inf.side_distances[i]
 
         # compute first distance
         min_distance = 0.
         for i in range(self.m):
-            if p==infinity:
-                min_distance = dmax(min_distance,inf.side_distances[i])
-            else:
-                min_distance += inf.side_distances[i]
+            min_distance += inf.side_distances[i]
 
         # fiddle approximation factor
-        if eps==0:
-            epsfac=1
-        elif p==infinity:
-            epsfac = 1/(1+eps)
-        else:
-            epsfac = 1/(1+eps)**p
-
-        # internally we represent all distances as distance**p
-        if p!=infinity and distance_upper_bound!=infinity:
-            distance_upper_bound = distance_upper_bound**p
+        epsfac=1
 
         while True:
             if inf.node.split_dim==-1:
@@ -449,10 +445,11 @@ cdef class cKDTree:
 
                 # brute-force
                 for i in range(node.start_idx,node.end_idx):
-                    d = _distance_p(
-                            self.raw_data+self.raw_indices[i]*self.m,
-                            x,p,self.m,distance_upper_bound,period)
-                        
+                    d = 0.0
+                    for i2 in range(self.m):
+                        y = self.raw_data[self.raw_indices[i]*self.m + i2]
+                        di = dmin(dabs(x[i2] - y), period[i2] - dabs(x[i2] - y))
+                        d += di*di
                     if d<distance_upper_bound:
                         # replace furthest neighbor
                         if neighbors.n==k:
@@ -520,17 +517,9 @@ cdef class cKDTree:
 
                 # one side distance changes
                 # we can adjust the minimum distance without recomputing
-                if p == infinity:
-                    # we never use side_distances in the l_infinity case
-                    # inf2.side_distances[inode.split_dim] = dabs(inode.split-x[inode.split_dim])
-                    far_min_distance = dmax(min_distance, m)
-                elif p == 1:
-                    inf2.side_distances[inode.split_dim] = m
-                    far_min_distance = dmax(min_distance, m)
-                else:
-                    inf2.side_distances[inode.split_dim] = m**p
-                    #far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
-                    far_min_distance = m**p
+                inf2.side_distances[inode.split_dim] = m*m
+                #far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
+                far_min_distance = m*m
 
                 it2.priority = far_min_distance
 
@@ -547,10 +536,7 @@ cdef class cKDTree:
         for i in range(neighbors.n-1,-1,-1):
             neighbor = heappop(&neighbors) # FIXME: neighbors may be realloced
             result_indices[i] = neighbor.contents.intdata
-            if p==1 or p==infinity:
-                result_distances[i] = -neighbor.priority
-            else:
-                result_distances[i] = (-neighbor.priority) #**(1./p) S. Skory
+            result_distances[i] = (-neighbor.priority) #**(1./p) S. Skory
 
         heapdestroy(&q)
         heapdestroy(&neighbors)
@@ -687,7 +673,7 @@ cdef class cKDTree:
         cdef np.ndarray[np.float64_t, ndim=2] local_data = self.data
 
         cdef np.ndarray[np.float64_t, ndim=1] mass = np.array(omass).astype("float64")
-        cdef np.float64_t lpi = np.pi
+        cdef np.float64_t ipi = 1.0/np.pi
         
         cdef np.float64_t *query = <np.float64_t *> alloca(
                     sizeof(np.float64_t) * self.m)
@@ -710,7 +696,7 @@ cdef class cKDTree:
             for j in range(num_neighbors):
                 ih2 = dmax(ih2, dist_temp[j])
             ih2 = 4.0/ih2
-            fNorm = 0.5*(ih2**1.5)/lpi
+            fNorm = 0.5*(ih2**1.5)*ipi
             for j in range(num_neighbors):
                 pj = tags_temp[j]
                 r2 = dist_temp[j] * ih2

@@ -388,7 +388,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             self.pos[self.psize:, 2] = self.zpos_pad
             del self.xpos_pad, self.ypos_pad, self.zpos_pad
             gc.collect()
-            self.kdtree = cKDTree(self.pos, leafsize = 32)
+            self.kdtree = cKDTree(self.pos, leafsize = 64)
         self.__max_memory()
         yt_counters("init kd tree")
 
@@ -620,7 +620,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 self.chainID, self.density, self.densest_in_chain,
                 self.is_inside, self.search_again,
                 self.peakthresh, self.saddlethresh, nn, self.nMerge,
-                self.chain_map)
+                chain_map)
             self.search_again = rv.astype("bool")
             yt_counters("preconnect kd tree search.")
         elif self.tree == 'F':
