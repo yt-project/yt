@@ -491,8 +491,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
         self.add_gaussian(v, w, [r,g,b,alpha])
-        print "Adding gaussian at %s with width %s and colors %s" % (
-                v, w, (r,g,b,alpha))
+        mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
+                v, w, (r,g,b,alpha)))
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
@@ -628,7 +628,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*anorm
             tf = TransferFunction(rho_bounds)
-            print "Adding: %s with relative scattering %s" % (f, scat)
+            mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
             tf.y *= 0.0; tf.y += scat
             self.add_field_table(tf, 1, weight_field_id = 1)
             self.link_channels(i+3, i+3)
