@@ -28,6 +28,7 @@ cimport numpy as np
 cimport cython
 
 from stdio cimport fopen, fclose, FILE
+cimport libc.stdlib as stdlib
 
 #cdef inline int imax(int i0, int i1):
     #if i0 > i1: return i0
@@ -56,10 +57,11 @@ def read_and_seek(char *filename, int offset1, int offset2,
                   np.ndarray buffer, int bytes):
     cdef FILE *f = fopen(filename, "rb")
     cdef void *buf = <void *> buffer.data
-    cdef char *line[1024] # long enough, I suppose
+    cdef char *line = <char *> stdlib.malloc(sizeof(char)*1024)
     cdef size_t n = 1024
     fseek(f, offset1, SEEK_SET)
-    getline(line, &n, f)
+    getline(&line, &n, f)
+    stdlib.free(line)
     fseek(f, offset2, SEEK_CUR)
     fread(buf, 1, bytes, f)
     fclose(f)
