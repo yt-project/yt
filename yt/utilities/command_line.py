@@ -1570,7 +1570,7 @@ class YTCommands(cmdln.Cmdln):
             save_name = "%s"%pf+"_"+field+"_rendering.png"
         if not '.png' in save_name:
             save_name += '.png'
-        if cam._par_rank != -1:
+        if cam.comm.rank != -1:
             write_bitmap(image,save_name)
         
 
