@@ -3455,6 +3455,7 @@ class AMRBooleanRegionBase(AMR3DData):
         self._cut_masks = {}
         self._get_all_regions()
         self._make_overlaps()
+        self._get_list_of_grids()
     
     def _get_all_regions(self):
         # Before anything, we simply find out which regions are involved in all

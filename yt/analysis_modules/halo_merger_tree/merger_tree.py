@@ -31,7 +31,7 @@ import types
 from yt.funcs import *
 
 from yt.analysis_modules.halo_finding.halo_objects import \
-    FOFHaloFinder, HaloFinder
+    FOFHaloFinder, HaloFinder, parallelHF
 from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
