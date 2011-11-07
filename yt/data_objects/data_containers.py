@@ -3560,6 +3560,15 @@ class AMRBooleanRegionBase(AMR3DData):
             self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask
 
+    def volume(self, unit = "unitary"):
+        """
+        Return the volume of the boolean container in units *unit*.
+        This is found by adding up the volume of the cells with centers
+        in the container, rather than using the geometric shape of
+        the container, so this may vary very slightly
+        from what might be expected.
+        """
+        return self['CellVolume'].sum() * (self.pf[unit] / self.pf['cm']) ** 3.0
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
