@@ -2668,6 +2668,18 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 particle_handler_registry[self._type_name](self.pf, self)
         return self._particle_handler
 
+
+    def volume(self, unit = "unitary"):
+        """
+        Return the volume of the boolean container in units *unit*.
+        This is found by adding up the volume of the cells with centers
+        in the container, rather than using the geometric shape of
+        the container, so this may vary very slightly
+        from what might be expected from the geometric volume.
+        """
+        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
+            (self.pf[unit] / self.pf['cm']) ** 3.0
+
 class ExtractedRegionBase(AMR3DData):
     """
     ExtractedRegions are arbitrarily defined containers of data, useful
@@ -2991,15 +3003,6 @@ class AMRRegionBase(AMR3DData):
                  & (grid['z'] + dzp > self.left_edge[2]) )
         return cm
 
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the region in units *unit*.
-        """
-        diff = na.array(self.right_edge) - na.array(self.left_edge)
-        # Find the full volume
-        vol = na.prod(diff * self.pf[unit])
-        return vol
-
 class AMRRegionStrictBase(AMRRegionBase):
     """
     AMRRegion without any dx padding for cell selection
@@ -3060,21 +3063,6 @@ class AMRPeriodicRegionBase(AMR3DData):
                           & (grid['z'] - dzp + off_z < self.right_edge[2])
                           & (grid['z'] + dzp + off_z > self.left_edge[2]) )
             return cm
-
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the region in units *unit*.
-        """
-        period = self.pf.domain_right_edge - self.pf.domain_left_edge
-        diff = na.array(self.right_edge) - na.array(self.left_edge)
-        # Correct for wrap-arounds.
-        tofix = (diff < 0)
-        toadd = period[tofix]
-        diff += toadd
-        # Find the full volume
-        vol = na.prod(diff * self.pf[unit])
-        return vol
-        
 
 class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
     """
@@ -3166,12 +3154,6 @@ class AMRSphereBase(AMR3DData):
         if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
             self._cut_masks[grid.id] = cm
         return cm
-
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the sphere in units *unit*.
-        """
-        return 4./3. * math.pi * (self.radius * self.pf[unit])**3.0
 
 class AMRCoveringGridBase(AMR3DData):
     _spatial = True
@@ -3559,16 +3541,6 @@ class AMRBooleanRegionBase(AMR3DData):
         if not isinstance(grid, FakeGridForParticles):
             self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask
-
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the boolean container in units *unit*.
-        This is found by adding up the volume of the cells with centers
-        in the container, rather than using the geometric shape of
-        the container, so this may vary very slightly
-        from what might be expected.
-        """
-        return self['CellVolume'].sum() * (self.pf[unit] / self.pf['cm']) ** 3.0
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
