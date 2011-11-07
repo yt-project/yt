@@ -2671,7 +2671,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
 
     def volume(self, unit = "unitary"):
         """
-        Return the volume of the boolean container in units *unit*.
+        Return the volume of the data container in units *unit*.
         This is found by adding up the volume of the cells with centers
         in the container, rather than using the geometric shape of
         the container, so this may vary very slightly
