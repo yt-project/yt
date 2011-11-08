@@ -49,7 +49,7 @@ if exe_name in \
     from mpi4py import MPI
     parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
-        mylog.info("Parallel computation enabled: %s / %s",
+        mylog.info("Global parallel computation enabled: %s / %s",
                    MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
         ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
         ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
@@ -61,8 +61,6 @@ if exe_name in \
         #ytcfg["yt","StoreParameterFiles"] = "False"
         # Now let's make sure we have the right options set.
         if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("yt","serialize"):
-                ytcfg["yt","onlydeserialize"] = "True"
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
@@ -150,8 +148,10 @@ class ParallelObjectIterator(ObjectIterator):
     def __init__(self, pobj, just_list = False, attr='_grids',
                  round_robin=False):
         ObjectIterator.__init__(self, pobj, just_list, attr=attr)
-        self._offset = MPI.COMM_WORLD.rank
-        self._skip = MPI.COMM_WORLD.size
+        # pobj has to be a ParallelAnalysisInterface, so it must have a .comm
+        # object.
+        self._offset = pobj.comm.rank
+        self._skip = pobj.comm.size
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
         if self._use_all:
@@ -182,11 +182,14 @@ def parallel_simple_proxy(func):
         retval = None
         if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
-        if self._owner == MPI.COMM_WORLD.rank:
+        if self._owner == self.comm.rank:
             self._processing = True
             retval = func(self, *args, **kwargs)
             self._processing = False
-        retval = MPI.COMM_WORLD.bcast(retval, root=self._owner)
+        # To be sure we utilize the root= kwarg, we manually access the .comm
+        # attribute, which must be an instance of MPI.Intracomm, and call bcast
+        # on that.
+        retval = self.comm.comm.bcast(retval, root=self._owner)
         #MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
@@ -220,6 +223,12 @@ def parallel_passthrough(func):
         return func(self, data, **kwargs)
     return passage
 
+def _get_comm(args):
+    if len(args) > 0 and hasattr(args[0], "comm"):
+        comm = args[0].comm
+    else:
+        comm = communication_system.communicators[-1]
+
 def parallel_blocking_call(func):
     """
     This decorator blocks on entry and exit of a function.
@@ -227,10 +236,11 @@ def parallel_blocking_call(func):
     @wraps(func)
     def barrierize(*args, **kwargs):
         mylog.debug("Entering barrier before %s", func.func_name)
-        MPI.COMM_WORLD.Barrier()
+        comm = _get_comm(args)
+        comm.barrier()
         retval = func(*args, **kwargs)
         mylog.debug("Entering barrier after %s", func.func_name)
-        MPI.COMM_WORLD.Barrier()
+        comm.barrier()
         return retval
     if parallel_capable:
         return barrierize
@@ -244,10 +254,11 @@ def parallel_splitter(f1, f2):
     """
     @wraps(f1)
     def in_order(*args, **kwargs):
-        if MPI.COMM_WORLD.rank == 0:
+        comm = _get_comm(args)
+        if comm.rank == 0:
             f1(*args, **kwargs)
-        MPI.COMM_WORLD.Barrier()
-        if MPI.COMM_WORLD.rank != 0:
+        comm.barrier()
+        if comm.rank != 0:
             f2(*args, **kwargs)
     if not parallel_capable: return f1
     return in_order
@@ -259,7 +270,8 @@ def parallel_root_only(func):
     """
     @wraps(func)
     def root_only(*args, **kwargs):
-        if MPI.COMM_WORLD.rank == 0:
+        comm = _get_comm(args)
+        if comm.rank == 0:
             try:
                 func(*args, **kwargs)
                 all_clear = 1
@@ -268,8 +280,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        #MPI.COMM_WORLD.Barrier()
-        all_clear = MPI.COMM_WORLD.bcast(all_clear, root=0)
+        all_clear = comm.mpi_bcast_pickled(all_clear, root=0)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
     return func
@@ -367,31 +378,29 @@ class CommunicationSystem(object):
             self.communicators.append(Communicator(MPI.COMM_WORLD))
         else:
             self.communicators.append(Communicator(None))
-    def push(self, size=None, ranks=None):
-        raise NotImplementedError
-        if size is None:
-            size = len(available_ranks)
-        if len(available_ranks) < size:
-            raise RuntimeError
-        if ranks is None:
-            ranks = [available_ranks.pop() for i in range(size)]
-        
-        group = MPI.COMM_WORLD.Group.Incl(ranks)
-        new_comm = MPI.COMM_WORLD.Create(group)
-        self.communicators.append(Communicator(new_comm))
-        return new_comm
+
+    def push(self, new_comm):
+        if not isinstance(new_comm, Communicator):
+            new_comm = Communicator(new_comm)
+        self.communicators.append(new_comm)
+        self._update_parallel_state(new_comm)
 
     def push_with_ids(self, ids):
         group = self.communicators[-1].comm.Get_group().Incl(ids)
         new_comm = self.communicators[-1].comm.Create(group)
+        self.push(new_comm)
+        return new_comm
+
+    def _update_parallel_state(self, new_comm):
         from yt.config import ytcfg
         ytcfg["yt","__topcomm_parallel_size"] = str(new_comm.size)
         ytcfg["yt","__topcomm_parallel_rank"] = str(new_comm.rank)
-        self.communicators.append(Communicator(new_comm))
-        return new_comm
+        if MPI.COMM_WORLD.rank > 0 and ytcfg.getboolean("yt","serialize"):
+            ytcfg["yt","onlydeserialize"] = "True"
 
     def pop(self):
         self.communicators.pop()
+        self._update_parallel_state(self.communicators[-1])
 
 class Communicator(object):
     comm = None
