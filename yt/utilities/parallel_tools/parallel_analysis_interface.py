@@ -182,14 +182,15 @@ def parallel_simple_proxy(func):
         retval = None
         if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
-        if self._owner == self.comm.rank:
+        comm = _get_comm((self,))
+        if self._owner == comm.rank:
             self._processing = True
             retval = func(self, *args, **kwargs)
             self._processing = False
         # To be sure we utilize the root= kwarg, we manually access the .comm
         # attribute, which must be an instance of MPI.Intracomm, and call bcast
         # on that.
-        retval = self.comm.comm.bcast(retval, root=self._owner)
+        retval = comm.comm.bcast(retval, root=self._owner)
         #MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
@@ -228,6 +229,7 @@ def _get_comm(args):
         comm = args[0].comm
     else:
         comm = communication_system.communicators[-1]
+    return comm
 
 def parallel_blocking_call(func):
     """
@@ -280,7 +282,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        all_clear = comm.mpi_bcast_pickled(all_clear, root=0)
+        all_clear = comm.mpi_bcast_pickled(all_clear)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
     return func
