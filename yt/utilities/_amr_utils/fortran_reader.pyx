@@ -49,7 +49,7 @@ cdef extern from "stdio.h":
     int fseek(FILE *stream, long offset, int whence)
     size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
     long ftell(FILE *stream)
-    size_t getline(char **lineptr, size_t *n, FILE *stream)
+    char *fgets(char *s, int size, FILE *stream)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -57,11 +57,10 @@ def read_and_seek(char *filename, int offset1, int offset2,
                   np.ndarray buffer, int bytes):
     cdef FILE *f = fopen(filename, "rb")
     cdef void *buf = <void *> buffer.data
-    cdef char *line = <char *> stdlib.malloc(sizeof(char)*1024)
-    cdef size_t n = 1024
+    cdef char line[1024]
+    cdef size_t n = 1023
     fseek(f, offset1, SEEK_SET)
-    getline(&line, &n, f)
-    stdlib.free(line)
+    fgets(line, n, f)
     fseek(f, offset2, SEEK_CUR)
     fread(buf, 1, bytes, f)
     fclose(f)
