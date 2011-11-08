@@ -105,10 +105,14 @@ from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
     HomogenizedVolume, Camera, off_axis_projection
 
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
+
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
