@@ -496,9 +496,16 @@ class Communicator(object):
             return data
         elif datatype == "list" and op == "cat":
             if self.comm.rank == 0:
-                data = self.__mpi_recvlist(data)
+                storage = {0:ensure_list(data)}
+                for i in xrange(self.comm.size - 1):
+                    st = MPI.Status()
+                    d = self.comm.recv(source = MPI.ANY_SOURCE, status = st)
+                    storage[st.source] = d
+                data = []
+                for i in xrange(self.comm.size):
+                    data.extend(storage.pop(i))
             else:
-                self.comm.send(data, dest=0, tag=0)
+                self.comm.send(data, dest=0)
             mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
             data = self.comm.bcast(data, root=0)
             return data
