@@ -510,12 +510,12 @@ class Communicator(object):
             data = self.alltoallv_array(data, arr_size, offsets, sizes)
             return data
         elif datatype == "list" and op == "cat":
-            if self.comm.rank == 0:
-                data = self.__mpi_recvlist(data)
-            else:
-                self.comm.send(data, dest=0, tag=0)
-            mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
-            data = self.comm.bcast(data, root=0)
+            recv_data = self.comm.allgather(data)
+            # Now flatten into a single list, since this 
+            # returns us a list of lists.
+            data = []
+            while recv_data:
+                data.extend(recv_data.pop(0))
             return data
         raise NotImplementedError
 
