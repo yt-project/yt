@@ -347,6 +347,10 @@ def parallel_objects(objects, njobs, storage = None):
     if not parallel_capable: raise RuntimeError
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
+    if njobs > my_size:
+        mylog.error("You have asked for %s jobs, but you only have %s processors.",
+            njobs, my_size)
+        raise RuntimeError
     my_rank = my_communicator.rank
     all_new_comms = na.array_split(na.arange(my_size), njobs)
     for i,comm_set in enumerate(all_new_comms):
