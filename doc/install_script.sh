@@ -272,8 +272,8 @@ function get_enzotools
 {
     echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
-    wget -nv "http://yt-project.org/dependencies/$1" || do_exit
-    wget -nv "http://yt-project.org/dependencies/$1.md5" || do_exit
+    curl -sSO "http://yt-project.org/dependencies/$1" || do_exit
+    curl -sSO "http://yt-project.org/dependencies/$1.md5" || do_exit
     ( which md5sum &> /dev/null ) || return # return if we don't have md5sum
     ( md5sum -c $1.md5 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
