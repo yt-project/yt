@@ -38,8 +38,14 @@ import numpy # In case anyone wishes to use it by name
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
-from yt.config import ytcfg
+from yt.config import ytcfg, ytcfgDefaults
 import yt.utilities.physical_constants as physical_constants
+
+from yt.utilities.logger import level as __level
+if __level >= int(ytcfgDefaults["loglevel"]):
+    # This won't get displayed.
+    mylog.debug("Turning off NumPy error reporting")
+    na.seterr(all = 'ignore')
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
