@@ -41,13 +41,15 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 from yt.utilities.amr_utils import get_box_grids_level
 from yt.utilities.definitions import mpc_conversion
 
 from .definitions import parameter_type_dict, nyx_to_enzo_dict, \
                          fab_header_pattern, nyx_particle_field_names
 from .utils import boxlib_bool_to_int
-from .fields import NyxFieldContainer, add_field
+from .fields import NyxFieldInfo, add_nyx_field, KnownNyxFields
 
 
 class NyxGrid(AMRGridPatch):
@@ -419,20 +421,6 @@ class NyxHierarchy(AMRHierarchy):
         return self.grids[mask]
 
     def _setup_field_list(self):
-        self.derived_field_list = []
-
-        for field in self.field_info:
-            try:
-                fd = self.field_info[field].get_dependencies(pf=self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-
         if self.parameter_file.use_particles:
             # We know which particle fields will exist -- pending further
             # changes in the future.
@@ -445,7 +433,7 @@ class NyxHierarchy(AMRHierarchy):
                 # Note that we call add_field on the field_info directly.  This
                 # will allow the same field detection mechanism to work for 1D,
                 # 2D and 3D fields.
-                self.pf.field_info.add_field(field, lambda a, b: None,
+                self.pf.field_info.add_field(field, NullFunc,
                                              convert_function=cf,
                                              take_log=False, particle_type=True)
 
@@ -467,23 +455,19 @@ class NyxHierarchy(AMRHierarchy):
     def _detect_fields(self):
         pass
 
-    def _setup_unknown_fields(self):
-        # not sure what the case for this is.
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None, convert_function=cf,
-                      take_log=False)
-
     def _setup_derived_fields(self):
-        pass
+        self.derived_field_list = []
+        for field in self.parameter_file.field_info:
+            try:
+                fd = self.parameter_file.field_info[field].get_dependencies(
+                            pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
 
     def _initialize_state_variables(self):
         """
@@ -508,7 +492,8 @@ class NyxStaticOutput(StaticOutput):
 
     """
     _hierarchy_class = NyxHierarchy
-    _fieldinfo_class = NyxFieldContainer
+    _fieldinfo_fallback = NyxFieldInfo
+    _fieldinfo_known = KnownNyxFields
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
