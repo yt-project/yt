@@ -357,14 +357,14 @@ cdef class TransferFunctionProxy:
                                          tf_obj.tables[i].y))
             self.field_tables[i].field_id = tf_obj.field_ids[i]
             self.field_tables[i].weight_field_id = tf_obj.weight_field_ids[i]
-            print "Field table", i, "corresponds to",
-            print self.field_tables[i].field_id,
-            print "(Weighted with ", self.field_tables[i].weight_field_id,
-            print ")"
+            #print "Field table", i, "corresponds to",
+            #print self.field_tables[i].field_id,
+            #print "(Weighted with ", self.field_tables[i].weight_field_id,
+            #print ")"
 
         for i in range(6):
             self.field_table_ids[i] = tf_obj.field_table_ids[i]
-            print "Channel", i, "corresponds to", self.field_table_ids[i]
+            #print "Channel", i, "corresponds to", self.field_table_ids[i]
             
     @cython.boundscheck(False)
     @cython.wraparound(False)

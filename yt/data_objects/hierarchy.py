@@ -88,6 +88,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         mylog.debug("Re-examining hierarchy")
         self._initialize_level_stats()
 
+    def __del__(self):
+        if self._data_file is not None:
+            self._data_file.close()
+
     def _get_parameters(self):
         return self.parameter_file.parameters
     parameters=property(_get_parameters)

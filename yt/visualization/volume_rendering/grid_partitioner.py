@@ -177,6 +177,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                                 self.brick_dimensions[i,:],
                                 ))
         self.bricks = na.array(bricks, dtype='object')
+        f.close()
 
     def reset_cast(self):
         pass

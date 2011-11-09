@@ -126,7 +126,8 @@ class FLASHHierarchy(AMRHierarchy):
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = na.zeros(self.num_grids + 1, dtype='int64')
-        na.add.accumulate(self.grid_particle_count, out=self._particle_indices[1:])
+        na.add.accumulate(self.grid_particle_count.squeeze(),
+                          out=self._particle_indices[1:])
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
@@ -274,14 +275,18 @@ class FLASHStaticOutput(StaticOutput):
 
     def _find_parameter(self, ptype, pname, scalar = False, handle = None):
         # We're going to implement handle caching eventually
-        if handle is None: handle = self._handle
         if handle is None:
+            close = False
+            handle = self._handle
+        if handle is None:
+            close = True
             handle = h5py.File(self.parameter_filename, "r")
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
         for tpname, pval in handle[nn][:]:
             if tpname.strip() == pname:
                 return pval
+        if close: handle.close()
         raise KeyError(pname)
 
     def _parse_parameter_file(self):

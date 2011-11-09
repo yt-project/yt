@@ -268,12 +268,21 @@ function do_setup_py
     cd ..
 }
 
+if type -P wget &>/dev/null 
+then
+    echo "Using wget"
+    export GETFILE="wget -nv"
+else
+    echo "Using curl"
+    export GETFILE="curl -sSO"
+fi
+
 function get_enzotools
 {
     echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
-    wget -nv "http://yt-project.org/dependencies/$1" || do_exit
-    wget -nv "http://yt-project.org/dependencies/$1.md5" || do_exit
+    ${GETFILE} "http://yt-project.org/dependencies/$1" || do_exit
+    ${GETFILE} "http://yt-project.org/dependencies/$1.md5" || do_exit
     ( which md5sum &> /dev/null ) || return # return if we don't have md5sum
     ( md5sum -c $1.md5 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
@@ -304,7 +313,7 @@ fi
 get_enzotools Python-2.7.2.tgz
 get_enzotools numpy-1.6.1.tar.gz
 get_enzotools matplotlib-1.1.0.tar.gz
-get_enzotools mercurial-1.8.1.tar.gz
+get_enzotools mercurial-2.0.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.1.tar.gz
@@ -442,7 +451,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-1.8.1
+    do_setup_py mercurial-2.0
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -553,6 +562,7 @@ if [ ! -e ext-3.3.2/done ]
 then
     ( unzip -o ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
+    rm -rf ext-resources
     ln -sf ext-3.3.2 ext-resources
     touch ext-3.3.2/done
 fi
@@ -562,6 +572,7 @@ if [ ! -e ext-slate-110328/done ]
 then
     ( unzip -o ext-slate-110328.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
+    rm -rf ext-theme
     ln -sf ext-slate-110328 ext-theme
     touch ext-slate-110328/done
 fi
@@ -571,6 +582,7 @@ if [ ! -e PhiloGL-1.4.2/done ]
 then
     ( unzip -o PhiloGL-1.4.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( echo "Symlinking PhiloGL-1.4.2 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
+    rm -rf PhiloGL
     ln -sf PhiloGL-1.4.2 PhiloGL
     touch PhiloGL-1.4.2/done
 fi

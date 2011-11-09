@@ -146,6 +146,7 @@ class EnzoHierarchy(AMRHierarchy):
             try:
                 harray_fp = h5py.File(harray_fn)
                 self.num_grids = harray_fp["/Level"].len()
+                harray_fp.close()
             except IOError:
                 pass
         elif os.path.getsize(self.hierarchy_filename) == 0:

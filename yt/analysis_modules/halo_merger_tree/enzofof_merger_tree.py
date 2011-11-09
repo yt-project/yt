@@ -105,6 +105,9 @@ class HaloCatalog(object):
         self.parse_halo_catalog()
         if cache: self.cache = dict()#MaxLengthDict()
 
+    def __del__(self):
+        self.particle_file.close()
+
     def parse_halo_catalog(self):
         hp = []
         for line in open("FOF/groups_%05i.dat" % self.output_id):
