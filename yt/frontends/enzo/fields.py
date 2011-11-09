@@ -394,12 +394,20 @@ def _IsStarParticle(field, data):
 add_field('IsStarParticle', function=_IsStarParticle,
           particle_type = True)
 
+def _convertBfield(data): 
+    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
+for field in ['Bx','By','Bz']:
+    f = KnownEnzoFields[field]
+    f._convert_function=_convertBfield
+    f._units=r"\mathrm{Gauss}"
+    f.take_log=False
+
 def _Bmag(field, data):
     """ magnitude of bvec
     """
     return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gauss}")
 
 # Particle functions
 
@@ -560,7 +568,7 @@ def _convertBfield(data):
 for field in ['Bx','By','Bz']:
     f = KnownEnzoFields[field]
     f._convert_function=_convertBfield
-    f._units=r"\mathrm{Gau\ss}"
+    f._units=r"\mathrm{Gauss}"
     f.take_log=False
 
 def _Bmag(field, data):
@@ -568,4 +576,4 @@ def _Bmag(field, data):
     """
     return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gauss}")

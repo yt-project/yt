@@ -42,7 +42,7 @@ from .halo_mask import light_cone_halo_map, \
 from .light_cone_projection import _light_cone_projection
 
 class LightCone(EnzoSimulation):
-    def __init__(self, EnzoParameterFile, initial_redshift=1.0, 
+    def __init__(self, enzo_parameter_file, initial_redshift=1.0, 
                  final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
@@ -100,7 +100,7 @@ class LightCone(EnzoSimulation):
         self.recycleRandomSeed = 0
 
         # Initialize EnzoSimulation machinery for getting dataset list.
-        EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=self.initial_redshift,
+        EnzoSimulation.__init__(self, enzo_parameter_file, initial_redshift=self.initial_redshift,
                                 final_redshift=self.final_redshift, links=True,
                                 enzo_parameters={'CosmologyComovingBoxSize':float}, **kwargs)
 
@@ -108,7 +108,7 @@ class LightCone(EnzoSimulation):
         self.pixels = int(self.field_of_view_in_arcminutes * 60.0 / \
                           self.image_resolution_in_arcseconds)
 
-        if ytcfg.getint("yt", "__parallel_rank") == 0:
+        if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
             # Create output directory.
             if (os.path.exists(self.output_dir)):
                 if not(os.path.isdir(self.output_dir)):
@@ -243,7 +243,7 @@ class LightCone(EnzoSimulation):
         else:
             halo_mask_cube = light_cone_halo_mask(self, mask_file=mask_file, **kwargs)
             # Collapse cube into final mask.
-            if ytcfg.getint("yt", "__parallel_rank") == 0:
+            if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
                 self.halo_mask = na.ones(shape=(self.pixels, self.pixels), dtype=bool)
                 for mask in halo_mask_cube:
                     self.halo_mask *= mask
@@ -302,7 +302,7 @@ class LightCone(EnzoSimulation):
             output['object'].parameters.update(self.set_parameters)
             frb = _light_cone_projection(output, field, self.pixels, 
                                          weight_field=weight_field, node=node)
-            if ytcfg.getint("yt", "__parallel_rank") == 0:
+            if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
                 if save_slice_images:
                     write_image(na.log10(frb[field]), "%s_%s.png" % (name, field), cmap_name=cmap_name)
 
@@ -342,7 +342,7 @@ class LightCone(EnzoSimulation):
             if (q < len(self.light_cone_solution) - 1):
                 del output['object']
 
-        if ytcfg.getint("yt", "__parallel_rank") == 0:
+        if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
             # Add up slices to make light cone projection.
             if (weight_field is None):
                 lightConeProjection = sum(self.projection_stack)
@@ -356,7 +356,7 @@ class LightCone(EnzoSimulation):
 
             # Save the last fixed resolution buffer for the plot collection, 
             # but replace the data with the full light cone projection data.
-            frb.data[field] = lightConeProjection
+            frb.field_data[field] = lightConeProjection
 
             # Write image.
             if save_slice_images:
@@ -370,7 +370,7 @@ class LightCone(EnzoSimulation):
             if apply_halo_mask:
                 if len(self.halo_mask) > 0:
                     mylog.info("Applying halo mask.")
-                    frb.data[field] *= self.halo_mask
+                    frb.field_data[field] *= self.halo_mask
                 else:
                     mylog.error("No halo mask loaded, call get_halo_mask.")
 
@@ -513,7 +513,7 @@ class LightCone(EnzoSimulation):
         else:
             f.write("Original Solution\n")
             f.write("OriginalRandomSeed = %s\n" % self.originalRandomSeed)
-        f.write("EnzoParameterFile = %s\n" % self.EnzoParameterFile)
+        f.write("enzo_parameter_file = %s\n" % self.enzo_parameter_file)
         f.write("\n")
         for q, output in enumerate(self.light_cone_solution):
             f.write("Proj %04d, %s, z = %f, depth/box = %f, width/box = %f, axis = %d, center = %f, %f, %f\n" %

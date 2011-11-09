@@ -31,7 +31,7 @@ import types
 from yt.funcs import *
 
 from yt.analysis_modules.halo_finding.halo_objects import \
-    FOFHaloFinder, HaloFinder
+    FOFHaloFinder, HaloFinder, parallelHF
 from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
@@ -156,6 +156,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         >>> MergerTree(rf, database = '/home/user/sim1-halos.db',
         ... halo_finder_function=parallelHF)
         """
+        ParallelAnalysisInterface.__init__(self)
         self.restart_files = restart_files # list of enzo restart files
         self.with_halos = na.ones(len(restart_files), dtype='bool')
         self.database = database # the sqlite database of haloes.
@@ -168,10 +169,10 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         if self.sleep <= 0.:
             self.sleep = 5
         # MPI stuff
-        self.mine = self._mpi_get_rank()
+        self.mine = self.comm.rank
         if self.mine is None:
             self.mine = 0
-        self.size = self._mpi_get_size()
+        self.size = self.comm.size
         if self.size is None:
             self.size = 1
         # Get to work.
@@ -180,7 +181,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 os.unlink(self.database)
             except:
                 pass
-        self._barrier()
+        self.comm.barrier()
         self._open_create_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
@@ -203,7 +204,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # Now update the database with all the writes.
         mylog.info("Updating database with parent-child relationships.")
         self._copy_and_update_db()
-        self._barrier()
+        self.comm.barrier()
         mylog.info("Done!")
         
     def _read_halo_lists(self):
@@ -275,7 +276,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     line = 'INSERT into Halos VALUES (' + line[:-1] + ')'
                     self.cursor.execute(line, values)
                 self.conn.commit()
-            self._barrier()
+            self.comm.barrier()
             del hp
     
     def _open_create_database(self):
@@ -283,7 +284,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # doesn't already exist. Open it first on root, and then on the others.
         if self.mine == 0:
             self.conn = sql.connect(self.database)
-        self._barrier()
+        self.comm.barrier()
         self._ensure_db_sync()
         if self.mine != 0:
             self.conn = sql.connect(self.database)
@@ -294,7 +295,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # parallel file system funniness, things will go bad very quickly.
         # Therefore, just to be very, very careful, we will ensure that the
         # md5 hash of the file is identical across all tasks before proceeding.
-        self._barrier()
+        self.comm.barrier()
         for i in range(5):
             try:
                 file = open(self.database)
@@ -305,7 +306,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 file = open(self.database)
             hash = md5.md5(file.read()).hexdigest()
             file.close()
-            ignore, hashes = self._mpi_info_dict(hash)
+            ignore, hashes = self.comm.mpi_info_dict(hash)
             hashes = set(hashes.values())
             if len(hashes) == 1:
                 break
@@ -338,7 +339,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 self.conn.commit()
             except sql.OperationalError:
                 pass
-        self._barrier()
+        self.comm.barrier()
     
     def _find_likely_children(self, parentfile, childfile):
         # For each halo in the parent list, identify likely children in the 
@@ -548,11 +549,16 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         child_IDs_tosend = child_IDs[child_send]
         child_halos_tosend = child_halos[child_send]
         
-        parent_IDs_tosend = self._mpi_concatenate_array_on_root_long(parent_IDs_tosend)
-        parent_masses_tosend = self._mpi_concatenate_array_on_root_double(parent_masses_tosend)
-        parent_halos_tosend = self._mpi_concatenate_array_on_root_int(parent_halos_tosend)
-        child_IDs_tosend = self._mpi_concatenate_array_on_root_long(child_IDs_tosend)
-        child_halos_tosend = self._mpi_concatenate_array_on_root_int(child_halos_tosend)
+        parent_IDs_tosend = self.comm.par_combine_object(parent_IDs_tosend,
+                datatype="array", op="cat")
+        parent_masses_tosend = self.comm.par_combine_object(parent_masses_tosend,
+                datatype="array", op="cat")
+        parent_halos_tosend = self.comm.par_combine_object(parent_halos_tosend,
+                datatype="array", op="cat")
+        child_IDs_tosend = self.comm.par_combine_object(child_IDs_tosend,
+                datatype="array", op="cat")
+        child_halos_tosend = self.comm.par_combine_object(child_halos_tosend,
+                datatype="array", op="cat")
 
         # Resort the received particles.
         Psort = parent_IDs_tosend.argsort()
@@ -599,7 +605,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             (matched, parent_IDs_tosend.size, child_IDs_tosend.size))
 
         # Now we sum up the contributions globally.
-        self.child_mass_arr = self._mpi_Allsum_double(self.child_mass_arr)
+        self.child_mass_arr = self.comm.mpi_allreduce(self.child_mass_arr)
         
         # Turn these Msol masses into percentages of the parent.
         line = "SELECT HaloMass FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
@@ -712,7 +718,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             temp_cursor.close()
             temp_conn.close()
         self._close_database()
-        self._barrier()
+        self.comm.barrier()
         if self.mine == 0:
             os.rename(temp_name, self.database)
 
@@ -962,6 +968,7 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
         >>> MergerTreeDotOutput(halos=182842, database='/home/user/sim1-halos.db',
         ... dotfile = 'halo-182842.gv')
         """
+        ParallelAnalysisInterface.__init__(self)
         self.database = database
         self.link_min = link_min
         if halos is None:
@@ -1108,6 +1115,7 @@ class MergerTreeTextOutput(DatabaseFunctions, ParallelAnalysisInterface):
         >>> MergerTreeTextOutput(database='/home/user/sim1-halos.db',
         ... outfile='halos-db.txt')
         """
+        ParallelAnalysisInterface.__init__(self)
         self.database = database
         self.outfile = outfile
         result = self._open_database()

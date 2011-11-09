@@ -28,37 +28,6 @@ import os
 from yt.data_objects.profiles import BinnedProfile1D
 from yt.funcs import *
 
-analysis_field_list = [
-    "Density",
-    "Temperature",
-    "VelocityMagnitude",
-    ("Ones", None),
-    "Entropy",
-    "RadialVelocity",
-    "SpecificAngularMomnetumX",
-    "SpecificAngularMomnetumY",
-    "SpecificAngularMomnetumZ",
-    "CoolingTime",
-    "DynamicalTime",
-    ("CellMassMsun", None),
-    "Dark_Matter_Density",
-    #("ParticleSpecificAngularMomentumX", "ParticleMassMsun"),
-    #("ParticleSpecificAngularMomentumY", "ParticleMassMsun"),
-    #("ParticleSpecificAngularMomentumZ", "ParticleMassMsun"),
-    ("TotalMass", None),
-    "OverDensity",
-    #("ParticleMassMsun", None),
-    ("StarParticleDensity", "StarParticleMassMsun"), # How do we weight this?
-    #("StarParticleMassMsun", None), 
-    ("StarParticleDensity", "StarParticleMassMsun"), # How do we weight this?
-]
-
-analysis_field_list += ["%s_Fraction" % (s) for s in
-    ["HI","HII","HeI","HeII","HeIII","H2I","H2II","HM","Electron",
-    "DI","DII","HDI","Metal"]
-]
-    
-
 class StandardRadialAnalysis(object):
     def __init__(self, pf, center, radius, n_bins = 128, inner_radius = None):
         self.pf = pf

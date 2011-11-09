@@ -108,8 +108,6 @@ class StaticOutput(object):
         return self.basename
 
     def _hash(self):
-        if "MetaDataDatasetUUID" in self.parameters:
-            return self["MetaDataDatasetUUID"]
         s = "%s;%s;%s" % (self.basename,
             self.current_time, self.unique_identifier)
         try:
@@ -168,7 +166,7 @@ class StaticOutput(object):
     _instantiated_hierarchy = None
     @property
     def hierarchy(self):
-        if self._instantiated_hierarchy == None:
+        if self._instantiated_hierarchy is None:
             if self._hierarchy_class == None:
                 raise RuntimeError("You should not instantiate StaticOutput.")
             self._instantiated_hierarchy = self._hierarchy_class(

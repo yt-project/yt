@@ -32,8 +32,6 @@ from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_simple_proxy
 
-import yt.utilities.peewee as peewee
-
 output_type_registry = {}
 _field_names = ('hash', 'bn', 'fp', 'tt', 'ctid', 'class_name', 'last_seen')
 
@@ -50,20 +48,6 @@ class UnknownStaticOutputType(Exception):
     def __repr__(self):
         return "%s" % self.name
 
-_field_spec = dict(
-    dset_uuid = peewee.TextField(),
-    output_type = peewee.TextField(),
-    pf_path = peewee.TextField(),
-    creation_time = peewee.IntegerField(),
-    last_seen_time = peewee.IntegerField(),
-    simulation_uuid = peewee.TextField(),
-    redshift = peewee.FloatField(),
-    time = peewee.FloatField(),
-    topgrid0 = peewee.IntegerField(),
-    topgrid1 = peewee.IntegerField(),
-    topgrid2 = peewee.IntegerField(),
-)
-
 class ParameterFileStore(object):
     """
     This class is designed to be a semi-persistent storage for parameter
@@ -78,7 +62,6 @@ class ParameterFileStore(object):
     _distributed = True
     _processing = False
     _owner = 0
-    conn = None
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -94,6 +77,7 @@ class ParameterFileStore(object):
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
             self._read_only = False
             self.init_db()
+            self._records = self.read_db()
         else:
             self._read_only = True
             self._records = {}
@@ -103,25 +87,15 @@ class ParameterFileStore(object):
         """
         This function ensures that the storage database exists and can be used.
         """
-        return
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
         try:
             if not os.path.isdir(dbdir): os.mkdir(dbdir)
         except OSError:
             raise NoParameterShelf()
-        self.conn = peewee.SqliteDatabase(dbn)
-        class SimulationOutputsMeta:
-            database = self.conn
-            db_table = "simulation_outputs"
-        _field_spec["Meta"] = SimulationOutputsMeta
-        self.output_model = type(
-            "SimulationOutputs",
-            (peewee.Model,),
-            _field_spec,
-        )
-        self.output_model._meta.pk_name = "dset_uuid"
-        self.conn.connect()
+        open(dbn, 'ab') # make sure it exists, allow to close
+        # Now we read in all our records and return them
+        # these will be broadcast
 
     def _get_db_name(self):
         base_file_name = ytcfg.get("yt", "ParameterFileStore")
@@ -131,25 +105,39 @@ class ParameterFileStore(object):
 
     def get_pf_hash(self, hash):
         """ This returns a parameter file based on a hash. """
-        return
-        output = self.output_model.get(dset_uuid = hash)
-        return self._convert_pf(output)
+        return self._convert_pf(self._records[hash])
 
-    def _convert_pf(self, inst):
-        """ This turns a model into a parameter file. """
-        return
-        fn = inst.pf_path
-        if inst.output_type not in output_type_registry:
-            raise UnknownStaticOutputType(inst.output_type)
+    def get_pf_ctid(self, ctid):
+        """ This returns a parameter file based on a CurrentTimeIdentifier. """
+        for h in self._records:
+            if self._records[h]['ctid'] == ctid:
+                return self._convert_pf(self._records[h])
+
+    def _adapt_pf(self, pf):
+        """ This turns a parameter file into a CSV entry. """
+        return dict(bn=pf.basename,
+                    fp=pf.fullpath,
+                    tt=pf.current_time,
+                    ctid=pf.unique_identifier,
+                    class_name=pf.__class__.__name__,
+                    last_seen=pf._instantiated)
+
+    def _convert_pf(self, pf_dict):
+        """ This turns a CSV entry into a parameter file. """
+        bn = pf_dict['bn']
+        fp = pf_dict['fp']
+        fn = os.path.join(fp, bn)
+        class_name = pf_dict['class_name']
+        if class_name not in output_type_registry:
+            raise UnknownStaticOutputType(class_name)
         mylog.info("Checking %s", fn)
         if os.path.exists(fn):
-            pf = output_type_registry[inst.output_type](fn)
+            pf = output_type_registry[class_name](os.path.join(fp, bn))
         else:
             raise IOError
         # This next one is to ensure that we manually update the last_seen
         # record *now*, for during write_out.
-        self.output_model.update(last_seen_time = pf._instantiated).where(
-            dset_uuid = inst.dset_uuid).execute()
+        self._records[pf._hash()]['last_seen'] = pf._instantiated
         return pf
 
     def check_pf(self, pf):
@@ -158,35 +146,86 @@ class ParameterFileStore(object):
         recorded in the storage unit.  In doing so, it will update path
         and "last_seen" information.
         """
-        return
-        q = self.output_model.select().where(dset_uuid = pf._hash())
-        q.execute()
-        if q.count() == 0:
+        hash = pf._hash()
+        if hash not in self._records:
             self.insert_pf(pf)
             return
-        # Otherwise we update
-        self.output_model.update(
-            last_seen_time = pf._instantiated,
-            pf_path = os.path.join(pf.basename, pf.fullpath)
-        ).where(
-            dset_uuid = pf._hash()).execute(
-        )
+        pf_dict = self._records[hash]
+        self._records[hash]['last_seen'] = pf._instantiated
+        if pf_dict['bn'] != pf.basename \
+          or pf_dict['fp'] != pf.fullpath:
+            self.wipe_hash(hash)
+            self.insert_pf(pf)
 
     def insert_pf(self, pf):
         """ This will insert a new *pf* and flush the database to disk. """
-        q = self.output_model.insert(
-                    dset_uuid = pf._hash(),
-                    output_type = pf.__class__.__name__,
-                    pf_path = os.path.join(
-                        pf.fullpath, pf.basename),
-                    creation_time = pf.parameters.get(
-                        "CurrentTimeIdentifier", 0), # Get os.stat
-                    last_seen_time = pf._instantiated,
-                    simulation_uuid = pf.parameters.get(
-                        "SimulationUUID", ""), # NULL
-                    redshift = pf.current_redshift,
-                    time = pf.current_time,
-                    topgrid0 = pf.domain_dimensions[0],
-                    topgrid1 = pf.domain_dimensions[1],
-                    topgrid2 = pf.domain_dimensions[2])
-        q.execute()
+        self._records[pf._hash()] = self._adapt_pf(pf)
+        self.flush_db()
+
+    def wipe_hash(self, hash):
+        """
+        This removes a *hash* corresponding to a parameter file from the
+        storage.
+        """
+        if hash not in self._records: return
+        del self._records[hash]
+        self.flush_db()
+
+    def flush_db(self):
+        """ This flushes the storage to disk. """
+        if self._read_only: return
+        self._write_out()
+        self.read_db()
+
+    def get_recent(self, n=10):
+        recs = sorted(self._records.values(), key=lambda a: -a['last_seen'])[:n]
+        return recs
+
+    @parallel_simple_proxy
+    def _write_out(self):
+        if self._read_only: return
+        fn = self._get_db_name()
+        f = open("%s.tmp" % fn, 'wb')
+        w = csv.DictWriter(f, _field_names)
+        maxn = ytcfg.getint("yt","MaximumStoredPFs") # number written
+        for h,v in islice(sorted(self._records.items(),
+                          key=lambda a: -a[1]['last_seen']), 0, maxn):
+            v['hash'] = h
+            w.writerow(v)
+        f.close()
+        os.rename("%s.tmp" % fn, fn)
+
+    @parallel_simple_proxy
+    def read_db(self):
+        """ This will read the storage device from disk. """
+        f = open(self._get_db_name(), 'rb')
+        vals = csv.DictReader(f, _field_names)
+        db = {}
+        for v in vals:
+            db[v.pop('hash')] = v
+            if v['last_seen'] is None:
+                v['last_seen'] = 0.0
+            else: v['last_seen'] = float(v['last_seen'])
+        return db
+
+class ObjectStorage(object):
+    pass
+
+class EnzoRunDatabase(object):
+    conn = None
+
+    def __init__(self, path = None):
+        if path is None:
+            path = ytcfg.get("yt", "enzo_db")
+            if len(path) == 0: raise Runtime
+        import sqlite3
+        self.conn = sqlite3.connect(path)
+
+    def find_uuid(self, u):
+        cursor = self.conn.execute(
+            "select pf_path from enzo_outputs where dset_uuid = '%s'" % (
+                u))
+        # It's a 'unique key'
+        result = cursor.fetchone()
+        if result is None: return None
+        return result[0]

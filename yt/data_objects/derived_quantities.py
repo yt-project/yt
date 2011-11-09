@@ -66,6 +66,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
                  combine_function, units = "",
                  n_ret = 0, force_unlazy=False):
         # We wrap the function with our object
+        ParallelAnalysisInterface.__init__(self)
         self.__doc__ = function.__doc__
         self.__name__ = name
         self.collection = collection
@@ -85,7 +86,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             e.NumberOfParticles = 1
             self.func(e, *args, **kwargs)
             mylog.debug("Preloading %s", e.requested)
-            self._preload([g for g in self._get_grid_objs()], e.requested,
+            self.comm.preload([g for g in self._get_grid_objs()], e.requested,
                           self._data_source.pf.h.io)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
@@ -103,13 +104,14 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         # Note that we do some fancy footwork here.
-        # _mpi_catarray and its affiliated alltoall function
+        # _par_combine_object and its affiliated alltoall function
         # assume that the *long* axis is the last one.  However,
         # our long axis is the first one!
         rv = []
         for my_list in self.retvals:
             data = na.array(my_list).transpose()
-            rv.append(self._mpi_catarray(data).transpose())
+            rv.append(self.comm.par_combine_object(data,
+                        datatype="array", op="cat").transpose())
         self.retvals = rv
         
     def _call_func_unlazy(self, args, kwargs):

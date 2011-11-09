@@ -77,9 +77,6 @@ from yt.frontends.ramses.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
-from yt.frontends.gdf.api import \
-    GDFStaticOutput, GDFFieldInfo, add_gdf_field
-
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
 
@@ -106,12 +103,16 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera
+    HomogenizedVolume, Camera, off_axis_projection
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

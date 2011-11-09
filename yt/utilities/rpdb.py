@@ -53,8 +53,8 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
 
 def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
-    task = ytcfg.getint("yt", "__parallel_rank")
-    size = ytcfg.getint("yt", "__parallel_size")
+    task = ytcfg.getint("yt", "__global_parallel_rank")
+    size = ytcfg.getint("yt", "__global_parallel_size")
     print "Starting RPDB server on task %s ; connect with 'yt rpdb %s'" \
             % (task,task)
     handler = pdb_handler(tb)
@@ -66,6 +66,10 @@ def rpdb_excepthook(exc_type, exc, tb):
     server.server_close()
     if size > 1:
         from mpi4py import MPI
+        # This COMM_WORLD is okay.  We want to barrierize here, while waiting
+        # for shutdown from the rest of the parallel group.  If you are running
+        # with --rpdb it is assumed you know what you are doing and you won't
+        # let this get out of hand.
         MPI.COMM_WORLD.Barrier()
 
 class pdb_handler(object):

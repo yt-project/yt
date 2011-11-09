@@ -421,5 +421,5 @@ class ValidateGridType(FieldValidator):
     def __call__(self, data):
         # We need to make sure that it's an actual AMR grid
         if isinstance(data, FieldDetector): return True
-        if data._type_name == 'grid': return True
+        if getattr(data, "_type_name", None) == 'grid': return True
         raise NeedsOriginalGrid()
