@@ -3,7 +3,7 @@ Useful functions.  If non-original, see function for citation.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -137,17 +137,9 @@ def get_memory_usage():
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
-    """
+    r"""
     Decorator for seeing how long a given function takes, depending on whether
     or not the global 'yt.timefunctions' config parameter is set.
-
-    This can be used like so:
-
-    .. code-block:: python
-
-       @time_execution
-    def some_longrunning_function(...):
-
     """
     @wraps(func)
     def wrapper(*arg, **kw):
@@ -195,12 +187,13 @@ def rootonly(func):
        def some_root_only_function(...):
 
     """
-    @wraps(func)
-    def donothing(*args, **kwargs):
-        return
     from yt.config import ytcfg
-    if ytcfg.getint("yt","__parallel_rank") > 0: return donothing
-    return func
+    @wraps(func)
+    def check_parallel_rank(*args, **kwargs):
+        if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
+            return 
+        return func(*args, **kwargs)
+    return check_parallel_rank
 
 def deprecate(func):
     """
@@ -349,9 +342,13 @@ def only_on_root(func, *args, **kwargs):
     handed back.
     """
     from yt.config import ytcfg
+    if kwargs.pop("global_rootonly", False):
+        cfg_option = "__global_parallel_rank"
+    else:
+        cfg_option = "__topcomm_parallel_rank"
     if not ytcfg.getboolean("yt","__parallel"):
         return func(*args,**kwargs)
-    if ytcfg.getint("yt","__parallel_rank") > 0: return
+    if ytcfg.getint("yt", cfg_option) > 0: return
     return func(*args, **kwargs)
 
 #
@@ -387,14 +384,14 @@ def paste_traceback(exc_type, exc, tb):
     sys.__excepthook__(exc_type, exc, tb)
     import xmlrpclib, cStringIO
     p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = cStringIO.StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
     print
-    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
 
 def paste_traceback_detailed(exc_type, exc, tb):
@@ -409,11 +406,11 @@ def paste_traceback_detailed(exc_type, exc, tb):
     s = s.getvalue()
     print s
     p = xmlrpclib.ServerProxy(
-            "http://paste.enzotools.org/xmlrpc/",
+            "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
     print
-    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
 
 def traceback_writer_hook(file_suffix = ""):
@@ -460,4 +457,7 @@ elif "--detailed" in sys.argv:
 #
 
 class NoCUDAException(Exception):
+    pass
+
+class YTEmptyClass(object):
     pass

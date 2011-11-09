@@ -3,7 +3,7 @@ This module contains a routine to search for topologically connected sets
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -77,8 +77,11 @@ def identify_contours(data_source, field, min_val, max_val,
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
         if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        old_field_parameters = grid.field_parameters
+        grid.field_parameters = data_source.field_parameters
         local_ind = na.where( (grid[field] > min_val)
                             & (grid[field] < max_val) & cm )
+        grid.field_parameters = old_field_parameters
         if local_ind[0].size == 0: continue
         kk = na.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
         grid["tempContours"] = na.ones(grid.ActiveDimensions, dtype='int64') * -1
@@ -129,7 +132,7 @@ def identify_contours(data_source, field, min_val, max_val,
     print "Finished joining in %0.2e seconds" % (t2-t1)
     pbar.finish()
     data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
-    del data_source.data["tempContours"] # Force a reload from the grids
+    del data_source.field_data["tempContours"] # Force a reload from the grids
     data_source.get_data("tempContours", in_grids=True)
     contour_ind = {}
     i = 0
@@ -141,6 +144,6 @@ def identify_contours(data_source, field, min_val, max_val,
     mylog.info("Identified %s contours between %0.5e and %0.5e",
                len(contour_ind.keys()),min_val,max_val)
     for grid in chain(grid_set):
-        grid.data.pop("tempContours", None)
-    del data_source.data["tempContours"]
+        grid.field_data.pop("tempContours", None)
+    del data_source.field_data["tempContours"]
     return contour_ind

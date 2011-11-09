@@ -3,7 +3,7 @@ Export/Import of volume rendered images.
 
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 
@@ -71,6 +71,7 @@ def import_rgba(name, h5=True):
         g = f['G'].value
         b = f['B'].value
         a = f['A'].value
+        f.close()
     else:
         print 'No support for fits import.'
     return na.array([r,g,b,a]).swapaxes(0,2).swapaxes(0,1)

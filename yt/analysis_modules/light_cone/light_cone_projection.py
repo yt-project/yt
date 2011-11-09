@@ -3,7 +3,7 @@ Create randomly centered, tiled projections to be used in light cones.
 
 Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
@@ -88,7 +88,7 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
                                            field_cuts=these_field_cuts, node_name=node_name)
 
     # If parallel: all the processes have the whole projection object, but we only need to do the tiling, shifting, and cutting once.
-    if ytcfg.getint("yt", "__parallel_rank") == 0:
+    if ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
 
         # 2. The Tile Problem
         # Tile projection to specified width.

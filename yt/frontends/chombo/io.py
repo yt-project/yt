@@ -4,7 +4,7 @@ The data-file handling functions
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -45,7 +45,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fhandle = h5py.File(grid.filename,'r')
         ncomp = int(fhandle['/'].attrs['num_components'])
 
-        return [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
+        fns = [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
+        fhandle.close()
     
     def _read_data_set(self,grid,field):
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
@@ -61,6 +62,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
 
+        fhandle.close()
         return data.reshape(dims, order='F')
                                           
 

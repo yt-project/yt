@@ -5,7 +5,7 @@ with the terms of its original license.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 

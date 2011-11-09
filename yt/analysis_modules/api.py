@@ -7,7 +7,7 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -79,7 +79,6 @@ from .hierarchy_subset.api import \
     ExtractedParameterFile
 
 from .level_sets.api import \
-    GridConsiderationQueue, \
     coalesce_join_tree, \
     identify_contours, \
     Clump, \
@@ -106,6 +105,9 @@ from .light_cone.api import \
     light_cone_halo_map, \
     find_unique_solutions, \
     project_unique_light_cones
+
+from .radial_column_density.api import \
+    RadialColumnDensity
 
 from .simulation_handler.api import \
     EnzoSimulation

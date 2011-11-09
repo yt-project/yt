@@ -5,7 +5,7 @@ Everything will be returned in a global config dictionary: ytcfg
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -38,8 +38,10 @@ ytcfgDefaults = dict(
     inline = 'False',
     __withinreason = 'False',
     __parallel = 'False',
-    __parallel_rank = '0',
-    __parallel_size = '1',
+    __global_parallel_rank = '0',
+    __global_parallel_size = '1',
+    __topcomm_parallel_rank = '0',
+    __topcomm_parallel_size = '1',
     storeparameterfiles = 'True',
     parameterfilestore = 'parameter_files.csv',
     maximumstoredpfs = '500',

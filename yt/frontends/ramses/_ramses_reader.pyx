@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Author: Oliver Hahn <ohahn@stanford.edu>
 Affiliation: KIPAC / Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -401,6 +401,7 @@ cdef class RAMSES_tree_proxy:
         self.hydro_datas = <RAMSES_hydro_data ***>\
                        malloc(sizeof(RAMSES_hydro_data**) * self.rsnap.m_header.ncpu)
         self.ndomains = self.rsnap.m_header.ncpu
+        
         # Note we don't do ncpu + 1
         for idomain in range(self.rsnap.m_header.ncpu):
             # we don't delete local_tree
@@ -422,7 +423,7 @@ cdef class RAMSES_tree_proxy:
         cdef string *field_name
         self.field_names = []
         self.field_ind = {}
-        self.loaded = <int **> malloc(sizeof(int) * local_hydro_data.m_nvars)
+        self.loaded = <int **> malloc(sizeof(int*) * self.ndomains)
         for idomain in range(self.ndomains):
             self.loaded[idomain] = <int *> malloc(
                 sizeof(int) * local_hydro_data.m_nvars)
@@ -435,8 +436,14 @@ cdef class RAMSES_tree_proxy:
             self.field_ind[self.field_names[-1]] = ifield
         # This all needs to be cleaned up in the deallocator
 
+    def get_domain_boundaries(self):
+        bounds = []
+        for i in range(self.rsnap.m_header.ncpu):
+            bounds.append((self.rsnap.ind_min[i],
+                           self.rsnap.ind_max[i]))
+        return bounds
+
     def __dealloc__(self):
-        import traceback; traceback.print_stack()
         cdef int idomain, ifield
         # To ensure that 'delete' is used, not 'free',
         # we allocate temporary variables.
@@ -489,12 +496,12 @@ cdef class RAMSES_tree_proxy:
 
         return cell_count
 
-    def ensure_loaded(self, char *varname, int domain_index):
+    cdef ensure_loaded(self, char *varname, int domain_index, int varindex = -1):
         # this domain_index must be zero-indexed
-        cdef int varindex = self.field_ind[varname]
-        cdef string *field_name = new string(varname)
+        if varindex == -1: varindex = self.field_ind[varname]
         if self.loaded[domain_index][varindex] == 1:
             return
+        cdef string *field_name = new string(varname)
         print "READING FROM DISK", varname, domain_index, varindex
         self.hydro_datas[domain_index][varindex].read(deref(field_name))
         self.loaded[domain_index][varindex] = 1
@@ -505,12 +512,13 @@ cdef class RAMSES_tree_proxy:
         # We delete and re-create
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
-        if self.loaded[domain_index][varindex] == 0: return
-        cdef RAMSES_hydro_data *temp_hdata = self.hydro_datas[domain_index][varindex]
-        del temp_hdata
-        self.hydro_datas[domain_index - 1][varindex] = \
-            new RAMSES_hydro_data(deref(self.trees[domain_index]))
-        self.loaded[domain_index][varindex] = 0
+        cdef RAMSES_hydro_data *temp_hdata
+        if self.loaded[domain_index][varindex] == 1:
+            temp_hdata = self.hydro_datas[domain_index][varindex]
+            del temp_hdata
+            self.hydro_datas[domain_index][varindex] = \
+                new RAMSES_hydro_data(deref(self.trees[domain_index]))
+            self.loaded[domain_index][varindex] = 0
         del field_name
 
     def get_file_info(self):
@@ -648,14 +656,16 @@ cdef class RAMSES_tree_proxy:
             data[i] = local_hydro_data.m_var_array[level][8*grid_id+i]
         return tr
 
-    def read_grid(self, char *field, 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def read_grid(self, int varindex, char *field,
                   np.ndarray[np.int64_t, ndim=1] start_index,
                   np.ndarray[np.int32_t, ndim=1] grid_dims,
                   np.ndarray[np.float64_t, ndim=3] data,
                   np.ndarray[np.int32_t, ndim=3] filled,
                   int level, int ref_factor,
                   np.ndarray[np.int64_t, ndim=2] component_grid_info):
-        cdef int varindex = self.field_ind[field]
         cdef RAMSES_tree *local_tree = NULL
         cdef RAMSES_hydro_data *local_hydro_data = NULL
 
@@ -674,7 +684,8 @@ cdef class RAMSES_tree_proxy:
             end_index[i] = start_index[i] + grid_dims[i]
         for gi in range(component_grid_info.shape[0]):
             domain = component_grid_info[gi,0]
-            self.ensure_loaded(field, domain - 1)
+            if domain == 0: continue
+            self.ensure_loaded(field, domain - 1, varindex)
             local_tree = self.trees[domain - 1]
             local_hydro_data = self.hydro_datas[domain - 1][varindex]
             offset = component_grid_info[gi,1]
@@ -789,19 +800,20 @@ cdef class ProtoSubgrid:
                         i = i2 - self.left_edge[2]
                         sig2[i] += 1
                         efficiency += 1
-                        used += 1
                         mask[gi] = 1
+            used += mask[gi]
         cdef np.ndarray[np.int64_t, ndim=2] gfl
         gfl = np.zeros((used, 6), 'int64')
         used = 0
         self.grid_file_locations = gfl
         for gi in range(ng):
             if mask[gi] == 1:
-                grid_file_locations[gi,3] = left_edges[gi, 0]
-                grid_file_locations[gi,4] = left_edges[gi, 1]
-                grid_file_locations[gi,5] = left_edges[gi, 2]
+                grid_file_locations[gi,3] = left_edges[gi,0]
+                grid_file_locations[gi,4] = left_edges[gi,1]
+                grid_file_locations[gi,5] = left_edges[gi,2]
                 for i in range(6):
                     gfl[used, i] = grid_file_locations[gi,i]
+                used += 1
          
         self.dd = np.ones(3, dtype='int64')
         for i in range(3):
@@ -1046,7 +1058,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     if L.efficiency > 1.0: raise RuntimeError
     if L.efficiency <= 0.0: rv_l = []
     elif L.efficiency < min_eff:
-        rv_l = recursive_patch_splitting(L, dims_r, li_r,
+        rv_l = recursive_patch_splitting(L, dims_l, li_l,
                 left_index, fl, num_deep + 1)
     else:
         rv_l = [L]

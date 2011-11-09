@@ -7,7 +7,7 @@ Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
 Affiliation: UC Berkeley
 Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
 
@@ -50,8 +50,14 @@ class PlotCallback(object):
         pass
 
     def convert_to_pixels(self, plot, coord, offset = True):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        if plot.xlim is not None:
+            x0, x1 = plot.xlim
+        else:
+            x0, x1 = plot._axes.get_xlim()
+        if plot.ylim is not None:
+            y0, y1 = plot.ylim
+        else:
+            y0, y1 = plot._axes.get_ylim()
         l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         dx = width / (x1-x0)
         dy = height / (y1-y0)
@@ -60,17 +66,23 @@ class PlotCallback(object):
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
-    def __init__(self, factor=16, scale=None, scale_units=None):
+    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         """
         Adds a 'quiver' plot of velocity to the plot, skipping all but
-        every *factor* datapoint
-        *scale* is the data units per arrow length unit using *scale_units* 
-        (see matplotlib.axes.Axes.quiver for more info)
+        every *factor* datapoint. *scale* is the data units per arrow
+        length unit using *scale_units* (see
+        matplotlib.axes.Axes.quiver for more info). if *normalize* is
+        True, the velocity fields will be scaled by their local
+        (in-plane) length, allowing morphological features to be more
+        clearly seen for fields with substantial variation in field
+        strength (normalize is not implemented and thus ignored for
+        Cutting Planes).
         """
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -81,18 +93,26 @@ class VelocityCallback(PlotCallback):
         else:
             xv = "%s-velocity" % (x_names[plot.data.axis])
             yv = "%s-velocity" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor, self.scale, self.scale_units)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
     _type_name = "magnetic_field"
-    def __init__(self, factor=16):
+    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         """
         Adds a 'quiver' plot of magnetic field to the plot, skipping all but
-        every *factor* datapoint
+        every *factor* datapoint. *scale* is the data units per arrow
+        length unit using *scale_units* (see
+        matplotlib.axes.Axes.quiver for more info). if *normalize* is
+        True, the magnetic fields will be scaled by their local
+        (in-plane) length, allowing morphological features to be more
+        clearly seen for fields with substantial variation in field strength.
         """
         PlotCallback.__init__(self)
         self.factor = factor
+        self.scale  = scale
+        self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -101,12 +121,12 @@ class MagFieldCallback(PlotCallback):
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor, scale, scale_units):
+    def __init__(self, field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
         """
         Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
         from the associated data, skipping every *factor* datapoints
@@ -120,6 +140,7 @@ class QuiverCallback(PlotCallback):
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -145,6 +166,10 @@ class QuiverCallback(PlotCallback):
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        if self.normalize:
+            nn = na.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -454,7 +479,7 @@ class LinePlotCallback(PlotCallback):
 class ImageLineCallback(LinePlotCallback):
     _type_name = "image_line"
 
-    def __init__(self, p1, p2, plot_args = None):
+    def __init__(self, p1, p2, data_coords=False, plot_args = None):
         """
         Plot from *p1* to *p2* (image plane coordinates)
         with *plot_args* fed into the plot.
@@ -465,19 +490,27 @@ class ImageLineCallback(LinePlotCallback):
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
         self._ids = []
+        self.data_coords = data_coords
 
     def __call__(self, plot):
         # We manually clear out any previous calls to this callback:
         plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
-        p1 = self.convert_to_pixels(plot, self.p1)
-        p2 = self.convert_to_pixels(plot, self.p2)
+        kwargs = self.plot_args.copy()
+        if self.data_coords and len(plot.image._A.shape) == 2:
+            p1 = self.convert_to_pixels(plot, self.p1)
+            p2 = self.convert_to_pixels(plot, self.p2)
+        else:
+            p1, p2 = self.p1, self.p2
+            if not self.data_coords:
+                kwargs["transform"] = plot._axes.transAxes
+
         px, py = (p1[0], p2[0]), (p1[1], p2[1])
 
         # Save state
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        ii = plot._axes.plot(px, py, **self.plot_args)
+        ii = plot._axes.plot(px, py, **kwargs)
         self._ids.append(id(ii[0]))
         # Reset state
         plot._axes.set_xlim(xx0,xx1)
@@ -886,7 +919,7 @@ class CoordAxesCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     _type_name = "text"
-    def __init__(self, pos, text, data_coords=False,text_args = None):
+    def __init__(self, pos, text, data_coords=False, text_args = None):
         """
         Accepts a position in (0..1, 0..1) of the image, some text and
         optionally some text arguments. If data_coords is True,
@@ -899,16 +932,18 @@ class TextLabelCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-        if self.data_coords:
+        kwargs = self.text_args.copy()
+        if self.data_coords and len(plot.image._A.shape) == 2:
             if len(self.pos) == 3:
                 pos = (self.pos[x_dict[plot.data.axis]],
                        self.pos[y_dict[plot.data.axis]])
             else: pos = self.pos
             x,y = self.convert_to_pixels(plot, pos)
         else:
-            x = plot.image._A.shape[0] * self.pos[0]
-            y = plot.image._A.shape[1] * self.pos[1]
-        plot._axes.text(x, y, self.text, **self.text_args)
+            x, y = self.pos
+            if not self.data_coords:
+                kwargs["transform"] = plot._axes.transAxes
+        plot._axes.text(x, y, self.text, **kwargs)
 
 class ParticleCallback(PlotCallback):
     _type_name = "particles"

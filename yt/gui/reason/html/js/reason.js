@@ -9,7 +9,7 @@ Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -186,10 +186,13 @@ var treePanel = new Ext.tree.TreePanel({
                 } else if (node.attributes.objdata.type == 'pf') {
                   rightClickMenu = new Ext.menu.Menu({
                       items: [
-                          /*{
+                          {
                               text: 'View Grids',
                               handler: getGridViewerHandler(node),
-                          },*/ {
+                          }, {
+                              text: 'View Isocontour',
+                              handler: getIsocontourViewerHandler(node),
+                          }, {
                               text: 'View Grid Data',
                               handler: getGridDataViewerHandler(node),
                           }, {

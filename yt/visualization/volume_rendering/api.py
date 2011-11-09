@@ -7,7 +7,7 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -35,10 +35,9 @@ from transfer_functions import TransferFunction, ColorTransferFunction, \
 from yt.utilities.amr_utils import PartitionedGrid, VectorPlane, \
     TransferFunctionProxy
 from grid_partitioner import HomogenizedVolume, \
-                             HomogenizedBrickCollection, \
                              export_partitioned_grids, \
                              import_partitioned_grids
 from image_handling import export_rgba, import_rgba, \
                            plot_channel, plot_rgb
-from software_sampler import VolumeRendering
-from camera import Camera, PerspectiveCamera, StereoPairCamera
+from camera import Camera, PerspectiveCamera, StereoPairCamera, \
+    off_axis_projection

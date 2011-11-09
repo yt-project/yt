@@ -1,3 +1,4 @@
+import matplotlib; matplotlib.use('Agg')
 from yt.config import ytcfg
 ytcfg["yt","loglevel"] = "50"
 ytcfg["yt","serialize"] = "False"
@@ -6,7 +7,6 @@ from yt.utilities.answer_testing.api import \
     RegressionTestRunner, clear_registry, create_test, \
     TestFieldStatistics, TestAllProjections, registry_entries, \
     Xunit
-
 from yt.utilities.command_line import get_yt_version
 
 from yt.mods import *
@@ -14,6 +14,7 @@ import fnmatch
 import imp
 import optparse
 import itertools
+import time
 
 #
 # We assume all tests are to be run, unless explicitly given the name of a
@@ -48,9 +49,13 @@ def find_and_initialize_tests():
     return mapping
 
 if __name__ == "__main__":
+    clear_registry()
     mapping = find_and_initialize_tests()
     test_storage_directory = ytcfg.get("yt","test_storage_dir")
-    my_hash = get_yt_version()
+    try:
+        my_hash = get_yt_version()
+    except:
+        my_hash = "UNKNOWN%s" % (time.time())
     parser = optparse.OptionParser()
     parser.add_option("-f", "--parameter-file", dest="parameter_file",
                       default = os.path.join(cwd, "DD0010/moving7_0010"),
@@ -71,7 +76,15 @@ if __name__ == "__main__":
                       help = "The name we'll call this set of tests")
     opts, args = parser.parse_args()
     if opts.list_tests:
-        print "\n    ".join(sorted(itertools.chain(*mapping.values())))
+        tests_to_run = []
+        for m, vals in mapping.items():
+            new_tests = fnmatch.filter(vals, opts.test_pattern)
+            if len(new_tests) == 0: continue
+            load_tests(m, cwd)
+            keys = set(registry_entries())
+            tests_to_run += [t for t in new_tests if t in keys]
+        tests = list(set(tests_to_run))
+        print "\n    ".join(tests)
         sys.exit(0)
     pf = load(opts.parameter_file)
     if pf is None:
@@ -93,11 +106,19 @@ if __name__ == "__main__":
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
         if len(new_tests) == 0: continue
-        tests_to_run += new_tests
         load_tests(m, cwd)
+        keys = set(registry_entries())
+        tests_to_run += [t for t in new_tests if t in keys]
     for test_name in sorted(tests_to_run):
+        print "RUNNING TEST", test_name
         rtr.run_test(test_name)
     if watcher is not None:
         rtr.watcher.report()
+    failures = 0
+    passes = 1
     for test_name, result in sorted(rtr.passed_tests.items()):
         print "TEST %s: %s" % (test_name, result)
+        if result: passes += 1
+        else: failures += 1
+    print "Number of passes  : %s" % passes
+    print "Number of failures: %s" % failures

@@ -3,7 +3,7 @@ Data structures for Orion.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 J. S. Oishi.  All Rights Reserved.
 
@@ -114,7 +114,7 @@ class OrionGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
@@ -444,16 +444,12 @@ class OrionStaticOutput(StaticOutput):
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='orion_native', paranoia=False,
                  storage_filename = None):
-        """need to override for Orion file structure.
-
-        the paramfile is usually called "inputs"
+        """
+        The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
-        as per BoxLib, data_style will be one of
-         * Native
-         * IEEE (not implemented in yt)
-         * ASCII (not implemented in yt)
-
+        as per BoxLib, data_style will be Native (implemented here), IEEE (not
+        yet implemented) or ASCII (not yet implemented.)
         """
         self.storage_filename = storage_filename
         self.paranoid_read = paranoia

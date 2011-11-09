@@ -6,7 +6,7 @@ Affiliation: University of Colorado at Boulder
 Wil St. Charles <fallen751@gmail.com>
 Affiliation: University of Colorado at Boulder
 
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 

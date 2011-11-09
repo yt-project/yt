@@ -5,7 +5,7 @@ native.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -920,10 +920,9 @@ add_field("particle_density", function=_pdensity,
           display_name=r"\mathrm{Particle}\/\mathrm{Density})")
 
 def _MagneticEnergy(field,data):
-    """WARNING WARNING WARNING: Units are not yet known to be
-    correct. Trust the magnitude of this quantity at your own
-    risk. However, it should just be a multiplicative offset from
-    reality...
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    MagneticEnergy field to deal with non-unitary \mu_0.
     """
     return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/2.
 add_field("MagneticEnergy",function=_MagneticEnergy,

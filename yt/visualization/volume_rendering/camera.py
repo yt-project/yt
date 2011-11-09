@@ -3,7 +3,7 @@ Import the components of the volume rendering extension
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
@@ -87,7 +87,7 @@ class Camera(ParallelAnalysisInterface):
             the volume rendering mechanism.
         sub_samples : int, optional
             The number of samples to take inside every cell per ray.
-        pf : `~yt.lagos.StaticOutput`
+        pf : `~yt.data_objects.api.StaticOutput`
             For now, this is a require parameter!  But in the future it will become
             optional.  This is the parameter file to volume render.
         use_kd: bool, optional
@@ -180,6 +180,7 @@ class Camera(ParallelAnalysisInterface):
         >>> image = cam.snapshot(fn='my_rendering.png')
 
         """
+        ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         if not iterable(resolution):
             resolution = (resolution, resolution)
@@ -356,7 +357,7 @@ class Camera(ParallelAnalysisInterface):
             pbar.update(total_cells)
         pbar.finish()
 
-        if self._mpi_get_rank() is 0 and fn is not None:
+        if self.comm.rank is 0 and fn is not None:
             if clip_ratio is not None:
                 write_bitmap(image, fn, clip_ratio*image.std())
             else:
@@ -413,7 +414,7 @@ class Camera(ParallelAnalysisInterface):
             self.zoom(f)
             yield self.snapshot()
 
-    def move_to(self, final, n_steps, final_width=None):
+    def move_to(self, final, n_steps, final_width=None, exponential=True):
         r"""Loop over a look_at
 
         This will yield `n_steps` snapshots until the current view has been
@@ -428,6 +429,9 @@ class Camera(ParallelAnalysisInterface):
         final_width: float or array_like, optional
             Specifies the final width after `n_steps`.  Useful for
             moving and zooming at the same time.
+        exponential : boolean
+            Specifies whether the move/zoom transition follows an
+            exponential path toward the destination or linear
             
         Examples
         --------
@@ -437,13 +441,27 @@ class Camera(ParallelAnalysisInterface):
         """
         self.center = na.array(self.center)
         dW = None
-        if final_width is not None:
-            if not iterable(final_width):
-                width = na.array([final_width, final_width, final_width]) # front/back, left/right, top/bottom
-            dW = (1.0*final_width-na.array(self.width))/n_steps
-        dx = (na.array(final)-self.center)*1.0/n_steps
+        if exponential:
+            if final_width is not None:
+                if not iterable(final_width):
+                    width = na.array([final_width, final_width, final_width]) 
+                    # front/back, left/right, top/bottom
+                final_zoom = final_width/na.array(self.width)
+                dW = final_zoom**(1.0/n_steps)
+            position_diff = (na.array(final)/self.center)*1.0
+            dx = position_diff**(1.0/n_steps)
+        else:
+            if final_width is not None:
+                if not iterable(final_width):
+                    width = na.array([final_width, final_width, final_width]) 
+                    # front/back, left/right, top/bottom
+                dW = (1.0*final_width-na.array(self.width))/n_steps
+            dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
-            self.switch_view(center=self.center+dx, width=self.width+dW)
+            if exponential:
+                self.switch_view(center=self.center*dx, width=self.width*dW)
+            else:
+                self.switch_view(center=self.center+dx, width=self.width+dW)
             yield self.snapshot()
 
     def rotate(self, theta, rot_vector=None):
@@ -564,6 +582,7 @@ class HEALpixCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False):
+        ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
@@ -606,7 +625,7 @@ class HEALpixCamera(Camera):
             pbar.update(total_cells)
         pbar.finish()
 
-        if self._mpi_get_rank() is 0 and fn is not None:
+        if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
@@ -633,6 +652,7 @@ class AdaptiveHEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False,
                  rays_per_cell = 0.1, max_nside = 8192):
+        ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
@@ -674,9 +694,10 @@ class AdaptiveHEALpixCamera(Camera):
                 self.center -= 1e-2 * min_dx
         ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
                                        self.initial_nside, self.radius,
-                                       bricks, self.max_nside)
+                                       bricks, left_edges, right_edges, self.max_nside)
         for i,brick in enumerate(bricks):
-            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges)
+            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges,
+                                       bricks)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
@@ -685,6 +706,7 @@ class AdaptiveHEALpixCamera(Camera):
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
+        ParallelAnalysisInterface.__init__(self)
         self.original_camera = original_camera
         self.relative_separation = relative_separation
 
@@ -705,3 +727,74 @@ class StereoPairCamera(Camera):
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
         return (left_camera, right_camera)
+
+def off_axis_projection(pf, center, normal_vector, width, resolution,
+                        field, weight = None, volume = None):
+    r"""Project through a parameter file, off-axis, and return the image plane.
+
+    This function will accept the necessary items to integrate through a volume
+    at an arbitrary angle and return the integrated field of view to the user.
+    Note that if a weight is supplied, it will multiply the pre-interpolated
+    values together, then create cell-centered values, then interpolate within
+    the cell to conduct the integration.
+
+    Parameters
+    ----------
+    pf : `~yt.data_objects.api.StaticOutput`
+        This is the parameter file to volume render.
+    center : array_like
+        The current "center" of the view port -- the focal point for the
+        camera.
+    normal_vector : array_like
+        The vector between the camera position and the center.
+    width : float or list of floats
+        The current width of the image.  If a single float, the volume is
+        cubical, but if not, it is front/back, left/right, top/bottom.
+    resolution : int or list of ints
+        The number of pixels in each direction.
+    field : string
+        The field to project through the volume
+    weight : optional, default None
+        If supplied, the field will be pre-multiplied by this, then divided by
+        the integrated value of this field.  This returns an average rather
+        than a sum.
+    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+        The volume to ray cast through.  Can be specified for finer-grained
+        control, but otherwise will be automatically generated.
+
+    Returns
+    -------
+    image : array
+        An (N,N) array of the final integrated values, in float64 form.
+
+    Examples
+    --------
+
+    >>> image = off_axis_projection(pf, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
+                      0.2, N, "Temperature", "Density")
+    >>> write_image(na.log10(image), "offaxis.png")
+
+    """
+    # We manually modify the ProjectionTransferFunction to get it to work the
+    # way we want, with a second field that's also passed through.
+    fields = [field]
+    if weight is not None:
+        # This is a temporary field, which we will remove at the end.
+        pf.field_info.add_field("temp_weightfield",
+            function=lambda a,b:b[field]*b[weight])
+        fields = ["temp_weightfield", weight]
+        tf = ProjectionTransferFunction(n_fields = 2)
+    tf = ProjectionTransferFunction(n_fields = len(fields))
+    cam = pf.h.camera(center, normal_vector, width, resolution, tf,
+                      fields = fields,
+                      log_fields = [False] * len(fields),
+                      volume = volume)
+    vals = cam.snapshot()
+    image = vals[:,:,0]
+    if weight is None:
+        dl = width * pf.units[pf.field_info[field].projection_conversion]
+        image *= dl
+    else:
+        image /= vals[:,:,1]
+        pf.field_info._field_list.pop("temp_weightfield")
+    return image

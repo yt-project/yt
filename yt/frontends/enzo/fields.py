@@ -3,7 +3,7 @@ Fields specific to Enzo
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -380,7 +380,7 @@ def _convertBfield(data):
 for field in ['Bx','By','Bz']:
     f = EnzoFieldInfo[field]
     f._convert_function=_convertBfield
-    f._units=r"\mathrm{Gau\ss}"
+    f._units=r"\mathrm{Gauss}"
     f.take_log=False
 
 def _Bmag(field, data):
@@ -388,7 +388,7 @@ def _Bmag(field, data):
     """
     return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gauss}")
 
     
 #
@@ -476,7 +476,7 @@ def _convertBfield(data):
 for field in ['Bx','By','Bz']:
     f = EnzoFieldInfo[field]
     f._convert_function=_convertBfield
-    f._units=r"\mathrm{Gau\ss}"
+    f._units=r"\mathrm{Gauss}"
     f.take_log=False
 
 def _Bmag(field, data):
@@ -484,4 +484,4 @@ def _Bmag(field, data):
     """
     return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gauss}")

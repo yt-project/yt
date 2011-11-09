@@ -3,7 +3,7 @@ A means of running standalone commands with a shared set of options.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -91,7 +91,7 @@ _common_options = dict(
                    action="store", type="float",
                    dest="center", default=None,
                    nargs=3,
-                   help="Center, command separated (-1 -1 -1 for max)"),
+                   help="Center, space separated (-1 -1 -1 for max)"),
     bn      = dict(short="-b", long="--basename",
                    action="store", type="string",
                    dest="basename", default=None,
@@ -161,6 +161,37 @@ _common_options = dict(
                    action="store_true",
                    dest="time", default=False,
                    help="Print time in years on image"),
+    contours    = dict(short="", long="--contours",
+                   action="store",type="int",
+                   dest="contours", default=None,
+                   help="Number of Contours for Rendering"),
+    contour_width  = dict(short="", long="--contour_width",
+                   action="store",type="float",
+                   dest="contour_width", default=None,
+                   help="Width of gaussians used for rendering."),
+    enhance   = dict(short="", long="--enhance",
+                   action="store_true",
+                   dest="enhance", default=False,
+                   help="Enhance!"),
+    valrange  = dict(short="-r", long="--range",
+                   action="store", type="float",
+                   dest="valrange", default=None,
+                   nargs=2,
+                   help="Range, space separated"),
+    up  = dict(short="", long="--up",
+                   action="store", type="float",
+                   dest="up", default=None,
+                   nargs=3,
+                   help="Up, space separated"),
+    viewpoint  = dict(short="", long="--viewpoint",
+                   action="store", type="float",
+                   dest="viewpoint", default=[1., 1., 1.],
+                   nargs=3,
+                   help="Viewpoint, space separated"),
+    pixels    = dict(short="", long="--pixels",
+                   action="store",type="int",
+                   dest="pixels", default=None,
+                   help="Number of Pixels for Rendering"),
     halos   = dict(short="", long="--halos",
                    action="store", type="string",
                    dest="halos",default="multiple",
@@ -294,6 +325,35 @@ def bb_apicall(endpoint, data, use_pass = True):
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
+def _get_yt_supp():
+    supp_path = os.path.join(os.environ["YT_DEST"], "src",
+                             "yt-supplemental")
+    # Now we check that the supplemental repository is checked out.
+    if not os.path.isdir(supp_path):
+        print
+        print "*** The yt-supplemental repository is not checked ***"
+        print "*** out.  I can do this for you, but because this ***"
+        print "*** is a delicate act, I require you to respond   ***"
+        print "*** to the prompt with the word 'yes'.            ***"
+        print
+        response = raw_input("Do you want me to try to check it out? ")
+        if response != "yes":
+            print
+            print "Okay, I understand.  You can check it out yourself."
+            print "This command will do it:"
+            print
+            print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
+            print "%s" % (supp_path)
+            print
+            sys.exit(1)
+        rv = commands.clone(uu,
+                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+        if rv:
+            print "Something has gone wrong.  Quitting."
+            sys.exit(1)
+    # Now we think we have our supplemental repository.
+    return supp_path
+
 class YTCommands(cmdln.Cmdln):
     name="yt"
 
@@ -301,13 +361,47 @@ class YTCommands(cmdln.Cmdln):
         cmdln.Cmdln.__init__(self, *args, **kwargs)
         cmdln.Cmdln.do_help.aliases.append("h")
 
-    def do_loop(self, subcmd, opts, *args):
+    def do_update(self, subcmd, opts):
         """
-        Interactive loop
+        Update the yt installation to the most recent version
 
+        ${cmd_usage}
         ${cmd_option_list}
         """
-        self.cmdloop()
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
+        if "site-packages" not in path:
+            vstring = _get_hg_version(path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring.strip()
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            _update_hg(path)
+            print "Updated successfully."
+        else:
+            print
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
+            print
 
     @cmdln.option("-u", "--update-source", action="store_true",
                   default = False,
@@ -317,7 +411,7 @@ class YTCommands(cmdln.Cmdln):
                   help="File into which the current revision number will be stored")
     def do_instinfo(self, subcmd, opts):
         """
-        ${cmd_name}: Get some information about the yt installation
+        Get some information about the yt installation
 
         ${cmd_usage}
         ${cmd_option_list}
@@ -352,14 +446,17 @@ class YTCommands(cmdln.Cmdln):
             print "Updated successfully."
         elif opts.update_source:
             print
-            print "You have to update this installation yourself."
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
     def do_load(self, subcmd, opts, arg):
         """
-        Load a single dataset into an IPython instance.
+        Load a single dataset into an IPython instance
 
         ${cmd_option_list}
         """
@@ -398,7 +495,7 @@ class YTCommands(cmdln.Cmdln):
                       'halos','halo_hop_style','halo_radius','halo_radius_units'])
     def do_halos(self, subcmd, opts, arg):
         """
-        Run HaloProfiler on one dataset.
+        Run HaloProfiler on one dataset
 
         ${cmd_option_list}
         """
@@ -412,55 +509,6 @@ class YTCommands(cmdln.Cmdln):
             hp.make_profiles()
         if opts.make_projections:
             hp.make_projections()
-
-    @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
-                      "zlim", "nframes", "output", "cmap", "uboxes", "dex",
-                      "text"])
-    def do_zoomin(self, subcmd, opts, arg):
-        """
-        Create a set of zoomin frames
-
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        min_width = opts.min_width * pf.h.get_smallest_dx()
-        if opts.axis == 4:
-            axes = range(3)
-        else:
-            axes = [opts.axis]
-        pc = PlotCollection(pf)
-        for ax in axes: 
-            if opts.projection: p = pc.add_projection(opts.field, ax,
-                                    weight_field=opts.weight)
-            else: p = pc.add_slice(opts.field, ax)
-            if opts.unit_boxes: p.modify["units"](factor=8)
-            if opts.text is not None:
-                p.modify["text"](
-                    (0.02, 0.05), opts.text.replace(r"\n", "\n"),
-                    text_args=dict(size="medium", color="w"))
-        pc.set_width(opts.max_width,'1')
-        # Check the output directory
-        if not os.path.isdir(opts.output):
-            os.mkdir(opts.output)
-        # Figure out our zoom factor
-        # Recall that factor^nframes = min_width / max_width
-        # so factor = (log(min/max)/log(nframes))
-        mylog.info("min_width: %0.3e max_width: %0.3e nframes: %0.3e",
-                   min_width, opts.max_width, opts.nframes)
-        factor=10**(math.log10(min_width/opts.max_width)/opts.nframes)
-        mylog.info("Zoom factor: %0.3e", factor)
-        w = 1.0
-        for i in range(opts.nframes):
-            mylog.info("Setting width to %0.3e", w)
-            mylog.info("Saving frame %06i",i)
-            pc.set_width(w,"1")
-            if opts.zlim:
-                pc.set_zlim(*opts.zlim)
-            if opts.dex:
-                pc.set_zlim('min', None, opts.dex)
-            pc.set_cmap(opts.cmap)
-            pc.save(os.path.join(opts.output,"%s_frame%06i" % (pf,i)))
-            w = factor**i
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",
@@ -525,7 +573,7 @@ class YTCommands(cmdln.Cmdln):
         else:
             p = pc.add_slice(opts.field, opts.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, opts.field)
+        mapper = PannableMapServer(p.field_data, opts.field)
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         if opts.host is not None:
@@ -571,7 +619,7 @@ class YTCommands(cmdln.Cmdln):
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
     @add_cmd_options([])
-    def do_analyze(self, subcmd, opts, arg):
+    def _do_analyze(self, subcmd, opts, arg):
         """
         Produce a set of analysis for a given output.  This includes
         HaloProfiler results with r200, as per the recipe file in the cookbook,
@@ -595,16 +643,18 @@ class YTCommands(cmdln.Cmdln):
                            virial_quantities=['TotalMassMsun','RadiusMpc'])
 
         # Add profile fields.
-        hp.add_profile('CellVolume',weight_field=None,accumulation=True)
-        hp.add_profile('TotalMassMsun',weight_field=None,accumulation=True)
-        hp.add_profile('Density',weight_field=None,accumulation=False)
-        hp.add_profile('Temperature',weight_field='CellMassMsun',accumulation=False)
+        pf = hp.pf
+        all_fields = pf.h.field_list + pf.h.derived_field_list
+        for field, wv, acc in HP.standard_fields:
+            if field not in all_fields: continue
+            hp.add_profile(field, wv, acc)
         hp.make_profiles(filename="FilteredQuantities.out")
 
         # Add projection fields.
         hp.add_projection('Density',weight_field=None)
         hp.add_projection('Temperature',weight_field='Density')
-        hp.add_projection('Metallicity',weight_field='Density')
+        if "Metallicity" in all_fields:
+            hp.add_projection('Metallicity',weight_field='Density')
 
         # Make projections for all three axes using the filtered halo list and
         # save data to hdf5 files.
@@ -627,7 +677,7 @@ class YTCommands(cmdln.Cmdln):
         pc_dummy = PlotCollection(pf, center=c)
         pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
                             weight="CellMassMsun")
-        ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
+        ph.modify["line"](pr.field_data["Density"], pr.field_data["Temperature"])
         pc.save()
 
     @cmdln.option("-d", "--desc", action="store",
@@ -663,7 +713,7 @@ class YTCommands(cmdln.Cmdln):
                   help="File to output to; else, print.")
     def do_pastebin(self, subcmd, opts, arg):
         """
-        Post a script to an anonymous pastebin.
+        Post a script to an anonymous pastebin
 
         Usage: yt pastebin [options] <script>
 
@@ -678,7 +728,7 @@ class YTCommands(cmdln.Cmdln):
         """
         Print an online pastebin to STDOUT for local use. Paste ID is 
         the number at the end of the url.  So to locally access pastebin:
-        http://paste.enzotools.org/show/1688/
+        http://paste.yt-project.org/show/1688/
 
         Usage: yt pastebin_grab <Paste ID> 
         Ex: yt pastebin_grab 1688 > script.py
@@ -692,7 +742,7 @@ class YTCommands(cmdln.Cmdln):
                   help="File to output to; else, print.")
     def do_pasteboard_grab(self, subcmd, opts, username, paste_id):
         """
-        Download from your or another user's pasteboard.
+        Download from your or another user's pasteboard
 
         ${cmd_usage} 
         ${cmd_option_list}
@@ -714,7 +764,7 @@ class YTCommands(cmdln.Cmdln):
         print "==============================================================="
         print "At any time in advance of the upload of the bug, you should feel free"
         print "to ctrl-C out and submit the bug report manually by going here:"
-        print "   http://hg.enzotools.org/yt/issues/new"
+        print "   http://hg.yt-project.org/yt/issues/new"
         print 
         print "Also, in order to submit a bug through this interface, you"
         print "need a Bitbucket account. If you don't have one, exit this "
@@ -722,12 +772,12 @@ class YTCommands(cmdln.Cmdln):
         print
         print "Have you checked the existing bug reports to make"
         print "sure your bug has not already been recorded by someone else?"
-        print "   http://hg.enzotools.org/yt/issues?status=new&status=open"
+        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
         print
         print "Finally, are you sure that your bug is, in fact, a bug? It might"
         print "simply be a misunderstanding that could be cleared up by"
         print "visiting the yt irc channel or getting advice on the email list:"
-        print "   http://yt.enzotools.org/irc.html"
+        print "   http://yt-project.org/irc.html"
         print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
         print
         summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
@@ -802,7 +852,7 @@ class YTCommands(cmdln.Cmdln):
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
-        url = "http://hg.enzotools.org/yt/issue/%s" % retval['local_id']
+        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
         print 
         print "==============================================================="
         print
@@ -839,32 +889,7 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        supp_path = os.path.join(os.environ["YT_DEST"], "src",
-                                 "yt-supplemental")
-        # Now we check that the supplemental repository is checked out.
-        if not os.path.isdir(supp_path):
-            print
-            print "*** The yt-supplemental repository is not checked ***"
-            print "*** out.  I can do this for you, but because this ***"
-            print "*** is a delicate act, I require you to respond   ***"
-            print "*** to the prompt with the word 'yes'.            ***"
-            print
-            response = raw_input("Do you want me to try to check it out? ")
-            if response != "yes":
-                print
-                print "Okay, I understand.  You can check it out yourself."
-                print "This command will do it:"
-                print
-                print "$ hg clone http://hg.enzotools.org/yt-supplemental/ ",
-                print "%s" % (supp_path)
-                print
-                sys.exit(1)
-            rv = commands.clone(uu,
-                    "http://hg.enzotools.org/yt-supplemental/", supp_path)
-            if rv:
-                print "Something has gone wrong.  Quitting."
-                sys.exit(1)
-        # Now we think we have our supplemental repository.
+        supp_path = _get_yt_supp()
         print
         print "I have found the yt-supplemental repository at %s" % (supp_path)
         print
@@ -1153,7 +1178,7 @@ class YTCommands(cmdln.Cmdln):
                   help="Add a debugging mode for cell execution")
     def do_serve(self, subcmd, opts):
         """
-        Run the Web GUI
+        Run the Web GUI Reason
         """
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
@@ -1204,7 +1229,7 @@ class YTCommands(cmdln.Cmdln):
                     port=int(opts.port), repl=hr)
 
     
-    def do_remote(self, subcmd, opts):
+    def _do_remote(self, subcmd, opts):
         import getpass, sys, socket, time, webbrowser
         import yt.utilities.pexpect as pex
 
@@ -1253,23 +1278,301 @@ class YTCommands(cmdln.Cmdln):
         while 1:
             time.sleep(1)
 
-    def do_intents(self, subcmd, opts, *intents):
+    @cmdln.option("-R", "--repo", action="store", type="string",
+                  dest="repo", default=".", help="Repository to upload")
+    def do_hubsubmit(self, subcmd, opts):
         """
-        ${cmd_name}: What are your ... intentions?
+        Submit a mercurial repository to the yt Hub
+        (http://hub.yt-project.org/), creating a BitBucket repo in the process
+        if necessary.
 
         ${cmd_usage}
         ${cmd_option_list}
         """
-        from yt.utilities.cookbook import Intent
-        if len(intents) == 0:
-            Intent.list_intents()
-        else:
-            intent = Intent.select_intent(intents[0])
-            if intent is None:
-                print "Could not find %s" % intents[0]
+        import imp
+        from mercurial import hg, ui, commands, error, config
+        uri = "http://hub.yt-project.org/3rdparty/API/api.php"
+        supp_path = _get_yt_supp()
+        try:
+            result = imp.find_module("cedit", [supp_path])
+        except ImportError:
+            print "I was unable to find the 'cedit' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        cedit = imp.load_module("cedit", *result)
+        try:
+            result = imp.find_module("hgbb", [supp_path + "/hgbb"])
+        except ImportError:
+            print "I was unable to find the 'hgbb' module in %s" % (supp_path)
+            print "This may be due to a broken checkout."
+            print "Sorry, but I'm going to bail."
+            sys.exit(1)
+        hgbb = imp.load_module("hgbb", *result)
+        uu = ui.ui()
+        try:
+            repo = hg.repository(uu, opts.repo)
+            conf = config.config()
+            if os.path.exists(os.path.join(opts.repo,".hg","hgrc")):
+                conf.read(os.path.join(opts.repo, ".hg", "hgrc"))
+            needs_bb = True
+            if "paths" in conf.sections():
+                default = conf['paths'].get("default", "")
+                if default.startswith("bb://") or "bitbucket.org" in default:
+                    needs_bb = False
+                    bb_url = default
+                else:
+                    for alias, value in conf["paths"].items():
+                        if value.startswith("bb://") or "bitbucket.org" in value:
+                            needs_bb = False
+                            bb_url = value
+                            break
+        except error.RepoError:
+            print "Unable to find repo at:"
+            print "   %s" % (os.path.abspath(opts.repo))
+            print
+            print "Would you like to initialize one?  If this message"
+            print "surprises you, you should perhaps press Ctrl-C to quit."
+            print "Otherwise, type 'yes' at the prompt."
+            print
+            loki = raw_input("Create repo? ")
+            if loki.upper().strip() != "YES":
+                print "Okay, rad -- we'll let you handle it and get back to",
+                print " us."
                 return 1
-            intent_inst = intent(intents[1:])
-            intent_inst.run()
+            commands.init(uu, dest=opts.repo)
+            repo = hg.repository(uu, opts.repo)
+            commands.add(uu, repo)
+            commands.commit(uu, repo, message="Initial automated import by yt")
+            needs_bb = True
+        if needs_bb:
+            print
+            print "Your repository is not yet on BitBucket, as near as I can tell."
+            print "Would you like to create a repository there and upload to it?"
+            print "Without this, I don't know what URL to submit!"
+            print
+            print "Type 'yes' to accept."
+            print
+            loki = raw_input("Upload to BitBucket? ")
+            if loki.upper().strip() != "YES": return 1
+            hgrc_path = [cedit.config.defaultpath("user", uu)]
+            hgrc_path = cedit.config.verifypaths(hgrc_path)
+            uu.readconfig(hgrc_path[0])
+            bb_username = uu.config("bb", "username", None)
+            if bb_username is None:
+                print "Can't find your Bitbucket username.  Run the command:"
+                print
+                print "$ yt bootstrap_dev"
+                print
+                print "to get set up and ready to go."
+                return 1
+            bb_repo_name = os.path.basename(os.path.abspath(opts.repo))
+            print
+            print "I am now going to create the repository:"
+            print "    ", bb_repo_name
+            print "on BitBucket.org and upload this repository to that."
+            print "If that is not okay, please press Ctrl-C to quit."
+            print
+            loki = raw_input("Press Enter to continue.")
+            data = dict(name=bb_repo_name)
+            hgbb._bb_apicall(uu, 'repositories', data)
+            print
+            print "Created repository!  Now I will set this as the default path."
+            print
+            bb_url = "https://%s@bitbucket.org/%s/%s" % (
+                        bb_username, bb_username, bb_repo_name)
+            cedit.config.addsource(uu, repo, "default", bb_url)
+            commands.push(uu, repo, bb_url)
+        if bb_url.startswith("bb://"):
+            bb_username, bb_repo_name = bb_url.split("/")[-2:]
+            bb_url = "https://%s@bitbucket.org/%s/%s" % (
+                bb_username, bb_username, bb_repo_name)
+        # Now we can submit
+        import xml.etree.ElementTree as etree
+        print
+        print "Okay.  Now we're ready to submit to the Hub."
+        print "Remember, you can go to the Hub at any time at"
+        print " http://hub.yt-project.org/"
+        print
+        print "(Especially if you don't have a user yet!  We can wait.)"
+        print
+        hub_username = raw_input("What is your Hub username? ")
+        hub_password = getpass.getpass("What is your Hub password? ")
+        data = urllib.urlencode(dict(fn = "list",
+                                     username=hub_username,
+                                     password=hub_password))
+        req = urllib2.Request(uri, data)
+        rv = urllib2.urlopen(req).read()
+        try:
+            cats = etree.fromstring(rv)
+        except:
+            print "I think you entered your password wrong.  Please check!"
+            return
+
+        categories = {}
+
+        for cat in cats.findall("./cate"):
+            cat_id = int(cat.findall("id")[0].text)
+            cat_name = cat.findall("name")[0].text
+            categories[cat_id] = cat_name
+
+        print
+        for i, n in sorted(categories.items()):
+            print "%i. %s" % (i, n)
+        print
+        cat_id = int(raw_input("Which category number does your script fit into? "))
+        print
+        print "What is the title of your submission? (Usually a repository name) "
+        title = raw_input("Title? ")
+        print
+        print "What tags should be applied to this submission?  Separate with commas."
+        print "(e.g., enzo, flash, gadget, ramses, nyx, yt, visualization, analysis,"
+        print " utility, cosmology)"
+        print
+        tags = raw_input("Tags? ")
+        print
+        print "Give us a very brief summary of the project -- enough to get someone"
+        print "interested enough to click the link and see what it's about.  This"
+        print "should be a few sentences at most."
+        print
+        summary = raw_input("Summary? ")
+        print
+        print "Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out."
+        print
+        loki = raw_input()
+
+        data = urllib.urlencode(dict(fn = "post",
+                                     username=hub_username, password=hub_password,
+                                     url = bb_url, category = cat_id, title = title,
+                                     content = summary, tags = tags))
+        req = urllib2.Request(uri, data)
+        rv = urllib2.urlopen(req).read()
+        print rv
+
+    def do_upload_image(self, subcmd, opts, filename):
+        """
+        Upload an image to imgur.com.  Must be PNG.
+
+        ${cmd_usage} 
+        ${cmd_option_list}
+        """
+        if not filename.endswith(".png"):
+            print "File must be a PNG file!"
+            return 1
+        import base64, json, pprint
+        image_data = base64.b64encode(open(filename).read())
+        api_key = 'f62d550859558f28c4c214136bc797c7'
+        parameters = {'key':api_key, 'image':image_data, type:'base64',
+                      'caption': "",
+                      'title': "%s uploaded by yt" % filename}
+        data = urllib.urlencode(parameters)
+        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        try:
+            response = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as e:
+            print "ERROR", e
+            return {'uploaded':False}
+        rv = json.loads(response)
+        if 'upload' in rv and 'links' in rv['upload']:
+            print
+            print "Image successfully uploaded!  You can find it at:"
+            print "    %s" % (rv['upload']['links']['imgur_page'])
+            print
+            print "If you'd like to delete it, visit this page:"
+            print "    %s" % (rv['upload']['links']['delete_page'])
+            print
+        else:
+            print
+            print "Something has gone wrong!  Here is the server response:"
+            print
+            pprint.pprint(rv)
+
+    @add_cmd_options(["width", "unit", "center","enhance",'outputfn',
+                      "field", "cmap", "contours", "viewpoint",
+                      "pixels","up","valrange","log","contour_width"])
+    @check_args
+    def do_render(self, subcmd, opts, arg):
+        """
+        Create a simple volume rendering
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
+        center = opts.center
+        if opts.center == (-1,-1,-1):
+            mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        elif opts.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+        center = na.array(center)
+
+        L = opts.viewpoint
+        if L is None:
+            L = [1.]*3
+        L = na.array(opts.viewpoint)
+
+        unit = opts.unit
+        if unit is None:
+            unit = '1'
+        width = opts.width
+        if width is None:
+            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
+        width /= pf[unit]
+
+        N = opts.pixels
+        if N is None:
+            N = 512 
+        
+        up = opts.up
+        if up is None:
+            up = [0.,0.,1.]
+            
+        field = opts.field
+        if field is None:
+            field = 'Density'
+        
+        log = opts.takelog
+        if log is None:
+            log = True
+
+        myrange = opts.valrange
+        if myrange is None:
+            roi = pf.h.region(center, center-width, center+width)
+            mi, ma = roi.quantities['Extrema'](field)[0]
+            if log:
+                mi, ma = na.log10(mi), na.log10(ma)
+        else:
+            mi, ma = myrange[0], myrange[1]
+
+        n_contours = opts.contours
+        if n_contours is None:
+            n_contours = 7
+
+        contour_width = opts.contour_width
+
+        cmap = opts.cmap
+        if cmap is None:
+            cmap = 'jet'
+        tf = ColorTransferFunction((mi-2, ma+2))
+        tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
+
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        image = cam.snapshot()
+
+        if opts.enhance:
+            for i in range(3):
+                image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
+            image[image>1.0]=1.0
+            
+        save_name = opts.output
+        if save_name is None:
+            save_name = "%s"%pf+"_"+field+"_rendering.png"
+        if not '.png' in save_name:
+            save_name += '.png'
+        if cam.comm.rank != -1:
+            write_bitmap(image,save_name)
+        
 
 def run_main():
     for co in ["--parallel", "--paste"]:

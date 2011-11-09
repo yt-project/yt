@@ -3,7 +3,7 @@ AMR hierarchy container class
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -48,6 +48,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 
     def __init__(self, pf, data_style):
+        ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
 
@@ -87,6 +88,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         mylog.debug("Re-examining hierarchy")
         self._initialize_level_stats()
 
+    def __del__(self):
+        if self._data_file is not None:
+            self._data_file.close()
+
     def _get_parameters(self):
         return self.parameter_file.parameters
     parameters=property(_get_parameters)
@@ -120,10 +125,16 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         # Called by subclass
         self.object_types = []
         self.objects = []
+        self.plots = []
         for name, cls in sorted(data_object_registry.items()):
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cname, cls, dd)
+        if self.pf.refine_by != 2 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Refine by something other than two: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
         self.object_types.sort()
 
     # Now all the object related stuff
@@ -171,7 +182,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             writeable = os.access(fn, os.W_OK)
         writeable = writeable and not ytcfg.getboolean('yt','onlydeserialize')
         # We now have our conditional stuff
-        self._barrier()
+        self.comm.barrier()
         if not writeable and not exists: return
         if writeable:
             try:
@@ -203,10 +214,6 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
 
         if self._data_mode != 'a': return
-        if "ArgsError" in dir(h5py.h5):
-            exception = (h5py.h5.ArgsError, KeyError)
-        else:
-            exception = (h5py.h5.H5Error, KeyError)
         try:
             node_loc = self._data_file[node]
             if name in node_loc and force:
@@ -214,7 +221,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                 del self._data_file[node][name]
             elif name in node_loc and passthrough:
                 return
-        except exception:
+        except:
             pass
         myGroup = self._data_file['/']
         for q in node.split('/'):

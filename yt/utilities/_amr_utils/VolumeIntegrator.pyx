@@ -3,7 +3,7 @@ Simple integrators for the radiative transfer equation
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
@@ -69,6 +69,12 @@ cdef extern from "math.h":
 cdef struct Triangle:
     Triangle *next
     np.float64_t p[3][3]
+    np.float64_t val
+
+cdef struct TriangleCollection:
+    int count
+    Triangle *first
+    Triangle *current
 
 cdef Triangle *AddTriangle(Triangle *self,
                     np.float64_t p0[3], np.float64_t p1[3], np.float64_t p2[3]):
@@ -93,6 +99,25 @@ cdef int CountTriangles(Triangle *first):
         this = this.next
     return count
 
+cdef void FillTriangleValues(np.ndarray[np.float64_t, ndim=1] values,
+                             Triangle *first):
+    cdef Triangle *this = first
+    cdef Triangle *last
+    cdef int i = 0
+    while this != NULL:
+        values[i] = this.val
+        i += 1
+        last = this
+        this = this.next
+
+cdef void WipeTriangles(Triangle *first):
+    cdef Triangle *this = first
+    cdef Triangle *last
+    while this != NULL:
+        last = this
+        this = this.next
+        free(last)
+
 cdef void FillAndWipeTriangles(np.ndarray[np.float64_t, ndim=2] vertices,
                                Triangle *first):
     cdef int count = 0
@@ -114,13 +139,13 @@ cdef extern from "FixedInterpolator.h":
     np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3], np.float64_t *data)
     np.float64_t trilinear_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                        np.float64_t *data)
-    np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
-                                       np.float64_t *data, np.float64_t *grad)
+    void eval_gradient(int ds[3], np.float64_t dp[3], np.float64_t *data,
+                       np.float64_t grad[3])
     void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
     void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
                        np.float64_t vl[3], np.float64_t dds[3],
                        np.float64_t x, np.float64_t y, np.float64_t z,
-                       int x0, int y0, int z0, int direction)
+                       int vind1, int vind2)
 
 #cdef extern int *edge_table
 #cdef extern int **tri_table
@@ -267,9 +292,12 @@ cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
 
 cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                             np.float64_t *dvs):
-    cdef np.float64_t bv, dy, dd, tf
+    cdef np.float64_t bv, dy, dd, tf, rv
     cdef int bin_id
-    if fit.pass_through == 1: return dvs[fit.field_id]
+    if fit.pass_through == 1:
+        rv = dvs[fit.field_id]
+        if fit.weight_field_id != -1: rv *= dvs[fit.weight_field_id]
+        return rv
     if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
@@ -289,7 +317,6 @@ cdef class TransferFunctionProxy:
     # correspond to multiple tables, and each field table will only have
     # interpolate called once.
     cdef FieldInterpolationTable field_tables[6]
-    cdef np.float64_t istorage[6]
 
     # Here are the field tables that correspond to each of the six channels.
     # We have three emission channels, three absorption channels.
@@ -314,7 +341,6 @@ cdef class TransferFunctionProxy:
         self.tf_obj = tf_obj
 
         self.n_field_tables = tf_obj.n_field_tables
-        for i in range(6): self.istorage[i] = 0.0
 
         self.my_field_tables = []
         for i in range(self.n_field_tables):
@@ -331,21 +357,21 @@ cdef class TransferFunctionProxy:
                                          tf_obj.tables[i].y))
             self.field_tables[i].field_id = tf_obj.field_ids[i]
             self.field_tables[i].weight_field_id = tf_obj.weight_field_ids[i]
-            print "Field table", i, "corresponds to",
-            print self.field_tables[i].field_id,
-            print "(Weighted with ", self.field_tables[i].weight_field_id,
-            print ")"
+            #print "Field table", i, "corresponds to",
+            #print self.field_tables[i].field_id,
+            #print "(Weighted with ", self.field_tables[i].weight_field_id,
+            #print ")"
 
         for i in range(6):
             self.field_table_ids[i] = tf_obj.field_table_ids[i]
-            print "Channel", i, "corresponds to", self.field_table_ids[i]
+            #print "Channel", i, "corresponds to", self.field_table_ids[i]
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
                                   np.float64_t *rgba, np.float64_t *grad):
         cdef int i, fid, use
-        cdef np.float64_t ta, tf, trgba[6], dot_prod
+        cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
         # NOTE: We now disable this.  I have left it to ease the process of
         # potentially, one day, re-including it.
         #use = 0
@@ -355,14 +381,15 @@ cdef class TransferFunctionProxy:
         #       (dvs[fid] <= self.field_tables[i].bounds[1]):
         #        use = 1
         #        break
+        for i in range(6): istorage[i] = 0.0
         for i in range(self.n_field_tables):
-            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
+            istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
         # We have to do this after the interpolation
         for i in range(self.n_field_tables):
             fid = self.field_tables[i].weight_table_id
-            if fid != -1: self.istorage[i] *= self.istorage[fid]
+            if fid != -1: istorage[i] *= istorage[fid]
         for i in range(6):
-            trgba[i] = self.istorage[self.field_table_ids[i]]
+            trgba[i] = istorage[self.field_table_ids[i]]
             #print i, trgba[i],
         #print
         # A few words on opacity.  We're going to be integrating equation 1.23
@@ -583,12 +610,13 @@ cdef class PartitionedGrid:
                                  np.float64_t v_dir[3],
                                  np.float64_t rgba[4],
                                  TransferFunctionProxy tf,
-                                 np.float64_t *return_t = NULL):
+                                 np.float64_t *return_t = NULL,
+                                 np.float64_t enter_t = -1.0):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t iv_dir[3]
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
-        cdef np.float64_t enter_t, dist, alpha, dt, exit_t
+        cdef np.float64_t dist, alpha, dt, exit_t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
         for i in range(3):
             if (v_dir[i] < 0):
@@ -624,6 +652,7 @@ cdef class PartitionedGrid:
            self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
            self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
             intersect_t = 0.0
+        if enter_t >= 0.0: intersect_t = enter_t
         if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
         for i in range(3):
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
@@ -710,15 +739,33 @@ cdef class PartitionedGrid:
         dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
         cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
                         + ci[1] * (self.dims[2] + 1) + ci[2]
+        # The initial and final values can be linearly interpolated between; so
+        # we just have to calculate our initial and final values.
+        cdef np.float64_t slopes[6]
         for i in range(3):
-            cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
-            # this gets us dp as the current first sample position
-            pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
-            dp[i] = pos[i] - cell_left[i]
+            dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+            dp[i] -= ci[i] * self.dds[i] + self.left_edge[i]
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
-            local_dds[i] = v_dir[i] * dt
+        for i in range(self.n_fields):
+            slopes[i] = offset_interpolate(self.dims, dp,
+                            self.data[i] + offset)
+        for i in range(3):
+            dp[i] += ds[i] * tf.ns
+        cdef np.float64_t temp
+        for i in range(self.n_fields):
+            temp = slopes[i]
+            slopes[i] -= offset_interpolate(self.dims, dp,
+                             self.data[i] + offset)
+            slopes[i] *= -1.0/tf.ns
+            self.dvs[i] = temp
         if self.star_list != NULL:
+            for i in range(3):
+                cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
+                # this gets us dp as the current first sample position
+                pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+                dp[i] -= tf.ns * ds[i]
+                local_dds[i] = v_dir[i] * dt
             ballq = kdtree_utils.kd_nearest_range3(
                 self.star_list, cell_left[0] + self.dds[0]*0.5,
                                 cell_left[1] + self.dds[1]*0.5,
@@ -726,15 +773,16 @@ cdef class PartitionedGrid:
                                 self.star_er + 0.9*self.dds[0])
                                             # ~0.866 + a bit
         for dti in range(tf.ns): 
-            for i in range(self.n_fields):
-                self.dvs[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
             #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
             #    continue
-            if self.star_list != NULL: self.add_stars(ballq, dt, pos, rgba)
+            if self.star_list != NULL:
+                self.add_stars(ballq, dt, pos, rgba)
+                for i in range(3):
+                    dp[i] += ds[i]
+                    pos[i] += local_dds[i]
             tf.eval_transfer(dt, self.dvs, rgba, grad)
-            for i in range(3):
-                dp[i] += ds[i]
-                pos[i] += local_dds[i]
+            for i in range(self.n_fields):
+                self.dvs[i] += slopes[i]
         if ballq != NULL: kdtree_utils.kd_res_free(ballq)
 
     @cython.boundscheck(False)
@@ -841,389 +889,606 @@ cdef class PartitionedGrid:
             for i in range(3):
                 vel[i] /= vel_mag[0]
 
-    #@cython.boundscheck(False)
-    #@cython.wraparound(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @cython.cdivision(True)
     def get_isocontour_triangles(self, np.float64_t isovalue, int field_id = 0):
         # Much of this was inspired by code from Paul Bourke's website:
         # http://paulbourke.net/geometry/polygonise/
-        cdef int *edge_table=[
-        0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
-        0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
-        0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
-        0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
-        0x230, 0x339, 0x33 , 0x13a, 0x636, 0x73f, 0x435, 0x53c,
-        0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
-        0x3a0, 0x2a9, 0x1a3, 0xaa , 0x7a6, 0x6af, 0x5a5, 0x4ac,
-        0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
-        0x460, 0x569, 0x663, 0x76a, 0x66 , 0x16f, 0x265, 0x36c,
-        0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60,
-        0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0xff , 0x3f5, 0x2fc,
-        0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0,
-        0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x55 , 0x15c,
-        0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
-        0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0xcc ,
-        0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0,
-        0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc,
-        0xcc , 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0,
-        0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c,
-        0x15c, 0x55 , 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650,
-        0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
-        0x2fc, 0x3f5, 0xff , 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0,
-        0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c,
-        0x36c, 0x265, 0x16f, 0x66 , 0x76a, 0x663, 0x569, 0x460,
-        0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac,
-        0x4ac, 0x5a5, 0x6af, 0x7a6, 0xaa , 0x1a3, 0x2a9, 0x3a0,
-        0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c,
-        0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x33 , 0x339, 0x230,
-        0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c,
-        0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99 , 0x190,
-        0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
-        0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0   ]
+        # Cython makes us toss this in here, which I think will change in a
+        # future release.
 
-        cdef int **tri_table = \
-        [[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 8, 3, 9, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 3, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 2, 10, 0, 2, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [2, 8, 3, 2, 10, 8, 10, 9, 8, -1, -1, -1, -1, -1, -1, -1],
-        [3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 11, 2, 8, 11, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 9, 0, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 11, 2, 1, 9, 11, 9, 8, 11, -1, -1, -1, -1, -1, -1, -1],
-        [3, 10, 1, 11, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 10, 1, 0, 8, 10, 8, 11, 10, -1, -1, -1, -1, -1, -1, -1],
-        [3, 9, 0, 3, 11, 9, 11, 10, 9, -1, -1, -1, -1, -1, -1, -1],
-        [9, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 3, 0, 7, 3, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 1, 9, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 1, 9, 4, 7, 1, 7, 3, 1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 10, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [3, 4, 7, 3, 0, 4, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1],
-        [9, 2, 10, 9, 0, 2, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1],
-        [2, 10, 9, 2, 9, 7, 2, 7, 3, 7, 9, 4, -1, -1, -1, -1],
-        [8, 4, 7, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [11, 4, 7, 11, 2, 4, 2, 0, 4, -1, -1, -1, -1, -1, -1, -1],
-        [9, 0, 1, 8, 4, 7, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1],
-        [4, 7, 11, 9, 4, 11, 9, 11, 2, 9, 2, 1, -1, -1, -1, -1],
-        [3, 10, 1, 3, 11, 10, 7, 8, 4, -1, -1, -1, -1, -1, -1, -1],
-        [1, 11, 10, 1, 4, 11, 1, 0, 4, 7, 11, 4, -1, -1, -1, -1],
-        [4, 7, 8, 9, 0, 11, 9, 11, 10, 11, 0, 3, -1, -1, -1, -1],
-        [4, 7, 11, 4, 11, 9, 9, 11, 10, -1, -1, -1, -1, -1, -1, -1],
-        [9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 5, 4, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 5, 4, 1, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [8, 5, 4, 8, 3, 5, 3, 1, 5, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 10, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [3, 0, 8, 1, 2, 10, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1],
-        [5, 2, 10, 5, 4, 2, 4, 0, 2, -1, -1, -1, -1, -1, -1, -1],
-        [2, 10, 5, 3, 2, 5, 3, 5, 4, 3, 4, 8, -1, -1, -1, -1],
-        [9, 5, 4, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 11, 2, 0, 8, 11, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1],
-        [0, 5, 4, 0, 1, 5, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1],
-        [2, 1, 5, 2, 5, 8, 2, 8, 11, 4, 8, 5, -1, -1, -1, -1],
-        [10, 3, 11, 10, 1, 3, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1],
-        [4, 9, 5, 0, 8, 1, 8, 10, 1, 8, 11, 10, -1, -1, -1, -1],
-        [5, 4, 0, 5, 0, 11, 5, 11, 10, 11, 0, 3, -1, -1, -1, -1],
-        [5, 4, 8, 5, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1],
-        [9, 7, 8, 5, 7, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 3, 0, 9, 5, 3, 5, 7, 3, -1, -1, -1, -1, -1, -1, -1],
-        [0, 7, 8, 0, 1, 7, 1, 5, 7, -1, -1, -1, -1, -1, -1, -1],
-        [1, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 7, 8, 9, 5, 7, 10, 1, 2, -1, -1, -1, -1, -1, -1, -1],
-        [10, 1, 2, 9, 5, 0, 5, 3, 0, 5, 7, 3, -1, -1, -1, -1],
-        [8, 0, 2, 8, 2, 5, 8, 5, 7, 10, 5, 2, -1, -1, -1, -1],
-        [2, 10, 5, 2, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1],
-        [7, 9, 5, 7, 8, 9, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1],
-        [9, 5, 7, 9, 7, 2, 9, 2, 0, 2, 7, 11, -1, -1, -1, -1],
-        [2, 3, 11, 0, 1, 8, 1, 7, 8, 1, 5, 7, -1, -1, -1, -1],
-        [11, 2, 1, 11, 1, 7, 7, 1, 5, -1, -1, -1, -1, -1, -1, -1],
-        [9, 5, 8, 8, 5, 7, 10, 1, 3, 10, 3, 11, -1, -1, -1, -1],
-        [5, 7, 0, 5, 0, 9, 7, 11, 0, 1, 0, 10, 11, 10, 0, -1],
-        [11, 10, 0, 11, 0, 3, 10, 5, 0, 8, 0, 7, 5, 7, 0, -1],
-        [11, 10, 5, 7, 11, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 3, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 0, 1, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 8, 3, 1, 9, 8, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1],
-        [1, 6, 5, 2, 6, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 6, 5, 1, 2, 6, 3, 0, 8, -1, -1, -1, -1, -1, -1, -1],
-        [9, 6, 5, 9, 0, 6, 0, 2, 6, -1, -1, -1, -1, -1, -1, -1],
-        [5, 9, 8, 5, 8, 2, 5, 2, 6, 3, 2, 8, -1, -1, -1, -1],
-        [2, 3, 11, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [11, 0, 8, 11, 2, 0, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1],
-        [0, 1, 9, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1],
-        [5, 10, 6, 1, 9, 2, 9, 11, 2, 9, 8, 11, -1, -1, -1, -1],
-        [6, 3, 11, 6, 5, 3, 5, 1, 3, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 11, 0, 11, 5, 0, 5, 1, 5, 11, 6, -1, -1, -1, -1],
-        [3, 11, 6, 0, 3, 6, 0, 6, 5, 0, 5, 9, -1, -1, -1, -1],
-        [6, 5, 9, 6, 9, 11, 11, 9, 8, -1, -1, -1, -1, -1, -1, -1],
-        [5, 10, 6, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 3, 0, 4, 7, 3, 6, 5, 10, -1, -1, -1, -1, -1, -1, -1],
-        [1, 9, 0, 5, 10, 6, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1],
-        [10, 6, 5, 1, 9, 7, 1, 7, 3, 7, 9, 4, -1, -1, -1, -1],
-        [6, 1, 2, 6, 5, 1, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 5, 5, 2, 6, 3, 0, 4, 3, 4, 7, -1, -1, -1, -1],
-        [8, 4, 7, 9, 0, 5, 0, 6, 5, 0, 2, 6, -1, -1, -1, -1],
-        [7, 3, 9, 7, 9, 4, 3, 2, 9, 5, 9, 6, 2, 6, 9, -1],
-        [3, 11, 2, 7, 8, 4, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1],
-        [5, 10, 6, 4, 7, 2, 4, 2, 0, 2, 7, 11, -1, -1, -1, -1],
-        [0, 1, 9, 4, 7, 8, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1],
-        [9, 2, 1, 9, 11, 2, 9, 4, 11, 7, 11, 4, 5, 10, 6, -1],
-        [8, 4, 7, 3, 11, 5, 3, 5, 1, 5, 11, 6, -1, -1, -1, -1],
-        [5, 1, 11, 5, 11, 6, 1, 0, 11, 7, 11, 4, 0, 4, 11, -1],
-        [0, 5, 9, 0, 6, 5, 0, 3, 6, 11, 6, 3, 8, 4, 7, -1],
-        [6, 5, 9, 6, 9, 11, 4, 7, 9, 7, 11, 9, -1, -1, -1, -1],
-        [10, 4, 9, 6, 4, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 10, 6, 4, 9, 10, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1],
-        [10, 0, 1, 10, 6, 0, 6, 4, 0, -1, -1, -1, -1, -1, -1, -1],
-        [8, 3, 1, 8, 1, 6, 8, 6, 4, 6, 1, 10, -1, -1, -1, -1],
-        [1, 4, 9, 1, 2, 4, 2, 6, 4, -1, -1, -1, -1, -1, -1, -1],
-        [3, 0, 8, 1, 2, 9, 2, 4, 9, 2, 6, 4, -1, -1, -1, -1],
-        [0, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [8, 3, 2, 8, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1],
-        [10, 4, 9, 10, 6, 4, 11, 2, 3, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 2, 2, 8, 11, 4, 9, 10, 4, 10, 6, -1, -1, -1, -1],
-        [3, 11, 2, 0, 1, 6, 0, 6, 4, 6, 1, 10, -1, -1, -1, -1],
-        [6, 4, 1, 6, 1, 10, 4, 8, 1, 2, 1, 11, 8, 11, 1, -1],
-        [9, 6, 4, 9, 3, 6, 9, 1, 3, 11, 6, 3, -1, -1, -1, -1],
-        [8, 11, 1, 8, 1, 0, 11, 6, 1, 9, 1, 4, 6, 4, 1, -1],
-        [3, 11, 6, 3, 6, 0, 0, 6, 4, -1, -1, -1, -1, -1, -1, -1],
-        [6, 4, 8, 11, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [7, 10, 6, 7, 8, 10, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1],
-        [0, 7, 3, 0, 10, 7, 0, 9, 10, 6, 7, 10, -1, -1, -1, -1],
-        [10, 6, 7, 1, 10, 7, 1, 7, 8, 1, 8, 0, -1, -1, -1, -1],
-        [10, 6, 7, 10, 7, 1, 1, 7, 3, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 6, 1, 6, 8, 1, 8, 9, 8, 6, 7, -1, -1, -1, -1],
-        [2, 6, 9, 2, 9, 1, 6, 7, 9, 0, 9, 3, 7, 3, 9, -1],
-        [7, 8, 0, 7, 0, 6, 6, 0, 2, -1, -1, -1, -1, -1, -1, -1],
-        [7, 3, 2, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [2, 3, 11, 10, 6, 8, 10, 8, 9, 8, 6, 7, -1, -1, -1, -1],
-        [2, 0, 7, 2, 7, 11, 0, 9, 7, 6, 7, 10, 9, 10, 7, -1],
-        [1, 8, 0, 1, 7, 8, 1, 10, 7, 6, 7, 10, 2, 3, 11, -1],
-        [11, 2, 1, 11, 1, 7, 10, 6, 1, 6, 7, 1, -1, -1, -1, -1],
-        [8, 9, 6, 8, 6, 7, 9, 1, 6, 11, 6, 3, 1, 3, 6, -1],
-        [0, 9, 1, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [7, 8, 0, 7, 0, 6, 3, 11, 0, 11, 6, 0, -1, -1, -1, -1],
-        [7, 11, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [3, 0, 8, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 1, 9, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [8, 1, 9, 8, 3, 1, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1],
-        [10, 1, 2, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 10, 3, 0, 8, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1],
-        [2, 9, 0, 2, 10, 9, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1],
-        [6, 11, 7, 2, 10, 3, 10, 8, 3, 10, 9, 8, -1, -1, -1, -1],
-        [7, 2, 3, 6, 2, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [7, 0, 8, 7, 6, 0, 6, 2, 0, -1, -1, -1, -1, -1, -1, -1],
-        [2, 7, 6, 2, 3, 7, 0, 1, 9, -1, -1, -1, -1, -1, -1, -1],
-        [1, 6, 2, 1, 8, 6, 1, 9, 8, 8, 7, 6, -1, -1, -1, -1],
-        [10, 7, 6, 10, 1, 7, 1, 3, 7, -1, -1, -1, -1, -1, -1, -1],
-        [10, 7, 6, 1, 7, 10, 1, 8, 7, 1, 0, 8, -1, -1, -1, -1],
-        [0, 3, 7, 0, 7, 10, 0, 10, 9, 6, 10, 7, -1, -1, -1, -1],
-        [7, 6, 10, 7, 10, 8, 8, 10, 9, -1, -1, -1, -1, -1, -1, -1],
-        [6, 8, 4, 11, 8, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [3, 6, 11, 3, 0, 6, 0, 4, 6, -1, -1, -1, -1, -1, -1, -1],
-        [8, 6, 11, 8, 4, 6, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 4, 6, 9, 6, 3, 9, 3, 1, 11, 3, 6, -1, -1, -1, -1],
-        [6, 8, 4, 6, 11, 8, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 10, 3, 0, 11, 0, 6, 11, 0, 4, 6, -1, -1, -1, -1],
-        [4, 11, 8, 4, 6, 11, 0, 2, 9, 2, 10, 9, -1, -1, -1, -1],
-        [10, 9, 3, 10, 3, 2, 9, 4, 3, 11, 3, 6, 4, 6, 3, -1],
-        [8, 2, 3, 8, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1],
-        [0, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 9, 0, 2, 3, 4, 2, 4, 6, 4, 3, 8, -1, -1, -1, -1],
-        [1, 9, 4, 1, 4, 2, 2, 4, 6, -1, -1, -1, -1, -1, -1, -1],
-        [8, 1, 3, 8, 6, 1, 8, 4, 6, 6, 10, 1, -1, -1, -1, -1],
-        [10, 1, 0, 10, 0, 6, 6, 0, 4, -1, -1, -1, -1, -1, -1, -1],
-        [4, 6, 3, 4, 3, 8, 6, 10, 3, 0, 3, 9, 10, 9, 3, -1],
-        [10, 9, 4, 6, 10, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 9, 5, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 3, 4, 9, 5, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1],
-        [5, 0, 1, 5, 4, 0, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1],
-        [11, 7, 6, 8, 3, 4, 3, 5, 4, 3, 1, 5, -1, -1, -1, -1],
-        [9, 5, 4, 10, 1, 2, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1],
-        [6, 11, 7, 1, 2, 10, 0, 8, 3, 4, 9, 5, -1, -1, -1, -1],
-        [7, 6, 11, 5, 4, 10, 4, 2, 10, 4, 0, 2, -1, -1, -1, -1],
-        [3, 4, 8, 3, 5, 4, 3, 2, 5, 10, 5, 2, 11, 7, 6, -1],
-        [7, 2, 3, 7, 6, 2, 5, 4, 9, -1, -1, -1, -1, -1, -1, -1],
-        [9, 5, 4, 0, 8, 6, 0, 6, 2, 6, 8, 7, -1, -1, -1, -1],
-        [3, 6, 2, 3, 7, 6, 1, 5, 0, 5, 4, 0, -1, -1, -1, -1],
-        [6, 2, 8, 6, 8, 7, 2, 1, 8, 4, 8, 5, 1, 5, 8, -1],
-        [9, 5, 4, 10, 1, 6, 1, 7, 6, 1, 3, 7, -1, -1, -1, -1],
-        [1, 6, 10, 1, 7, 6, 1, 0, 7, 8, 7, 0, 9, 5, 4, -1],
-        [4, 0, 10, 4, 10, 5, 0, 3, 10, 6, 10, 7, 3, 7, 10, -1],
-        [7, 6, 10, 7, 10, 8, 5, 4, 10, 4, 8, 10, -1, -1, -1, -1],
-        [6, 9, 5, 6, 11, 9, 11, 8, 9, -1, -1, -1, -1, -1, -1, -1],
-        [3, 6, 11, 0, 6, 3, 0, 5, 6, 0, 9, 5, -1, -1, -1, -1],
-        [0, 11, 8, 0, 5, 11, 0, 1, 5, 5, 6, 11, -1, -1, -1, -1],
-        [6, 11, 3, 6, 3, 5, 5, 3, 1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 10, 9, 5, 11, 9, 11, 8, 11, 5, 6, -1, -1, -1, -1],
-        [0, 11, 3, 0, 6, 11, 0, 9, 6, 5, 6, 9, 1, 2, 10, -1],
-        [11, 8, 5, 11, 5, 6, 8, 0, 5, 10, 5, 2, 0, 2, 5, -1],
-        [6, 11, 3, 6, 3, 5, 2, 10, 3, 10, 5, 3, -1, -1, -1, -1],
-        [5, 8, 9, 5, 2, 8, 5, 6, 2, 3, 8, 2, -1, -1, -1, -1],
-        [9, 5, 6, 9, 6, 0, 0, 6, 2, -1, -1, -1, -1, -1, -1, -1],
-        [1, 5, 8, 1, 8, 0, 5, 6, 8, 3, 8, 2, 6, 2, 8, -1],
-        [1, 5, 6, 2, 1, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 3, 6, 1, 6, 10, 3, 8, 6, 5, 6, 9, 8, 9, 6, -1],
-        [10, 1, 0, 10, 0, 6, 9, 5, 0, 5, 6, 0, -1, -1, -1, -1],
-        [0, 3, 8, 5, 6, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [10, 5, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [11, 5, 10, 7, 5, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [11, 5, 10, 11, 7, 5, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1],
-        [5, 11, 7, 5, 10, 11, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1],
-        [10, 7, 5, 10, 11, 7, 9, 8, 1, 8, 3, 1, -1, -1, -1, -1],
-        [11, 1, 2, 11, 7, 1, 7, 5, 1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 3, 1, 2, 7, 1, 7, 5, 7, 2, 11, -1, -1, -1, -1],
-        [9, 7, 5, 9, 2, 7, 9, 0, 2, 2, 11, 7, -1, -1, -1, -1],
-        [7, 5, 2, 7, 2, 11, 5, 9, 2, 3, 2, 8, 9, 8, 2, -1],
-        [2, 5, 10, 2, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1],
-        [8, 2, 0, 8, 5, 2, 8, 7, 5, 10, 2, 5, -1, -1, -1, -1],
-        [9, 0, 1, 5, 10, 3, 5, 3, 7, 3, 10, 2, -1, -1, -1, -1],
-        [9, 8, 2, 9, 2, 1, 8, 7, 2, 10, 2, 5, 7, 5, 2, -1],
-        [1, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 7, 0, 7, 1, 1, 7, 5, -1, -1, -1, -1, -1, -1, -1],
-        [9, 0, 3, 9, 3, 5, 5, 3, 7, -1, -1, -1, -1, -1, -1, -1],
-        [9, 8, 7, 5, 9, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [5, 8, 4, 5, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1],
-        [5, 0, 4, 5, 11, 0, 5, 10, 11, 11, 3, 0, -1, -1, -1, -1],
-        [0, 1, 9, 8, 4, 10, 8, 10, 11, 10, 4, 5, -1, -1, -1, -1],
-        [10, 11, 4, 10, 4, 5, 11, 3, 4, 9, 4, 1, 3, 1, 4, -1],
-        [2, 5, 1, 2, 8, 5, 2, 11, 8, 4, 5, 8, -1, -1, -1, -1],
-        [0, 4, 11, 0, 11, 3, 4, 5, 11, 2, 11, 1, 5, 1, 11, -1],
-        [0, 2, 5, 0, 5, 9, 2, 11, 5, 4, 5, 8, 11, 8, 5, -1],
-        [9, 4, 5, 2, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [2, 5, 10, 3, 5, 2, 3, 4, 5, 3, 8, 4, -1, -1, -1, -1],
-        [5, 10, 2, 5, 2, 4, 4, 2, 0, -1, -1, -1, -1, -1, -1, -1],
-        [3, 10, 2, 3, 5, 10, 3, 8, 5, 4, 5, 8, 0, 1, 9, -1],
-        [5, 10, 2, 5, 2, 4, 1, 9, 2, 9, 4, 2, -1, -1, -1, -1],
-        [8, 4, 5, 8, 5, 3, 3, 5, 1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 4, 5, 1, 0, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [8, 4, 5, 8, 5, 3, 9, 0, 5, 0, 3, 5, -1, -1, -1, -1],
-        [9, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 11, 7, 4, 9, 11, 9, 10, 11, -1, -1, -1, -1, -1, -1, -1],
-        [0, 8, 3, 4, 9, 7, 9, 11, 7, 9, 10, 11, -1, -1, -1, -1],
-        [1, 10, 11, 1, 11, 4, 1, 4, 0, 7, 4, 11, -1, -1, -1, -1],
-        [3, 1, 4, 3, 4, 8, 1, 10, 4, 7, 4, 11, 10, 11, 4, -1],
-        [4, 11, 7, 9, 11, 4, 9, 2, 11, 9, 1, 2, -1, -1, -1, -1],
-        [9, 7, 4, 9, 11, 7, 9, 1, 11, 2, 11, 1, 0, 8, 3, -1],
-        [11, 7, 4, 11, 4, 2, 2, 4, 0, -1, -1, -1, -1, -1, -1, -1],
-        [11, 7, 4, 11, 4, 2, 8, 3, 4, 3, 2, 4, -1, -1, -1, -1],
-        [2, 9, 10, 2, 7, 9, 2, 3, 7, 7, 4, 9, -1, -1, -1, -1],
-        [9, 10, 7, 9, 7, 4, 10, 2, 7, 8, 7, 0, 2, 0, 7, -1],
-        [3, 7, 10, 3, 10, 2, 7, 4, 10, 1, 10, 0, 4, 0, 10, -1],
-        [1, 10, 2, 8, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 9, 1, 4, 1, 7, 7, 1, 3, -1, -1, -1, -1, -1, -1, -1],
-        [4, 9, 1, 4, 1, 7, 0, 8, 1, 8, 7, 1, -1, -1, -1, -1],
-        [4, 0, 3, 7, 4, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [4, 8, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [9, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [3, 0, 9, 3, 9, 11, 11, 9, 10, -1, -1, -1, -1, -1, -1, -1],
-        [0, 1, 10, 0, 10, 8, 8, 10, 11, -1, -1, -1, -1, -1, -1, -1],
-        [3, 1, 10, 11, 3, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 2, 11, 1, 11, 9, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1],
-        [3, 0, 9, 3, 9, 11, 1, 2, 9, 2, 11, 9, -1, -1, -1, -1],
-        [0, 2, 11, 8, 0, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [2, 3, 8, 2, 8, 10, 10, 8, 9, -1, -1, -1, -1, -1, -1, -1],
-        [9, 10, 2, 0, 9, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [2, 3, 8, 2, 8, 10, 0, 1, 8, 1, 10, 8, -1, -1, -1, -1],
-        [1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [1, 3, 8, 9, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]]
         cdef int i, j, k, n
         cdef int offset
         cdef np.float64_t gv[8]
         cdef int cubeindex
-        cdef np.float64_t vertlist[12][3]
-        cdef int ntriang = 0
         cdef np.float64_t *intdata = NULL
         cdef np.float64_t x, y, z
         cdef np.float64_t mu
-        cdef Triangle *first = NULL
-        cdef Triangle *current = NULL
+        cdef TriangleCollection triangles
+        triangles.first = triangles.current = NULL
+        triangles.count = 0
         x = self.left_edge[0]
         for i in range(self.dims[0]):
-            x += self.dds[0]
             y = self.left_edge[1]
             for j in range(self.dims[1]):
-                y += self.dds[1]
                 z = self.left_edge[2]
                 for k in range(self.dims[2]):
-                    z += self.dds[2]
                     offset = i * (self.dims[1] + 1) * (self.dims[2] + 1) \
                            + j * (self.dims[2] + 1) + k
                     intdata = self.data[field_id] + offset
                     offset_fill(self.dims, intdata, gv)
-                    cubeindex = 0
-                    if gv[0] < isovalue: cubeindex |= 1
-                    if gv[1] < isovalue: cubeindex |= 2
-                    if gv[2] < isovalue: cubeindex |= 4
-                    if gv[3] < isovalue: cubeindex |= 8
-                    if gv[4] < isovalue: cubeindex |= 16
-                    if gv[5] < isovalue: cubeindex |= 32
-                    if gv[6] < isovalue: cubeindex |= 64
-                    if gv[7] < isovalue: cubeindex |= 128
-                    #print cubeindex
-                    if edge_table[cubeindex] == 0: continue
-                    if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
-                        vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
-                                      self.dds, x, y, z, 0,0,0,1)
-                    if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
-                        vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
-                                      self.dds, x, y, z, 1,0,0,2)
-                    if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
-                        vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
-                                      self.dds, x, y, z, 1,0,0,-1)
-                    if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
-                        vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
-                                      self.dds, x, y, z, 0,1,0,-2)
-                    if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
-                        vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
-                                      self.dds, x, y, z, 0,0,1,1)
-                    if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
-                        vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
-                                      self.dds, x, y, z, 1,0,1,2)
-                    if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
-                        vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
-                                      self.dds, x, y, z, 1,1,1,-1)
-                    if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
-                        vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
-                                      self.dds, x, y, z, 0,1,1,-2)
-                    if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
-                        vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
-                                      self.dds, x, y, z, 0,0,0,3)
-                    if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
-                        vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
-                                      self.dds, x, y, z, 1,0,0,3)
-                    if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
-                        vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
-                                      self.dds, x, y, z, 1,1,0,3)
-                    if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
-                        vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
-                                      self.dds, x, y, z, 0,1,0,3)
-                    n = 0
-                    while 1:
-                        current = AddTriangle(current, 
-                                    vertlist[tri_table[cubeindex][n  ]],
-                                    vertlist[tri_table[cubeindex][n+1]],
-                                    vertlist[tri_table[cubeindex][n+2]])
-                        ntriang += 1
-                        if first == NULL: first = current
-                        n += 3
-                        if tri_table[cubeindex][n] == -1: break
+                    march_cubes(gv, isovalue, self.dds, x, y, z,
+                                &triangles)
+                    z += self.dds[2]
+                y += self.dds[1]
+            x += self.dds[0]
         # Hallo, we are all done.
         cdef np.ndarray[np.float64_t, ndim=2] vertices 
-        vertices = np.zeros((ntriang*3,3), dtype='float64')
-        FillAndWipeTriangles(vertices, first)
+        vertices = np.zeros((triangles.count*3,3), dtype='float64')
+        FillAndWipeTriangles(vertices, triangles.first)
         return vertices
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def march_cubes_grid(np.float64_t isovalue,
+                     np.ndarray[np.float64_t, ndim=3] values,
+                     np.ndarray[np.int32_t, ndim=3] mask,
+                     np.ndarray[np.float64_t, ndim=1] left_edge,
+                     np.ndarray[np.float64_t, ndim=1] dxs,
+                     obj_sample = None):
+    cdef int dims[3]
+    cdef int i, j, k, n, m, nt
+    cdef int offset
+    cdef np.float64_t gv[8], pos[3], point[3], idds[3]
+    cdef np.float64_t *intdata = NULL
+    cdef np.float64_t *sdata = NULL
+    cdef np.float64_t x, y, z, do_sample
+    cdef np.ndarray[np.float64_t, ndim=3] sample
+    cdef np.ndarray[np.float64_t, ndim=1] sampled
+    cdef TriangleCollection triangles
+    cdef Triangle *last, *current
+    if obj_sample is not None:
+        sample = obj_sample
+        sdata = <np.float64_t *> sample.data
+        do_sample = 1
+    else:
+        do_sample = 0
+    for i in range(3):
+        dims[i] = values.shape[i] - 1
+        idds[i] = 1.0 / dxs[i]
+    triangles.first = triangles.current = NULL
+    last = current = NULL
+    triangles.count = 0
+    cdef np.float64_t *data = <np.float64_t *> values.data
+    cdef np.float64_t *dds = <np.float64_t *> dxs.data
+    pos[0] = left_edge[0]
+    for i in range(dims[0]):
+        pos[1] = left_edge[1]
+        for j in range(dims[1]):
+            pos[2] = left_edge[2]
+            for k in range(dims[2]):
+                if mask[i,j,k] == 1:
+                    offset = i * (dims[1] + 1) * (dims[2] + 1) \
+                           + j * (dims[2] + 1) + k
+                    intdata = data + offset
+                    offset_fill(dims, intdata, gv)
+                    nt = march_cubes(gv, isovalue, dds, pos[0], pos[1], pos[2],
+                                &triangles)
+                    if do_sample == 1 and nt > 0:
+                        # At each triangle's center, sample our secondary field
+                        if last == NULL and triangles.first != NULL:
+                            current = triangles.first
+                            last = NULL
+                        elif last != NULL:
+                            current = last.next
+                        while current != NULL:
+                            for n in range(3):
+                                point[n] = 0.0
+                            for n in range(3):
+                                for m in range(3):
+                                    point[m] += (current.p[n][m]-pos[m])*idds[m]
+                            for n in range(3):
+                                point[n] /= 3.0
+                            current.val = offset_interpolate(dims, point,
+                                                             sdata + offset)
+                            last = current
+                            if current.next == NULL: break
+                            current = current.next
+                pos[2] += dds[2]
+            pos[1] += dds[1]
+        pos[0] += dds[0]
+    # Hallo, we are all done.
+    cdef np.ndarray[np.float64_t, ndim=2] vertices 
+    vertices = np.zeros((triangles.count*3,3), dtype='float64')
+    if do_sample == 1:
+        sampled = np.zeros(triangles.count, dtype='float64')
+        FillTriangleValues(sampled, triangles.first)
+        FillAndWipeTriangles(vertices, triangles.first)
+        return vertices, sampled
+    FillAndWipeTriangles(vertices, triangles.first)
+    return vertices
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def march_cubes_grid_flux(
+                     np.float64_t isovalue,
+                     np.ndarray[np.float64_t, ndim=3] values,
+                     np.ndarray[np.float64_t, ndim=3] v1,
+                     np.ndarray[np.float64_t, ndim=3] v2,
+                     np.ndarray[np.float64_t, ndim=3] v3,
+                     np.ndarray[np.float64_t, ndim=3] flux_field,
+                     np.ndarray[np.int32_t, ndim=3] mask,
+                     np.ndarray[np.float64_t, ndim=1] left_edge,
+                     np.ndarray[np.float64_t, ndim=1] dxs):
+    cdef int dims[3]
+    cdef int i, j, k, n, m
+    cdef int offset
+    cdef np.float64_t gv[8]
+    cdef np.float64_t *intdata = NULL
+    cdef TriangleCollection triangles
+    cdef Triangle *current = NULL
+    cdef Triangle *last = NULL
+    cdef np.float64_t *data = <np.float64_t *> values.data
+    cdef np.float64_t *v1data = <np.float64_t *> v1.data
+    cdef np.float64_t *v2data = <np.float64_t *> v2.data
+    cdef np.float64_t *v3data = <np.float64_t *> v3.data
+    cdef np.float64_t *fdata = <np.float64_t *> flux_field.data
+    cdef np.float64_t *dds = <np.float64_t *> dxs.data
+    cdef np.float64_t flux = 0.0
+    cdef np.float64_t center[3], point[3], wval, temp, area, s
+    cdef np.float64_t cell_pos[3], fv[3], idds[3], normal[3]
+    for i in range(3):
+        dims[i] = values.shape[i] - 1
+        idds[i] = 1.0 / dds[i]
+    triangles.first = triangles.current = NULL
+    triangles.count = 0
+    cell_pos[0] = left_edge[0]
+    for i in range(dims[0]):
+        cell_pos[1] = left_edge[1]
+        for j in range(dims[1]):
+            cell_pos[2] = left_edge[2]
+            for k in range(dims[2]):
+                if mask[i,j,k] == 1:
+                    offset = i * (dims[1] + 1) * (dims[2] + 1) \
+                           + j * (dims[2] + 1) + k
+                    intdata = data + offset
+                    offset_fill(dims, intdata, gv)
+                    march_cubes(gv, isovalue, dds,
+                                cell_pos[0], cell_pos[1], cell_pos[2],
+                                &triangles)
+                    # Now our triangles collection has a bunch.  We now
+                    # calculate fluxes for each.
+                    if last == NULL and triangles.first != NULL:
+                        current = triangles.first
+                        last = NULL
+                    elif last != NULL:
+                        current = last.next
+                    while current != NULL:
+                        # Calculate the center of the triangle
+                        wval = 0.0
+                        for n in range(3):
+                            center[n] = 0.0
+                        for n in range(3):
+                            for m in range(3):
+                                point[m] = (current.p[n][m]-cell_pos[m])*idds[m]
+                            # Now we calculate the value at this point
+                            temp = offset_interpolate(dims, point, intdata)
+                            #print "something", temp, point[0], point[1], point[2]
+                            wval += temp
+                            for m in range(3):
+                                center[m] += temp * point[m]
+                        # Now we divide by our normalizing factor
+                        for n in range(3):
+                            center[n] /= wval
+                        # We have our center point of the triangle, in 0..1
+                        # coordinates.  So now we interpolate our three
+                        # fields.
+                        fv[0] = offset_interpolate(dims, center, v1data + offset)
+                        fv[1] = offset_interpolate(dims, center, v2data + offset)
+                        fv[2] = offset_interpolate(dims, center, v3data + offset)
+                        # We interpolate again the actual value data
+                        wval = offset_interpolate(dims, center, fdata + offset)
+                        # Now we have our flux vector and our field value!
+                        # We just need a normal vector with which we can
+                        # dot it.  The normal should be equal to the gradient
+                        # in the center of the triangle, or thereabouts.
+                        eval_gradient(dims, center, intdata, normal)
+                        temp = 0.0
+                        for n in range(3):
+                            temp += normal[n]*normal[n]
+                        # Take the negative, to ensure it points inwardly
+                        temp = -(temp**0.5)
+                        # Dump this somewhere for now
+                        temp = wval * (fv[0] * normal[0] +
+                                       fv[1] * normal[1] +
+                                       fv[2] * normal[2])/temp
+                        # Now we need the area of the triangle.  This will take
+                        # a lot of time to calculate compared to the rest.
+                        # We use Heron's formula.
+                        for n in range(3):
+                            fv[n] = 0.0
+                        for n in range(3):
+                            fv[0] += (current.p[0][n] - current.p[2][n])**2.0
+                            fv[1] += (current.p[1][n] - current.p[0][n])**2.0
+                            fv[2] += (current.p[2][n] - current.p[1][n])**2.0
+                        s = 0.0
+                        for n in range(3):
+                            fv[n] = fv[n]**0.5
+                            s += 0.5 * fv[n]
+                        area = (s*(s-fv[0])*(s-fv[1])*(s-fv[2]))
+                        area = area**0.5
+                        flux += temp*area
+                        last = current
+                        if current.next == NULL: break
+                        current = current.next
+                cell_pos[2] += dds[2]
+            cell_pos[1] += dds[1]
+        cell_pos[0] += dds[0]
+    # Hallo, we are all done.
+    WipeTriangles(triangles.first)
+    return flux
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef int march_cubes(
+                 np.float64_t gv[8], np.float64_t isovalue,
+                 np.float64_t dds[3],
+                 np.float64_t x, np.float64_t y, np.float64_t z,
+                 TriangleCollection *triangles):
+    cdef int *edge_table=[
+    0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
+    0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
+    0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
+    0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
+    0x230, 0x339, 0x33 , 0x13a, 0x636, 0x73f, 0x435, 0x53c,
+    0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
+    0x3a0, 0x2a9, 0x1a3, 0xaa , 0x7a6, 0x6af, 0x5a5, 0x4ac,
+    0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
+    0x460, 0x569, 0x663, 0x76a, 0x66 , 0x16f, 0x265, 0x36c,
+    0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60,
+    0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0xff , 0x3f5, 0x2fc,
+    0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0,
+    0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x55 , 0x15c,
+    0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
+    0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0xcc ,
+    0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0,
+    0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc,
+    0xcc , 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0,
+    0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c,
+    0x15c, 0x55 , 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650,
+    0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
+    0x2fc, 0x3f5, 0xff , 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0,
+    0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c,
+    0x36c, 0x265, 0x16f, 0x66 , 0x76a, 0x663, 0x569, 0x460,
+    0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac,
+    0x4ac, 0x5a5, 0x6af, 0x7a6, 0xaa , 0x1a3, 0x2a9, 0x3a0,
+    0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c,
+    0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x33 , 0x339, 0x230,
+    0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c,
+    0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99 , 0x190,
+    0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
+    0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0   ]
+
+    cdef int **tri_table = \
+    [[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 8, 3, 9, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 3, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 2, 10, 0, 2, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [2, 8, 3, 2, 10, 8, 10, 9, 8, -1, -1, -1, -1, -1, -1, -1],
+    [3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 11, 2, 8, 11, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 9, 0, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 11, 2, 1, 9, 11, 9, 8, 11, -1, -1, -1, -1, -1, -1, -1],
+    [3, 10, 1, 11, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 10, 1, 0, 8, 10, 8, 11, 10, -1, -1, -1, -1, -1, -1, -1],
+    [3, 9, 0, 3, 11, 9, 11, 10, 9, -1, -1, -1, -1, -1, -1, -1],
+    [9, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 3, 0, 7, 3, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 1, 9, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 1, 9, 4, 7, 1, 7, 3, 1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 10, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [3, 4, 7, 3, 0, 4, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1],
+    [9, 2, 10, 9, 0, 2, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1],
+    [2, 10, 9, 2, 9, 7, 2, 7, 3, 7, 9, 4, -1, -1, -1, -1],
+    [8, 4, 7, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [11, 4, 7, 11, 2, 4, 2, 0, 4, -1, -1, -1, -1, -1, -1, -1],
+    [9, 0, 1, 8, 4, 7, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1],
+    [4, 7, 11, 9, 4, 11, 9, 11, 2, 9, 2, 1, -1, -1, -1, -1],
+    [3, 10, 1, 3, 11, 10, 7, 8, 4, -1, -1, -1, -1, -1, -1, -1],
+    [1, 11, 10, 1, 4, 11, 1, 0, 4, 7, 11, 4, -1, -1, -1, -1],
+    [4, 7, 8, 9, 0, 11, 9, 11, 10, 11, 0, 3, -1, -1, -1, -1],
+    [4, 7, 11, 4, 11, 9, 9, 11, 10, -1, -1, -1, -1, -1, -1, -1],
+    [9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 5, 4, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 5, 4, 1, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [8, 5, 4, 8, 3, 5, 3, 1, 5, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 10, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [3, 0, 8, 1, 2, 10, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1],
+    [5, 2, 10, 5, 4, 2, 4, 0, 2, -1, -1, -1, -1, -1, -1, -1],
+    [2, 10, 5, 3, 2, 5, 3, 5, 4, 3, 4, 8, -1, -1, -1, -1],
+    [9, 5, 4, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 11, 2, 0, 8, 11, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1],
+    [0, 5, 4, 0, 1, 5, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1],
+    [2, 1, 5, 2, 5, 8, 2, 8, 11, 4, 8, 5, -1, -1, -1, -1],
+    [10, 3, 11, 10, 1, 3, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1],
+    [4, 9, 5, 0, 8, 1, 8, 10, 1, 8, 11, 10, -1, -1, -1, -1],
+    [5, 4, 0, 5, 0, 11, 5, 11, 10, 11, 0, 3, -1, -1, -1, -1],
+    [5, 4, 8, 5, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1],
+    [9, 7, 8, 5, 7, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 3, 0, 9, 5, 3, 5, 7, 3, -1, -1, -1, -1, -1, -1, -1],
+    [0, 7, 8, 0, 1, 7, 1, 5, 7, -1, -1, -1, -1, -1, -1, -1],
+    [1, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 7, 8, 9, 5, 7, 10, 1, 2, -1, -1, -1, -1, -1, -1, -1],
+    [10, 1, 2, 9, 5, 0, 5, 3, 0, 5, 7, 3, -1, -1, -1, -1],
+    [8, 0, 2, 8, 2, 5, 8, 5, 7, 10, 5, 2, -1, -1, -1, -1],
+    [2, 10, 5, 2, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1],
+    [7, 9, 5, 7, 8, 9, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1],
+    [9, 5, 7, 9, 7, 2, 9, 2, 0, 2, 7, 11, -1, -1, -1, -1],
+    [2, 3, 11, 0, 1, 8, 1, 7, 8, 1, 5, 7, -1, -1, -1, -1],
+    [11, 2, 1, 11, 1, 7, 7, 1, 5, -1, -1, -1, -1, -1, -1, -1],
+    [9, 5, 8, 8, 5, 7, 10, 1, 3, 10, 3, 11, -1, -1, -1, -1],
+    [5, 7, 0, 5, 0, 9, 7, 11, 0, 1, 0, 10, 11, 10, 0, -1],
+    [11, 10, 0, 11, 0, 3, 10, 5, 0, 8, 0, 7, 5, 7, 0, -1],
+    [11, 10, 5, 7, 11, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 3, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 0, 1, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 8, 3, 1, 9, 8, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1],
+    [1, 6, 5, 2, 6, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 6, 5, 1, 2, 6, 3, 0, 8, -1, -1, -1, -1, -1, -1, -1],
+    [9, 6, 5, 9, 0, 6, 0, 2, 6, -1, -1, -1, -1, -1, -1, -1],
+    [5, 9, 8, 5, 8, 2, 5, 2, 6, 3, 2, 8, -1, -1, -1, -1],
+    [2, 3, 11, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [11, 0, 8, 11, 2, 0, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1],
+    [0, 1, 9, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1],
+    [5, 10, 6, 1, 9, 2, 9, 11, 2, 9, 8, 11, -1, -1, -1, -1],
+    [6, 3, 11, 6, 5, 3, 5, 1, 3, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 11, 0, 11, 5, 0, 5, 1, 5, 11, 6, -1, -1, -1, -1],
+    [3, 11, 6, 0, 3, 6, 0, 6, 5, 0, 5, 9, -1, -1, -1, -1],
+    [6, 5, 9, 6, 9, 11, 11, 9, 8, -1, -1, -1, -1, -1, -1, -1],
+    [5, 10, 6, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 3, 0, 4, 7, 3, 6, 5, 10, -1, -1, -1, -1, -1, -1, -1],
+    [1, 9, 0, 5, 10, 6, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1],
+    [10, 6, 5, 1, 9, 7, 1, 7, 3, 7, 9, 4, -1, -1, -1, -1],
+    [6, 1, 2, 6, 5, 1, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 5, 5, 2, 6, 3, 0, 4, 3, 4, 7, -1, -1, -1, -1],
+    [8, 4, 7, 9, 0, 5, 0, 6, 5, 0, 2, 6, -1, -1, -1, -1],
+    [7, 3, 9, 7, 9, 4, 3, 2, 9, 5, 9, 6, 2, 6, 9, -1],
+    [3, 11, 2, 7, 8, 4, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1],
+    [5, 10, 6, 4, 7, 2, 4, 2, 0, 2, 7, 11, -1, -1, -1, -1],
+    [0, 1, 9, 4, 7, 8, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1],
+    [9, 2, 1, 9, 11, 2, 9, 4, 11, 7, 11, 4, 5, 10, 6, -1],
+    [8, 4, 7, 3, 11, 5, 3, 5, 1, 5, 11, 6, -1, -1, -1, -1],
+    [5, 1, 11, 5, 11, 6, 1, 0, 11, 7, 11, 4, 0, 4, 11, -1],
+    [0, 5, 9, 0, 6, 5, 0, 3, 6, 11, 6, 3, 8, 4, 7, -1],
+    [6, 5, 9, 6, 9, 11, 4, 7, 9, 7, 11, 9, -1, -1, -1, -1],
+    [10, 4, 9, 6, 4, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 10, 6, 4, 9, 10, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1],
+    [10, 0, 1, 10, 6, 0, 6, 4, 0, -1, -1, -1, -1, -1, -1, -1],
+    [8, 3, 1, 8, 1, 6, 8, 6, 4, 6, 1, 10, -1, -1, -1, -1],
+    [1, 4, 9, 1, 2, 4, 2, 6, 4, -1, -1, -1, -1, -1, -1, -1],
+    [3, 0, 8, 1, 2, 9, 2, 4, 9, 2, 6, 4, -1, -1, -1, -1],
+    [0, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [8, 3, 2, 8, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1],
+    [10, 4, 9, 10, 6, 4, 11, 2, 3, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 2, 2, 8, 11, 4, 9, 10, 4, 10, 6, -1, -1, -1, -1],
+    [3, 11, 2, 0, 1, 6, 0, 6, 4, 6, 1, 10, -1, -1, -1, -1],
+    [6, 4, 1, 6, 1, 10, 4, 8, 1, 2, 1, 11, 8, 11, 1, -1],
+    [9, 6, 4, 9, 3, 6, 9, 1, 3, 11, 6, 3, -1, -1, -1, -1],
+    [8, 11, 1, 8, 1, 0, 11, 6, 1, 9, 1, 4, 6, 4, 1, -1],
+    [3, 11, 6, 3, 6, 0, 0, 6, 4, -1, -1, -1, -1, -1, -1, -1],
+    [6, 4, 8, 11, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [7, 10, 6, 7, 8, 10, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1],
+    [0, 7, 3, 0, 10, 7, 0, 9, 10, 6, 7, 10, -1, -1, -1, -1],
+    [10, 6, 7, 1, 10, 7, 1, 7, 8, 1, 8, 0, -1, -1, -1, -1],
+    [10, 6, 7, 10, 7, 1, 1, 7, 3, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 6, 1, 6, 8, 1, 8, 9, 8, 6, 7, -1, -1, -1, -1],
+    [2, 6, 9, 2, 9, 1, 6, 7, 9, 0, 9, 3, 7, 3, 9, -1],
+    [7, 8, 0, 7, 0, 6, 6, 0, 2, -1, -1, -1, -1, -1, -1, -1],
+    [7, 3, 2, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [2, 3, 11, 10, 6, 8, 10, 8, 9, 8, 6, 7, -1, -1, -1, -1],
+    [2, 0, 7, 2, 7, 11, 0, 9, 7, 6, 7, 10, 9, 10, 7, -1],
+    [1, 8, 0, 1, 7, 8, 1, 10, 7, 6, 7, 10, 2, 3, 11, -1],
+    [11, 2, 1, 11, 1, 7, 10, 6, 1, 6, 7, 1, -1, -1, -1, -1],
+    [8, 9, 6, 8, 6, 7, 9, 1, 6, 11, 6, 3, 1, 3, 6, -1],
+    [0, 9, 1, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [7, 8, 0, 7, 0, 6, 3, 11, 0, 11, 6, 0, -1, -1, -1, -1],
+    [7, 11, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [3, 0, 8, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 1, 9, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [8, 1, 9, 8, 3, 1, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1],
+    [10, 1, 2, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 10, 3, 0, 8, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1],
+    [2, 9, 0, 2, 10, 9, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1],
+    [6, 11, 7, 2, 10, 3, 10, 8, 3, 10, 9, 8, -1, -1, -1, -1],
+    [7, 2, 3, 6, 2, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [7, 0, 8, 7, 6, 0, 6, 2, 0, -1, -1, -1, -1, -1, -1, -1],
+    [2, 7, 6, 2, 3, 7, 0, 1, 9, -1, -1, -1, -1, -1, -1, -1],
+    [1, 6, 2, 1, 8, 6, 1, 9, 8, 8, 7, 6, -1, -1, -1, -1],
+    [10, 7, 6, 10, 1, 7, 1, 3, 7, -1, -1, -1, -1, -1, -1, -1],
+    [10, 7, 6, 1, 7, 10, 1, 8, 7, 1, 0, 8, -1, -1, -1, -1],
+    [0, 3, 7, 0, 7, 10, 0, 10, 9, 6, 10, 7, -1, -1, -1, -1],
+    [7, 6, 10, 7, 10, 8, 8, 10, 9, -1, -1, -1, -1, -1, -1, -1],
+    [6, 8, 4, 11, 8, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [3, 6, 11, 3, 0, 6, 0, 4, 6, -1, -1, -1, -1, -1, -1, -1],
+    [8, 6, 11, 8, 4, 6, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 4, 6, 9, 6, 3, 9, 3, 1, 11, 3, 6, -1, -1, -1, -1],
+    [6, 8, 4, 6, 11, 8, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 10, 3, 0, 11, 0, 6, 11, 0, 4, 6, -1, -1, -1, -1],
+    [4, 11, 8, 4, 6, 11, 0, 2, 9, 2, 10, 9, -1, -1, -1, -1],
+    [10, 9, 3, 10, 3, 2, 9, 4, 3, 11, 3, 6, 4, 6, 3, -1],
+    [8, 2, 3, 8, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1],
+    [0, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 9, 0, 2, 3, 4, 2, 4, 6, 4, 3, 8, -1, -1, -1, -1],
+    [1, 9, 4, 1, 4, 2, 2, 4, 6, -1, -1, -1, -1, -1, -1, -1],
+    [8, 1, 3, 8, 6, 1, 8, 4, 6, 6, 10, 1, -1, -1, -1, -1],
+    [10, 1, 0, 10, 0, 6, 6, 0, 4, -1, -1, -1, -1, -1, -1, -1],
+    [4, 6, 3, 4, 3, 8, 6, 10, 3, 0, 3, 9, 10, 9, 3, -1],
+    [10, 9, 4, 6, 10, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 9, 5, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 3, 4, 9, 5, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1],
+    [5, 0, 1, 5, 4, 0, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1],
+    [11, 7, 6, 8, 3, 4, 3, 5, 4, 3, 1, 5, -1, -1, -1, -1],
+    [9, 5, 4, 10, 1, 2, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1],
+    [6, 11, 7, 1, 2, 10, 0, 8, 3, 4, 9, 5, -1, -1, -1, -1],
+    [7, 6, 11, 5, 4, 10, 4, 2, 10, 4, 0, 2, -1, -1, -1, -1],
+    [3, 4, 8, 3, 5, 4, 3, 2, 5, 10, 5, 2, 11, 7, 6, -1],
+    [7, 2, 3, 7, 6, 2, 5, 4, 9, -1, -1, -1, -1, -1, -1, -1],
+    [9, 5, 4, 0, 8, 6, 0, 6, 2, 6, 8, 7, -1, -1, -1, -1],
+    [3, 6, 2, 3, 7, 6, 1, 5, 0, 5, 4, 0, -1, -1, -1, -1],
+    [6, 2, 8, 6, 8, 7, 2, 1, 8, 4, 8, 5, 1, 5, 8, -1],
+    [9, 5, 4, 10, 1, 6, 1, 7, 6, 1, 3, 7, -1, -1, -1, -1],
+    [1, 6, 10, 1, 7, 6, 1, 0, 7, 8, 7, 0, 9, 5, 4, -1],
+    [4, 0, 10, 4, 10, 5, 0, 3, 10, 6, 10, 7, 3, 7, 10, -1],
+    [7, 6, 10, 7, 10, 8, 5, 4, 10, 4, 8, 10, -1, -1, -1, -1],
+    [6, 9, 5, 6, 11, 9, 11, 8, 9, -1, -1, -1, -1, -1, -1, -1],
+    [3, 6, 11, 0, 6, 3, 0, 5, 6, 0, 9, 5, -1, -1, -1, -1],
+    [0, 11, 8, 0, 5, 11, 0, 1, 5, 5, 6, 11, -1, -1, -1, -1],
+    [6, 11, 3, 6, 3, 5, 5, 3, 1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 10, 9, 5, 11, 9, 11, 8, 11, 5, 6, -1, -1, -1, -1],
+    [0, 11, 3, 0, 6, 11, 0, 9, 6, 5, 6, 9, 1, 2, 10, -1],
+    [11, 8, 5, 11, 5, 6, 8, 0, 5, 10, 5, 2, 0, 2, 5, -1],
+    [6, 11, 3, 6, 3, 5, 2, 10, 3, 10, 5, 3, -1, -1, -1, -1],
+    [5, 8, 9, 5, 2, 8, 5, 6, 2, 3, 8, 2, -1, -1, -1, -1],
+    [9, 5, 6, 9, 6, 0, 0, 6, 2, -1, -1, -1, -1, -1, -1, -1],
+    [1, 5, 8, 1, 8, 0, 5, 6, 8, 3, 8, 2, 6, 2, 8, -1],
+    [1, 5, 6, 2, 1, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 3, 6, 1, 6, 10, 3, 8, 6, 5, 6, 9, 8, 9, 6, -1],
+    [10, 1, 0, 10, 0, 6, 9, 5, 0, 5, 6, 0, -1, -1, -1, -1],
+    [0, 3, 8, 5, 6, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [10, 5, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [11, 5, 10, 7, 5, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [11, 5, 10, 11, 7, 5, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1],
+    [5, 11, 7, 5, 10, 11, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1],
+    [10, 7, 5, 10, 11, 7, 9, 8, 1, 8, 3, 1, -1, -1, -1, -1],
+    [11, 1, 2, 11, 7, 1, 7, 5, 1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 3, 1, 2, 7, 1, 7, 5, 7, 2, 11, -1, -1, -1, -1],
+    [9, 7, 5, 9, 2, 7, 9, 0, 2, 2, 11, 7, -1, -1, -1, -1],
+    [7, 5, 2, 7, 2, 11, 5, 9, 2, 3, 2, 8, 9, 8, 2, -1],
+    [2, 5, 10, 2, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1],
+    [8, 2, 0, 8, 5, 2, 8, 7, 5, 10, 2, 5, -1, -1, -1, -1],
+    [9, 0, 1, 5, 10, 3, 5, 3, 7, 3, 10, 2, -1, -1, -1, -1],
+    [9, 8, 2, 9, 2, 1, 8, 7, 2, 10, 2, 5, 7, 5, 2, -1],
+    [1, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 7, 0, 7, 1, 1, 7, 5, -1, -1, -1, -1, -1, -1, -1],
+    [9, 0, 3, 9, 3, 5, 5, 3, 7, -1, -1, -1, -1, -1, -1, -1],
+    [9, 8, 7, 5, 9, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [5, 8, 4, 5, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1],
+    [5, 0, 4, 5, 11, 0, 5, 10, 11, 11, 3, 0, -1, -1, -1, -1],
+    [0, 1, 9, 8, 4, 10, 8, 10, 11, 10, 4, 5, -1, -1, -1, -1],
+    [10, 11, 4, 10, 4, 5, 11, 3, 4, 9, 4, 1, 3, 1, 4, -1],
+    [2, 5, 1, 2, 8, 5, 2, 11, 8, 4, 5, 8, -1, -1, -1, -1],
+    [0, 4, 11, 0, 11, 3, 4, 5, 11, 2, 11, 1, 5, 1, 11, -1],
+    [0, 2, 5, 0, 5, 9, 2, 11, 5, 4, 5, 8, 11, 8, 5, -1],
+    [9, 4, 5, 2, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [2, 5, 10, 3, 5, 2, 3, 4, 5, 3, 8, 4, -1, -1, -1, -1],
+    [5, 10, 2, 5, 2, 4, 4, 2, 0, -1, -1, -1, -1, -1, -1, -1],
+    [3, 10, 2, 3, 5, 10, 3, 8, 5, 4, 5, 8, 0, 1, 9, -1],
+    [5, 10, 2, 5, 2, 4, 1, 9, 2, 9, 4, 2, -1, -1, -1, -1],
+    [8, 4, 5, 8, 5, 3, 3, 5, 1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 4, 5, 1, 0, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [8, 4, 5, 8, 5, 3, 9, 0, 5, 0, 3, 5, -1, -1, -1, -1],
+    [9, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 11, 7, 4, 9, 11, 9, 10, 11, -1, -1, -1, -1, -1, -1, -1],
+    [0, 8, 3, 4, 9, 7, 9, 11, 7, 9, 10, 11, -1, -1, -1, -1],
+    [1, 10, 11, 1, 11, 4, 1, 4, 0, 7, 4, 11, -1, -1, -1, -1],
+    [3, 1, 4, 3, 4, 8, 1, 10, 4, 7, 4, 11, 10, 11, 4, -1],
+    [4, 11, 7, 9, 11, 4, 9, 2, 11, 9, 1, 2, -1, -1, -1, -1],
+    [9, 7, 4, 9, 11, 7, 9, 1, 11, 2, 11, 1, 0, 8, 3, -1],
+    [11, 7, 4, 11, 4, 2, 2, 4, 0, -1, -1, -1, -1, -1, -1, -1],
+    [11, 7, 4, 11, 4, 2, 8, 3, 4, 3, 2, 4, -1, -1, -1, -1],
+    [2, 9, 10, 2, 7, 9, 2, 3, 7, 7, 4, 9, -1, -1, -1, -1],
+    [9, 10, 7, 9, 7, 4, 10, 2, 7, 8, 7, 0, 2, 0, 7, -1],
+    [3, 7, 10, 3, 10, 2, 7, 4, 10, 1, 10, 0, 4, 0, 10, -1],
+    [1, 10, 2, 8, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 9, 1, 4, 1, 7, 7, 1, 3, -1, -1, -1, -1, -1, -1, -1],
+    [4, 9, 1, 4, 1, 7, 0, 8, 1, 8, 7, 1, -1, -1, -1, -1],
+    [4, 0, 3, 7, 4, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [4, 8, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [3, 0, 9, 3, 9, 11, 11, 9, 10, -1, -1, -1, -1, -1, -1, -1],
+    [0, 1, 10, 0, 10, 8, 8, 10, 11, -1, -1, -1, -1, -1, -1, -1],
+    [3, 1, 10, 11, 3, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 2, 11, 1, 11, 9, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1],
+    [3, 0, 9, 3, 9, 11, 1, 2, 9, 2, 11, 9, -1, -1, -1, -1],
+    [0, 2, 11, 8, 0, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [2, 3, 8, 2, 8, 10, 10, 8, 9, -1, -1, -1, -1, -1, -1, -1],
+    [9, 10, 2, 0, 9, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [2, 3, 8, 2, 8, 10, 0, 1, 8, 1, 10, 8, -1, -1, -1, -1],
+    [1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [1, 3, 8, 9, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]]
+    cdef np.float64_t vertlist[12][3]
+    cdef int cubeindex = 0
+    cdef int n
+    cdef int nt = 0
+    for n in range(8):
+        if gv[n] < isovalue:
+            cubeindex |= (1 << n)
+    if edge_table[cubeindex] == 0:
+        return 0
+    if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
+        vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
+                      dds, x, y, z, 0, 1)
+    if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
+        vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
+                      dds, x, y, z, 1, 2)
+    if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
+        vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
+                      dds, x, y, z, 2, 3)
+    if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
+        vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
+                      dds, x, y, z, 3, 0)
+    if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
+        vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
+                      dds, x, y, z, 4, 5)
+    if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
+        vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
+                      dds, x, y, z, 5, 6)
+    if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
+        vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
+                      dds, x, y, z, 6, 7)
+    if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
+        vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
+                      dds, x, y, z, 7, 4)
+    if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
+        vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
+                      dds, x, y, z, 0, 4)
+    if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
+        vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
+                      dds, x, y, z, 1, 5)
+    if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
+        vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
+                      dds, x, y, z, 2, 6)
+    if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
+        vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
+                      dds, x, y, z, 3, 7)
+    n = 0
+    while 1:
+        triangles.current = AddTriangle(triangles.current,
+                    vertlist[tri_table[cubeindex][n  ]],
+                    vertlist[tri_table[cubeindex][n+1]],
+                    vertlist[tri_table[cubeindex][n+2]])
+        triangles.count += 1
+        nt += 1
+        if triangles.first == NULL:
+            triangles.first = triangles.current
+        n += 3
+        if tri_table[cubeindex][n] == -1: break
+    return nt
+    
 
 cdef class GridFace:
     cdef int direction
@@ -1350,7 +1615,7 @@ cdef struct AdaptiveRayPacket:
     AdaptiveRayPacket *next
     AdaptiveRayPacket *prev
     AdaptiveRayPacket *brick_next
-    #int cgi
+    int pgi
 
 cdef class AdaptiveRaySource:
     cdef np.float64_t center[3]
@@ -1363,7 +1628,10 @@ cdef class AdaptiveRaySource:
     cdef AdaptiveRayPacket **lpacket_pointers
 
     def __cinit__(self, center, rays_per_cell, initial_nside,
-                  np.float64_t normalization, brick_list, int max_nside = 8192):
+                  np.float64_t normalization, brick_list, 
+                  np.ndarray[np.float64_t, ndim=2] ledges,
+                  np.ndarray[np.float64_t, ndim=2] redges,
+                  int max_nside = 8192):
         cdef int i
         self.max_nside = max_nside
         self.center[0] = center[0]
@@ -1386,6 +1654,10 @@ cdef class AdaptiveRaySource:
             self.lpacket_pointers[i] = self.packet_pointers[i] = NULL
         self.normalization = normalization
         self.nrays = 12*initial_nside*initial_nside
+        cdef int *grid_neighbors = <int*> malloc(sizeof(int) * (nbricks+1))
+        grid_neighbors[0] = nbricks
+        for i in range(nbricks):
+            grid_neighbors[i+1] = i
         for i in range(self.nrays):
             # Initialize rays here
             ray = <AdaptiveRayPacket *> malloc(sizeof(AdaptiveRayPacket))
@@ -1404,14 +1676,13 @@ cdef class AdaptiveRaySource:
             ray.pos[1] = self.center[1]
             ray.pos[2] = self.center[2]
             ray.brick_next = NULL
+            ray.pgi = -1
             if last != NULL:
                 last.next = ray
-                last.brick_next = ray
             else:
                 self.first = ray
+            self.send_ray_home(ray, ledges, redges, grid_neighbors, 0)
             last = ray
-        self.packet_pointers[0] = self.first
-        self.lpacket_pointers[0] = last
 
     def __dealloc__(self):
         cdef AdaptiveRayPacket *next
@@ -1421,6 +1692,7 @@ cdef class AdaptiveRaySource:
             free(ray)
             ray = next
         free(self.packet_pointers)
+        free(self.lpacket_pointers)
 
     def get_rays(self):
         cdef AdaptiveRayPacket *ray = self.first
@@ -1439,80 +1711,173 @@ cdef class AdaptiveRaySource:
             values[count, 1] = ray.value[1]
             values[count, 2] = ray.value[2]
             values[count, 3] = ray.value[3]
+            if ray.t < 0.5:
+                print "PROBLEM",
+                print count, ray.ipix, ray.nside, ray.t,
+                print "vd", ray.v_dir[0], ray.v_dir[1], ray.v_dir[2],
+                print "pos", ray.pos[0], ray.pos[1], ray.pos[2],
+                print "pgi", ray.pgi
             count += 1
             ray = ray.next
         return info, values
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef np.float64_t integrate_ray(self, AdaptiveRayPacket *ray,
+                      PartitionedGrid pg, TransferFunctionProxy tf):
+        cdef np.float64_t self_center[3], ray_v_dir[3], ray_value[4]
+        self_center[0] = self.center[0]
+        self_center[1] = self.center[1]
+        self_center[2] = self.center[2]
+        enter_t = ray.t
+        ray_v_dir[0] = ray.v_dir[0]
+        ray_v_dir[1] = ray.v_dir[1]
+        ray_v_dir[2] = ray.v_dir[2]
+        ray_value[0] = ray.value[0]
+        ray_value[1] = ray.value[1]
+        ray_value[2] = ray.value[2]
+        ray_value[3] = ray.value[3]
+        hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t,
+                               ray.t)
+        ray.value[0] = ray_value[0]
+        ray.value[1] = ray_value[1]
+        ray.value[2] = ray_value[2]
+        ray.value[3] = ray_value[3]
+        if hit == 0: dt = 0.0
+        else: dt = (ray.t - enter_t)/hit
+        for i in range(3):
+            ray.pos[i] = ray.v_dir[i] * ray.t + self.center[i]
+        return dt
+
+    cdef send_ray_home(self, AdaptiveRayPacket *ray,
+                       np.ndarray[np.float64_t, ndim=2] ledges,
+                       np.ndarray[np.float64_t, ndim=2] redges,
+                       int *grid_neighbors, np.float64_t dt,
+                       int skip_append = 0):
+        cdef int found_a_home = 0
+        cdef int i, j, npgi
+        cdef np.float64_t offpos[3]
+        for i in range(3):
+            offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-6*dt
+        for j in range(grid_neighbors[0]):
+            i = grid_neighbors[j+1]
+            if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
+                (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
+                (ledges[i, 2] <= offpos[2] <= redges[i, 2]) and
+                ray.pgi != i):
+                if not skip_append: self.append_to_packets(i, ray)
+                ray.pgi = i
+                npgi = i
+                found_a_home = 1
+                break
+        if found_a_home == 0:
+            #print "Non-neighboring area", ray.pgi, ray.ipix, ray.nside
+            for i in range(ledges.shape[0]):
+                if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
+                    (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
+                    (ledges[i, 2] <= offpos[2] <= redges[i, 2])):
+                    #print "Found a home!", i, ray.ipix, ray.nside, ray.pgi
+                    if not skip_append: self.append_to_packets(i, ray)
+                    ray.pgi = i
+                    npgi = i
+                    found_a_home = 1
+                    break
+            if found_a_home == 0:
+                raise RuntimeError
+
+    cdef append_to_packets(self, int pgi, AdaptiveRayPacket *ray):
+        # packet_pointers are pointers to the *first* packet in a given brick
+        # lpacket_pointers point to the *final* packet in a given brick, for
+        # easy appending.
+        if self.lpacket_pointers[pgi] == NULL or \
+           self.packet_pointers[pgi] == NULL:
+            self.packet_pointers[pgi] = \
+            self.lpacket_pointers[pgi] = ray
+            ray.brick_next = NULL
+        else:
+            self.lpacket_pointers[pgi].brick_next = ray
+            self.lpacket_pointers[pgi] = ray
+            ray.brick_next = NULL
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def integrate_brick(self, PartitionedGrid pg, TransferFunctionProxy tf,
                         int pgi, np.ndarray[np.float64_t, ndim=2] ledges,
-                                 np.ndarray[np.float64_t, ndim=2] redges):
-        cdef np.float64_t domega
-        domega = self.get_domega(pg.left_edge, pg.right_edge)
+                                 np.ndarray[np.float64_t, ndim=2] redges,
+                                 pgs, int inside = -1):
+        cdef np.float64_t domega, dt
+        cdef PartitionedGrid pgn
         #print "dOmega", domega, self.nrays
-        cdef int count = 0
-        cdef int i, j
-        cdef AdaptiveRayPacket *ray = self.packet_pointers[pgi]
+        cdef intersects
+        cdef int i, j, npgi, refined
+        cdef AdaptiveRayPacket *ray2, *ray = self.packet_pointers[pgi]
         cdef AdaptiveRayPacket *next
+        cdef AdaptiveRayPacket **pray
         cdef int *grid_neighbors = self.find_neighbors(pgi, pg.dds[0], ledges, redges)
-        cdef np.float64_t enter_t, dt, offpos[3]
+        cdef int *grid2_neighbors
+        cdef np.float64_t enter_t, offpos[3]
         cdef int found_a_home, hit
-        #print "Grid: ", pgi, "has", grid_neighbors[0], "neighbors"
-        # Some compilers throw errors on the passing of the center, v_dir and
-        # value
-        cdef np.float64_t self_center[3], ray_v_dir[3], ray_value[4]
-        self_center[0] = self.center[0]
-        self_center[1] = self.center[1]
-        self_center[2] = self.center[2]
         while ray != NULL:
-            # Note that we may end up splitting a ray such that it ends up
-            # outside the brick!  This will likely cause them to get lost.
-            #print count
-            count +=1
-            # We don't need to check for intersection anymore, as we are the
-            # Ruler of the planet Omicron Persei 8
-            #if self.intersects(ray, pg):
-            ray = self.refine_ray(ray, domega, pg.dds[0],
-                                  pg.left_edge, pg.right_edge)
-            enter_t = ray.t
-            ray_v_dir[0] = ray.v_dir[0]
-            ray_v_dir[1] = ray.v_dir[1]
-            ray_v_dir[2] = ray.v_dir[2]
-            ray_value[0] = ray.value[0]
-            ray_value[1] = ray.value[1]
-            ray_value[2] = ray.value[2]
-            ray_value[3] = ray.value[3]
-            hit = pg.integrate_ray(self_center, ray_v_dir, ray_value, tf, &ray.t)
-            ray.value[0] = ray_value[0]
-            ray.value[1] = ray_value[1]
-            ray.value[2] = ray_value[2]
-            ray.value[3] = ray_value[3]
-            if hit == 0: dt = 0.0
-            else: dt = (ray.t - enter_t)/hit
-            for i in range(3):
-                ray.pos[i] = ray.v_dir[i] * ray.t + self.center[i]
-                offpos[i] = ray.pos[i] + ray.v_dir[i] * 1e-5*dt
-            # We set 'next' after the refinement has occurred
-            next = ray.brick_next
-            found_a_home = 0
-            for j in range(grid_neighbors[0]):
-                i = grid_neighbors[j+1]
-                if ((ledges[i, 0] <= offpos[0] <= redges[i, 0]) and
-                    (ledges[i, 1] <= offpos[1] <= redges[i, 1]) and
-                    (ledges[i, 2] <= offpos[2] <= redges[i, 2])):
-                    if self.lpacket_pointers[i] == NULL:
-                        self.packet_pointers[i] = \
-                        self.lpacket_pointers[i] = ray
-                        ray.brick_next = NULL
-                    else:
-                        self.lpacket_pointers[i].brick_next = ray
-                        self.lpacket_pointers[i] = ray
-                        ray.brick_next = NULL
-                    #ray.cgi = i
-                    found_a_home = 1
-                    break
+            #print "Integrating", pgi, ray.pgi, ray.ipix, ray.nside
+            if pgi != ray.pgi:
+                self.send_ray_home(ray, ledges, redges, grid_neighbors, dt)
+                if ray.pgi != pgi:
+                    ray = ray.brick_next
+                    continue
+            # We start in this brick, and then we integrate to the edge
+            self.packet_pointers[pgi] = next = ray.brick_next
+            if ray.t >= 1.0:
+                ray = next
+                continue
+            dt = self.integrate_ray(ray, pg, tf)
+            # Now the ray has moved, so we grab .brick_next first, then we
+            # move it to its new home
+            self.send_ray_home(ray, ledges, redges, grid_neighbors, dt, 1)
+            # We now are moving into a new PG, which we check for refinement
+            pgn = pgs[ray.pgi]
+            domega = self.get_domega(pgn.left_edge, pgn.right_edge)
+            pray = &ray
+            refined = self.refine_ray(pray, domega, pgn.dds[0],
+                                      pgn.left_edge, pgn.right_edge)
+            if refined == 0: self.append_to_packets(ray.pgi, ray)
+            # At this point we can no longer access ray, as it is no longer
+            # safe.
+            ray2 = pray[0]
+            for i in range(refined*4):
+                # If we have been refined, send the ray to its appropriate
+                # location.
+                self.send_ray_home(ray2, ledges, redges, grid_neighbors, 0.0, 1)
+                # If it wants to go back in time that is fine but it needs to
+                # make sure it gets forward in time eventually
+                while ray2.pgi <= pgi and ray2.t < 1.0:
+                    #print "Recursing", ray2.pgi, pgi, ray2.t, ray2.nside, ray2.ipix, dt
+                    # Now we grab a new set of neighbors and whatnot
+                    pgn = pgs[ray2.pgi]
+                    grid2_neighbors = self.find_neighbors(ray2.pgi, pgn.dds[0],
+                                                          ledges, redges)
+                    # We just integrate, we don't bother with the full brick
+                    # integration.  This means no recursive refinement, and
+                    # potential undersampling
+                    dt = self.integrate_ray(ray2, pgn, tf)
+                    # Now we send this ray home.  Hopefully it'll once again be
+                    # forward in time.
+                    self.send_ray_home(ray2, ledges, redges, grid2_neighbors,
+                                       dt, 1)
+                    free(grid2_neighbors)
+                # This tosses us to the next one in line, of the four..
+                self.append_to_packets(ray2.pgi, ray2)
+                ray2 = ray2.next
+            # We use this because it's been set previously.
             ray = next
+            # We check to see if anything has been *added* to the queue, via a
+            # send_ray_home call, here.  Otherwise we might end up in the
+            # situation that the final ray is refined, thus next is NULL, but
+            # there are more rays to work on because they have been added via
+            # refinement.
+            if ray == NULL and self.packet_pointers[pgi] != NULL:
+                ray = self.packet_pointers[pgi]
+                #print "Packet pointers!", ray.ipix
         free(grid_neighbors)
 
     @cython.boundscheck(False)
@@ -1533,8 +1898,9 @@ cdef class AdaptiveRaySource:
         gre[0] = redges[this_grid, 0] + dds
         gre[1] = redges[this_grid, 1] + dds
         gre[2] = redges[this_grid, 2] + dds
-        for i in range(this_grid+1, ledges.shape[0]):
+        for i in range(ledges.shape[0]):
             # Check for overlap
+            if i == this_grid: continue
             if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
                 (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
                 (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
@@ -1542,8 +1908,9 @@ cdef class AdaptiveRaySource:
         cdef int *tr = <int *> malloc(sizeof(int) * (count + 1))
         tr[0] = count
         count = 0
-        for i in range(this_grid+1, ledges.shape[0]):
+        for i in range(ledges.shape[0]):
             # Check for overlap
+            if i == this_grid: continue
             if ((gle[0] <= redges[i, 0] and gre[0] >= ledges[i, 0]) and
                 (gle[1] <= redges[i, 1] and gre[1] >= ledges[i, 1]) and
                 (gle[2] <= redges[i, 2] and gre[2] >= ledges[i, 2])):
@@ -1560,6 +1927,19 @@ cdef class AdaptiveRaySource:
             if ray.pos[i] > pg.right_edge[i]: return 0
         return 1
 
+    cdef int find_owner(self, AdaptiveRayPacket *ray,
+                        int *neighbors,
+                        np.ndarray[np.float64_t, ndim=2] ledges,
+                        np.ndarray[np.float64_t, ndim=2] redges):
+        cdef int i, pgi = -1
+        for i in range(ledges.shape[0]):
+            pgi = i
+            if ((ray.pos[0] <= redges[i, 0] and ray.pos[0] >= ledges[i, 0]) and
+                (ray.pos[1] <= redges[i, 1] and ray.pos[1] >= ledges[i, 1]) and
+                (ray.pos[2] <= redges[i, 2] and ray.pos[2] >= ledges[i, 2])):
+                    return pgi
+        return -1
+
     cdef np.float64_t get_domega(self, np.float64_t left_edge[3],
                                        np.float64_t right_edge[3]):
         # We should calculate the subtending angle at the maximum radius of the
@@ -1574,7 +1954,7 @@ cdef class AdaptiveRaySource:
             r2[0] = (edge[i][0] - self.center[0])**2.0
             for j in range(2):
                 r2[1] = r2[0] + (edge[j][1] - self.center[1])**2.0
-                for k in range(3):
+                for k in range(2):
                     r2[2] = r2[1] + (edge[k][2] - self.center[2])**2.0
                     max_r2 = fmax(max_r2, r2[2])
         domega = 4.0 * 3.1415926 * max_r2 # Used to be / Nrays
@@ -1583,57 +1963,50 @@ cdef class AdaptiveRaySource:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef AdaptiveRayPacket *refine_ray(self, AdaptiveRayPacket *ray,
-                                       np.float64_t domega,
-                                       np.float64_t dx,
-                                       np.float64_t left_edge[3],
-                                       np.float64_t right_edge[3]):
-        # This should be recursive; we are not correctly applying split
-        # criteria multiple times.
+    cdef int refine_ray(self, AdaptiveRayPacket **pray,
+                        np.float64_t domega, np.float64_t dx,
+                        np.float64_t left_edge[3],
+                        np.float64_t right_edge[3]):
+        cdef AdaptiveRayPacket *ray = pray[0]
+        cdef AdaptiveRayPacket *new_rays[4]
         cdef long Nrays = 12 * ray.nside * ray.nside
         cdef int i, j
         if domega/Nrays < dx*dx/self.rays_per_cell:
-            #print ray.nside, domega/Nrays, dx, (domega/Nrays * self.rays_per_cell)/(dx*dx)
-            return ray
-        if ray.nside >= self.max_nside: return ray
-        #print "Refining %s from %s to %s" % (ray.ipix, ray.nside, ray.nside*2)
-        # Now we make four new ones
+            return 0
+        if ray.nside >= self.max_nside: return 0
         cdef double v_dir[3]
-        cdef AdaptiveRayPacket *prev = ray.prev
-        # It is important to note here that brick_prev is a local variable for
-        # the newly created rays, not the previous ray in this brick, as that
-        # has already been passed on to its next brick
-        cdef AdaptiveRayPacket *brick_prev = NULL
+        # We need a record of the previous one because we're inserting into a
+        # linked list.
         for i in range(4):
-            new_ray = <AdaptiveRayPacket *> malloc(
+            new_rays[i] = <AdaptiveRayPacket *> malloc(
                             sizeof(AdaptiveRayPacket))
-            new_ray.nside = ray.nside * 2
-            new_ray.ipix = ray.ipix * 4 + i
-            new_ray.t = ray.t
-            #new_ray.cgi = ray.cgi
-            new_ray.prev = prev
-            if new_ray.prev != NULL:
-                new_ray.prev.next = new_ray
-            if brick_prev != NULL:
-                brick_prev.brick_next = new_ray
-            prev = brick_prev = new_ray
+            new_rays[i].nside = ray.nside * 2
+            new_rays[i].ipix = ray.ipix * 4 + i
+            new_rays[i].t = ray.t
             healpix_interface.pix2vec_nest(
-                    new_ray.nside, new_ray.ipix, v_dir)
+                    new_rays[i].nside, new_rays[i].ipix, v_dir)
             for j in range(3):
-                new_ray.v_dir[j] = v_dir[j] * self.normalization
-                new_ray.value[j] = ray.value[j]
-                new_ray.pos[j] = self.center[j] + ray.t * new_ray.v_dir[j]
-            new_ray.value[3] = ray.value[3]
-
-        new_ray.next = ray.next
-        new_ray.brick_next = ray.brick_next
-        if new_ray.next != NULL:
-            new_ray.next.prev = new_ray
+                new_rays[i].v_dir[j] = v_dir[j] * self.normalization
+                new_rays[i].value[j] = ray.value[j]
+                new_rays[i].pos[j] = self.center[j] + ray.t * new_rays[i].v_dir[j]
+            new_rays[i].value[3] = ray.value[3]
+        # Insert into the external list
+        if ray.prev != NULL:
+            ray.prev.next = new_rays[0]
+        new_rays[0].prev = ray.prev
+        new_rays[3].next = ray.next
+        if ray.next != NULL:
+            ray.next.prev = new_rays[3]
+        for i in range(3):
+            # Connect backward and forward
+            new_rays[i].next = new_rays[i+1]
+            new_rays[3-i].prev = new_rays[2-i]
         if self.first == ray:
-            self.first = new_ray.prev.prev.prev
-        free(ray)
+            self.first = new_rays[0]
         self.nrays += 3
-        return new_ray.prev.prev.prev
+        free(ray)
+        pray[0] = new_rays[0]
+        return 1
 
 # From Enzo:
 #   dOmega = 4 pi r^2/Nrays

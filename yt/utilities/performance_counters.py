@@ -3,7 +3,7 @@ Minimalist performance counting for yt
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
@@ -125,8 +125,8 @@ class ProfilingController(object):
     def write_out(self, filename_prefix):
         if ytcfg.getboolean("yt","__parallel"):
             pfn = "%s_%03i_%03i" % (filename_prefix,
-                     ytcfg.getint("yt", "__parallel_rank"),
-                    ytcfg.getint("yt", "__parallel_size"))
+                     ytcfg.getint("yt", "__global_parallel_rank"),
+                    ytcfg.getint("yt", "__global_parallel_size"))
         else:
             pfn = "%s" % (filename_prefix)
         for n, p in sorted(self.profilers.items()):

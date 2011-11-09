@@ -3,6 +3,7 @@ import os, re
 from yt.mods import *
 from yt.data_objects.data_containers import AMRData
 namespace = locals().copy()
+namespace.pop("__builtins__", None)
 
 doc = """\
 
@@ -149,7 +150,7 @@ class ParameterFileDict(UserDict):
             return self[self._key_numbers[key]]
         return UserDict.__getitem__(self, key)
     def __iter__(self):
-        return itertools.chain(self.data.iterkeys(),
+        return itertools.chain(self.field_data.iterkeys(),
                         self._key_numbers.iterkeys())
     def __repr__(self):
         s = "{" + ", \n ".join(
@@ -157,9 +158,9 @@ class ParameterFileDict(UserDict):
                     for i in sorted(self._key_numbers)]) + "}"
         return s
     def has_key(self, key):
-        return self.data.has_key(key) or self._key_numbers.has_key(key)
+        return self.field_data.has_key(key) or self._key_numbers.has_key(key)
     def keys(self):
-        return self.data.key(key) + self._key_numbers.key(key)
+        return self.field_data.key(key) + self._key_numbers.key(key)
 
 pfs = ParameterFileDict()
 pcs = []

@@ -3,7 +3,7 @@ TIGER-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -106,7 +106,8 @@ class TigerHierarchy(AMRHierarchy):
             levels.append(g.Level)
             counts.append(g.NumberOfParticles)
             i += 1
-        self.grids = na.array(grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
         self.grid_dimensions[:] = na.array(dims, dtype='int64')
         self.grid_left_edge[:] = na.array(LE, dtype='float64')
         self.grid_right_edge[:] = na.array(RE, dtype='float64')

@@ -257,22 +257,32 @@ function do_setup_py
     cd $1
     if [ ! -z `echo $1 | grep h5py` ]
     then
-	    echo "${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR}"
-	    ( ${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        shift
+	( ${DEST_DIR}/bin/python2.7 setup.py build --hdf5=${HDF5_DIR} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    else
+        shift
+        ( ${DEST_DIR}/bin/python2.7 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     fi
-    shift
-    ( ${DEST_DIR}/bin/python2.7 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
 
+if type -P wget &>/dev/null 
+then
+    echo "Using wget"
+    export GETFILE="wget -nv"
+else
+    echo "Using curl"
+    export GETFILE="curl -sSO"
+fi
+
 function get_enzotools
 {
-    echo "Downloading $1 from yt.enzotools.org"
+    echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
-    wget -nv "http://yt.enzotools.org/dependencies/$1" || do_exit
-    wget -nv "http://yt.enzotools.org/dependencies/$1.md5" || do_exit
+    ${GETFILE} "http://yt-project.org/dependencies/$1" || do_exit
+    ${GETFILE} "http://yt-project.org/dependencies/$1.md5" || do_exit
     ( which md5sum &> /dev/null ) || return # return if we don't have md5sum
     ( md5sum -c $1.md5 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
@@ -292,7 +302,7 @@ cd ${DEST_DIR}/src
 if [ -z "$HDF5_DIR" ]
 then
     echo "Downloading HDF5"
-    get_enzotools hdf5-1.8.6.tar.gz
+    get_enzotools hdf5-1.8.7.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
@@ -300,17 +310,17 @@ fi
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
-get_enzotools Python-2.7.1.tgz
-get_enzotools numpy-1.5.1.tar.gz
-get_enzotools matplotlib-1.0.0.tar.gz
-get_enzotools mercurial-1.8.1.tar.gz
+get_enzotools Python-2.7.2.tgz
+get_enzotools numpy-1.6.1.tar.gz
+get_enzotools matplotlib-1.1.0.tar.gz
+get_enzotools mercurial-2.0.tar.gz
 get_enzotools ipython-0.10.tar.gz
-get_enzotools h5py-1.3.1.tar.gz
-get_enzotools Cython-0.14.tar.gz
-get_enzotools Forthon-0.8.4.tar.gz
+get_enzotools h5py-2.0.1.tar.gz
+get_enzotools Cython-0.15.1.tar.gz
+get_enzotools Forthon-0.8.5.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
-get_enzotools PhiloGL-1.1.0.zip
+get_enzotools PhiloGL-1.4.2.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -392,11 +402,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.8.6/done ]
+    if [ ! -e hdf5-1.8.7/done ]
     then
-        [ ! -e hdf5-1.8.6 ] && tar xfz hdf5-1.8.6.tar.gz
+        [ ! -e hdf5-1.8.7 ] && tar xfz hdf5-1.8.7.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.8.6
+        cd hdf5-1.8.7
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
@@ -422,11 +432,11 @@ then
     fi
 fi
 
-if [ ! -e Python-2.7.1/done ]
+if [ ! -e Python-2.7.2/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.7.1 ] && tar xfz Python-2.7.1.tgz
-    cd Python-2.7.1
+    [ ! -e Python-2.7.2 ] && tar xfz Python-2.7.2.tgz
+    cd Python-2.7.2
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -441,7 +451,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-1.8.1
+    do_setup_py mercurial-2.0
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -465,11 +475,11 @@ then
     elif [ ! -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
@@ -488,7 +498,7 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.5.1 ${NUMPY_ARGS}
+do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -509,10 +519,10 @@ then
     echo "Setting CFLAGS ${CFLAGS}"
 fi
 # Now we set up the basedir for matplotlib:
-mkdir -p ${DEST_DIR}/src/matplotlib-1.0.0
-echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
-echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
-do_setup_py matplotlib-1.0.0
+mkdir -p ${DEST_DIR}/src/matplotlib-1.1.0
+echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.1.0/setup.cfg
+echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.1.0/setup.cfg
+do_setup_py matplotlib-1.1.0
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}
@@ -521,9 +531,9 @@ fi
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
-do_setup_py h5py-1.3.1
-do_setup_py Cython-0.14
-[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.4
+do_setup_py h5py-2.0.1
+do_setup_py Cython-0.15.1
+[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
@@ -552,6 +562,7 @@ if [ ! -e ext-3.3.2/done ]
 then
     ( unzip -o ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
+    rm -rf ext-resources
     ln -sf ext-3.3.2 ext-resources
     touch ext-3.3.2/done
 fi
@@ -561,17 +572,19 @@ if [ ! -e ext-slate-110328/done ]
 then
     ( unzip -o ext-slate-110328.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
+    rm -rf ext-theme
     ln -sf ext-slate-110328 ext-theme
     touch ext-slate-110328/done
 fi
 
 # Now we open up PhiloGL
-if [ ! -e PhiloGL-1.1.0/done ]
+if [ ! -e PhiloGL-1.4.2/done ]
 then
-    ( unzip -o PhiloGL-1.1.0.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( echo "Symlinking PhiloGL-1.1.0 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
-    ln -sf PhiloGL-1.1.0 PhiloGL
-    touch PhiloGL-1.1.0/done
+    ( unzip -o PhiloGL-1.4.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( echo "Symlinking PhiloGL-1.4.2 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
+    rm -rf PhiloGL
+    ln -sf PhiloGL-1.4.2 PhiloGL
+    touch PhiloGL-1.4.2/done
 fi
 
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
@@ -652,7 +665,7 @@ function print_afterword
     echo
     echo "For support, see the website and join the mailing list:"
     echo
-    echo "    http://yt.enzotools.org/"
+    echo "    http://yt-project.org/"
     echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
     echo
     echo "========================================================================"

@@ -20,15 +20,10 @@ DATA_FILES_LLI  = glob.glob('yt/gui/reason/html/leaflet/images/*.png')
 try:
     import Cython
 except ImportError as e:
-    print "Received error on importing Cython:"
-    print e
-    print "Now attempting to install Cython"
-    import pip
-    rv = pip.main(["install",
-              "http://yt.enzotools.org/dependencies/Cython-latest.tar.gz"])
-    if rv == 1:
-        print "Unable to install Cython.  Please report this bug to yt-users."
-        sys.exit(1)
+    print "Cython is a build-time requirement for the source tree of yt."
+    print "Please either install yt from a provided, release tarball,"
+    print "or install Cython (version 0.15 or higher)."
+    sys.exit(1)
 
 ######
 # This next bit comes from Matthew Brett, to get Cython working with NumPy
@@ -81,7 +76,7 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 
 import setuptools
 
-VERSION = "2.2dev"
+VERSION = "2.3dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
@@ -129,7 +124,7 @@ def setup_package():
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
-        url = "http://yt.enzotools.org/",
+        url = "http://yt-project.org/",
         license="GPL-3",
         configuration=configuration,
         zip_safe=False,

@@ -7,7 +7,7 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -34,4 +34,5 @@ from .halo_filters import \
 from .multi_halo_profiler import \
     HaloProfiler, \
     FakeProfile, \
-    shift_projections
+    shift_projections, \
+    standard_fields

@@ -1,5 +1,5 @@
+import matplotlib
 from yt.mods import *
-import matplotlib; matplotlib.use("Agg")
 import pylab
 from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
 

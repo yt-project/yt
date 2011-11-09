@@ -9,7 +9,7 @@ Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -250,6 +250,76 @@ function streamlineViewerHandler(item, pressed){
         handle_result);
 }
 return streamlineViewerHandler;
+}
+
+function getIsocontourViewerHandler(node){
+function isocontourViewerHandler(item,pressed){
+    var win = new Ext.Window({
+        layout:'fit',
+        width:320,
+        height:250,
+        modal:true,
+        resizable:false,
+        draggable:false,
+        border:false,
+        title:'Isocontour Extraction in' + node,
+        items: [{
+            xtype: 'form', // FormPanel
+            labelWidth:80,
+            frame:true,
+            items: [{
+                xtype:'combo',
+                fieldLabel: 'Field',
+                id: 'field',
+                store:node.attributes.objdata.field_list,
+                width: 200,
+                allowBlank:false,
+                value: 'Density',
+                triggerAction: 'all',
+            },{
+                xtype:'combo',
+                fieldLabel: 'Sampling Field',
+                id: 'extract_field',
+                store:node.attributes.objdata.field_list,
+                width: 200,
+                allowBlank:false,
+                value: 'Temperature',
+                triggerAction: 'all',
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Value',
+                id: 'value',
+                value: '1e-25',
+                width: 90,
+                allowBlank:false,
+            }],
+            buttons: [
+                {
+                    text: 'Extract',
+                    handler: function(b, e){
+                        var field = Ext.get("field").getValue();
+                        var value = Ext.get("value").getValue();
+                        var sampling_field = Ext.get("extract_field").getValue();
+                        yt_rpc.ExtDirectREPL.create_isocontours({
+                            pfname:node.attributes.objdata.varname,
+                            field:field, value:value,
+                            sampling_field:sampling_field},
+                          handle_result);
+                        disable_input();
+                        win.close();
+                    }
+                },{
+                    text: 'Cancel',
+                    handler: function(b, e){
+                        win.close();
+                    }
+                }
+            ]
+        }]
+    });
+    win.show(this);
+}
+return isocontourViewerHandler;
 }
 
 function getSliceHandler(node){

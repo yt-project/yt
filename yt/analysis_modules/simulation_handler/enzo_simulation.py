@@ -3,7 +3,7 @@ EnzoSimulation class and member functions.
 
 Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
@@ -31,6 +31,9 @@ import os
 
 dt_Tolerance = 1e-3
 
+from yt.data_objects.time_series import \
+    TimeSeriesData
+
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
@@ -38,13 +41,15 @@ from yt.utilities.cosmology import \
 from yt.convenience import \
     load
 
-class EnzoSimulation(object):
+class EnzoSimulation(TimeSeriesData):
     r"""Super class for performing the same operation over all data dumps in 
     a simulation from one redshift to another.
     """
-    def __init__(self, enzo_parameter_file, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
-                 links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True, get_available_data=False,
-                 get_data_by_force=False):
+    def __init__(self, enzo_parameter_file, initial_time=None, final_time=None, 
+                 initial_redshift=None, final_redshift=None,
+                 links=False, enzo_parameters=None, 
+                 get_time_outputs=True, get_redshift_outputs=True, 
+                 get_available_data=False, get_data_by_force=False):
         r"""Initialize an Enzo Simulation object.
         
         initial_time : float
@@ -121,6 +126,11 @@ class EnzoSimulation(object):
 
         # Get all the appropriate datasets.
         self._get_all_outputs(brute_force=get_data_by_force)
+
+        # Instantiate a TimeSeriesData object.
+        time_series_outputs = [load(output['filename']) \
+                                   for output in self.allOutputs]
+        TimeSeriesData.__init__(self, outputs=time_series_outputs)
 
     def _calculate_redshift_dump_times(self):
         "Calculates time from redshift of redshift dumps."

@@ -3,7 +3,7 @@ Code to export from yt to Sunrise
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -109,7 +109,7 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
                             for ax in 'xyz']).transpose()
         # Velocity is cm/s, we want it to be kpc/yr
         vel *= (pf["kpc"]/pf["cm"]) / (365*24*3400.)
-        age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
+        age = pf["years"] * (pf.current_time - reg["creation_time"][pi])
         creation_time = reg["creation_time"][pi] * pf["years"]
 
         initial_mass = reg["InitialMassCenOstriker"][pi]

@@ -5,7 +5,7 @@ native.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -26,19 +26,20 @@ License:
 """
 
 import types
-import numpy as na
 import inspect
 import copy
 import itertools
+
+import numpy as na
 
 from yt.funcs import *
 
 class FieldInfoContainer(object): # We are all Borg.
     """
     This is a generic field container.  It contains a list of potential derived
-    fields, all of which know how to act on a data object and return a value.  This
-    object handles converting units as well as validating the availability of a
-    given field.
+    fields, all of which know how to act on a data object and return a value.
+    This object handles converting units as well as validating the availability
+    of a given field.
     """
     _shared_state = {}
     _universal_field_list = {}
@@ -51,22 +52,25 @@ class FieldInfoContainer(object): # We are all Borg.
             return self._universal_field_list[key]
         raise KeyError
     def keys(self):
-        """
-        Return all the field names this object knows about.
-        """
+        """ Return all the field names this object knows about. """
         return self._universal_field_list.keys()
+
     def __iter__(self):
         return self._universal_field_list.iterkeys()
+
     def __setitem__(self, key, val):
         self._universal_field_list[key] = val
+
     def has_key(self, key):
         return key in self._universal_field_list
+
     def add_field(self, name, function = None, **kwargs):
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
         are passed on to the constructor for
         :class:`~yt.data_objects.api.DerivedField`.
+
         """
         if function == None:
             def create_function(function):
@@ -74,6 +78,7 @@ class FieldInfoContainer(object): # We are all Borg.
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
+
 FieldInfo = FieldInfoContainer()
 add_field = FieldInfo.add_field
 
@@ -89,14 +94,18 @@ def derived_field(**kwargs):
 class CodeFieldInfoContainer(FieldInfoContainer):
     def __setitem__(self, key, val):
         self._field_list[key] = val
+
     def __iter__(self):
         return itertools.chain(self._field_list.iterkeys(),
-                        self._universal_field_list.iterkeys())
+                               self._universal_field_list.iterkeys())
+
     def keys(self):
         return set(self._field_list.keys() + self._universal_field_list.keys())
+
     def has_key(self, key):
         return key in self._universal_field_list \
             or key in self._field_list
+
     def __getitem__(self, key):
         if key in self._field_list:
             return self._field_list[key]
@@ -111,6 +120,7 @@ class NeedsGridType(ValidationException):
     def __init__(self, ghost_zones = 0, fields=None):
         self.ghost_zones = ghost_zones
         self.fields = fields
+
     def __str__(self):
         return "(%s, %s)" % (self.ghost_zones, self.fields)
 
@@ -121,18 +131,21 @@ class NeedsOriginalGrid(NeedsGridType):
 class NeedsDataField(ValidationException):
     def __init__(self, missing_fields):
         self.missing_fields = missing_fields
+
     def __str__(self):
         return "(%s)" % (self.missing_fields)
 
 class NeedsProperty(ValidationException):
     def __init__(self, missing_properties):
         self.missing_properties = missing_properties
+
     def __str__(self):
         return "(%s)" % (self.missing_properties)
 
 class NeedsParameter(ValidationException):
     def __init__(self, missing_parameters):
         self.missing_parameters = missing_parameters
+
     def __str__(self):
         return "(%s)" % (self.missing_parameters)
 
@@ -141,18 +154,19 @@ class FieldDetector(defaultdict):
     NumberOfParticles = 1
     _read_exception = None
     _id_offset = 0
+
     def __init__(self, nd = 16, pf = None, flat = False):
         self.nd = nd
         self.flat = flat
         self._spatial = not flat
-        self.ActiveDimensions = [nd,nd,nd]
-        self.LeftEdge = [0.0,0.0,0.0]
-        self.RightEdge = [1.0,1.0,1.0]
+        self.ActiveDimensions = [nd, nd, nd]
+        self.LeftEdge = [0.0, 0.0, 0.0]
+        self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = na.ones(3, "float64")
         self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
         class fake_parameter_file(defaultdict):
             pass
-        if pf is None:
+        if pf is None:  # setup defaults
             pf = fake_parameter_file(lambda: 1)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.hubble_constant = pf.cosmological_simulation = 0.0
@@ -168,17 +182,18 @@ class FieldDetector(defaultdict):
             io = fake_io()
             def get_smallest_dx(self):
                 return 1.0
+
         self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []
         if not self.flat:
             defaultdict.__init__(self,
-                lambda: na.ones((nd,nd,nd), dtype='float64')
-                + 1e-4*na.random.random((nd,nd,nd)))
+                lambda: na.ones((nd, nd, nd), dtype='float64')
+                + 1e-4*na.random.random((nd, nd, nd)))
         else:
             defaultdict.__init__(self, 
-                lambda: na.ones((nd*nd*nd), dtype='float64')
-                + 1e-4*na.random.random((nd*nd*nd)))
+                lambda: na.ones((nd * nd * nd), dtype='float64')
+                + 1e-4*na.random.random((nd * nd * nd)))
     def __missing__(self, item):
         FI = getattr(self.pf, "field_info", FieldInfo)
         if FI.has_key(item) and \
@@ -190,15 +205,20 @@ class FieldDetector(defaultdict):
                 nfd = FieldDetector(self.nd+ngz*2)
                 nfd._num_ghost_zones = ngz
                 vv = FI[item](nfd)
-                if ngz > 0: vv = vv[ngz:-ngz,ngz:-ngz,ngz:-ngz]
+                if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]
+
                 for i in nfd.requested:
                     if i not in self.requested: self.requested.append(i)
+
                 for i in nfd.requested_parameters:
-                    if i not in self.requested_parameters: self.requested_parameters.append(i)
+                    if i not in self.requested_parameters:
+                        self.requested_parameters.append(i)
+
             if vv is not None:
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
                 return self[item]
+
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
 
@@ -249,23 +269,29 @@ class DerivedField(object):
         :param display_name: a name used in the plots
         :param projection_conversion: which unit should we multiply by in a
                                       projection?
+
         """
         self.name = name
         self._function = function
+
         if validators:
             self.validators = ensure_list(validators)
         else:
             self.validators = []
+
         self.take_log = take_log
         self._units = units
         self._projected_units = projected_units
+
         if not convert_function:
             convert_function = lambda a: 1.0
         self._convert_function = convert_function
         self._particle_convert_function = particle_convert_function
+
         self.particle_type = particle_type
         self.vector_field = vector_field
         self.projection_conversion = projection_conversion
+
         self.display_field = display_field
         self.display_name = display_name
         self.not_in_all = not_in_all
@@ -274,6 +300,7 @@ class DerivedField(object):
         """
         This raises an exception of the appropriate type if the set of
         validation mechanisms are not met, and otherwise returns True.
+
         """
         for validator in self.validators:
             validator(data)
@@ -283,6 +310,7 @@ class DerivedField(object):
     def get_dependencies(self, *args, **kwargs):
         """
         This returns a list of names of fields that this field depends on.
+
         """
         e = FieldDetector(*args, **kwargs)
         if self._function.func_name == '<lambda>':
@@ -292,47 +320,50 @@ class DerivedField(object):
         return e
 
     def get_units(self):
-        """
-        Return a string describing the units.
-        """
+        """ Return a string describing the units.  """
         return self._units
 
     def get_projected_units(self):
         """
         Return a string describing the units if the field has been projected.
+
         """
         return self._projected_units
 
     def __call__(self, data):
-        """
-        Return the value of the field in a given *data* object.
-        """
+        """ Return the value of the field in a given *data* object.  """
         ii = self.check_available(data)
         original_fields = data.keys() # Copy
         dd = self._function(self, data)
         dd *= self._convert_function(data)
+
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
+
         return dd
 
     def get_source(self):
         """
         Return a string containing the source of the function (if possible.)
+
         """
         return inspect.getsource(self._function)
 
     def get_label(self, projected=False):
         """
         Return a data label for the given field, inluding units.
+
         """
         name = self.name
         if self.display_name is not None: name = self.display_name
         data_label = r"$\rm{%s}" % name
+
         if projected: units = self.get_projected_units()
         else: units = self.get_units()
         if units != "": data_label += r"\/\/ (%s)" % (units)
         data_label += r"$"
+
         return data_label
 
     def particle_convert(self, data):
@@ -347,9 +378,11 @@ class ValidateParameter(FieldValidator):
     def __init__(self, parameters):
         """
         This validator ensures that the parameter file has a given parameter.
+
         """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
+
     def __call__(self, data):
         doesnt_have = []
         for p in self.parameters:
@@ -362,11 +395,13 @@ class ValidateParameter(FieldValidator):
 class ValidateDataField(FieldValidator):
     def __init__(self, field):
         """
-        This validator ensures that the output file has a given data field stored
-        in it.
+        This validator ensures that the output file has a given data field
+        stored in it.
+
         """
         FieldValidator.__init__(self)
         self.fields = ensure_list(field)
+
     def __call__(self, data):
         doesnt_have = []
         if isinstance(data, FieldDetector): return True
@@ -375,15 +410,19 @@ class ValidateDataField(FieldValidator):
                 doesnt_have.append(f)
         if len(doesnt_have) > 0:
             raise NeedsDataField(doesnt_have)
+
         return True
 
 class ValidateProperty(FieldValidator):
     def __init__(self, prop):
         """
-        This validator ensures that the data object has a given python attribute.
+        This validator ensures that the data object has a given python
+        attribute.
+
         """
         FieldValidator.__init__(self)
         self.prop = ensure_list(prop)
+
     def __call__(self, data):
         doesnt_have = []
         for p in self.prop:
@@ -391,6 +430,7 @@ class ValidateProperty(FieldValidator):
                 doesnt_have.append(p)
         if len(doesnt_have) > 0:
             raise NeedsProperty(doesnt_have)
+
         return True
 
 class ValidateSpatial(FieldValidator):
@@ -398,13 +438,15 @@ class ValidateSpatial(FieldValidator):
         """
         This validator ensures that the data handed to the field is of spatial
         nature -- that is to say, 3-D.
+
         """
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields
+
     def __call__(self, data):
-        # When we say spatial information, we really mean
-        # that it has a three-dimensional data structure
+        # When we say spatial information, we really mean that it has a
+        # three-dimensional data structure
         #if isinstance(data, FieldDetector): return True
         if not data._spatial:
             raise NeedsGridType(self.ghost_zones,self.fields)
@@ -417,10 +459,12 @@ class ValidateGridType(FieldValidator):
         """
         This validator ensures that the data handed to the field is an actual
         grid patch, not a covering grid of any kind.
+
         """
         FieldValidator.__init__(self)
+
     def __call__(self, data):
         # We need to make sure that it's an actual AMR grid
         if isinstance(data, FieldDetector): return True
-        if data._type_name == 'grid': return True
+        if getattr(data, "_type_name", None) == 'grid': return True
         raise NeedsOriginalGrid()

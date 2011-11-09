@@ -3,7 +3,7 @@ Data structures for Enzo
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -146,6 +146,7 @@ class EnzoHierarchy(AMRHierarchy):
             try:
                 harray_fp = h5py.File(harray_fn)
                 self.num_grids = harray_fp["/Level"].len()
+                harray_fp.close()
             except IOError:
                 pass
         elif os.path.getsize(self.hierarchy_filename) == 0:
@@ -220,10 +221,9 @@ class EnzoHierarchy(AMRHierarchy):
     # Sets are sorted, so that won't work!
     def _parse_hierarchy(self):
         def _next_token_line(token, f):
-            line = f.readline()
-            while token not in line:
-                line = f.readline()
-            return line.split()[2:]
+            for line in f:
+                if line.startswith(token):
+                    return line.split()[2:]
         if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
             if self._parse_binary_hierarchy(): return
         t1 = time.time()
@@ -234,7 +234,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        f.readline() # Blank at top
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
@@ -247,16 +246,12 @@ class EnzoHierarchy(AMRHierarchy):
             fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             np.append(int(_next_token_line("NumberOfParticles", f)[0]))
-            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
-            line = f.readline()
-            while len(line) > 2:
+            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
+            for line in f:
+                if len(line) < 2: break
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
-                    line = f.readline()
-                    continue
-                params = line.split()
-                line = f.readline()
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, np)
         self.grids = na.array(self.grids, dtype='object')
@@ -297,7 +292,7 @@ class EnzoHierarchy(AMRHierarchy):
         if not ytcfg.getboolean("yt","serialize"): return False
         try:
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
-        except h5py.h5.H5Error:
+        except:
             return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
@@ -390,7 +385,7 @@ class EnzoHierarchy(AMRHierarchy):
     def _detect_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
-        if self._mpi_get_rank() == 0 or self._mpi_get_rank() == None:
+        if self.comm.rank == 0 or self.comm.rank == None:
             field_list = self.get_data("/", "DataFields")
             if field_list is None:
                 mylog.info("Gathering a field list (this may take a moment.)")
@@ -407,7 +402,7 @@ class EnzoHierarchy(AMRHierarchy):
                     field_list = field_list.union(gf)
         else:
             field_list = None
-        field_list = self._mpi_bcast_pickled(field_list)
+        field_list = self.comm.mpi_bcast_pickled(field_list)
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
@@ -550,12 +545,13 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
                 self.grids[pid-1]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
+        self.grids = na.empty(len(grids), dtype='object')
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
-        self.grids = na.array(self.grids, dtype='object')
+            self.grids[gi] = grid
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):
@@ -594,7 +590,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self.derived_field_list = self.__class__._cached_derived_field_list
 
     def _generate_random_grids(self):
-        my_rank = self._mpi_get_rank()
+        my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
         if len(my_grids) > 40:
             starter = na.random.randint(0, 20)
@@ -684,9 +680,9 @@ class EnzoStaticOutput(StaticOutput):
         self._hierarchy_class = EnzoHierarchy1D
         self._fieldinfo_class = Enzo1DFieldContainer
         self.domain_left_edge = \
-            na.concatenate([self["DomainLeftEdge"], [0.0, 0.0]])
+            na.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
-            na.concatenate([self["DomainRightEdge"], [1.0, 1.0]])
+            na.concatenate([[self.domain_right_edge], [1.0, 1.0]])
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
@@ -743,55 +739,81 @@ class EnzoStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
-        for lineI, line in enumerate(lines):
-            if line.find("#") >= 1: # Keep the commented lines
-                line=line[:line.find("#")]
-            line=line.strip().rstrip()
-            if len(line) < 2:
-                continue
-            try:
-                param, vals = map(string.strip,map(string.rstrip,
-                                                   line.split("=")))
-            except ValueError:
-                mylog.error("ValueError: '%s'", line)
-            if parameterDict.has_key(param):
-                t = map(parameterDict[param], vals.split())
-                if len(t) == 1:
-                    self.parameters[param] = t[0]
+        data_labels = {}
+        data_label_factors = {}
+        for line in (l.strip() for l in lines):
+            if len(line) < 2: continue
+            param, vals = (i.strip() for i in line.split("="))
+            # First we try to decipher what type of value it is.
+            vals = vals.split()
+            # Special case approaching.
+            if "(do" in vals: vals = vals[:1]
+            if len(vals) == 0:
+                pcast = str # Assume NULL output
+            else:
+                v = vals[0]
+                # Figure out if it's castable to floating point:
+                try:
+                    float(v)
+                except ValueError:
+                    pcast = str
                 else:
-                    self.parameters[param] = t
-                if param.endswith("Units") and not param.startswith("Temperature"):
-                    dataType = param[:-5]
-                    self.conversion_factors[dataType] = self.parameters[param]
-            elif param.startswith("#DataCGS"):
+                    if any("." in v or "e+" in v or "e-" in v for v in vals):
+                        pcast = float
+                    elif v == "inf":
+                        pcast = str
+                    else:
+                        pcast = int
+            # Now we figure out what to do with it.
+            if param.endswith("Units") and not param.startswith("Temperature"):
+                dataType = param[:-5]
+                # This one better be a float.
+                self.conversion_factors[dataType] = float(vals[0])
+            if param.startswith("#DataCGS") or \
+                 param.startswith("#CGSConversionFactor"):
                 # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                if lines[lineI-1].find("Label") >= 0:
-                    kk = lineI-1
-                elif lines[lineI-2].find("Label") >= 0:
-                    kk = lineI-2
-                dataType = lines[kk].split("=")[-1].rstrip().strip()
-                convFactor = float(line.split("=")[-1].split()[0])
-                self.conversion_factors[dataType] = convFactor
-            elif param.startswith("#CGSConversionFactor"):
-                dataType = param[20:].rstrip()
-                convFactor = float(line.split("=")[-1])
-                self.conversion_factors[dataType] = convFactor
-            elif param.startswith("DomainLeftEdge"):
-                self.domain_left_edge = \
-                self.parameters["DomainLeftEdge"] = \
-                    na.array([float(i) for i in vals.split()])
-            elif param.startswith("DomainRightEdge"):
-                self.domain_right_edge = \
-                self.parameters["DomainRightEdge"] = \
-                    na.array([float(i) for i in vals.split()])
+                # Which one does it belong to?
+                data_id = param[param.find("[")+1:param.find("]")]
+                data_label_factors[data_id] = float(vals[0])
+            if param.startswith("DataLabel"):
+                data_id = param[param.find("[")+1:param.find("]")]
+                data_labels[data_id] = vals[0]
+            if len(vals) == 0:
+                vals = ""
+            elif len(vals) == 1:
+                vals = pcast(vals[0])
+            else:
+                vals = na.array([pcast(i) for i in vals if i != "-99999"])
+            self.parameters[param] = vals
         for p, v in self._parameter_override.items():
             self.parameters[p] = v
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
+        for k, v in data_label_factors.items():
+            self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
-        self.domain_dimensions = self.parameters["TopGridDimensions"]
+        if self.dimensionality > 1:
+            self.domain_dimensions = self.parameters["TopGridDimensions"]
+            if len(self.domain_dimensions) < 3:
+                tmp = self.domain_dimensions.tolist()
+                tmp.append(1)
+                self.domain_dimensions = na.array(tmp)
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                                             "float64").copy()
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+                                             "float64").copy()
+        else:
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                                             "float64")
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+                                             "float64")
+            self.domain_dimensions = na.array([self.parameters["TopGridDimensions"],1,1])
+
         self.current_time = self.parameters["InitialTime"]
+        # To be enabled when we can break old pickles:
+        #if "MetaDataSimulationUUID" in self.parameters:
+        #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
         if "CurrentTimeIdentifier" in self.parameters:
             self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         if self.parameters["ComovingCoordinates"]:
@@ -825,7 +847,7 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
-        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)

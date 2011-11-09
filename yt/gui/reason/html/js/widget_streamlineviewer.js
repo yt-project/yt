@@ -5,7 +5,7 @@ Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -159,7 +159,7 @@ var WidgetStreamlineViewer = function(python_varname, widget_data) {
 			    });
 
 
-	    camera.modelView.id();
+	    camera.view.id();
 	    setInterval(draw, 30/60);
 	    var stream_counter =0;
 	    //Draw the scene
@@ -167,7 +167,7 @@ var WidgetStreamlineViewer = function(python_varname, widget_data) {
 		stream_counter = 0;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		//Draw Triangle
-		program.setUniform('uMVMatrix', camera.modelView);
+		program.setUniform('uMVMatrix', camera.view);
 		program.setUniform('uPMatrix', camera.projection);
 		program.setBuffer('shapeset');
 		program.setBuffer('shapesetColors');

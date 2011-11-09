@@ -3,7 +3,7 @@ RAMSES-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -34,6 +34,7 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
+
 try:
     import _ramses_reader
 except ImportError:
@@ -64,6 +65,7 @@ class RAMSESGrid(AMRGridPatch):
         self.Parent = []
         self.Children = []
         self.locations = locations
+        self.domain = locations[0,0]
         self.start_index = start_index.copy()
 
     def _setup_dx(self):
@@ -78,7 +80,7 @@ class RAMSESGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def get_global_startindex(self):
         """
@@ -188,16 +190,20 @@ class RAMSESHierarchy(AMRHierarchy):
                         level, unique_indices.size, hilbert_indices.size)
             locs, lefts = _ramses_reader.get_array_indices_lists(
                         hilbert_indices, unique_indices, left_index, fl)
-            for dleft_index, dfl in zip(lefts, locs):
-                initial_left = na.min(dleft_index, axis=0)
-                idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
-                psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                dleft_index, dfl)
-                if psg.efficiency <= 0: continue
-                self.num_deep = 0
-                psgs.extend(_ramses_reader.recursive_patch_splitting(
-                    psg, idims, initial_left, 
-                    dleft_index, dfl))
+            for ddleft_index, ddfl in zip(lefts, locs):
+                for idomain in na.unique(ddfl[:,0]):
+                    dom_ind = ddfl[:,0] == idomain
+                    dleft_index = ddleft_index[dom_ind,:]
+                    dfl = ddfl[dom_ind,:]
+                    initial_left = na.min(dleft_index, axis=0)
+                    idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
+                    psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
+                                    dleft_index, dfl)
+                    if psg.efficiency <= 0: continue
+                    self.num_deep = 0
+                    psgs.extend(_ramses_reader.recursive_patch_splitting(
+                        psg, idims, initial_left, 
+                        dleft_index, dfl))
             mylog.debug("Done with level % 2i", level)
             pbar.finish()
             self.proto_grids.append(psgs)
@@ -226,7 +232,9 @@ class RAMSESHierarchy(AMRHierarchy):
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
-        self.grids = na.array(grids, dtype='object')
+        self.proto_grids = []
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _populate_grid_objects(self):
         mask = na.empty(self.grids.size, dtype='int32')
@@ -239,8 +247,20 @@ class RAMSESHierarchy(AMRHierarchy):
                                 self.grid_levels, mask)
             parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
-                g.Parent.extend(parents.tolist())
+                g.Parent.extend((p for p in parents.tolist()
+                        if p.locations[0,0] == g.locations[0,0]))
                 for p in parents: p.Children.append(g)
+            # Now we do overlapping siblings; note that one has to "win" with
+            # siblings, so we assume the lower ID one will "win"
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask, gi)
+            mask[gi] = False
+            siblings = self.grids[mask.astype("bool")]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
             g._prepare_grid()
             g._setup_dx()
         self.max_level = self.grid_levels.max()
@@ -272,8 +292,8 @@ class RAMSESStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
-        if _ramses_reader is None:
-            import _ramses_reader
+        # Here we want to initiate a traceback, if the reader is not built.
+        import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
@@ -328,6 +348,14 @@ class RAMSESStaticOutput(StaticOutput):
                                            * rheader['boxlen']
         self.domain_left_edge = na.zeros(3, dtype='float64')
         self.domain_dimensions = na.ones(3, dtype='int32') * 2
+        # This is likely not true, but I am not sure how to otherwise
+        # distinguish them.
+        mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
+        self.cosmological_simulation = 1
+        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
+        self.omega_lambda = rheader["omega_l"]
+        self.omega_matter = rheader["omega_m"]
+        self.hubble_constant = rheader["H0"]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

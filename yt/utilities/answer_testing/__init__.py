@@ -3,7 +3,7 @@ The components of the Enzo testing mechanism
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 

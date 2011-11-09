@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: CASA, University of Colorado at Boulder
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -30,8 +30,9 @@ import numpy as na
 
 from yt.funcs import *
 
-from yt.utilities.data_point_utilities import Bin2DProfile, \
-    Bin3DProfile
+from yt.data_objects.data_containers import YTFieldData
+from yt.utilities.data_point_utilities import \
+    Bin1DProfile, Bin2DProfile, Bin3DProfile
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
@@ -63,9 +64,10 @@ def preserve_source_parameters(func):
 # We could, but I think we instead want to deal with the root datasource.
 class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source, lazy_reader):
+        ParallelAnalysisInterface.__init__(self)
         self._data_source = data_source
         self.pf = data_source.pf
-        self._data = {}
+        self.field_data = YTFieldData()
         self._pdata = {}
         self._lazy_reader = lazy_reader
 
@@ -79,7 +81,7 @@ class BinnedProfile(ParallelAnalysisInterface):
 
     def _initialize_parallel(self, fields):
         g_objs = [g for g in self._get_grid_objs()]
-        self._preload(g_objs, self._get_dependencies(fields),
+        self.comm.preload(g_objs, self.get_dependencies(fields),
                       self._data_source.hierarchy.io)
 
     def _lazy_add_fields(self, fields, weight, accumulation):
@@ -119,10 +121,10 @@ class BinnedProfile(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         for key in self.__data:
-            self.__data[key] = self._mpi_allsum(self.__data[key])
+            self.__data[key] = self.comm.mpi_allreduce(self.__data[key], op='sum')
         for key in self.__weight_data:
-            self.__weight_data[key] = self._mpi_allsum(self.__weight_data[key])
-        self.__used = self._mpi_allsum(self.__used)
+            self.__weight_data[key] = self.comm.mpi_allreduce(self.__weight_data[key], op='sum')
+        self.__used = self.comm.mpi_allreduce(self.__used, op='sum')
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:
@@ -148,18 +150,18 @@ class BinnedProfile(ParallelAnalysisInterface):
             self._unlazy_add_fields(fields, weight, accumulation)
         if fractional:
             for field in fields:
-                self._data[field] /= self._data[field].sum()
+                self.field_data[field] /= self.field_data[field].sum()
 
     def keys(self):
-        return self._data.keys()
+        return self.field_data.keys()
 
     def __getitem__(self, key):
         # This raises a KeyError if it doesn't exist
         # This is because we explicitly want to add all fields
-        return self._data[key]
+        return self.field_data[key]
 
     def __setitem__(self, key, value):
-        self._data[key] = value
+        self.field_data[key] = value
 
     def _get_field(self, source, this_field, check_cut):
         # This is where we will iterate to get all contributions to a field
@@ -239,22 +241,19 @@ class BinnedProfile1D(BinnedProfile):
         mi, inv_bin_indices = args # Args has the indices to use as input
         # check_cut is set if source != self._data_source
         # (i.e., lazy_reader)
-        source_data = self._get_field(source, field, check_cut)[mi]
-        if weight: weight_data = self._get_field(source, weight, check_cut)[mi]
+        source_data = self._get_field(source, field, check_cut)
+        if weight: weight_data = self._get_field(source, weight, check_cut)
+        else: weight_data = na.ones(source_data.shape, dtype='float64')
+        self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
         used_field = self._get_empty_field()
-        # Now we perform the actual binning
-        for bin in inv_bin_indices.keys():
-            # temp_field is *all* the points from source that go into this bin
-            temp_field = source_data[inv_bin_indices[bin]]
-            if weight:
-                # now w_i * v_i and store sum(w_i)
-                weight_field[bin] = weight_data[inv_bin_indices[bin]].sum()
-                temp_field *= weight_data[inv_bin_indices[bin]]
-            binned_field[bin] = temp_field.sum()
-            # inv_bin_indices is a tuple of indices
-            if inv_bin_indices[bin][0].size > 0: used_field[bin] = 1
+        mi = args[0]
+        bin_indices_x = args[1].ravel().astype('int64')
+        source_data = source_data[mi]
+        weight_data = weight_data[mi]
+        Bin1DProfile(bin_indices_x, weight_data, source_data,
+                     weight_field, binned_field, used_field)
         # Fix for laziness, because at the *end* we will be
         # summing up all of the histograms and dividing by the
         # weights.  Accumulation likely doesn't work with weighted
@@ -270,33 +269,28 @@ class BinnedProfile1D(BinnedProfile):
             raise EmptyProfileData()
         # Truncate at boundaries.
         if self.end_collect:
-            mi = na.arange(source_data.size)
+            mi = na.ones_like(source_data).astype('bool')
         else:
-            mi = na.where( (source_data > self._bins.min())
-                         & (source_data < self._bins.max()))
+            mi = ((source_data > self._bins.min())
+               &  (source_data < self._bins.max()))
         sd = source_data[mi]
         if sd.size == 0:
             raise EmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization
         bin_indices = na.digitize(sd, self._bins)
         if self.end_collect: #limit the range of values to 0 and n_bins-1
-            bin_indices = na.minimum(na.maximum(1, bin_indices), self.n_bins) - 1
+            bin_indices = na.clip(bin_indices, 0, self.n_bins - 1)
         else: #throw away outside values
             bin_indices -= 1
           
-        # Now we set up our inverse bin indices
-        inv_bin_indices = {}
-        for bin in range(self[self.bin_field].size):
-            # Which fall into our bin?
-            inv_bin_indices[bin] = na.where(bin_indices == bin)
-        return (mi, inv_bin_indices)
+        return (mi, bin_indices)
 
     def choose_bins(self, bin_style):
         # Depending on the bin_style, choose from bin edges 0...N either:
         # both: 0...N, left: 0...N-1, right: 1...N 
         # center: N bins that are the average (both in linear or log
         # space) of each pair of left/right edges
-        x = self._data[self.bin_field]
+        x = self.field_data[self.bin_field]
         if bin_style is 'both': pass
         elif bin_style is 'left': x = x[:-1]
         elif bin_style is 'right': x = x[1:]
@@ -315,15 +309,15 @@ class BinnedProfile1D(BinnedProfile):
         *bin_style* (left, right, center, both).
         '''
         fid = open(filename,"w")
-        fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
+        fields = [field for field in sorted(self.field_data.keys()) if field != "UsedBins"]
         fields.remove(self.bin_field)
         fid.write("\t".join(["#"] + [self.bin_field] + fields + ["\n"]))
 
         field_data = na.array(self.choose_bins(bin_style)) 
         if bin_style is 'both':
-            field_data = na.append([field_data], na.array([self._data[field] for field in fields]), axis=0)
+            field_data = na.append([field_data], na.array([self.field_data[field] for field in fields]), axis=0)
         else: 
-            field_data = na.append([field_data], na.array([self._data[field][:-1] for field in fields]), axis=0)
+            field_data = na.append([field_data], na.array([self.field_data[field][:-1] for field in fields]), axis=0)
         
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
@@ -342,7 +336,7 @@ class BinnedProfile1D(BinnedProfile):
         *bin_style* (left, right, center, both).
         """
         fid = h5py.File(filename)
-        fields = [field for field in sorted(self._data.keys()) if (field != "UsedBins" and field != self.bin_field)]
+        fields = [field for field in sorted(self.field_data.keys()) if (field != "UsedBins" and field != self.bin_field)]
         if group_prefix is None:
             name = "%s-1d" % (self.bin_field)
         else:
@@ -354,7 +348,7 @@ class BinnedProfile1D(BinnedProfile):
         group = fid.create_group(name)
         group.attrs["x-axis-%s" % self.bin_field] = self.choose_bins(bin_style)
         for field in fields:
-            dset = group.create_dataset("%s" % field, data=self._data[field][:-1])
+            dset = group.create_dataset("%s" % field, data=self.field_data[field][:-1])
         fid.close()
 
     def _get_bin_fields(self):
@@ -475,8 +469,8 @@ class BinnedProfile2D(BinnedProfile):
         # center: N bins that are the average (both in linear or log
         # space) of each pair of left/right edges
 
-        x = self._data[self.x_bin_field]
-        y = self._data[self.y_bin_field]
+        x = self.field_data[self.x_bin_field]
+        y = self.field_data[self.y_bin_field]
         if bin_style is 'both':
             pass
         elif bin_style is 'left':
@@ -506,17 +500,17 @@ class BinnedProfile2D(BinnedProfile):
         both).
         """
         fid = open(filename,"w")
-        fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
+        fields = [field for field in sorted(self.field_data.keys()) if field != "UsedBins"]
         fid.write("\t".join(["#"] + [self.x_bin_field, self.y_bin_field]
                           + fields + ["\n"]))
         x,y = self.choose_bins(bin_style)
         x,y = na.meshgrid(x,y)
         field_data = [x.ravel(), y.ravel()]
         if bin_style is not 'both':
-            field_data += [self._data[field][:-1,:-1].ravel() for field in fields
+            field_data += [self.field_data[field][:-1,:-1].ravel() for field in fields
                            if field not in [self.x_bin_field, self.y_bin_field]]
         else:
-            field_data += [self._data[field].ravel() for field in fields
+            field_data += [self.field_data[field].ravel() for field in fields
                            if field not in [self.x_bin_field, self.y_bin_field]]
 
         field_data = na.array(field_data)
@@ -537,7 +531,7 @@ class BinnedProfile2D(BinnedProfile):
         right, center, both).
         """
         fid = h5py.File(filename)
-        fields = [field for field in sorted(self._data.keys()) if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field)]
+        fields = [field for field in sorted(self.field_data.keys()) if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field)]
         if group_prefix is None:
             name = "%s-%s-2d" % (self.y_bin_field, self.x_bin_field)
         else:
@@ -551,7 +545,7 @@ class BinnedProfile2D(BinnedProfile):
         group.attrs["x-axis-%s" % self.x_bin_field] = xbins
         group.attrs["y-axis-%s" % self.y_bin_field] = ybins
         for field in fields:
-            dset = group.create_dataset("%s" % field, data=self._data[field][:-1,:-1])
+            dset = group.create_dataset("%s" % field, data=self.field_data[field][:-1,:-1])
         fid.close()
 
     def _get_bin_fields(self):
@@ -735,9 +729,9 @@ class BinnedProfile3D(BinnedProfile):
         # center: N bins that are the average (both in linear or log
         # space) of each pair of left/right edges
 
-        x = self._data[self.x_bin_field]
-        y = self._data[self.y_bin_field]
-        z = self._data[self.z_bin_field]
+        x = self.field_data[self.x_bin_field]
+        y = self.field_data[self.y_bin_field]
+        z = self.field_data[self.z_bin_field]
         if bin_style is 'both':
             pass
         elif bin_style is 'left':
@@ -778,7 +772,7 @@ class BinnedProfile3D(BinnedProfile):
         attributes.
         """
         fid = h5py.File(filename)
-        fields = [field for field in sorted(self._data.keys()) 
+        fields = [field for field in sorted(self.field_data.keys()) 
                   if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field and field != self.z_bin_field)]
         if group_prefix is None:
             name = "%s-%s-%s-3d" % (self.z_bin_field, self.y_bin_field, self.x_bin_field)
@@ -796,7 +790,7 @@ class BinnedProfile3D(BinnedProfile):
         group.attrs["z-axis-%s" % self.z_bin_field] = zbins
         
         for field in fields:
-            dset = group.create_dataset("%s" % field, data=self._data[field][:-1,:-1,:-1])
+            dset = group.create_dataset("%s" % field, data=self.field_data[field][:-1,:-1,:-1])
         fid.close()
 
 
@@ -826,7 +820,7 @@ class BinnedProfile3D(BinnedProfile):
                               self[self.z_bin_field].size),
                     'field_order':order }
         values = []
-        for field in self._data:
+        for field in self.field_data:
             if field in set_attr.values(): continue
             order.append(field)
             values.append(self[field].ravel())
@@ -840,7 +834,7 @@ class StoredBinnedProfile3D(BinnedProfile3D):
         Given a *pf* parameterfile and the *name* of a stored profile, retrieve
         it into a read-only data structure.
         """
-        self._data = {}
+        self.field_data = YTFieldData()
         prof_arr = pf.h.get_data("/Profiles", name)
         if prof_arr is None: raise KeyError("No such array")
         for ax in 'xyz':
@@ -848,11 +842,11 @@ class StoredBinnedProfile3D(BinnedProfile3D):
                 setattr(self, base % ax, prof_arr.getAttr(base % ax))
         for ax in 'xyz':
             fn = getattr(self, '%s_bin_field' % ax)
-            self._data[fn] = prof_arr.getAttr('%s_bin_values' % ax)
+            self.field_data[fn] = prof_arr.getAttr('%s_bin_values' % ax)
         shape = prof_arr.getAttr('shape')
         for fn, fd in zip(prof_arr.getAttr('field_order'),
                           prof_arr.read().transpose()):
-            self._data[fn] = fd.reshape(shape)
+            self.field_data[fn] = fd.reshape(shape)
 
     def add_fields(self, *args, **kwargs):
         raise RuntimeError("Sorry, you can't add to a stored profile.")

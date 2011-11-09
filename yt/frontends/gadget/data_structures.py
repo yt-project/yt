@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Author: Chris Moody <cemoody@ucsc.edu>
 Affiliation: UCSC
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -121,9 +121,9 @@ class GadgetHierarchy(AMRHierarchy):
         args = izip(xrange(self.num_grids), self.grid_levels.flat,
                     grid_parent_id, LI,
                     self.grid_dimensions, self.grid_particle_count.flat)
-        self.grids = na.array([self.grid(self,j,d,le,lvl,p,n)
-                               for j,lvl,p, le, d, n in args],
-                           dtype='object')
+        self.grids = na.empty(len(args), dtype='object')
+        for gi, (j,lvl,p, le, d, n) in enumerate(args):
+            self.grids[gi] = self.grid(self,j,d,le,lvl,p,n)
         
     def _populate_grid_objects(self):    
         for g in self.grids:
@@ -194,7 +194,9 @@ class GadgetStaticOutput(StaticOutput):
             if add1 in fileh['/'].items():
                 if add2 in fileh['/'+add1].attrs.keys():
                     if fileh['/'+add1].attrs[add2] == format:
+                        fileh.close()
                         return True
-        except h5py.h5e.LowLevelIOError:
+            fileh.close()
+        except:
             pass
         return False

@@ -9,7 +9,7 @@ Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -91,7 +91,7 @@ var main_menu = {
             }},
            {xtype:'menuitem', text: 'yt Chat',
                 handler: function (b,e) { 
-                        window.open("http://yt.enzotools.org/irc.html", "_new");
+                        window.open("http://yt-project.org/irc.html", "_new");
             }},
            {xtype: 'menuseparator'},
            {xtype:'menuitem', text: 'Quit',

@@ -3,7 +3,7 @@ Some convenience functions, objects, and iterators
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -35,12 +35,14 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     EnzoRunDatabase
 
-def all_pfs(basedir='.',max_depth=1, name_spec="*.hierarchy", **kwargs):
+def all_pfs(basedir='.', skip=None, max_depth=1, name_spec="*.hierarchy", **kwargs):
     """
-    This function searchs a directory and its sub-directories, up to a depth of
-    *max_depth*, for parameter files.  It looks for the *name_spec* and then
-    instantiates an EnzoStaticOutput from each.  All subsequent *kwargs* are
-    passed on to the EnzoStaticOutput constructor.
+    This function searchs a directory and its sub-directories, up to a
+    depth of *max_depth*, for parameter files.  It looks for the
+    *name_spec* and then instantiates an EnzoStaticOutput from
+    each. You can skip every *skip* parameter files, if *skip* is not
+    None; otherwise it will return all files.  All subsequent *kwargs*
+    are passed on to the EnzoStaticOutput constructor.
     """
     list_of_names = []
     basedir = os.path.expanduser(basedir)
@@ -48,7 +50,7 @@ def all_pfs(basedir='.',max_depth=1, name_spec="*.hierarchy", **kwargs):
         bb = list('*' * i) + [name_spec]
         list_of_names += glob.glob(os.path.join(basedir,*bb))
     list_of_names.sort(key=lambda b: os.path.basename(b))
-    for fn in list_of_names:
+    for fn in list_of_names[::skip]:
         yield load(fn[:-10], **kwargs)
 
 def max_spheres(width, unit, **kwargs):
@@ -82,6 +84,8 @@ def load(*args ,**kwargs):
         else:
             return None
     candidates = []
+    args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
+            else arg for arg in args]
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
@@ -127,6 +131,7 @@ def projload(pf, axis, weight_field = None):
         proj[new_name] = b[f][:]
     proj.axis = axis
     proj.pf = pf
+    f.close()
     return proj
 
 def _chunk(arrlike, chunksize = 800000):

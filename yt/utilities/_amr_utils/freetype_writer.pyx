@@ -3,7 +3,7 @@ A light interface to FreeType2
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -69,6 +69,7 @@ cdef FT_Library library
 
 def initialize_library():
     # We do not clear the library from memory.
+    global initialized
     if initialized == 1: return
     cdef int error = FT_Init_FreeType(&library)
     if error: raise RuntimeError

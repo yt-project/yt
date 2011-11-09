@@ -5,7 +5,7 @@ Author: Casey W. Stark <caseywstark@gmail.com>
 Affiliation: UC Berkeley
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Casey W. Stark, J. S. Oishi, Matthew Turk.  All Rights
   Reserved.
@@ -76,7 +76,6 @@ class NyxGrid(AMRGridPatch):
 
     def _prepare_grid(self):
         """ Copies all the appropriate attributes from the hierarchy. """
-        # This is definitely the slowest part of generating the hierarchy
         h = self.hierarchy  # alias
         h.grid_levels[self.id, 0] = self.Level
         h.grid_left_edge[self.id,:] = self.LeftEdge[:]
@@ -94,11 +93,12 @@ class NyxGrid(AMRGridPatch):
         if len(pIDs) > 0:
             self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
         else:
+            # must be root grid
             self.Parent = None
 
     def _setup_dx(self):
         # So first we figure out what the index is. We don't assume that
-        # dx=dy=dz, at least here. We probably do elsewhere.
+        # dx=dy=dz here.
         id = self.id - self._id_offset
         if self.Parent is not None:
             self.dds = self.Parent[0].dds / self.pf.refine_by
@@ -109,7 +109,7 @@ class NyxGrid(AMRGridPatch):
 
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
         return "NyxGrid_%04i" % (self.id)
@@ -132,7 +132,6 @@ class NyxHierarchy(AMRHierarchy):
         self.read_particle_header()
         self.__cache_endianness(self.levels[-1].grids[-1])
 
-        # @todo: should be first line
         AMRHierarchy.__init__(self, pf, self.data_style)
         self._setup_data_io()
         self._setup_field_list()
@@ -142,27 +141,27 @@ class NyxHierarchy(AMRHierarchy):
         """ Read the global header file for an Nyx plotfile output. """
         counter = 0
         header_file = open(header_path, 'r')
-        self.__global_header_lines = header_file.readlines()
+        self._global_header_lines = header_file.readlines()
 
         # parse the file
-        self.nyx_version = self.__global_header_lines[0].rstrip()
-        self.n_fields = int(self.__global_header_lines[1])
+        self.nyx_pf_version = self._global_header_lines[0].rstrip()
+        self.n_fields = int(self._global_header_lines[1])
 
         # why the 2?
         counter = self.n_fields + 2
         self.field_list = []
-        for i, line in enumerate(self.__global_header_lines[2:counter]):
+        for i, line in enumerate(self._global_header_lines[2:counter]):
             self.field_list.append(line.rstrip())
 
         # figure out dimensions and make sure it's 3D
-        self.dimension = int(self.__global_header_lines[counter])
+        self.dimension = int(self._global_header_lines[counter])
         if self.dimension != 3:
             raise RunTimeError("Current data is %iD. yt only supports Nyx data in 3D" % self.dimension)
 
         counter += 1
-        self.Time = float(self.__global_header_lines[counter])
+        self.Time = float(self._global_header_lines[counter])
         counter += 1
-        self.finest_grid_level = int(self.__global_header_lines[counter])
+        self.finest_grid_level = int(self._global_header_lines[counter])
         self.n_levels = self.finest_grid_level + 1
         counter += 1
 
@@ -171,28 +170,28 @@ class NyxHierarchy(AMRHierarchy):
         # case in the future we want to enable a "backwards" way of
         # taking the data out of the Header file and using it to fill
         # in in the case of a missing inputs file
-        self.domainLeftEdge_unnecessary = na.array(map(float, self.__global_header_lines[counter].split()))
+        self.domainLeftEdge_unnecessary = na.array(map(float, self._global_header_lines[counter].split()))
         counter += 1
-        self.domainRightEdge_unnecessary = na.array(map(float, self.__global_header_lines[counter].split()))
+        self.domainRightEdge_unnecessary = na.array(map(float, self._global_header_lines[counter].split()))
         counter += 1
-        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split() #na.array(map(int, self.__global_header_lines[counter].split()))
+        self.refinementFactor_unnecessary = self._global_header_lines[counter].split() #na.array(map(int, self._global_header_lines[counter].split()))
         counter += 1
-        self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
+        self.globalIndexSpace_unnecessary = self._global_header_lines[counter]
         counter += 1
-        self.timestepsPerLevel_unnecessary = self.__global_header_lines[counter]
+        self.timestepsPerLevel_unnecessary = self._global_header_lines[counter]
         counter += 1
 
         self.dx = na.zeros((self.n_levels, 3))
-        for i, line in enumerate(self.__global_header_lines[counter:counter + self.n_levels]):
+        for i, line in enumerate(self._global_header_lines[counter:counter + self.n_levels]):
             self.dx[i] = na.array(map(float, line.split()))
         counter += self.n_levels
-        self.geometry = int(self.__global_header_lines[counter])
+        self.geometry = int(self._global_header_lines[counter])
         if self.geometry != 0:
             raise RunTimeError("yt only supports cartesian coordinates.")
         counter += 1
 
         # @todo: this is just to debug. eventually it should go away.
-        linebreak = int(self.__global_header_lines[counter])
+        linebreak = int(self._global_header_lines[counter])
         if linebreak != 0:
             raise RunTimeError("INTERNAL ERROR! This should be a zero.")
         counter += 1
@@ -209,11 +208,11 @@ class NyxHierarchy(AMRHierarchy):
         data_files_finder = re.compile(data_files_pattern)
 
         for level in range(0, self.n_levels):
-            tmp = self.__global_header_lines[counter].split()
+            tmp = self._global_header_lines[counter].split()
             # should this be grid_time or level_time??
             lev, ngrids, grid_time = int(tmp[0]), int(tmp[1]), float(tmp[2])
             counter += 1
-            nsteps = int(self.__global_header_lines[counter])
+            nsteps = int(self._global_header_lines[counter])
             counter += 1
             self.levels.append(NyxLevel(lev, ngrids))
 
@@ -227,10 +226,10 @@ class NyxHierarchy(AMRHierarchy):
             key_off = 0
             files = {}
             offsets = {}
-            while nfiles + tmp_offset < len(self.__global_header_lines) \
-                  and data_files_finder.match(self.__global_header_lines[nfiles + tmp_offset]):
-                filen = os.path.join(self.parameter_file.path, \
-                                     self.__global_header_lines[nfiles + tmp_offset].strip())
+            while nfiles + tmp_offset < len(self._global_header_lines) \
+                  and data_files_finder.match(self._global_header_lines[nfiles + tmp_offset]):
+                filen = os.path.join(self.parameter_file.path,
+                                     self._global_header_lines[nfiles + tmp_offset].strip())
                 # open each "_H" header file, and get the number of
                 # components within it
                 level_header_file = open(filen + '_H', 'r').read()
@@ -262,11 +261,11 @@ class NyxHierarchy(AMRHierarchy):
             for grid in range(0, ngrids):
                 gfn = fn[grid]  # filename of file containing this grid
                 gfo = off[grid] # offset within that file
-                xlo, xhi = map(float, self.__global_header_lines[counter].split())
+                xlo, xhi = map(float, self._global_header_lines[counter].split())
                 counter += 1
-                ylo, yhi = map(float, self.__global_header_lines[counter].split())
+                ylo, yhi = map(float, self._global_header_lines[counter].split())
                 counter += 1
-                zlo, zhi = map(float, self.__global_header_lines[counter].split())
+                zlo, zhi = map(float, self._global_header_lines[counter].split())
                 counter += 1
                 lo = na.array([xlo, ylo, zlo])
                 hi = na.array([xhi, yhi, zhi])
@@ -307,6 +306,7 @@ class NyxHierarchy(AMRHierarchy):
                                  for i in line.split()),
                                 dtype='int64',
                                 count=3*self.num_grids).reshape((self.num_grids, 3))
+        # we need grid_info in `populate_grid_objects`, so save it to self
         self.pgrid_info = grid_info
 
     def __cache_endianness(self, test_grid):
@@ -356,17 +356,17 @@ class NyxHierarchy(AMRHierarchy):
             g.NumberOfParticles = pg[1]
             g._particle_offset = pg[2]
 
-        self.grid_particle_count[:,0] = self.pgrid_info[:,1]
-        del self.pgrid_info  # if this is all pgrid_info is used for...
+        self.grid_particle_count[:, 0] = self.pgrid_info[:, 1]
+        del self.pgrid_info
 
         gls = na.concatenate([level.ngrids * [level.level] for level in self.levels])
         self.grid_levels[:] = gls.reshape((self.num_grids, 1))
         grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]]
                                    for level in self.levels], axis=0)
 
-        self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids, 1))
-        self.grid_dys = grid_dcs[:,1].reshape((self.num_grids, 1))
-        self.grid_dzs = grid_dcs[:,2].reshape((self.num_grids, 1))
+        self.grid_dxs = grid_dcs[:, 0].reshape((self.num_grids, 1))
+        self.grid_dys = grid_dcs[:, 1].reshape((self.num_grids, 1))
+        self.grid_dzs = grid_dcs[:, 2].reshape((self.num_grids, 1))
 
         left_edges = []
         right_edges = []
@@ -381,7 +381,7 @@ class NyxHierarchy(AMRHierarchy):
         self.grid_dimensions = na.array(dims)
         self.gridReverseTree = [] * self.num_grids
         self.gridReverseTree = [ [] for i in range(self.num_grids)]  # why the same thing twice?
-        self.gridTree = [ [] for i in range(self.num_grids)]  # meh
+        self.gridTree = [ [] for i in range(self.num_grids)]
 
         mylog.debug("Done creating grid objects")
 
@@ -389,7 +389,7 @@ class NyxHierarchy(AMRHierarchy):
         self.__setup_grid_tree()
 
         for i, grid in enumerate(self.grids):
-            if (i%1e4) == 0:
+            if (i % 1e4) == 0:
                 mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
 
             grid._prepare_grid()
@@ -469,7 +469,7 @@ class NyxHierarchy(AMRHierarchy):
         pass
 
     def _setup_unknown_fields(self):
-        # Doesn't seem useful
+        # not sure what the case for this is.
         for field in self.field_list:
             if field in self.parameter_file.field_info: continue
             mylog.info("Adding %s to list of fields", field)
@@ -548,10 +548,16 @@ class NyxStaticOutput(StaticOutput):
         """
         self.storage_filename = storage_filename
         self.parameter_filename = param_filename
-        self.parameter_file_path = os.path.abspath(self.parameter_filename)
         self.fparameter_filename = fparam_filename
-        self.fparameter_file_path = os.path.abspath(self.fparameter_filename)
+
         self.path = os.path.abspath(plotname)  # data folder
+
+        # silly inputs and probin file thing (this is on the Nyx todo list)
+        self.parameter_file_path = os.path.join(os.path.dirname(self.path),
+                                                self.parameter_filename)
+
+        self.fparameter_file_path = os.path.join(os.path.dirname(self.path),
+                                                 self.fparameter_filename)
 
         self.fparameters = {}
 
@@ -582,7 +588,6 @@ class NyxStaticOutput(StaticOutput):
         Parses the parameter file and establishes the various dictionaries.
 
         """
-        # More boxlib madness...
         self._parse_header_file()
 
         if os.path.isfile(self.fparameter_file_path):
@@ -632,27 +637,24 @@ class NyxStaticOutput(StaticOutput):
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.refine_by = self.parameters.get("RefineBy", 2)  # 2 is silent default? Makes sense I suppose.
 
-        if self.parameters.has_key("ComovingCoordinates") \
-           and self.parameters["ComovingCoordinates"]:
-            self.cosmological_simulation = 1
-            self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
-            self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
-            self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
+        # Nyx is always cosmological.
+        self.cosmological_simulation = 1
+        self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
+        self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+        self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
 
-            # So broken. We will fix this in the new Nyx output format
-            a_file = open(os.path.join(self.path, "comoving_a"))
-            line = a_file.readline().strip()
-            a_file.close()
-            self.parameters["CosmologyCurrentRedshift"] = 1 / float(line) - 1
-            self.cosmological_scale_factor = float(line)
+        # Read in the `comoving_a` file and parse the value. We should fix this
+        # in the new Nyx output format...
+        a_file = open(os.path.join(self.path, "comoving_a"))
+        a_string = a_file.readline().strip()
+        a_file.close()
 
-            # alias
-            self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
+        # Set the scale factor and redshift
+        self.cosmological_scale_factor = float(a_string)
+        self.parameters["CosmologyCurrentRedshift"] = 1 / float(a_string) - 1
 
-        else:
-            # @todo: automatic defaults
-            self.current_redshift = self.omega_lambda = self.omega_matter = \
-                self.hubble_constant = self.cosmological_simulation = 0.0
+        # alias
+        self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
 
     def _parse_header_file(self):
         """
@@ -662,13 +664,12 @@ class NyxStaticOutput(StaticOutput):
         Currently, only Time is read here.
 
         """
-        # @todo: header filename option? probably not.
         header_file = open(os.path.join(self.path, "Header"))
         lines = header_file.readlines()  # hopefully this is small
         header_file.close()
 
         n_fields = int(lines[1])  # this could change
-        self.current_time = float(lines[3 + n_fields])  # very fragile
+        self.current_time = float(lines[3 + n_fields])  # fragile
 
     def _parse_fparameter_file(self):
         """
@@ -744,7 +745,6 @@ class NyxStaticOutput(StaticOutput):
         seconds = self.time_units["s"]
         self.time_units["days"] = seconds / (3600 * 24.0)
         self.time_units["years"] = seconds / (3600 * 24.0 * 365)
-
 
         # not the most useful right now, but someday
         for key in nyx_particle_field_names:

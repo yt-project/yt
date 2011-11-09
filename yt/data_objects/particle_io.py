@@ -3,7 +3,7 @@ The particle-IO handler
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
@@ -91,8 +91,7 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)
         for [n, v] in zip(fields_to_read, rvs):
-            self.source.data[n] = v
-        print self.source.data.keys()
+            self.source.field_data[n] = v
 
 class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
     periodic = False

@@ -4,7 +4,7 @@ Data structures for Chombo.
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
@@ -58,7 +58,7 @@ class GDFGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class GDFHierarchy(AMRHierarchy):
 
@@ -115,7 +115,9 @@ class GDFHierarchy(AMRHierarchy):
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
-        self.grids = na.array(self.grids, dtype='object')
+        temp_grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(self.grids): temp_grids[gi] = g
+        self.grids = temp_grids
 
     def _populate_grid_objects(self):
         for g in self.grids:

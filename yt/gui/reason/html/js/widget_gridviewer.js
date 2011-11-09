@@ -5,7 +5,7 @@ Author: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -64,11 +64,6 @@ var WidgetGridViewer = function(python_varname, widget_data) {
                     x: 0.5, y: 0.5, z: 0.5
                 },
             },
-            program: {
-		from: 'ids',
-                vs: 'gv-shader-vs',
-                fs: 'gv-shader-fs'
-            },    
             events: {
 		onDragStart: function(e) {
                     pos = {
@@ -156,46 +151,23 @@ var WidgetGridViewer = function(python_varname, widget_data) {
                 program = app.program,
                 scene = app.scene,
                 camera = app.camera;
-		
+		var grids = new PhiloGL.O3D.Model({
+            vertices : widget_data['vertex_positions'],
+            drawType : "LINES",
+            colors : widget_data['vertex_colors'],
+        });
+        scene.add(grids);
 		gl.viewport(0, 0, canvas.width, canvas.height);
 		gl.clearColor(0, 0, 0, 1);
-		//gl.clearDepth(1);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-		gl.enable(gl.BLEND);
-		//gl.disable(gl.DEPTH_TEST);
-		program.setUniform('alpha',0.8);
-		gl.depthFunc(gl.LEQUAL);
-		examine = camera;
-		program.setBuffers({
-	    	    'shapeset': {
-	    		attribute: 'aVertexPosition',
-			value: new Float32Array(widget_data['vertex_positions']),
-	    		size: 3
-	    	    },
-	    	    'shapesetColors': {
-	    		attribute: 'aVertexColor',
-			value: new Float32Array(widget_data['vertex_colors']),
-	    		size: 4
-	    	    },
-		    
-		});
 
-		camera.modelView.id();
+		//examine = camera;
+		camera.view.id();
 		camera.update();
-		
-		/*(function animloop(){
-		    draw();
-		    requestAnimFrame(animloop, canvas);
-		})();*/
 		
 		//Draw the scene
 		draw = function() {
 	    	    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	    	    program.setUniform('uMVMatrix', camera.modelView);
-	    	    program.setUniform('uPMatrix', camera.projection);
-	    	    program.setBuffer('shapeset');
-	    	    program.setBuffer('shapesetColors');
-                    gl.drawArrays(gl.LINES, 0, widget_data['n_vertices']);
+                scene.render();
 		}
 
 		draw();

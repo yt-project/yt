@@ -3,7 +3,7 @@ A means of extracting a subset of the hierarchy
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -27,6 +27,7 @@ import h5py, os.path
 import numpy as na
 
 from yt.funcs import *
+from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
@@ -65,7 +66,7 @@ class ConstructedRootGrid(AMRGridPatch):
         self.base_grid = base_pf.h.smoothed_covering_grid(level, self.LeftEdge,
                         self.RightEdge, dims=dims)
         self.base_grid.Level = self.base_grid.level
-        self.data = {}
+        self.field_data = YTFieldData()
         #self._calculate_child_masks()
         self.Parent = None
         self.Children = []

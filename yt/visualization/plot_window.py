@@ -3,7 +3,7 @@ A plotting mechanism based on the idea of a "window" into the data.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 J. S. Oishi.  All Rights Reserved.
 
@@ -355,7 +355,7 @@ class PWViewerExtJS(PWViewer):
     def get_ticks(self, mi, ma, height = 400, take_log = False):
         # This will eventually change to work with non-logged fields
         ticks = []
-        if take_log:
+        if take_log and mi > 0.0 and ma > 0.0:
             ll = LogLocator() 
             tick_locs = ll(mi, ma)
             mi = na.log10(mi)

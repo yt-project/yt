@@ -4,7 +4,7 @@ yt's purposes
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
@@ -77,9 +77,9 @@ class PayloadHandler(object):
             if self.record:
                 self.recorded_payloads += self.payloads
             if self.debug:
-                orig_stderr.write("**** Delivering %s payloads\n" % (len(payloads)))
+                sys.__stderr__.write("**** Delivering %s payloads\n" % (len(payloads)))
                 for p in payloads:
-                    orig_stderr.write("****    %s\n" % p['type'])
+                    sys.__stderr__.write("****    %s\n" % p['type'])
             self.payloads = []
             self.event.clear()
         return payloads
@@ -90,7 +90,7 @@ class PayloadHandler(object):
             self.count += 1
             self.event.set()
             if self.debug:
-                orig_stderr.write("**** Adding payload of type %s\n" % (to_add['type']))
+                sys.__stderr__.write("**** Adding payload of type %s\n" % (to_add['type']))
 
     def replay_payloads(self):
         return self.recorded_payloads
@@ -99,7 +99,7 @@ class PayloadHandler(object):
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
     def run(self, handler):
-        from rocket import Rocket
+        from yt.utilities.rocket import Rocket
         server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
         self.server_info[id(self)] = server
         server.start()

@@ -3,7 +3,7 @@ Base classes for answer testing
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import matplotlib
 from yt.mods import *
 
 # We first create our dictionary of tests to run.  This starts out empty, and
@@ -49,13 +50,16 @@ class ValueDelta(RegressionTestException):
         self.acceptable = acceptable
 
     def __repr__(self):
-        return "ValueDelta: Delta %0.5e, max of %0.5e" % (
+        return "ValueDelta: Delta %s, max of %s" % (
             self.delta, self.acceptable)
 
 class ArrayDelta(ValueDelta):
     def __repr__(self):
-        return "ArrayDelta: Delta %0.5e, max of %0.5e" % (
-            self.delta, self.acceptable)
+        nabove = len(na.where(self.delta > self.acceptable)[0])
+        return "ArrayDelta: Delta %s, max of %s, acceptable of %s.\n" \
+               "%d of %d points above the acceptable limit" % \
+               (self.delta, self.delta.max(), self.acceptable, nabove,
+                self.delta.size)
 
 class ShapeMismatch(RegressionTestException):
     def __init__(self, old_shape, current_shape):
@@ -63,7 +67,7 @@ class ShapeMismatch(RegressionTestException):
         self.current_shape = current_shape
 
     def __repr__(self):
-        return "Shape Mismatch: old_buffer %s, current_buffer %0.5e" % (
+        return "Shape Mismatch: old_buffer %s, current_buffer %s" % (
             self.old_shape, self.current_shape)
 
 class RegressionTest(object):

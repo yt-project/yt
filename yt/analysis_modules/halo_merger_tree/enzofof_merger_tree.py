@@ -6,7 +6,7 @@ Author: Matthew J. Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
 Author: John H. Wise <jwise@astro.princeton.edu>
 Affiliation: Princeton
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -104,6 +104,9 @@ class HaloCatalog(object):
         self.particle_file = h5py.File("FOF/particles_%05i.h5" % output_id, "r")
         self.parse_halo_catalog()
         if cache: self.cache = dict()#MaxLengthDict()
+
+    def __del__(self):
+        self.particle_file.close()
 
     def parse_halo_catalog(self):
         hp = []

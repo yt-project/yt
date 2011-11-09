@@ -3,7 +3,7 @@ This is a recursive function to return a depth-first octree
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 

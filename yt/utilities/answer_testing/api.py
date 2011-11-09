@@ -7,7 +7,7 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -45,3 +45,17 @@ from .default_tests import \
 
 from .xunit import \
     Xunit
+
+from .halo_tests import \
+    TestHaloCompositionHashHOP, \
+    TestHaloCompositionHashFOF, \
+    TestHaloCompositionHashPHOP
+
+from .boolean_region_tests import \
+    TestBooleanANDGridQuantity, \
+    TestBooleanORGridQuantity, \
+    TestBooleanNOTGridQuantity, \
+    TestBooleanANDParticleQuantity, \
+    TestBooleanORParticleQuantity, \
+    TestBooleanNOTParticleQuantity
+

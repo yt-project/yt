@@ -3,7 +3,7 @@ Default tests
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -60,7 +60,7 @@ class TestAllProjections(YTStaticOutputTest):
             results[field] = []
             for ax in range(3):
                 t = self.pf.h.proj(ax, field)
-                results[field].append(t.data)
+                results[field].append(t.field_data)
         self.result = results
 
     def compare(self, old_result):

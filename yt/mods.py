@@ -4,7 +4,7 @@ the namespace and getting the last argument on the command line.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
@@ -40,7 +40,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.config import ytcfg
 import yt.utilities.physical_constants as physical_constants
-from yt.utilities.cookbook import Intent
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -104,12 +103,16 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera
+    HomogenizedVolume, Camera, off_axis_projection
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

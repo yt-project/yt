@@ -3,7 +3,7 @@ FLASH-specific IO functions
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -46,6 +46,9 @@ class IOHandlerFLASH(BaseIOHandler):
                                           enumerate(particle_fields)])
         except KeyError:
             self._particle_fields = {}
+
+    def __del__(self):
+        self._handle.close()
             
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):

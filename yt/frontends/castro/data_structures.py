@@ -3,7 +3,7 @@ Data structures for Castro.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2010 J. S. Oishi.  All Rights Reserved.
 
@@ -117,7 +117,7 @@ class CastroGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
         return "CastroGrid_%04i" % (self.id)
