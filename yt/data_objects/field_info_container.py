@@ -81,6 +81,11 @@ class FieldInfoContainer(dict): # Resistance has utility
         if self.fallback is None: return False
         return self.fallback.has_key(key)
 
+    def __iter__(self):
+        for f in dict.__iter__(self): yield f
+        if self.fallback:
+            for f in self.fallback: yield f
+
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
         return data[field]
