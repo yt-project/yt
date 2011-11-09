@@ -254,7 +254,7 @@ class EnzoHierarchy(AMRHierarchy):
                     self.__pointer_handler(vv)
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, np)
-        temp_grids = na.empty(len(grids), dtype='object')
+        temp_grids = na.empty(self.num_grids, dtype='object')
         temp_grids[:] = self.grids
         self.grids = temp_grids
         self.filenames = fn
