@@ -88,7 +88,7 @@ class FieldInfoContainer(dict): # Resistance has utility
 
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
-        return data[field]
+        return data[field_name]
     return _TranslationFunc
 
 def NullFunc(field, data):
