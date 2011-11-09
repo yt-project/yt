@@ -100,12 +100,12 @@ class GDFHierarchy(AMRHierarchy):
         # 'Chombo_global'
         levels = f.listnames()[1:]
         dxs=[]
-        self.grids = []
+        self.grids = na.empty(self.num_grids, dtype='object')
         for i, grid in enumerate(f['data'].keys()):
-            self.grids.append(self.grid(i, self, f['grid_level'][i],
-                                        f['grid_left_index'][i],
-                                        f['grid_dimensions'][i]))
-            self.grids[-1]._level_id = f['grid_level'][i]
+            self.grids[i] = self.grid(i, self, f['grid_level'][i],
+                                      f['grid_left_index'][i],
+                                      f['grid_dimensions'][i])
+            self.grids[i]._level_id = f['grid_level'][i]
 
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
@@ -116,7 +116,6 @@ class GDFHierarchy(AMRHierarchy):
         self.grid_dimensions = f['grid_dimensions'][:]
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = f['grid_particle_count'][:]
-        self.grids = na.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
         for g in self.grids:
