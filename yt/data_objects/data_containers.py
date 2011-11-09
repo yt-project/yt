@@ -2612,7 +2612,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
         """
         flux = 0.0
-        for g in self._grids:
+        for g in self._get_grid_objs():
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
             if fluxing_field is None:
@@ -2623,6 +2623,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                          [field_x, field_y, field_z]]
             flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
                         ff, mask, g.LeftEdge, g.dds)
+        flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
