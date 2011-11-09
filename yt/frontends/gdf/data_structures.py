@@ -113,7 +113,7 @@ class GDFHierarchy(AMRHierarchy):
             dxs.append(dx)
         dx = na.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*f['grid_left_index'][:]
-        self.grid_dimensions = f['grid_dimensions'][:]
+        self.grid_dimensions = f['grid_dimensions'][:].astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = f['grid_particle_count'][:]
 
