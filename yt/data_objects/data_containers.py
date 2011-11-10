@@ -2266,7 +2266,7 @@ class AMRFixedResProjectionBase(AMR2DData):
             grid.child_mask, self.domain_width, dls[grid.Level],
             self.axis)
 
-class AMR3DData(AMRData, GridPropertiesMixin):
+class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
     Class describing a cluster of data points, not necessarily sharing any
@@ -2280,6 +2280,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         used as a base class.  Note that *center* is supplied, but only used
         for fields and quantities that require it.
         """
+        ParallelAnalysisInterface.__init__(self)
         AMRData.__init__(self, pf, fields, **kwargs)
         self._set_center(center)
         self.coords = None
@@ -2479,12 +2480,19 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             format.  Suitable for loading into meshlab.
         rescale : bool, optional
             If true, the vertices will be rescaled within their min/max.
+        sample_values : string, optional
+            Any field whose value should be extracted at the center of each
+            triangle.
 
         Returns
         -------
         verts : array of floats
             The array of vertices, x,y,z.  Taken in threes, these are the
             triangle vertices.
+        samples : array of floats
+            If `sample_values` is specified, this will be returned and will
+            contain the values of the field specified at the center of each
+            triangle.
 
         References
         ----------
@@ -2504,9 +2512,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         verts = []
         samples = []
-        pb = get_pbar("Extracting Isocontours", len(self._grids))
-        for i, g in enumerate(self._grids):
-            pb.update(i)
+        for i, g in enumerate(self._get_grid_objs()):
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
             if sample_values is not None:
@@ -2519,20 +2525,24 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
-        pb.finish()
-        verts = na.concatenate(verts)
+        verts = na.concatenate(verts).transpose()
+        verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
+        verts = verts.transpose()
         if sample_values is not None:
             samples = na.concatenate(samples)
+            samples = self.comm.par_combine_object(samples, op='cat',
+                                datatype='array')
         if rescale:
             mi = na.min(verts, axis=0)
             ma = na.max(verts, axis=0)
             verts = (verts - mi) / (ma - mi).max()
-        if filename is not None:
+        if filename is not None and self.comm.rank == 0:
             f = open(filename, "w")
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts)/3):
                 f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
+            f.close()
         if sample_values is not None:
             return verts, samples
         return verts
@@ -2602,7 +2612,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
         """
         flux = 0.0
-        for g in self._grids:
+        for g in self._get_grid_objs():
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
             if fluxing_field is None:
@@ -2613,6 +2623,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                          [field_x, field_y, field_z]]
             flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
                         ff, mask, g.LeftEdge, g.dds)
+        flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
