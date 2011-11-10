@@ -149,6 +149,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             print "WARNING: %s has no _route_prefix attribute.  Not notifying."
             continue
             w._route_prefix = token
+    repl._global_token = token
     repl.activate()
     repl.execution_thread.wait()
     print

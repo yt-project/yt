@@ -220,6 +220,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               _resources = ("/resources/:path#.+#", "GET"),
                               _philogl = ("/philogl/:path#.+#", "GET"),
                               _js = ("/js/:path#.+#", "GET"),
+                              _leaflet = ("/leaflet/:path#.+#", "GET"),
                               _images = ("/images/:path#.+#", "GET"),
                               _theme = ("/theme/:path#.+#", "GET"),
                               _session_py = ("/session.py", "GET"),
@@ -335,6 +336,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def _js(self, path):
         pp = os.path.join(local_dir, "html", "js", path)
+        if not os.path.exists(pp):
+            response.status = 404
+            return
+        return open(pp).read()
+
+    def _leaflet(self, path):
+        pp = os.path.join(local_dir, "html", "leaflet", path)
         if not os.path.exists(pp):
             response.status = 404
             return
@@ -512,6 +520,21 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute(funccall, hide = True)
         self.execution_thread.queue.put({'type': 'add_widget',
                                          'name': '_tpw',
+                                         'widget_data_name': '_twidget_data'})
+
+    @lockit
+    def create_mapview(self, widget_name):
+        # We want multiple maps simultaneously
+        uu = "/%s/%s" % (getattr(self, "_global_token", ""),
+                        str(uuid.uuid1()).replace("-","_"))
+        from .pannable_map import PannableMapServer
+        data = self.locals[widget_name].data_source
+        field_name = self.locals[widget_name]._current_field
+        pm = PannableMapServer(data, field_name, route_prefix = uu)
+        self.locals['_tpm'] = pm
+        self.locals['_twidget_data'] = {'prefix': uu, 'field':field_name}
+        self.execution_thread.queue.put({'type': 'add_widget',
+                                         'name': '_tpm',
                                          'widget_data_name': '_twidget_data'})
 
     @lockit
