@@ -77,12 +77,16 @@ class YTExtractIsocontoursTest(YTFieldValuesTest):
     def run(self):
         val = self.data_object.quantities["WeightedAverageQuantity"](
             "Density", "Density")
-        triangles = self.data_object.extract_isocontours("Density",
+        rset = self.data_object.extract_isocontours("Density",
             val, rescale = False, sample_values = "Temperature")
-        self.result = triangles
+        self.result = rset
 
     def compare(self, old_result):
-        self.compare_array_delta(self.result, old_result, 1e-7)
+        if self.result[0].size == 0 and old_result[0].size == 0:
+            return True
+        self.compare_array_delta(self.result[0].ravel(),
+                                 old_result[0].ravel(), 1e-7)
+        self.compare_array_delta(self.result[1], old_result[1], 1e-7)
 
 class YTIsocontourFluxTest(YTFieldValuesTest):
     def run(self):
