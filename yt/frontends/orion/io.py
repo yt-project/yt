@@ -111,7 +111,7 @@ class IOHandlerNative(BaseIOHandler):
         field_index = grid.field_indexes[fieldname]
         inFile.seek(int(nElements*bytesPerReal*field_index),1)
         field = na.fromfile(inFile,count=nElements,dtype=dtype)
-        field = field.reshape(grid.ActiveDimensions[::-1]).swapaxes(0,2)
+        field = field.reshape(grid.ActiveDimensions, order='F')
 
         # we can/should also check against the max and min in the header file
 
