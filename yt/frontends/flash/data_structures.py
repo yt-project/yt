@@ -350,6 +350,7 @@ class FLASHStaticOutput(StaticOutput):
         try:
             fileh = h5py.File(args[0],'r')
             if "bounding box" in fileh["/"].keys():
+                fileh.close()
                 return True
         except:
             pass
