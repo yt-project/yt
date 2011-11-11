@@ -24,12 +24,15 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
-    ValidateGridType
+    ValidateGridType, \
+    NullFunc, \
+    TranslationFunc
 import yt.data_objects.universal_fields
 
 log_translation_dict = {"Density": "density",
@@ -43,63 +46,52 @@ translation_dict = {"x-velocity": "velocity_x",
 #                     "mag_field_y": "cell_centered_B_y ",
 #                     "mag_field_z": "cell_centered_B_z "}
 
-class GDFFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-GDFFieldInfo = GDFFieldContainer()
-add_gdf_field = GDFFieldInfo.add_field
+GDFFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = GDFFieldInfo.add_field
 
-add_field = add_gdf_field
+KnownGDFFields = FieldInfoContainer()
+add_gdf_field = KnownGDFFields.add_field
 
-add_field("density", function=lambda a,b: None, take_log=True,
+add_gdf_field("density", function=NullFunc, take_log=True,
           validators = [ValidateDataField("density")],
-          units=r"\rm{g}/\rm{cm}^3")
+          units=r"\rm{g}/\rm{cm}^3",
+          projected_units =r"\rm{g}/\rm{cm}^2")
 
-GDFFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
-
-add_field("specific_energy", function=lambda a,b: None, take_log=True,
+add_gdf_field("specific_energy", function=NullFunc, take_log=True,
           validators = [ValidateDataField("specific_energy")],
           units=r"\rm{erg}/\rm{g}")
 
-add_field("pressure", function=lambda a,b: None, take_log=True,
+add_gdf_field("pressure", function=NullFunc, take_log=True,
           validators = [ValidateDataField("pressure")],
           units=r"\rm{erg}/\rm{g}")
 
-add_field("velocity_x", function=lambda a,b: None, take_log=False,
+add_gdf_field("velocity_x", function=NullFunc, take_log=True,
           validators = [ValidateDataField("velocity_x")],
           units=r"\rm{cm}/\rm{s}")
 
-add_field("velocity_y", function=lambda a,b: None, take_log=False,
+add_gdf_field("velocity_y", function=NullFunc, take_log=False,
           validators = [ValidateDataField("velocity_y")],
           units=r"\rm{cm}/\rm{s}")
 
-add_field("velocity_z", function=lambda a,b: None, take_log=False,
+add_gdf_field("velocity_z", function=NullFunc, take_log=False,
           validators = [ValidateDataField("velocity_z")],
           units=r"\rm{cm}/\rm{s}")
 
-add_field("mag_field_x", function=lambda a,b: None, take_log=False,
+add_gdf_field("mag_field_x", function=NullFunc, take_log=False,
           validators = [ValidateDataField("mag_field_x")],
           units=r"\rm{cm}/\rm{s}")
 
-add_field("mag_field_y", function=lambda a,b: None, take_log=False,
+add_gdf_field("mag_field_y", function=NullFunc, take_log=False,
           validators = [ValidateDataField("mag_field_y")],
           units=r"\rm{cm}/\rm{s}")
 
-add_field("mag_field_z", function=lambda a,b: None, take_log=False,
+add_gdf_field("mag_field_z", function=NullFunc, take_log=False,
           validators = [ValidateDataField("mag_field_z")],
           units=r"\rm{cm}/\rm{s}")
 
-def _get_alias(alias):
-    def _alias(field, data):
-        return data[alias]
-    return _alias
-
-def _generate_translation(mine, theirs ,log_field=True):
-    add_field(theirs, function=_get_alias(mine), take_log=log_field)
-
 for f,v in log_translation_dict.items():
-    _generate_translation(v, f, log_field=True)
+    add_field(f, TranslationFunc(v), take_log=True)
 
 for f,v in translation_dict.items():
-    _generate_translation(v, f, log_field=False)
+    add_field(f, TranslationFunc(v), take_log=False)
 
