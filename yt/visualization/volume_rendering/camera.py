@@ -856,5 +856,5 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         image *= dl
     else:
         image /= vals[:,:,1]
-        pf.field_info._field_list.pop("temp_weightfield")
+        pf.field_info.pop("temp_weightfield")
     return image

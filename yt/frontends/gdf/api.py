@@ -27,17 +27,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
 from .data_structures import \
       GDFGrid, \
       GDFHierarchy, \
       GDFStaticOutput
 
 from .fields import \
-      GDFFieldContainer, \
       GDFFieldInfo, \
+      KnownGDFFields, \
       add_gdf_field
 
 from .io import \
       IOHandlerGDFHDF5
+
 

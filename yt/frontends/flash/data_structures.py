@@ -40,9 +40,8 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import \
-    FLASHFieldContainer, \
-    add_field
+from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -63,7 +62,6 @@ class FLASHHierarchy(AMRHierarchy):
     
     def __init__(self,pf,data_style='flash_hdf5'):
         self.data_style = data_style
-        self.field_info = FLASHFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -148,22 +146,6 @@ class FLASHHierarchy(AMRHierarchy):
             g._setup_dx()
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            pfield = field.startswith("particle_")
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False,
-                      particle_type=pfield)
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
         for field in self.parameter_file.field_info:
@@ -183,7 +165,8 @@ class FLASHHierarchy(AMRHierarchy):
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
-    _fieldinfo_class = FLASHFieldContainer
+    _fieldinfo_fallback = FLASHFieldInfo
+    _fieldinfo_known = KnownFLASHFields
     _handle = None
     
     def __init__(self, filename, data_style='flash_hdf5',
@@ -197,7 +180,6 @@ class FLASHStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
-        self.field_info = self._fieldinfo_class()
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.

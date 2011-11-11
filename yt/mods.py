@@ -66,7 +66,7 @@ from yt.frontends.castro.api import \
     CastroStaticOutput, CastroFieldInfo, add_castro_field
 
 from yt.frontends.nyx.api import \
-    NyxStaticOutput, nyx_fields, add_nyx_field
+    NyxStaticOutput, NyxFieldInfo, add_nyx_field
 
 from yt.frontends.orion.api import \
     OrionStaticOutput, OrionFieldInfo, add_orion_field

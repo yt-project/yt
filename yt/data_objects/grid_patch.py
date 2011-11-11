@@ -3,7 +3,7 @@ Python-based grid handler, not to be confused with the SWIG-handler
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
+Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
@@ -25,10 +25,12 @@ License:
 
 import exceptions
 import pdb
-import numpy as na
 import weakref
 
+import numpy as na
+
 from yt.funcs import *
+from yt.utilities.definitions import x_dict, y_dict
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.definitions import x_dict, y_dict
@@ -75,20 +77,21 @@ class AMRGridPatch(object):
         if self.start_index is not None:
             return self.start_index
         if self.Parent == None:
-            iLE = self.LeftEdge - self.pf.domain_left_edge
-            start_index = iLE / self.dds
+            left = self.LeftEdge - self.pf.domain_left_edge
+            start_index = left / self.dds
             return na.rint(start_index).astype('int64').ravel()
+
         pdx = self.Parent.dds
         start_index = (self.Parent.get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+                       na.rint((self.LeftEdge - self.Parent.LeftEdge) / pdx)
+        self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
         return self.start_index
-
 
     def get_field_parameter(self, name, default=None):
         """
-        This is typically only used by derived field functions, but
-        it returns parameters used to generate fields.
+        This is typically only used by derived field functions, but it returns
+        parameters used to generate fields.
+
         """
         if self.field_parameters.has_key(name):
             return self.field_parameters[name]
@@ -99,19 +102,19 @@ class AMRGridPatch(object):
         """
         Here we set up dictionaries that get passed up and down and ultimately
         to derived fields.
+
         """
         self.field_parameters[name] = val
 
     def has_field_parameter(self, name):
-        """
-        Checks if a field parameter is set.
-        """
+        """ Checks if a field parameter is set. """
         return self.field_parameters.has_key(name)
 
     def convert(self, datatype):
         """
-        This will attempt to convert a given unit to cgs from code units.
-        It either returns the multiplicative factor or throws a KeyError.
+        This will attempt to convert a given unit to cgs from code units. It
+        either returns the multiplicative factor or throws a KeyError.
+
         """
         return self.pf[datatype]
 
@@ -119,7 +122,7 @@ class AMRGridPatch(object):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.pf)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
-                       for i in self._con_args])
+                        for i in self._con_args])
         return s
 
     def _generate_field(self, field):
@@ -133,7 +136,7 @@ class AMRGridPatch(object):
                 f_gz = ngt_exception.fields
                 gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
                 temp_array = self.pf.field_info[field](gz_grid)
-                sl = [slice(n_gz,-n_gz)] * 3
+                sl = [slice(n_gz, -n_gz)] * 3
                 self[field] = temp_array[sl]
             else:
                 self[field] = self.pf.field_info[field](self)
@@ -196,14 +199,14 @@ class AMRGridPatch(object):
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
             self.dds = self.Parent.dds / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = na.array((RE - LE) / self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -226,6 +229,7 @@ class AMRGridPatch(object):
         Generate a mask that shows which cells overlap with arbitrary arrays
         *LE* and *RE*) of edges, typically grids, along *axis*.
         Use algorithm described at http://www.gamedev.net/reference/articles/article735.asp
+
         """
         x = x_dict[axis]
         y = y_dict[axis]
@@ -243,8 +247,9 @@ class AMRGridPatch(object):
 
     def clear_data(self):
         """
-        Clear out the following things: child_mask, child_indices,
-        all fields, all field parameters.
+        Clear out the following things: child_mask, child_indices, all fields,
+        all field parameters.
+
         """
         self._del_child_mask()
         self._del_child_indices()
@@ -255,9 +260,7 @@ class AMRGridPatch(object):
         return self._child_mask, self._child_indices
 
     def _prepare_grid(self):
-        """
-        Copies all the appropriate attributes from the hierarchy
-        """
+        """ Copies all the appropriate attributes from the hierarchy. """
         # This is definitely the slowest part of generating the hierarchy
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
@@ -269,33 +272,27 @@ class AMRGridPatch(object):
         h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
-        self.NumberOfParticles = h.grid_particle_count[my_ind,0]
+        self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
 
     def __len__(self):
         return na.prod(self.ActiveDimensions)
 
     def find_max(self, field):
-        """
-        Returns value, index of maximum value of *field* in this gird
-        """
-        coord1d=(self[field]*self.child_mask).argmax()
-        coord=na.unravel_index(coord1d, self[field].shape)
+        """ Returns value, index of maximum value of *field* in this grid. """
+        coord1d = (self[field] * self.child_mask).argmax()
+        coord = na.unravel_index(coord1d, self[field].shape)
         val = self[field][coord]
         return val, coord
 
     def find_min(self, field):
-        """
-        Returns value, index of minimum value of *field* in this gird
-        """
-        coord1d=(self[field]*self.child_mask).argmin()
-        coord=na.unravel_index(coord1d, self[field].shape)
+        """ Returns value, index of minimum value of *field* in this grid. """
+        coord1d = (self[field] * self.child_mask).argmin()
+        coord = na.unravel_index(coord1d, self[field].shape)
         val = self[field][coord]
         return val, coord
 
     def get_position(self, index):
-        """
-        Returns center position of an *index*
-        """
+        """ Returns center position of an *index*. """
         pos = (index + 0.5) * self.dds + self.LeftEdge
         return pos
 
@@ -303,6 +300,7 @@ class AMRGridPatch(object):
         """
         Clears all datafields from memory and calls
         :meth:`clear_derived_quantities`.
+
         """
         for key in self.keys():
             del self.field_data[key]
@@ -313,9 +311,7 @@ class AMRGridPatch(object):
         self.clear_derived_quantities()
 
     def clear_derived_quantities(self):
-        """
-        Clears coordinates, child_indices, child_mask.
-        """
+        """ Clears coordinates, child_indices, child_mask. """
         # Access the property raw-values here
         del self.child_mask
         del self.child_ind
@@ -368,10 +364,10 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        rf = self.pf.refine_by**(child.Level - self.Level)
+        rf = self.pf.refine_by
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
-        startIndex = na.maximum(0, cgi/rf - gi)
-        endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,
+        startIndex = na.maximum(0, cgi / rf - gi)
+        endIndex = na.minimum((cgi + child.ActiveDimensions) / rf - gi,
                               self.ActiveDimensions)
         endIndex += (startIndex == endIndex)
         mask[startIndex[0]:endIndex[0],
@@ -381,7 +377,8 @@ class AMRGridPatch(object):
     def __generate_child_mask(self):
         """
         Generates self.child_mask, which is zero where child grids exist (and
-        thus, where higher resolution data is available.)
+        thus, where higher resolution data is available).
+
         """
         self._child_mask = na.ones(self.ActiveDimensions, 'int32')
         for child in self.Children:
@@ -396,6 +393,7 @@ class AMRGridPatch(object):
         """
         Generates self.child_index_mask, which is -1 where there is no child,
         and otherwise has the ID of the grid that resides there.
+
         """
         self._child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
         for child in self.Children:
@@ -410,10 +408,10 @@ class AMRGridPatch(object):
         if self.__coords == None: self._generate_coords()
         return self.__coords
 
-    def _set_coords(self, newC):
+    def _set_coords(self, new_c):
         if self.__coords != None:
             mylog.warning("Overriding coords attribute!  This is probably unwise!")
-        self.__coords = newC
+        self.__coords = new_c
 
     def _del_coords(self):
         del self.__coords
@@ -421,12 +419,12 @@ class AMRGridPatch(object):
 
     def _generate_coords(self):
         """
-        Creates self.coords, which is of dimensions (3,ActiveDimensions)
+        Creates self.coords, which is of dimensions (3, ActiveDimensions)
+
         """
-        #print "Generating coords"
         ind = na.indices(self.ActiveDimensions)
-        LE = na.reshape(self.LeftEdge,(3,1,1,1))
-        self['x'], self['y'], self['z'] = (ind+0.5)*self.dds+LE
+        left_shaped = na.reshape(self.LeftEdge, (3, 1, 1, 1))
+        self['x'], self['y'], self['z'] = (ind + 0.5) * self.dds + left_shaped
 
     child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
     child_index_mask = property(fget=_get_child_index_mask, fdel=_del_child_index_mask)
@@ -437,9 +435,10 @@ class AMRGridPatch(object):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
-        nr = nl + self.ActiveDimensions + 2*n_zones
+        nr = nl + self.ActiveDimensions + 2 * n_zones
         new_left_edge = nl * self.dds + self.pf.domain_left_edge
         new_right_edge = nr * self.dds + self.pf.domain_left_edge
+
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:
@@ -452,32 +451,17 @@ class AMRGridPatch(object):
         # those of this grid.
         kwargs.update(self.field_parameters)
         if smoothed:
-            #cube = self.hierarchy.smoothed_covering_grid(
-            #    level, new_left_edge, new_right_edge, **kwargs)
             cube = self.hierarchy.smoothed_covering_grid(
                 level, new_left_edge, **kwargs)
         else:
-            cube = self.hierarchy.covering_grid(
-                level, new_left_edge, **kwargs)
+            cube = self.hierarchy.covering_grid(level, new_left_edge, **kwargs)
+
         return cube
 
-    def get_vertex_centered_data(self, field, smoothed=True,
-                                 no_ghost=False):
-        if not no_ghost:
-            cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
-            # We have two extra zones in every direction
-            new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
-            na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
-            na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
-            na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
-            na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
-            na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
-            na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
-            na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
-            na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
-            na.multiply(new_field, 0.125, new_field)
-        else:
-            new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+    def get_vertex_centered_data(self, field, smoothed=True, no_ghost=False):
+        new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+
+        if no_ghost:
             of = self[field]
             new_field[:-1,:-1,:-1] += of
             new_field[:-1,:-1,1:] += of
@@ -493,13 +477,23 @@ class AMRGridPatch(object):
 
             new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
             new_field[:,:, 0]  = 2.0*new_field[:,:,1] - new_field[:,:,2]
-
             new_field[:,-1, :] = 2.0*new_field[:,-2,:] - new_field[:,-3,:]
             new_field[:,0, :]  = 2.0*new_field[:,1,:] - new_field[:,2,:]
-
             new_field[-1,:,:] = 2.0*new_field[-2,:,:] - new_field[-3,:,:]
             new_field[0,:,:]  = 2.0*new_field[1,:,:] - new_field[2,:,:]
+
             if self.pf.field_info[field].take_log:
                 na.power(10.0, new_field, new_field)
-        return new_field
+        else:
+            cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
+            na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
+            na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
+            na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
+            na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
+            na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
+            na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
+            na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
+            na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
+            na.multiply(new_field, 0.125, new_field)
 
+        return new_field

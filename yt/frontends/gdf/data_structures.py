@@ -35,7 +35,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 
-from .fields import GDFFieldContainer
+from .fields import GDFFieldInfo, KnownGDFFields
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 import pdb
 
 class GDFGrid(AMRGridPatch):
@@ -142,14 +144,14 @@ class GDFHierarchy(AMRHierarchy):
 
 class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
-    _fieldinfo_class = GDFFieldContainer
+    _fieldinfo_fallback = GDFFieldInfo
+    _fieldinfo_known = KnownGDFFields
     
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
-        self.field_info = self._fieldinfo_class()        
         
     def _set_units(self):
         """
@@ -170,6 +172,7 @@ class GDFStaticOutput(StaticOutput):
         self._handle = h5py.File(self.parameter_filename, "r")
         for field_name in self._handle["/field_types"]:
             self.units[field_name] = self._handle["/field_types/%s" % field_name].attrs['field_to_cgs']
+        self._handle.close()
         del self._handle
         
     def _parse_parameter_file(self):
@@ -196,7 +199,7 @@ class GDFStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
-        
+        self._handle.close()
         del self._handle
             
     @classmethod

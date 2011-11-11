@@ -3421,7 +3421,7 @@ class AMRBooleanRegionBase(AMR3DData):
     existing regions.
     """
     _type_name = "boolean"
-    _con_args = {"regions"}
+    _con_args = ("regions")
     def __init__(self, regions, fields = None, pf = None, **kwargs):
         """
         This will build a hybrid region based on the boolean logic
