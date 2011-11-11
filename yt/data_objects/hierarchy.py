@@ -145,7 +145,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             # it.
             ff = self.parameter_file.field_info.pop(field, None)
             if field not in known_fields:
-                mylog.info("Adding unknown field %s to list of fields", field)
+                rootloginfo("Adding unknown field %s to list of fields", field)
                 cf = None
                 if self.parameter_file.has_key(field):
                     def external_wrapper(f):
@@ -160,7 +160,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                         field, NullFunc,
                         convert_function=cf, take_log=False, units=r"Unknown")
             else:
-                mylog.info("Adding known field %s to list of fields", field)
+                mylog.debug("Adding known field %s to list of fields", field)
                 self.parameter_file.field_info[field] = known_fields[field]
             
     # Now all the object related stuff
