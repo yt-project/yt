@@ -166,14 +166,14 @@ class AMRGridPatch(object):
     def keys(self):
         return self.field_data.keys()
 
-    def get_data(self, field):
+    def get_data(self, field, convert = True):
         """
         Returns a field or set of fields for a key or set of keys
         """
         if not self.field_data.has_key(field):
             if field in self.hierarchy.field_list:
                 conv_factor = 1.0
-                if self.pf.field_info.has_key(field):
+                if self.pf.field_info.has_key(field) and convert == True:
                     conv_factor = self.pf.field_info[field]._convert_function(self)
                 if self.pf.field_info[field].particle_type and \
                    self.NumberOfParticles == 0:

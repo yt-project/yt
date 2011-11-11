@@ -127,6 +127,56 @@ class EnzoGridInMemory(EnzoGrid):
     def set_filename(self, filename):
         pass
 
+class EnzoGridGZ(EnzoGrid):
+
+    __slots__ = ()
+
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
+                             smoothed=False):
+        # We ignore smoothed in this case.
+        if n_zones > 3:
+            return EnzoGrid.retrieve_ghost_zones(
+                self, n_zones, fields, all_levels, smoothed)
+        # ----- Below is mostly the original code, except we remove the field
+        # ----- access section
+        # We will attempt this by creating a datacube that is exactly bigger
+        # than the grid by nZones*dx in each direction
+        nl = self.get_global_startindex() - n_zones
+        nr = nl + self.ActiveDimensions + 2*n_zones
+        new_left_edge = nl * self.dds + self.pf.domain_left_edge
+        new_right_edge = nr * self.dds + self.pf.domain_left_edge
+        # Something different needs to be done for the root grid, though
+        level = self.Level
+        args = (level, new_left_edge, new_right_edge)
+        kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
+                  'num_ghost_zones':n_zones,
+                  'use_pbar':False}
+        # This should update the arguments to set the field parameters to be
+        # those of this grid.
+        kwargs.update(self.field_parameters)
+        if smoothed:
+            #cube = self.hierarchy.smoothed_covering_grid(
+            #    level, new_left_edge, new_right_edge, **kwargs)
+            cube = self.hierarchy.smoothed_covering_grid(
+                level, new_left_edge, **kwargs)
+        else:
+            cube = self.hierarchy.covering_grid(
+                level, new_left_edge, **kwargs)
+        # ----- This is EnzoGrid.get_data, duplicated here mostly for
+        # ----  efficiency's sake.
+        sl = (slice(3 - n_zones, 3 - n_zones) for i in range(3))
+        for field in fields:
+            if field in self.hierarchy.field_list:
+                conv_factor = 1.0
+                if self.pf.field_info.has_key(field):
+                    conv_factor = self.pf.field_info[field]._convert_function(self)
+                if self.pf.field_info[field].particle_type: continue
+                temp = self.hierarchy.io._read_raw_data_set(self, field)
+                temp = temp.swapaxes(0, 2)
+                print "SETTING CUBE"
+                cube.field_data[field] = na.multiply(temp, conv_factor, temp)[sl]
+        return cube
+
 class EnzoHierarchy(AMRHierarchy):
 
     _strip_path = False
@@ -207,7 +257,9 @@ class EnzoHierarchy(AMRHierarchy):
                 mylog.debug("Detected packed HDF5")
                 if self.parameters.get("WriteGhostZones", 0) == 1:
                     self.data_style= "enzo_packed_3d_gz"
-                self.data_style = 'enzo_packed_3d'
+                    self.grid = EnzoGridGZ
+                else:
+                    self.data_style = 'enzo_packed_3d'
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 'enzo_hdf5'

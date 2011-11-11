@@ -209,6 +209,10 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
         return hdf5_light_reader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
                         (grid.id, field), axis, coord)[3:-3,3:-3].transpose()
 
+    def _read_raw_data_set(self, grid, field):
+        return hdf5_light_reader.ReadData(grid.filename,
+                "/Grid%08i/%s" % (grid.id, field))
+
 class IOHandlerInMemory(BaseIOHandler):
 
     _data_style = "enzo_inline"
