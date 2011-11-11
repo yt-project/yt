@@ -937,6 +937,15 @@ _fail:
 /* These functions are both called with
     func(cubedata, griddata) */
 
+static void dcNothing(PyArrayObject* c_data, npy_int64 xc, npy_int64 yc, npy_int64 zc,
+                     PyArrayObject* g_data, npy_int64 xg, npy_int64 yg, npy_int64 zg)
+{
+    return;
+}
+
+/* These functions are both called with
+    func(cubedata, griddata) */
+
 static void dcRefine(PyArrayObject* c_data, npy_int64 xc, npy_int64 yc, npy_int64 zc,
                      PyArrayObject* g_data, npy_int64 xg, npy_int64 yg, npy_int64 zg)
 {
@@ -1107,36 +1116,37 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     cdx = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 0));
     cdy = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 1));
     cdz = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 2));
-    cxe = (cxs + cdx - 1);
-    cye = (cys + cdy - 1);
-    cze = (czs + cdz - 1);
+    cxe = (cxs + cdx);
+    cye = (cys + cdy);
+    cze = (czs + cdz);
 
     /* It turns out that C89 doesn't define a mechanism for choosing the sign
        of the remainder.
     */
         //fprintf(stderr, "ci == %d, cxi == %d, dw[0] == %d\n", (int) ci, (int) cxi, (int) dw[0]);
-    for(cxi=cxs;cxi<=cxe;cxi++) {
+    for(cxi=cxs;cxi<cxe;cxi++) {
         ci = (cxi % dw[0]);
         ci = (ci < 0) ? ci + dw[0] : ci;
         if ( ci < gxs*refratio || ci >= gxe*refratio) continue;
         gxi = floor(ci / refratio) - gxs;
-        for(cyi=cys;cyi<=cye;cyi++) {
+        for(cyi=cys;cyi<cye;cyi++) {
             cj = cyi % dw[1];
             cj = (cj < 0) ? cj + dw[1] : cj;
             if ( cj < gys*refratio || cj >= gye*refratio) continue;
             gyi = floor(cj / refratio) - gys;
-            for(czi=czs;czi<=cze;czi++) {
+            for(czi=czs;czi<cze;czi++) {
                 ck = czi % dw[2];
                 ck = (ck < 0) ? ck + dw[2] : ck;
                 if ( ck < gzs*refratio || ck >= gze*refratio) continue;
                 gzi = floor(ck / refratio) - gzs;
                     if ((ll) || (*(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)) 
                 {
-                for(n=0;n<n_fields;n++){
-                    to_call(c_data[n],
-                        cxi - cxs, cyi - cys, czi - czs,
-                        g_data[n], gxi, gyi, gzi);
-                }
+                if (direction!=2)
+                  for(n=0;n<n_fields;n++){
+                      to_call(c_data[n],
+                          cxi - cxs, cyi - cys, czi - czs,
+                          g_data[n], gxi, gyi, gzi);
+                  }
                 total += 1;
                 }
             }
