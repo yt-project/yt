@@ -205,6 +205,8 @@ class EnzoHierarchy(AMRHierarchy):
                 list_of_sets = []
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
+                if self.parameters.get("WriteGhostZones", 0) == 1:
+                    self.data_style= "enzo_packed_3d_gz"
                 self.data_style = 'enzo_packed_3d'
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
