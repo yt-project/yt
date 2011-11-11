@@ -1622,11 +1622,12 @@ class AMRQuadTreeProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
+            dependencies = self.get_dependencies(fields, ghost_zones = False)
             print "Preloading %s grids and getting %s" % (
                     len(self.source._get_grid_objs()),
-                    self.get_dependencies(fields))
+                    dependencies)
             self.comm.preload([g for g in self._get_grid_objs()],
-                          self.get_dependencies(fields), self.hierarchy.io)
+                          dependencies, self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
         # having to do this by level, and instead do it by CPU file
         for level in range(0, self._max_level+1):

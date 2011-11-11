@@ -790,6 +790,8 @@ class ParallelAnalysisInterface(object):
         deps = []
         fi = self.pf.field_info
         for field in fields:
+            if any(getattr(v,"ghost_zones", 0) > 0 for v in
+                   fi[field].validators): continue
             deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
         return list(set(deps))
 
