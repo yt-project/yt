@@ -510,7 +510,7 @@ def _AveragedDensity(field, data):
     return new_field2
 add_field("AveragedDensity",
           function=_AveragedDensity,
-          validators=[ValidateSpatial(1)])
+          validators=[ValidateSpatial(1, ["Density"])])
 
 def _DivV(field, data):
     # We need to set up stencils

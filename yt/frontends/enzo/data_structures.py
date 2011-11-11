@@ -164,8 +164,9 @@ class EnzoGridGZ(EnzoGrid):
                 level, new_left_edge, **kwargs)
         # ----- This is EnzoGrid.get_data, duplicated here mostly for
         # ----  efficiency's sake.
-        sl = (slice(3 - n_zones, 3 - n_zones) for i in range(3))
-        for field in fields:
+        sl = [slice(3 - n_zones, -(3 - n_zones)) for i in range(3)]
+        if fields is None: return cube
+        for field in ensure_list(fields):
             if field in self.hierarchy.field_list:
                 conv_factor = 1.0
                 if self.pf.field_info.has_key(field):
@@ -173,7 +174,6 @@ class EnzoGridGZ(EnzoGrid):
                 if self.pf.field_info[field].particle_type: continue
                 temp = self.hierarchy.io._read_raw_data_set(self, field)
                 temp = temp.swapaxes(0, 2)
-                print "SETTING CUBE"
                 cube.field_data[field] = na.multiply(temp, conv_factor, temp)[sl]
         return cube
 
