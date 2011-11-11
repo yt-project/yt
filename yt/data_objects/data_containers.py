@@ -2256,7 +2256,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         return dls
 
     def _get_data_from_grid(self, grid, fields, dls):
-        g_fields = [grid[field] for field in fields]
+        g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         FillBuffer(ref_ratio,
@@ -3272,7 +3272,7 @@ class AMRCoveringGridBase(AMR3DData):
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [grid[field] for field in fields]
+        g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
@@ -3329,39 +3329,36 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(field)
-        for field in fields_to_get:
-            grid_count = 0
-            if self.field_data.has_key(field):
-                continue
-            mylog.debug("Getting field %s from %s possible grids",
-                       field, len(self._grids))
-            if self._use_pbar: pbar = \
-                    get_pbar('Searching grids for values ', len(self._grids))
-            # Note that, thanks to some trickery, we have different dimensions
-            # on the field than one might think from looking at the dx and the
-            # L/R edges.
-            # We jump-start our task here
-            self._update_level_state(0, field)
-            
-            # The grids are assumed to be pre-sorted
-            last_level = 0
-            for gi, grid in enumerate(self._grids):
-                if self._use_pbar: pbar.update(gi)
-                if grid.Level > last_level and grid.Level <= self.level:
-                    self._update_level_state(last_level + 1)
-                    self._refine(1, field)
-                    last_level = grid.Level
-                self._get_data_from_grid(grid, field)
-            if self.level > 0:
+        fields_to_get = [f for f in fields_to_get if f not in self.field_data]
+        # Note that, thanks to some trickery, we have different dimensions
+        # on the field than one might think from looking at the dx and the
+        # L/R edges.
+        # We jump-start our task here
+        mylog.debug("Getting fields %s from %s possible grids",
+                   fields_to_get, len(self._grids))
+        self._update_level_state(0, fields_to_get)
+        if self._use_pbar: pbar = \
+                get_pbar('Searching grids for values ', len(self._grids))
+        # The grids are assumed to be pre-sorted
+        last_level = 0
+        for gi, grid in enumerate(self._grids):
+            if self._use_pbar: pbar.update(gi)
+            if grid.Level > last_level and grid.Level <= self.level:
+                self._update_level_state(last_level + 1)
+                self._refine(1, fields_to_get)
+                last_level = grid.Level
+            self._get_data_from_grid(grid, fields_to_get)
+        if self.level > 0:
+            for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
-            if na.any(self[field] == -999):
-                # and self.dx < self.hierarchy.grids[0].dx:
-                n_bad = na.where(self[field]==-999)[0].size
-                mylog.error("Covering problem: %s cells are uncovered", n_bad)
-                raise KeyError(n_bad)
-            if self._use_pbar: pbar.finish()
+                if na.any(self[field] == -999):
+                    # and self.dx < self.hierarchy.grids[0].dx:
+                    n_bad = (self[field]==-999).sum()
+                    mylog.error("Covering problem: %s cells are uncovered", n_bad)
+                    raise KeyError(n_bad)
+        if self._use_pbar: pbar.finish()
 
-    def _update_level_state(self, level, field = None):
+    def _update_level_state(self, level, fields = None):
         dx = self._base_dx / self.pf.refine_by**level
         self.field_data['cdx'] = dx[0]
         self.field_data['cdy'] = dx[1]
@@ -3374,16 +3371,20 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            self.field_data[field] = na.zeros(idims,dtype='float64')-999
+            fields = ensure_list(fields)
+            for field in fields:
+                self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
-            self.field_data[field] = na.zeros(idims,dtype='float64')-999
+            fields = ensure_list(fields)
+            for field in fields:
+                self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
-    def _refine(self, dlevel, field):
+    def _refine(self, dlevel, fields):
         rf = float(self.pf.refine_by**dlevel)
 
         input_left = (self._old_global_startindex + 0.5) * rf 
@@ -3392,16 +3393,17 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         self._cur_dims = output_dims
 
-        output_field = na.zeros(output_dims, dtype="float64")
-        output_left = self.global_startindex + 0.5
-        ghost_zone_interpolate(rf, self[field], input_left,
-                               output_field, output_left)
-        self[field] = output_field
+        for field in fields:
+            output_field = na.zeros(output_dims, dtype="float64")
+            output_left = self.global_startindex + 0.5
+            ghost_zone_interpolate(rf, self[field], input_left,
+                                   output_field, output_left)
+            self.field_data[field] = output_field
 
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
-        g_fields = [grid[field] for field in fields]
-        c_fields = [self[field] for field in fields]
+        g_fields = [grid[field].astype("float64") for field in fields]
+        c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
