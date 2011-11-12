@@ -61,7 +61,7 @@ def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
     cdef int i, ax
     cdef int i1, i2
     cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32_t')
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
     cdef np.float64_t vs[3], t, p0[3], p1[3], v[3]
     for i in range(3):
         p0[i] = dobj.start_point[i]
