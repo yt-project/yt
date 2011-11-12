@@ -32,7 +32,8 @@ from yt.config import ytcfg
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
-from yt.utilities.definitions import axis_names, inv_axis_names
+from yt.utilities.definitions import \
+    axis_names, inv_axis_names, x_dict, y_dict
 from .plot_types import \
     FixedResolutionPlot, \
     SlicePlot, \
@@ -1790,3 +1791,75 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
             ax.clear()
             cbars.append(ax)
     return fig, tr, cbars
+
+def _MPLFixImage(data_source, image_obj, field, cbar, cls):
+    nx, ny = image_obj.get_size()
+    def f(axes):
+        x0, x1 = axes.get_xlim()
+        y0, y1 = axes.get_ylim()
+        frb = cls(data_source, (x0, x1, y0, y1), (nx, ny))
+        image_obj.set_data(frb[field])
+        mi, ma = frb[field].min(), frb[field].max()
+        cbar.norm.autoscale((mi, ma))
+        image_obj.set_extent([x0, x1, y0, y1])
+        cbar.update_bruteforce(image_obj)
+    return f
+
+def matplotlib_widget(data_source, field, npix):
+    r"""Create a widget from a data_source that uses the Matplotlib interaction
+    method to pan, zoom, and so on.
+
+    This is a simple way to take a yt data source, for instance a projection or
+    a slice, and to create a matplotlib view into it that you can pan and zoom.
+    It uses the matplotlib interaction engine to manage input and display.
+
+    Parameters
+    ----------
+    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
+        This is the source to be pixelized, which can be a projection or a
+        slice.  
+    field : string
+        The field that you want to display in the window.
+    npix : int
+        The number of pixels on a side you want the image to be.
+
+    Examples
+    --------
+
+    >>> pf = load("DD0030/DD0030")
+    >>> p = pf.h.proj(0, "Density")
+    >>> matplotlib_widget(p, "Density", 1024)
+
+    """
+    import pylab
+    import matplotlib.colors
+    from .fixed_resolution import FixedResolutionBuffer, \
+            ObliqueFixedResolutionBuffer
+    pf = data_source.pf
+    if getattr(data_source, "axis", 4) < 3:
+        cls = FixedResolutionBuffer
+        ax = data_source.axis
+        extent = [pf.domain_left_edge[x_dict[ax]],
+                  pf.domain_right_edge[x_dict[ax]],
+                  pf.domain_left_edge[y_dict[ax]],
+                  pf.domain_right_edge[y_dict[ax]]]
+    else:
+        cls = ObliqueFixedResolutionBuffer
+        extent = [0.0, 1.0, 0.0, 1.0]
+    take_log = pf.field_info[field].take_log
+    if take_log:
+        norm = matplotlib.colors.LogNorm()
+    else:
+        norm = matplotlib.colors.Normalize()
+    ax = pylab.figure().gca()
+    ax.autoscale(False)
+    axi = ax.imshow(na.random.random((npix, npix)),
+                    extent = extent, norm = norm,
+                    origin = 'lower')
+    cb = pylab.colorbar(axi, norm = norm)
+    showme = _MPLFixImage(data_source, axi, field, cb, cls)
+    ax.callbacks.connect("xlim_changed", showme)
+    ax.callbacks.connect("ylim_changed", showme)
+    ax.set_xlim(extent[0], extent[1])
+    ax.set_ylim(extent[2], extent[3])
+    return ax
