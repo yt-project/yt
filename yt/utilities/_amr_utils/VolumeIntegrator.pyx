@@ -29,31 +29,7 @@ cimport cython
 cimport kdtree_utils
 cimport healpix_interface
 from stdlib cimport malloc, free, abs
-
-cdef inline int imax(int i0, int i1):
-    if i0 > i1: return i0
-    return i1
-
-cdef inline np.float64_t fmax(np.float64_t f0, np.float64_t f1):
-    if f0 > f1: return f0
-    return f1
-
-cdef inline int imin(int i0, int i1):
-    if i0 < i1: return i0
-    return i1
-
-cdef inline np.float64_t fmin(np.float64_t f0, np.float64_t f1):
-    if f0 < f1: return f0
-    return f1
-
-cdef inline int iclip(int i, int a, int b):
-    if i < a: return a
-    if i > b: return b
-    return i
-
-cdef inline np.float64_t fclip(np.float64_t f,
-                      np.float64_t a, np.float64_t b):
-    return fmin(fmax(f, a), b)
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
 cdef extern from "math.h":
     double exp(double x)

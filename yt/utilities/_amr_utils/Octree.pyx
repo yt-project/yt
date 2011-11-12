@@ -30,6 +30,7 @@ cimport numpy as np
 cimport numpy as cnp
 cimport cython
 
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from stdlib cimport malloc, free, abs
 
 import sys, time

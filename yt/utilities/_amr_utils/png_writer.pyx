@@ -26,9 +26,10 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from libc.stdlib cimport malloc, realloc
+from libc.stdlib cimport malloc, realloc, free
 from libc.string cimport memcpy
 from cpython.string cimport PyString_FromStringAndSize
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
 from stdio cimport fopen, fclose, FILE
 
