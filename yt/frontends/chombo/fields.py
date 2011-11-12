@@ -116,4 +116,15 @@ def _zVelocity(field,data):
     return data["Z-momentum"]/data["density"]
 add_field("z-velocity",function=_zVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
+
+def _Density(field,data):
+    """A duplicate of the density field. This is needed because when you try 
+    to instantiate a PlotCollection without passing in a center, the code
+    will try to generate one for you using the "Density" field, which gives an error 
+    if it isn't defined.
+
+    """
+    return data["density"]
+add_field("Density",function=_Density, take_log=True,
+          units=r'\rm{g}/\rm{cm^3}')
     
