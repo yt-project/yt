@@ -34,7 +34,7 @@ from math import pi
 
 from yt.funcs import *
 
-from yt.utilities.amr_utils import CICDeposit_3
+from yt.utilities.amr_utils import CICDeposit_3, obtain_rvec
 from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
@@ -483,13 +483,6 @@ def obtain_velocities(data):
     yv = data["y-velocity"] - bv[1]
     zv = data["z-velocity"] - bv[2]
     return xv, yv, zv
-
-def obtain_rvec(data):
-    center = data.get_field_parameter('center')
-    coords = na.array([data['x'],data['y'],data['z']], dtype='float64')
-    new_shape = tuple([3] + [1]*(len(coords.shape)-1))
-    r_vec = coords - na.reshape(center,new_shape)
-    return r_vec # axis 0 is the x,y,z
 
 def _SpecificAngularMomentum(field, data):
     """
