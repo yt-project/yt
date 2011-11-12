@@ -557,8 +557,8 @@ class AMROrthoRayBase(AMR1DData):
 
     def _get_list_of_grids(self):
         gi = ortho_ray_grids(self, 
-                self.hierarchy.grid_left_edges,
-                self.hierarchy.grid_right_edges)
+                self.hierarchy.grid_left_edge,
+                self.hierarchy.grid_right_edge)
         self._grids = self.hierarchy.grids[gi]
 
     def _get_data_from_grid(self, grid, field):
@@ -630,8 +630,8 @@ class AMRRayBase(AMR1DData):
 
     def _get_list_of_grids(self):
         gi = ray_grids(self,
-                self.hierarchy.grid_left_edges,
-                self.hierarchy.grid_right_edges)
+                self.hierarchy.grid_left_edge,
+                self.hierarchy.grid_right_edge)
         self._grids = self.hierarchy.grids[gi]
 
     def _get_data_from_grid(self, grid, field):
