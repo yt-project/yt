@@ -41,7 +41,7 @@ from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
-    march_cubes_grid, march_cubes_grid_flux
+    march_cubes_grid, march_cubes_grid_flux, ortho_ray_grids, ray_grids
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -556,7 +556,7 @@ class AMROrthoRayBase(AMR1DData):
         return (self.px, self.py)
 
     def _get_list_of_grids(self):
-        gi = au.ortho_ray_grids(self, 
+        gi = ortho_ray_grids(self, 
                 self.hierarchy.grid_left_edges,
                 self.hierarchy.grid_right_edges)
         self._grids = self.hierarchy.grids[gi]
@@ -629,7 +629,7 @@ class AMRRayBase(AMR1DData):
         #self._refresh_data()
 
     def _get_list_of_grids(self):
-        gi = au.ray_grids(self,
+        gi = ray_grids(self,
                 self.hierarchy.grid_left_edges,
                 self.hierarchy.grid_right_edges)
         self._grids = self.hierarchy.grids[gi]
