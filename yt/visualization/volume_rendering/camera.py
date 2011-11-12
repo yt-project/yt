@@ -414,7 +414,7 @@ class Camera(ParallelAnalysisInterface):
             self.zoom(f)
             yield self.snapshot()
 
-    def move_to(self, final, n_steps, final_width=None, exponential=True):
+    def move_to(self, final, n_steps, final_width=None, exponential=False):
         r"""Loop over a look_at
 
         This will yield `n_steps` snapshots until the current view has been
@@ -448,6 +448,8 @@ class Camera(ParallelAnalysisInterface):
                     # front/back, left/right, top/bottom
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
+	    else:
+		dW = 1.0
             position_diff = (na.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
@@ -456,6 +458,8 @@ class Camera(ParallelAnalysisInterface):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
                 dW = (1.0*final_width-na.array(self.width))/n_steps
+	    else:
+		dW = 1.0
             dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
@@ -532,6 +536,62 @@ class Camera(ParallelAnalysisInterface):
             yield self.snapshot()
 
 data_object_registry["camera"] = Camera
+
+class InteractiveCamera(Camera):
+    def __init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = None, steady_north=False,
+                 volume = None, fields = None,
+                 log_fields = None,
+                 sub_samples = 5, pf = None,
+                 use_kd=True, l_max=None, no_ghost=True,
+                 tree_type='domain',expand_factor=1.0,
+                 le=None, re=None):
+        self.frames = []
+        Camera.__init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = north_vector, steady_north=steady_north,
+                 volume = volume, fields = fields,
+                 log_fields = log_fields,
+                 sub_samples = sub_samples, pf = pf,
+                 use_kd=use_kd, l_max=l_max, no_ghost=no_ghost,
+                 tree_type=tree_type,expand_factor=expand_factor,
+                 le=le, re=re)
+
+    def snapshot(self, fn = None, clip_ratio = None):
+        import matplotlib
+        matplotlib.pylab.figure(2)
+        self.transfer_function.show()
+        matplotlib.pylab.draw()
+        im = Camera.snapshot(self, fn, clip_ratio)
+        matplotlib.pylab.figure(1)
+        matplotlib.pylab.imshow(im/im.max())
+        matplotlib.pylab.draw()
+        self.frames.append(im)
+        
+    def rotation(self, theta, n_steps, rot_vector=None):
+        for frame in Camera.rotation(self, theta, n_steps, rot_vector):
+            if frame is not None:
+                self.frames.append(frame)
+                
+    def zoomin(self, final, n_steps):
+        for frame in Camera.zoomin(self, final, n_steps):
+            if frame is not None:
+                self.frames.append(frame)
+                
+    def clear_frames(self):
+        del self.frames
+        self.frames = []
+        
+    def save_frames(self, basename, clip_ratio=None):
+        for i, frame in enumerate(self.frames):
+            fn = basename + '_%04i.png'%i
+            if clip_ratio is not None:
+                write_bitmap(frame, fn, clip_ratio*image.std())
+            else:
+                write_bitmap(frame, fn)
+
+data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
     def get_vector_plane(self, image):
@@ -796,5 +856,5 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         image *= dl
     else:
         image /= vals[:,:,1]
-        pf.field_info._field_list.pop("temp_weightfield")
+        pf.field_info.pop("temp_weightfield")
     return image

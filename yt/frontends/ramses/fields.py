@@ -24,7 +24,8 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -32,13 +33,12 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-class RAMSESFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-RAMSESFieldInfo = RAMSESFieldContainer()
-add_ramses_field = RAMSESFieldInfo.add_field
 
-add_field = add_ramses_field
+KnownRAMSESFields = FieldInfoContainer()
+add_ramses_field = KnownRAMSESFields.add_field
+
+RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = RAMSESFieldInfo.add_field
 
 known_ramses_fields = [
     "Density",

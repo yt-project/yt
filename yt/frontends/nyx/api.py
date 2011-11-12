@@ -25,5 +25,5 @@ License:
 """
 
 from .data_structures import NyxGrid, NyxHierarchy, NyxStaticOutput
-from .fields import NyxFieldContainer, nyx_fields, add_nyx_field
+from .fields import NyxFieldInfo, KnownNyxFields, add_nyx_field
 from .io import IOHandlerNative

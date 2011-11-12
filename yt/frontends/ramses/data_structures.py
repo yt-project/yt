@@ -39,13 +39,15 @@ try:
     import _ramses_reader
 except ImportError:
     _ramses_reader = None
-from .fields import RAMSESFieldContainer
+from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.amr_utils import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -108,7 +110,6 @@ class RAMSESHierarchy(AMRHierarchy):
     
     def __init__(self,pf,data_style='ramses'):
         self.data_style = data_style
-        self.field_info = RAMSESFieldContainer()
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -265,20 +266,6 @@ class RAMSESHierarchy(AMRHierarchy):
             g._setup_dx()
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -287,7 +274,8 @@ class RAMSESHierarchy(AMRHierarchy):
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESHierarchy
-    _fieldinfo_class = RAMSESFieldContainer
+    _fieldinfo_fallback = RAMSESFieldInfo
+    _fieldinfo_known = KnownRAMSESFields
     _handle = None
     
     def __init__(self, filename, data_style='ramses',
@@ -296,8 +284,6 @@ class RAMSESStaticOutput(StaticOutput):
         import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-
-        self.field_info = self._fieldinfo_class()
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

@@ -55,7 +55,9 @@ from yt.utilities.definitions import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 
-from .fields import ChomboFieldContainer
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+from .fields import ChomboFieldInfo, KnownChomboFields
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -92,7 +94,6 @@ class ChomboHierarchy(AMRHierarchy):
         self.domain_left_edge = pf.domain_left_edge # need these to determine absolute grid locations
         self.domain_right_edge = pf.domain_right_edge # need these to determine absolute grid locations
         self.data_style = data_style
-        self.field_info = ChomboFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -162,9 +163,6 @@ class ChomboHierarchy(AMRHierarchy):
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -176,7 +174,8 @@ class ChomboHierarchy(AMRHierarchy):
 
 class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
-    _fieldinfo_class = ChomboFieldContainer
+    _fieldinfo_fallback = ChomboFieldInfo
+    _fieldinfo_known = KnownChomboFields
     
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
@@ -185,7 +184,6 @@ class ChomboStaticOutput(StaticOutput):
         self.ini_filename = ini_filename
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
-        self.field_info = self._fieldinfo_class()
         
     def _set_units(self):
         """

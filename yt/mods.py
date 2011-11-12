@@ -38,8 +38,14 @@ import numpy # In case anyone wishes to use it by name
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
-from yt.config import ytcfg
+from yt.config import ytcfg, ytcfgDefaults
 import yt.utilities.physical_constants as physical_constants
+
+from yt.utilities.logger import level as __level
+if __level >= int(ytcfgDefaults["loglevel"]):
+    # This won't get displayed.
+    mylog.debug("Turning off NumPy error reporting")
+    na.seterr(all = 'ignore')
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -60,7 +66,7 @@ from yt.frontends.castro.api import \
     CastroStaticOutput, CastroFieldInfo, add_castro_field
 
 from yt.frontends.nyx.api import \
-    NyxStaticOutput, nyx_fields, add_nyx_field
+    NyxStaticOutput, NyxFieldInfo, add_nyx_field
 
 from yt.frontends.orion.api import \
     OrionStaticOutput, OrionFieldInfo, add_orion_field
@@ -76,6 +82,9 @@ from yt.frontends.ramses.api import \
 
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
+
+from yt.frontends.gdf.api import \
+    GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field

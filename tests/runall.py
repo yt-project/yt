@@ -1,7 +1,7 @@
 import matplotlib; matplotlib.use('Agg')
 from yt.config import ytcfg
-ytcfg["yt","loglevel"] = "50"
-ytcfg["yt","serialize"] = "False"
+ytcfg["yt", "loglevel"] = "50"
+ytcfg["yt", "serialize"] = "False"
 
 from yt.utilities.answer_testing.api import \
     RegressionTestRunner, clear_registry, create_test, \
@@ -58,23 +58,23 @@ if __name__ == "__main__":
         my_hash = "UNKNOWN%s" % (time.time())
     parser = optparse.OptionParser()
     parser.add_option("-f", "--parameter-file", dest="parameter_file",
-                      default = os.path.join(cwd, "DD0010/moving7_0010"),
-                      help = "The parameter file value to feed to 'load' to test against",
-                      )
+                      default=os.path.join(cwd, "DD0010/moving7_0010"),
+                      help="The parameter file value to feed to 'load' to test against")
     parser.add_option("-l", "--list", dest="list_tests", action="store_true",
-                      default = False, help = "List all tests and then exit")
+                      default=False, help="List all tests and then exit")
     parser.add_option("-t", "--tests", dest="test_pattern", default="*",
-                      help = "The test name pattern to match.  Can include wildcards.")
+                      help="The test name pattern to match.  Can include wildcards.")
     parser.add_option("-o", "--output", dest="storage_dir",
                       default=test_storage_directory,
-                      help = "Base directory for storing test output.")
+                      help="Base directory for storing test output.")
     parser.add_option("-c", "--compare", dest="compare_name",
                       default=None,
-                      help = "The name against which we will compare")
+                      help="The name against which we will compare")
     parser.add_option("-n", "--name", dest="this_name",
                       default=my_hash,
-                      help = "The name we'll call this set of tests")
+                      help="The name we'll call this set of tests")
     opts, args = parser.parse_args()
+
     if opts.list_tests:
         tests_to_run = []
         for m, vals in mapping.items():
@@ -86,10 +86,13 @@ if __name__ == "__main__":
         tests = list(set(tests_to_run))
         print "\n    ".join(tests)
         sys.exit(0)
+
+    # Load the test pf and make sure it's good.
     pf = load(opts.parameter_file)
     if pf is None:
         print "Couldn't load the specified parameter file."
         sys.exit(1)
+
     # Now we modify our compare name and self name to include the pf.
     compare_id = opts.compare_name
     watcher = None
@@ -97,14 +100,17 @@ if __name__ == "__main__":
         compare_id += "_%s_%s" % (pf, pf._hash())
         watcher = Xunit()
     this_id = opts.this_name + "_%s_%s" % (pf, pf._hash())
+
     rtr = RegressionTestRunner(this_id, compare_id,
-            results_path = opts.storage_dir,
-            compare_results_path = opts.storage_dir,
-            io_log = [opts.parameter_file])
+                               results_path=opts.storage_dir,
+                               compare_results_path=opts.storage_dir,
+                               io_log=[opts.parameter_file])
+
     rtr.watcher = watcher
     tests_to_run = []
     for m, vals in mapping.items():
         new_tests = fnmatch.filter(vals, opts.test_pattern)
+
         if len(new_tests) == 0: continue
         load_tests(m, cwd)
         keys = set(registry_entries())

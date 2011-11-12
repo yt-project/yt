@@ -21,6 +21,9 @@ Coding Style Guide
    be "na.multiply(a, 3, a)".
  * In general, avoid all double-underscore method names: __something is usually
    unnecessary.
+ * When writing a subclass, use the super built-in to access the super class,
+   rather than explicitly. Ex: "super(SpecialGrid, self).__init__()" rather than
+   "SpecialGrid.__init__()".
  * Doc strings should describe input, output, behavior, and any state changes
    that occur on an object.  See the file `doc/docstring_example.txt` for a
    fiducial example of a docstring.

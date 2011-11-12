@@ -195,6 +195,11 @@ def rootonly(func):
         return func(*args, **kwargs)
     return check_parallel_rank
 
+def rootloginfo(*args):
+    from yt.config import ytcfg
+    if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
+    mylog.info(*args)
+
 def deprecate(func):
     """
     This decorator issues a deprecation warning.
