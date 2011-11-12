@@ -82,9 +82,9 @@ class ChomboGrid(AMRGridPatch):
             iLE = self.LeftEdge - self.pf.domain_left_edge
             start_index = iLE / self.dds
             return na.rint(start_index).astype('int64').ravel()
-        pdx = self.Parent.dds
-        start_index = (self.Parent.get_global_startindex()) + \
-            na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
+        pdx = self.Parent[0].dds
+        start_index = (self.Parent[0].get_global_startindex()) + \
+            na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
         self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
