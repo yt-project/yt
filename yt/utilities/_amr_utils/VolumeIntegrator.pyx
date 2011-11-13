@@ -311,6 +311,9 @@ cdef class TransferFunctionProxy:
     cdef int n_fields
     cdef int n_field_tables
     cdef public int ns
+    cdef int grad
+    cdef np.float64_t light_source_v[3]
+    cdef np.float64_t light_source_c[3]
 
     # These are the field tables and their affiliated storage.
     # We have one field_id for every table.  Note that a single field can
@@ -365,6 +368,11 @@ cdef class TransferFunctionProxy:
         for i in range(6):
             self.field_table_ids[i] = tf_obj.field_table_ids[i]
             #print "Channel", i, "corresponds to", self.field_table_ids[i]
+
+        self.grad = tf_obj.grad_field
+        for i in range(3):
+            self.light_source_v[i] = tf_obj.light_source_v[i]
+            self.light_source_c[i] = tf_obj.light_source_c[i]
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -391,6 +399,12 @@ cdef class TransferFunctionProxy:
         for i in range(6):
             trgba[i] = istorage[self.field_table_ids[i]]
             #print i, trgba[i],
+        if self.grad != -1:
+            dot_prod = 0.0
+            for i in range(3):
+                dot_prod += grad[i] * self.light_source_v[i]
+            for i in range(3):
+                trgba[i] += dot_prod * self.light_source_c[i]
         #print
         # A few words on opacity.  We're going to be integrating equation 1.23
         # from Rybicki & Lightman.  dI_\nu / ds = -\alpha_\nu I_\nu + j_\nu
@@ -750,6 +764,9 @@ cdef class PartitionedGrid:
         for i in range(self.n_fields):
             slopes[i] = offset_interpolate(self.dims, dp,
                             self.data[i] + offset)
+            if tf.grad == i:
+                eval_gradient(self.dims, dp, self.data[i] + offset,
+                              grad)
         for i in range(3):
             dp[i] += ds[i] * tf.ns
         cdef np.float64_t temp
