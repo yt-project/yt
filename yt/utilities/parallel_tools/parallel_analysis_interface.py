@@ -344,37 +344,51 @@ class ResultsStorage(object):
     result_id = None
 
 def parallel_objects(objects, njobs, storage = None):
-    if not parallel_capable: raise RuntimeError
-    my_communicator = communication_system.communicators[-1]
-    my_size = my_communicator.size
-    if njobs > my_size:
-        mylog.error("You have asked for %s jobs, but you only have %s processors.",
-            njobs, my_size)
-        raise RuntimeError
-    my_rank = my_communicator.rank
-    all_new_comms = na.array_split(na.arange(my_size), njobs)
-    for i,comm_set in enumerate(all_new_comms):
-        if my_rank in comm_set:
-            my_new_id = i
-            break
-    communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    obj_ids = na.arange(len(objects))
-
-    to_share = {}
-    for result_id, obj in zip(obj_ids, objects)[my_new_id::njobs]:
+    if not parallel_capable:
+        mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
+        to_share = {}
+        obj_ids = na.arange(len(objects))
+        for result_id, obj in zip(obj_ids, objects):
+            if storage is not None:
+                rstore = ResultsStorage()
+                rstore.result_id = result_id
+                yield rstore, obj
+                to_share[rstore.result_id] = rstore.result
+            else:
+                yield obj
         if storage is not None:
-            rstore = ResultsStorage()
-            rstore.result_id = result_id
-            yield rstore, obj
-            to_share[rstore.result_id] = rstore.result
-        else:
-            yield obj
-    communication_system.communicators.pop()
-    if storage is not None:
-        # Now we have to broadcast it
-        new_storage = my_communicator.par_combine_object(
-                to_share, datatype = 'dict', op = 'join')
-        storage.update(new_storage)
+            storage.update(to_share)
+    else:
+        my_communicator = communication_system.communicators[-1]
+        my_size = my_communicator.size
+        if njobs > my_size:
+            mylog.error("You have asked for %s jobs, but you only have %s processors.",
+                njobs, my_size)
+            raise RuntimeError
+        my_rank = my_communicator.rank
+        all_new_comms = na.array_split(na.arange(my_size), njobs)
+        for i,comm_set in enumerate(all_new_comms):
+            if my_rank in comm_set:
+                my_new_id = i
+                break
+        communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
+        obj_ids = na.arange(len(objects))
+    
+        to_share = {}
+        for result_id, obj in zip(obj_ids, objects)[my_new_id::njobs]:
+            if storage is not None:
+                rstore = ResultsStorage()
+                rstore.result_id = result_id
+                yield rstore, obj
+                to_share[rstore.result_id] = rstore.result
+            else:
+                yield obj
+        communication_system.communicators.pop()
+        if storage is not None:
+            # Now we have to broadcast it
+            new_storage = my_communicator.par_combine_object(
+                    to_share, datatype = 'dict', op = 'join')
+            storage.update(new_storage)
 
 class CommunicationSystem(object):
     communicators = []
