@@ -376,10 +376,11 @@ cdef class TransferFunctionProxy:
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
                                   np.float64_t *rgba, np.float64_t *grad):
         cdef int i, fid, use
-        cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
+        cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod, normalize
         # NOTE: We now disable this.  I have left it to ease the process of
         # potentially, one day, re-including it.
         #use = 0
@@ -403,8 +404,9 @@ cdef class TransferFunctionProxy:
             dot_prod = 0.0
             for i in range(3):
                 dot_prod += grad[i] * self.light_source_v[i]
+            if dot_prod < 0: dot_prod = 0.0
             for i in range(3):
-                trgba[i] += dot_prod * self.light_source_c[i]
+                trgba[i] *= dot_prod * self.light_source_c[i]
         #print
         # A few words on opacity.  We're going to be integrating equation 1.23
         # from Rybicki & Lightman.  dI_\nu / ds = -\alpha_\nu I_\nu + j_\nu
