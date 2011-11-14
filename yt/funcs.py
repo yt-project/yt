@@ -255,16 +255,32 @@ def insert_ipython(num_up=1):
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
-    from IPython.Shell import IPShellEmbed
+
+    import IPython
+    if IPython.__version__.startswith("0.10"):
+       api_version = '0.10'
+    elif IPython.__version__.startswith("0.11"):
+       api_version = '0.11'
+
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
     dd = dict(fname = frame[3], filename = frame[1],
               lineno = frame[2])
-    ipshell = IPShellEmbed()
-    ipshell(header = __header % dd,
-            local_ns = loc, global_ns = glo)
+    if api_version == '0.10':
+        ipshell = IPython.Shell.IPShellEmbed()
+        ipshell(header = __header % dd,
+                local_ns = loc, global_ns = glo)
+    else:
+        from IPython.config.loader import Config
+        cfg = Config()
+        cfg.InteractiveShellEmbed.local_ns = loc
+        cfg.InteractiveShellEmbed.global_ns = glo
+        IPython.embed(config=cfg, banner2 = __header % dd)
+        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        ipshell = InteractiveShellEmbed(config=cfg)
+
     del ipshell
 
 
