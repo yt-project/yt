@@ -30,6 +30,7 @@ cimport kdtree_utils
 cimport healpix_interface
 from stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from ray_handling cimport integrate_ray, ray_sampler
 
 cdef extern from "math.h":
     double exp(double x)
@@ -481,6 +482,13 @@ cdef class VectorPlane:
 
 cdef struct AdaptiveRayPacket
 
+cdef class PartitionedGrid
+
+cdef struct VolumeRendererData:
+    np.float64_t *rgba
+    TransferFunctionProxy tf
+    PartitionedGrid pg
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -596,189 +604,21 @@ cdef class PartitionedGrid:
                     if temp > extrema[3]: extrema[3] = temp
         #print extrema[0], extrema[1], extrema[2], extrema[3]
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef int integrate_ray(self, np.float64_t v_pos[3],
-                                 np.float64_t v_dir[3],
-                                 np.float64_t rgba[4],
-                                 TransferFunctionProxy tf,
-                                 np.float64_t *return_t = NULL,
-                                 np.float64_t enter_t = -1.0):
-        cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
-        cdef np.float64_t intersect_t = 1.0
-        cdef np.float64_t iv_dir[3]
-        cdef np.float64_t intersect[3], tmax[3], tdelta[3]
-        cdef np.float64_t dist, alpha, dt, exit_t
-        cdef np.float64_t tr, tl, temp_x, temp_y, dv
-        for i in range(3):
-            if (v_dir[i] < 0):
-                step[i] = -1
-            elif (v_dir[i] == 0):
-                step[i] = 1
-                tmax[i] = 1e60
-                iv_dir[i] = 1e60
-                tdelta[i] = 1e-60
-                continue
-            else:
-                step[i] = 1
-            x = (i+1) % 3
-            y = (i+2) % 3
-            iv_dir[i] = 1.0/v_dir[i]
-            tl = (self.left_edge[i] - v_pos[i])*iv_dir[i]
-            temp_x = (v_pos[x] + tl*v_dir[x])
-            temp_y = (v_pos[y] + tl*v_dir[y])
-            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
-               0.0 <= tl and tl < intersect_t:
-                direction = i
-                intersect_t = tl
-            tr = (self.right_edge[i] - v_pos[i])*iv_dir[i]
-            temp_x = (v_pos[x] + tr*v_dir[x])
-            temp_y = (v_pos[y] + tr*v_dir[y])
-            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
-               0.0 <= tr and tr < intersect_t:
-                direction = i
-                intersect_t = tr
-        if self.left_edge[0] <= v_pos[0] and v_pos[0] <= self.right_edge[0] and \
-           self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
-           self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
-            intersect_t = 0.0
-        if enter_t >= 0.0: intersect_t = enter_t
-        if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
-        for i in range(3):
-            intersect[i] = v_pos[i] + intersect_t * v_dir[i]
-            cur_ind[i] = <int> floor((intersect[i] +
-                                      step[i]*1e-8*self.dds[i] -
-                                      self.left_edge[i])*self.idds[i])
-            tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
-                        self.left_edge[i]-v_pos[i])*iv_dir[i]
-            # This deals with the asymmetry in having our indices refer to the
-            # left edge of a cell, but the right edge of the brick being one
-            # extra zone out.
-            if cur_ind[i] == self.dims[i] and step[i] < 0:
-                cur_ind[i] = self.dims[i] - 1
-            if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]: return 0
-            if step[i] > 0:
-                tmax[i] = (((cur_ind[i]+1)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])*iv_dir[i]
-            if step[i] < 0:
-                tmax[i] = (((cur_ind[i]+0)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])*iv_dir[i]
-            tdelta[i] = (self.dds[i]*iv_dir[i])
-            if tdelta[i] < 0: tdelta[i] *= -1
-        # We have to jumpstart our calculation
-        enter_t = intersect_t
-        hit = 0
-        while 1:
-            # dims here is one less than the dimensions of the data,
-            # but we are tracing on the grid, not on the data...
-            if (not (0 <= cur_ind[0] < self.dims[0])) or \
-               (not (0 <= cur_ind[1] < self.dims[1])) or \
-               (not (0 <= cur_ind[2] < self.dims[2])):
-                break
-            hit += 1
-            if tmax[0] < tmax[1]:
-                if tmax[0] < tmax[2]:
-                    exit_t = fmin(tmax[0], 1.0)
-                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
-                                       rgba, tf)
-                    cur_ind[0] += step[0]
-                    enter_t = tmax[0]
-                    tmax[0] += tdelta[0]
-                else:
-                    exit_t = fmin(tmax[2], 1.0)
-                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
-                                       rgba, tf)
-                    cur_ind[2] += step[2]
-                    enter_t = tmax[2]
-                    tmax[2] += tdelta[2]
-            else:
-                if tmax[1] < tmax[2]:
-                    exit_t = fmin(tmax[1], 1.0)
-                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
-                                       rgba, tf)
-                    cur_ind[1] += step[1]
-                    enter_t = tmax[1]
-                    tmax[1] += tdelta[1]
-                else:
-                    exit_t = fmin(tmax[2], 1.0)
-                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
-                                       rgba, tf)
-                    cur_ind[2] += step[2]
-                    enter_t = tmax[2]
-                    tmax[2] += tdelta[2]
-            if enter_t >= 1.0: break
-        if return_t != NULL: return_t[0] = exit_t
-        return hit
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void sample_values(self,
-                            np.float64_t v_pos[3],
-                            np.float64_t v_dir[3],
-                            np.float64_t enter_t,
-                            np.float64_t exit_t,
-                            int ci[3],
-                            np.float64_t *rgba,
-                            TransferFunctionProxy tf):
-        cdef np.float64_t cp[3], dp[3], pos[3], dt, t, dv
-        cdef np.float64_t grad[3], ds[3]
-        cdef np.float64_t local_dds[3], cell_left[3]
-        grad[0] = grad[1] = grad[2] = 0.0
-        cdef int dti, i
-        cdef kdtree_utils.kdres *ballq = NULL
-        dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
-        cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
-                        + ci[1] * (self.dims[2] + 1) + ci[2]
-        # The initial and final values can be linearly interpolated between; so
-        # we just have to calculate our initial and final values.
-        cdef np.float64_t slopes[6]
-        for i in range(3):
-            dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
-            dp[i] -= ci[i] * self.dds[i] + self.left_edge[i]
-            dp[i] *= self.idds[i]
-            ds[i] = v_dir[i] * self.idds[i] * dt
-        for i in range(self.n_fields):
-            slopes[i] = offset_interpolate(self.dims, dp,
-                            self.data[i] + offset)
-            if tf.grad == i:
-                eval_gradient(self.dims, dp, self.data[i] + offset,
-                              grad)
-        for i in range(3):
-            dp[i] += ds[i] * tf.ns
-        cdef np.float64_t temp
-        for i in range(self.n_fields):
-            temp = slopes[i]
-            slopes[i] -= offset_interpolate(self.dims, dp,
-                             self.data[i] + offset)
-            slopes[i] *= -1.0/tf.ns
-            self.dvs[i] = temp
-        if self.star_list != NULL:
-            for i in range(3):
-                cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
-                # this gets us dp as the current first sample position
-                pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
-                dp[i] -= tf.ns * ds[i]
-                local_dds[i] = v_dir[i] * dt
-            ballq = kdtree_utils.kd_nearest_range3(
-                self.star_list, cell_left[0] + self.dds[0]*0.5,
-                                cell_left[1] + self.dds[1]*0.5,
-                                cell_left[2] + self.dds[2]*0.5,
-                                self.star_er + 0.9*self.dds[0])
-                                            # ~0.866 + a bit
-        for dti in range(tf.ns): 
-            #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
-            #    continue
-            if self.star_list != NULL:
-                self.add_stars(ballq, dt, pos, rgba)
-                for i in range(3):
-                    dp[i] += ds[i]
-                    pos[i] += local_dds[i]
-            tf.eval_transfer(dt, self.dvs, rgba, grad)
-            for i in range(self.n_fields):
-                self.dvs[i] += slopes[i]
-        if ballq != NULL: kdtree_utils.kd_res_free(ballq)
+    cdef int integrate_ray(np.float64_t left_edge[3],
+                           np.float64_t right_edge[3],
+                           np.float64_t dds[3],
+                           np.float64_t idds[3],
+                           int dims[3],
+                           np.float64_t v_pos[3],
+                           np.float64_t v_dir[3],
+                           np.float64_t rgba[4],
+                           TransferFunctionProxy tf,
+                           np.float64_t *return_t = NULL,
+                           np.float64_t enter_t = -1.0):
+        integrate_ray(self.left_edge, self.right_edge,
+                      self.dds, self.idds, self.dims, v_pos,
+                      v_dir, rgba, tf, return_t, enter_t,
+                      self.sample_value)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2006,3 +1846,72 @@ cdef class AdaptiveRaySource:
 # From Enzo:
 #   dOmega = 4 pi r^2/Nrays
 #   if (dOmega > RaysPerCell * dx^2) then split
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void pg_sample_values(np.float64_t v_pos[3],
+                        np.float64_t v_dir[3],
+                        np.float64_t enter_t,
+                        np.float64_t exit_t,
+                        int ci[3],
+                        void *rdata):
+    cdef VolumeRendererData *dd = <VolumeRendererData*> rdata
+    cdef PartitionedGrid self = dd.pg
+    cdef np.float64_t cp[3], dp[3], pos[3], dt, t, dv
+    cdef np.float64_t grad[3], ds[3]
+    cdef np.float64_t local_dds[3], cell_left[3]
+    grad[0] = grad[1] = grad[2] = 0.0
+    cdef int dti, i
+    cdef kdtree_utils.kdres *ballq = NULL
+    dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
+    cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
+                    + ci[1] * (self.dims[2] + 1) + ci[2]
+    # The initial and final values can be linearly interpolated between; so
+    # we just have to calculate our initial and final values.
+    cdef np.float64_t slopes[6]
+    for i in range(3):
+        dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        dp[i] -= ci[i] * self.dds[i] + self.left_edge[i]
+        dp[i] *= self.idds[i]
+        ds[i] = v_dir[i] * self.idds[i] * dt
+    for i in range(self.n_fields):
+        slopes[i] = offset_interpolate(self.dims, dp,
+                        self.data[i] + offset)
+        if tf.grad == i:
+            eval_gradient(self.dims, dp, self.data[i] + offset,
+                          grad)
+    for i in range(3):
+        dp[i] += ds[i] * tf.ns
+    cdef np.float64_t temp
+    for i in range(self.n_fields):
+        temp = slopes[i]
+        slopes[i] -= offset_interpolate(self.dims, dp,
+                         self.data[i] + offset)
+        slopes[i] *= -1.0/tf.ns
+        self.dvs[i] = temp
+    if self.star_list != NULL:
+        for i in range(3):
+            cell_left[i] = ci[i] * self.dds[i] + self.left_edge[i]
+            # this gets us dp as the current first sample position
+            pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+            dp[i] -= tf.ns * ds[i]
+            local_dds[i] = v_dir[i] * dt
+        ballq = kdtree_utils.kd_nearest_range3(
+            self.star_list, cell_left[0] + self.dds[0]*0.5,
+                            cell_left[1] + self.dds[1]*0.5,
+                            cell_left[2] + self.dds[2]*0.5,
+                            self.star_er + 0.9*self.dds[0])
+                                        # ~0.866 + a bit
+    for dti in range(tf.ns): 
+        #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
+        #    continue
+        if self.star_list != NULL:
+            self.add_stars(ballq, dt, pos, rgba)
+            for i in range(3):
+                dp[i] += ds[i]
+                pos[i] += local_dds[i]
+        tf.eval_transfer(dt, self.dvs, rgba, grad)
+        for i in range(self.n_fields):
+            self.dvs[i] += slopes[i]
+    if ballq != NULL: kdtree_utils.kd_res_free(ballq)
+
