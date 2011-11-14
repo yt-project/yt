@@ -449,6 +449,8 @@ class Camera(ParallelAnalysisInterface):
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
+                if (self.center == 0.0).all():
+                    self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
 	    else:
