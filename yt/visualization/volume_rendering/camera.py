@@ -193,6 +193,9 @@ class Camera(ParallelAnalysisInterface):
         self.steady_north = steady_north
         self.expand_factor = expand_factor
         # This seems to be necessary for now.  Not sure what goes wrong when not true.
+        if na.all(north_vector == normal_vector):
+            mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
+            north_vector == None
         if north_vector is not None: self.steady_north=True
         self.north_vector = north_vector
         self.rotation_vector = north_vector
