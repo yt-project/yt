@@ -7,7 +7,9 @@ namespace.pop("__builtins__", None)
 
 doc = """\
 
-Welcome to yt!
+==================
+| Welcome to yt! |
+==================
 
 """
 
@@ -41,7 +43,8 @@ elif api_version == "0.10":
     ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
 elif api_version == "0.11":
     from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell
-    ip_shell = TerminalInteractiveShell(user_ns=namespace)
+    ip_shell = TerminalInteractiveShell(user_ns=namespace, banner1 = doc,
+                    display_banner = True)
     if "DISPLAY" in os.environ: ip_shell.enable_pylab(import_all=False)
 else:
     raise RuntimeError
