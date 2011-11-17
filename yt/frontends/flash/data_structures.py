@@ -299,7 +299,7 @@ class FLASHStaticOutput(StaticOutput):
 
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 
-        except KeyError:
+        except:
             use_cosmo = 0
 
         if use_cosmo == 1:
