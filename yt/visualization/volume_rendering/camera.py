@@ -794,7 +794,7 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None):
+                        field, weight = None, volume = None, no_ghost = False):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -826,6 +826,14 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
+    no_ghost: bool, optional
+        Optimization option.  If True, homogenized bricks will
+        extrapolate out from grid instead of interpolating from
+        ghost zones that have to first be calculated.  This can
+        lead to large speed improvements, but at a loss of
+        accuracy/smoothness in resulting image.  The effects are
+        less notable when the transfer function is smooth and
+        broad. Default: False
 
     Returns
     -------
@@ -853,7 +861,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     cam = pf.h.camera(center, normal_vector, width, resolution, tf,
                       fields = fields,
                       log_fields = [False] * len(fields),
-                      volume = volume)
+                      volume = volume, no_ghost = no_ghost)
     vals = cam.snapshot()
     image = vals[:,:,0]
     if weight is None:
