@@ -168,6 +168,7 @@ def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, cl
     # unreliable in the unpickling
     for child in children: child.parent = obj
     obj.data = data[1] # Strip out the PF
+    obj.quantities = obj.data.quantities
     if obj.parent is None: return (data[0], obj)
     return obj
 
