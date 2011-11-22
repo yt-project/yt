@@ -1323,6 +1323,7 @@ class LoadedHaloList(HaloList):
     _name = "Loaded"
     
     def __init__(self, pf, basename):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self._groups = []
         self.basename = basename

@@ -464,6 +464,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                         parent_masses = na.concatenate((parent_masses, thisMasses))
                         parent_halos = na.concatenate((parent_halos, 
                             na.ones(thisIDs.size, dtype='int32') * gID))
+                        del thisIDs, thisMasses
                     h5fp.close()
             
             # Sort the arrays by particle index in ascending order.
@@ -495,6 +496,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     child_masses = na.concatenate((child_masses, thisMasses))
                     child_halos = na.concatenate((child_halos, 
                         na.ones(thisIDs.size, dtype='int32') * gID))
+                    del thisIDs, thisMasses
                 h5fp.close()
         
         # Sort the arrays by particle index.
@@ -548,6 +550,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         parent_halos_tosend = parent_halos[parent_send]
         child_IDs_tosend = child_IDs[child_send]
         child_halos_tosend = child_halos[child_send]
+        del parent_send, child_send
         
         parent_IDs_tosend = self.comm.par_combine_object(parent_IDs_tosend,
                 datatype="array", op="cat")
@@ -651,6 +654,11 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             #values = tuple(values)
             self.write_values.append(values)
             self.write_values_dict[parent_currt][parent_halo] = values
+
+        # Clean up.
+        del parent_IDs, parent_masses, parent_halos
+        del parent_IDs_tosend, parent_masses_tosend
+        del parent_halos_tosend, child_IDs_tosend, child_halos_tosend
         
         return (child_IDs, child_masses, child_halos)
 
