@@ -723,7 +723,7 @@ class HopCircleCallback(PlotCallback):
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False, width=None):
         """
-        Accepts a :class:`yt.lagos.HopList` *hop_output* and plots up to
+        Accepts a :class:`yt.HopList` *hop_output* and plots up to
         *max_number* (None for unlimited) halos as circles.
         """
         self.hop_output = hop_output

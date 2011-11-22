@@ -1065,7 +1065,7 @@ class PlotCollection(object):
             the y-axis.  All subsequent fields will be binned and their
             profiles added to the underlying `BinnedProfile2D`.
         cmap : string, optional
-            An acceptable colormap.  See either raven.color_maps or
+            An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         weight : string, default "CellMassMsun"
             The weighting field for an average.  This defaults to mass-weighted
@@ -1189,7 +1189,7 @@ class PlotCollection(object):
             The center to be used for things like radius and radial velocity.
             Defaults to the center of the plot collection.
         cmap : string, optional
-            An acceptable colormap.  See either raven.color_maps or
+            An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         weight : string, default "CellMassMsun"
             The weighting field for an average.  This defaults to mass-weighted
