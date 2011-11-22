@@ -30,8 +30,6 @@ import numpy as na
 import inspect
 import copy
 
-from math import pi
-
 from yt.funcs import *
 
 from yt.utilities.amr_utils import CICDeposit_3, obtain_rvec
@@ -266,7 +264,7 @@ def _DynamicalTime(field, data):
     M{sqrt(3pi/(16*G*rho))} or M{sqrt(3pi/(16G))*rho^-(1/2)}
     Note that we return in our natural units already
     """
-    return (3.0*pi/(16*G*data["Density"]))**(1./2.)
+    return (3.0*na.pi/(16*G*data["Density"]))**(1./2.)
 add_field("DynamicalTime", function=_DynamicalTime,
            units=r"\rm{s}")
 
@@ -295,6 +293,7 @@ add_field("CellMassCode",
 
 def _TotalMass(field,data):
     return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
+add_field("TotalMass", function=_TotalMass, units=r"\rm{g}")
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
           convert_function=_convertCellMassMsun)

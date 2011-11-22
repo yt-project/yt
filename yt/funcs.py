@@ -124,14 +124,14 @@ def get_memory_usage():
     """
     Returning resident size in megabytes
     """
+    pid = os.getpid()
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return 0
-    pid = os.getpid()
+        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return 0.0
+        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
