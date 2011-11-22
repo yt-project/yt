@@ -794,7 +794,7 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None, no_ghost = False):
+                        field, weight = None, volume = None, no_ghost = True):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -833,7 +833,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         lead to large speed improvements, but at a loss of
         accuracy/smoothness in resulting image.  The effects are
         less notable when the transfer function is smooth and
-        broad. Default: False
+        broad. Default: True
 
     Returns
     -------
