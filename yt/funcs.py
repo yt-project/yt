@@ -421,7 +421,7 @@ class NoCUDAException(Exception):
 class YTEmptyClass(object):
     pass
 
-def _update_hg(path, skip_rebuild = False):
+def update_hg(path, skip_rebuild = False):
     from mercurial import hg, ui, commands
     f = open(os.path.join(path, "yt_updater.log"), "a")
     u = ui.ui()
@@ -459,7 +459,7 @@ def _update_hg(path, skip_rebuild = False):
     f.write("Successful!\n")
     print "Updated successfully."
 
-def _get_hg_version(path):
+def get_hg_version(path):
     from mercurial import hg, ui, commands
     u = ui.ui()
     u.pushbuffer()
@@ -467,7 +467,7 @@ def _get_hg_version(path):
     commands.identify(u, repo)
     return u.popbuffer()
 
-def _get_yt_version():
+def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
@@ -475,7 +475,7 @@ def _get_yt_version():
     return version
 
 # This code snippet is modified from Georg Brandl
-def _bb_apicall(endpoint, data, use_pass = True):
+def bb_apicall(endpoint, data, use_pass = True):
     import urllib, urllib2
     uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
     # since bitbucket doesn't return the required WWW-Authenticate header when
@@ -491,7 +491,7 @@ def _bb_apicall(endpoint, data, use_pass = True):
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
-def _get_yt_supp():
+def get_yt_supp():
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.

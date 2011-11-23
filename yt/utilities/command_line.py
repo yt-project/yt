@@ -88,7 +88,7 @@ class YTCommand(object):
                     args.pf = pf
                     self(args)
             else:
-                args.pf = args.pf[0]
+                args.pf = getattr(args, 'pf', [None])[0]
                 self(args)
 
 class GetParameterFiles(argparse.Action):
@@ -307,7 +307,7 @@ class YTUpdateCmd(YTCommand):
                 update_supp = True
         vstring = None
         if "site-packages" not in path:
-            vstring = _get_hg_version(path)
+            vstring = get_hg_version(path)
             print
             print "The current version of the code is:"
             print
@@ -316,7 +316,7 @@ class YTUpdateCmd(YTCommand):
             print "---"
             print
             print "This installation CAN be automatically updated."
-            _update_hg(path)
+            update_hg(path)
             print "Updated successfully."
         else:
             print
@@ -360,7 +360,7 @@ class YTInstInfoCmd(YTCommand):
                 update_supp = True
         vstring = None
         if "site-packages" not in path:
-            vstring = _get_hg_version(path)
+            vstring = get_hg_version(path)
             print
             print "The current version of the code is:"
             print
@@ -370,7 +370,7 @@ class YTInstInfoCmd(YTCommand):
             print
             print "This installation CAN be automatically updated."
             if opts.update_source:  
-                _update_hg(path)
+                update_hg(path)
             print "Updated successfully."
         elif opts.update_source:
             print
@@ -740,7 +740,7 @@ class YTBugreportCmd(YTCommand):
         print "projections')"
         print
         try:
-            current_version = _get_yt_version()
+            current_version = get_yt_version()
         except:
             current_version = "Unavailable"
         summary = raw_input("Summary? ")
@@ -801,7 +801,7 @@ class YTBugreportCmd(YTCommand):
         print "If you don't have one, run the 'yt bootstrap_dev' command."
         print
         loki = raw_input()
-        retval = _bb_apicall(endpoint, data, use_pass=True)
+        retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
         url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']

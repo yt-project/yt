@@ -238,8 +238,8 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
             import pkg_resources
             yt_provider = pkg_resources.get_provider("yt")
             path = os.path.dirname(yt_provider.module_path)
-            from yt.utilities.command_line import _get_hg_version
-            comparison = _get_hg_version(path)[:12]
+            from yt.funcs import get_hg_version
+            comparison = get_hg_version(path)[:12]
             print "Setting comparison to: %s" % (comparison)
         sys.path.insert(0, ".")
         self._load_modules(test_modules)
