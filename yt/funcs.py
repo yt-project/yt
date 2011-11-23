@@ -24,7 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, os
-import warnings, struct
+import warnings, struct, subprocess
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
