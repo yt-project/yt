@@ -37,8 +37,10 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
-from .fields import ARTFieldContainer
-from .fields import add_field
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+from .fields import \
+    ARTFieldInfo, add_art_field, KnownARTFields
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
@@ -113,7 +115,6 @@ class ARTHierarchy(AMRHierarchy):
     
     def __init__(self, pf, data_style='art'):
         self.data_style = data_style
-        self.field_info = ARTFieldContainer()
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -346,20 +347,6 @@ class ARTHierarchy(AMRHierarchy):
             g._setup_dx()
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -372,7 +359,8 @@ class ARTHierarchy(AMRHierarchy):
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
-    _fieldinfo_class = ARTFieldContainer
+    _fieldinfo_fallback = ARTFieldInfo
+    _fieldinfo_known = KnownARTFields
     _handle = None
     
     def __init__(self, filename, data_style='art',
@@ -382,7 +370,6 @@ class ARTStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         
-        self.field_info = self._fieldinfo_class()
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'art'

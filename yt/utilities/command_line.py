@@ -466,14 +466,29 @@ class YTCommands(cmdln.Cmdln):
             print "Could not load file."
             sys.exit()
         import yt.mods
-        from IPython.Shell import IPShellEmbed
+
+        import IPython
+        if IPython.__version__.startswith("0.10"):
+            api_version = '0.10'
+        elif IPython.__version__.startswith("0.11"):
+            api_version = '0.11'
+
         local_ns = yt.mods.__dict__.copy()
         local_ns['pf'] = pf
-        shell = IPShellEmbed()
-        shell(local_ns = local_ns,
-              header =
-            "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
-             )
+
+        if api_version == '0.10':
+            shell = IPython.Shell.IPShellEmbed()
+            shell(local_ns = local_ns,
+                  header =
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  )
+        else:
+            from IPython.config.loader import Config
+            cfg = Config()
+            cfg.InteractiveShellEmbed.local_ns = local_ns
+            IPython.embed(config=cfg)
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+            ipshell = InteractiveShellEmbed(config=cfg)
 
     @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args
@@ -573,7 +588,7 @@ class YTCommands(cmdln.Cmdln):
         else:
             p = pc.add_slice(opts.field, opts.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.field_data, opts.field)
+        mapper = PannableMapServer(p.data, opts.field)
         import yt.utilities.bottle as bottle
         bottle.debug(True)
         if opts.host is not None:
@@ -1058,6 +1073,19 @@ class YTCommands(cmdln.Cmdln):
             print
             loki = raw_input("Press enter to go on, Ctrl-C to exit.")
             cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
+        bb_fp = "81:2b:08:90:dc:d3:71:ee:e0:7c:b4:75:ce:9b:6c:48:94:56:a1:fe"
+        if uu.config("hostfingerprints", "bitbucket.org", None) is None:
+            print "Let's also add bitbucket.org to the known hosts, so hg"
+            print "doesn't warn us about bitbucket."
+            print "We will add this:"
+            print
+            print "   [hostfingerprints]"
+            print "   bitbucket.org = %s" % (bb_fp)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path,
+                                   "hostfingerprints.bitbucket.org=%s" % bb_fp)
+
         # We now reload the UI's config file so that it catches the [bb]
         # section changes.
         uu.readconfig(hgrc_path[0])
@@ -1570,7 +1598,7 @@ class YTCommands(cmdln.Cmdln):
             save_name = "%s"%pf+"_"+field+"_rendering.png"
         if not '.png' in save_name:
             save_name += '.png'
-        if cam._par_rank != -1:
+        if cam.comm.rank != -1:
             write_bitmap(image,save_name)
         
 

@@ -1622,11 +1622,12 @@ class AMRQuadTreeProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
+            dependencies = self.get_dependencies(fields, ghost_zones = False)
             print "Preloading %s grids and getting %s" % (
                     len(self.source._get_grid_objs()),
-                    self.get_dependencies(fields))
+                    dependencies)
             self.comm.preload([g for g in self._get_grid_objs()],
-                          self.get_dependencies(fields), self.hierarchy.io)
+                          dependencies, self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
         # having to do this by level, and instead do it by CPU file
         for level in range(0, self._max_level+1):
@@ -2256,7 +2257,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         return dls
 
     def _get_data_from_grid(self, grid, fields, dls):
-        g_fields = [grid[field] for field in fields]
+        g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         FillBuffer(ref_ratio,
@@ -2266,7 +2267,7 @@ class AMRFixedResProjectionBase(AMR2DData):
             grid.child_mask, self.domain_width, dls[grid.Level],
             self.axis)
 
-class AMR3DData(AMRData, GridPropertiesMixin):
+class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
     Class describing a cluster of data points, not necessarily sharing any
@@ -2280,6 +2281,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         used as a base class.  Note that *center* is supplied, but only used
         for fields and quantities that require it.
         """
+        ParallelAnalysisInterface.__init__(self)
         AMRData.__init__(self, pf, fields, **kwargs)
         self._set_center(center)
         self.coords = None
@@ -2364,11 +2366,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             f = grid[field]
             return na.array([f[i,:][pointI] for i in range(3)])
         else:
+            tr = grid[field]
+            if tr.size == 1: # dx, dy, dz, cellvolume
+                tr = tr * na.ones(grid.ActiveDimensions, dtype='float64')
+            if len(grid.Children) == 0 and grid.OverlappingSiblings is None \
+                and self._is_fully_enclosed(grid):
+                return tr.ravel()
             pointI = self._get_point_indices(grid)
-            if grid[field].size == 1: # dx, dy, dz, cellvolume
-                t = grid[field] * na.ones(grid.ActiveDimensions, dtype='float64')
-                return t[pointI].ravel()
-            return grid[field][pointI].ravel()
+            return tr[pointI].ravel()
 
     def _flush_data_to_grids(self, field, default_val, dtype='float32'):
         """
@@ -2479,12 +2484,19 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             format.  Suitable for loading into meshlab.
         rescale : bool, optional
             If true, the vertices will be rescaled within their min/max.
+        sample_values : string, optional
+            Any field whose value should be extracted at the center of each
+            triangle.
 
         Returns
         -------
         verts : array of floats
             The array of vertices, x,y,z.  Taken in threes, these are the
             triangle vertices.
+        samples : array of floats
+            If `sample_values` is specified, this will be returned and will
+            contain the values of the field specified at the center of each
+            triangle.
 
         References
         ----------
@@ -2504,9 +2516,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         verts = []
         samples = []
-        pb = get_pbar("Extracting Isocontours", len(self._grids))
-        for i, g in enumerate(self._grids):
-            pb.update(i)
+        for i, g in enumerate(self._get_grid_objs()):
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
             if sample_values is not None:
@@ -2519,20 +2529,24 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
-        pb.finish()
-        verts = na.concatenate(verts)
+        verts = na.concatenate(verts).transpose()
+        verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
+        verts = verts.transpose()
         if sample_values is not None:
             samples = na.concatenate(samples)
+            samples = self.comm.par_combine_object(samples, op='cat',
+                                datatype='array')
         if rescale:
             mi = na.min(verts, axis=0)
             ma = na.max(verts, axis=0)
             verts = (verts - mi) / (ma - mi).max()
-        if filename is not None:
+        if filename is not None and self.comm.rank == 0:
             f = open(filename, "w")
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts)/3):
                 f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
+            f.close()
         if sample_values is not None:
             return verts, samples
         return verts
@@ -2602,7 +2616,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
         """
         flux = 0.0
-        for g in self._grids:
+        for g in self._get_grid_objs():
             mask = self._get_cut_mask(g) * g.child_mask
             vals = g.get_vertex_centered_data(field)
             if fluxing_field is None:
@@ -2613,6 +2627,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                          [field_x, field_y, field_z]]
             flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
                         ff, mask, g.LeftEdge, g.dds)
+        flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
@@ -2668,6 +2683,18 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 particle_handler_registry[self._type_name](self.pf, self)
         return self._particle_handler
 
+
+    def volume(self, unit = "unitary"):
+        """
+        Return the volume of the data container in units *unit*.
+        This is found by adding up the volume of the cells with centers
+        in the container, rather than using the geometric shape of
+        the container, so this may vary very slightly
+        from what might be expected from the geometric volume.
+        """
+        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
+            (self.pf[unit] / self.pf['cm']) ** 3.0
+
 class ExtractedRegionBase(AMR3DData):
     """
     ExtractedRegions are arbitrarily defined containers of data, useful
@@ -2676,6 +2703,31 @@ class ExtractedRegionBase(AMR3DData):
     _type_name = "extracted_region"
     _con_args = ('_base_region', '_indices')
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
+        """An arbitrarily defined data container that allows for selection
+        of all data meeting certain criteria.
+
+        In order to create an arbitrarily selected set of data, the
+        ExtractedRegion takes a `base_region` and a set of `indices`
+        and creates a region within the `base_region` consisting of
+        all data indexed by the `indices`. Note that `indices` must be
+        precomputed. This does not work well for parallelized
+        operations.
+
+        Parameters
+        ----------
+        base_region : yt data source
+            A previously selected data source.
+        indices : array_like
+            An array of indices
+
+        Other Parameters
+        ----------------
+        force_refresh : bool
+           Force a refresh of the data. Defaults to True.
+        
+        Examples
+        --------
+        """
         cen = kwargs.pop("center", None)
         if cen is None: cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
@@ -2959,10 +3011,22 @@ class AMRRegionBase(AMR3DData):
     _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """
-        We create an object with a set of three *left_edge* coordinates,
-        three *right_edge* coordinates, and a *center* that need not be the
-        center.
+        """A 3D region of data with an arbitrary center.
+
+        Takes an array of three *left_edge* coordinates, three
+        *right_edge* coordinates, and a *center* that can be anywhere
+        in the domain. If the selected region extends past the edges
+        of the domain, no data will be found there, though the
+        object's `left_edge` or `right_edge` are not modified.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the region
+        left_edge : array_like
+            The left edge of the region
+        right_edge : array_like
+            The right edge of the region
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
@@ -2991,15 +3055,6 @@ class AMRRegionBase(AMR3DData):
                  & (grid['z'] + dzp > self.left_edge[2]) )
         return cm
 
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the region in units *unit*.
-        """
-        diff = na.array(self.right_edge) - na.array(self.left_edge)
-        # Find the full volume
-        vol = na.prod(diff * self.pf[unit])
-        return vol
-
 class AMRRegionStrictBase(AMRRegionBase):
     """
     AMRRegion without any dx padding for cell selection
@@ -3016,10 +3071,25 @@ class AMRPeriodicRegionBase(AMR3DData):
     _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """
-        We create an object with a set of three *left_edge* coordinates,
-        three *right_edge* coordinates, and a *center* that need not be the
-        center.
+        """A 3D region of data that with periodic boundary
+        conditions if the selected region extends beyond the
+        simulation domain.
+
+        Takes an array of three *left_edge* coordinates, three
+        *right_edge* coordinates, and a *center* that can be anywhere
+        in the domain. The selected region can extend past the edges
+        of the domain, in which case periodic boundary conditions will
+        be applied to fill the region.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the region
+        left_edge : array_like
+            The left edge of the region
+        right_edge : array_like
+            The right edge of the region
+
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = na.array(left_edge)
@@ -3061,27 +3131,21 @@ class AMRPeriodicRegionBase(AMR3DData):
                           & (grid['z'] + dzp + off_z > self.left_edge[2]) )
             return cm
 
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the region in units *unit*.
-        """
-        period = self.pf.domain_right_edge - self.pf.domain_left_edge
-        diff = na.array(self.right_edge) - na.array(self.left_edge)
-        # Correct for wrap-arounds.
-        tofix = (diff < 0)
-        toadd = period[tofix]
-        diff += toadd
-        # Find the full volume
-        vol = na.prod(diff * self.pf[unit])
-        return vol
-        
-
 class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
     """
     AMRPeriodicRegion without any dx padding for cell selection
     """
     _type_name = "periodic_region_strict"
     _dx_pad = 0.0
+    def __init__(self, center, left_edge, right_edge, fields = None,
+                 pf = None, **kwargs):
+        """same as periodic region, but does not include cells unless
+        the selected region encompasses their centers.
+
+        """
+        AMRPeriodicRegionBase.__init__(self, center, left_edge, right_edge, 
+                                       fields = None, pf = None, **kwargs)
+    
 
 class AMRGridCollectionBase(AMR3DData):
     """
@@ -3123,9 +3187,20 @@ class AMRSphereBase(AMR3DData):
     _type_name = "sphere"
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, fields = None, pf = None, **kwargs):
-        """
-        The most famous of all the data objects, we define it via a
-        *center* and a *radius*.
+        """A sphere f points defined by a *center* and a *radius*.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the sphere.
+        radius : float
+            The radius of the sphere.
+
+        Examples
+        --------
+        >>> pf = load("DD0010/moving7_0010")
+        >>> c = [0.5,0.5,0.5]
+        >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
@@ -3167,18 +3242,25 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the sphere in units *unit*.
-        """
-        return 4./3. * math.pi * (self.radius * self.pf[unit])**3.0
-
 class AMRCoveringGridBase(AMR3DData):
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
+        """A 3D region with all data extracted to a single, specified
+        resolution.
+        
+        Parameters
+        ----------
+        level : int
+            The resolution level data is uniformly gridded at
+        left_edge : array_like
+            The left edge of the region to be extracted
+        right_edge : array_like
+            The right edge of the region to be extracted
+
+        """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = na.array(left_edge)
@@ -3276,7 +3358,7 @@ class AMRCoveringGridBase(AMR3DData):
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [grid[field] for field in fields]
+        g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
@@ -3312,6 +3394,24 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
+        """A 3D region with all data extracted and interpolated to a
+        single, specified resolution.
+
+        Smoothed covering grids start at level 0, interpolating to
+        fill the region to level 1, replacing any cells actually
+        covered by level 1 data, and then recursively repeating this
+        process until it reaches the specified `level`.
+        
+        Parameters
+        ----------
+        level : int
+            The resolution level data is uniformly gridded at
+        left_edge : array_like
+            The left edge of the region to be extracted
+        right_edge : array_like
+            The right edge of the region to be extracted
+
+        """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
                self.pf.domain_dimensions.astype("float64"))
@@ -3333,39 +3433,36 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(field)
-        for field in fields_to_get:
-            grid_count = 0
-            if self.field_data.has_key(field):
-                continue
-            mylog.debug("Getting field %s from %s possible grids",
-                       field, len(self._grids))
-            if self._use_pbar: pbar = \
-                    get_pbar('Searching grids for values ', len(self._grids))
-            # Note that, thanks to some trickery, we have different dimensions
-            # on the field than one might think from looking at the dx and the
-            # L/R edges.
-            # We jump-start our task here
-            self._update_level_state(0, field)
-            
-            # The grids are assumed to be pre-sorted
-            last_level = 0
-            for gi, grid in enumerate(self._grids):
-                if self._use_pbar: pbar.update(gi)
-                if grid.Level > last_level and grid.Level <= self.level:
-                    self._update_level_state(last_level + 1)
-                    self._refine(1, field)
-                    last_level = grid.Level
-                self._get_data_from_grid(grid, field)
-            if self.level > 0:
+        fields_to_get = [f for f in fields_to_get if f not in self.field_data]
+        # Note that, thanks to some trickery, we have different dimensions
+        # on the field than one might think from looking at the dx and the
+        # L/R edges.
+        # We jump-start our task here
+        mylog.debug("Getting fields %s from %s possible grids",
+                   fields_to_get, len(self._grids))
+        self._update_level_state(0, fields_to_get)
+        if self._use_pbar: pbar = \
+                get_pbar('Searching grids for values ', len(self._grids))
+        # The grids are assumed to be pre-sorted
+        last_level = 0
+        for gi, grid in enumerate(self._grids):
+            if self._use_pbar: pbar.update(gi)
+            if grid.Level > last_level and grid.Level <= self.level:
+                self._update_level_state(last_level + 1)
+                self._refine(1, fields_to_get)
+                last_level = grid.Level
+            self._get_data_from_grid(grid, fields_to_get)
+        if self.level > 0:
+            for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
-            if na.any(self[field] == -999):
-                # and self.dx < self.hierarchy.grids[0].dx:
-                n_bad = na.where(self[field]==-999)[0].size
-                mylog.error("Covering problem: %s cells are uncovered", n_bad)
-                raise KeyError(n_bad)
-            if self._use_pbar: pbar.finish()
+                if na.any(self[field] == -999):
+                    # and self.dx < self.hierarchy.grids[0].dx:
+                    n_bad = (self[field]==-999).sum()
+                    mylog.error("Covering problem: %s cells are uncovered", n_bad)
+                    raise KeyError(n_bad)
+        if self._use_pbar: pbar.finish()
 
-    def _update_level_state(self, level, field = None):
+    def _update_level_state(self, level, fields = None):
         dx = self._base_dx / self.pf.refine_by**level
         self.field_data['cdx'] = dx[0]
         self.field_data['cdy'] = dx[1]
@@ -3378,16 +3475,20 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            self.field_data[field] = na.zeros(idims,dtype='float64')-999
+            fields = ensure_list(fields)
+            for field in fields:
+                self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
-            self.field_data[field] = na.zeros(idims,dtype='float64')-999
+            fields = ensure_list(fields)
+            for field in fields:
+                self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
-    def _refine(self, dlevel, field):
+    def _refine(self, dlevel, fields):
         rf = float(self.pf.refine_by**dlevel)
 
         input_left = (self._old_global_startindex + 0.5) * rf 
@@ -3396,16 +3497,17 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         self._cur_dims = output_dims
 
-        output_field = na.zeros(output_dims, dtype="float64")
-        output_left = self.global_startindex + 0.5
-        ghost_zone_interpolate(rf, self[field], input_left,
-                               output_field, output_left)
-        self[field] = output_field
+        for field in fields:
+            output_field = na.zeros(output_dims, dtype="float64")
+            output_left = self.global_startindex + 0.5
+            ghost_zone_interpolate(rf, self[field], input_left,
+                                   output_field, output_left)
+            self.field_data[field] = output_field
 
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
-        g_fields = [grid[field] for field in fields]
-        c_fields = [self[field] for field in fields]
+        g_fields = [grid[field].astype("float64") for field in fields]
+        c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
@@ -3422,7 +3524,7 @@ class AMRBooleanRegionBase(AMR3DData):
     existing regions.
     """
     _type_name = "boolean"
-    _con_args = {"regions"}
+    _con_args = ("regions")
     def __init__(self, regions, fields = None, pf = None, **kwargs):
         """
         This will build a hybrid region based on the boolean logic
@@ -3455,6 +3557,7 @@ class AMRBooleanRegionBase(AMR3DData):
         self._cut_masks = {}
         self._get_all_regions()
         self._make_overlaps()
+        self._get_list_of_grids()
     
     def _get_all_regions(self):
         # Before anything, we simply find out which regions are involved in all
@@ -3558,7 +3661,6 @@ class AMRBooleanRegionBase(AMR3DData):
         if not isinstance(grid, FakeGridForParticles):
             self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask
-
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]

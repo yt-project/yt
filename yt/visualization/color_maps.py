@@ -34,15 +34,15 @@ def check_color(name):
     except ValueError:
         return False
 
-raven_colormaps = {}
+yt_colormaps = {}
 
 def add_cmap(name, cdict):
-    raven_colormaps[name] = \
+    yt_colormaps[name] = \
         cc.LinearSegmentedColormap(name,cdict,256)
     mcm.datad[name] = cdict
     mcm.__dict__[name] = cdict
     try: # API compatibility
-        mcm.register_cmap(name, raven_colormaps[name])
+        mcm.register_cmap(name, yt_colormaps[name])
     except AttributeError:
         pass
     

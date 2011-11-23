@@ -199,6 +199,28 @@ class TransferFunction(object):
         pylab.ylim(0.0, 1.0)
         pylab.savefig(filename)
 
+    def show(self):
+        r"""Display an image of the transfer function
+
+        This function loads up matplotlib and displays the current transfer function.
+
+        Parameters
+        ----------
+
+        Examples
+        --------
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, 1.0)
+        >>> tf.show()
+        """
+        import matplotlib;import pylab
+        pylab.clf()
+        pylab.plot(self.x, self.y, 'xk-')
+        pylab.xlim(*self.x_bounds)
+        pylab.ylim(0.0, 1.0)
+        pylab.draw()
+
 class MultiVariateTransferFunction(object):
     def __init__(self):
         r"""This object constructs a set of field tables that allow for
@@ -447,6 +469,46 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
         pyplot.savefig(filename)
 
+    def show(self):
+        r"""Display an image of the transfer function
+
+        This function loads up matplotlib and displays the current transfer function.
+
+        Parameters
+        ----------
+
+        Examples
+        --------
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, 1.0)
+        >>> tf.show()
+        """
+        from matplotlib import pyplot
+        from matplotlib.ticker import FuncFormatter
+        pyplot.clf()
+        ax = pyplot.axes()
+        i_data = na.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
+        i_data[:,:,0] = na.outer(na.ones(self.alpha.x.size), self.funcs[0].y)
+        i_data[:,:,1] = na.outer(na.ones(self.alpha.x.size), self.funcs[1].y)
+        i_data[:,:,2] = na.outer(na.ones(self.alpha.x.size), self.funcs[2].y)
+        ax.imshow(i_data, origin='lower')
+        ax.fill_between(na.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
+        ax.set_xlim(0, self.alpha.x.size)
+        xticks = na.arange(na.ceil(self.alpha.x[0]), na.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
+        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        ax.xaxis.set_ticks(xticks)
+        def x_format(x, pos):
+            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+        ax.xaxis.set_major_formatter(FuncFormatter(x_format))
+        yticks = na.linspace(0,1,5) * self.alpha.y.size
+        ax.yaxis.set_ticks(yticks)
+        def y_format(y, pos):
+            return (y / self.alpha.y.size)
+        ax.yaxis.set_major_formatter(FuncFormatter(y_format))
+        ax.set_ylabel("Transmission")
+        ax.set_xlabel("Value")
+        
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
 
@@ -491,8 +553,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
         self.add_gaussian(v, w, [r,g,b,alpha])
-        print "Adding gaussian at %s with width %s and colors %s" % (
-                v, w, (r,g,b,alpha))
+        mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
+                v, w, (r,g,b,alpha)))
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
@@ -628,7 +690,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*anorm
             tf = TransferFunction(rho_bounds)
-            print "Adding: %s with relative scattering %s" % (f, scat)
+            mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
             tf.y *= 0.0; tf.y += scat
             self.add_field_table(tf, 1, weight_field_id = 1)
             self.link_channels(i+3, i+3)

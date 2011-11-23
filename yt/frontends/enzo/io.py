@@ -181,8 +181,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         mylog.debug("Finished read of %s", sets)
 
     def _read_data_set(self, grid, field):
-        return hdf5_light_reader.ReadData(grid.filename,
-                "/Grid%08i/%s" % (grid.id, field)).swapaxes(0,2)
+        return self.modify(hdf5_light_reader.ReadData(grid.filename,
+                "/Grid%08i/%s" % (grid.id, field)))
 
     def _read_data_slice(self, grid, field, axis, coord):
         axis = _axis_ids[axis]
@@ -196,6 +196,22 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     @property
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
+
+class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
+    _data_style = "enzo_packed_3d_gz"
+
+    def modify(self, field):
+        tr = field[3:-3,3:-3,3:-3].swapaxes(0,2)
+        return tr.copy() # To ensure contiguous
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        axis = _axis_ids[axis]
+        return hdf5_light_reader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
+                        (grid.id, field), axis, coord)[3:-3,3:-3].transpose()
+
+    def _read_raw_data_set(self, grid, field):
+        return hdf5_light_reader.ReadData(grid.filename,
+                "/Grid%08i/%s" % (grid.id, field))
 
 class IOHandlerInMemory(BaseIOHandler):
 

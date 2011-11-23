@@ -54,9 +54,12 @@ from .definitions import \
     yt2maestroFieldsDict, \
     maestro_FAB_header_pattern
 
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 from .fields import \
-    MaestroFieldContainer, \
-    add_field
+    MaestroFieldInfo, \
+    add_maestro_field, \
+    KnownMaestroFields
 
 
 class MaestroGrid(AMRGridPatch):
@@ -118,7 +121,6 @@ class MaestroGrid(AMRGridPatch):
 class MaestroHierarchy(AMRHierarchy):
     grid = MaestroGrid
     def __init__(self, pf, data_style='maestro'):
-        self.field_info = MaestroFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -391,21 +393,6 @@ class MaestroHierarchy(AMRHierarchy):
     def _detect_fields(self):
         pass
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
-
     def _setup_derived_fields(self):
         pass
 
@@ -431,7 +418,8 @@ class MaestroStaticOutput(StaticOutput):
     *filename*, without looking at the Maestro hierarchy.
     """
     _hierarchy_class = MaestroHierarchy
-    _fieldinfo_class = MaestroFieldContainer
+    _fieldinfo_fallback = MaestroFieldInfo
+    _fieldinfo_known = KnownMaestroFields
 
     def __init__(self, plotname, paramFilename=None, 
                  data_style='maestro', paranoia=False,
@@ -455,7 +443,6 @@ class MaestroStaticOutput(StaticOutput):
         # this is the unit of time; NOT the current time
         self.parameters["Time"] = 1 # second
 
-        self.field_info = self._fieldinfo_class()
         self._parse_header_file()
 
 

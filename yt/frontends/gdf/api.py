@@ -27,16 +27,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
 from .data_structures import \
-      ChomboGrid, \
-      ChomboHierarchy, \
-      ChomboStaticOutput
+      GDFGrid, \
+      GDFHierarchy, \
+      GDFStaticOutput
 
 from .fields import \
-      ChomboFieldContainer, \
-      ChomboFieldInfo, \
-      add_chombo_field
+      GDFFieldInfo, \
+      KnownGDFFields, \
+      add_gdf_field
 
 from .io import \
-      IOHandlerChomboHDF5
+      IOHandlerGDFHDF5
+
+

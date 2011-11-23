@@ -331,6 +331,21 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                         }); 
                     }
                 },{
+                    xtype: 'button',
+                    text: 'Pannable Map',
+                    x: 10,
+                    y: 335,
+                    width: 80,
+                    tooltip: "Open a pannable map in a new tab",
+                    handler: function(b,e) {
+                        img_data = image_dom.src;
+                        yt_rpc.ExtDirectREPL.create_mapview(
+                            {widget_name:python_varname},
+                        function(rv) {
+                            /*alert(rv);*/
+                        }); 
+                    }
+                },{
                     xtype: 'panel',
                     layout: 'vbox',
                     id: 'rhs_panel_' + python_varname,

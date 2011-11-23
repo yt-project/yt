@@ -215,3 +215,38 @@ def find_grids_in_inclined_box(
                 break
     return good
 
+def calculate_fill_grids(int fill_level, int refratio, int last_level,
+                         np.ndarray[np.int64_t, ndim=1] domain_width,
+                         np.ndarray[np.int64_t, ndim=1] cg_start_index,
+                         np.ndarray[np.int32_t, ndim=1] cg_dims,
+                         np.ndarray[np.int64_t, ndim=1] g_start_index,
+                         np.ndarray[np.int32_t, ndim=1] g_dims,
+                         np.ndarray[np.int32_t, ndim=3] g_child_mask):
+    cdef np.int64_t cgstart[3], gstart[3]
+    cdef np.int64_t cgend[3], gend[3]
+    cdef np.int64_t dw[3]
+    cdef np.int64_t cxi, cyi, czi, gxi, gyi, gzi, ci, cj, ck
+    cdef int i, total
+    for i in range(3):
+        dw[i] = domain_width[i]
+        cgstart[i] = cg_start_index[i]
+        gstart[i] = g_start_index[i]
+        cgend[i] = cgstart[i] + cg_dims[i]
+        gend[i] = gstart[i] + g_dims[i]
+    for cxi in range(cgstart[0], cgend[0]+1):
+        ci = (cxi % dw[0])
+        if ci < 0: ci += dw[0]
+        if ci < gstart[0]*refratio or ci >= gend[0]*refratio: continue
+        gxi = (<np.int64_t> (ci / refratio)) - gstart[0]
+        for cyi in range(cgstart[1], cgend[1]):
+            cj = (cyi % dw[1])
+            if cj < 0: cj += dw[1]
+            if cj < gstart[1]*refratio or cj >= gend[1]*refratio: continue
+            gyi = (<np.int64_t> (cj / refratio)) - gstart[1]
+            for czi in range(cgstart[2], cgend[2]):
+                ck = (czi % dw[2])
+                if ck < 0: ck += dw[2]
+                if ck < gstart[2]*refratio or cj >= gend[2]*refratio: continue
+                gzi = (<np.int64_t> (ck / refratio)) - gstart[2]
+                if last_level or g_child_mask[gxi, gyi, gzi] > 0: total += 1
+    return total

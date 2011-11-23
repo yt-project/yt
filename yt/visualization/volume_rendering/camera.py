@@ -193,6 +193,9 @@ class Camera(ParallelAnalysisInterface):
         self.steady_north = steady_north
         self.expand_factor = expand_factor
         # This seems to be necessary for now.  Not sure what goes wrong when not true.
+        if na.all(north_vector == normal_vector):
+            mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
+            north_vector == None
         if north_vector is not None: self.steady_north=True
         self.north_vector = north_vector
         self.rotation_vector = north_vector
@@ -414,7 +417,7 @@ class Camera(ParallelAnalysisInterface):
             self.zoom(f)
             yield self.snapshot()
 
-    def move_to(self, final, n_steps, final_width=None, exponential=True):
+    def move_to(self, final, n_steps, final_width=None, exponential=False):
         r"""Loop over a look_at
 
         This will yield `n_steps` snapshots until the current view has been
@@ -446,8 +449,12 @@ class Camera(ParallelAnalysisInterface):
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
+                if (self.center == 0.0).all():
+                    self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
+	    else:
+		dW = 1.0
             position_diff = (na.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
@@ -456,6 +463,8 @@ class Camera(ParallelAnalysisInterface):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
                 dW = (1.0*final_width-na.array(self.width))/n_steps
+	    else:
+		dW = 1.0
             dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
@@ -533,6 +542,62 @@ class Camera(ParallelAnalysisInterface):
 
 data_object_registry["camera"] = Camera
 
+class InteractiveCamera(Camera):
+    def __init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = None, steady_north=False,
+                 volume = None, fields = None,
+                 log_fields = None,
+                 sub_samples = 5, pf = None,
+                 use_kd=True, l_max=None, no_ghost=True,
+                 tree_type='domain',expand_factor=1.0,
+                 le=None, re=None):
+        self.frames = []
+        Camera.__init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = north_vector, steady_north=steady_north,
+                 volume = volume, fields = fields,
+                 log_fields = log_fields,
+                 sub_samples = sub_samples, pf = pf,
+                 use_kd=use_kd, l_max=l_max, no_ghost=no_ghost,
+                 tree_type=tree_type,expand_factor=expand_factor,
+                 le=le, re=re)
+
+    def snapshot(self, fn = None, clip_ratio = None):
+        import matplotlib
+        matplotlib.pylab.figure(2)
+        self.transfer_function.show()
+        matplotlib.pylab.draw()
+        im = Camera.snapshot(self, fn, clip_ratio)
+        matplotlib.pylab.figure(1)
+        matplotlib.pylab.imshow(im/im.max())
+        matplotlib.pylab.draw()
+        self.frames.append(im)
+        
+    def rotation(self, theta, n_steps, rot_vector=None):
+        for frame in Camera.rotation(self, theta, n_steps, rot_vector):
+            if frame is not None:
+                self.frames.append(frame)
+                
+    def zoomin(self, final, n_steps):
+        for frame in Camera.zoomin(self, final, n_steps):
+            if frame is not None:
+                self.frames.append(frame)
+                
+    def clear_frames(self):
+        del self.frames
+        self.frames = []
+        
+    def save_frames(self, basename, clip_ratio=None):
+        for i, frame in enumerate(self.frames):
+            fn = basename + '_%04i.png'%i
+            if clip_ratio is not None:
+                write_bitmap(frame, fn, clip_ratio*image.std())
+            else:
+                write_bitmap(frame, fn)
+
+data_object_registry["interactive_camera"] = InteractiveCamera
+
 class PerspectiveCamera(Camera):
     def get_vector_plane(self, image):
         # We should move away from pre-generation of vectors like this and into
@@ -582,8 +647,8 @@ class HEALpixCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False):
-	ParallelAnalysisInterface.__init__(self)
-	if pf is not None: self.pf = pf
+        ParallelAnalysisInterface.__init__(self)
+        if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
         self.nside = nside
@@ -652,8 +717,8 @@ class AdaptiveHEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False,
                  rays_per_cell = 0.1, max_nside = 8192):
-	ParallelAnalysisInterface.__init__(self)
-	if pf is not None: self.pf = pf
+        ParallelAnalysisInterface.__init__(self)
+        if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
         self.use_kd = use_kd
@@ -706,8 +771,8 @@ class AdaptiveHEALpixCamera(Camera):
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
-	ParallelAnalysisInterface.__init__(self)
-	self.original_camera = original_camera
+        ParallelAnalysisInterface.__init__(self)
+        self.original_camera = original_camera
         self.relative_separation = relative_separation
 
     def split(self):
@@ -729,7 +794,7 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None):
+                        field, weight = None, volume = None, no_ghost = True):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -761,6 +826,14 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
+    no_ghost: bool, optional
+        Optimization option.  If True, homogenized bricks will
+        extrapolate out from grid instead of interpolating from
+        ghost zones that have to first be calculated.  This can
+        lead to large speed improvements, but at a loss of
+        accuracy/smoothness in resulting image.  The effects are
+        less notable when the transfer function is smooth and
+        broad. Default: True
 
     Returns
     -------
@@ -788,7 +861,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     cam = pf.h.camera(center, normal_vector, width, resolution, tf,
                       fields = fields,
                       log_fields = [False] * len(fields),
-                      volume = volume)
+                      volume = volume, no_ghost = no_ghost)
     vals = cam.snapshot()
     image = vals[:,:,0]
     if weight is None:
@@ -796,5 +869,5 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         image *= dl
     else:
         image /= vals[:,:,1]
-        pf.field_info._field_list.pop("temp_weightfield")
+        pf.field_info.pop("temp_weightfield")
     return image

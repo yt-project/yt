@@ -35,12 +35,12 @@ from yt.funcs import *
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
+from yt.data_objects.field_info_container import NullFunc
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
-from object_finding_mixin import \
-    ObjectFindingMixin
+from object_finding_mixin import ObjectFindingMixin
 
 from .data_containers import data_object_registry
 
@@ -137,6 +137,32 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self.proj = self.overlap_proj
         self.object_types.sort()
 
+    def _setup_unknown_fields(self):
+        known_fields = self.parameter_file._fieldinfo_known
+        for field in self.field_list:
+            # By allowing a backup, we don't mandate that it's found in our
+            # current field info.  This means we'll instead simply override
+            # it.
+            ff = self.parameter_file.field_info.pop(field, None)
+            if field not in known_fields:
+                rootloginfo("Adding unknown field %s to list of fields", field)
+                cf = None
+                if self.parameter_file.has_key(field):
+                    def external_wrapper(f):
+                        def _convert_function(data):
+                            return data.convert(f)
+                        return _convert_function
+                    cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D, 2D
+                # and 3D fields.
+                self.pf.field_info.add_field(
+                        field, NullFunc,
+                        convert_function=cf, take_log=False, units=r"Unknown")
+            else:
+                mylog.debug("Adding known field %s to list of fields", field)
+                self.parameter_file.field_info[field] = known_fields[field]
+            
     # Now all the object related stuff
 
     def all_data(self, find_max=False):

@@ -38,7 +38,7 @@ class Streamlines(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    pf : `~yt.lagos.StaticOutput`
+    pf : `~yt.data_objects.StaticOutput`
         This is the parameter file to streamline
     pos : array_like
         An array of initial starting positions of the streamlines.

@@ -40,9 +40,8 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import \
-    FLASHFieldContainer, \
-    add_field
+from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -60,23 +59,18 @@ class FLASHGrid(AMRGridPatch):
 class FLASHHierarchy(AMRHierarchy):
 
     grid = FLASHGrid
-    _handle = None
     
-    def __init__(self,pf,data_style='chombo_hdf5'):
+    def __init__(self,pf,data_style='flash_hdf5'):
         self.data_style = data_style
-        self.field_info = FLASHFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self._handle = h5py.File(self.hierarchy_filename)
+        self._handle = pf._handle
 
         self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
-
-        self._handle.close()
-        self._handle = None
 
     def _initialize_data_storage(self):
         pass
@@ -102,7 +96,7 @@ class FLASHHierarchy(AMRHierarchy):
     def _count_grids(self):
         try:
             self.num_grids = self.parameter_file._find_parameter(
-                "integer", "globalnumblocks", True, self._handle)
+                "integer", "globalnumblocks", True)
         except KeyError:
             self.num_grids = self._handle["/simulation parameters"][0][0]
         
@@ -114,9 +108,9 @@ class FLASHHierarchy(AMRHierarchy):
         self.grid_right_edge[:] = f["/bounding box"][:,:,1]
         # Move this to the parameter file
         try:
-            nxb = pf._find_parameter("integer", "nxb", True, f)
-            nyb = pf._find_parameter("integer", "nyb", True, f)
-            nzb = pf._find_parameter("integer", "nzb", True, f)
+            nxb = pf._find_parameter("integer", "nxb", True)
+            nyb = pf._find_parameter("integer", "nyb", True)
+            nzb = pf._find_parameter("integer", "nzb", True)
         except KeyError:
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
@@ -152,22 +146,6 @@ class FLASHHierarchy(AMRHierarchy):
             g._setup_dx()
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            pfield = field.startswith("particle_")
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False,
-                      particle_type=pfield)
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
         for field in self.parameter_file.field_info:
@@ -187,20 +165,21 @@ class FLASHHierarchy(AMRHierarchy):
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
-    _fieldinfo_class = FLASHFieldContainer
+    _fieldinfo_fallback = FLASHFieldInfo
+    _fieldinfo_known = KnownFLASHFields
     _handle = None
     
     def __init__(self, filename, data_style='flash_hdf5',
                  storage_filename = None,
                  conversion_override = None):
 
+        self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
 
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
-        self.field_info = self._fieldinfo_class()
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
@@ -273,26 +252,17 @@ class FLASHStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
-    def _find_parameter(self, ptype, pname, scalar = False, handle = None):
-        # We're going to implement handle caching eventually
-        if handle is None:
-            close = False
-            handle = self._handle
-        if handle is None:
-            close = True
-            handle = h5py.File(self.parameter_filename, "r")
+    def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
-        for tpname, pval in handle[nn][:]:
+        for tpname, pval in self._handle[nn][:]:
             if tpname.strip() == pname:
                 return pval
-        if close: handle.close()
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        self._handle = h5py.File(self.parameter_filename, "r")
         if "file format version" in self._handle:
             self._flash_version = int(
                 self._handle["file format version"][:])
@@ -308,15 +278,15 @@ class FLASHStaticOutput(StaticOutput):
 
         # Determine domain dimensions
         try:
-            nxb = self._find_parameter("integer", "nxb", scalar = True, handle = self._handle)
-            nyb = self._find_parameter("integer", "nyb", scalar = True, handle = self._handle)
-            nzb = self._find_parameter("integer", "nzb", scalar = True, handle = self._handle)
+            nxb = self._find_parameter("integer", "nxb", scalar = True)
+            nyb = self._find_parameter("integer", "nyb", scalar = True)
+            nzb = self._find_parameter("integer", "nzb", scalar = True)
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
-        nblockx = self._find_parameter("integer", "nblockx", handle = self._handle)
-        nblocky = self._find_parameter("integer", "nblockx", handle = self._handle)
-        nblockz = self._find_parameter("integer", "nblockx", handle = self._handle)
+        nblockx = self._find_parameter("integer", "nblockx")
+        nblocky = self._find_parameter("integer", "nblockx")
+        nblockz = self._find_parameter("integer", "nblockx")
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
@@ -329,7 +299,7 @@ class FLASHStaticOutput(StaticOutput):
 
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 
-        except KeyError:
+        except:
             use_cosmo = 0
 
         if use_cosmo == 1:
@@ -342,14 +312,16 @@ class FLASHStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+
+    def __del__(self):
         self._handle.close()
-        self._handle = None
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
             if "bounding box" in fileh["/"].keys():
+                fileh.close()
                 return True
         except:
             pass

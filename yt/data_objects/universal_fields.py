@@ -30,11 +30,9 @@ import numpy as na
 import inspect
 import copy
 
-from math import pi
-
 from yt.funcs import *
 
-from yt.utilities.amr_utils import CICDeposit_3
+from yt.utilities.amr_utils import CICDeposit_3, obtain_rvec
 from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
@@ -138,88 +136,6 @@ def _SoundSpeed(field, data):
              data["Density"] )**(1.0/2.0)
 add_field("SoundSpeed", function=_SoundSpeed,
           units=r"\rm{cm}/\rm{s}")
-
-def particle_func(p_field, dtype='float64'):
-    def _Particles(field, data):
-        io = data.hierarchy.io
-        if not data.NumberOfParticles > 0:
-            return na.array([], dtype=dtype)
-        try:
-            return io._read_data_set(data, p_field).astype(dtype)
-        except io._read_exception:
-            pass
-        # This is bad.  But it's the best idea I have right now.
-        return data._read_data(p_field.replace("_"," ")).astype(dtype)
-    return _Particles
-for pf in ["type", "mass"] + \
-          ["position_%s" % ax for ax in 'xyz']:
-    pfunc = particle_func("particle_%s" % (pf))
-    add_field("particle_%s" % pf, function=pfunc,
-              validators = [ValidateSpatial(0)],
-              particle_type=True)
-
-def _convRetainInt(data):
-    return 1
-add_field("particle_index", function=particle_func("particle_index", "int64"),
-          validators = [ValidateSpatial(0)], particle_type=True,
-          convert_function=_convRetainInt)
-
-def _get_vel_convert(ax):
-    def _convert_p_vel(data):
-        return data.convert("%s-velocity" % ax)
-    return _convert_p_vel
-for ax in 'xyz':
-    pf = "particle_velocity_%s" % ax
-    pfunc = particle_func(pf)
-    cfunc = _get_vel_convert(ax)
-    add_field(pf, function=pfunc, convert_function=cfunc,
-              validators = [ValidateSpatial(0)],
-              particle_type=True)
-
-for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
-    pfunc = particle_func(pf)
-    add_field(pf, function=pfunc,
-              validators = [ValidateSpatial(0),
-                            ValidateDataField(pf)],
-              particle_type=True)
-add_field("particle_mass", function=particle_func("particle_mass"),
-          validators=[ValidateSpatial(0)], particle_type=True)
-
-def _ParticleAge(field, data):
-    current_time = data.pf.current_time
-    return (current_time - data["creation_time"])
-def _convertParticleAge(data):
-    return data.convert("years")
-add_field("ParticleAge", function=_ParticleAge,
-          validators=[ValidateDataField("creation_time")],
-          particle_type=True, convert_function=_convertParticleAge)
-
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
-
-def _convertParticleMass(data):
-    return data.convert("Density")*(data.convert("cm")**3.0)
-def _IOLevelParticleMass(grid):
-    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
-    return cf
-def _convertParticleMassMsun(data):
-    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
-def _IOLevelParticleMassMsun(grid):
-    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
-    return cf
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass,
-          particle_convert_function=_IOLevelParticleMass)
-add_field("ParticleMassMsun",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          particle_convert_function=_IOLevelParticleMassMsun)
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""
@@ -348,7 +264,7 @@ def _DynamicalTime(field, data):
     M{sqrt(3pi/(16*G*rho))} or M{sqrt(3pi/(16G))*rho^-(1/2)}
     Note that we return in our natural units already
     """
-    return (3.0*pi/(16*G*data["Density"]))**(1./2.)
+    return (3.0*na.pi/(16*G*data["Density"]))**(1./2.)
 add_field("DynamicalTime", function=_DynamicalTime,
            units=r"\rm{s}")
 
@@ -377,6 +293,7 @@ add_field("CellMassCode",
 
 def _TotalMass(field,data):
     return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
+add_field("TotalMass", function=_TotalMass, units=r"\rm{g}")
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
           convert_function=_convertCellMassMsun)
@@ -510,7 +427,7 @@ def _AveragedDensity(field, data):
     return new_field2
 add_field("AveragedDensity",
           function=_AveragedDensity,
-          validators=[ValidateSpatial(1)])
+          validators=[ValidateSpatial(1, ["Density"])])
 
 def _DivV(field, data):
     # We need to set up stencils
@@ -565,13 +482,6 @@ def obtain_velocities(data):
     yv = data["y-velocity"] - bv[1]
     zv = data["z-velocity"] - bv[2]
     return xv, yv, zv
-
-def obtain_rvec(data):
-    center = data.get_field_parameter('center')
-    coords = na.array([data['x'],data['y'],data['z']], dtype='float64')
-    new_shape = tuple([3] + [1]*(len(coords.shape)-1))
-    r_vec = coords - na.reshape(center,new_shape)
-    return r_vec # axis 0 is the x,y,z
 
 def _SpecificAngularMomentum(field, data):
     """

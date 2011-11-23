@@ -35,7 +35,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
-from .color_maps import raven_colormaps
+from .color_maps import yt_colormaps
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -226,8 +226,8 @@ class RavenPlot(object):
         Change the colormap of this plot to *cmap*.
         """
         if isinstance(cmap, types.StringTypes):
-            if str(cmap) in raven_colormaps:
-                cmap = raven_colormaps[str(cmap)]
+            if str(cmap) in yt_colormaps:
+                cmap = yt_colormaps[str(cmap)]
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
