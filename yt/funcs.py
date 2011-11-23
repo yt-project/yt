@@ -31,35 +31,8 @@ from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.progressbar as pb
 import yt.utilities.rpdb as rpdb
-
-# Some compatibility functions.  In the long run, these *should* disappear as
-# we move toward newer python versions.  Most were implemented to get things
-# running on DataStar.
-
-# If we're running on python2.4, we need a 'wraps' function
-def blank_wrapper(f):
-    return lambda a: a
-
-try:
-    from functools import wraps
-except ImportError:
-    wraps = blank_wrapper
-
-# We need to ensure that we have a defaultdict implementation
-
-class __defaultdict(dict):
-    def __init__(self, func):
-        self.__func = func
-        dict.__init__(self)
-    def __getitem__(self, key):
-        if not self.has_key(key):
-            self.__setitem__(key, self.__func())
-        return dict.__getitem__(self, key)
-
-try:
-    from collections import defaultdict
-except ImportError:
-    defaultdict = __defaultdict
+from collections import defaultdict
+from functools import wraps
 
 # Some functions for handling sequences and other types
 
@@ -78,7 +51,7 @@ def ensure_list(obj):
     string to a list, for instance ensuring the *fields* as an argument is a
     list.
     """
-    if obj == None:
+    if obj is None:
         return [obj]
     if not isinstance(obj, types.ListType):
         return [obj]
@@ -385,18 +358,6 @@ def signal_problem(signo, frame):
 def signal_ipython(signo, frame):
     insert_ipython(2)
 
-# We use two signals, SIGUSR1 and SIGUSR2.  In a non-threaded environment,
-# we set up handlers to process these by printing the current stack and to
-# raise a RuntimeError.  The latter can be used, inside pdb, to catch an error
-# and then examine the current stack.
-try:
-    signal.signal(signal.SIGUSR1, signal_print_traceback)
-    mylog.debug("SIGUSR1 registered for traceback printing")
-    signal.signal(signal.SIGUSR2, signal_ipython)
-    mylog.debug("SIGUSR2 registered for IPython Insertion")
-except ValueError:  # Not in main thread
-    pass
-
 def paste_traceback(exc_type, exc, tb):
     """
     This is a traceback handler that knows how to paste to the pastebin.
@@ -449,29 +410,6 @@ def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
     print dec_s
-
-# If we recognize one of the arguments on the command line as indicating a
-# different mechanism for handling tracebacks, we attach one of those handlers
-# and remove the argument from sys.argv.
-#
-# This fallback is for Paraview:
-if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
-# Now, we check.
-if "--paste" in sys.argv:
-    sys.excepthook = paste_traceback
-    del sys.argv[sys.argv.index("--paste")]
-elif "--paste-detailed" in sys.argv:
-    sys.excepthook = paste_traceback_detailed
-    del sys.argv[sys.argv.index("--paste-detailed")]
-elif "--detailed" in sys.argv:
-    import cgitb; cgitb.enable(format="text")
-    del sys.argv[sys.argv.index("--detailed")]
-elif "--rpdb" in sys.argv:
-    sys.excepthook = rpdb.rpdb_excepthook
-    del sys.argv[sys.argv.index("--rpdb")]
-elif "--detailed" in sys.argv:
-    import cgitb; cgitb.enable(format="text")
-    del sys.argv[sys.argv.index("--detailed")]
 
 #
 # Some exceptions

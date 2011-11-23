@@ -35,6 +35,12 @@ import sys, types, os, glob, cPickle, time
 import numpy as na # For historical reasons
 import numpy # In case anyone wishes to use it by name
 
+# This next item will handle most of the actual startup procedures, but it will
+# also attempt to parse the command line and set up the global state of various
+# operations.
+
+import yt.startup_tasks as __startup_tasks
+
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function

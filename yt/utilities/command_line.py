@@ -23,6 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.config import ytcfg
+ytcfg["yt","__command_line"] = "True"
 from yt.mods import *
 from yt.funcs import *
 import cmdln as cmdln
