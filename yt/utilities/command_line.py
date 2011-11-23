@@ -66,7 +66,6 @@ class YTCommand(object):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
             if cls.name is not None:
-                print "Adding", cls.name
                 sc = subparsers.add_parser(cls.name,
                     description = cls.description)
                 sc.set_defaults(func=cls.run)
