@@ -349,6 +349,8 @@ def parallel_objects(objects, njobs, storage = None):
         mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
+    if njobs <= 0:
+        njobs = my_size
     if njobs > my_size:
         mylog.error("You have asked for %s jobs, but you only have %s processors.",
             njobs, my_size)
