@@ -33,11 +33,7 @@ from yt.funcs import *
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
-if exe_name in \
-        ["mpi4py", "embed_enzo",
-         "python"+sys.version[:3]+"-mpi"] \
-    or "--parallel" in sys.argv or '_parallel' in dir(sys) \
-    or any(["ipengine" in arg for arg in sys.argv]):
+def turn_on_parallelism():
     try:
         from mpi4py import MPI
         parallel_capable = (MPI.COMM_WORLD.size > 1)
@@ -59,8 +55,7 @@ if exe_name in \
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
-else:
-    parallel_capable = False
+    return parallel_capable
 
 # This fallback is for Paraview:
 
@@ -113,8 +108,22 @@ parser.add_argument("--detailed", action=SetExceptionHandling,
     help = "Display detailed traceback.", nargs = 0)
 parser.add_argument("--rpdb", action=SetExceptionHandling,
     help = "Enable remote pdb interaction (for parallel debugging).", nargs = 0)
+parser.add_argument("--parallel", action="store_true", default=False,
+    dest = "parallel",
+    help = "Run in MPI-parallel mode (must be launched as an MPI task)")
 
 if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
 
 if not ytcfg.getboolean("yt","__command_line"):
-    parser.parse_args()
+    # Alternate:
+    # opts, args = parser.parse_known_args()
+    opts = parser.parse_args()
+
+if exe_name in \
+        ["mpi4py", "embed_enzo",
+         "python"+sys.version[:3]+"-mpi"] \
+    or opts.parallel or '_parallel' in dir(sys) \
+    or any(["ipengine" in arg for arg in sys.argv]):
+    parallel_capable = turn_on_parallelism()
+else:
+    parallel_capable = False
