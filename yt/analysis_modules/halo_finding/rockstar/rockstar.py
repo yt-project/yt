@@ -1,0 +1,133 @@
+"""
+Operations to get Rockstar loaded up
+
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+from yt.config import ytcfg
+ytcfg["yt","loglevel"] = "50"
+from yt.mods import *
+from os import environ
+environ['CFLAGS'] = "-I. -Iio/ -Iutil/ -I"+na.get_include()
+environ['LDFLAGS'] = "-L. -lrockstar"
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface, ProcessorPool, Communicator
+
+import pyximport; pyximport.install()
+import rockstar_interface
+import argparse
+import socket
+import time
+
+class DomainDecomposer(ParallelAnalysisInterface):
+    def __init__(self, pf, comm):
+        ParallelAnalysisInterface.__init__(self, comm=comm)
+        self.pf = pf
+        self.hierarchy = pf.h
+        self.center = (pf.domain_left_edge + pf.domain_right_edge)/2.0
+
+    def decompose(self):
+        dd = self.pf.h.all_data()
+        check, LE, RE, data_source = self.partition_hierarchy_3d(dd)
+        return data_source
+
+class RockstarHaloFinder(ParallelAnalysisInterface):
+    def __init__(self, pf, num_readers = 0, num_writers = 0):
+        ParallelAnalysisInterface.__init__(self)
+        # No subvolume support
+        self.pf = pf
+        self.hierarchy = pf.h
+        self.num_readers = num_readers
+        self.num_writers = num_writers
+        if self.num_readers + self.num_writers + 1 != self.comm.size:
+            raise RuntimeError
+        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+        data_source = None
+        if self.comm.size > 1:
+            self.pool = ProcessorPool()
+            self.pool.add_workgroup(1, name = "server")
+            self.pool.add_workgroup(num_readers, name = "readers")
+            self.pool.add_workgroup(num_writers, name = "writers")
+            for wg in self.pool.workgroups:
+                if self.comm.rank in wg.ranks: self.workgroup = wg
+            if self.workgroup.name == "readers":
+                comm = Communicator(self.workgroup.comm)
+                dd = DomainDecomposer(self.pf, comm)
+                data_source = dd.decompose()
+        else:
+            data_source = self.pf.h.all_data()
+        self.handler = rockstar_interface.RockstarInterface(
+                self.pf, data_source)
+
+    def _get_hosts(self):
+        if self.comm.size == 1 or self.workgroup.name == "server":
+            server_address = socket.gethostname()
+            sock = socket.socket()
+            sock.bind(('', 0))
+            port = sock.getsockname()[-1]
+            del sock
+        else:
+            server_address, port = None, None
+        self.server_address, self.port = self.comm.mpi_bcast_pickled(
+            (server_address, port))
+        self.port = str(self.port)
+
+    def run(self):
+        self._get_hosts()
+        if self.comm.size > 1 and self.workgroup.name == "writers":
+            sock = socket.socket()
+            sock.bind(('', 0))
+            port = sock.getsockname()[-1]
+            del sock
+        else:
+            port = -1
+        self.handler.setup_rockstar(self.server_address, self.port,
+                    parallel = self.comm.size > 1,
+                    num_readers = self.num_readers,
+                    num_writers = self.num_writers,
+                    writing_port = port)
+        if self.comm.size == 1:
+            self.handler.call_rockstar()
+        else:
+            self.comm.barrier()
+            if self.workgroup.name == "server":
+                self.handler.start_server()
+            elif self.workgroup.name == "readers":
+                time.sleep(0.5)
+                self.handler.start_client()
+            elif self.workgroup.name == "writers":
+                time.sleep(1.0)# + self.workgroup.comm.rank/10.0)
+                self.handler.start_client()
+        self.comm.barrier()
+
+if __name__ == "__main__":
+    pf = load("/home/mturk/Research/data/DD0252/DD0252")
+    #pf = load("/home/mturk/Research/data/DD0023/DD0023")
+    nr = int(sys.argv[-2])
+    nw = int(sys.argv[-1])
+    print nr, nw
+    pf.h
+    rh = RockstarHaloFinder(pf, num_readers = nr, num_writers = nw)
+    t1 = time.time()
+    rh.run()
+    t2 = time.time()
+    print "Total runtime: %0.3e" % (t2-t1)
