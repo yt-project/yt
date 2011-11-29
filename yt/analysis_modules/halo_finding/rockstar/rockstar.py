@@ -23,16 +23,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.config import ytcfg
-ytcfg["yt","loglevel"] = "50"
 from yt.mods import *
 from os import environ
-environ['CFLAGS'] = "-I. -Iio/ -Iutil/ -I"+na.get_include()
-environ['LDFLAGS'] = "-L. -lrockstar"
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 
-import pyximport; pyximport.install()
 import rockstar_interface
 import argparse
 import socket
@@ -118,16 +113,3 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 time.sleep(1.0)# + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
         self.comm.barrier()
-
-if __name__ == "__main__":
-    pf = load("/home/mturk/Research/data/DD0252/DD0252")
-    #pf = load("/home/mturk/Research/data/DD0023/DD0023")
-    nr = int(sys.argv[-2])
-    nw = int(sys.argv[-1])
-    print nr, nw
-    pf.h
-    rh = RockstarHaloFinder(pf, num_readers = nr, num_writers = nw)
-    t1 = time.time()
-    rh.run()
-    t2 = time.time()
-    print "Total runtime: %0.3e" % (t2-t1)
