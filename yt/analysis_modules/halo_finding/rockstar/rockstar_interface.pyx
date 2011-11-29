@@ -240,35 +240,46 @@ cdef class RockstarInterface
 
 cdef RockstarInterface rh
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
-    cdef int i, fi
+    cdef int i, fi, npart, tnpart
     cdef np.float64_t conv[6], left_edge[6]
     dd = rh.data_source
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
-    arri = dd["particle_index"].astype("int64")
-    del dd["particle_index"]
-    cdef int np = arri.shape[0]
-    p[0] = <particle *> malloc(sizeof(particle) * np)
-    print "Loading indices: size = ", np
-    for i in range(np):
-        p[0][i].id = arri[i]
-    fi = 0
+    block = int(str(filename).rsplit(".")[-1])
+
+    # Now we want to grab data from only a subset of the grids.
+    n = rh.block_ratio
+    grid_chunks = [dd._grids[i:i+n] for i in range(0, len(dd._grids), n)]
+    grids = grid_chunks[block]
+    tnpart = 0
+    for g in grids:
+        tnpart += dd._get_data_from_grid(g, "particle_index").size
+    p[0] = <particle *> malloc(sizeof(particle) * tnpart)
+    #print "Loading indices: size = ", tnpart
     conv[0] = conv[1] = conv[2] = rh.pf["mpch"]
     conv[3] = conv[4] = conv[5] = 1e-5
     left_edge[0] = rh.pf.domain_left_edge[0]
     left_edge[1] = rh.pf.domain_left_edge[1]
     left_edge[2] = rh.pf.domain_left_edge[2]
     left_edge[0] = left_edge[1] = left_edge[2] = 0.0
-    for field in ["particle_position_x", "particle_position_y",
-                  "particle_position_z",
-                  "particle_velocity_x", "particle_velocity_y",
-                  "particle_velocity_z"]:
-        arr = dd[field].astype("float64")
-        del dd[field]
-        for i in range(np):
-            p[0][i].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
-        fi += 1
-    num_p[0] = np
+    pi = 0
+    for g in grids:
+        arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
+        npart = arri.size
+        for i in range(npart):
+            p[0][i+pi].id = arri[i]
+        fi = 0
+        for field in ["particle_position_x", "particle_position_y",
+                      "particle_position_z",
+                      "particle_velocity_x", "particle_velocity_y",
+                      "particle_velocity_z"]:
+            arr = dd._get_data_from_grid(g, field).astype("float64")
+            for i in range(npart):
+                p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
+            fi += 1
+        pi += npart
+    num_p[0] = tnpart
+    assert(pi == tnpart)
 
 cdef class RockstarInterface:
 
@@ -276,6 +287,7 @@ cdef class RockstarInterface:
     cdef public object data_source
     cdef int rank
     cdef int size
+    cdef int block_ratio
 
     def __cinit__(self, pf, data_source):
         self.pf = pf
@@ -285,7 +297,7 @@ cdef class RockstarInterface:
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
-                       int writing_port = -1):
+                       int writing_port = -1, int block_ratio = 10):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -304,8 +316,10 @@ cdef class RockstarInterface:
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
         NUM_SNAPS = 1
-        NUM_READERS = NUM_BLOCKS = num_readers
+        NUM_READERS = num_readers
+        NUM_BLOCKS = num_readers * block_ratio
         NUM_WRITERS = num_writers
+        self.block_ratio = block_ratio
 
         h0 = self.pf.hubble_constant
         Ol = self.pf.omega_lambda

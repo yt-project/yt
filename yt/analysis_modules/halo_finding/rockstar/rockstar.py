@@ -29,7 +29,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 
 import rockstar_interface
-import argparse
 import socket
 import time
 
@@ -66,10 +65,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 if self.comm.rank in wg.ranks: self.workgroup = wg
             if self.workgroup.name == "readers":
                 comm = Communicator(self.workgroup.comm)
-                dd = DomainDecomposer(self.pf, comm)
-                data_source = dd.decompose()
-        else:
-            data_source = self.pf.h.all_data()
+        data_source = self.pf.h.all_data()
         self.handler = rockstar_interface.RockstarInterface(
                 self.pf, data_source)
 
