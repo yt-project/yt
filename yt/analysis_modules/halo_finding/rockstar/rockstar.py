@@ -82,7 +82,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             (server_address, port))
         self.port = str(self.port)
 
-    def run(self):
+    def run(self, block_ratio = 1):
         self._get_hosts()
         if self.comm.size > 1 and self.workgroup.name == "writers":
             sock = socket.socket()
@@ -95,7 +95,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
-                    writing_port = port)
+                    writing_port = port,
+                    block_ratio = block_ratio)
         if self.comm.size == 1:
             self.handler.call_rockstar()
         else:

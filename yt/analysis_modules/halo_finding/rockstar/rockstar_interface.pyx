@@ -249,19 +249,18 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     # Now we want to grab data from only a subset of the grids.
     n = rh.block_ratio
-    grid_chunks = [dd._grids[i:i+n] for i in range(0, len(dd._grids), n)]
-    grids = grid_chunks[block]
+    grids = np.array_split(dd._grids, NUM_BLOCKS)[block]
     tnpart = 0
     for g in grids:
         tnpart += dd._get_data_from_grid(g, "particle_index").size
     p[0] = <particle *> malloc(sizeof(particle) * tnpart)
     #print "Loading indices: size = ", tnpart
-    conv[0] = conv[1] = conv[2] = rh.pf["mpch"]
+    conv[0] = conv[1] = conv[2] = rh.pf["mpchcm"]
     conv[3] = conv[4] = conv[5] = 1e-5
     left_edge[0] = rh.pf.domain_left_edge[0]
     left_edge[1] = rh.pf.domain_left_edge[1]
     left_edge[2] = rh.pf.domain_left_edge[2]
-    left_edge[0] = left_edge[1] = left_edge[2] = 0.0
+    left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     for g in grids:
         arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
@@ -279,7 +278,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             fi += 1
         pi += npart
     num_p[0] = tnpart
-    assert(pi == tnpart)
+    print "TOTAL", block, tnpart, len(grids)
 
 cdef class RockstarInterface:
 
@@ -297,7 +296,7 @@ cdef class RockstarInterface:
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
-                       int writing_port = -1, int block_ratio = 10):
+                       int writing_port = -1, int block_ratio = 1):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -327,11 +326,11 @@ cdef class RockstarInterface:
 
         if particle_mass < 0:
             print "Assuming single-mass particle."
-            particle_mass = self.pf.h.grids[0]["ParticleMassMsun"][0] * h0
+            particle_mass = self.pf.h.grids[0]["ParticleMassMsun"][0] / h0
         PARTICLE_MASS = particle_mass
         PERIODIC = 1
         BOX_SIZE = (self.pf.domain_right_edge[0] -
-                    self.pf.domain_left_edge[0]) * self.pf['mpch']
+                    self.pf.domain_left_edge[0]) * self.pf['mpchcm']
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles
