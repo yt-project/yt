@@ -1093,7 +1093,6 @@ class AMRSliceBase(AMR2DData):
             dv = dv[sl]
         mask = self.__cut_mask_child_mask(grid)[sl]
         dataVals = dv.ravel()[mask.ravel() == 1]
-        print 
         return dataVals
 
     def _gen_node_name(self):
