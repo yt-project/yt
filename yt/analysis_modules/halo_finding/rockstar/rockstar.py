@@ -63,8 +63,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.pool.add_workgroup(num_writers, name = "writers")
             for wg in self.pool.workgroups:
                 if self.comm.rank in wg.ranks: self.workgroup = wg
-            if self.workgroup.name == "readers":
-                comm = Communicator(self.workgroup.comm)
         data_source = self.pf.h.all_data()
         self.handler = rockstar_interface.RockstarInterface(
                 self.pf, data_source)
@@ -84,18 +82,11 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     def run(self, block_ratio = 1):
         self._get_hosts()
-        if self.comm.size > 1 and self.workgroup.name == "writers":
-            sock = socket.socket()
-            sock.bind(('', 0))
-            port = sock.getsockname()[-1]
-            del sock
-        else:
-            port = -1
         self.handler.setup_rockstar(self.server_address, self.port,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
-                    writing_port = port,
+                    writing_port = -1,
                     block_ratio = block_ratio)
         if self.comm.size == 1:
             self.handler.call_rockstar()
@@ -104,9 +95,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             if self.workgroup.name == "server":
                 self.handler.start_server()
             elif self.workgroup.name == "readers":
-                time.sleep(0.5)
+                time.sleep(0.5 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
             elif self.workgroup.name == "writers":
-                time.sleep(1.0)# + self.workgroup.comm.rank/10.0)
+                time.sleep(1.0 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
         self.comm.barrier()

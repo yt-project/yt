@@ -278,7 +278,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             fi += 1
         pi += npart
     num_p[0] = tnpart
-    print "TOTAL", block, tnpart, len(grids)
+    print "TOTAL", block, pi, tnpart, len(grids)
 
 cdef class RockstarInterface:
 
@@ -314,6 +314,7 @@ cdef class RockstarInterface:
             PARALLEL_IO_SERVER_PORT = server_port
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
+        OUTPUT_FORMAT = "ASCII"
         NUM_SNAPS = 1
         NUM_READERS = num_readers
         NUM_BLOCKS = num_readers * block_ratio
