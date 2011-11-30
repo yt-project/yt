@@ -322,8 +322,28 @@ class AMRData(object):
             pass
         del self.field_data[key]
 
-    def _generate_field_in_grids(self, fieldName):
-        pass
+    def _generate_field(self, field):
+        if self.pf.field_info.has_key(field):
+            # First we check the validator
+            try:
+                self.pf.field_info[field].check_available(self)
+            except NeedsGridType, ngt_exception:
+                # We leave this to be implementation-specific
+                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
+                return False
+            else:
+                self[field] = self.pf.field_info[field](self)
+                return True
+        else: # Can't find the field, try as it might
+            raise KeyError(field)
+
+    def _generate_field_in_grids(self, field, num_ghost_zones=0):
+        for grid in self._grids:
+            grid[field] = self.__touch_grid_field(grid, field)
+
+    @restore_grid_state
+    def __touch_grid_field(self, grid, field):
+        return grid[field]
 
     _key_fields = None
     def write_out(self, filename, fields=None, format="%0.16e"):
@@ -454,25 +474,6 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         self._sortkey = None
         self._sorted = {}
 
-    def _generate_field_in_grids(self, field, num_ghost_zones=0):
-        for grid in self._grids:
-            temp = grid[field]
-
-    def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator
-            try:
-                self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # We leave this to be implementation-specific
-                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
-                return False
-            else:
-                self[field] = self.pf.field_info[field](self)
-                return True
-        else: # Can't find the field, try as it might
-            raise KeyError(field)
-
     def get_data(self, fields=None, in_grids=False):
         if self._grids == None:
             self._get_list_of_grids()
@@ -563,6 +564,7 @@ class AMROrthoRayBase(AMR1DData):
                     & (self.py < self.pf.hierarchy.grid_right_edge[:,self.py_ax]))
         self._grids = self.hierarchy.grids[y]
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         # We are orthogonal, so we can feel free to make assumptions
         # for the sake of speed.
@@ -657,6 +659,7 @@ class AMRRayBase(AMR1DData):
         t = t.reshape((t.shape[0],1))
         return self.start_point + t*self.vec
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         mask = na.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
@@ -739,6 +742,7 @@ class AMRStreamlineBase(AMR1DData):
         p = na.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
         self._grids = self.hierarchy.grids[p]
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         mask = na.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
@@ -827,25 +831,6 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         # And set, for the next group
         for field in temp_data.keys():
             self[field] = temp_data[field]
-
-    def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator
-            try:
-                self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # We leave this to be implementation-specific
-                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
-                return False
-            else:
-                self[field] = self.pf.field_info[field](self)
-                return True
-        else: # Can't find the field, try as it might
-            raise KeyError(field)
-
-    def _generate_field_in_grids(self, field, num_ghost_zones=0):
-        for grid in self._grids:
-            temp = grid[field]
 
     def to_frb(self, width, resolution, center = None):
         if center is None:
@@ -1623,9 +1608,9 @@ class AMRQuadTreeProjBase(AMR2DData):
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
             dependencies = self.get_dependencies(fields, ghost_zones = False)
-            print "Preloading %s grids and getting %s" % (
-                    len(self.source._get_grid_objs()),
-                    dependencies)
+            mylog.debug("Preloading %s grids and getting %s",
+                            len(self.source._get_grid_objs()),
+                            dependencies)
             self.comm.preload([g for g in self._get_grid_objs()],
                           dependencies, self.hierarchy.io)
         # By changing the remove-from-tree method to accumulate, we can avoid
@@ -2256,6 +2241,7 @@ class AMRFixedResProjectionBase(AMR2DData):
                 dls[level].append(float(just_one(grid['d%s' % axis_names[self.axis]])))
         return dls
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, fields, dls):
         g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
@@ -2392,29 +2378,6 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             new_field[pointI] = self[field][i:i+np]
             grid[field] = new_field
             i += np
-
-    def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator
-            try:
-                self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # We leave this to be implementation-specific
-                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
-                return False
-            else:
-                self[field] = self.pf.field_info[field](self)
-                return True
-        else: # Can't find the field, try as it might
-            raise KeyError(field)
-
-    def _generate_field_in_grids(self, field, num_ghost_zones=0):
-        for grid in self._grids:
-            self.__touch_grid_field(grid, field)
-
-    @restore_grid_state
-    def __touch_grid_field(self, grid, field):
-        grid[field]
 
     def _is_fully_enclosed(self, grid):
         return na.all(self._get_cut_mask)
@@ -3504,6 +3467,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                                    output_field, output_left)
             self.field_data[field] = output_field
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field].astype("float64") for field in fields]
