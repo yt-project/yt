@@ -592,7 +592,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
-            self.grids[gi] = grid
+            self.grids[i] = grid
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):
