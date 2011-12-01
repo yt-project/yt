@@ -587,7 +587,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
         self.grids = na.empty(len(grids), dtype='object')
-        for i, grid in enumerate(self.grids):
+        for i, grid in enumerate(grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
