@@ -325,7 +325,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
-def _get_yt_supp():
+def _get_yt_supp(uu):
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
@@ -905,7 +905,7 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        supp_path = _get_yt_supp()
+        supp_path = _get_yt_supp(uu)
         print
         print "I have found the yt-supplemental repository at %s" % (supp_path)
         print
@@ -1321,7 +1321,8 @@ class YTCommands(cmdln.Cmdln):
         import imp
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
-        supp_path = _get_yt_supp()
+        uu = ui.ui()
+        supp_path = _get_yt_supp(uu)
         try:
             result = imp.find_module("cedit", [supp_path])
         except ImportError:
@@ -1338,7 +1339,6 @@ class YTCommands(cmdln.Cmdln):
             print "Sorry, but I'm going to bail."
             sys.exit(1)
         hgbb = imp.load_module("hgbb", *result)
-        uu = ui.ui()
         try:
             repo = hg.repository(uu, opts.repo)
             conf = config.config()
