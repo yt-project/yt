@@ -78,11 +78,11 @@ def restore_grid_state(func):
     and ensures that after the function is called, the field_parameters will
     be returned to normal.
     """
-    def save_state(self, grid, field=None):
+    def save_state(self, grid, field=None, *args, **kwargs):
         old_params = grid.field_parameters
         old_keys = grid.field_data.keys()
         grid.field_parameters = self.field_parameters
-        tr = func(self, grid, field)
+        tr = func(self, grid, field, *args, **kwargs)
         grid.field_parameters = old_params
         grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
         return tr
