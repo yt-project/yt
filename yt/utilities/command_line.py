@@ -329,6 +329,7 @@ def _get_yt_supp():
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
+    from mercurial import hg, ui, commands
     if not os.path.isdir(supp_path):
         print
         print "*** The yt-supplemental repository is not checked ***"
