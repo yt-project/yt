@@ -91,11 +91,10 @@ class StaticOutput(object):
         # Because we need an instantiated class to check the pf's existence in
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
-        if ytcfg.getboolean('yt', 'serialize'):
-            try:
-                _pf_store.check_pf(self)
-            except NoParameterShelf:
-                pass
+        try:
+            _pf_store.check_pf(self)
+        except NoParameterShelf:
+            pass
         self.print_key_parameters()
 
         self.create_field_info()
