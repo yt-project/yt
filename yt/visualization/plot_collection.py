@@ -400,7 +400,7 @@ class PlotCollection(object):
         if coord == None:
             coord = center[axis]
         if obj is None:
-            if field_parameters == None: field_parameters = {}
+            if field_parameters is None: field_parameters = {}
             obj = self.pf.hierarchy.slice(axis, coord, field,
                             center=center, **field_parameters)
         p = self._add_plot(SlicePlot(

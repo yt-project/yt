@@ -575,24 +575,24 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
-        self.grids = []
+        grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
         self.filenames = ["-1"] * self.num_grids
         for id,pid in enumerate(reverse_tree):
-            self.grids.append(self.grid(id+1, self))
-            self.grids[-1].Level = self.grid_levels[id, 0]
+            grids.append(self.grid(id+1, self))
+            grids[-1].Level = self.grid_levels[id, 0]
             if pid > 0:
-                self.grids[-1]._parent_id = pid
-                self.grids[pid-1]._children_ids.append(self.grids[-1].id)
+                grids[-1]._parent_id = pid
+                grids[pid-1]._children_ids.append(grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
         self.grids = na.empty(len(grids), dtype='object')
-        for i, grid in enumerate(self.grids):
+        for i, grid in enumerate(grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
-            self.grids[gi] = grid
+            self.grids[i] = grid
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):

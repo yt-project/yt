@@ -139,9 +139,9 @@ if ytcfg.getboolean("yt","loadfieldplugins"):
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
     if os.path.isfile(my_plugin_name):
-        fn = my_plugin_name
+        _fn = my_plugin_name
     else:
-        fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
-    if os.path.isfile(fn):
-        mylog.info("Loading plugins from %s", fn)
-        execfile(fn)
+        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(_fn):
+        mylog.info("Loading plugins from %s", _fn)
+        execfile(_fn)
