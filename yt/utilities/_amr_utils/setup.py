@@ -178,6 +178,8 @@ def configuration(parent_package='',top_path=None):
                 "yt/utilities/_amr_utils/FixedInterpolator.c"],
                include_dirs=["yt/utilities/_amr_utils/"],
                libraries=["m"], 
+               extra_compile_args=['-fopenmp'],
+               extra_link_args=['-fopenmp'],
                depends = ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
                           "yt/utilities/_amr_utils/fp_utils.pxd",
                           "yt/utilities/_amr_utils/FixedInterpolator.h",

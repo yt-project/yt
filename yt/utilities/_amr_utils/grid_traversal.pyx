@@ -31,6 +31,8 @@ cimport healpix_interface
 from stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
+from cython.parallel import prange, parallel, threadid
+
 cdef extern from "math.h":
     double exp(double x) nogil
     float expf(float x) nogil
@@ -50,7 +52,7 @@ ctypedef void sample_function(
                 np.float64_t enter_t,
                 np.float64_t exit_t,
                 int index[3],
-                void *data)
+                void *data) nogil
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
@@ -174,6 +176,7 @@ cdef class ImageSampler:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void get_start_stop(self, np.float64_t *ex, int *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
@@ -251,7 +254,7 @@ cdef class ImageSampler:
         cdef ImageAccumulator idata
         cdef void *data = <void *> &idata
         if im.vd_strides[0] == -1:
-            for vi in range(iter[0], iter[1]):
+            for vi in prange(iter[0], iter[1], nogil=True):
                 for vj in range(iter[2], iter[3]):
                     for i in range(4): idata.rgba[i] = 0.0
                     self.copy_into(im.vp_pos, v_pos, vi, vj, 3, im.vp_strides)
@@ -278,7 +281,7 @@ cdef void projection_sampler(
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data):
+                 void *data) nogil:
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
@@ -417,7 +420,7 @@ cdef int walk_volume(VolumeContainer *vc,
                      sample_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0):
+                     np.float64_t enter_t = -1.0) nogil:
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
     cdef np.float64_t intersect_t = 1.0
     cdef np.float64_t iv_dir[3]
