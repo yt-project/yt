@@ -50,7 +50,7 @@ ctypedef void sample_function(
                 np.float64_t enter_t,
                 np.float64_t exit_t,
                 int index[3],
-                void *data)
+                void *data) nogil
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
@@ -100,8 +100,8 @@ cdef class PartitionedGrid:
             c.left_edge[i] = left_edge[i]
             c.right_edge[i] = right_edge[i]
             c.dims[i] = dims[i]
-            c.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
-            c.idds[i] = 1.0/self.dds[i]
+            c.dds[i] = (c.right_edge[i] - c.left_edge[i])/dims[i]
+            c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
         for d in data:
@@ -278,7 +278,7 @@ cdef void projection_sampler(
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data):
+                 void *data) nogil:
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef int di = (index[0]*(vc.dims[1])+index[1])*vc.dims[2]+index[2]
