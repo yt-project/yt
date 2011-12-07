@@ -173,5 +173,15 @@ def configuration(parent_package='',top_path=None):
                           "yt/utilities/_amr_utils/healpix_pix2vec_nest.c",
                           "yt/utilities/_amr_utils/healpix_vec2pix_nest.c"]
           )
+    config.add_extension("grid_traversal", 
+               ["yt/utilities/_amr_utils/grid_traversal.pyx",
+                "yt/utilities/_amr_utils/FixedInterpolator.c"],
+               include_dirs=["yt/utilities/_amr_utils/"],
+               libraries=["m"], 
+               depends = ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
+                          "yt/utilities/_amr_utils/fp_utils.pxd",
+                          "yt/utilities/_amr_utils/FixedInterpolator.h",
+                          ]
+          )
     config.make_config_py() # installs __config__.py
     return config
