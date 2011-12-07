@@ -50,7 +50,7 @@ ctypedef void sample_function(
                 np.float64_t enter_t,
                 np.float64_t exit_t,
                 int index[3],
-                void *data) nogil
+                void *data)
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
@@ -96,6 +96,7 @@ cdef class PartitionedGrid:
             malloc(sizeof(VolumeContainer))
         cdef VolumeContainer *c = self.container # convenience
         cdef int n_fields = len(data)
+        c.n_fields = n_fields
         for i in range(3):
             c.left_edge[i] = left_edge[i]
             c.right_edge[i] = right_edge[i]
@@ -104,12 +105,11 @@ cdef class PartitionedGrid:
             c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
-        for d in data:
-            tdata = d
+        for i in range(n_fields):
+            tdata = data[i]
             c.data[i] = <np.float64_t *> tdata.data
 
     def __dealloc__(self):
-        cdef int n_fields = len(self.my_data)
         # The data fields are not owned by the container, they are owned by us!
         # So we don't need to deallocate them.
         free(self.container.data)
@@ -159,9 +159,9 @@ cdef class ImageSampler:
         imagec.y_vec = <np.float64_t *> y_vec.data
         imagec.nv[0] = vp_pos.shape[0]
         imagec.nv[1] = vp_pos.shape[1]
-        for i in range(4): image.bounds[i] = bounds[i]
-        imagec.pdx = (self.bounds[1] - self.bounds[0])/self.nv[0]
-        imagec.pdy = (self.bounds[3] - self.bounds[2])/self.nv[1]
+        for i in range(4): imagec.bounds[i] = bounds[i]
+        imagec.pdx = (bounds[1] - bounds[0])/imagec.nv[0]
+        imagec.pdy = (bounds[3] - bounds[2])/imagec.nv[1]
         for i in range(3):
             imagec.vp_strides[i] = vp_pos.strides[i] / 8
             imagec.im_strides[i] = image.strides[i] / 8
@@ -169,7 +169,7 @@ cdef class ImageSampler:
             for i in range(3):
                 imagec.vd_strides[i] = vp_dir.strides[i] / 8
         else:
-            imagec.vd_strides[0] = self.vd_strides[1] = self.vd_strides[2] = -1
+            imagec.vd_strides[0] = imagec.vd_strides[1] = imagec.vd_strides[2] = -1
         self.setup()
 
     @cython.boundscheck(False)
@@ -278,12 +278,16 @@ cdef void projection_sampler(
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data) nogil:
+                 void *data):
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
+    cdef np.float64_t dl = (exit_t - enter_t)
+    # We need this because by default it assumes vertex-centered data.
+    for i in range(3):
+        if index[i] < 0 or index[i] >= vc.dims[i]: return
     cdef int di = (index[0]*(vc.dims[1])+index[1])*vc.dims[2]+index[2]
-    for i in range(imin(4, vc.n_fields)):
-        im.rgba[i] += vc.data[i][di]
+    for i in range(imin(3, vc.n_fields)):
+        im.rgba[i] += vc.data[i][di] * dl
 
 cdef class ProjectionSampler(ImageSampler):
     def setup(self):
@@ -413,7 +417,7 @@ cdef int walk_volume(VolumeContainer *vc,
                      sample_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0) nogil:
+                     np.float64_t enter_t = -1.0):
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
     cdef np.float64_t intersect_t = 1.0
     cdef np.float64_t iv_dir[3]
