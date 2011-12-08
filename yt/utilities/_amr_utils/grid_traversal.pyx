@@ -249,13 +249,9 @@ cdef class ImageSampler:
         self.calculate_extent(extrema, vc)
         self.get_start_stop(extrema, iter)
         iter[0] = iclip(iter[0]-1, 0, im.nv[0])
-        if iter[0] == 0: return
         iter[1] = iclip(iter[1]+1, 0, im.nv[0])
-        if iter[1] == 0 or iter[1] == iter[0]: return
         iter[2] = iclip(iter[2]-1, 0, im.nv[1])
-        if iter[2] == 0: return
         iter[3] = iclip(iter[3]+1, 0, im.nv[1])
-        if iter[3] == 0 or iter[3] == iter[2]: return
         cdef ImageAccumulator *idata
         cdef void *data
         cdef int nx = (iter[1] - iter[0])
@@ -265,7 +261,7 @@ cdef class ImageSampler:
             with nogil, parallel():
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                for j in prange(size, schedule="auto"):
+                for j in prange(size, schedule="dynamic"):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
