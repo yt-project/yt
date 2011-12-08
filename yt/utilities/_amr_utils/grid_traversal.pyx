@@ -234,6 +234,7 @@ cdef class ImageSampler:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.cdivision(True)
     def __call__(self, PartitionedGrid pg):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
@@ -248,9 +249,13 @@ cdef class ImageSampler:
         self.calculate_extent(extrema, vc)
         self.get_start_stop(extrema, iter)
         iter[0] = iclip(iter[0]-1, 0, im.nv[0])
+        if iter[0] == 0: return
         iter[1] = iclip(iter[1]+1, 0, im.nv[0])
+        if iter[1] == 0 or iter[1] == iter[0]: return
         iter[2] = iclip(iter[2]-1, 0, im.nv[1])
+        if iter[2] == 0: return
         iter[3] = iclip(iter[3]+1, 0, im.nv[1])
+        if iter[3] == 0 or iter[3] == iter[2]: return
         cdef ImageAccumulator *idata
         cdef void *data
         if im.vd_strides[0] == -1:
