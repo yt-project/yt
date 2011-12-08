@@ -251,19 +251,25 @@ cdef class ImageSampler:
         iter[1] = iclip(iter[1]+1, 0, im.nv[0])
         iter[2] = iclip(iter[2]-1, 0, im.nv[1])
         iter[3] = iclip(iter[3]+1, 0, im.nv[1])
-        cdef ImageAccumulator idata
-        cdef void *data = <void *> &idata
+        cdef ImageAccumulator *idata
+        cdef void *data
         if im.vd_strides[0] == -1:
-            for vi in prange(iter[0], iter[1], nogil=True):
-                for vj in range(iter[2], iter[3]):
-                    for i in range(4): idata.rgba[i] = 0.0
-                    self.copy_into(im.vp_pos, v_pos, vi, vj, 3, im.vp_strides)
-                    self.copy_into(im.image, idata.rgba, vi, vj, 3, im.im_strides)
-                    walk_volume(vc, v_pos, im.vp_dir, self.sampler, data)
-                    self.copy_back(idata.rgba, im.image, vi, vj, 3, im.im_strides)
+            with nogil, parallel():
+                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+                data = <void *> idata
+                for vi in prange(iter[0], iter[1]):
+                    for vj in range(iter[2], iter[3]):
+                        for i in range(4): idata.rgba[i] = 0.0
+                        self.copy_into(im.vp_pos, v_pos, vi, vj, 3, im.vp_strides)
+                        self.copy_into(im.image, idata.rgba, vi, vj, 3, im.im_strides)
+                        walk_volume(vc, v_pos, im.vp_dir, self.sampler, data)
+                        self.copy_back(idata.rgba, im.image, vi, vj, 3, im.im_strides)
+                free(idata)
         else:
             # If we do not have an orthographic projection, we have to cast all
             # our rays (until we can get an extrema calculation...)
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            data = <void *> idata
             for vi in range(im.nv[0]):
                 for vj in range(im.nv[1]):
                     for i in range(4): idata.rgba[i] = 0.0
@@ -295,7 +301,7 @@ cdef void projection_sampler(
 cdef class ProjectionSampler(ImageSampler):
     def setup(self):
         self.sampler = projection_sampler
-    
+
 cdef class GridFace:
     cdef int direction
     cdef public np.float64_t coord
