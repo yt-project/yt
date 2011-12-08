@@ -127,7 +127,7 @@ cdef struct ImageContainer:
     np.float64_t *x_vec, *y_vec
 
 cdef struct ImageAccumulator:
-    np.float64_t rgba[4]
+    np.float64_t rgba[3]
 
 cdef class ImageSampler:
     cdef ImageContainer *image
@@ -239,12 +239,12 @@ cdef class ImageSampler:
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, vj, hit, i, ni, nj, nn
+        cdef int vi, vj, hit, i, j, ni, nj, nn, offset
         cdef int iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
         if self.sampler == NULL: raise RuntimeError
-        cdef np.float64_t v_pos[3], v_dir[3], rgba[6], extrema[4]
+        cdef np.float64_t *v_pos, v_dir[3], rgba[6], extrema[4]
         hit = 0
         self.calculate_extent(extrema, vc)
         self.get_start_stop(extrema, iter)
@@ -258,17 +258,24 @@ cdef class ImageSampler:
         if iter[3] == 0 or iter[3] == iter[2]: return
         cdef ImageAccumulator *idata
         cdef void *data
+        cdef int nx = (iter[1] - iter[0])
+        cdef int ny = (iter[3] - iter[2])
+        cdef int size = nx * ny
         if im.vd_strides[0] == -1:
             with nogil, parallel():
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-                data = <void *> idata
-                for vi in prange(iter[0], iter[1]):
-                    for vj in range(iter[2], iter[3]):
-                        for i in range(4): idata.rgba[i] = 0.0
-                        self.copy_into(im.vp_pos, v_pos, vi, vj, 3, im.vp_strides)
-                        self.copy_into(im.image, idata.rgba, vi, vj, 3, im.im_strides)
-                        walk_volume(vc, v_pos, im.vp_dir, self.sampler, data)
-                        self.copy_back(idata.rgba, im.image, vi, vj, 3, im.im_strides)
+                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+                for j in prange(size, schedule="dynamic"):
+                    vj = j % ny
+                    vi = (j - vj) / ny + iter[0]
+                    vj = vj + iter[2]
+                    offset = im.vp_strides[0] * vi + im.vp_strides[1] * vj
+                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
+                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
+                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    walk_volume(vc, v_pos, im.vp_dir, self.sampler,
+                                (<void *> idata))
+                    for i in range(3): im.image[i + offset] = idata.rgba[i]
                 free(idata)
         else:
             # If we do not have an orthographic projection, we have to cast all
