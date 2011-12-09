@@ -351,7 +351,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             
         """
 
-        self.profile_fields.append({'field':field, 'weight_field':weight_field, 'accumulation':accumulation})
+        self.profile_fields.append({'field':field, 'weight_field':weight_field, 
+                                    'accumulation':accumulation})
 
     def add_projection(self, field, weight_field=None, cmap='algae'):
         r"""Make a projection of the specified field.
@@ -567,7 +568,9 @@ class HaloProfiler(ParallelAnalysisInterface):
                     if self.velocity_center[1] == 'halo':
                         sphere.set_field_parameter('bulk_velocity', halo['velocity'])
                     elif self.velocity_center[1] == 'sphere':
-                        sphere.set_field_parameter('bulk_velocity', sphere.quantities['BulkVelocity'](lazy_reader=False, preload=False))
+                        sphere.set_field_parameter('bulk_velocity', 
+                                                   sphere.quantities['BulkVelocity'](lazy_reader=False, 
+                                                                                     preload=False))
                     else:
                         mylog.error("Invalid parameter: VelocityCenter.")
                 elif self.velocity_center[0] == 'max':
@@ -665,7 +668,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             proj_level = self.pf.h.max_level
         else:
             proj_level = int(self.project_at_level)
-        proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \
+        proj_dx = self.pf.units[self.projection_width_units] / \
+            self.pf.parameters['TopGridDimensions'][0] / \
             (self.pf.parameters['RefineBy']**proj_level)
         projectionResolution = int(self.projection_width / proj_dx)
 
@@ -678,7 +682,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             my_output_dir = "%s/%s" % (self.pf.fullpath, self.projection_output_dir)
         self.__check_directory(my_output_dir)
 
-        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
+        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + 
+                         self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
 
         for halo in self._get_objs('_halo_projection_list', round_robin=True):
@@ -686,13 +691,16 @@ class HaloProfiler(ParallelAnalysisInterface):
                 continue
             # Check if region will overlap domain edge.
             # Using non-periodic regions is faster than using periodic ones.
-            leftEdge = [(halo['center'][w] - 0.5 * self.projection_width/self.pf.units[self.projection_width_units])
+            leftEdge = [(halo['center'][w] - 
+                         0.5 * self.projection_width/self.pf.units[self.projection_width_units])
                         for w in range(len(halo['center']))]
-            rightEdge = [(halo['center'][w] + 0.5 * self.projection_width/self.pf.units[self.projection_width_units])
+            rightEdge = [(halo['center'][w] + 
+                          0.5 * self.projection_width/self.pf.units[self.projection_width_units])
                          for w in range(len(halo['center']))]
 
             mylog.info("Projecting halo %04d in region: [%f, %f, %f] to [%f, %f, %f]." %
-                       (halo['id'], leftEdge[0], leftEdge[1], leftEdge[2], rightEdge[0], rightEdge[1], rightEdge[2]))
+                       (halo['id'], leftEdge[0], leftEdge[1], leftEdge[2], 
+                        rightEdge[0], rightEdge[1], rightEdge[2]))
 
             need_per = False
             for w in range(len(halo['center'])):
@@ -719,13 +727,13 @@ class HaloProfiler(ParallelAnalysisInterface):
                 for hp in self.projection_fields:
                     projections.append(self.pf.h.proj(w, hp['field'], 
                                                       weight_field=hp['weight_field'], 
-                                                      data_source=region, center=halo['center'],
+                                                      source=region, center=halo['center'],
                                                       serialize=False))
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.projection_width/self.pf.units[self.projection_width_units]
-                    #shift_projections(self.pf, projections, halo['center'], center, w)
+                    shift_projections(self.pf, projections, halo['center'], center, w)
                     # Projection has now been shifted to center of box.
                     proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
                     proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
@@ -756,7 +764,11 @@ class HaloProfiler(ParallelAnalysisInterface):
                         if save_images:
                             filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 
                                                                    dataset_name, axis_labels[w])
-                            write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+                            if (frb[hp['field']] != 0).any():
+                                write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+                            else:
+                                mylog.info('Projection of %s for halo %d is all zeros, skipping image.' %
+                                            (hp['field'], halo['id']))
                     if save_cube: output.close()
 
             del region
@@ -917,7 +929,8 @@ class HaloProfiler(ParallelAnalysisInterface):
     def _run_hop(self, hop_file):
         "Run hop to get halos."
 
-        hop_results = self.halo_finder_function(self.pf, *self.halo_finder_args, **self.halo_finder_kwargs)
+        hop_results = self.halo_finder_function(self.pf, *self.halo_finder_args, 
+                                                **self.halo_finder_kwargs)
         hop_results.write_out(hop_file)
 
         del hop_results
@@ -1059,14 +1072,19 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
         add2_y_weight_field = plot['weight_field'][plot['py'] - 0.5 * plot['pdy'] < 0]
 
         # Add the hanging cells back to the projection data.
-        plot.field_data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
-        plot.field_data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
-        plot.field_data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
-        plot.field_data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
-        plot.field_data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
+        plot.field_data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, 
+                                                add2_x_px, add2_y_px])
+        plot.field_data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, 
+                                                add2_x_py, add2_y_py])
+        plot.field_data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, 
+                                                 add2_x_pdx, add2_y_pdx])
+        plot.field_data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, 
+                                                 add2_x_pdy, add2_y_pdy])
+        plot.field_data[field] = na.concatenate([plot[field], add_x_field, add_y_field, 
+                                                 add2_x_field, add2_y_field])
         plot.field_data['weight_field'] = na.concatenate([plot['weight_field'],
-                                                    add_x_weight_field, add_y_weight_field, 
-                                                    add2_x_weight_field, add2_y_weight_field])
+                                                          add_x_weight_field, add_y_weight_field, 
+                                                          add2_x_weight_field, add2_y_weight_field])
 
         # Delete original copies of hanging cells.
         del add_x_px, add_y_px, add2_x_px, add2_y_px
