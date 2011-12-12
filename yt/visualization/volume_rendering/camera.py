@@ -703,7 +703,7 @@ class HEALpixCamera(Camera):
             ax = fig.add_subplot(1,1,1,projection='mollweide')
             implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
-            cb.set_label(r"$\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+            cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
             ax.xaxis.set_ticks(())
             ax.yaxis.set_ticks(())
             canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
