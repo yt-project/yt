@@ -30,6 +30,8 @@ cimport kdtree_utils
 cimport healpix_interface
 from stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from field_interpolation_tables cimport \
+    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer
 
 from cython.parallel import prange, parallel, threadid
 
@@ -56,17 +58,18 @@ ctypedef void sample_function(
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
-                                  np.float64_t *data)
-    np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3], np.float64_t *data)
+                                  np.float64_t *data) nogil
+    np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3],
+                                    np.float64_t *data) nogil
     np.float64_t trilinear_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
-                                       np.float64_t *data)
+                                       np.float64_t *data) nogil
     void eval_gradient(int ds[3], np.float64_t dp[3], np.float64_t *data,
-                       np.float64_t grad[3])
-    void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
+                       np.float64_t grad[3]) nogil
+    void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval) nogil
     void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
                        np.float64_t vl[3], np.float64_t dds[3],
                        np.float64_t x, np.float64_t y, np.float64_t z,
-                       int vind1, int vind2)
+                       int vind1, int vind2) nogil
 
 cdef struct VolumeContainer:
     int n_fields
@@ -128,11 +131,13 @@ cdef struct ImageContainer:
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[3]
+    void *supp_data
 
 cdef class ImageSampler:
     cdef ImageContainer *image
     cdef sample_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
+    cdef void *supp_data
     def __cinit__(self, 
                   np.ndarray[np.float64_t, ndim=3] vp_pos,
                   np.ndarray vp_dir,
@@ -172,7 +177,6 @@ cdef class ImageSampler:
                 imagec.vd_strides[i] = vp_dir.strides[i] / 8
         else:
             imagec.vd_strides[0] = imagec.vd_strides[1] = imagec.vd_strides[2] = -1
-        self.setup()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -257,9 +261,11 @@ cdef class ImageSampler:
         cdef int nx = (iter[1] - iter[0])
         cdef int ny = (iter[3] - iter[2])
         cdef int size = nx * ny
+        self.setup(pg)
         if im.vd_strides[0] == -1:
             with nogil, parallel():
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+                idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 for j in prange(size, schedule="dynamic"):
                     vj = j % ny
@@ -307,8 +313,58 @@ cdef void projection_sampler(
         im.rgba[i] += vc.data[i][di] * dl
 
 cdef class ProjectionSampler(ImageSampler):
-    def setup(self):
+    def setup(self, PartitionedGrid pg):
         self.sampler = projection_sampler
+
+
+cdef struct VolumeRenderAccumulator:
+    int n_fits
+    int n_samples
+    np.float64_t dvs[6]
+    FieldInterpolationTable *fits[6]
+    int field_table_ids[6]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void volume_render_sampler(
+                 VolumeContainer *vc, 
+                 np.float64_t v_pos[3],
+                 np.float64_t v_dir[3],
+                 np.float64_t enter_t,
+                 np.float64_t exit_t,
+                 int index[3],
+                 void *data) nogil:
+    cdef ImageAccumulator *im = <ImageAccumulator *> data
+    cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
+            im.supp_data
+    # we assume this has vertex-centered data.
+    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
+                    + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
+    for i in range(3):
+        dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
+        dp[i] *= vc.idds[i]
+        ds[i] = v_dir[i] * vc.idds[i] * dt
+    for i in range(vc.n_fields):
+        slopes[i] = offset_interpolate(vc.dims, dp,
+                        vc.data[i] + offset)
+    for i in range(3):
+        dp[i] += ds[i] * vri.n_samples
+    cdef np.float64_t temp
+    for i in range(vc.n_fields):
+        temp = slopes[i]
+        slopes[i] -= offset_interpolate(vc.dims, dp,
+                         vc.data[i] + offset)
+        slopes[i] *= -1.0/vri.n_samples
+        vri.dvs[i] = temp
+    for dti in range(vri.n_samples): 
+        FIT_eval_transfer(dt, vri.dvs, im.rgba, vri.n_fits, vri.fits,
+                          vri.field_table_ids)
+        for i in range(vc.n_fields):
+            vri.dvs[i] += slopes[i]
 
 cdef class GridFace:
     cdef int direction
