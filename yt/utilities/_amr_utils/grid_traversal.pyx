@@ -138,14 +138,15 @@ cdef class ImageSampler:
     cdef sample_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
     cdef void *supp_data
-    def __cinit__(self, 
+    def __init__(self, 
                   np.ndarray[np.float64_t, ndim=3] vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
                   np.ndarray[np.float64_t, ndim=1] x_vec,
-                  np.ndarray[np.float64_t, ndim=1] y_vec):
+                  np.ndarray[np.float64_t, ndim=1] y_vec,
+                  *args, **kwargs):
         self.image = <ImageContainer *> malloc(sizeof(ImageContainer))
         cdef ImageContainer *imagec = self.image
         self.sampler = NULL
@@ -247,6 +248,7 @@ cdef class ImageSampler:
         cdef int iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
+        self.setup(pg)
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos, v_dir[3], rgba[6], extrema[4]
         hit = 0
@@ -261,7 +263,6 @@ cdef class ImageSampler:
         cdef int nx = (iter[1] - iter[0])
         cdef int ny = (iter[3] - iter[2])
         cdef int size = nx * ny
-        self.setup(pg)
         if im.vd_strides[0] == -1:
             with nogil, parallel():
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
@@ -316,12 +317,10 @@ cdef class ProjectionSampler(ImageSampler):
     def setup(self, PartitionedGrid pg):
         self.sampler = projection_sampler
 
-
 cdef struct VolumeRenderAccumulator:
     int n_fits
     int n_samples
-    np.float64_t dvs[6]
-    FieldInterpolationTable *fits[6]
+    FieldInterpolationTable *fits
     int field_table_ids[6]
 
 @cython.boundscheck(False)
@@ -343,6 +342,7 @@ cdef void volume_render_sampler(
                     + index[1] * (vc.dims[2] + 1) + index[2]
     cdef np.float64_t slopes[6], dp[3], ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
+    cdef np.float64_t dvs[6]
     for i in range(3):
         dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
         dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
@@ -359,12 +359,62 @@ cdef void volume_render_sampler(
         slopes[i] -= offset_interpolate(vc.dims, dp,
                          vc.data[i] + offset)
         slopes[i] *= -1.0/vri.n_samples
-        vri.dvs[i] = temp
+        dvs[i] = temp
     for dti in range(vri.n_samples): 
-        FIT_eval_transfer(dt, vri.dvs, im.rgba, vri.n_fits, vri.fits,
+        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
                           vri.field_table_ids)
         for i in range(vc.n_fields):
-            vri.dvs[i] += slopes[i]
+            dvs[i] += slopes[i]
+
+cdef class VolumeRenderSampler(ImageSampler):
+    cdef VolumeRenderAccumulator *vra
+    cdef public object tf_obj
+    cdef public object my_field_tables
+    def __cinit__(self, 
+                  np.ndarray[np.float64_t, ndim=3] vp_pos,
+                  np.ndarray vp_dir,
+                  np.ndarray[np.float64_t, ndim=1] center,
+                  bounds,
+                  np.ndarray[np.float64_t, ndim=3] image,
+                  np.ndarray[np.float64_t, ndim=1] x_vec,
+                  np.ndarray[np.float64_t, ndim=1] y_vec,
+                  tf_obj, n_samples = 10):
+        ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
+                               x_vec, y_vec)
+        cdef int i
+        cdef np.ndarray[np.float64_t, ndim=1] temp
+        # Now we handle tf_obj
+        self.vra = <VolumeRenderAccumulator *> \
+            malloc(sizeof(VolumeRenderAccumulator))
+        self.vra.fits = <FieldInterpolationTable *> \
+            malloc(sizeof(FieldInterpolationTable) * 6)
+        self.vra.n_fits = tf_obj.n_field_tables
+        print self.vra.n_fits
+        assert(self.vra.n_fits <= 6)
+        self.vra.n_samples = n_samples
+        self.my_field_tables = []
+        for i in range(self.vra.n_fits):
+            temp = tf_obj.tables[i].y
+            FIT_initialize_table(&self.vra.fits[i],
+                      temp.shape[0],
+                      <np.float64_t *> temp.data,
+                      tf_obj.tables[i].x_bounds[0],
+                      tf_obj.tables[i].x_bounds[1],
+                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i],
+                      tf_obj.weight_table_ids[i])
+            self.my_field_tables.append((tf_obj.tables[i],
+                                         tf_obj.tables[i].y))
+        for i in range(6):
+            self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
+        self.supp_data = <void *> self.vra
+
+    def setup(self, PartitionedGrid pg):
+        self.sampler = volume_render_sampler
+
+    def __dealloc__(self):
+        return
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class GridFace:
     cdef int direction

@@ -40,6 +40,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
 
+from yt.utilities._amr_utils.grid_traversal import \
+    PartitionedGrid, ProjectionSampler, VolumeRenderSampler
+
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
@@ -318,11 +321,10 @@ class Camera(ParallelAnalysisInterface):
         positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
         positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
-        vector_plane = VectorPlane(positions, self.box_vectors[2],
-                                      self.back_center, bounds, image,
-                                      self.unit_vectors[0],
-                                      self.unit_vectors[1])
-        return vector_plane
+        return (positions, self.box_vectors[2],
+                self.back_center, bounds, image,
+                self.unit_vectors[0],
+                self.unit_vectors[1])
 
     def snapshot(self, fn = None, clip_ratio = None):
         r"""Ray-cast the camera.
@@ -346,19 +348,20 @@ class Camera(ParallelAnalysisInterface):
         """
         image = na.zeros((self.resolution[0], self.resolution[1], 3),
                          dtype='float64', order='C')
-        vector_plane = self.get_vector_plane(image)
-        tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
-        tfp.ns = self.sub_samples
+        args = self.get_vector_plane(image)
+        args = args + (self.transfer_function, self.sub_samples)
+        sampler = VolumeRenderSampler(*args)
         self.volume.initialize_source()
 
         pbar = get_pbar("Ray casting",
                         (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
         for brick in self.volume.traverse(self.back_center, self.front_center, image):
-            brick.cast_plane(tfp, vector_plane)
+            sampler(brick)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
+        image = sampler.aimage
 
         if self.comm.rank is 0 and fn is not None:
             if clip_ratio is not None:

@@ -76,13 +76,13 @@ cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
 @cython.cdivision(True)
 cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
                             np.float64_t *rgba, int n_fits,
-                            FieldInterpolationTable *fits[6],
+                            FieldInterpolationTable fits[6],
                             int field_table_ids[6]) nogil:
     cdef int i, fid, use
     cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
     for i in range(6): istorage[i] = 0.0
     for i in range(n_fits):
-        istorage[i] = FIT_get_value(fits[i], dvs)
+        istorage[i] = FIT_get_value(&fits[i], dvs)
     for i in range(n_fits):
         fid = fits[i].weight_table_id
         if fid != -1: istorage[i] *= istorage[fid]
