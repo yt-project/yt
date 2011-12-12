@@ -88,6 +88,20 @@ def restore_grid_state(func):
         return tr
     return save_state
 
+def restore_field_information_state(func):
+    """
+    A decorator that takes a function with the API of (self, grid, field)
+    and ensures that after the function is called, the field_parameters will
+    be returned to normal.
+    """
+    def save_state(self, grid, field=None, *args, **kwargs):
+        old_params = grid.field_parameters
+        grid.field_parameters = self.field_parameters
+        tr = func(self, grid, field, *args, **kwargs)
+        grid.field_parameters = old_params
+        return tr
+    return save_state
+
 def cache_mask(func):
     """
     For computationally intensive indexing operations, we can cache
@@ -3467,7 +3481,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                                    output_field, output_left)
             self.field_data[field] = output_field
 
-    @restore_grid_state
+    @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field].astype("float64") for field in fields]
