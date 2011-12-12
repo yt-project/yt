@@ -389,7 +389,6 @@ cdef class VolumeRenderSampler(ImageSampler):
         self.vra.fits = <FieldInterpolationTable *> \
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
-        print self.vra.n_fits
         assert(self.vra.n_fits <= 6)
         self.vra.n_samples = n_samples
         self.my_field_tables = []
