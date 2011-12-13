@@ -1272,6 +1272,17 @@ class AMRCuttingPlaneBase(AMR2DData):
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
 
+    def to_frb(self, width, resolution):
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
+
 class AMRFixedResCuttingPlaneBase(AMR2DData):
     """
     AMRFixedResCuttingPlaneBase is an oblique plane through the data,
