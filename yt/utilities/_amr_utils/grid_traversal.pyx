@@ -283,8 +283,8 @@ cdef class ImageSampler:
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
                     # Dynamically calculate the position
-                    px = width[0] * (<float>vi)/(<float>im.nv[0]) - width[0]/2.0
-                    py = width[1] * (<float>vj)/(<float>im.nv[1]) - width[1]/2.0
+                    px = width[0] * (<float>vi)/(<float>im.nv[0]-1) - width[0]/2.0
+                    py = width[1] * (<float>vj)/(<float>im.nv[1]-1) - width[1]/2.0
                     v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
                     v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
