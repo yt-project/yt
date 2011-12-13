@@ -348,8 +348,13 @@ class Camera(ParallelAnalysisInterface):
         """
         image = na.zeros((self.resolution[0], self.resolution[1], 3),
                          dtype='float64', order='C')
-        args = self.get_vector_plane(image)
-        args = args + (self.transfer_function, self.sub_samples)
+        rotp = na.concatenate([self.inv_mat.ravel('F'), self.back_center.ravel()])
+        args = (rotp, self.box_vectors[2], self.back_center,
+                (-self.width[0]/2.0, self.width[0]/2.0,
+                 -self.width[1]/2.0, self.width[1]/2.0),
+                image, self.unit_vectors[0], self.unit_vectors[1],
+                na.array(self.width),
+                self.transfer_function, self.sub_samples)
         sampler = VolumeRenderSampler(*args)
         self.volume.initialize_source()
 

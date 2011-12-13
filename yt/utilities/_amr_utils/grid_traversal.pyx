@@ -138,14 +138,16 @@ cdef class ImageSampler:
     cdef sample_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
     cdef void *supp_data
+    cdef np.float64_t width[3]
     def __init__(self, 
-                  np.ndarray[np.float64_t, ndim=3] vp_pos,
+                  np.ndarray vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
+                  np.ndarray[np.float64_t, ndim=1] width,
                   *args, **kwargs):
         self.image = <ImageContainer *> malloc(sizeof(ImageContainer))
         cdef ImageContainer *imagec = self.image
@@ -165,19 +167,22 @@ cdef class ImageSampler:
         imagec.image = <np.float64_t *> image.data
         imagec.x_vec = <np.float64_t *> x_vec.data
         imagec.y_vec = <np.float64_t *> y_vec.data
-        imagec.nv[0] = vp_pos.shape[0]
-        imagec.nv[1] = vp_pos.shape[1]
+        imagec.nv[0] = image.shape[0]
+        imagec.nv[1] = image.shape[1]
         for i in range(4): imagec.bounds[i] = bounds[i]
         imagec.pdx = (bounds[1] - bounds[0])/imagec.nv[0]
         imagec.pdy = (bounds[3] - bounds[2])/imagec.nv[1]
         for i in range(3):
             imagec.vp_strides[i] = vp_pos.strides[i] / 8
             imagec.im_strides[i] = image.strides[i] / 8
+            self.width[i] = width[i]
         if vp_dir.ndim > 1:
             for i in range(3):
                 imagec.vd_strides[i] = vp_dir.strides[i] / 8
-        else:
+        elif vp_pos.ndim == 1:
             imagec.vd_strides[0] = imagec.vd_strides[1] = imagec.vd_strides[2] = -1
+        else:
+            raise RuntimeError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -254,15 +259,20 @@ cdef class ImageSampler:
         hit = 0
         self.calculate_extent(extrema, vc)
         self.get_start_stop(extrema, iter)
-        iter[0] = iclip(iter[0]-1, 0, im.nv[0])
-        iter[1] = iclip(iter[1]+1, 0, im.nv[0])
-        iter[2] = iclip(iter[2]-1, 0, im.nv[1])
-        iter[3] = iclip(iter[3]+1, 0, im.nv[1])
+        iter[0] = iclip(iter[0]-1, 0, im.nv[0]-1)
+        iter[1] = iclip(iter[1]+1, 0, im.nv[0]-1)
+        iter[2] = iclip(iter[2]-1, 0, im.nv[1]-1)
+        iter[3] = iclip(iter[3]+1, 0, im.nv[1]-1)
         cdef ImageAccumulator *idata
         cdef void *data
         cdef int nx = (iter[1] - iter[0])
         cdef int ny = (iter[3] - iter[2])
         cdef int size = nx * ny
+        cdef np.float64_t px, py 
+        cdef np.float64_t width[3] 
+        for i in range(3):
+            width[i] = self.width[i]
+        #print iter[0], iter[1], iter[2], iter[3], width[0], width[1], width[2]
         if im.vd_strides[0] == -1:
             with nogil, parallel():
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
@@ -272,14 +282,19 @@ cdef class ImageSampler:
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
-                    offset = im.vp_strides[0] * vi + im.vp_strides[1] * vj
-                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
+                    # Dynamically calculate the position
+                    px = width[0] * (<float>vi)/(<float>im.nv[0]) - width[0]/2.0
+                    py = width[1] * (<float>vj)/(<float>im.nv[1]) - width[1]/2.0
+                    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
+                    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
+                    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
                     offset = im.im_strides[0] * vi + im.im_strides[1] * vj
                     for i in range(3): idata.rgba[i] = im.image[i + offset]
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
                                 (<void *> idata))
                     for i in range(3): im.image[i + offset] = idata.rgba[i]
                 free(idata)
+                free(v_pos)
         else:
             # If we do not have an orthographic projection, we have to cast all
             # our rays (until we can get an extrema calculation...)
@@ -371,16 +386,17 @@ cdef class VolumeRenderSampler(ImageSampler):
     cdef public object tf_obj
     cdef public object my_field_tables
     def __cinit__(self, 
-                  np.ndarray[np.float64_t, ndim=3] vp_pos,
+                  np.ndarray vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
+                  np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec)
+                               x_vec, y_vec, width)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
