@@ -201,22 +201,6 @@ cdef class ImageSampler:
         rv[2] = lrint((ex[2] - cy - im.bounds[2])/im.pdy)
         rv[3] = rv[2] + lrint((ex[3] - ex[2])/im.pdy)
 
-    cdef inline void copy_into(self, np.float64_t *fv, np.float64_t *tv,
-                        int i, int j, int nk, int strides[3]) nogil:
-        # We know the first two dimensions of our from-vector, and our
-        # to-vector is flat and 'ni' long
-        cdef int k
-        cdef int offset = strides[0] * i + strides[1] * j
-        for k in range(nk):
-            tv[k] = fv[offset + k]
-
-    cdef inline void copy_back(self, np.float64_t *fv, np.float64_t *tv,
-                        int i, int j, int nk, int strides[3]) nogil:
-        cdef int k
-        cdef int offset = strides[0] * i + strides[1] * j
-        for k in range(nk):
-            tv[offset + k] = fv[k]
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void calculate_extent(self, np.float64_t extrema[4],
@@ -255,7 +239,7 @@ cdef class ImageSampler:
         cdef ImageContainer *im = self.image
         self.setup(pg)
         if self.sampler == NULL: raise RuntimeError
-        cdef np.float64_t *v_pos, v_dir[3], rgba[6], extrema[4]
+        cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4]
         hit = 0
         self.calculate_extent(extrema, vc)
         self.get_start_stop(extrema, iter)
@@ -273,11 +257,11 @@ cdef class ImageSampler:
         for i in range(3):
             width[i] = self.width[i]
         #print iter[0], iter[1], iter[2], iter[3], width[0], width[1], width[2]
-        if im.vd_strides[0] == -1:
-            with nogil, parallel():
-                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-                idata.supp_data = self.supp_data
-                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        with nogil, parallel():
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            if im.vd_strides[0] == -1:
                 for j in prange(size, schedule="dynamic"):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
@@ -293,21 +277,24 @@ cdef class ImageSampler:
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
                                 (<void *> idata))
                     for i in range(3): im.image[i + offset] = idata.rgba[i]
-                free(idata)
-                free(v_pos)
-        else:
-            # If we do not have an orthographic projection, we have to cast all
-            # our rays (until we can get an extrema calculation...)
-            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-            data = <void *> idata
-            for vi in range(im.nv[0]):
-                for vj in range(im.nv[1]):
-                    for i in range(4): idata.rgba[i] = 0.0
-                    self.copy_into(im.vp_pos, v_pos, vi, vj, 3, im.vp_strides)
-                    self.copy_into(im.image, idata.rgba, vi, vj, 3, im.im_strides)
-                    self.copy_into(im.vp_dir, v_dir, vi, vj, 3, im.vd_strides)
+            else:
+                # If we do not have a simple image plane, we have to cast all
+                # our rays 
+                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+                for j in prange(size, schedule="dynamic"):
+                    vj = j % ny
+                    vi = (j - vj) / ny + iter[0]
+                    vj = vj + iter[2]
+                    offset = im.vp_strides[0] * vi + im.vp_strides[1] * vj
+                    for i in range(3): v_pos[i] = im.vp_dir[i + offset]
+                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
+                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    offset = im.vd_strides[0] * vi + im.vd_strides[1] * vj
+                    for i in range(3): v_dir[i] = im.vp_dir[i + offset]
                     walk_volume(vc, v_pos, v_dir, self.sampler, data)
-                    self.copy_back(idata.rgba, im.image, vi, vj, 3, im.im_strides)
+                free(v_dir)
+            free(idata)
+            free(v_pos)
         return hit
 
 cdef void projection_sampler(
