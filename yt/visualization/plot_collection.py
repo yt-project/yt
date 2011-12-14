@@ -211,9 +211,9 @@ class PlotCollection(object):
         Only ONE of the following options can be specified. If all 3 are
         specified, they will be used in the following precedence order:
 
-        * `ticks` - a list of floating point numbers at which to put ticks
-        * `minmaxtick` - display DEFAULT ticks with min & max also displayed
-        * `nticks` - if ticks not specified, can automatically determine a
+        * ``ticks`` - a list of floating point numbers at which to put ticks
+        * ``minmaxtick`` - display DEFAULT ticks with min & max also displayed
+        * ``nticks`` - if ticks not specified, can automatically determine a
           number of ticks to be evenly spaced in log space
         """
         for plot in self.plots:
@@ -1713,9 +1713,9 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     r"""Construct a multiple axes plot object, with or without a colorbar, into
     which multiple plots may be inserted.
 
-    This will create a set of `matplotlib.axes.Axes`, all lined up into a grid,
-    which are then returned to the user and which can be used to plot multiple
-    plots on a single figure.
+    This will create a set of :class:`matplotlib.axes.Axes`, all lined up into
+    a grid, which are then returned to the user and which can be used to plot
+    multiple plots on a single figure.
 
     Parameters
     ----------
