@@ -32,7 +32,7 @@ from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
     arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
-    arr_ang2pix_nest
+    arr_ang2pix_nest, arr_fisheye_vectors
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -792,6 +792,59 @@ class StereoPairCamera(Camera):
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
         return (left_camera, right_camera)
+
+class FisheyeCamera(Camera):
+    def __init__(self, center, radius, fov, resolution,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None, no_ghost=False):
+        ParallelAnalysisInterface.__init__(self)
+        if pf is not None: self.pf = pf
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.fov = fov
+        if iterable(resolution):
+            raise RuntimeError("Resolution must be a single int")
+        self.resolution = resolution
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.volume = volume
+
+    def snapshot(self):
+        image = na.zeros((self.resolution**2,1,3), dtype='float64', order='C')
+        # We now follow figures 4-7 of:
+        # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
+        # ...but all in Cython.
+        vp = arr_fisheye_vectors(self.resolution, self.fov)
+        vp.shape = (self.resolution**2,1,3)
+        uv = na.ones(3, dtype='float64')
+        positions = na.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
+        vector_plane = VectorPlane(positions, vp, self.center,
+                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Rendering fisheye of %s^2", self.resolution)
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+
+        total_cells = 0
+        for brick in self.volume.traverse(None, self.center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        image.shape = (self.resolution, self.resolution, 3)
+        return image
+
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, volume = None, no_ghost = True):

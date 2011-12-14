@@ -847,6 +847,38 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             self[field] = temp_data[field]
 
     def to_frb(self, width, resolution, center = None):
+        r"""This function returns a FixedResolutionBuffer generated from this
+        object.
+
+        A FixedResolutionBuffer is an object that accepts a variable-resolution
+        2D object and transforms it into an NxM bitmap that can be plotted,
+        examined or processed.  This is a convenience function to return an FRB
+        directly from an existing 2D data object.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+        center : array-like of floats, optional
+            The center of the FRB.  If not specified, defaults to the center of
+            the current object.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> proj = pf.h.proj(0, "Density")
+        >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
+        """
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
@@ -1271,6 +1303,52 @@ class AMRCuttingPlaneBase(AMR2DData):
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
+
+    def to_frb(self, width, resolution):
+        r"""This function returns an ObliqueFixedResolutionBuffer generated
+        from this object.
+
+        An ObliqueFixedResolutionBuffer is an object that accepts a
+        variable-resolution 2D object and transforms it into an NxM bitmap that
+        can be plotted, examined or processed.  This is a convenience function
+        to return an FRB directly from an existing 2D data object.  Unlike the
+        corresponding to_frb function for other AMR2DData objects, this does
+        not accept a 'center' parameter as it is assumed to be centered at the
+        center of the cutting plane.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> cutting = pf.h.cutting(L, c)
+        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_1pc.png')
+        """
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
 
 class AMRFixedResCuttingPlaneBase(AMR2DData):
     """

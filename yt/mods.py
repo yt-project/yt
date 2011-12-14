@@ -122,6 +122,10 @@ for name, cls in callback_registry.items():
 
 from yt.convenience import all_pfs, max_spheres, load, projload
 
+# Import some helpful math utilities
+from yt.utilities.math_utils import \
+    ortho_find, quartiles
+
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
