@@ -321,7 +321,7 @@ class FLASHStaticOutput(StaticOutput):
                 self._handle["simulation parameters"]["timestep"])
         else:
             self.parameters['timestep'] = \
-                float(self._find_parameter("real", "timestep", scalar=True))
+                float(self._find_parameter("real", "dt", scalar=True))
 
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 
