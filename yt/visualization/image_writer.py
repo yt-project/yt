@@ -24,7 +24,6 @@ import types
 import imp
 import os
 import numpy as na
-import pylab as pl
 
 from yt.funcs import *
 import _colormap_data as cmd
@@ -330,7 +329,7 @@ def splat_points(image, points_x, points_y,
     return im
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
-                    title=None, limits=None, take_log=True):
+                    title=None, limits=None, take_log=True, var_fig_size=False):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
@@ -357,6 +356,9 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         of the data array
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
+    var_fig_size : boolean
+        If we want the resolution (and size) of the output image to scale 
+        with the resolution of the image array.  
 
     Examples
     --------
@@ -367,6 +369,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          title="Offaxis Projection", limits=(1e-3,1e-5), 
                          take_log=True)
     """
+    import pylab as pl
 
     # If there are limits, then clip the data before plotting
     if limits is not None:
@@ -377,6 +380,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         data = na.log10(data)
         if limits is not None:
             limits = na.log10(limits)
+
 
     # Create the figure and paint the data on
     fig = pl.figure()
@@ -399,6 +403,14 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
 
-    pl.savefig(filename)
+    # If we want the resolution of the image to scale with the resolution
+    # of the image array. we increase the dpi value accordingly
+    if var_fig_size:
+        N = data.shape[0]
+        mag_factor = N/480.
+        pl.savefig(filename, dpi=100*mag_factor)
+    else:
+        pl.savefig(filename)
+
     pl.clf()
     pl.close()
