@@ -510,7 +510,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
     def _get_halo_profile(self, halo, filename, virial_filter=True,
             force_write=False):
-        """Profile a single halo and write profile data to a file.
+        r"""Profile a single halo and write profile data to a file.
         If file already exists, read profile data from file.
         Return a dictionary of id, center, and virial quantities if virial_filter is True.
         """
@@ -528,39 +528,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
 
-            sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
-            if len(sphere._grids) == 0: return None
-            new_sphere = False
-
-            if self.recenter:
-                old = halo['center']
-                if self.recenter in centering_registry:
-                    new_x, new_y, new_z = \
-                        centering_registry[self.recenter](sphere)
-                else:
-                    # user supplied function
-                    new_x, new_y, new_z = self.recenter(sphere)
-                if new_x < self.pf.domain_left_edge[0] or \
-                        new_y < self.pf.domain_left_edge[1] or \
-                        new_z < self.pf.domain_left_edge[2]:
-                    mylog.info("Recentering rejected, skipping halo %d" % \
-                        halo['id'])
-                    return None
-                halo['center'] = [new_x, new_y, new_z]
-                d = self.pf['kpc'] * periodic_dist(old, halo['center'],
-                    self.pf.domain_right_edge - self.pf.domain_left_edge)
-                mylog.info("Recentered halo %d %1.3e kpc away." % (halo['id'], d))
-                # Expand the halo to account for recentering. 
-                halo['r_max'] += d / 1000 # d is in kpc -> want mpc
-                new_sphere = True
-
-            if new_sphere:
-                # Temporary solution to memory leak.
-                for g in self.pf.h.grids:
-                    g.clear_data()
-                sphere.clear_data()
-                del sphere
-                sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+            # get a sphere object to profile
+            sphere = get_halo_sphere(halo, self.pf, recenter=self.recenter)
 
             if self._need_bulk_velocity:
                 # Set bulk velocity to zero out radial velocity profiles.
@@ -733,7 +702,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.projection_width/self.pf.units[self.projection_width_units]
-                    shift_projections(self.pf, projections, halo['center'], center, w)
+                    _shift_projections(self.pf, projections, halo['center'], center, w)
                     # Projection has now been shifted to center of box.
                     proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
                     proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
@@ -1002,7 +971,94 @@ class HaloProfiler(ParallelAnalysisInterface):
         else:
             os.mkdir(my_output_dir)
 
-def shift_projections(pf, projections, oldCenter, newCenter, axis):
+def get_halo_sphere(halo, pf, recenter=None):
+    r"""Returns a sphere object for a given halo.
+        
+    With a dictionary containing halo properties, such as center 
+    and r_max, this creates a sphere object and optionally 
+    recenters and recreates the sphere using a recentering function.
+    This is to be used primarily to make spheres for a set of halos 
+    loaded by the HaloProfiler.
+    
+    Parameters
+    ----------
+    halo : dict, required
+        The dictionary containing halo properties used to make the sphere.
+        Required entries:
+            center : list with center coordinates.
+            r_max : sphere radius in Mpc.
+    pf : parameter file object, required
+        The parameter file from which the sphere will be made.
+    recenter : {None, string or function}
+        The exact location of the sphere center can significantly affect 
+        radial profiles.  The halo center loaded by the HaloProfiler will 
+        typically be the dark matter center of mass calculated by a halo 
+        finder.  However, this may not be the best location for centering 
+        profiles of baryon quantities.  For example, one may want to center 
+        on the maximum density.
+        If recenter is given as a string, one of the existing recentering 
+        functions will be used:
+            Min_Dark_Matter_Density : location of minimum dark matter density
+            Max_Dark_Matter_Density : location of maximum dark matter density
+            CoM_Dark_Matter_Density : dark matter center of mass
+            Min_Gas_Density : location of minimum gas density
+            Max_Gas_Density : location of maximum gas density
+            CoM_Gas_Density : gas center of mass
+            Min_Total_Density : location of minimum total density
+            Max_Total_Density : location of maximum total density
+            CoM_Total_Density : total center of mass
+            Min_Temperature : location of minimum temperature
+            Max_Temperature : location of maximum temperature
+        Alternately, a function can be supplied for custom recentering.
+        The function should take only one argument, a sphere object.
+            Example function:
+                def my_center_of_mass(data):
+                   my_x, my_y, my_z = data.quantities['CenterOfMass']()
+                   return (my_x, my_y, my_z)
+
+        Examples: this should primarily be used with the halo list of the HaloProfiler.
+        This is an example with an abstract halo asssuming a pre-defined pf.
+        >>> halo = {'center': [0.5, 0.5, 0.5], 'r_max': 1.0}
+        >>> my_sphere = get_halo_sphere(halo, pf, recenter='Max_Gas_Density')
+        >>> # Assuming the above example function has been defined.
+        >>> my_sphere = get_halo_sphere(halo, pf, recenter=my_center_of_mass)
+    """
+        
+    sphere = pf.h.sphere(halo['center'], halo['r_max']/pf.units['mpc'])
+    if len(sphere._grids) == 0: return None
+    new_sphere = False
+
+    if recenter:
+        old = halo['center']
+        if recenter in centering_registry:
+            new_x, new_y, new_z = \
+                centering_registry[recenter](sphere)
+        else:
+            # user supplied function
+            new_x, new_y, new_z = recenter(sphere)
+        if new_x < pf.domain_left_edge[0] or \
+                new_y < pf.domain_left_edge[1] or \
+                new_z < pf.domain_left_edge[2]:
+            mylog.info("Recentering rejected, skipping halo %d" % \
+                halo['id'])
+            return None
+        halo['center'] = [new_x, new_y, new_z]
+        d = pf['kpc'] * periodic_dist(old, halo['center'],
+            pf.domain_right_edge - pf.domain_left_edge)
+        mylog.info("Recentered halo %d %1.3e kpc away." % (halo['id'], d))
+        # Expand the halo to account for recentering. 
+        halo['r_max'] += d / 1000 # d is in kpc -> want mpc
+        new_sphere = True
+
+    if new_sphere:
+        # Temporary solution to memory leak.
+        for g in pf.h.grids:
+            g.clear_data()
+        sphere.clear_data()
+        del sphere
+        sphere = pf.h.sphere(halo['center'], halo['r_max']/pf.units['mpc'])
+
+def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """
     Shift projection data around.
     This is necessary when projecting a preiodic region.
