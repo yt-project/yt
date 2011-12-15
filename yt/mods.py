@@ -108,7 +108,7 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image
+    apply_colormap, scale_image, write_projection
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
@@ -121,6 +121,10 @@ for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
+# Import some helpful math utilities
+from yt.utilities.math_utils import \
+    ortho_find, quartiles
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
