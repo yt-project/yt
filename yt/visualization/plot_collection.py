@@ -1733,12 +1733,12 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
 
     Returns
     -------
-    fig : `matplotlib.figure.Figure
+    fig : :class:`matplotlib.figure.Figure`
         The figure created inside which the axes reside
-    tr : list of list of `matplotlib.axes.Axes` objects
+    tr : list of list of :class:`matplotlib.axes.Axes` objects
         This is a list, where the inner list is along the x-axis and the outer
         is along the y-axis
-    cbars : list of `matplotlib.axes.Axes` objects
+    cbars : list of :class:`matplotlib.axes.Axes` objects
         Each of these is an axes onto which a colorbar can be placed.
 
     Notes
