@@ -66,7 +66,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                  recenter = None,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
-                 velocity_center=['bulk', 'halo'], filter_quantities=['id','center'], 
+                 velocity_center=['bulk', 'halo'], filter_quantities=['id', 'center', 'r_max'], 
                  use_critical_density=False):
         r"""Initialize a Halo Profiler object.
         
@@ -530,6 +530,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             # get a sphere object to profile
             sphere = get_halo_sphere(halo, self.pf, recenter=self.recenter)
+            if sphere is None: return None
 
             if self._need_bulk_velocity:
                 # Set bulk velocity to zero out radial velocity profiles.
@@ -741,6 +742,76 @@ class HaloProfiler(ParallelAnalysisInterface):
                     if save_cube: output.close()
 
             del region
+
+    @parallel_blocking_call
+    def analyze_halo_spheres(self, analysis_function, halo_list='filtered',
+                             analysis_output_dir=None):
+        r"""Perform custom analysis on all halos.
+        
+        This will loop through all halo on the HaloProfiler's list, 
+        creating a sphere object for each halo and passing that sphere 
+        to the provided analysis function.
+        
+        Parameters
+        ---------
+        analysis_function : function
+            A function taking two arguments, the halo dictionary, and a 
+            sphere object.
+            Example function to calculate total mass of halo:
+                def my_analysis(halo, sphere):
+                    total_mass = sphere.quantities['TotalMass']()
+                    print total_mass
+        halo_list : {'filtered', 'all'}
+            Which set of halos to make profiles of, either ones passed by the
+            halo filters (if enabled/added), or all halos.
+            Default='filtered'.
+        analysis_output_dir : string, optional
+            If specified, this directory will be created within the dataset to 
+            contain any output from the analysis function.  Default: None.
+
+        Examples
+        --------
+        >>> hp.analyze_halo_spheres(my_analysis, halo_list="filtered",
+                                    analysis_output_dir='special_analysis')
+        
+        """
+
+        # Get list of halos for projecting.
+        if halo_list == 'filtered':
+            self._halo_analysis_list = self.filtered_halos
+        elif halo_list == 'all':
+            self._halo_analysis_list = self.all_halos
+        elif isinstance(halo_list, types.StringType):
+            self._halo_analysis_list = self._read_halo_list(halo_list)
+        elif isinstance(halo_list, types.ListType):
+            self._halo_analysis_list = halo_list
+        else:
+            mylog.error("Keyword, halo_list', must be 'filtered', 'all', a filename, or an actual list.")
+            return
+
+        if len(self._halo_analysis_list) == 0:
+            mylog.error("Halo list for analysis is empty.")
+            return
+
+        # Create output directory.
+        if analysis_output_dir is not None:
+            if self.output_dir is not None:
+                self.__check_directory("%s/%s" % (self.output_dir, self.pf.directory))
+                my_output_dir = "%s/%s/%s" % (self.output_dir, self.pf.directory, 
+                                              analysis_output_dir)
+            else:
+                my_output_dir = "%s/%s" % (self.pf.fullpath, analysis_output_dir)
+            self.__check_directory(my_output_dir)
+
+        for halo in self._get_objs('_halo_analysis_list', round_robin=True):
+            if halo is None: continue
+
+            # Get a sphere object to analze.
+            sphere = get_halo_sphere(halo, self.pf, recenter=self.recenter)
+            if sphere is None: continue
+
+            # Call the given analysis function.
+            analysis_function(halo, sphere)
 
     def _add_actual_overdensity(self, profile):
         "Calculate overdensity from TotalMassMsun and CellVolume fields."
@@ -1057,6 +1128,7 @@ def get_halo_sphere(halo, pf, recenter=None):
         sphere.clear_data()
         del sphere
         sphere = pf.h.sphere(halo['center'], halo['r_max']/pf.units['mpc'])
+    return sphere
 
 def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """
