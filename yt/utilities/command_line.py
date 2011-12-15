@@ -91,7 +91,7 @@ _common_options = dict(
                    action="store", type="float",
                    dest="center", default=None,
                    nargs=3,
-                   help="Center, command separated (-1 -1 -1 for max)"),
+                   help="Center, space separated (-1 -1 -1 for max)"),
     bn      = dict(short="-b", long="--basename",
                    action="store", type="string",
                    dest="basename", default=None,
@@ -161,6 +161,37 @@ _common_options = dict(
                    action="store_true",
                    dest="time", default=False,
                    help="Print time in years on image"),
+    contours    = dict(short="", long="--contours",
+                   action="store",type="int",
+                   dest="contours", default=None,
+                   help="Number of Contours for Rendering"),
+    contour_width  = dict(short="", long="--contour_width",
+                   action="store",type="float",
+                   dest="contour_width", default=None,
+                   help="Width of gaussians used for rendering."),
+    enhance   = dict(short="", long="--enhance",
+                   action="store_true",
+                   dest="enhance", default=False,
+                   help="Enhance!"),
+    valrange  = dict(short="-r", long="--range",
+                   action="store", type="float",
+                   dest="valrange", default=None,
+                   nargs=2,
+                   help="Range, space separated"),
+    up  = dict(short="", long="--up",
+                   action="store", type="float",
+                   dest="up", default=None,
+                   nargs=3,
+                   help="Up, space separated"),
+    viewpoint  = dict(short="", long="--viewpoint",
+                   action="store", type="float",
+                   dest="viewpoint", default=[1., 1., 1.],
+                   nargs=3,
+                   help="Viewpoint, space separated"),
+    pixels    = dict(short="", long="--pixels",
+                   action="store",type="int",
+                   dest="pixels", default=None,
+                   help="Number of Pixels for Rendering"),
     halos   = dict(short="", long="--halos",
                    action="store", type="string",
                    dest="halos",default="multiple",
@@ -294,10 +325,11 @@ def bb_apicall(endpoint, data, use_pass = True):
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
-def _get_yt_supp():
+def _get_yt_supp(uu):
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
+    from mercurial import hg, ui, commands
     if not os.path.isdir(supp_path):
         print
         print "*** The yt-supplemental repository is not checked ***"
@@ -362,11 +394,14 @@ class YTCommands(cmdln.Cmdln):
             print "---"
             print
             print "This installation CAN be automatically updated."
+            _update_hg(path)
             print "Updated successfully."
         else:
             print
             print "YT site-packages not in path, so you must"
-            print "update this installation manually."
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
 
     @cmdln.option("-u", "--update-source", action="store_true",
@@ -412,7 +447,10 @@ class YTCommands(cmdln.Cmdln):
             print "Updated successfully."
         elif opts.update_source:
             print
-            print "You have to update this installation yourself."
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
             print
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
@@ -429,14 +467,29 @@ class YTCommands(cmdln.Cmdln):
             print "Could not load file."
             sys.exit()
         import yt.mods
-        from IPython.Shell import IPShellEmbed
+
+        import IPython
+        if IPython.__version__.startswith("0.10"):
+            api_version = '0.10'
+        elif IPython.__version__.startswith("0.11"):
+            api_version = '0.11'
+
         local_ns = yt.mods.__dict__.copy()
         local_ns['pf'] = pf
-        shell = IPShellEmbed()
-        shell(local_ns = local_ns,
-              header =
-            "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
-             )
+
+        if api_version == '0.10':
+            shell = IPython.Shell.IPShellEmbed()
+            shell(local_ns = local_ns,
+                  header =
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  )
+        else:
+            from IPython.config.loader import Config
+            cfg = Config()
+            cfg.InteractiveShellEmbed.local_ns = local_ns
+            IPython.embed(config=cfg)
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+            ipshell = InteractiveShellEmbed(config=cfg)
 
     @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args
@@ -606,16 +659,18 @@ class YTCommands(cmdln.Cmdln):
                            virial_quantities=['TotalMassMsun','RadiusMpc'])
 
         # Add profile fields.
-        hp.add_profile('CellVolume',weight_field=None,accumulation=True)
-        hp.add_profile('TotalMassMsun',weight_field=None,accumulation=True)
-        hp.add_profile('Density',weight_field=None,accumulation=False)
-        hp.add_profile('Temperature',weight_field='CellMassMsun',accumulation=False)
+        pf = hp.pf
+        all_fields = pf.h.field_list + pf.h.derived_field_list
+        for field, wv, acc in HP.standard_fields:
+            if field not in all_fields: continue
+            hp.add_profile(field, wv, acc)
         hp.make_profiles(filename="FilteredQuantities.out")
 
         # Add projection fields.
         hp.add_projection('Density',weight_field=None)
         hp.add_projection('Temperature',weight_field='Density')
-        hp.add_projection('Metallicity',weight_field='Density')
+        if "Metallicity" in all_fields:
+            hp.add_projection('Metallicity',weight_field='Density')
 
         # Make projections for all three axes using the filtered halo list and
         # save data to hdf5 files.
@@ -638,7 +693,7 @@ class YTCommands(cmdln.Cmdln):
         pc_dummy = PlotCollection(pf, center=c)
         pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
                             weight="CellMassMsun")
-        ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
+        ph.modify["line"](pr.field_data["Density"], pr.field_data["Temperature"])
         pc.save()
 
     @cmdln.option("-d", "--desc", action="store",
@@ -850,7 +905,7 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        supp_path = _get_yt_supp()
+        supp_path = _get_yt_supp(uu)
         print
         print "I have found the yt-supplemental repository at %s" % (supp_path)
         print
@@ -1019,6 +1074,19 @@ class YTCommands(cmdln.Cmdln):
             print
             loki = raw_input("Press enter to go on, Ctrl-C to exit.")
             cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
+        bb_fp = "81:2b:08:90:dc:d3:71:ee:e0:7c:b4:75:ce:9b:6c:48:94:56:a1:fe"
+        if uu.config("hostfingerprints", "bitbucket.org", None) is None:
+            print "Let's also add bitbucket.org to the known hosts, so hg"
+            print "doesn't warn us about bitbucket."
+            print "We will add this:"
+            print
+            print "   [hostfingerprints]"
+            print "   bitbucket.org = %s" % (bb_fp)
+            print
+            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
+            cedit.config.setoption(uu, hgrc_path,
+                                   "hostfingerprints.bitbucket.org=%s" % bb_fp)
+
         # We now reload the UI's config file so that it catches the [bb]
         # section changes.
         uu.readconfig(hgrc_path[0])
@@ -1253,7 +1321,8 @@ class YTCommands(cmdln.Cmdln):
         import imp
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
-        supp_path = _get_yt_supp()
+        uu = ui.ui()
+        supp_path = _get_yt_supp(uu)
         try:
             result = imp.find_module("cedit", [supp_path])
         except ImportError:
@@ -1270,7 +1339,6 @@ class YTCommands(cmdln.Cmdln):
             print "Sorry, but I'm going to bail."
             sys.exit(1)
         hgbb = imp.load_module("hgbb", *result)
-        uu = ui.ui()
         try:
             repo = hg.repository(uu, opts.repo)
             conf = config.config()
@@ -1447,6 +1515,93 @@ class YTCommands(cmdln.Cmdln):
             print "Something has gone wrong!  Here is the server response:"
             print
             pprint.pprint(rv)
+
+    @add_cmd_options(["width", "unit", "center","enhance",'outputfn',
+                      "field", "cmap", "contours", "viewpoint",
+                      "pixels","up","valrange","log","contour_width"])
+    @check_args
+    def do_render(self, subcmd, opts, arg):
+        """
+        Create a simple volume rendering
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
+        center = opts.center
+        if opts.center == (-1,-1,-1):
+            mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        elif opts.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+        center = na.array(center)
+
+        L = opts.viewpoint
+        if L is None:
+            L = [1.]*3
+        L = na.array(opts.viewpoint)
+
+        unit = opts.unit
+        if unit is None:
+            unit = '1'
+        width = opts.width
+        if width is None:
+            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
+        width /= pf[unit]
+
+        N = opts.pixels
+        if N is None:
+            N = 512 
+        
+        up = opts.up
+        if up is None:
+            up = [0.,0.,1.]
+            
+        field = opts.field
+        if field is None:
+            field = 'Density'
+        
+        log = opts.takelog
+        if log is None:
+            log = True
+
+        myrange = opts.valrange
+        if myrange is None:
+            roi = pf.h.region(center, center-width, center+width)
+            mi, ma = roi.quantities['Extrema'](field)[0]
+            if log:
+                mi, ma = na.log10(mi), na.log10(ma)
+        else:
+            mi, ma = myrange[0], myrange[1]
+
+        n_contours = opts.contours
+        if n_contours is None:
+            n_contours = 7
+
+        contour_width = opts.contour_width
+
+        cmap = opts.cmap
+        if cmap is None:
+            cmap = 'jet'
+        tf = ColorTransferFunction((mi-2, ma+2))
+        tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
+
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        image = cam.snapshot()
+
+        if opts.enhance:
+            for i in range(3):
+                image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
+            image[image>1.0]=1.0
+            
+        save_name = opts.output
+        if save_name is None:
+            save_name = "%s"%pf+"_"+field+"_rendering.png"
+        if not '.png' in save_name:
+            save_name += '.png'
+        if cam.comm.rank != -1:
+            write_bitmap(image,save_name)
+        
 
 def run_main():
     for co in ["--parallel", "--paste"]:

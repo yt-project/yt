@@ -719,7 +719,7 @@ class DualEPS(object):
 def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
               yranges=None, xlabels=None, ylabels=None, colorbars=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
-              savefig=None, yt_nocbar=False, bare_axes=False,
+              savefig=None, format="eps", yt_nocbar=False, bare_axes=False,
               cb_flags=None):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
@@ -756,6 +756,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
         Titles that are placed in textboxes in each panel.
     savefig : string
         Name of the saved file without the extension.
+    format : string
+        File format of the figure. eps or pdf accepted.
     yt_nocbar : boolean
         Flag to indicate whether or not colorbars are created.
     bare_axes : boolean
@@ -908,7 +910,7 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
                                        shrink=shrink_cb)
 
     if savefig != None:
-        d.save_fig(savefig)
+        d.save_fig(savefig, format=format)
 
     return d
 

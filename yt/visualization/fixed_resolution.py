@@ -30,6 +30,7 @@ from yt.utilities.definitions import \
     axis_names
 import _MPL
 import numpy as na
+import weakref
 
 class FixedResolutionBuffer(object):
     def __init__(self, data_source, bounds, buff_size, antialias = True,
@@ -95,6 +96,10 @@ class FixedResolutionBuffer(object):
         self.data = {}
         self.axis = data_source.axis
         self.periodic = periodic
+
+        h = getattr(data_source, "hierarchy", None)
+        if h is not None:
+            h.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
@@ -272,6 +277,17 @@ class FixedResolutionBuffer(object):
         if take_log: data=na.log10(self[field])
         else: data=self[field]
         numdisplay.display(data)    
+
+    @property
+    def limits(self):
+        rv = dict(x = None, y = None, z = None)
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        xn = axis_names[xax]
+        yn = axis_names[yax]
+        rv[xn] = (self.bounds[0], self.bounds[1])
+        rv[yn] = (self.bounds[2], self.bounds[3])
+        return rv
 
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """

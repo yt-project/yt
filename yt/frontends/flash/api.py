@@ -34,7 +34,6 @@ from .data_structures import \
       FLASHStaticOutput
 
 from .fields import \
-      FLASHFieldContainer, \
       FLASHFieldInfo, \
       add_flash_field
 

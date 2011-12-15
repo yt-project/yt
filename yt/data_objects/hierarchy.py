@@ -35,12 +35,12 @@ from yt.funcs import *
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
+from yt.data_objects.field_info_container import NullFunc
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
-from object_finding_mixin import \
-    ObjectFindingMixin
+from object_finding_mixin import ObjectFindingMixin
 
 from .data_containers import data_object_registry
 
@@ -48,6 +48,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 
     def __init__(self, pf, data_style):
+        ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
 
@@ -87,6 +88,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         mylog.debug("Re-examining hierarchy")
         self._initialize_level_stats()
 
+    def __del__(self):
+        if self._data_file is not None:
+            self._data_file.close()
+
     def _get_parameters(self):
         return self.parameter_file.parameters
     parameters=property(_get_parameters)
@@ -120,12 +125,44 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         # Called by subclass
         self.object_types = []
         self.objects = []
+        self.plots = []
         for name, cls in sorted(data_object_registry.items()):
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cname, cls, dd)
+        if self.pf.refine_by != 2 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Refine by something other than two: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
         self.object_types.sort()
 
+    def _setup_unknown_fields(self):
+        known_fields = self.parameter_file._fieldinfo_known
+        for field in self.field_list:
+            # By allowing a backup, we don't mandate that it's found in our
+            # current field info.  This means we'll instead simply override
+            # it.
+            ff = self.parameter_file.field_info.pop(field, None)
+            if field not in known_fields:
+                rootloginfo("Adding unknown field %s to list of fields", field)
+                cf = None
+                if self.parameter_file.has_key(field):
+                    def external_wrapper(f):
+                        def _convert_function(data):
+                            return data.convert(f)
+                        return _convert_function
+                    cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D, 2D
+                # and 3D fields.
+                self.pf.field_info.add_field(
+                        field, NullFunc,
+                        convert_function=cf, take_log=False, units=r"Unknown")
+            else:
+                mylog.debug("Adding known field %s to list of fields", field)
+                self.parameter_file.field_info[field] = known_fields[field]
+            
     # Now all the object related stuff
 
     def all_data(self, find_max=False):
@@ -171,7 +208,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             writeable = os.access(fn, os.W_OK)
         writeable = writeable and not ytcfg.getboolean('yt','onlydeserialize')
         # We now have our conditional stuff
-        self._barrier()
+        self.comm.barrier()
         if not writeable and not exists: return
         if writeable:
             try:

@@ -164,6 +164,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         >>> hp = HP.halo_profiler("DD0242/DD0242")
         
         """
+        ParallelAnalysisInterface.__init__(self)
 
         self.dataset = dataset
         self.output_dir = output_dir
@@ -350,7 +351,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             
         """
 
-        self.profile_fields.append({'field':field, 'weight_field':weight_field, 'accumulation':accumulation})
+        self.profile_fields.append({'field':field, 'weight_field':weight_field, 
+                                    'accumulation':accumulation})
 
     def add_projection(self, field, weight_field=None, cmap='algae'):
         r"""Make a projection of the specified field.
@@ -494,11 +496,13 @@ class HaloProfiler(ParallelAnalysisInterface):
             updated_halos.append(halo)
         
         # And here is where we bring it all together.
-        updated_halos = self._mpi_catlist(updated_halos)
+        updated_halos = self.comm.par_combine_object(updated_halos,
+                            datatype="list", op="cat")
         updated_halos.sort(key = lambda a:a['id'])
         self.all_halos = updated_halos
 
-        self.filtered_halos = self._mpi_catlist(self.filtered_halos)
+        self.filtered_halos = self.comm.par_combine_object(self.filtered_halos,
+                            datatype="list", op="cat")
         self.filtered_halos.sort(key = lambda a:a['id'])
 
         if filename is not None:
@@ -564,7 +568,9 @@ class HaloProfiler(ParallelAnalysisInterface):
                     if self.velocity_center[1] == 'halo':
                         sphere.set_field_parameter('bulk_velocity', halo['velocity'])
                     elif self.velocity_center[1] == 'sphere':
-                        sphere.set_field_parameter('bulk_velocity', sphere.quantities['BulkVelocity'](lazy_reader=False, preload=False))
+                        sphere.set_field_parameter('bulk_velocity', 
+                                                   sphere.quantities['BulkVelocity'](lazy_reader=False, 
+                                                                                     preload=False))
                     else:
                         mylog.error("Invalid parameter: VelocityCenter.")
                 elif self.velocity_center[0] == 'max':
@@ -582,8 +588,14 @@ class HaloProfiler(ParallelAnalysisInterface):
             except EmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
+            # Figure out which fields to add simultaneously
+            field_groupings = defaultdict(lambda: defaultdict(list))
             for hp in self.profile_fields:
-                profile.add_fields(hp['field'], weight=hp['weight_field'], accumulation=hp['accumulation'])
+                field_groupings[hp['weight_field']][hp['accumulation']].append(hp['field'])
+            for weight_field in field_groupings:
+                for accum, fields in field_groupings[weight_field].items():
+                    profile.add_fields(fields, weight=weight_field,
+                                       accumulation=accum)
 
         if virial_filter:
             self._add_actual_overdensity(profile)
@@ -656,7 +668,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             proj_level = self.pf.h.max_level
         else:
             proj_level = int(self.project_at_level)
-        proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \
+        proj_dx = self.pf.units[self.projection_width_units] / \
+            self.pf.parameters['TopGridDimensions'][0] / \
             (self.pf.parameters['RefineBy']**proj_level)
         projectionResolution = int(self.projection_width / proj_dx)
 
@@ -669,7 +682,8 @@ class HaloProfiler(ParallelAnalysisInterface):
             my_output_dir = "%s/%s" % (self.pf.fullpath, self.projection_output_dir)
         self.__check_directory(my_output_dir)
 
-        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
+        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + 
+                         self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
 
         for halo in self._get_objs('_halo_projection_list', round_robin=True):
@@ -677,13 +691,16 @@ class HaloProfiler(ParallelAnalysisInterface):
                 continue
             # Check if region will overlap domain edge.
             # Using non-periodic regions is faster than using periodic ones.
-            leftEdge = [(halo['center'][w] - 0.5 * self.projection_width/self.pf.units[self.projection_width_units])
+            leftEdge = [(halo['center'][w] - 
+                         0.5 * self.projection_width/self.pf.units[self.projection_width_units])
                         for w in range(len(halo['center']))]
-            rightEdge = [(halo['center'][w] + 0.5 * self.projection_width/self.pf.units[self.projection_width_units])
+            rightEdge = [(halo['center'][w] + 
+                          0.5 * self.projection_width/self.pf.units[self.projection_width_units])
                          for w in range(len(halo['center']))]
 
             mylog.info("Projecting halo %04d in region: [%f, %f, %f] to [%f, %f, %f]." %
-                       (halo['id'], leftEdge[0], leftEdge[1], leftEdge[2], rightEdge[0], rightEdge[1], rightEdge[2]))
+                       (halo['id'], leftEdge[0], leftEdge[1], leftEdge[2], 
+                        rightEdge[0], rightEdge[1], rightEdge[2]))
 
             need_per = False
             for w in range(len(halo['center'])):
@@ -710,13 +727,13 @@ class HaloProfiler(ParallelAnalysisInterface):
                 for hp in self.projection_fields:
                     projections.append(self.pf.h.proj(w, hp['field'], 
                                                       weight_field=hp['weight_field'], 
-                                                      data_source=region, center=halo['center'],
+                                                      source=region, center=halo['center'],
                                                       serialize=False))
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.projection_width/self.pf.units[self.projection_width_units]
-                    #shift_projections(self.pf, projections, halo['center'], center, w)
+                    shift_projections(self.pf, projections, halo['center'], center, w)
                     # Projection has now been shifted to center of box.
                     proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
                     proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
@@ -747,7 +764,11 @@ class HaloProfiler(ParallelAnalysisInterface):
                         if save_images:
                             filename = "%s/Halo_%04d_%s_%s.png" % (my_output_dir, halo['id'], 
                                                                    dataset_name, axis_labels[w])
-                            write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+                            if (frb[hp['field']] != 0).any():
+                                write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+                            else:
+                                mylog.info('Projection of %s for halo %d is all zeros, skipping image.' %
+                                            (hp['field'], halo['id']))
                     if save_cube: output.close()
 
             del region
@@ -908,7 +929,8 @@ class HaloProfiler(ParallelAnalysisInterface):
     def _run_hop(self, hop_file):
         "Run hop to get halos."
 
-        hop_results = self.halo_finder_function(self.pf, *self.halo_finder_args, **self.halo_finder_kwargs)
+        hop_results = self.halo_finder_function(self.pf, *self.halo_finder_args, 
+                                                **self.halo_finder_kwargs)
         hop_results.write_out(hop_file)
 
         del hop_results
@@ -995,7 +1017,7 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
     for plot in projections:
         # Get name of data field.
         other_fields = {'px':True, 'py':True, 'pdx':True, 'pdy':True, 'weight_field':True}
-        for pfield in plot.data.keys():
+        for pfield in plot.field_data.keys():
             if not(other_fields.has_key(pfield)):
                 field = pfield
                 break
@@ -1050,14 +1072,19 @@ def shift_projections(pf, projections, oldCenter, newCenter, axis):
         add2_y_weight_field = plot['weight_field'][plot['py'] - 0.5 * plot['pdy'] < 0]
 
         # Add the hanging cells back to the projection data.
-        plot.data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
-        plot.data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
-        plot.data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
-        plot.data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
-        plot.data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
-        plot.data['weight_field'] = na.concatenate([plot['weight_field'],
-                                                    add_x_weight_field, add_y_weight_field, 
-                                                    add2_x_weight_field, add2_y_weight_field])
+        plot.field_data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px, 
+                                                add2_x_px, add2_y_px])
+        plot.field_data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py, 
+                                                add2_x_py, add2_y_py])
+        plot.field_data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx, 
+                                                 add2_x_pdx, add2_y_pdx])
+        plot.field_data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, 
+                                                 add2_x_pdy, add2_y_pdy])
+        plot.field_data[field] = na.concatenate([plot[field], add_x_field, add_y_field, 
+                                                 add2_x_field, add2_y_field])
+        plot.field_data['weight_field'] = na.concatenate([plot['weight_field'],
+                                                          add_x_weight_field, add_y_weight_field, 
+                                                          add2_x_weight_field, add2_y_weight_field])
 
         # Delete original copies of hanging cells.
         del add_x_px, add_y_px, add2_x_px, add2_y_px
@@ -1072,6 +1099,7 @@ class FakeProfile(ParallelAnalysisInterface):
     This is used to mimic a profile object when reading profile data from disk.
     """
     def __init__(self, pf):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self._data = {}
 
@@ -1080,3 +1108,34 @@ class FakeProfile(ParallelAnalysisInterface):
 
     def keys(self):
         return self._data.keys()
+
+standard_fields = [
+    ("Density", "CellMassMsun", False),
+    ("Temperature", "CellMassMsun", False),
+    ("VelocityMagnitude", "CellMassMsun", False),
+    ("Ones", None, False),
+    ("Entropy", "CellMassMsun", False),
+    ("RadialVelocity", "CellMassMsun", False),
+    ("SpecificAngularMomentumX", "CellMassMsun", False),
+    ("SpecificAngularMomentumY", "CellMassMsun", False),
+    ("SpecificAngularMomentumZ", "CellMassMsun", False),
+    ("CoolingTime", "CellMassMsun", False),
+    ("DynamicalTime", "CellMassMsun", False),
+    ("CellMassMsun", None, True),
+    ("TotalMassMsun", None, True),
+    ("Dark_Matter_Density", "CellMassMsun", False),
+    #("ParticleSpecificAngularMomentumX", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumY", "ParticleMassMsun"),
+    #("ParticleSpecificAngularMomentumZ", "ParticleMassMsun"),
+    ("OverDensity", "CellMassMsun", False),
+    #("ParticleMassMsun", None),
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+    #("StarParticleMassMsun", None), 
+    ("StarParticleDensity", "StarParticleMassMsun", False), # How do we weight this?
+]
+
+standard_fields += [("%s_Fraction" % (s), "CellMassMsun", False)
+    for s in ["HI","HII","HeI","HeII","HeIII","H2I","H2II",
+    "HM","Electron", "DI","DII","HDI","Metal"]
+]
+

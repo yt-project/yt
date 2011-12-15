@@ -36,12 +36,15 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.logger import ytLogger as mylog
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 from yt.utilities.amr_utils import \
     get_box_grids_level
 
 from .fields import \
     StreamFieldContainer, \
-    add_stream_field
+    add_stream_field, \
+    KnownStreamFields
 
 class StreamGrid(AMRGridPatch):
     """
@@ -166,21 +169,23 @@ class StreamHierarchy(AMRHierarchy):
         if parent_ids is not None:
             reverse_tree = self.stream_handler.parent_ids.tolist()
             # Initial setup:
-            for id,pid in enumerate(reverse_tree):
+            for gid,pid in enumerate(reverse_tree):
                 if pid >= 0:
-                    self.grids[-1]._parent_id = pid
-                    self.grids[pid]._children_ids.append(self.grids[-1].id)
+                    self.grids[id]._parent_id = pid
+                    self.grids[pid]._children_ids.append(self.grids[gid].id)
         else:
             mylog.debug("Reconstructing parent-child relationships")
             self._reconstruct_parent_child()
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
+        temp_grids = na.empty(self.num_grids, dtype='object')
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i]
-        self.grids = na.array(self.grids, dtype='object')
+            temp_grids[i] = grid
+        self.grids = temp_grids
         mylog.debug("Prepared")
 
     def _reconstruct_parent_child(self):
@@ -242,6 +247,7 @@ class StreamHierarchy(AMRHierarchy):
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_class = StreamFieldContainer
+    _fieldinfo_known = KnownStreamFields
     _data_style = 'stream'
 
     def __init__(self, stream_handler):
@@ -253,7 +259,6 @@ class StreamStaticOutput(StaticOutput):
         self.stream_handler = stream_handler
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
-        self.field_info = self._fieldinfo_class()
         self.units = {}
         self.time_units = {}
 

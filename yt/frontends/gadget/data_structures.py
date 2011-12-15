@@ -37,7 +37,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from .fields import GadgetFieldContainer
+from .fields import GadgetFieldInfo, KnownGadgetFields
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 
 class GadgetGrid(AMRGridPatch):
     _id_offset = 0
@@ -69,7 +71,6 @@ class GadgetHierarchy(AMRHierarchy):
     grid = GadgetGrid
 
     def __init__(self, pf, data_style='gadget_hdf5'):
-        self.field_info = GadgetFieldContainer()
         self.filename = pf.filename
         self.directory = os.path.dirname(pf.filename)
         self.data_style = data_style
@@ -121,9 +122,9 @@ class GadgetHierarchy(AMRHierarchy):
         args = izip(xrange(self.num_grids), self.grid_levels.flat,
                     grid_parent_id, LI,
                     self.grid_dimensions, self.grid_particle_count.flat)
-        self.grids = na.array([self.grid(self,j,d,le,lvl,p,n)
-                               for j,lvl,p, le, d, n in args],
-                           dtype='object')
+        self.grids = na.empty(len(args), dtype='object')
+        for gi, (j,lvl,p, le, d, n) in enumerate(args):
+            self.grids[gi] = self.grid(self,j,d,le,lvl,p,n)
         
     def _populate_grid_objects(self):    
         for g in self.grids:
@@ -135,19 +136,16 @@ class GadgetHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
             
-        
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = GadgetHierarchy
-    _fieldinfo_class = GadgetFieldContainer
+    _fieldinfo_fallback = GadgetFieldInfo
+    _fieldinfo_known = KnownGadgetFields
+
     def __init__(self, filename,storage_filename=None) :
         self.storage_filename = storage_filename
-        self.field_info = self._fieldinfo_class()
         self.filename = filename
         
         StaticOutput.__init__(self, filename, 'gadget_infrastructure')
@@ -194,7 +192,9 @@ class GadgetStaticOutput(StaticOutput):
             if add1 in fileh['/'].items():
                 if add2 in fileh['/'+add1].attrs.keys():
                     if fileh['/'+add1].attrs[add2] == format:
+                        fileh.close()
                         return True
-        except h5py.h5e.LowLevelIOError:
+            fileh.close()
+        except:
             pass
         return False

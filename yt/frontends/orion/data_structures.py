@@ -23,46 +23,41 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import re
 import os
+import re
 import weakref
+
+from collections import defaultdict
+from string import strip, rstrip
+from stat import ST_CTIME
+
 import numpy as na
 
-from collections import \
-    defaultdict
-from string import \
-    strip, \
-    rstrip
-from stat import \
-    ST_CTIME
-
 from yt.funcs import *
-from yt.data_objects.grid_patch import \
-           AMRGridPatch
-from yt.data_objects.hierarchy import \
-           AMRHierarchy
-from yt.data_objects.static_output import \
-           StaticOutput
-from yt.utilities.definitions import \
-    mpc_conversion
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.hierarchy import AMRHierarchy
+from yt.data_objects.static_output import StaticOutput
+from yt.utilities.definitions import mpc_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     parallel_root_only
+    parallel_root_only
 
 from .definitions import \
     orion2enzoDict, \
     parameterDict, \
     yt2orionFieldsDict, \
     orion_FAB_header_pattern
-
 from .fields import \
-    OrionFieldContainer, \
-    add_field
+    OrionFieldInfo, \
+    add_orion_field, \
+    KnownOrionFields
 
 
 class OrionGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False,**kwargs):
-        AMRGridPatch.__init__(self, index,**kwargs)
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
+                 dimensions, start, stop, paranoia=False, **kwargs):
+        AMRGridPatch.__init__(self, index, **kwargs)
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia
@@ -114,7 +109,7 @@ class OrionGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
@@ -122,7 +117,6 @@ class OrionGrid(AMRGridPatch):
 class OrionHierarchy(AMRHierarchy):
     grid = OrionGrid
     def __init__(self, pf, data_style='orion_native'):
-        self.field_info = OrionFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -399,21 +393,6 @@ class OrionHierarchy(AMRHierarchy):
     def _detect_fields(self):
         pass
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
-
     def _setup_derived_fields(self):
         pass
 
@@ -439,7 +418,8 @@ class OrionStaticOutput(StaticOutput):
     *filename*, without looking at the Orion hierarchy.
     """
     _hierarchy_class = OrionHierarchy
-    _fieldinfo_class = OrionFieldContainer
+    _fieldinfo_fallback = OrionFieldInfo
+    _fieldinfo_known = KnownOrionFields
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
                  data_style='orion_native', paranoia=False,
@@ -461,7 +441,6 @@ class OrionStaticOutput(StaticOutput):
 
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
-        self.field_info = self._fieldinfo_class()
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE

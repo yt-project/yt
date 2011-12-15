@@ -45,13 +45,17 @@ from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 from yt.utilities.definitions import mpc_conversion
 from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
-from .fields import EnzoFieldContainer, Enzo1DFieldContainer, \
-    Enzo2DFieldContainer, add_enzo_field
+from .fields import \
+    EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
+    add_enzo_field, add_enzo_2d_field, add_enzo_1d_field, \
+    KnownEnzoFields
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -127,6 +131,56 @@ class EnzoGridInMemory(EnzoGrid):
     def set_filename(self, filename):
         pass
 
+class EnzoGridGZ(EnzoGrid):
+
+    __slots__ = ()
+
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
+                             smoothed=False):
+        # We ignore smoothed in this case.
+        if n_zones > 3:
+            return EnzoGrid.retrieve_ghost_zones(
+                self, n_zones, fields, all_levels, smoothed)
+        # ----- Below is mostly the original code, except we remove the field
+        # ----- access section
+        # We will attempt this by creating a datacube that is exactly bigger
+        # than the grid by nZones*dx in each direction
+        nl = self.get_global_startindex() - n_zones
+        nr = nl + self.ActiveDimensions + 2*n_zones
+        new_left_edge = nl * self.dds + self.pf.domain_left_edge
+        new_right_edge = nr * self.dds + self.pf.domain_left_edge
+        # Something different needs to be done for the root grid, though
+        level = self.Level
+        args = (level, new_left_edge, new_right_edge)
+        kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
+                  'num_ghost_zones':n_zones,
+                  'use_pbar':False}
+        # This should update the arguments to set the field parameters to be
+        # those of this grid.
+        kwargs.update(self.field_parameters)
+        if smoothed:
+            #cube = self.hierarchy.smoothed_covering_grid(
+            #    level, new_left_edge, new_right_edge, **kwargs)
+            cube = self.hierarchy.smoothed_covering_grid(
+                level, new_left_edge, **kwargs)
+        else:
+            cube = self.hierarchy.covering_grid(
+                level, new_left_edge, **kwargs)
+        # ----- This is EnzoGrid.get_data, duplicated here mostly for
+        # ----  efficiency's sake.
+        sl = [slice(3 - n_zones, -(3 - n_zones)) for i in range(3)]
+        if fields is None: return cube
+        for field in ensure_list(fields):
+            if field in self.hierarchy.field_list:
+                conv_factor = 1.0
+                if self.pf.field_info.has_key(field):
+                    conv_factor = self.pf.field_info[field]._convert_function(self)
+                if self.pf.field_info[field].particle_type: continue
+                temp = self.hierarchy.io._read_raw_data_set(self, field)
+                temp = temp.swapaxes(0, 2)
+                cube.field_data[field] = na.multiply(temp, conv_factor, temp)[sl]
+        return cube
+
 class EnzoHierarchy(AMRHierarchy):
 
     _strip_path = False
@@ -146,6 +200,7 @@ class EnzoHierarchy(AMRHierarchy):
             try:
                 harray_fp = h5py.File(harray_fn)
                 self.num_grids = harray_fp["/Level"].len()
+                harray_fp.close()
             except IOError:
                 pass
         elif os.path.getsize(self.hierarchy_filename) == 0:
@@ -204,7 +259,11 @@ class EnzoHierarchy(AMRHierarchy):
                 list_of_sets = []
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
-                self.data_style = 'enzo_packed_3d'
+                if self.parameters.get("WriteGhostZones", 0) == 1:
+                    self.data_style= "enzo_packed_3d_gz"
+                    self.grid = EnzoGridGZ
+                else:
+                    self.data_style = 'enzo_packed_3d'
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 'enzo_hdf5'
@@ -220,10 +279,9 @@ class EnzoHierarchy(AMRHierarchy):
     # Sets are sorted, so that won't work!
     def _parse_hierarchy(self):
         def _next_token_line(token, f):
-            line = f.readline()
-            while token not in line:
-                line = f.readline()
-            return line.split()[2:]
+            for line in f:
+                if line.startswith(token):
+                    return line.split()[2:]
         if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
             if self._parse_binary_hierarchy(): return
         t1 = time.time()
@@ -234,7 +292,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        f.readline() # Blank at top
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
@@ -247,19 +304,17 @@ class EnzoHierarchy(AMRHierarchy):
             fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             np.append(int(_next_token_line("NumberOfParticles", f)[0]))
-            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
-            line = f.readline()
-            while len(line) > 2:
+            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
+            for line in f:
+                if len(line) < 2: break
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
-                    line = f.readline()
-                    continue
-                params = line.split()
-                line = f.readline()
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, np)
-        self.grids = na.array(self.grids, dtype='object')
+        temp_grids = na.empty(self.num_grids, dtype='object')
+        temp_grids[:] = self.grids
+        self.grids = temp_grids
         self.filenames = fn
         self._store_binary_hierarchy()
         t2 = time.time()
@@ -297,7 +352,7 @@ class EnzoHierarchy(AMRHierarchy):
         if not ytcfg.getboolean("yt","serialize"): return False
         try:
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
-        except h5py.h5.H5Error:
+        except:
             return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
@@ -390,7 +445,7 @@ class EnzoHierarchy(AMRHierarchy):
     def _detect_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
-        if self._mpi_get_rank() == 0 or self._mpi_get_rank() == None:
+        if self.comm.rank == 0 or self.comm.rank == None:
             field_list = self.get_data("/", "DataFields")
             if field_list is None:
                 mylog.info("Gathering a field list (this may take a moment.)")
@@ -407,28 +462,9 @@ class EnzoHierarchy(AMRHierarchy):
                     field_list = field_list.union(gf)
         else:
             field_list = None
-        field_list = self._mpi_bcast_pickled(field_list)
+        field_list = self.comm.mpi_bcast_pickled(field_list)
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
-
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            # Note that we call add_field on the field_info directly.  This
-            # will allow the same field detection mechanism to work for 1D, 2D
-            # and 3D fields.
-            self.pf.field_info.add_field(
-                    field, lambda a, b: None,
-                    convert_function=cf, take_log=False)
-            
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
@@ -539,23 +575,24 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
-        self.grids = []
+        grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
         self.filenames = ["-1"] * self.num_grids
         for id,pid in enumerate(reverse_tree):
-            self.grids.append(self.grid(id+1, self))
-            self.grids[-1].Level = self.grid_levels[id, 0]
+            grids.append(self.grid(id+1, self))
+            grids[-1].Level = self.grid_levels[id, 0]
             if pid > 0:
-                self.grids[-1]._parent_id = pid
-                self.grids[pid-1]._children_ids.append(self.grids[-1].id)
+                grids[-1]._parent_id = pid
+                grids[pid-1]._children_ids.append(grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
-        for i, grid in enumerate(self.grids):
+        self.grids = na.empty(len(grids), dtype='object')
+        for i, grid in enumerate(grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
-        self.grids = na.array(self.grids, dtype='object')
+            self.grids[i] = grid
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):
@@ -594,7 +631,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self.derived_field_list = self.__class__._cached_derived_field_list
 
     def _generate_random_grids(self):
-        my_rank = self._mpi_get_rank()
+        my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
         if len(my_grids) > 40:
             starter = na.random.randint(0, 20)
@@ -635,7 +672,8 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
-    _fieldinfo_class = EnzoFieldContainer
+    _fieldinfo_fallback = EnzoFieldInfo
+    _fieldinfo_known = KnownEnzoFields
     def __init__(self, filename, data_style=None,
                  file_style = None,
                  parameter_override = None,
@@ -678,11 +716,9 @@ class EnzoStaticOutput(StaticOutput):
         if self["TopGridRank"] == 1: self._setup_1d()
         elif self["TopGridRank"] == 2: self._setup_2d()
 
-        self.field_info = self._fieldinfo_class()
-
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
-        self._fieldinfo_class = Enzo1DFieldContainer
+        self._fieldinfo_fallback = Enzo1DFieldInfo
         self.domain_left_edge = \
             na.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
@@ -690,7 +726,7 @@ class EnzoStaticOutput(StaticOutput):
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
-        self._fieldinfo_class = Enzo2DFieldContainer
+        self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
             na.concatenate([self["DomainLeftEdge"], [0.0]])
         self.domain_right_edge = \
@@ -764,6 +800,8 @@ class EnzoStaticOutput(StaticOutput):
                 else:
                     if any("." in v or "e+" in v or "e-" in v for v in vals):
                         pcast = float
+                    elif v == "inf":
+                        pcast = str
                     else:
                         pcast = int
             # Now we figure out what to do with it.
@@ -795,13 +833,22 @@ class EnzoStaticOutput(StaticOutput):
             self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
-        self.domain_dimensions = self.parameters["TopGridDimensions"]
         if self.dimensionality > 1:
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"]).copy()
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"]).copy()
+            self.domain_dimensions = self.parameters["TopGridDimensions"]
+            if len(self.domain_dimensions) < 3:
+                tmp = self.domain_dimensions.tolist()
+                tmp.append(1)
+                self.domain_dimensions = na.array(tmp)
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                                             "float64").copy()
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+                                             "float64").copy()
         else:
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"])
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"])
+            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                                             "float64")
+            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+                                             "float64")
+            self.domain_dimensions = na.array([self.parameters["TopGridDimensions"],1,1])
 
         self.current_time = self.parameters["InitialTime"]
         # To be enabled when we can break old pickles:
@@ -930,8 +977,6 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         self._conversion_override = conversion_override
 
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
-
-        self.field_info = self._fieldinfo_class()
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()

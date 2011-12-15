@@ -35,7 +35,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
-from .color_maps import raven_colormaps
+from .color_maps import yt_colormaps
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -170,10 +170,11 @@ class RavenPlot(object):
 
         Only ONE of the following options can be specified. If all 3 are
         specified, they will be used in the following precedence order:
-            ticks - a list of floating point numbers at which to put ticks
-            minmaxtick - display DEFAULT ticks with min & max also displayed
-            nticks - if ticks not specified, can automatically determine a
-               number of ticks to be evenly spaced in log space
+
+        * ``ticks`` - a list of floating point numbers at which to put ticks
+        * ``minmaxtick`` - display DEFAULT ticks with min & max also displayed
+        * ``nticks`` - if ticks not specified, can automatically determine a
+          number of ticks to be evenly spaced in log space
         """
         # This next call fixes some things, but is slower...
         self._redraw_image()
@@ -226,8 +227,8 @@ class RavenPlot(object):
         Change the colormap of this plot to *cmap*.
         """
         if isinstance(cmap, types.StringTypes):
-            if str(cmap) in raven_colormaps:
-                cmap = raven_colormaps[str(cmap)]
+            if str(cmap) in yt_colormaps:
+                cmap = yt_colormaps[str(cmap)]
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
@@ -381,8 +382,12 @@ class VMPlot(RavenPlot):
                     self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
-            newmin = na.nanmin(buff[bI])
-            newmax = na.nanmax(buff[bI])
+            if len(bI[0]) == 0:
+                newmin = 1e-99
+                newmax = 1e-99
+            else:
+                newmin = na.nanmin(buff[bI])
+                newmax = na.nanmax(buff[bI])
         else:
             newmin = na.nanmin(buff)
             newmax = na.nanmax(buff)

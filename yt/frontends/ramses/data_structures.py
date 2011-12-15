@@ -39,13 +39,15 @@ try:
     import _ramses_reader
 except ImportError:
     _ramses_reader = None
-from .fields import RAMSESFieldContainer
+from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.amr_utils import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -65,6 +67,7 @@ class RAMSESGrid(AMRGridPatch):
         self.Parent = []
         self.Children = []
         self.locations = locations
+        self.domain = locations[0,0]
         self.start_index = start_index.copy()
 
     def _setup_dx(self):
@@ -79,7 +82,7 @@ class RAMSESGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def get_global_startindex(self):
         """
@@ -107,7 +110,6 @@ class RAMSESHierarchy(AMRHierarchy):
     
     def __init__(self,pf,data_style='ramses'):
         self.data_style = data_style
-        self.field_info = RAMSESFieldContainer()
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -189,16 +191,20 @@ class RAMSESHierarchy(AMRHierarchy):
                         level, unique_indices.size, hilbert_indices.size)
             locs, lefts = _ramses_reader.get_array_indices_lists(
                         hilbert_indices, unique_indices, left_index, fl)
-            for dleft_index, dfl in zip(lefts, locs):
-                initial_left = na.min(dleft_index, axis=0)
-                idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
-                psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                dleft_index, dfl)
-                if psg.efficiency <= 0: continue
-                self.num_deep = 0
-                psgs.extend(_ramses_reader.recursive_patch_splitting(
-                    psg, idims, initial_left, 
-                    dleft_index, dfl))
+            for ddleft_index, ddfl in zip(lefts, locs):
+                for idomain in na.unique(ddfl[:,0]):
+                    dom_ind = ddfl[:,0] == idomain
+                    dleft_index = ddleft_index[dom_ind,:]
+                    dfl = ddfl[dom_ind,:]
+                    initial_left = na.min(dleft_index, axis=0)
+                    idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
+                    psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
+                                    dleft_index, dfl)
+                    if psg.efficiency <= 0: continue
+                    self.num_deep = 0
+                    psgs.extend(_ramses_reader.recursive_patch_splitting(
+                        psg, idims, initial_left, 
+                        dleft_index, dfl))
             mylog.debug("Done with level % 2i", level)
             pbar.finish()
             self.proto_grids.append(psgs)
@@ -228,7 +234,8 @@ class RAMSESHierarchy(AMRHierarchy):
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
         self.proto_grids = []
-        self.grids = na.array(grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _populate_grid_objects(self):
         mask = na.empty(self.grids.size, dtype='int32')
@@ -241,25 +248,23 @@ class RAMSESHierarchy(AMRHierarchy):
                                 self.grid_levels, mask)
             parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
-                g.Parent.extend(parents.tolist())
+                g.Parent.extend((p for p in parents.tolist()
+                        if p.locations[0,0] == g.locations[0,0]))
                 for p in parents: p.Children.append(g)
+            # Now we do overlapping siblings; note that one has to "win" with
+            # siblings, so we assume the lower ID one will "win"
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask, gi)
+            mask[gi] = False
+            siblings = self.grids[mask.astype("bool")]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
             g._prepare_grid()
             g._setup_dx()
         self.max_level = self.grid_levels.max()
-
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
@@ -269,7 +274,8 @@ class RAMSESHierarchy(AMRHierarchy):
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESHierarchy
-    _fieldinfo_class = RAMSESFieldContainer
+    _fieldinfo_fallback = RAMSESFieldInfo
+    _fieldinfo_known = KnownRAMSESFields
     _handle = None
     
     def __init__(self, filename, data_style='ramses',
@@ -278,8 +284,6 @@ class RAMSESStaticOutput(StaticOutput):
         import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-
-        self.field_info = self._fieldinfo_class()
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

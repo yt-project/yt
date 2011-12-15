@@ -38,8 +38,14 @@ import numpy # In case anyone wishes to use it by name
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
-from yt.config import ytcfg
+from yt.config import ytcfg, ytcfgDefaults
 import yt.utilities.physical_constants as physical_constants
+
+from yt.utilities.logger import level as __level
+if __level >= int(ytcfgDefaults["loglevel"]):
+    # This won't get displayed.
+    mylog.debug("Turning off NumPy error reporting")
+    na.seterr(all = 'ignore')
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -60,7 +66,7 @@ from yt.frontends.castro.api import \
     CastroStaticOutput, CastroFieldInfo, add_castro_field
 
 from yt.frontends.nyx.api import \
-    NyxStaticOutput, nyx_fields, add_nyx_field
+    NyxStaticOutput, NyxFieldInfo, add_nyx_field
 
 from yt.frontends.orion.api import \
     OrionStaticOutput, OrionFieldInfo, add_orion_field
@@ -76,6 +82,9 @@ from yt.frontends.ramses.api import \
 
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
+
+from yt.frontends.gdf.api import \
+    GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
@@ -99,16 +108,24 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image
+    apply_colormap, scale_image, write_projection
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera
+    HomogenizedVolume, Camera, off_axis_projection
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
+# Import some helpful math utilities
+from yt.utilities.math_utils import \
+    ortho_find, quartiles
+
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
@@ -120,9 +137,9 @@ if ytcfg.getboolean("yt","loadfieldplugins"):
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
     if os.path.isfile(my_plugin_name):
-        fn = my_plugin_name
+        _fn = my_plugin_name
     else:
-        fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
-    if os.path.isfile(fn):
-        mylog.info("Loading plugins from %s", fn)
-        execfile(fn)
+        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(_fn):
+        mylog.info("Loading plugins from %s", _fn)
+        execfile(_fn)

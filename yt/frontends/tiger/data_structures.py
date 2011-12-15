@@ -31,7 +31,9 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 
-from .fields import TigerFieldContainer
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+from .fields import TigerFieldInfo, KnownTigerFields
 
 class TigerGrid(AMRGridPatch):
     _id_offset = 0
@@ -106,7 +108,8 @@ class TigerHierarchy(AMRHierarchy):
             levels.append(g.Level)
             counts.append(g.NumberOfParticles)
             i += 1
-        self.grids = na.array(grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
         self.grid_dimensions[:] = na.array(dims, dtype='int64')
         self.grid_left_edge[:] = na.array(LE, dtype='float64')
         self.grid_right_edge[:] = na.array(RE, dtype='float64')
@@ -125,16 +128,13 @@ class TigerHierarchy(AMRHierarchy):
     def field_list(self):
         return self.file_mapping.keys()
 
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            add_tiger_field(field, lambda a, b: None)
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
 class TigerStaticOutput(StaticOutput):
     _hierarchy_class = TigerHierarchy
-    _fieldinfo_class = TigerFieldContainer
+    _fieldinfo_fallback = TigerFieldInfo
+    _fieldinfo_known = KnownTigerFields
 
     def __init__(self, rhobname, root_size, max_grid_size=128,
                  data_style='tiger', storage_filename = None):
@@ -150,7 +150,8 @@ class TigerStaticOutput(StaticOutput):
         if not iterable(max_grid_size): max_grid_size = (max_grid_size,) * 3
         self.max_grid_size = max_grid_size
 
-        self.field_info = self._fieldinfo_class()
+        self.field_info = FieldInfoContainer.create_with_fallback(
+                            self._fieldinfo_fallback)
 
         # We assume that we have basename + "rhob" and basename + "temp"
         # to get at our various parameters.

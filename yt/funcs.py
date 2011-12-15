@@ -124,14 +124,14 @@ def get_memory_usage():
     """
     Returning resident size in megabytes
     """
+    pid = os.getpid()
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return 0
-    pid = os.getpid()
+        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return 0.0
+        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
@@ -187,12 +187,18 @@ def rootonly(func):
        def some_root_only_function(...):
 
     """
-    @wraps(func)
-    def donothing(*args, **kwargs):
-        return
     from yt.config import ytcfg
-    if ytcfg.getint("yt","__parallel_rank") > 0: return donothing
-    return func
+    @wraps(func)
+    def check_parallel_rank(*args, **kwargs):
+        if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
+            return 
+        return func(*args, **kwargs)
+    return check_parallel_rank
+
+def rootloginfo(*args):
+    from yt.config import ytcfg
+    if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
+    mylog.info(*args)
 
 def deprecate(func):
     """
@@ -249,16 +255,32 @@ def insert_ipython(num_up=1):
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
-    from IPython.Shell import IPShellEmbed
+
+    import IPython
+    if IPython.__version__.startswith("0.10"):
+       api_version = '0.10'
+    elif IPython.__version__.startswith("0.11"):
+       api_version = '0.11'
+
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
     dd = dict(fname = frame[3], filename = frame[1],
               lineno = frame[2])
-    ipshell = IPShellEmbed()
-    ipshell(header = __header % dd,
-            local_ns = loc, global_ns = glo)
+    if api_version == '0.10':
+        ipshell = IPython.Shell.IPShellEmbed()
+        ipshell(header = __header % dd,
+                local_ns = loc, global_ns = glo)
+    else:
+        from IPython.config.loader import Config
+        cfg = Config()
+        cfg.InteractiveShellEmbed.local_ns = loc
+        cfg.InteractiveShellEmbed.global_ns = glo
+        IPython.embed(config=cfg, banner2 = __header % dd)
+        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        ipshell = InteractiveShellEmbed(config=cfg)
+
     del ipshell
 
 
@@ -341,9 +363,13 @@ def only_on_root(func, *args, **kwargs):
     handed back.
     """
     from yt.config import ytcfg
+    if kwargs.pop("global_rootonly", False):
+        cfg_option = "__global_parallel_rank"
+    else:
+        cfg_option = "__topcomm_parallel_rank"
     if not ytcfg.getboolean("yt","__parallel"):
         return func(*args,**kwargs)
-    if ytcfg.getint("yt","__parallel_rank") > 0: return
+    if ytcfg.getint("yt", cfg_option) > 0: return
     return func(*args, **kwargs)
 
 #
@@ -452,4 +478,7 @@ elif "--detailed" in sys.argv:
 #
 
 class NoCUDAException(Exception):
+    pass
+
+class YTEmptyClass(object):
     pass

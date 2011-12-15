@@ -34,15 +34,15 @@ def check_color(name):
     except ValueError:
         return False
 
-raven_colormaps = {}
+yt_colormaps = {}
 
 def add_cmap(name, cdict):
-    raven_colormaps[name] = \
+    yt_colormaps[name] = \
         cc.LinearSegmentedColormap(name,cdict,256)
     mcm.datad[name] = cdict
     mcm.__dict__[name] = cdict
     try: # API compatibility
-        mcm.register_cmap(name, raven_colormaps[name])
+        mcm.register_cmap(name, yt_colormaps[name])
     except AttributeError:
         pass
     
@@ -104,6 +104,25 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
                    (1.0, 0.0, 0.0))}
 
 add_cmap('black_green', cdict)
+
+# This one comes from
+# http://permalink.gmane.org/gmane.comp.python.matplotlib.devel/10518
+# and is an implementation of http://arxiv.org/abs/1108.5083
+#
+
+# cubehelix parameters
+_gamma_cubehelix = 1.0
+_s_cubehelix = 0.5
+_r_cubehelix = -1.5
+_h_cubehelix = 1.0
+
+_cubehelix_data = {
+        'red': lambda x: x**_gamma_cubehelix + (_h_cubehelix * x**_gamma_cubehelix * (1 - x**_gamma_cubehelix) / 2) * (-0.14861 * na.cos(2 * na.pi * (_s_cubehelix / 3 + _r_cubehelix * x)) + 1.78277 * na.sin(2 * na.pi * (_s_cubehelix / 3 + _r_cubehelix * x))),
+        'green': lambda x: x**_gamma_cubehelix + (_h_cubehelix * x**_gamma_cubehelix * (1 - x**_gamma_cubehelix) / 2) * (-0.29227 * na.cos(2 * na.pi * (_s_cubehelix / 3 + _r_cubehelix * x)) - 0.90649 * na.sin(2 * na.pi * (_s_cubehelix / 3 + _r_cubehelix * x))),
+        'blue': lambda x: x**_gamma_cubehelix + (_h_cubehelix * x**_gamma_cubehelix * (1 - x**_gamma_cubehelix) / 2) * (1.97294 * na.cos(2 * na.pi * (_s_cubehelix / 3 + _r_cubehelix * x))),
+}
+
+add_cmap("cubehelix", _cubehelix_data)
 
 def _extract_lookup_table(cmap_name):
     cmap = mcm.get_cmap(cmap_name)

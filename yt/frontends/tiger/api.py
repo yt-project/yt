@@ -34,7 +34,6 @@ from .data_structures import \
       TigerStaticOutput
 
 from .fields import \
-      TigerFieldContainer, \
       TigerFieldInfo, \
       add_tiger_field
 

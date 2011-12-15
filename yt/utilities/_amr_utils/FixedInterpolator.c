@@ -85,36 +85,21 @@ void offset_fill(int ds[3], npy_float64 *data, npy_float64 gridval[8])
 void vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
                    npy_float64 vl[3], npy_float64 dds[3],
                    npy_float64 x, npy_float64 y, npy_float64 z,
-                   int x0, int y0, int z0, int direction)
+                   int vind1, int vind2)
 {
     /*if (fabs(isovalue - v1) < 0.000001) return 0.0;
     if (fabs(isovalue - v2) < 0.000001) return 1.0;
     if (fabs(v1 - v2) < 0.000001) return 0.0;*/
-    npy_float64 mu = (isovalue - v1) / (v2 - v1);
+    int i;
+    static npy_float64 cverts[8][3] =
+        {{0,0,0}, {1,0,0}, {1,1,0}, {0,1,0},
+         {0,0,1}, {1,0,1}, {1,1,1}, {0,1,1}};
+
+    npy_float64 mu = ((isovalue - v1) / (v2 - v1));
     vl[0] = x; vl[1] = y; vl[2] = z;
-    if (x0 == 1) vl[0] += dds[0];
-    if (y0 == 1) vl[1] += dds[1];
-    if (z0 == 1) vl[2] += dds[2];
-    switch (direction) {
-        case -1:
-            vl[0] -= (1.0 - mu) * dds[0];
-            break;
-        case 1:
-            vl[0] += mu * dds[0];
-            break;
-        case -2:
-            vl[1] -= (1.0 - mu) * dds[1];
-            break;
-        case 2:
-            vl[1] += mu * dds[1];
-            break;
-        case -3:
-            vl[2] -= (1.0 - mu) * dds[2];
-            break;
-        case 3:
-            vl[2] += mu * dds[2];
-            break;
-    }
+    for (i=0;i<3;i++)
+        vl[i] += dds[i] * cverts[vind1][i]
+               + dds[i] * mu*(cverts[vind2][i] - cverts[vind1][i]);
 }
 
 npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
@@ -142,8 +127,8 @@ npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
     return vz[0];
 }
 
-npy_float64 eval_gradient(int *ds, int *ci, npy_float64 *dp,
-				  npy_float64 *data, npy_float64 *grad)
+void eval_gradient(int ds[3], npy_float64 dp[3],
+				  npy_float64 *data, npy_float64 grad[3])
 {
     // We just take some small value
 
@@ -160,9 +145,9 @@ npy_float64 eval_gradient(int *ds, int *ci, npy_float64 *dp,
       //fprintf(stderr, "DIM: %d %0.3lf %0.3lf\n", i, plus, minus);
       denom = plus - minus;
       dp[i] = plus;
-      grad[i] += trilinear_interpolate(ds, ci, dp, data) / denom;
+      grad[i] += offset_interpolate(ds, dp, data) / denom;
       dp[i] = minus;
-      grad[i] -= trilinear_interpolate(ds, ci, dp, data) / denom;
+      grad[i] -= offset_interpolate(ds, dp, data) / denom;
       dp[i] = backup;
       normval += grad[i]*grad[i];
     }

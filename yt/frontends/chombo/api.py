@@ -34,7 +34,6 @@ from .data_structures import \
       ChomboStaticOutput
 
 from .fields import \
-      ChomboFieldContainer, \
       ChomboFieldInfo, \
       add_chombo_field
 

@@ -34,7 +34,6 @@ from .data_structures import \
       CastroStaticOutput
 
 from .fields import \
-      CastroFieldContainer, \
       CastroFieldInfo, \
       add_castro_field
 

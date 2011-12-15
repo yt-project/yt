@@ -39,8 +39,9 @@ from .data_structures import \
       EnzoStaticOutputInMemory
 
 from .fields import \
-      EnzoFieldContainer, \
       EnzoFieldInfo, \
+      Enzo2DFieldInfo, \
+      Enzo1DFieldInfo, \
       add_enzo_field, \
       add_enzo_1d_field, \
       add_enzo_2d_field

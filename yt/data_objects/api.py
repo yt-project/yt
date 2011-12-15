@@ -68,7 +68,6 @@ from derived_quantities import \
 from field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
-    CodeFieldInfoContainer, \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \

@@ -47,14 +47,16 @@ def exc_writeout(f):
     return func
 
 class PannableMapServer(object):
-    def __init__(self, data, field):
+    _widget_name = "pannable_map"
+    def __init__(self, data, field, route_prefix = ""):
         self.data = data
         self.pf = data.pf
         self.field = field
-        bottle.route("/map/:L/:x/:y.png")(self.map)
-        bottle.route("/")(self.index)
-        bottle.route("/index.html")(self.index)
-        bottle.route("/static/:filename#.+#")(self.static)
+        
+        bottle.route("%s/map/:L/:x/:y.png" % route_prefix)(self.map)
+        bottle.route("%s/" % route_prefix)(self.index)
+        bottle.route("%s/index.html" % route_prefix)(self.index)
+        bottle.route("%s/static/:filename#.+#" % route_prefix)(self.static)
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")

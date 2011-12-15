@@ -84,6 +84,8 @@ def load(*args ,**kwargs):
         else:
             return None
     candidates = []
+    args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
+            else arg for arg in args]
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
@@ -129,6 +131,7 @@ def projload(pf, axis, weight_field = None):
         proj[new_name] = b[f][:]
     proj.axis = axis
     proj.pf = pf
+    f.close()
     return proj
 
 def _chunk(arrlike, chunksize = 800000):

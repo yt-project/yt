@@ -77,9 +77,9 @@ class PayloadHandler(object):
             if self.record:
                 self.recorded_payloads += self.payloads
             if self.debug:
-                orig_stderr.write("**** Delivering %s payloads\n" % (len(payloads)))
+                sys.__stderr__.write("**** Delivering %s payloads\n" % (len(payloads)))
                 for p in payloads:
-                    orig_stderr.write("****    %s\n" % p['type'])
+                    sys.__stderr__.write("****    %s\n" % p['type'])
             self.payloads = []
             self.event.clear()
         return payloads
@@ -90,7 +90,7 @@ class PayloadHandler(object):
             self.count += 1
             self.event.set()
             if self.debug:
-                orig_stderr.write("**** Adding payload of type %s\n" % (to_add['type']))
+                sys.__stderr__.write("**** Adding payload of type %s\n" % (to_add['type']))
 
     def replay_payloads(self):
         return self.recorded_payloads
@@ -149,6 +149,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             print "WARNING: %s has no _route_prefix attribute.  Not notifying."
             continue
             w._route_prefix = token
+    repl._global_token = token
     repl.activate()
     repl.execution_thread.wait()
     print

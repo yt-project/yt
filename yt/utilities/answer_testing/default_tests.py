@@ -60,7 +60,7 @@ class TestAllProjections(YTStaticOutputTest):
             results[field] = []
             for ax in range(3):
                 t = self.pf.h.proj(ax, field)
-                results[field].append(t.data)
+                results[field].append(t.field_data)
         self.result = results
 
     def compare(self, old_result):

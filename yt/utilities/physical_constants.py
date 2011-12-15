@@ -13,7 +13,7 @@ speed_of_light_cgs = 2.99792458e10 # cm/s, exact
 cross_section_thompson_cgs = 6.65e-25 # cm^2
 
 # Charge
-charge_proton_cgs = 4.803e-28 # emu = 1.602e-19  Coulombs
+charge_proton_cgs = 4.803e-10 # esu = 1.602e-19  Coulombs
 
 # Physical Constants
 boltzmann_constant_cgs = 1.3806504e-16 # erg K^-1

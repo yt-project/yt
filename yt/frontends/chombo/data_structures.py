@@ -55,7 +55,9 @@ from yt.utilities.definitions import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 
-from .fields import ChomboFieldContainer
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+from .fields import ChomboFieldInfo, KnownChomboFields
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -82,7 +84,7 @@ class ChomboGrid(AMRGridPatch):
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(AMRHierarchy):
 
@@ -92,7 +94,6 @@ class ChomboHierarchy(AMRHierarchy):
         self.domain_left_edge = pf.domain_left_edge # need these to determine absolute grid locations
         self.domain_right_edge = pf.domain_right_edge # need these to determine absolute grid locations
         self.data_style = data_style
-        self.field_info = ChomboFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -148,7 +149,8 @@ class ChomboHierarchy(AMRHierarchy):
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
-        self.grids = na.array(self.grids, dtype='object')
+        self.grids = na.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -161,9 +163,6 @@ class ChomboHierarchy(AMRHierarchy):
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
@@ -175,7 +174,8 @@ class ChomboHierarchy(AMRHierarchy):
 
 class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
-    _fieldinfo_class = ChomboFieldContainer
+    _fieldinfo_fallback = ChomboFieldInfo
+    _fieldinfo_known = KnownChomboFields
     
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
@@ -184,7 +184,6 @@ class ChomboStaticOutput(StaticOutput):
         self.ini_filename = ini_filename
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
-        self.field_info = self._fieldinfo_class()
         
     def _set_units(self):
         """
@@ -301,7 +300,9 @@ class ChomboStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            return "Chombo_global" in fileh["/"]
+            valid = "Chombo_global" in fileh["/"]
+            fileh.close()
+            return valid
         except:
             pass
         return False

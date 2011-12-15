@@ -24,7 +24,10 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
+    NullFunc, \
+    TranslationFunc, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -34,15 +37,11 @@ import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, mass_hydrogen_cgs
 
-import pdb
+ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = ARTFieldInfo.add_field
 
-class ARTFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-ARTFieldInfo = ARTFieldContainer()
-add_art_field = ARTFieldInfo.add_field
-
-add_field = add_art_field
+KnownARTFields = FieldInfoContainer()
+add_art_field = KnownARTFields.add_field
 
 translation_dict = {"Density":"density",
                     "TotalEnergy":"TotalEnergy",
@@ -54,33 +53,28 @@ translation_dict = {"Density":"density",
                     "GasEnergy":"GasEnergy"
                    }
 
-def _generate_translation(mine, theirs):
-    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
-
 for f,v in translation_dict.items():
-    if v not in ARTFieldInfo:
-        add_field(v, function=lambda a,b: None, take_log=False,
+    add_art_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)])
-    #print "Setting up translator from %s to %s" % (v, f)
-    _generate_translation(v, f)
+    add_art_field(f, function=TranslationFunc(v), take_log=True)
 
 #def _convertMetallicity(data):
 #    return data.convert("Metal_Density1")
-#ARTFieldInfo["Metal_Density1"]._units = r"1"
-#ARTFieldInfo["Metal_Density1"]._projected_units = r"1"
-#ARTFieldInfo["Metal_Density1"]._convert_function=_convertMetallicity
+#KnownARTFields["Metal_Density1"]._units = r"1"
+#KnownARTFields["Metal_Density1"]._projected_units = r"1"
+#KnownARTFields["Metal_Density1"]._convert_function=_convertMetallicity
 
 
 def _convertDensity(data):
     return data.convert("Density")
-ARTFieldInfo["Density"]._units = r"\rm{g}/\rm{cm}^3"
-ARTFieldInfo["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
-ARTFieldInfo["Density"]._convert_function=_convertDensity
+KnownARTFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
+KnownARTFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+KnownARTFields["Density"]._convert_function=_convertDensity
 
 def _convertEnergy(data):
     return data.convert("GasEnergy")
-ARTFieldInfo["GasEnergy"]._units = r"\rm{ergs}/\rm{g}"
-ARTFieldInfo["GasEnergy"]._convert_function=_convertEnergy
+KnownARTFields["GasEnergy"]._units = r"\rm{ergs}/\rm{g}"
+KnownARTFields["GasEnergy"]._convert_function=_convertEnergy
 
 def _Temperature(field, data):
     tr  = data["GasEnergy"] / data["Density"]
@@ -89,9 +83,9 @@ def _Temperature(field, data):
     return tr
 def _convertTemperature(data):
     return data.convert("Temperature")
-add_field("Temperature", function=_Temperature, units = r"\mathrm{K}")
-ARTFieldInfo["Temperature"]._units = r"\mathrm{K}"
-ARTFieldInfo["Temperature"]._convert_function=_convertTemperature
+add_art_field("Temperature", function=_Temperature, units = r"\mathrm{K}")
+KnownARTFields["Temperature"]._units = r"\mathrm{K}"
+KnownARTFields["Temperature"]._convert_function=_convertTemperature
 
 def _MetallicitySNII(field, data):
     #get the dimensionless mass fraction
@@ -99,8 +93,8 @@ def _MetallicitySNII(field, data):
     tr *= data.pf.conversion_factors["Density"]    
     return tr
     
-add_field("MetallicitySNII", function=_MetallicitySNII, units = r"\mathrm{K}")
-ARTFieldInfo["MetallicitySNII"]._units = r"\mathrm{K}"
+add_art_field("MetallicitySNII", function=_MetallicitySNII, units = r"\mathrm{K}")
+KnownARTFields["MetallicitySNII"]._units = r"\mathrm{K}"
 
 def _MetallicitySNIa(field, data):
     #get the dimensionless mass fraction
@@ -108,8 +102,8 @@ def _MetallicitySNIa(field, data):
     tr *= data.pf.conversion_factors["Density"]    
     return tr
     
-add_field("MetallicitySNIa", function=_MetallicitySNIa, units = r"\mathrm{K}")
-ARTFieldInfo["MetallicitySNIa"]._units = r"\mathrm{K}"
+add_art_field("MetallicitySNIa", function=_MetallicitySNIa, units = r"\mathrm{K}")
+KnownARTFields["MetallicitySNIa"]._units = r"\mathrm{K}"
 
 def _Metallicity(field, data):
     #get the dimensionless mass fraction of the total metals
@@ -118,14 +112,14 @@ def _Metallicity(field, data):
     tr *= data.pf.conversion_factors["Density"]    
     return tr
     
-add_field("Metallicity", function=_Metallicity, units = r"\mathrm{K}")
-ARTFieldInfo["Metallicity"]._units = r"\mathrm{K}"
+add_art_field("Metallicity", function=_Metallicity, units = r"\mathrm{K}")
+KnownARTFields["Metallicity"]._units = r"\mathrm{K}"
 
 def _Metal_Density(field,data):
     return data["Metal_DensitySNII"]+data["Metal_DensitySNIa"]
 def _convert_Metal_Density(data):
     return data.convert("Metal_Density")
 
-add_field("Metal_Density", function=_Metal_Density, units = r"\mathrm{K}")
-ARTFieldInfo["Metal_Density"]._units = r"\mathrm{K}"
-ARTFieldInfo["Metal_Density"]._convert_function=_convert_Metal_Density
+add_art_field("Metal_Density", function=_Metal_Density, units = r"\mathrm{K}")
+KnownARTFields["Metal_Density"]._units = r"\mathrm{K}"
+KnownARTFields["Metal_Density"]._convert_function=_convert_Metal_Density

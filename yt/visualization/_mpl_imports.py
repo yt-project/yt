@@ -17,6 +17,9 @@ from matplotlib.backends.backend_agg import \
 from matplotlib.backends.backend_pdf import \
     FigureCanvasPdf
 
+from matplotlib.backends.backend_ps import \
+    FigureCanvasPS
+
 # Now we provide some convenience functions to get information about plots.
 # With Matplotlib 0.98.x, the 'transforms' branch broke backwards
 # compatibility.  Despite that, the various packagers are plowing ahead with

@@ -29,28 +29,26 @@ License:
 
 import yt.data_objects.universal_fields
 
-from yt.data_objects.field_info_container import CodeFieldInfoContainer, \
+from yt.data_objects.field_info_container import FieldInfoContainer, \
+    NullFunc, TranslationFunc, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, ValidateSpatial, \
     ValidateGridType
 from yt.utilities.physical_constants import mh, kboltz
 
-class NyxFieldContainer(CodeFieldInfoContainer):
-    """ All nyx-specific fields are stored in here. """
-    _shared_state = {}
-    _field_list = {}
+NyxFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = NyxFieldInfo.add_field
 
-nyx_fields = NyxFieldContainer()
-add_field = nyx_fields.add_field
-add_nyx_field = add_field  # alias for API
+KnownNyxFields = FieldInfoContainer()
+add_nyx_field = KnownNyxFields.add_field 
 
 # Density
-add_field("density", function=lambda a, b: None, take_log=True,
+add_nyx_field("density", function=lambda a, b: None, take_log=True,
           validators=[ValidateDataField("density")],
           units=r"\rm{g}} / \rm{cm}^3",
           projected_units =r"\rm{g}} / \rm{cm}^2")
-nyx_fields["density"]._projected_units =r"\rm{g}} / \rm{cm}^2"
+KnownNyxFields["density"]._projected_units =r"\rm{g}} / \rm{cm}^2"
 
-add_field("Density", function=lambda a, b: b["density"], take_log=True,
+add_field("Density", function=TranslationFunc("density"), take_log=True,
           units=r"\rm{g}} / \rm{cm}^3",
           projected_units =r"\rm{g}} / \rm{cm}^2")
 
@@ -61,28 +59,30 @@ def _particle_mass_m_sun(field, data):
     return data["particle_mass"]
 add_field("ParticleMassMsun", function=_particle_mass_m_sun,
           validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
-          particle_type=True, convert_function=_convertParticleMassMsun, take_log=True, units=r"\rm{M_{\odot}}")
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          take_log=True, units=r"\rm{M_{\odot}}")
           
-add_field("Dark_Matter_Density", function=lambda a, b: b["particle_mass_density"], take_log=True,
+add_nyx_field("Dark_Matter_Density", function=TranslationFunc("particle_mass_density"),
+          take_log=True,
           units=r"\rm{g}} / \rm{cm}^3",particle_type=True,
           projected_units =r"\rm{g}} / \rm{cm}^2")
 
 
 # Energy Density
 # @todo: ``energy_density``
-add_field("total_energy", function=lambda a, b: None, take_log=True,
+add_nyx_field("total_energy", function=lambda a, b: None, take_log=True,
           validators=[ValidateDataField("total_energy")],
           units=r"\rm{M_{\odot}} (\rm{km} / \rm{s})^2")
 
 # Momentum in each dimension.
 # @todo: ``momentum_x``
-add_field("x-momentum", function=lambda a, b: None, take_log=False,
+add_nyx_field("x-momentum", function=lambda a, b: None, take_log=False,
           validators=[ValidateDataField("x-momentum")],
           units=r"\rm{M_{\odot}} \rm{km} / \rm{s}")
-add_field("y-momentum", function=lambda a, b: None, take_log=False,
+add_nyx_field("y-momentum", function=lambda a, b: None, take_log=False,
           validators=[ValidateDataField("y-momentum")],
           units=r"\rm{M_{\odot}} \rm{km} / \rm{s}")
-add_field("z-momentum", function=lambda a, b: None, take_log=False,
+add_nyx_field("z-momentum", function=lambda a, b: None, take_log=False,
           validators=[ValidateDataField("z-momentum")],
           units=r"\rm{M_{\odot}} \rm{km} / \rm{s}")
 

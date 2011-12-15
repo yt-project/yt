@@ -24,7 +24,8 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -32,12 +33,9 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-class TigerFieldContainer(CodeFieldInfoContainer):
-    """
-    This is a container for Tiger-specific fields.
-    """
-    _shared_state = {}
-    _field_list = {}
-TigerFieldInfo = TigerFieldContainer()
-add_tiger_field = TigerFieldInfo.add_field
+KnownTigerFields = FieldInfoContainer()
+add_tiger_field = KnownTigerFields.add_field
+
+TigerFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = TigerFieldInfo.add_field
 

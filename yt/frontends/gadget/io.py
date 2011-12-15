@@ -45,6 +45,7 @@ class IOHandlerGadget(BaseIOHandler):
         adr = grid.Address
         fh = h5py.File(grid.filename,mode='r')
         rets = cPickle.loads(fh['/root'].attrs['fieldnames'])
+        fh.close()
         return rets
 
     def _read_data_slice(self,grid, field, axis, coord):

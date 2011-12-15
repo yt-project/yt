@@ -24,7 +24,9 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    FieldInfo, \
+    NullFunc, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
@@ -32,47 +34,48 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-class ChomboFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-ChomboFieldInfo = ChomboFieldContainer()
+KnownChomboFields = FieldInfoContainer()
+add_chombo_field = KnownChomboFields.add_field
+
+ChomboFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_chombo_field = ChomboFieldInfo.add_field
 
 add_field = add_chombo_field
 
-add_field("density", function=lambda a,b: None, take_log=True,
-          validators=[ValidateDataField("density")],
-          units=r"\rm{g} / \rm{cm}^3")
+add_field("density", function=NullFunc, take_log=True,
+          validators = [ValidateDataField("density")],
+          units=r"\rm{g}/\rm{cm}^3")
+
 ChomboFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 
-add_field("X-momentum", function=lambda a,b: None, take_log=False,
-          validators=[ValidateDataField("X-Momentum")],
-          units=r"", display_name=r"x momentum")
+add_field("X-momentum", function=NullFunc, take_log=False,
+          validators = [ValidateDataField("X-Momentum")],
+          units=r"",display_name=r"B_x")
 ChomboFieldInfo["X-momentum"]._projected_units=r""
 
-add_field("Y-momentum", function=lambda a,b: None, take_log=False,
-          validators=[ValidateDataField("Y-Momentum")],
-          units=r"", display_name=r"y momentum")
+add_field("Y-momentum", function=NullFunc, take_log=False,
+          validators = [ValidateDataField("Y-Momentum")],
+          units=r"",display_name=r"B_y")
 ChomboFieldInfo["Y-momentum"]._projected_units=r""
 
-add_field("Z-momentum", function=lambda a,b: None, take_log=False,
-          validators=[ValidateDataField("Z-Momentum")],
-          units=r"", display_name=r"z momentum")
+add_field("Z-momentum", function=NullFunc, take_log=False,
+          validators = [ValidateDataField("Z-Momentum")],
+          units=r"",display_name=r"B_z")
 ChomboFieldInfo["Z-momentum"]._projected_units=r""
 
-add_field("X-magnfield", function=lambda a,b: None, take_log=False,
-          validators=[ValidateDataField("X-Magnfield")],
-          units=r"", display_name=r"B_x")
+add_field("X-magnfield", function=NullFunc, take_log=False,
+          validators = [ValidateDataField("X-Magnfield")],
+          units=r"",display_name=r"B_x")
 ChomboFieldInfo["X-magnfield"]._projected_units=r""
 
-add_field("Y-magnfield", function=lambda a,b: None, take_log=False,
-          validators=[ValidateDataField("Y-Magnfield")],
-          units=r"", display_name=r"B_y")
+add_field("Y-magnfield", function=NullFunc, take_log=False,
+          validators = [ValidateDataField("Y-Magnfield")],
+          units=r"",display_name=r"B_y")
 ChomboFieldInfo["Y-magnfield"]._projected_units=r""
 
-add_field("Z-magnfield", function=lambda a,b: None, take_log=False,
-          validators=[ValidateDataField("Z-Magnfield")],
-          units=r"", display_name=r"B_z")
+add_field("Z-magnfield", function=NullFunc, take_log=False,
+          validators = [ValidateDataField("Z-Magnfield")],
+          units=r"",display_name=r"B_z")
 ChomboFieldInfo["Z-magnfield"]._projected_units=r""
 
 def _MagneticEnergy(field,data):

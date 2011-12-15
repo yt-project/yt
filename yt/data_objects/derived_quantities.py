@@ -66,6 +66,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
                  combine_function, units = "",
                  n_ret = 0, force_unlazy=False):
         # We wrap the function with our object
+        ParallelAnalysisInterface.__init__(self)
         self.__doc__ = function.__doc__
         self.__name__ = name
         self.collection = collection
@@ -85,7 +86,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             e.NumberOfParticles = 1
             self.func(e, *args, **kwargs)
             mylog.debug("Preloading %s", e.requested)
-            self._preload([g for g in self._get_grid_objs()], e.requested,
+            self.comm.preload([g for g in self._get_grid_objs()], e.requested,
                           self._data_source.pf.h.io)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
@@ -103,13 +104,14 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         # Note that we do some fancy footwork here.
-        # _mpi_catarray and its affiliated alltoall function
+        # _par_combine_object and its affiliated alltoall function
         # assume that the *long* axis is the last one.  However,
         # our long axis is the first one!
         rv = []
         for my_list in self.retvals:
             data = na.array(my_list).transpose()
-            rv.append(self._mpi_catarray(data).transpose())
+            rv.append(self.comm.par_combine_object(data,
+                        datatype="array", op="cat").transpose())
         self.retvals = rv
         
     def _call_func_unlazy(self, args, kwargs):
@@ -149,24 +151,11 @@ def _TotalMass(data):
     """
     baryon_mass = data["CellMassMsun"].sum()
     particle_mass = data["ParticleMassMsun"].sum()
-    return baryon_mass, particle_mass
-def _combTotalMass(data, baryon_mass, particle_mass):
-    return baryon_mass.sum() + particle_mass.sum()
+    return [baryon_mass + particle_mass]
+def _combTotalMass(data, total_mass):
+    return total_mass.sum()
 add_quantity("TotalMass", function=_TotalMass,
-             combine_function=_combTotalMass, n_ret = 2)
-
-def _MatterMass(data):
-    """
-    This function takes no arguments and returns the array sum of cell masses
-    and particle masses.
-    """
-    cellvol = data["CellVolume"]
-    matter_rho = data["Matter_Density"]
-    return cellvol, matter_rho 
-def _combMatterMass(data, cellvol, matter_rho):
-    return cellvol*matter_rho
-add_quantity("MatterMass", function=_MatterMass,
-	     combine_function=_combMatterMass, n_ret=2)
+             combine_function=_combTotalMass, n_ret=1)
 
 def _CenterOfMass(data, use_cells=True, use_particles=False):
     """
@@ -356,7 +345,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     Add the mass contribution of particles if include_particles = True
     """
     if (include_particles):
-	mass_to_use = data.quantities["MatterMass"]()[0] 
+	mass_to_use = data["TotalMass"]
     else:
 	mass_to_use = data["CellMass"]
     kinetic = 0.5 * (mass_to_use * (
