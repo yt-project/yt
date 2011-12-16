@@ -26,7 +26,18 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free, abs
+from stdlib cimport malloc, free
+
+cdef extern from "math.h":
+    double exp(double x) nogil
+    float expf(float x) nogil
+    long double expl(long double x) nogil
+    double floor(double x) nogil
+    double ceil(double x) nogil
+    double fmod(double x, double y) nogil
+    double log2(double x) nogil
+    long int lrint(double x) nogil
+    double fabs(double x) nogil
 
 # These routines are separated into a couple different categories:
 #
@@ -157,6 +168,44 @@ def cutting_plane_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
             gridi[i] = 1
     return gridi
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline int cutting_plane_cell(
+                        np.float64_t x, np.float64_t y, np.float64_t z,
+                        np.float64_t norm_vec[3], np.float64_t d,
+                        np.float64_t dist):
+    cdef np.float64_t cd = x*norm_vec[0] + y*norm_vec[1] + z*norm_vec[2] + d
+    if fabs(cd) <= dist: return 1
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def cutting_plane_cells(dobj, gobj):
+    cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+    cdef int i, j, k
+    cdef np.float64_t x, y, z, dist
+    cdef np.float64_t norm_vec[3]
+    cdef np.float64_t d = dobj._d
+
+    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    for i in range(3): norm_vec[i] = dobj._norm_vec[i]
+    dist = 0.5*(dds[0]*dds[0] + dds[1]*dds[1] + dds[2]*dds[2])**0.5
+    x = left_edge[0] + dds[0] * 0.5
+    for i in range(mask.shape[0]):
+        y = left_edge[1] + dds[1] * 0.5
+        for j in range(mask.shape[1]):
+            z = left_edge[2] + dds[2] * 0.5
+            for k in range(mask.shape[2]):
+                mask[i,j,k] = cutting_plane_cell(x, y, z, norm_vec, d, dist)
+                z += dds[1]
+            y += dds[1]
+        x += dds[0]
+    return mask
+                
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
