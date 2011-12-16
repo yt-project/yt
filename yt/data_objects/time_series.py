@@ -112,7 +112,8 @@ class TimeSeriesData(object):
         outputs = []
         for line in open(output_log):
             if not line.startswith(line_prefix): continue
-            fn = line[len(line_prefix):].strip()
+            cut_line = line[len(line_prefix):].strip()
+            fn = cut_line.split()[0]
             outputs.append(load(fn))
         obj = cls(outputs)
         return obj

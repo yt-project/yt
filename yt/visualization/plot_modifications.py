@@ -164,8 +164,8 @@ class QuiverCallback(PlotCallback):
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
-        X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
-        Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        X = na.mgrid[0:plot.image._A.shape[0]-1:ny*1j]# + 0.5*factor
+        Y = na.mgrid[0:plot.image._A.shape[1]-1:nx*1j]# + 0.5*factor
         if self.normalize:
             nn = na.sqrt(pixX**2 + pixY**2)
             pixX /= nn
@@ -723,7 +723,7 @@ class HopCircleCallback(PlotCallback):
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False, width=None):
         """
-        Accepts a :class:`yt.lagos.HopList` *hop_output* and plots up to
+        Accepts a :class:`yt.HopList` *hop_output* and plots up to
         *max_number* (None for unlimited) halos as circles.
         """
         self.hop_output = hop_output

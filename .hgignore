@@ -8,6 +8,7 @@ yt/frontends/ramses/_ramses_reader.cpp
 yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
 yt/utilities/libconfig_wrapper.c
+yt/utilities/spatial/ckdtree.c
 yt/utilities/_amr_utils/CICDeposit.c
 yt/utilities/_amr_utils/ContourFinding.c
 yt/utilities/_amr_utils/DepthFirstOctree.c

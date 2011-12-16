@@ -325,10 +325,11 @@ def bb_apicall(endpoint, data, use_pass = True):
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
 
-def _get_yt_supp():
+def _get_yt_supp(uu):
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
+    from mercurial import hg, ui, commands
     if not os.path.isdir(supp_path):
         print
         print "*** The yt-supplemental repository is not checked ***"
@@ -466,14 +467,29 @@ class YTCommands(cmdln.Cmdln):
             print "Could not load file."
             sys.exit()
         import yt.mods
-        from IPython.Shell import IPShellEmbed
+
+        import IPython
+        if IPython.__version__.startswith("0.10"):
+            api_version = '0.10'
+        elif IPython.__version__.startswith("0.11"):
+            api_version = '0.11'
+
         local_ns = yt.mods.__dict__.copy()
         local_ns['pf'] = pf
-        shell = IPShellEmbed()
-        shell(local_ns = local_ns,
-              header =
-            "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
-             )
+
+        if api_version == '0.10':
+            shell = IPython.Shell.IPShellEmbed()
+            shell(local_ns = local_ns,
+                  header =
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  )
+        else:
+            from IPython.config.loader import Config
+            cfg = Config()
+            cfg.InteractiveShellEmbed.local_ns = local_ns
+            IPython.embed(config=cfg)
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+            ipshell = InteractiveShellEmbed(config=cfg)
 
     @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args
@@ -889,7 +905,7 @@ class YTCommands(cmdln.Cmdln):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        supp_path = _get_yt_supp()
+        supp_path = _get_yt_supp(uu)
         print
         print "I have found the yt-supplemental repository at %s" % (supp_path)
         print
@@ -1305,7 +1321,8 @@ class YTCommands(cmdln.Cmdln):
         import imp
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
-        supp_path = _get_yt_supp()
+        uu = ui.ui()
+        supp_path = _get_yt_supp(uu)
         try:
             result = imp.find_module("cedit", [supp_path])
         except ImportError:
@@ -1322,7 +1339,6 @@ class YTCommands(cmdln.Cmdln):
             print "Sorry, but I'm going to bail."
             sys.exit(1)
         hgbb = imp.load_module("hgbb", *result)
-        uu = ui.ui()
         try:
             repo = hg.repository(uu, opts.repo)
             conf = config.config()

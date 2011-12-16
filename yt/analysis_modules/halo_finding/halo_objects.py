@@ -1323,6 +1323,7 @@ class LoadedHaloList(HaloList):
     _name = "Loaded"
     
     def __init__(self, pf, basename):
+        ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self._groups = []
         self.basename = basename
@@ -1364,7 +1365,10 @@ class LoadedHaloList(HaloList):
             # Prepend the hdf5 file names with the full path.
             temp = []
             for item in line[1:]:
-                temp.append(self.pf.fullpath + '/' + item)
+                if item[0] == "/":
+                    temp.append(item)
+                else:
+                    temp.append(self.pf.fullpath + '/' + item)
             locations.append(temp)
         lines.close()
         return locations

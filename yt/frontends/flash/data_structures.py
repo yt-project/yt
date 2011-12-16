@@ -136,14 +136,25 @@ class FLASHHierarchy(AMRHierarchy):
         offset = 7
         ii = na.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
+        first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
             # FLASH uses 1-indexed group info
-            g.Children = [self.grids[i - 1] for i in gid[gi,7:] if i > -1]
+            g.Children = [self.grids[i - 1] for i in gid[gi,first_ind:] if i > -1]
             for g1 in g.Children:
                 g1.Parent = g
             g._prepare_grid()
             g._setup_dx()
+        if self.parameter_file.dimensionality < 3:
+            DD = (self.parameter_file.domain_right_edge[2] -
+                  self.parameter_file.domain_left_edge[2])
+            for g in self.grids:
+                g.dds[2] = DD
+        if self.parameter_file.dimensionality < 2:
+            DD = (self.parameter_file.domain_right_edge[1] -
+                  self.parameter_file.domain_left_edge[1])
+            for g in self.grids:
+                g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
@@ -183,7 +194,6 @@ class FLASHStaticOutput(StaticOutput):
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
-        self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
@@ -255,6 +265,7 @@ class FLASHStaticOutput(StaticOutput):
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
+        if nn not in self._handle: raise KeyError(nn)
         for tpname, pval in self._handle[nn][:]:
             if tpname.strip() == pname:
                 return pval
@@ -281,12 +292,20 @@ class FLASHStaticOutput(StaticOutput):
             nxb = self._find_parameter("integer", "nxb", scalar = True)
             nyb = self._find_parameter("integer", "nyb", scalar = True)
             nzb = self._find_parameter("integer", "nzb", scalar = True)
+            dimensionality = self._find_parameter("integer", "dimensionality",
+                                    scalar = True)
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
+            dimensionality = 3
+            if nzb == 1: dimensionality = 2
+            if nyb == 1: dimensionality = 1
+            if dimensionality < 3:
+                mylog.warning("Guessing dimensionality as %s", dimensionality)
         nblockx = self._find_parameter("integer", "nblockx")
         nblocky = self._find_parameter("integer", "nblockx")
         nblockz = self._find_parameter("integer", "nblockx")
+        self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
@@ -299,7 +318,7 @@ class FLASHStaticOutput(StaticOutput):
 
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 
-        except KeyError:
+        except:
             use_cosmo = 0
 
         if use_cosmo == 1:

@@ -344,9 +344,13 @@ class ResultsStorage(object):
     result_id = None
 
 def parallel_objects(objects, njobs, storage = None):
-    if not parallel_capable: raise RuntimeError
+    if not parallel_capable:
+        njobs = 1
+        mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
+    if njobs <= 0:
+        njobs = my_size
     if njobs > my_size:
         mylog.error("You have asked for %s jobs, but you only have %s processors.",
             njobs, my_size)
@@ -357,7 +361,8 @@ def parallel_objects(objects, njobs, storage = None):
         if my_rank in comm_set:
             my_new_id = i
             break
-    communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
+    if parallel_capable:
+        communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
     obj_ids = na.arange(len(objects))
 
     to_share = {}

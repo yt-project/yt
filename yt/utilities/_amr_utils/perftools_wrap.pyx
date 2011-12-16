@@ -1,5 +1,5 @@
 """
-Shareable definitions for common fp/int Cython utilities
+Turn on and off perftools profiling
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
@@ -23,31 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-cimport numpy as np
-cimport cython
+# For more info:
+# https://pygabriel.wordpress.com/2010/04/14/profiling-python-c-extensions/
 
-cdef inline int imax(int i0, int i1) nogil:
-    if i0 > i1: return i0
-    return i1
+# prof.pyx
+cdef extern from "google/profiler.h":
+    void ProfilerStart( char* fname )
+    void ProfilerStop()
 
-cdef inline np.float64_t fmax(np.float64_t f0, np.float64_t f1) nogil:
-    if f0 > f1: return f0
-    return f1
+def profiler_start(fname):
+    ProfilerStart(<char *>fname)
 
-cdef inline int imin(int i0, int i1) nogil:
-    if i0 < i1: return i0
-    return i1
-
-cdef inline np.float64_t fmin(np.float64_t f0, np.float64_t f1) nogil:
-    if f0 < f1: return f0
-    return f1
-
-cdef inline int iclip(int i, int a, int b) nogil:
-    if i < a: return a
-    if i > b: return b
-    return i
-
-cdef inline np.float64_t fclip(np.float64_t f,
-                      np.float64_t a, np.float64_t b) nogil:
-    return fmin(fmax(f, a), b)
+def profiler_stop():
+    ProfilerStop()
 

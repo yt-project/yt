@@ -40,6 +40,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
 
+from yt.utilities._amr_utils.grid_traversal import \
+    PartitionedGrid, ProjectionSampler, VolumeRenderSampler
+
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
@@ -193,6 +196,9 @@ class Camera(ParallelAnalysisInterface):
         self.steady_north = steady_north
         self.expand_factor = expand_factor
         # This seems to be necessary for now.  Not sure what goes wrong when not true.
+        if na.all(north_vector == normal_vector):
+            mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
+            north_vector == None
         if north_vector is not None: self.steady_north=True
         self.north_vector = north_vector
         self.rotation_vector = north_vector
@@ -315,11 +321,10 @@ class Camera(ParallelAnalysisInterface):
         positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
         positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
-        vector_plane = VectorPlane(positions, self.box_vectors[2],
-                                      self.back_center, bounds, image,
-                                      self.unit_vectors[0],
-                                      self.unit_vectors[1])
-        return vector_plane
+        return (positions, self.box_vectors[2],
+                self.back_center, bounds, image,
+                self.unit_vectors[0],
+                self.unit_vectors[1])
 
     def snapshot(self, fn = None, clip_ratio = None):
         r"""Ray-cast the camera.
@@ -343,19 +348,25 @@ class Camera(ParallelAnalysisInterface):
         """
         image = na.zeros((self.resolution[0], self.resolution[1], 3),
                          dtype='float64', order='C')
-        vector_plane = self.get_vector_plane(image)
-        tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
-        tfp.ns = self.sub_samples
+        rotp = na.concatenate([self.inv_mat.ravel('F'), self.back_center.ravel()])
+        args = (rotp, self.box_vectors[2], self.back_center,
+                (-self.width[0]/2.0, self.width[0]/2.0,
+                 -self.width[1]/2.0, self.width[1]/2.0),
+                image, self.unit_vectors[0], self.unit_vectors[1],
+                na.array(self.width),
+                self.transfer_function, self.sub_samples)
+        sampler = VolumeRenderSampler(*args)
         self.volume.initialize_source()
 
         pbar = get_pbar("Ray casting",
                         (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
         for brick in self.volume.traverse(self.back_center, self.front_center, image):
-            brick.cast_plane(tfp, vector_plane)
+            sampler(brick)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
+        image = sampler.aimage
 
         if self.comm.rank is 0 and fn is not None:
             if clip_ratio is not None:
@@ -446,6 +457,8 @@ class Camera(ParallelAnalysisInterface):
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
+                if (self.center == 0.0).all():
+                    self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
 	    else:
@@ -789,7 +802,7 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None):
+                        field, weight = None, volume = None, no_ghost = True):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -821,6 +834,14 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
+    no_ghost: bool, optional
+        Optimization option.  If True, homogenized bricks will
+        extrapolate out from grid instead of interpolating from
+        ghost zones that have to first be calculated.  This can
+        lead to large speed improvements, but at a loss of
+        accuracy/smoothness in resulting image.  The effects are
+        less notable when the transfer function is smooth and
+        broad. Default: True
 
     Returns
     -------
@@ -848,7 +869,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     cam = pf.h.camera(center, normal_vector, width, resolution, tf,
                       fields = fields,
                       log_fields = [False] * len(fields),
-                      volume = volume)
+                      volume = volume, no_ghost = no_ghost)
     vals = cam.snapshot()
     image = vals[:,:,0]
     if weight is None:

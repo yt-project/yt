@@ -173,5 +173,28 @@ def configuration(parent_package='',top_path=None):
                           "yt/utilities/_amr_utils/healpix_pix2vec_nest.c",
                           "yt/utilities/_amr_utils/healpix_vec2pix_nest.c"]
           )
+    config.add_extension("grid_traversal", 
+               ["yt/utilities/_amr_utils/grid_traversal.pyx",
+                "yt/utilities/_amr_utils/FixedInterpolator.c"],
+               include_dirs=["yt/utilities/_amr_utils/"],
+               libraries=["m"], 
+               extra_compile_args=['-fopenmp'],
+               extra_link_args=['-fopenmp'],
+               depends = ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
+                          "yt/utilities/_amr_utils/fp_utils.pxd",
+                          "yt/utilities/_amr_utils/FixedInterpolator.h",
+                          ]
+          )
+    if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
+        gpd = os.environ["GPERFTOOLS"]
+        idir = os.path.join(gpd, "include")
+        ldir = os.path.join(gpd, "lib")
+        print "INCLUDE AND LIB DIRS", idir, ldir
+        config.add_extension("perftools_wrap",
+                ["yt/utilities/_amr_utils/perftools_wrap.pyx"],
+                libraries=["profiler"],
+                library_dirs = [ldir],
+                include_dirs = [idir],
+            )
     config.make_config_py() # installs __config__.py
     return config

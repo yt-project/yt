@@ -28,7 +28,8 @@ License:
 import numpy as na
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
-from yt.utilities.amr_utils import PartitionedGrid, kdtree_get_choices
+from yt.utilities.amr_utils import kdtree_get_choices
+from yt.utilities._amr_utils.grid_traversal import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
@@ -678,7 +679,7 @@ class AMRKDTree(HomogenizedVolume):
                 if na.any(current_node.r_corner-current_node.l_corner == 0):
                     current_node.brick = None
                 else:
-                    current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+                    current_node.brick = PartitionedGrid(current_node.grid.id, data,
                                                          current_node.l_corner.copy(), 
                                                          current_node.r_corner.copy(), 
                                                          current_node.dims.astype('int64'))
@@ -708,7 +709,7 @@ class AMRKDTree(HomogenizedVolume):
                   current_node.li[1]:current_node.ri[1]+1,
                   current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
 
-        current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+        current_node.brick = PartitionedGrid(current_node.grid.id, data,
                                              current_node.l_corner.copy(), 
                                              current_node.r_corner.copy(), 
                                              current_node.dims.astype('int64'))
@@ -1251,7 +1252,7 @@ class AMRKDTree(HomogenizedVolume):
                 if node.grid is not None:
                     data = [f["brick_%s_%s" %
                               (hex(i), field)][:].astype('float64') for field in self.fields]
-                    node.brick = PartitionedGrid(node.grid.id, len(self.fields), data,
+                    node.brick = PartitionedGrid(node.grid.id, data,
                                                  node.l_corner.copy(), 
                                                  node.r_corner.copy(), 
                                                  node.dims.astype('int64'))
