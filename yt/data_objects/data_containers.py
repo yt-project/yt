@@ -42,7 +42,7 @@ from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
     march_cubes_grid, march_cubes_grid_flux, ortho_ray_grids, ray_grids, \
-    slice_grids, cutting_plane_grids
+    slice_grids, cutting_plane_grids, cutting_plane_cells
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -1154,7 +1154,7 @@ class AMRCuttingPlaneBase(AMR2DData):
     def _get_list_of_grids(self):
         gridi = cutting_plane_grids(self, self.pf.h.grid_left_edge,
                                           self.pf.h.grid_right_edge)
-        self._grids = self.hierarchy.grids[gridi]
+        self._grids = self.hierarchy.grids[gridi.astype("bool")]
 
     @cache_mask
     def _get_cut_mask(self, grid):
