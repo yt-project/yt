@@ -46,7 +46,8 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call, \
-    parallel_root_only
+    parallel_root_only, \
+    parallel_objects
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer
 from yt.visualization.image_writer import write_image
@@ -184,7 +185,6 @@ class HaloProfiler(ParallelAnalysisInterface):
         self._halo_filters = []
         self.all_halos = []
         self.filtered_halos = []
-        self._projection_halo_list = []
 
         # Create output directory if specified
         if self.output_dir is not None:
@@ -454,7 +454,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Profile all halos.
         updated_halos = []
-        for halo in self._get_objs('all_halos', round_robin=True):
+        for halo in parallel_objects(self.all_halos, -1):
             # Apply prefilters to avoid profiling unwanted halos.
             filter_result = True
             haloQuantities = {}
@@ -618,18 +618,18 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Get list of halos for projecting.
         if halo_list == 'filtered':
-            self._halo_projection_list = self.filtered_halos
+            halo_projection_list = self.filtered_halos
         elif halo_list == 'all':
-            self._halo_projection_list = self.all_halos
+            halo_projection_list = self.all_halos
         elif isinstance(halo_list, types.StringType):
-            self._halo_projection_list = self._read_halo_list(halo_list)
+            halo_projection_list = self._read_halo_list(halo_list)
         elif isinstance(halo_list, types.ListType):
-            self._halo_projection_list = halo_list
+            halo_projection_list = halo_list
         else:
             mylog.error("Keyword, halo_list', must be 'filtered', 'all', a filename, or an actual list.")
             return
 
-        if len(self._halo_projection_list) == 0:
+        if len(halo_projection_list) == 0:
             mylog.error("Halo list for projections is empty.")
             return
 
@@ -656,7 +656,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                          self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
 
-        for halo in self._get_objs('_halo_projection_list', round_robin=True):
+        for halo in parallel_objects(halo_projection_list, -1):
             if halo is None:
                 continue
             # Check if region will overlap domain edge.
@@ -778,18 +778,18 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Get list of halos for projecting.
         if halo_list == 'filtered':
-            self._halo_analysis_list = self.filtered_halos
+            halo_analysis_list = self.filtered_halos
         elif halo_list == 'all':
-            self._halo_analysis_list = self.all_halos
+            halo_analysis_list = self.all_halos
         elif isinstance(halo_list, types.StringType):
-            self._halo_analysis_list = self._read_halo_list(halo_list)
+            halo_analysis_list = self._read_halo_list(halo_list)
         elif isinstance(halo_list, types.ListType):
-            self._halo_analysis_list = halo_list
+            halo_analysis_list = halo_list
         else:
             mylog.error("Keyword, halo_list', must be 'filtered', 'all', a filename, or an actual list.")
             return
 
-        if len(self._halo_analysis_list) == 0:
+        if len(halo_analysis_list) == 0:
             mylog.error("Halo list for analysis is empty.")
             return
 
@@ -803,7 +803,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 my_output_dir = "%s/%s" % (self.pf.fullpath, analysis_output_dir)
             self.__check_directory(my_output_dir)
 
-        for halo in self._get_objs('_halo_analysis_list', round_robin=True):
+        for halo in parallel_objects(halo_analysis_list, -1):
             if halo is None: continue
 
             # Get a sphere object to analze.
