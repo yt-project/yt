@@ -110,6 +110,53 @@ def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
             continue
     return gridi
 
+def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                      np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i, ax
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    ax = dobj.axis
+    cdef np.float64_t coord = dobj.coord
+    for i in range(ng):
+        if left_edges[i, ax] <= coord and \
+           right_edges[i, ax] > coord:
+            gridi[i] = 1
+    return gridi
+
+def cutting_plane_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                        np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.float64_t *arr[2]
+    arr[0] = <np.float64_t *> left_edges.data
+    arr[1] = <np.float64_t *> right_edges.data
+    cdef np.float64_t x, y, z
+    cdef np.float64_t norm_vec[3]
+    cdef np.float64_t d = dobj._d # offset to center
+    cdef np.float64_t gd # offset to center
+    cdef np.int64_t all_under, all_over
+    for i in range(3):
+        norm_vec[i] = dobj._norm_vec[i]
+    for i in range(ng):
+        all_under = 1
+        all_over = 1
+        # Check each corner
+        for xi in range(2):
+            x = arr[xi][i * 3 + 0]
+            for yi in range(2):
+                y = arr[yi][i * 3 + 1]
+                for zi in range(2):
+                    z = arr[zi][i * 3 + 2]
+                    gd = ( x*norm_vec[0]
+                         + y*norm_vec[1]
+                         + z*norm_vec[2]) + d
+                    if gd <= 0: all_over = 0
+                    if gd >= 0: all_under = 0
+        if not (all_over == 1 or all_under == 1):
+            gridi[i] = 1
+    return gridi
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
