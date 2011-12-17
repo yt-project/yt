@@ -371,10 +371,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     """
     import pylab as pl
 
-    # If there are limits, then clip the data before plotting
-    if limits is not None:
-        data = na.clip(data, limits[0], limits[1])
-
     # If this is rendered as log, then apply now.
     if take_log:
         data = na.log10(data)
@@ -385,11 +381,12 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     # Create the figure and paint the data on
     fig = pl.figure()
     ax = fig.add_subplot(111)
-    cax = ax.imshow(data)
 
-    # If there are limits, apply them to the colormap
     if limits is not None:
-        cax.set_clim=limits
+        cax = ax.imshow(data, vmin=limits[0], vmax=limits[1])
+    else:
+        cax = ax.imshow(data)
+
     if title:
         ax.set_title(title)
 
