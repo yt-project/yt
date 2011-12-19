@@ -32,7 +32,7 @@ class MinimalRepresentation(object):
         for attr in attr_list:
             setattr(self, attr, getattr(obj, attr, None))
         if hasattr(obj, "pf"):
-            obj.output_hash = obj.pf._hash()
+            self.output_hash = obj.pf._hash()
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
@@ -64,9 +64,13 @@ class FilteredRepresentation(MinimalRepresentation):
 class MinimalStaticOutput(MinimalRepresentation):
     _attr_list = ("dimensionality", "refine_by", "domain_dimensions",
                   "current_time", "domain_left_edge", "domain_right_edge",
-                  "unique_identifier", "current_redshift",
+                  "unique_identifier", "current_redshift", "output_hash",
                   "cosmological_simulation", "omega_matter", "omega_lambda",
                   "hubble_constant")
+
+    def __init__(self, obj):
+        super(MinimalStaticOutput, self).__init__(obj)
+        self.output_hash = obj._hash()
 
     def _generate_post(self):
         metadata = self._attrs
@@ -76,10 +80,10 @@ class MinimalStaticOutput(MinimalRepresentation):
 class MinimalMappableData(MinimalRepresentation):
 
     weight = "None"
-    _attr_list = ("field_data", "field", "weight", "axis")
+    _attr_list = ("field_data", "field", "weight", "axis", "output_hash")
 
     def _generate_post(self):
-        nobj = self._return_filtered_object("field_data")
+        nobj = self._return_filtered_object(("field_data",))
         metadata = nobj._attrs
         chunks = [(arr, self.field_data[arr]) for arr in self.field_data]
         return (metadata, chunks)
@@ -87,5 +91,5 @@ class MinimalMappableData(MinimalRepresentation):
 class MinimalProjectionData(MinimalMappableData):
 
     def __init__(self, obj):
-        self.type = "proj"
         super(MinimalProjectionData, self).__init__(obj)
+        self.type = "proj"
