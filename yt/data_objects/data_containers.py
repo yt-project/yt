@@ -53,6 +53,8 @@ from yt.utilities.linear_interpolators import \
     TrilinearFieldInterpolator
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
+from yt.utilities.minimal_representation import \
+    MinimalProjectionData
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -1644,6 +1646,10 @@ class AMRQuadTreeProjBase(AMR2DData):
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
+
+    @property
+    def _min(self):
+        return MinimalProjectionData(self)
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
