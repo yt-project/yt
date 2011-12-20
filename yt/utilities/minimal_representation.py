@@ -76,11 +76,12 @@ class MinimalStaticOutput(MinimalRepresentation):
                   "current_time", "domain_left_edge", "domain_right_edge",
                   "unique_identifier", "current_redshift", "output_hash",
                   "cosmological_simulation", "omega_matter", "omega_lambda",
-                  "hubble_constant")
+                  "hubble_constant", "name")
 
     def __init__(self, obj):
         super(MinimalStaticOutput, self).__init__(obj)
         self.output_hash = obj._hash()
+        self.name = str(obj)
 
     def _generate_post(self):
         metadata = self._attrs
