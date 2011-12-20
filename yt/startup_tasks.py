@@ -111,18 +111,31 @@ parser.add_argument("--rpdb", action=SetExceptionHandling,
 parser.add_argument("--parallel", action="store_true", default=False,
     dest = "parallel",
     help = "Run in MPI-parallel mode (must be launched as an MPI task)")
+subparsers = parser.add_subparsers(title="subcommands",
+                    dest='subcommands',
+                    description="Valid subcommands",)
+
+def print_help(*args, **kwargs):
+    parser.print_help()
+help_parser = subparsers.add_parser("help")
+help_parser.set_defaults(func=print_help)
 
 if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
 
+parallel_capable = False
 if not ytcfg.getboolean("yt","__command_line"):
-    # Alternate:
-    # opts, args = parser.parse_known_args()
-    opts = parser.parse_args()
+    opts, args = parser.parse_known_args()
+    # THIS IS NOT SUCH A GOOD IDEA:
+    sys.argv = [a for a in args]
+    if opts.parallel:
+        parallel_capable = turn_on_parallelism()
 
-if exe_name in \
+if parallel_capable == True:
+    pass
+elif exe_name in \
         ["mpi4py", "embed_enzo",
          "python"+sys.version[:3]+"-mpi"] \
-    or opts.parallel or '_parallel' in dir(sys) \
+    or '_parallel' in dir(sys) \
     or any(["ipengine" in arg for arg in sys.argv]):
     parallel_capable = turn_on_parallelism()
 else:

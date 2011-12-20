@@ -25,7 +25,7 @@ License:
 
 from yt.config import ytcfg
 ytcfg["yt","__command_line"] = "True"
-from yt.startup_tasks import parser
+from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
@@ -43,9 +43,6 @@ def _fix_pf(arg):
     else:
         pf = load(arg)
     return pf
-
-subparsers = parser.add_subparsers(title="subcommands",
-                    description="Valid subcommands",)
 
 def _add_arg(sc, arg):
     if isinstance(arg, types.StringTypes):
@@ -67,7 +64,8 @@ class YTCommand(object):
             type.__init__(cls, name, b, d)
             if cls.name is not None:
                 sc = subparsers.add_parser(cls.name,
-                    description = cls.description)
+                    description = cls.description,
+                    help = cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
                     _add_arg(sc, arg)
