@@ -1648,7 +1648,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
 
     @property
-    def _min(self):
+    def _mrep(self):
         return MinimalProjectionData(self)
 
     def _convert_field_name(self, field):

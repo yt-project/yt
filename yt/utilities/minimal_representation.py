@@ -25,6 +25,9 @@ License:
 
 import abc
 
+class ContainerClass(object):
+    pass
+
 class MinimalRepresentation(object):
     __metaclass__ = abc.ABCMeta
 
@@ -56,6 +59,13 @@ class MinimalRepresentation(object):
     @property
     def _attrs(self):
         return dict( ((attr, getattr(self, attr)) for attr in self._attr_list) )
+
+    @classmethod
+    def _from_metadata(cls, metadata):
+        cc = ContainerClass()
+        for a, v in metadata.values():
+            setattr(cc, a, v)
+        return cls(cc)
 
 class FilteredRepresentation(MinimalRepresentation):
     def _generate_post(self):

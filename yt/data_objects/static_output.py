@@ -118,7 +118,7 @@ class StaticOutput(object):
             return s.replace(";", "*")
 
     @property
-    def _min(self):
+    def _mrep(self):
         return MinimalStaticOutput(self)
 
     @classmethod
