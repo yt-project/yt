@@ -111,15 +111,6 @@ parser.add_argument("--rpdb", action=SetExceptionHandling,
 parser.add_argument("--parallel", action="store_true", default=False,
     dest = "parallel",
     help = "Run in MPI-parallel mode (must be launched as an MPI task)")
-subparsers = parser.add_subparsers(title="subcommands",
-                    dest='subcommands',
-                    description="Valid subcommands",)
-
-def print_help(*args, **kwargs):
-    parser.print_help()
-help_parser = subparsers.add_parser("help")
-help_parser.set_defaults(func=print_help)
-
 if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
 
 parallel_capable = False
@@ -129,6 +120,15 @@ if not ytcfg.getboolean("yt","__command_line"):
     sys.argv = [a for a in args]
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
+else:
+    subparsers = parser.add_subparsers(title="subcommands",
+                        dest='subcommands',
+                        description="Valid subcommands",)
+    def print_help(*args, **kwargs):
+        parser.print_help()
+    help_parser = subparsers.add_parser("help", help="Print help message")
+    help_parser.set_defaults(func=print_help)
+
 
 if parallel_capable == True:
     pass
