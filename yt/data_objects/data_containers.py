@@ -53,6 +53,8 @@ from yt.utilities.linear_interpolators import \
     TrilinearFieldInterpolator
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
+from yt.utilities.minimal_representation import \
+    MinimalProjectionData
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -85,6 +87,20 @@ def restore_grid_state(func):
         tr = func(self, grid, field, *args, **kwargs)
         grid.field_parameters = old_params
         grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
+        return tr
+    return save_state
+
+def restore_field_information_state(func):
+    """
+    A decorator that takes a function with the API of (self, grid, field)
+    and ensures that after the function is called, the field_parameters will
+    be returned to normal.
+    """
+    def save_state(self, grid, field=None, *args, **kwargs):
+        old_params = grid.field_parameters
+        grid.field_parameters = self.field_parameters
+        tr = func(self, grid, field, *args, **kwargs)
+        grid.field_parameters = old_params
         return tr
     return save_state
 
@@ -833,6 +849,38 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             self[field] = temp_data[field]
 
     def to_frb(self, width, resolution, center = None):
+        r"""This function returns a FixedResolutionBuffer generated from this
+        object.
+
+        A FixedResolutionBuffer is an object that accepts a variable-resolution
+        2D object and transforms it into an NxM bitmap that can be plotted,
+        examined or processed.  This is a convenience function to return an FRB
+        directly from an existing 2D data object.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+        center : array-like of floats, optional
+            The center of the FRB.  If not specified, defaults to the center of
+            the current object.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> proj = pf.h.proj(0, "Density")
+        >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
+        """
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
@@ -1258,6 +1306,52 @@ class AMRCuttingPlaneBase(AMR2DData):
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
 
+    def to_frb(self, width, resolution):
+        r"""This function returns an ObliqueFixedResolutionBuffer generated
+        from this object.
+
+        An ObliqueFixedResolutionBuffer is an object that accepts a
+        variable-resolution 2D object and transforms it into an NxM bitmap that
+        can be plotted, examined or processed.  This is a convenience function
+        to return an FRB directly from an existing 2D data object.  Unlike the
+        corresponding to_frb function for other AMR2DData objects, this does
+        not accept a 'center' parameter as it is assumed to be centered at the
+        center of the cutting plane.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> cutting = pf.h.cutting(L, c)
+        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_1pc.png')
+        """
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
+
 class AMRFixedResCuttingPlaneBase(AMR2DData):
     """
     AMRFixedResCuttingPlaneBase is an oblique plane through the data,
@@ -1552,6 +1646,10 @@ class AMRQuadTreeProjBase(AMR2DData):
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
+
+    @property
+    def _mrep(self):
+        return MinimalProjectionData(self)
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -3467,7 +3565,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                                    output_field, output_left)
             self.field_data[field] = output_field
 
-    @restore_grid_state
+    @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field].astype("float64") for field in fields]

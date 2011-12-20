@@ -280,6 +280,105 @@ _common_options = dict(
 
     )
 
+def _update_hg(path, skip_rebuild = False):
+    from mercurial import hg, ui, commands
+    f = open(os.path.join(path, "yt_updater.log"), "a")
+    u = ui.ui()
+    u.pushbuffer()
+    config_fn = os.path.join(path, ".hg", "hgrc")
+    print "Reading configuration from ", config_fn
+    u.readconfig(config_fn)
+    repo = hg.repository(u, path)
+    commands.pull(u, repo)
+    f.write(u.popbuffer())
+    f.write("\n\n")
+    u.pushbuffer()
+    commands.identify(u, repo)
+    if "+" in u.popbuffer():
+        print "Can't rebuild modules by myself."
+        print "You will have to do this yourself.  Here's a sample commands:"
+        print
+        print "    $ cd %s" % (path)
+        print "    $ hg up"
+        print "    $ %s setup.py develop" % (sys.executable)
+        return 1
+    print "Updating the repository"
+    f.write("Updating the repository\n\n")
+    commands.update(u, repo, check=True)
+    if skip_rebuild: return
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
+                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Successful!\n")
+    print "Updated successfully."
+
+def _get_hg_version(path):
+    from mercurial import hg, ui, commands
+    u = ui.ui()
+    u.pushbuffer()
+    repo = hg.repository(u, path)
+    commands.identify(u, repo)
+    return u.popbuffer()
+
+def get_yt_version():
+    import pkg_resources
+    yt_provider = pkg_resources.get_provider("yt")
+    path = os.path.dirname(yt_provider.module_path)
+    version = _get_hg_version(path)[:12]
+    return version
+
+# This code snippet is modified from Georg Brandl
+def bb_apicall(endpoint, data, use_pass = True):
+    uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
+    # since bitbucket doesn't return the required WWW-Authenticate header when
+    # making a request without Authorization, we cannot use the standard urllib2
+    # auth handlers; we have to add the requisite header from the start
+    if data is not None:
+        data = urllib.urlencode(data)
+    req = urllib2.Request(uri, data)
+    if use_pass:
+        username = raw_input("Bitbucket Username? ")
+        password = getpass.getpass()
+        upw = '%s:%s' % (username, password)
+        req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+    return urllib2.urlopen(req).read()
+
+def _get_yt_supp(uu):
+    supp_path = os.path.join(os.environ["YT_DEST"], "src",
+                             "yt-supplemental")
+    # Now we check that the supplemental repository is checked out.
+    from mercurial import hg, ui, commands
+    if not os.path.isdir(supp_path):
+        print
+        print "*** The yt-supplemental repository is not checked ***"
+        print "*** out.  I can do this for you, but because this ***"
+        print "*** is a delicate act, I require you to respond   ***"
+        print "*** to the prompt with the word 'yes'.            ***"
+        print
+        response = raw_input("Do you want me to try to check it out? ")
+        if response != "yes":
+            print
+            print "Okay, I understand.  You can check it out yourself."
+            print "This command will do it:"
+            print
+            print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
+            print "%s" % (supp_path)
+            print
+            sys.exit(1)
+        rv = commands.clone(uu,
+                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+        if rv:
+            print "Something has gone wrong.  Quitting."
+            sys.exit(1)
+    # Now we think we have our supplemental repository.
+    return supp_path
+
 
 class YTUpdateCmd(YTCommand):
     name = "update"
@@ -840,7 +939,7 @@ class YTBootstrapDevCmd(YTCommand):
             print "*** to point to the installation location!        ***"
             print
             sys.exit(1)
-        supp_path = _get_yt_supp()
+        supp_path = _get_yt_supp(uu)
         print
         print "I have found the yt-supplemental repository at %s" % (supp_path)
         print
@@ -1131,7 +1230,8 @@ class YTHubSubmitCmd(YTCommand):
         import imp
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
-        supp_path = _get_yt_supp()
+        uu = ui.ui()
+        supp_path = _get_yt_supp(uu)
         try:
             result = imp.find_module("cedit", [supp_path])
         except ImportError:
@@ -1148,7 +1248,6 @@ class YTHubSubmitCmd(YTCommand):
             print "Sorry, but I'm going to bail."
             sys.exit(1)
         hgbb = imp.load_module("hgbb", *result)
-        uu = ui.ui()
         try:
             repo = hg.repository(uu, args.repo)
             conf = config.config()

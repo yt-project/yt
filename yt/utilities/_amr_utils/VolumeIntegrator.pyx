@@ -65,6 +65,9 @@ cdef extern from "math.h":
     double log2(double x)
     long int lrint(double x)
     double fabs(double x)
+    double cos(double x)
+    double sin(double x)
+    double asin(double x)
 
 cdef struct Triangle:
     Triangle *next
@@ -237,6 +240,33 @@ def arr_ang2pix_nest(long nside,
         healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
         tr[i] = ipnest
     return tr
+
+def arr_fisheye_vectors(int resolution, np.float64_t fov):
+    # We now follow figures 4-7 of:
+    # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
+    # ...but all in Cython.
+    cdef np.ndarray[np.float64_t, ndim=3] vp
+    cdef int i, j, k
+    cdef np.float64_t r, phi, theta, px, py
+    cdef np.float64_t pi = 3.1415926
+    cdef np.float64_t fov_rad = fov * pi / 180.0
+    vp = np.zeros((resolution, resolution, 3), dtype="float64")
+    for i in range(resolution):
+        px = 2.0 * i / (resolution) - 1.0
+        for j in range(resolution):
+            py = 2.0 * j / (resolution) - 1.0
+            r = (px*px + py*py)**0.5
+            if r == 0.0:
+                phi = 0.0
+            elif px < 0:
+                phi = pi - asin(py / r)
+            else:
+                phi = asin(py / r)
+            theta = r * fov_rad / 2.0
+            vp[i,j,0] = sin(theta) * cos(phi)
+            vp[i,j,1] = sin(theta) * sin(phi)
+            vp[i,j,2] = cos(theta)
+    return vp
 
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree

@@ -265,6 +265,7 @@ class FLASHStaticOutput(StaticOutput):
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
+        if nn not in self._handle: raise KeyError(nn)
         for tpname, pval in self._handle[nn][:]:
             if tpname.strip() == pname:
                 return pval
@@ -285,20 +286,26 @@ class FLASHStaticOutput(StaticOutput):
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
         self.domain_right_edge = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
-        self.dimensionality = self._find_parameter("integer", "dimensionality",
-                                scalar = True)
 
         # Determine domain dimensions
         try:
             nxb = self._find_parameter("integer", "nxb", scalar = True)
             nyb = self._find_parameter("integer", "nyb", scalar = True)
             nzb = self._find_parameter("integer", "nzb", scalar = True)
+            dimensionality = self._find_parameter("integer", "dimensionality",
+                                    scalar = True)
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
+            dimensionality = 3
+            if nzb == 1: dimensionality = 2
+            if nyb == 1: dimensionality = 1
+            if dimensionality < 3:
+                mylog.warning("Guessing dimensionality as %s", dimensionality)
         nblockx = self._find_parameter("integer", "nblockx")
         nblocky = self._find_parameter("integer", "nblockx")
         nblockz = self._find_parameter("integer", "nblockx")
+        self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
@@ -308,6 +315,13 @@ class FLASHStaticOutput(StaticOutput):
         else:
             self.current_time = \
                 float(self._find_parameter("real", "time", scalar=True))
+
+        if self._flash_version == 7:
+            self.parameters['timestep'] = float(
+                self._handle["simulation parameters"]["timestep"])
+        else:
+            self.parameters['timestep'] = \
+                float(self._find_parameter("real", "dt", scalar=True))
 
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 

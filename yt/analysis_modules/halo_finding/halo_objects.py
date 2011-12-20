@@ -32,6 +32,7 @@ import math
 import numpy as na
 import random
 import sys
+import os.path as path
 from collections import defaultdict
 
 from yt.funcs import *
@@ -1360,12 +1361,16 @@ class LoadedHaloList(HaloList):
         # The halos are listed in order in the file.
         lines = file("%s.txt" % self.basename)
         locations = []
+        realpath = path.realpath("%s.txt" % self.basename)
         for line in lines:
             line = line.split()
             # Prepend the hdf5 file names with the full path.
             temp = []
             for item in line[1:]:
-                temp.append(self.pf.fullpath + '/' + item)
+                # This assumes that the .txt is in the same place as
+                # the h5 files, which is a good one I think.
+                item = item.split("/")
+                temp.append(path.join(path.dirname(realpath), item[-1]))
             locations.append(temp)
         lines.close()
         return locations

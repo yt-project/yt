@@ -515,3 +515,107 @@ def ortho_find(vec1):
     vec2 /= norm2
     vec3 = na.cross(vec1, vec2)
     return vec1, vec2, vec3
+
+def quartiles(a, axis=None, out=None, overwrite_input=False):
+    """
+    Compute the quartile values (25% and 75%) along the specified axis
+    in the same way that the numpy.median calculates the median (50%) value
+    alone a specified axis.  Check numpy.median for details, as it is
+    virtually the same algorithm.
+
+    Returns an array of the quartiles of the array elements [lower quartile, 
+    upper quartile].
+
+    Parameters
+    ----------
+    a : array_like
+        Input array or object that can be converted to an array.
+    axis : {None, int}, optional
+        Axis along which the quartiles are computed. The default (axis=None)
+        is to compute the quartiles along a flattened version of the array.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must
+        have the same shape and buffer length as the expected output,
+        but the type (of the output) will be cast if necessary.
+    overwrite_input : {False, True}, optional
+       If True, then allow use of memory of input array (a) for
+       calculations. The input array will be modified by the call to
+       quartiles. This will save memory when you do not need to preserve
+       the contents of the input array. Treat the input as undefined,
+       but it will probably be fully or partially sorted. Default is
+       False. Note that, if `overwrite_input` is True and the input
+       is not already an ndarray, an error will be raised.
+
+    Returns
+    -------
+    quartiles : ndarray
+        A new 2D array holding the result (unless `out` is specified, in
+        which case that array is returned instead).  If the input contains
+        integers, or floats of smaller precision than 64, then the output
+        data-type is float64.  Otherwise, the output data-type is the same
+        as that of the input.
+
+    See Also
+    --------
+    numpy.median, numpy.mean, numpy.percentile
+
+    Notes
+    -----
+    Given a vector V of length N, the quartiles of V are the 25% and 75% values 
+    of a sorted copy of V, ``V_sorted`` - i.e., ``V_sorted[(N-1)/4]`` and 
+    ``3*V_sorted[(N-1)/4]``, when N is odd.  When N is even, it is the average 
+    of the two values bounding these values of ``V_sorted``.
+
+    Examples
+    --------
+    >>> a = na.arange(100).reshape(10,10)
+    >>> a
+    array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+           [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+           [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+           [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+           [40, 41, 42, 43, 44, 45, 46, 47, 48, 49],
+           [50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+           [60, 61, 62, 63, 64, 65, 66, 67, 68, 69],
+           [70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
+           [80, 81, 82, 83, 84, 85, 86, 87, 88, 89],
+           [90, 91, 92, 93, 94, 95, 96, 97, 98, 99]])
+    >>> mu.quartiles(a)
+    array([ 24.5,  74.5])
+    >>> mu.quartiles(a,axis=0)
+    array([[ 15.,  16.,  17.,  18.,  19.,  20.,  21.,  22.,  23.,  24.],
+           [ 65.,  66.,  67.,  68.,  69.,  70.,  71.,  72.,  73.,  74.]])
+    >>> mu.quartiles(a,axis=1)
+    array([[  1.5,  11.5,  21.5,  31.5,  41.5,  51.5,  61.5,  71.5,  81.5,
+             91.5],
+           [  6.5,  16.5,  26.5,  36.5,  46.5,  56.5,  66.5,  76.5,  86.5,
+             96.5]])
+    """
+    if overwrite_input:
+        if axis is None:
+            sorted = a.ravel()
+            sorted.sort()
+        else:
+            a.sort(axis=axis)
+            sorted = a
+    else:
+        sorted = na.sort(a, axis=axis)
+    if axis is None:
+        axis = 0
+    indexer = [slice(None)] * sorted.ndim
+    indices = [int(sorted.shape[axis]/4), int(sorted.shape[axis]*.75)]
+    result = []
+    for index in indices:
+        if sorted.shape[axis] % 2 == 1:
+            # index with slice to allow mean (below) to work
+            indexer[axis] = slice(index, index+1)
+        else:
+            indexer[axis] = slice(index-1, index+1)
+        # special cases for small arrays
+        if sorted.shape[axis] == 2:
+            # index with slice to allow mean (below) to work
+            indexer[axis] = slice(index, index+1)
+        # Use mean in odd and even case to coerce data type
+        # and check, use out array.
+        result.append(na.mean(sorted[indexer], axis=axis, out=out))
+    return na.array(result)
