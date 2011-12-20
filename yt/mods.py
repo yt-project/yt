@@ -40,6 +40,7 @@ import numpy # In case anyone wishes to use it by name
 # operations.
 
 import yt.startup_tasks as __startup_tasks
+unparsed_args = __startup_tasks.unparsed_args
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog

@@ -113,13 +113,13 @@ parser.add_argument("--parallel", action="store_true", default=False,
     help = "Run in MPI-parallel mode (must be launched as an MPI task)")
 if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
 
-leftover_args = []
+unparsed_args = []
 
 parallel_capable = False
 if not ytcfg.getboolean("yt","__command_line"):
-    opts, leftover_args = parser.parse_known_args()
+    opts, unparsed_args = parser.parse_known_args()
     # THIS IS NOT SUCH A GOOD IDEA:
-    #sys.argv = [a for a in leftover_args]
+    #sys.argv = [a for a in unparsed_args]
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
 else:
