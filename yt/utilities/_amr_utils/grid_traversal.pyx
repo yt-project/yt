@@ -84,6 +84,7 @@ cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
     cdef public object RightEdge
+    cdef int parent_grid_id
     cdef VolumeContainer *container
 
     @cython.boundscheck(False)
@@ -95,6 +96,7 @@ cdef class PartitionedGrid:
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
+        self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
         self.container = <VolumeContainer *> \
@@ -324,6 +326,10 @@ cdef struct VolumeRenderAccumulator:
     int n_samples
     FieldInterpolationTable *fits
     int field_table_ids[6]
+    np.float64_t star_coeff
+    np.float64_t star_er
+    np.float64_t star_sigma_num
+    kdtree_utils.kdtree *star_list
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -368,10 +374,102 @@ cdef void volume_render_sampler(
         for i in range(vc.n_fields):
             dvs[i] += slopes[i]
 
+cdef class star_kdtree_container:
+    cdef kdtree_utils.kdtree *tree
+    cdef public np.float64_t sigma
+    cdef public np.float64_t coeff
+
+    def __init__(self):
+        self.tree = kdtree_utils.kd_create(3)
+
+    def add_points(self,
+                   np.ndarray[np.float64_t, ndim=1] pos_x,
+                   np.ndarray[np.float64_t, ndim=1] pos_y,
+                   np.ndarray[np.float64_t, ndim=1] pos_z,
+                   np.ndarray[np.float64_t, ndim=2] star_colors):
+        cdef int i, n
+        cdef np.float64_t *pointer = <np.float64_t *> star_colors.data
+        for i in range(pos_x.shape[0]):
+            kdtree_utils.kd_insert3(self.tree,
+                pos_x[i], pos_y[i], pos_z[i], pointer + i*3)
+
+    def __dealloc__(self):
+        kdtree_utils.kd_free(self.tree)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void volume_render_stars_sampler(
+                 VolumeContainer *vc, 
+                 np.float64_t v_pos[3],
+                 np.float64_t v_dir[3],
+                 np.float64_t enter_t,
+                 np.float64_t exit_t,
+                 int index[3],
+                 void *data) nogil:
+    cdef ImageAccumulator *im = <ImageAccumulator *> data
+    cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
+            im.supp_data
+    cdef kdtree_utils.kdres *ballq = NULL
+    # we assume this has vertex-centered data.
+    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
+                    + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
+    cdef np.float64_t dvs[6], cell_left[3], local_dds[3], pos[3]
+    cdef int nstars
+    cdef np.float64_t *colors = NULL, gexp, gaussian, px, py, pz
+    for i in range(3):
+        dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
+        dp[i] *= vc.idds[i]
+        ds[i] = v_dir[i] * vc.idds[i] * dt
+    for i in range(vc.n_fields):
+        slopes[i] = offset_interpolate(vc.dims, dp,
+                        vc.data[i] + offset)
+    cdef np.float64_t temp
+    # Now we get the ball-tree result for the stars near our cell center.
+    for i in range(3):
+        cell_left[i] = index[i] * vc.dds[i] + vc.left_edge[i]
+        pos[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        local_dds[i] = v_dir[i] * dt
+    ballq = kdtree_utils.kd_nearest_range3(
+        vri.star_list, cell_left[0] + vc.dds[0]*0.5,
+                        cell_left[1] + vc.dds[1]*0.5,
+                        cell_left[2] + vc.dds[2]*0.5,
+                        vri.star_er + 0.9*vc.dds[0])
+                                    # ~0.866 + a bit
+
+    nstars = kdtree_utils.kd_res_size(ballq)
+    for i in range(vc.n_fields):
+        temp = slopes[i]
+        slopes[i] -= offset_interpolate(vc.dims, dp,
+                         vc.data[i] + offset)
+        slopes[i] *= -1.0/vri.n_samples
+        dvs[i] = temp
+    for dti in range(vri.n_samples): 
+        # Now we add the contribution from stars
+        for i in range(nstars):
+            kdtree_utils.kd_res_item3(ballq, &px, &py, &pz)
+            colors = <np.float64_t *> kdtree_utils.kd_res_item_data(ballq)
+            kdtree_utils.kd_res_next(ballq)
+            gexp = (px - pos[0])*(px - pos[0]) \
+                 + (py - pos[1])*(py - pos[1]) \
+                 + (pz - pos[2])*(pz - pos[2])
+            gaussian = vri.star_coeff * expl(-gexp/vri.star_sigma_num)
+            for i in range(3): im.rgba[i] += gaussian*dt*colors[i]
+        for i in range(3):
+            pos[i] += local_dds[i]
+        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
+                          vri.field_table_ids)
+        for i in range(vc.n_fields):
+            dvs[i] += slopes[i]
+
 cdef class VolumeRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
     cdef public object tf_obj
     cdef public object my_field_tables
+    cdef kdtree_utils.kdtree **trees
     def __cinit__(self, 
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
@@ -381,7 +479,8 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  tf_obj, n_samples = 10):
+                  tf_obj, n_samples = 10,
+                  star_list = None):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width)
         cdef int i
@@ -409,9 +508,22 @@ cdef class VolumeRenderSampler(ImageSampler):
         for i in range(6):
             self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
         self.supp_data = <void *> self.vra
+        cdef star_kdtree_container skdc
+        if star_list is None:
+            self.trees = NULL
+        else:
+            self.trees = <kdtree_utils.kdtree **> malloc(
+                sizeof(kdtree_utils.kdtree*) * len(star_list))
+            for i in range(len(star_list)):
+                skdc = star_list[i]
+                self.trees[i] = skdc.tree
 
     def setup(self, PartitionedGrid pg):
-        self.sampler = volume_render_sampler
+        if self.trees == NULL:
+            self.sampler = volume_render_sampler
+        else:
+            self.vra.star_list = self.trees[pg.parent_grid_id]
+            self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
         return
