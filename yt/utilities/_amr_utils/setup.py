@@ -126,10 +126,20 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/_amr_utils/freetype_includes.h"])
     config.add_extension("geometry_utils", 
                 ["yt/utilities/_amr_utils/geometry_utils.pyx"],
+               extra_compile_args=['-fopenmp'],
+               extra_link_args=['-fopenmp'],
                 libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
     config.add_extension("Interpolators", 
                 ["yt/utilities/_amr_utils/Interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+    config.add_extension("marching_cubes", 
+                ["yt/utilities/_amr_utils/marching_cubes.pyx",
+                 "yt/utilities/_amr_utils/FixedInterpolator.c"],
+                libraries=["m"],
+                depends=["yt/utilities/_amr_utils/fp_utils.pxd",
+                         "yt/utilities/_amr_utils/fixed_interpolator.pxd",
+                         "yt/utilities/_amr_utils/FixedInterpolator.h",
+                ])
     config.add_extension("misc_utilities", 
                 ["yt/utilities/_amr_utils/misc_utilities.pyx"],
                 libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
@@ -175,14 +185,17 @@ def configuration(parent_package='',top_path=None):
           )
     config.add_extension("grid_traversal", 
                ["yt/utilities/_amr_utils/grid_traversal.pyx",
-                "yt/utilities/_amr_utils/FixedInterpolator.c"],
+                "yt/utilities/_amr_utils/FixedInterpolator.c",
+                "yt/utilities/_amr_utils/kdtree.c"],
                include_dirs=["yt/utilities/_amr_utils/"],
                libraries=["m"], 
                extra_compile_args=['-fopenmp'],
                extra_link_args=['-fopenmp'],
                depends = ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
                           "yt/utilities/_amr_utils/fp_utils.pxd",
+                          "yt/utilities/_amr_utils/kdtree.h",
                           "yt/utilities/_amr_utils/FixedInterpolator.h",
+                          "yt/utilities/_amr_utils/fixed_interpolator.pxd",
                           ]
           )
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

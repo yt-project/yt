@@ -26,7 +26,18 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free, abs
+from stdlib cimport malloc, free
+
+cdef extern from "math.h":
+    double exp(double x) nogil
+    float expf(float x) nogil
+    long double expl(long double x) nogil
+    double floor(double x) nogil
+    double ceil(double x) nogil
+    double fmod(double x, double y) nogil
+    double log2(double x) nogil
+    long int lrint(double x) nogil
+    double fabs(double x) nogil
 
 # These routines are separated into a couple different categories:
 #
@@ -110,6 +121,91 @@ def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
             continue
     return gridi
 
+def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                      np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i, ax
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    ax = dobj.axis
+    cdef np.float64_t coord = dobj.coord
+    for i in range(ng):
+        if left_edges[i, ax] <= coord and \
+           right_edges[i, ax] > coord:
+            gridi[i] = 1
+    return gridi
+
+def cutting_plane_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                        np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.float64_t *arr[2]
+    arr[0] = <np.float64_t *> left_edges.data
+    arr[1] = <np.float64_t *> right_edges.data
+    cdef np.float64_t x, y, z
+    cdef np.float64_t norm_vec[3]
+    cdef np.float64_t d = dobj._d # offset to center
+    cdef np.float64_t gd # offset to center
+    cdef np.int64_t all_under, all_over
+    for i in range(3):
+        norm_vec[i] = dobj._norm_vec[i]
+    for i in range(ng):
+        all_under = 1
+        all_over = 1
+        # Check each corner
+        for xi in range(2):
+            x = arr[xi][i * 3 + 0]
+            for yi in range(2):
+                y = arr[yi][i * 3 + 1]
+                for zi in range(2):
+                    z = arr[zi][i * 3 + 2]
+                    gd = ( x*norm_vec[0]
+                         + y*norm_vec[1]
+                         + z*norm_vec[2]) + d
+                    if gd <= 0: all_over = 0
+                    if gd >= 0: all_under = 0
+        if not (all_over == 1 or all_under == 1):
+            gridi[i] = 1
+    return gridi
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline int cutting_plane_cell(
+                        np.float64_t x, np.float64_t y, np.float64_t z,
+                        np.float64_t norm_vec[3], np.float64_t d,
+                        np.float64_t dist):
+    cdef np.float64_t cd = x*norm_vec[0] + y*norm_vec[1] + z*norm_vec[2] + d
+    if fabs(cd) <= dist: return 1
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def cutting_plane_cells(dobj, gobj):
+    cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+    cdef int i, j, k
+    cdef np.float64_t x, y, z, dist
+    cdef np.float64_t norm_vec[3]
+    cdef np.float64_t d = dobj._d
+
+    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    for i in range(3): norm_vec[i] = dobj._norm_vec[i]
+    dist = 0.5*(dds[0]*dds[0] + dds[1]*dds[1] + dds[2]*dds[2])**0.5
+    x = left_edge[0] + dds[0] * 0.5
+    for i in range(mask.shape[0]):
+        y = left_edge[1] + dds[1] * 0.5
+        for j in range(mask.shape[1]):
+            z = left_edge[2] + dds[2] * 0.5
+            for k in range(mask.shape[2]):
+                mask[i,j,k] = cutting_plane_cell(x, y, z, norm_vec, d, dist)
+                z += dds[1]
+            y += dds[1]
+        x += dds[0]
+    return mask
+                
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
