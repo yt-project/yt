@@ -36,4 +36,6 @@ from ._amr_utils.png_writer import *
 from ._amr_utils.PointsInVolume import *
 from ._amr_utils.QuadTree import *
 from ._amr_utils.RayIntegrators import *
-from ._amr_utils.VolumeIntegrator import *
+from ._amr_utils.grid_traversal import *
+from ._amr_utils.marching_cubes import *
+#from ._amr_utils.VolumeIntegrator import *

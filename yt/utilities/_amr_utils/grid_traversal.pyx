@@ -32,6 +32,7 @@ from stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer
+from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
 
@@ -55,21 +56,6 @@ ctypedef void sample_function(
                 np.float64_t exit_t,
                 int index[3],
                 void *data) nogil
-
-cdef extern from "FixedInterpolator.h":
-    np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
-                                  np.float64_t *data) nogil
-    np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3],
-                                    np.float64_t *data) nogil
-    np.float64_t trilinear_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
-                                       np.float64_t *data) nogil
-    void eval_gradient(int ds[3], np.float64_t dp[3], np.float64_t *data,
-                       np.float64_t grad[3]) nogil
-    void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval) nogil
-    void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
-                       np.float64_t vl[3], np.float64_t dds[3],
-                       np.float64_t x, np.float64_t y, np.float64_t z,
-                       int vind1, int vind2) nogil
 
 cdef struct VolumeContainer:
     int n_fields

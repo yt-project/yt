@@ -30,9 +30,9 @@ from yt.funcs import *
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
-    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
-    arr_ang2pix_nest
+#from yt.utilities.amr_utils import \
+#    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
+#    arr_ang2pix_nest
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
