@@ -882,13 +882,13 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     return image
 
 def allsky_projection(pf, center, radius, nside, field, weight = None):
-    r"""Project through a parameter file, off-axis, and return the image plane.
+    r"""Project through a parameter file, through an allsky-method
+    decomposition from HEALpix, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
-    at an arbitrary angle and return the integrated field of view to the user.
-    Note that if a weight is supplied, it will multiply the pre-interpolated
-    values together, then create cell-centered values, then interpolate within
-    the cell to conduct the integration.
+    over 4pi and return the integrated field of view to the user.  Note that if
+    a weight is supplied, it will multiply the pre-interpolated values
+    together.
 
     Parameters
     ----------
@@ -897,47 +897,35 @@ def allsky_projection(pf, center, radius, nside, field, weight = None):
     center : array_like
         The current "center" of the view port -- the focal point for the
         camera.
-    normal_vector : array_like
-        The vector between the camera position and the center.
-    width : float or list of floats
-        The current width of the image.  If a single float, the volume is
-        cubical, but if not, it is front/back, left/right, top/bottom.
-    resolution : int or list of ints
-        The number of pixels in each direction.
+    radius : float or list of floats
+        The radius to integrate out to of the image.
+    nside : int
+        The HEALpix degree.  The number of rays integrated is 12*(Nside**2)
+        Must be a power of two!
     field : string
         The field to project through the volume
     weight : optional, default None
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
         than a sum.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
-        The volume to ray cast through.  Can be specified for finer-grained
-        control, but otherwise will be automatically generated.
-    no_ghost: bool, optional
-        Optimization option.  If True, homogenized bricks will
-        extrapolate out from grid instead of interpolating from
-        ghost zones that have to first be calculated.  This can
-        lead to large speed improvements, but at a loss of
-        accuracy/smoothness in resulting image.  The effects are
-        less notable when the transfer function is smooth and
-        broad. Default: True
 
     Returns
     -------
     image : array
-        An (N,N) array of the final integrated values, in float64 form.
+        An ((Nside**2)*12,1,3) array of the final integrated values, in float64 form.
 
     Examples
     --------
 
-    >>> image = off_axis_projection(pf, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-                      0.2, N, "Temperature", "Density")
-    >>> write_image(na.log10(image), "offaxis.png")
+    >>> image = allsky_projection(pf, [0.5, 0.5, 0.5], 1.0/pf['mpc'],
+                      32, "Temperature", "Density")
+    >>> plot_allsky_healpix(image, 32, "healpix.png")
 
     """
     # We manually modify the ProjectionTransferFunction to get it to work the
     # way we want, with a second field that's also passed through.
     fields = [field]
+    center = na.array(center, dtype='float64')
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
         pf.field_info.add_field("temp_weightfield",
@@ -955,7 +943,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None):
                                 image, uv, uv, na.zeros(3, dtype='float64'))
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
-        data = [(grid["Density"] * grid.child_mask).astype("float64")]
+        data = [(grid[field] * grid.child_mask).astype("float64")
+                for field in fields]
         pg = PartitionedGrid(
             grid.id, data,
             grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
@@ -964,9 +953,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None):
         pb.update(i)
     pb.finish()
     image = sampler.aimage
-    return image
     if weight is None:
-        dl = width * pf.units[pf.field_info[field].projection_conversion]
+        dl = radius * pf.units[pf.field_info[field].projection_conversion]
         image *= dl
     else:
         image /= vals[:,:,1]

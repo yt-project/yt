@@ -229,17 +229,30 @@ cdef class ImageSampler:
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4]
         hit = 0
-        self.calculate_extent(extrema, vc)
-        self.get_start_stop(extrema, iter)
-        iter[0] = iclip(iter[0]-1, 0, im.nv[0]-1)
-        iter[1] = iclip(iter[1]+1, 0, im.nv[0]-1)
-        iter[2] = iclip(iter[2]-1, 0, im.nv[1]-1)
-        iter[3] = iclip(iter[3]+1, 0, im.nv[1]-1)
+        cdef int nx, ny, size
+        if im.vd_strides[0] == -1:
+            self.calculate_extent(extrema, vc)
+            self.get_start_stop(extrema, iter)
+            iter[0] = iclip(iter[0]-1, 0, im.nv[0]-1)
+            iter[1] = iclip(iter[1]+1, 0, im.nv[0]-1)
+            iter[2] = iclip(iter[2]-1, 0, im.nv[1]-1)
+            iter[3] = iclip(iter[3]+1, 0, im.nv[1]-1)
+            nx = (iter[1] - iter[0])
+            ny = (iter[3] - iter[2])
+            size = nx * ny
+        else:
+            nx = im.nv[0]
+            ny = 1
+            iter[0] = iter[1] = iter[2] = iter[3] = 0
+            size = nx
+        #print "Sampling", im.vd_strides[0], size
+        #print im.vp_dir[0], im.vp_dir[3]
+        #print im.vp_pos[0], im.vp_pos[3]
+        #print im.image[0], im.image[3]
+        #print im.vp_dir[(size-1) * 3], im.vp_dir[size * 3 - 1]
+        #print im.vp_pos[(size-1) * 3], im.vp_pos[size * 3 - 1]
+        #print im.image[(size-1) * 3], im.image[size * 3 - 1]
         cdef ImageAccumulator *idata
-        cdef void *data
-        cdef int nx = (iter[1] - iter[0])
-        cdef int ny = (iter[3] - iter[2])
-        cdef int size = nx * ny
         cdef np.float64_t px, py 
         cdef np.float64_t width[3] 
         for i in range(3):
@@ -270,19 +283,17 @@ cdef class ImageSampler:
                 # our rays 
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 for j in prange(size, schedule="dynamic"):
-                    vj = j % ny
-                    vi = (j - vj) / ny + iter[0]
-                    vj = vj + iter[2]
-                    offset = im.vp_strides[0] * vi + im.vp_strides[1] * vj
-                    for i in range(3): v_pos[i] = im.vp_dir[i + offset]
-                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
-                    offset = im.vd_strides[0] * vi + im.vd_strides[1] * vj
+                    offset = j * 3
+                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    walk_volume(vc, v_pos, v_dir, self.sampler, data)
-                free(v_dir)
+                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    walk_volume(vc, v_pos, v_dir, self.sampler, 
+                                (<void *> idata))
+                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+                #free(v_dir)
             free(idata)
             free(v_pos)
+        #print self.aimage.max()
         return hit
 
 cdef void projection_sampler(
