@@ -602,7 +602,8 @@ class YTMapserverCmd(YTCommand):
             dict(short="-a", long="--axis", action="store", type=int,
                  dest="axis", default=0, help="Axis (4 for all three)"),
             dict(short ="-o", long="--host", action="store", type=str,
-                   dest="host", default=None, help="IP Address to bind on")
+                   dest="host", default=None, help="IP Address to bind on"),
+            "pf",
             )
     
     name = "mapserver"
