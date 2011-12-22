@@ -501,7 +501,7 @@ class YTLoadCmd(YTCommand):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
-        local_ns['pf'] = pf
+        local_ns['pf'] = args.pf
 
         if api_version == '0.10':
             shell = IPython.Shell.IPShellEmbed()
