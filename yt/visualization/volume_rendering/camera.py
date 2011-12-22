@@ -40,8 +40,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
 
-from yt.utilities._amr_utils.grid_traversal import \
-    PartitionedGrid, ProjectionSampler, VolumeRenderSampler
+from yt.utilities.amr_utils import \
+    PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
+    arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -879,3 +880,112 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         image /= vals[:,:,1]
         pf.field_info.pop("temp_weightfield")
     return image
+
+def allsky_projection(pf, center, radius, nside, field, weight = None):
+    r"""Project through a parameter file, off-axis, and return the image plane.
+
+    This function will accept the necessary items to integrate through a volume
+    at an arbitrary angle and return the integrated field of view to the user.
+    Note that if a weight is supplied, it will multiply the pre-interpolated
+    values together, then create cell-centered values, then interpolate within
+    the cell to conduct the integration.
+
+    Parameters
+    ----------
+    pf : `~yt.data_objects.api.StaticOutput`
+        This is the parameter file to volume render.
+    center : array_like
+        The current "center" of the view port -- the focal point for the
+        camera.
+    normal_vector : array_like
+        The vector between the camera position and the center.
+    width : float or list of floats
+        The current width of the image.  If a single float, the volume is
+        cubical, but if not, it is front/back, left/right, top/bottom.
+    resolution : int or list of ints
+        The number of pixels in each direction.
+    field : string
+        The field to project through the volume
+    weight : optional, default None
+        If supplied, the field will be pre-multiplied by this, then divided by
+        the integrated value of this field.  This returns an average rather
+        than a sum.
+    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+        The volume to ray cast through.  Can be specified for finer-grained
+        control, but otherwise will be automatically generated.
+    no_ghost: bool, optional
+        Optimization option.  If True, homogenized bricks will
+        extrapolate out from grid instead of interpolating from
+        ghost zones that have to first be calculated.  This can
+        lead to large speed improvements, but at a loss of
+        accuracy/smoothness in resulting image.  The effects are
+        less notable when the transfer function is smooth and
+        broad. Default: True
+
+    Returns
+    -------
+    image : array
+        An (N,N) array of the final integrated values, in float64 form.
+
+    Examples
+    --------
+
+    >>> image = off_axis_projection(pf, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
+                      0.2, N, "Temperature", "Density")
+    >>> write_image(na.log10(image), "offaxis.png")
+
+    """
+    # We manually modify the ProjectionTransferFunction to get it to work the
+    # way we want, with a second field that's also passed through.
+    fields = [field]
+    if weight is not None:
+        # This is a temporary field, which we will remove at the end.
+        pf.field_info.add_field("temp_weightfield",
+            function=lambda a,b:b[field]*b[weight])
+        fields = ["temp_weightfield", weight]
+    nv = 12*nside**2
+    image = na.zeros((nv,1,3), dtype='float64', order='C')
+    vs = arr_pix2vec_nest(nside, na.arange(nv))
+    vs *= radius
+    vs.shape = (nv,1,3)
+    uv = na.ones(3, dtype='float64')
+    positions = na.ones((nv, 1, 3), dtype='float64') * center
+    grids = pf.h.sphere(center, radius)._grids
+    sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
+                                image, uv, uv, na.zeros(3, dtype='float64'))
+    pb = get_pbar("Sampling ", len(grids))
+    for i,grid in enumerate(grids):
+        data = [(grid["Density"] * grid.child_mask).astype("float64")]
+        pg = PartitionedGrid(
+            grid.id, data,
+            grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
+        grid.clear_data()
+        sampler(pg)
+        pb.update(i)
+    pb.finish()
+    image = sampler.aimage
+    return image
+    if weight is None:
+        dl = width * pf.units[pf.field_info[field].projection_conversion]
+        image *= dl
+    else:
+        image /= vals[:,:,1]
+        pf.field_info.pop("temp_weightfield")
+    return image
+
+def plot_allsky_healpix(image, nside, fn, label = ""):
+    import matplotlib.figure
+    import matplotlib.backends.backend_agg
+    phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
+    pixi = arr_ang2pix_nest(nside, theta.ravel(), phi.ravel())
+    img = na.log10(image[:,0,0][pixi]).reshape((800,800))
+
+    fig = matplotlib.figure.Figure((10, 5))
+    ax = fig.add_subplot(1,1,1,projection='mollweide')
+    implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+    cb = fig.colorbar(implot, orientation='horizontal')
+    cb.set_label(label)
+    ax.xaxis.set_ticks(())
+    ax.yaxis.set_ticks(())
+    canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+    canvas.print_figure(fn)

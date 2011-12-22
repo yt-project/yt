@@ -186,7 +186,8 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("grid_traversal", 
                ["yt/utilities/_amr_utils/grid_traversal.pyx",
                 "yt/utilities/_amr_utils/FixedInterpolator.c",
-                "yt/utilities/_amr_utils/kdtree.c"],
+                "yt/utilities/_amr_utils/kdtree.c"] +
+                 glob.glob("yt/utilities/_amr_utils/healpix_*.c"), 
                include_dirs=["yt/utilities/_amr_utils/"],
                libraries=["m"], 
                extra_compile_args=['-fopenmp'],
