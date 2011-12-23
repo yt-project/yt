@@ -855,7 +855,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         pf.field_info.add_field("temp_weightfield",
             function=lambda a,b:b[field]*b[weight])
         fields = ["temp_weightfield", weight]
-    image = na.zeros((resolution, resolution, len(fields)), dtype='float64',
+    image = na.zeros((resolution, resolution, 3), dtype='float64',
                       order='C')
     normal_vector, north_vector, east_vector = ortho_find(normal_vector)
     unit_vectors = [north_vector, east_vector, normal_vector]
