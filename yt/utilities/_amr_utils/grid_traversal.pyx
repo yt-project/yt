@@ -46,6 +46,10 @@ cdef extern from "math.h":
     double log2(double x) nogil
     long int lrint(double x) nogil
     double fabs(double x) nogil
+    double atan2(double y, double x) nogil
+    double acos(double x) nogil
+    double cos(double x) nogil
+    double sin(double x) nogil
 
 cdef struct VolumeContainer
 ctypedef void sample_function(
@@ -255,14 +259,15 @@ cdef class ImageSampler:
             idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
             idata.supp_data = self.supp_data
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
             if im.vd_strides[0] == -1:
                 for j in prange(size, schedule="dynamic"):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
                     # Dynamically calculate the position
-                    px = width[0] * (<float>vi)/(<float>im.nv[0]-1) - width[0]/2.0
-                    py = width[1] * (<float>vj)/(<float>im.nv[1]-1) - width[1]/2.0
+                    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
+                    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
                     v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
                     v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
@@ -274,7 +279,6 @@ cdef class ImageSampler:
             else:
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
-                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 for j in prange(size, schedule="dynamic"):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
@@ -283,7 +287,7 @@ cdef class ImageSampler:
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
                                 (<void *> idata))
                     for i in range(3): im.image[i + offset] = idata.rgba[i]
-                #free(v_dir)
+            free(v_dir)
             free(idata)
             free(v_pos)
         #print self.aimage.max()
@@ -837,3 +841,51 @@ def arr_ang2pix_nest(long nside,
         tr[i] = ipnest
     return tr
 
+#@cython.boundscheck(False)
+@cython.cdivision(False)
+#@cython.wraparound(False)
+def pixelize_healpix(long nside,
+                     np.ndarray[np.float64_t, ndim=1] values,
+                     long ntheta, long nphi,
+                     np.ndarray[np.float64_t, ndim=2] irotation):
+    # We will first to pix2vec, rotate, then calculate the angle
+    cdef int i, j, thetai, phii
+    cdef long ipix
+    cdef double v0[3], v1[3]
+    cdef double pi = 3.1415926
+    cdef np.float64_t pi2 = pi/2.0
+    cdef np.float64_t phi, theta
+    cdef np.ndarray[np.float64_t, ndim=2] results
+    cdef np.ndarray[np.int32_t, ndim=2] count
+    results = np.zeros((ntheta, nphi), dtype="float64")
+    count = np.zeros((ntheta, nphi), dtype="int32")
+
+    cdef np.float64_t phi0 = 0
+    cdef np.float64_t dphi = 2.0 * pi/nphi
+
+    cdef np.float64_t theta0 = 0
+    cdef np.float64_t dtheta = pi/ntheta
+    # We assume these are the rotated theta and phi
+    for thetai in range(ntheta):
+        theta = theta0 + dtheta * thetai
+        for phii in range(nphi):
+            phi = phi0 + dphi * phii
+            # We have our rotated vector
+            v1[0] = cos(phi) * sin(theta)
+            v1[1] = sin(phi) * sin(theta)
+            v1[2] = cos(theta)
+            # Now we rotate back
+            for i in range(3):
+                v0[i] = 0
+                for j in range(3):
+                    v0[i] += v1[j] * irotation[j,i]
+            # Get the pixel this vector is inside
+            healpix_interface.vec2pix_nest(nside, v0, &ipix)
+            results[thetai, phii] = values[ipix]
+            count[i, j] += 1
+    return results, count
+    for i in range(ntheta):
+        for j in range(nphi):
+            if count[i,j] > 0:
+                results[i,j] /= count[i,j]
+    return results, count

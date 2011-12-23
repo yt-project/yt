@@ -43,7 +43,8 @@ from numpy import pi
 
 from yt.utilities.amr_utils import \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
-    arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest
+    arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
+    pixelize_healpix
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -954,8 +955,13 @@ def allsky_projection(pf, center, radius, nside, field, weight = None):
     center = na.array(center, dtype='float64')
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        def _make_wf(f, w):
+            def temp_weightfield(a, b):
+                tr = b[f].astype("float64") * b[w]
+                return tr
+            return temp_weightfield
         pf.field_info.add_field("temp_weightfield",
-            function=lambda a,b:b[field]*b[weight])
+            function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
     image = na.zeros((nv,1,3), dtype='float64', order='C')
@@ -983,23 +989,27 @@ def allsky_projection(pf, center, radius, nside, field, weight = None):
         dl = radius * pf.units[pf.field_info[field].projection_conversion]
         image *= dl
     else:
-        image /= vals[:,:,1]
+        image[:,:,0] /= image[:,:,1]
         pf.field_info.pop("temp_weightfield")
-    return image
+    return image[:,0,0]
 
-def plot_allsky_healpix(image, nside, fn, label = ""):
+def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
+                        take_log = True, resolution=512):
     import matplotlib.figure
     import matplotlib.backends.backend_agg
-    phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
-    pixi = arr_ang2pix_nest(nside, theta.ravel(), phi.ravel())
-    img = na.log10(image[:,0,0][pixi]).reshape((800,800))
+    if rotation is None: rotation = na.eye(3).astype("float64")
+
+    img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
 
     fig = matplotlib.figure.Figure((10, 5))
     ax = fig.add_subplot(1,1,1,projection='mollweide')
-    implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+    if take_log: func = na.log10
+    else: func = lambda a: a
+    implot = ax.imshow(func(img), extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
     cb = fig.colorbar(implot, orientation='horizontal')
     cb.set_label(label)
     ax.xaxis.set_ticks(())
     ax.yaxis.set_ticks(())
     canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
     canvas.print_figure(fn)
+    return img, count
