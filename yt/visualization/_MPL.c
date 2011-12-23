@@ -139,6 +139,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   xiter[0] = yiter[0] = 0;
   xiterv[0] = yiterv[0] = 0.0;
 
+  Py_BEGIN_ALLOW_THREADS
   for(i=0;i<rows;i++)for(j=0;j<cols;j++)
       *(npy_float64*) PyArray_GETPTR2(my_array, i, j) = 0.0;
   for(p=0;p<nx;p++)
@@ -187,6 +188,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       }
     }
   }
+  Py_END_ALLOW_THREADS
 
   // Attatch output buffer to output buffer
 
