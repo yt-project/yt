@@ -26,6 +26,7 @@ License:
 import numpy as na
 
 from yt.funcs import *
+from yt.utilities.math_utils import *
 
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
@@ -803,7 +804,7 @@ class StereoPairCamera(Camera):
         return (left_camera, right_camera)
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None, no_ghost = True):
+                        field, weight = None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -832,17 +833,6 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
         than a sum.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
-        The volume to ray cast through.  Can be specified for finer-grained
-        control, but otherwise will be automatically generated.
-    no_ghost: bool, optional
-        Optimization option.  If True, homogenized bricks will
-        extrapolate out from grid instead of interpolating from
-        ghost zones that have to first be calculated.  This can
-        lead to large speed improvements, but at a loss of
-        accuracy/smoothness in resulting image.  The effects are
-        less notable when the transfer function is smooth and
-        broad. Default: True
 
     Returns
     -------
@@ -865,14 +855,45 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         pf.field_info.add_field("temp_weightfield",
             function=lambda a,b:b[field]*b[weight])
         fields = ["temp_weightfield", weight]
-        tf = ProjectionTransferFunction(n_fields = 2)
-    tf = ProjectionTransferFunction(n_fields = len(fields))
-    cam = pf.h.camera(center, normal_vector, width, resolution, tf,
-                      fields = fields,
-                      log_fields = [False] * len(fields),
-                      volume = volume, no_ghost = no_ghost)
-    vals = cam.snapshot()
-    image = vals[:,:,0]
+    image = na.zeros((resolution, resolution, len(fields)), dtype='float64',
+                      order='C')
+    normal_vector, north_vector, east_vector = ortho_find(normal_vector)
+    unit_vectors = [north_vector, east_vector, normal_vector]
+    back_center= center - 0.5*width * normal_vector
+    rotp = na.concatenate([na.linalg.pinv(unit_vectors).ravel('F'),
+                           back_center])
+    sampler = ProjectionSampler(
+        rotp, normal_vector * width, back_center,
+        (-width/2, width/2, -width/2, width/2),
+        image, north_vector, east_vector,
+        na.array([width, width, width], dtype='float64'))
+    # Calculate the eight corners of the box
+    # Back corners ...
+    mi = pf.domain_right_edge.copy()
+    ma = pf.domain_left_edge.copy()
+    for off1 in [-1, 1]:
+        for off2 in [-1, 1]:
+            for off3 in [-1, 1]:
+                this_point = (center + width/2.0 * off1 * north_vector
+                                     + width/2.0 * off2 * east_vector
+                                     + width/2.0 * off3 * normal_vector)
+                na.minimum(mi, this_point, mi)
+                na.maximum(ma, this_point, ma)
+    # Now we have a bounding box.
+    grids = pf.h.region(center, mi, ma)._grids
+    print len(grids), len(pf.h.grids)
+    pb = get_pbar("Sampling ", len(grids))
+    for i,grid in enumerate(grids):
+        data = [(grid[field] * grid.child_mask).astype("float64")
+                for field in fields]
+        pg = PartitionedGrid(
+            grid.id, data,
+            grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
+        grid.clear_data()
+        sampler(pg)
+        pb.update(i)
+    pb.finish()
+    image = sampler.aimage
     if weight is None:
         dl = width * pf.units[pf.field_info[field].projection_conversion]
         image *= dl
