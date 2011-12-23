@@ -852,8 +852,13 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     fields = [field]
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        def _make_wf(f, w):
+            def temp_weightfield(a, b):
+                tr = b[f].astype("float64") * b[w]
+                return tr
+            return temp_weightfield
         pf.field_info.add_field("temp_weightfield",
-            function=lambda a,b:b[field]*b[weight])
+            function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     image = na.zeros((resolution, resolution, 3), dtype='float64',
                       order='C')
@@ -898,9 +903,9 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         dl = width * pf.units[pf.field_info[field].projection_conversion]
         image *= dl
     else:
-        image /= vals[:,:,1]
+        image[:,:,0] /= image[:,:,1]
         pf.field_info.pop("temp_weightfield")
-    return image
+    return image[:,:,0]
 
 def allsky_projection(pf, center, radius, nside, field, weight = None):
     r"""Project through a parameter file, through an allsky-method

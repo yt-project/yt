@@ -233,10 +233,10 @@ cdef class ImageSampler:
         if im.vd_strides[0] == -1:
             self.calculate_extent(extrema, vc)
             self.get_start_stop(extrema, iter)
-            iter[0] = iclip(iter[0]-1, 0, im.nv[0]-1)
-            iter[1] = iclip(iter[1]+1, 0, im.nv[0]-1)
-            iter[2] = iclip(iter[2]-1, 0, im.nv[1]-1)
-            iter[3] = iclip(iter[3]+1, 0, im.nv[1]-1)
+            iter[0] = iclip(iter[0]-1, 0, im.nv[0])
+            iter[1] = iclip(iter[1]+1, 0, im.nv[0])
+            iter[2] = iclip(iter[2]-1, 0, im.nv[1])
+            iter[3] = iclip(iter[3]+1, 0, im.nv[1])
             nx = (iter[1] - iter[0])
             ny = (iter[3] - iter[2])
             size = nx * ny
@@ -245,13 +245,6 @@ cdef class ImageSampler:
             ny = 1
             iter[0] = iter[1] = iter[2] = iter[3] = 0
             size = nx
-        #print "Sampling", im.vd_strides[0], size
-        #print im.vp_dir[0], im.vp_dir[3]
-        #print im.vp_pos[0], im.vp_pos[3]
-        #print im.image[0], im.image[3]
-        #print im.vp_dir[(size-1) * 3], im.vp_dir[size * 3 - 1]
-        #print im.vp_pos[(size-1) * 3], im.vp_pos[size * 3 - 1]
-        #print im.image[(size-1) * 3], im.image[size * 3 - 1]
         cdef ImageAccumulator *idata
         cdef np.float64_t px, py 
         cdef np.float64_t width[3] 
