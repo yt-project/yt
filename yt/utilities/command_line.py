@@ -1387,13 +1387,13 @@ class YTHubSubmitCmd(YTCommand):
         print rv
 
 class YTUploadImageCmd(YTCommand):
-    args = (dict(short="file", type=str))
+    args = (dict(short="file", type=str),)
     description = \
         """
         Upload an image to imgur.com.  Must be PNG.
 
         """
-
+    name = "upload_image"
     def __call__(self, args):
         filename = args.file
         if not filename.endswith(".png"):
