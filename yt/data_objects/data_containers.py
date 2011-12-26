@@ -3658,6 +3658,19 @@ class AMRBooleanRegionBase(AMR3DData):
                     self._some_overlap.append(grid)
                     continue
     
+    def __repr__(self):
+        # We'll do this the slow way to be clear what's going on
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s += "["
+        for i, region in enumerate(self.regions):
+            if region in ["OR", "AND", "NOT", "(", ")"]:
+                s += region + ", "
+            else:
+                s += region.__repr__()
+                if i != (len(self.regions) - 1): s += ", "
+        s += "]"
+        return s
+    
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)
 
