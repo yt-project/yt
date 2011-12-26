@@ -397,9 +397,10 @@ class AMRData(object):
                      [self.field_parameters])
         return (_reconstruct_object, args)
 
-    def __repr__(self):
+    def __repr__(self, clean = False):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        if clean: s = "%s: " % (self.__class__.__name__)
+        else: s = "%s (%s): " % (self.__class__.__name__, self.pf)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._con_args])
         return s
@@ -3664,10 +3665,10 @@ class AMRBooleanRegionBase(AMR3DData):
         s += "["
         for i, region in enumerate(self.regions):
             if region in ["OR", "AND", "NOT", "(", ")"]:
-                s += region + ", "
+                s += region
             else:
-                s += region.__repr__()
-                if i != (len(self.regions) - 1): s += ", "
+                s += region.__repr__(clean = True)
+            if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
     
