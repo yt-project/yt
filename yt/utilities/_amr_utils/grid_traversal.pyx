@@ -46,10 +46,13 @@ cdef extern from "math.h":
     double log2(double x) nogil
     long int lrint(double x) nogil
     double fabs(double x) nogil
+    double atan(double x) nogil
     double atan2(double y, double x) nogil
     double acos(double x) nogil
+    double asin(double x) nogil
     double cos(double x) nogil
     double sin(double x) nogil
+    double sqrt(double x) nogil
 
 cdef struct VolumeContainer
 ctypedef void sample_function(
@@ -841,9 +844,9 @@ def arr_ang2pix_nest(long nside,
         tr[i] = ipnest
     return tr
 
-#@cython.boundscheck(False)
+@cython.boundscheck(False)
 @cython.cdivision(False)
-#@cython.wraparound(False)
+@cython.wraparound(False)
 def pixelize_healpix(long nside,
                      np.ndarray[np.float64_t, ndim=1] values,
                      long ntheta, long nphi,
@@ -861,10 +864,10 @@ def pixelize_healpix(long nside,
     count = np.zeros((ntheta, nphi), dtype="int32")
 
     cdef np.float64_t phi0 = 0
-    cdef np.float64_t dphi = 2.0 * pi/nphi
+    cdef np.float64_t dphi = 2.0 * pi/(nphi-1)
 
     cdef np.float64_t theta0 = 0
-    cdef np.float64_t dtheta = pi/ntheta
+    cdef np.float64_t dtheta = pi/(ntheta-1)
     # We assume these are the rotated theta and phi
     for thetai in range(ntheta):
         theta = theta0 + dtheta * thetai
@@ -889,3 +892,30 @@ def pixelize_healpix(long nside,
             if count[i,j] > 0:
                 results[i,j] /= count[i,j]
     return results, count
+
+def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
+                        long nside,
+                        np.ndarray[np.float64_t, ndim=2] image):
+    cdef double pi = np.pi
+    cdef int i, j
+    cdef np.float64_t x, y, z, zb
+    cdef np.float64_t dx, dy, inside
+    dx = 2.0 / (image.shape[1] - 1)
+    dy = 2.0 / (image.shape[0] - 1)
+    cdef np.float64_t s2 = sqrt(2.0)
+    cdef long ipix
+    for i in range(image.shape[1]):
+        x = (-1.0 + i*dx)*s2*2.0
+        for j in range(image.shape[0]):
+            y = (-1.0 + j * dy)*s2
+            zb = (x*x/8.0 + y*y/2.0 - 1.0)
+            if zb > 0: continue
+            z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+            z = z**0.5
+            # Longitude
+            phi = 2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi
+            # Latitude
+            # We shift it into co-latitude
+            theta = asin(z*y) + pi/2.0
+            healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+            image[j, i] = pix_image[ipix]

@@ -711,7 +711,7 @@ class HEALpixCamera(Camera):
             img = na.log10(image[:,0,0][pixi]).reshape((800,800))
 
             fig = matplotlib.figure.Figure((10, 5))
-            ax = fig.add_subplot(1,1,1,projection='mollweide')
+            ax = fig.add_subplot(1,1,1,projection='hammer')
             implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
             cb.set_label(r"$\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
