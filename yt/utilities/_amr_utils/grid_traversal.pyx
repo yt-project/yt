@@ -895,11 +895,13 @@ def pixelize_healpix(long nside,
 
 def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
                         long nside,
-                        np.ndarray[np.float64_t, ndim=2] image):
+                        np.ndarray[np.float64_t, ndim=2] image,
+                        np.ndarray[np.float64_t, ndim=2] irotation):
     cdef double pi = np.pi
-    cdef int i, j
+    cdef int i, j, k, l
     cdef np.float64_t x, y, z, zb
     cdef np.float64_t dx, dy, inside
+    cdef double v0[3], v1[3]
     dx = 2.0 / (image.shape[1] - 1)
     dy = 2.0 / (image.shape[0] - 1)
     cdef np.float64_t s2 = sqrt(2.0)
@@ -913,9 +915,18 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
             z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
             z = z**0.5
             # Longitude
-            phi = 2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi
+            phi = (2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi)
             # Latitude
             # We shift it into co-latitude
-            theta = asin(z*y) + pi/2.0
-            healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+            theta = (asin(z*y) + pi/2.0)
+            # Now to account for rotation we translate into vectors
+            v1[0] = cos(phi) * sin(theta)
+            v1[1] = sin(phi) * sin(theta)
+            v1[2] = cos(theta)
+            for k in range(3):
+                v0[k] = 0
+                for l in range(3):
+                    v0[k] += v1[l] * irotation[l,k]
+            healpix_interface.vec2pix_nest(nside, v0, &ipix)
+            #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
             image[j, i] = pix_image[ipix]
