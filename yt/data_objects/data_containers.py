@@ -397,9 +397,10 @@ class AMRData(object):
                      [self.field_parameters])
         return (_reconstruct_object, args)
 
-    def __repr__(self):
+    def __repr__(self, clean = False):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        if clean: s = "%s: " % (self.__class__.__name__)
+        else: s = "%s (%s): " % (self.__class__.__name__, self.pf)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._con_args])
         return s
@@ -2990,12 +2991,6 @@ class AMRCylinderBase(AMR3DData):
                  & (r <= self._radius))
         return cm
 
-    def volume(self, unit="unitary"):
-        """
-        Return the volume of the cylinder in units of *unit*.
-        """
-        return math.pi * (self._radius)**2. * self._height * pf[unit]**3
-
 class AMRInclinedBox(AMR3DData):
     _type_name="inclined_box"
     _con_args = ('origin','box_vectors')
@@ -3657,6 +3652,19 @@ class AMRBooleanRegionBase(AMR3DData):
                     # Some of local is in overall
                     self._some_overlap.append(grid)
                     continue
+    
+    def __repr__(self):
+        # We'll do this the slow way to be clear what's going on
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s += "["
+        for i, region in enumerate(self.regions):
+            if region in ["OR", "AND", "NOT", "(", ")"]:
+                s += region
+            else:
+                s += region.__repr__(clean = True)
+            if i < (len(self.regions) - 1): s += ", "
+        s += "]"
+        return s
     
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)

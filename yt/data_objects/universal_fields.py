@@ -882,6 +882,8 @@ def _VorticitySquared(field, data):
 def _convertVorticitySquared(data):
     return data.convert("cm")**-2.0
 add_field("VorticitySquared", function=_VorticitySquared,
-          validators=[ValidateSpatial(1)],
+          validators=[ValidateSpatial(1,
+              ["x-velocity","y-velocity","z-velocity"])],
           units=r"\rm{s}^{-2}",
           convert_function=_convertVorticitySquared)
+
