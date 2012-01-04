@@ -227,7 +227,7 @@ class AMRData(object):
         self._point_indices = {}
         self._vc_data = {}
         for key, val in kwargs.items():
-            mylog.info("Setting %s to %s", key, val)
+            mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
