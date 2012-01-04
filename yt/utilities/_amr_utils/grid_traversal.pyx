@@ -655,14 +655,17 @@ cdef int walk_volume(VolumeContainer *vc,
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
     cdef np.float64_t intersect_t = 1.0
     cdef np.float64_t iv_dir[3]
-    cdef np.float64_t intersect[3], tmax[3], tdelta[3]
+    cdef np.float64_t tmax[3], tdelta[3]
     cdef np.float64_t dist, alpha, dt, exit_t
     cdef np.float64_t tr, tl, temp_x, temp_y, dv
     for i in range(3):
+        iv_dir[i] = 1.0/v_dir[i]
+        tdelta[i] = iv_dir[i] * vc.dds[i]
+        if tdelta[i] < 0: tdelta[i] *= -1
         if (v_dir[i] < 0):
             step[i] = -1
         elif (v_dir[i] == 0):
-            step[i] = 1
+            step[i] = 0
             tmax[i] = 1e60
             iv_dir[i] = 1e60
             tdelta[i] = 1e-60
@@ -671,50 +674,52 @@ cdef int walk_volume(VolumeContainer *vc,
             step[i] = 1
         x = (i+1) % 3
         y = (i+2) % 3
-        iv_dir[i] = 1.0/v_dir[i]
-        tl = (vc.left_edge[i] - v_pos[i])*iv_dir[i]
-        temp_x = (v_pos[x] + tl*v_dir[x])
-        temp_y = (v_pos[y] + tl*v_dir[y])
-        if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
-           vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
-           0.0 <= tl and tl < intersect_t:
-            direction = i
-            intersect_t = tl
-        tr = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
-        temp_x = (v_pos[x] + tr*v_dir[x])
-        temp_y = (v_pos[y] + tr*v_dir[y])
-        if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
-           vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
-           0.0 <= tr and tr < intersect_t:
-            direction = i
-            intersect_t = tr
+        if step[i] > 0:
+            tl = (vc.left_edge[i] - v_pos[i])*iv_dir[i]
+            temp_x = (v_pos[x] + tl*v_dir[x])
+            temp_y = (v_pos[y] + tl*v_dir[y])
+            if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
+               vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
+               0.0 <= tl and tl < intersect_t:
+                direction = i
+                intersect_t = tl
+        elif step[i] < 0:
+            tr = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
+            temp_x = (v_pos[x] + tr*v_dir[x])
+            temp_y = (v_pos[y] + tr*v_dir[y])
+            if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
+               vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
+               0.0 <= tr and tr < intersect_t:
+                direction = i
+                intersect_t = tr
     if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
        vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
        vc.left_edge[2] <= v_pos[2] and v_pos[2] <= vc.right_edge[2]:
         intersect_t = 0.0
+        direction = 3
     if enter_t >= 0.0: intersect_t = enter_t
     if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
     for i in range(3):
-        intersect[i] = v_pos[i] + intersect_t * v_dir[i]
-        cur_ind[i] = <int> floor((intersect[i] +
-                                  step[i]*1e-8*vc.dds[i] -
-                                  vc.left_edge[i])*vc.idds[i])
-        tmax[i] = (((cur_ind[i]+step[i])*vc.dds[i])+
-                    vc.left_edge[i]-v_pos[i])*iv_dir[i]
-        # This deals with the asymmetry in having our indices refer to the
-        # left edge of a cell, but the right edge of the brick being one
-        # extra zone out.
-        if cur_ind[i] == vc.dims[i] and step[i] < 0:
+        # Two things have to be set inside this loop.
+        # cur_ind[i], the current index of the grid cell the ray is in
+        # tmax[i], the 't' until it crosses out of the grid cell
+        if i == direction and step[i] > 0:
+            # Intersection with the left face in this direction
+            cur_ind[i] = 0
+        elif i == direction and step[i] < 0:
+            # Intersection with the right face in this direction
             cur_ind[i] = vc.dims[i] - 1
-        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i]: return 0
+        else:
+            # We are somewhere in the middle
+            temp_x = intersect_t * v_dir[i] + v_pos[i] # current position
+            cur_ind[i] = <int> floor((temp_x - vc.left_edge[i])*vc.idds[i])
         if step[i] > 0:
-            tmax[i] = (((cur_ind[i]+1)*vc.dds[i])
-                        +vc.left_edge[i]-v_pos[i])*iv_dir[i]
-        if step[i] < 0:
-            tmax[i] = (((cur_ind[i]+0)*vc.dds[i])
-                        +vc.left_edge[i]-v_pos[i])*iv_dir[i]
-        tdelta[i] = (vc.dds[i]*iv_dir[i])
-        if tdelta[i] < 0: tdelta[i] *= -1
+            temp_y = (cur_ind[i] + 1) * vc.dds[i] + vc.left_edge[i]
+        elif step[i] < 0:
+            temp_y = cur_ind[i] * vc.dds[i] + vc.left_edge[i]
+        tmax[i] = (temp_y - v_pos[i]) * iv_dir[i]
+        if step[i] == 0:
+            tmax[i] = 1e60
     # We have to jumpstart our calculation
     enter_t = intersect_t
     hit = 0

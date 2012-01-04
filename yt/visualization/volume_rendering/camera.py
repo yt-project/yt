@@ -908,7 +908,8 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         pf.field_info.pop("temp_weightfield")
     return image[:,:,0]
 
-def allsky_projection(pf, center, radius, nside, field, weight = None):
+def allsky_projection(pf, center, radius, nside, field, weight = None,
+                      rotation = None):
     r"""Project through a parameter file, through an allsky-method
     decomposition from HEALpix, and return the image plane.
 
@@ -968,14 +969,18 @@ def allsky_projection(pf, center, radius, nside, field, weight = None):
     vs = arr_pix2vec_nest(nside, na.arange(nv))
     vs *= radius
     vs.shape = (nv,1,3)
+    if rotation is not None:
+        vs2 = vs.copy()
+        for i in range(3):
+            vs[:,:,i] = (vs2 * rotation[:,i]).sum(axis=2)
+    positions = na.ones((nv, 1, 3), dtype='float64', order='C') * center
     uv = na.ones(3, dtype='float64')
-    positions = na.ones((nv, 1, 3), dtype='float64') * center
     grids = pf.h.sphere(center, radius)._grids
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, na.zeros(3, dtype='float64'))
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
-        data = [(grid[field] * grid.child_mask).astype("float64")
+        data = [grid[field] * grid.child_mask.astype('float64')
                 for field in fields]
         pg = PartitionedGrid(
             grid.id, data,
@@ -1002,7 +1007,7 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
 
     fig = matplotlib.figure.Figure((10, 5))
-    ax = fig.add_subplot(1,1,1,projection='mollweide')
+    ax = fig.add_subplot(1,1,1,projection='aitoff')
     if take_log: func = na.log10
     else: func = lambda a: a
     implot = ax.imshow(func(img), extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
