@@ -2991,12 +2991,6 @@ class AMRCylinderBase(AMR3DData):
                  & (r <= self._radius))
         return cm
 
-    def volume(self, unit="unitary"):
-        """
-        Return the volume of the cylinder in units of *unit*.
-        """
-        return math.pi * (self._radius)**2. * self._height * self.pf[unit]**3
-
 class AMRInclinedBox(AMR3DData):
     _type_name="inclined_box"
     _con_args = ('origin','box_vectors')
