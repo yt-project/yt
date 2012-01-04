@@ -135,9 +135,6 @@ class GDFHierarchy(AMRHierarchy):
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
-    def _setup_unknown_fields(self):
-        pass
-
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
