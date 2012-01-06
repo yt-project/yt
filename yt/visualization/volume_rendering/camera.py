@@ -967,6 +967,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     nv = 12*nside**2
     image = na.zeros((nv,1,3), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, na.arange(nv))
+    vs += na.random.random(vs.shape)*1e-10 - 0.5e-10
     vs *= radius
     vs.shape = (nv,1,3)
     if rotation is not None:
