@@ -45,6 +45,7 @@ cdef extern from "math.h":
     double fmod(double x, double y) nogil
     double log2(double x) nogil
     long int lrint(double x) nogil
+    double nearbyint(double x) nogil
     double fabs(double x) nogil
     double atan(double x) nogil
     double atan2(double y, double x) nogil
@@ -53,16 +54,6 @@ cdef extern from "math.h":
     double cos(double x) nogil
     double sin(double x) nogil
     double sqrt(double x) nogil
-
-cdef struct VolumeContainer
-ctypedef void sample_function(
-                VolumeContainer *vc,
-                np.float64_t v_pos[3],
-                np.float64_t v_dir[3],
-                np.float64_t enter_t,
-                np.float64_t exit_t,
-                int index[3],
-                void *data) nogil
 
 cdef struct VolumeContainer:
     int n_fields
@@ -73,6 +64,15 @@ cdef struct VolumeContainer:
     np.float64_t idds[3]
     int dims[3]
 
+ctypedef void sample_function(
+                VolumeContainer *vc,
+                np.float64_t v_pos[3],
+                np.float64_t v_dir[3],
+                np.float64_t enter_t,
+                np.float64_t exit_t,
+                int index[3],
+                void *data) nogil
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -82,6 +82,7 @@ cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.cdivision(True)
     def __cinit__(self,
                   int parent_grid_id, data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
@@ -102,7 +103,7 @@ cdef class PartitionedGrid:
             c.right_edge[i] = right_edge[i]
             c.dims[i] = dims[i]
             c.dds[i] = (c.right_edge[i] - c.left_edge[i])/dims[i]
-            c.idds[i] = 1.0/c.dds[i]
+            c.idds[i] = c.dds[i]**-1.0
         self.my_data = data
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
         for i in range(n_fields):
@@ -258,41 +259,40 @@ cdef class ImageSampler:
         for i in range(3):
             width[i] = self.width[i]
         #print iter[0], iter[1], iter[2], iter[3], width[0], width[1], width[2]
-        with nogil, parallel():
-            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-            idata.supp_data = self.supp_data
-            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            if im.vd_strides[0] == -1:
-                for j in prange(size, schedule="dynamic"):
-                    vj = j % ny
-                    vi = (j - vj) / ny + iter[0]
-                    vj = vj + iter[2]
-                    # Dynamically calculate the position
-                    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
-                    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
-                    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
-                    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
-                    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
-                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
-                    walk_volume(vc, v_pos, im.vp_dir, self.sampler,
-                                (<void *> idata))
-                    for i in range(3): im.image[i + offset] = idata.rgba[i]
-            else:
-                # If we do not have a simple image plane, we have to cast all
-                # our rays 
-                for j in prange(size, schedule="dynamic"):
-                    offset = j * 3
-                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
-                    for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
-                    walk_volume(vc, v_pos, v_dir, self.sampler, 
-                                (<void *> idata))
-                    for i in range(3): im.image[i + offset] = idata.rgba[i]
-            free(v_dir)
-            free(idata)
-            free(v_pos)
+        idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+        idata.supp_data = self.supp_data
+        v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        if im.vd_strides[0] == -1:
+            for j in range(size):
+                vj = j % ny
+                vi = (j - vj) / ny + iter[0]
+                vj = vj + iter[2]
+                # Dynamically calculate the position
+                px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
+                py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
+                v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
+                v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
+                v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
+                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
+                for i in range(3): idata.rgba[i] = im.image[i + offset]
+                walk_volume(vc, v_pos, im.vp_dir, self.sampler,
+                            (<void *> idata))
+                for i in range(3): im.image[i + offset] = idata.rgba[i]
+        else:
+            # If we do not have a simple image plane, we have to cast all
+            # our rays 
+            for j in range(size):
+                offset = j * 3
+                for i in range(3): v_pos[i] = im.vp_pos[i + offset]
+                for i in range(3): v_dir[i] = im.vp_dir[i + offset]
+                for i in range(3): idata.rgba[i] = im.image[i + offset]
+                walk_volume(vc, v_pos, v_dir, self.sampler, 
+                            (<void *> idata))
+                for i in range(3):  im.image[i + offset] = idata.rgba[i]
+        free(v_dir)
+        free(idata)
+        free(v_pos)
         #print self.aimage.max()
         return hit
 
@@ -307,10 +307,7 @@ cdef void projection_sampler(
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
-    # We need this because by default it assumes vertex-centered data.
-    for i in range(3):
-        if index[i] < 0 or index[i] >= vc.dims[i]: return
-    cdef int di = (index[0]*(vc.dims[1])+index[1])*vc.dims[2]+index[2]
+    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2]
     for i in range(imin(3, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
@@ -651,58 +648,50 @@ cdef int walk_volume(VolumeContainer *vc,
                      sample_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0) nogil:
+                     np.float64_t enter_t = -1.0):
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
-    cdef np.float64_t intersect_t = 1.0
+    cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
     cdef np.float64_t tmax[3], tdelta[3]
     cdef np.float64_t dist, alpha, dt, exit_t
     cdef np.float64_t tr, tl, temp_x, temp_y, dv
-    for i in range(3):
-        iv_dir[i] = 1.0/v_dir[i]
-        tdelta[i] = iv_dir[i] * vc.dds[i]
-        if tdelta[i] < 0: tdelta[i] *= -1
-        if (v_dir[i] < 0):
-            step[i] = -1
-        elif (v_dir[i] == 0):
-            step[i] = 0
-            tmax[i] = 1e60
-            iv_dir[i] = 1e60
-            tdelta[i] = 1e-60
-            continue
-        else:
-            step[i] = 1
-        x = (i+1) % 3
-        y = (i+2) % 3
-        if step[i] > 0:
-            tl = (vc.left_edge[i] - v_pos[i])*iv_dir[i]
-            temp_x = (v_pos[x] + tl*v_dir[x])
-            temp_y = (v_pos[y] + tl*v_dir[y])
-            if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
-               vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
-               0.0 <= tl and tl < intersect_t:
-                direction = i
-                intersect_t = tl
-        elif step[i] < 0:
-            tr = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
-            temp_x = (v_pos[x] + tr*v_dir[x])
-            temp_y = (v_pos[y] + tr*v_dir[y])
-            if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
-               vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
-               0.0 <= tr and tr < intersect_t:
-                direction = i
-                intersect_t = tr
+    direction = -1
     if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
        vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
        vc.left_edge[2] <= v_pos[2] and v_pos[2] <= vc.right_edge[2]:
         intersect_t = 0.0
         direction = 3
+    for i in range(3):
+        if (v_dir[i] < 0):
+            step[i] = -1
+        elif (v_dir[i] == 0.0):
+            step[i] = 0
+            continue
+        else:
+            step[i] = 1
+        iv_dir[i] = 1.0/v_dir[i]
+        if direction == 3: continue
+        x = (i+1) % 3
+        y = (i+2) % 3
+        if step[i] > 0:
+            tl = (vc.left_edge[i] - v_pos[i])*iv_dir[i]
+        else:
+            tl = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
+        temp_x = (v_pos[x] + tl*v_dir[x])
+        temp_y = (v_pos[y] + tl*v_dir[y])
+        if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
+           vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
+           0.0 <= tl and tl < intersect_t:
+            direction = i
+            intersect_t = tl
     if enter_t >= 0.0: intersect_t = enter_t
-    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
+    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)):
+        return 0
     for i in range(3):
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
         # tmax[i], the 't' until it crosses out of the grid cell
+        tdelta[i] = step[i] * iv_dir[i] * vc.dds[i]
         if i == direction and step[i] > 0:
             # Intersection with the left face in this direction
             cur_ind[i] = 0
@@ -710,9 +699,10 @@ cdef int walk_volume(VolumeContainer *vc,
             # Intersection with the right face in this direction
             cur_ind[i] = vc.dims[i] - 1
         else:
-            # We are somewhere in the middle
+            # We are somewhere in the middle of the face
             temp_x = intersect_t * v_dir[i] + v_pos[i] # current position
-            cur_ind[i] = <int> floor((temp_x - vc.left_edge[i])*vc.idds[i])
+            temp_y = ((temp_x - vc.left_edge[i])*vc.idds[i])
+            cur_ind[i] =  <int> (floor(temp_y))
         if step[i] > 0:
             temp_y = (cur_ind[i] + 1) * vc.dds[i] + vc.left_edge[i]
         elif step[i] < 0:
@@ -724,40 +714,25 @@ cdef int walk_volume(VolumeContainer *vc,
     enter_t = intersect_t
     hit = 0
     while 1:
-        # dims here is one less than the dimensions of the data,
-        # but we are tracing on the grid, not on the data...
-        if (not (0 <= cur_ind[0] < vc.dims[0])) or \
-           (not (0 <= cur_ind[1] < vc.dims[1])) or \
-           (not (0 <= cur_ind[2] < vc.dims[2])):
-            break
         hit += 1
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
-                exit_t = fmin(tmax[0], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[0] += step[0]
-                enter_t = tmax[0]
-                tmax[0] += tdelta[0]
+                i = 0
             else:
-                exit_t = fmin(tmax[2], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[2] += step[2]
-                enter_t = tmax[2]
-                tmax[2] += tdelta[2]
+                i = 2
         else:
             if tmax[1] < tmax[2]:
-                exit_t = fmin(tmax[1], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[1] += step[1]
-                enter_t = tmax[1]
-                tmax[1] += tdelta[1]
+                i = 1
             else:
-                exit_t = fmin(tmax[2], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[2] += step[2]
-                enter_t = tmax[2]
-                tmax[2] += tdelta[2]
-        if enter_t >= 1.0: break
+                i = 2
+        exit_t = fmin(tmax[i], 1.0)
+        assert((tmax[i] - enter_t) * v_dir[i] < 1.8 * vc.dds[i])
+        sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
+        cur_ind[i] += step[i]
+        enter_t = tmax[i]
+        tmax[i] += tdelta[i]
+        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= 1.0:
+            break
     if return_t != NULL: return_t[0] = exit_t
     return hit
 

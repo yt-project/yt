@@ -984,7 +984,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
                 for field in fields]
         pg = PartitionedGrid(
             grid.id, data,
-            grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
+            grid.LeftEdge, grid.RightEdge,
+            grid.ActiveDimensions.astype("int64"))
         grid.clear_data()
         sampler(pg)
         pb.update(i)
@@ -996,7 +997,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     else:
         image[:,:,0] /= image[:,:,1]
         pf.field_info.pop("temp_weightfield")
-    return image[:,0,0]
+    return image[:,0,0], (vs, positions, image)
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
                         take_log = True, resolution=512):
