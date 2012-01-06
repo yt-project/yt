@@ -103,7 +103,7 @@ cdef class PartitionedGrid:
             c.right_edge[i] = right_edge[i]
             c.dims[i] = dims[i]
             c.dds[i] = (c.right_edge[i] - c.left_edge[i])/dims[i]
-            c.idds[i] = c.dds[i]**-1.0
+            c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
         for i in range(n_fields):
@@ -685,8 +685,7 @@ cdef int walk_volume(VolumeContainer *vc,
             direction = i
             intersect_t = tl
     if enter_t >= 0.0: intersect_t = enter_t
-    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)):
-        return 0
+    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
     for i in range(3):
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
@@ -726,7 +725,6 @@ cdef int walk_volume(VolumeContainer *vc,
             else:
                 i = 2
         exit_t = fmin(tmax[i], 1.0)
-        assert((tmax[i] - enter_t) * v_dir[i] < 1.8 * vc.dds[i])
         sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
         cur_ind[i] += step[i]
         enter_t = tmax[i]
