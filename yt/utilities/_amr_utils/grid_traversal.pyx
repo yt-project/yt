@@ -710,6 +710,11 @@ cdef int walk_volume(VolumeContainer *vc,
         if step[i] == 0:
             tmax[i] = 1e60
     # We have to jumpstart our calculation
+    for i in range(3):
+        if cur_ind[i] == vc.dims[i] and step[i] == 1:
+            return 0
+        if cur_ind[i] == -1 and step[i] == -1:
+            return 0
     enter_t = intersect_t
     hit = 0
     while 1:
