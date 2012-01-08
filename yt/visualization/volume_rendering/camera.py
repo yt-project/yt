@@ -391,7 +391,7 @@ class Camera(ParallelAnalysisInterface):
         self._setup_normalized_vectors(
                 self.unit_vectors[2], self.unit_vectors[0])
 
-    def zoomin(self, final, n_steps):
+    def zoomin(self, final, n_steps, clip_ratio = None):
         r"""Loop over a zoomin and return snapshots along the way.
 
         This will yield `n_steps` snapshots until the current view has been
@@ -404,6 +404,9 @@ class Camera(ParallelAnalysisInterface):
             sequence.
         n_steps : int
             The number of zoom snapshots to make.
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
 
 
         Examples
@@ -415,9 +418,9 @@ class Camera(ParallelAnalysisInterface):
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):
             self.zoom(f)
-            yield self.snapshot()
+            yield self.snapshot(clip_ratio = clip_ratio)
 
-    def move_to(self, final, n_steps, final_width=None, exponential=False):
+    def move_to(self, final, n_steps, final_width=None, exponential=False, clip_ratio = None):
         r"""Loop over a look_at
 
         This will yield `n_steps` snapshots until the current view has been
@@ -435,6 +438,9 @@ class Camera(ParallelAnalysisInterface):
         exponential : boolean
             Specifies whether the move/zoom transition follows an
             exponential path toward the destination or linear
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
             
         Examples
         --------
@@ -471,7 +477,7 @@ class Camera(ParallelAnalysisInterface):
                 self.switch_view(center=self.center*dx, width=self.width*dW)
             else:
                 self.switch_view(center=self.center+dx, width=self.width+dW)
-            yield self.snapshot()
+            yield self.snapshot(clip_ratio = clip_ratio)
 
     def rotate(self, theta, rot_vector=None):
         r"""Rotate by a given angle
@@ -511,7 +517,7 @@ class Camera(ParallelAnalysisInterface):
         self.switch_view(normal_vector=na.dot(R,normal_vector))
 
 
-    def rotation(self, theta, n_steps, rot_vector=None):
+    def rotation(self, theta, n_steps, rot_vector=None, clip_ratio = None):
         r"""Loop over rotate, creating a rotation
 
         This will yield `n_steps` snapshots until the current view has been
@@ -527,6 +533,9 @@ class Camera(ParallelAnalysisInterface):
             Specify the rotation vector around which rotation will
             occur.  Defaults to None, which sets rotation around the
             original `north_vector`
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
 
         Examples
         --------
@@ -538,7 +547,7 @@ class Camera(ParallelAnalysisInterface):
         dtheta = (1.0*theta)/n_steps
         for i in xrange(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector)
-            yield self.snapshot()
+            yield self.snapshot(clip_ratio = clip_ratio)
 
 data_object_registry["camera"] = Camera
 
