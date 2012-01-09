@@ -2579,14 +2579,8 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         verts = []
         samples = []
         for i, g in enumerate(self._get_grid_objs()):
-            mask = self._get_cut_mask(g) * g.child_mask
-            vals = g.get_vertex_centered_data(field)
-            if sample_values is not None:
-                svals = g.get_vertex_centered_data(sample_values)
-            else:
-                svals = None
-            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds,
-                                        svals)
+            my_verts = self._extract_isocontours_from_grid(
+                            g, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
@@ -2612,6 +2606,20 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         if sample_values is not None:
             return verts, samples
         return verts
+
+
+    @restore_grid_state
+    def _extract_isocontours_from_grid(self, grid, field, value,
+                                       sample_values = None):
+        mask = self._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if sample_values is not None:
+            svals = grid.get_vertex_centered_data(sample_values)
+        else:
+            svals = None
+        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
+                                    grid.dds, svals)
+        return my_verts
 
     def calculate_isocontour_flux(self, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
@@ -2679,18 +2687,24 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         flux = 0.0
         for g in self._get_grid_objs():
-            mask = self._get_cut_mask(g) * g.child_mask
-            vals = g.get_vertex_centered_data(field)
-            if fluxing_field is None:
-                ff = na.ones(vals.shape, dtype="float64")
-            else:
-                ff = g.get_vertex_centered_data(fluxing_field)
-            xv, yv, zv = [g.get_vertex_centered_data(f) for f in 
-                         [field_x, field_y, field_z]]
-            flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
-                        ff, mask, g.LeftEdge, g.dds)
+            flux += self._calculate_flux_in_grid(g, field, value,
+                    field_x, field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
+
+    @restore_grid_state
+    def _calculate_flux_in_grid(self, grid, field, value,
+                    field_x, field_y, field_z, fluxing_field = None):
+        mask = self._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if fluxing_field is None:
+            ff = na.ones(vals.shape, dtype="float64")
+        else:
+            ff = grid.get_vertex_centered_data(fluxing_field)
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+                     [field_x, field_y, field_z]]
+        return march_cubes_grid_flux(value, vals, xv, yv, zv,
+                    ff, mask, grid.LeftEdge, grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                 log_space=True, cumulative=True, cache=False):
