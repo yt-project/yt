@@ -100,8 +100,6 @@ class GDFHierarchy(AMRHierarchy):
        
     def _parse_hierarchy(self):
         f = self._fhandle 
-    
-        levels = f.listnames()[1:]
         dxs=[]
         self.grids = na.empty(self.num_grids, dtype='object')
         levels = (f['grid_level'][:]).copy()
