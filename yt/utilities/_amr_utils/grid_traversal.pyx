@@ -260,7 +260,6 @@ cdef class ImageSampler:
         cdef np.float64_t width[3] 
         for i in range(3):
             width[i] = self.width[i]
-        #print iter[0], iter[1], iter[2], iter[3], width[0], width[1], width[2]
         with nogil, parallel():
             idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
             idata.supp_data = self.supp_data
@@ -296,7 +295,6 @@ cdef class ImageSampler:
             free(v_dir)
             free(idata)
             free(v_pos)
-        #print self.aimage.max()
         return hit
 
 cdef void projection_sampler(

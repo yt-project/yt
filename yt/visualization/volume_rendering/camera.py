@@ -915,7 +915,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
             function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     image = na.zeros((resolution, resolution, 3), dtype='float64',
-                      order='C')
+                      order='F')
     normal_vector, north_vector, east_vector = ortho_find(normal_vector)
     unit_vectors = [north_vector, east_vector, normal_vector]
     back_center= center - 0.5*width * normal_vector
@@ -940,7 +940,6 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
                 na.maximum(ma, this_point, ma)
     # Now we have a bounding box.
     grids = pf.h.region(center, mi, ma)._grids
-    print len(grids), len(pf.h.grids)
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
         data = [(grid[field] * grid.child_mask).astype("float64")
