@@ -90,6 +90,7 @@ cdef class PartitionedGrid:
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
+        self.container = NULL
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -113,7 +114,8 @@ cdef class PartitionedGrid:
     def __dealloc__(self):
         # The data fields are not owned by the container, they are owned by us!
         # So we don't need to deallocate them.
-        free(self.container.data)
+        if self.container == NULL: return
+        if self.container.data != NULL: free(self.container.data)
         free(self.container)
 
 cdef struct ImageContainer:
@@ -259,40 +261,41 @@ cdef class ImageSampler:
         for i in range(3):
             width[i] = self.width[i]
         #print iter[0], iter[1], iter[2], iter[3], width[0], width[1], width[2]
-        idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-        idata.supp_data = self.supp_data
-        v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        if im.vd_strides[0] == -1:
-            for j in range(size):
-                vj = j % ny
-                vi = (j - vj) / ny + iter[0]
-                vj = vj + iter[2]
-                # Dynamically calculate the position
-                px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
-                py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
-                v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
-                v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
-                v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
-                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                for i in range(3): idata.rgba[i] = im.image[i + offset]
-                walk_volume(vc, v_pos, im.vp_dir, self.sampler,
-                            (<void *> idata))
-                for i in range(3): im.image[i + offset] = idata.rgba[i]
-        else:
-            # If we do not have a simple image plane, we have to cast all
-            # our rays 
-            for j in range(size):
-                offset = j * 3
-                for i in range(3): v_pos[i] = im.vp_pos[i + offset]
-                for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                for i in range(3): idata.rgba[i] = im.image[i + offset]
-                walk_volume(vc, v_pos, v_dir, self.sampler, 
-                            (<void *> idata))
-                for i in range(3):  im.image[i + offset] = idata.rgba[i]
-        free(v_dir)
-        free(idata)
-        free(v_pos)
+        with nogil, parallel():
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            if im.vd_strides[0] == -1:
+                for j in prange(size, schedule="dynamic"):
+                    vj = j % ny
+                    vi = (j - vj) / ny + iter[0]
+                    vj = vj + iter[2]
+                    # Dynamically calculate the position
+                    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
+                    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
+                    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
+                    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
+                    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
+                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
+                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    walk_volume(vc, v_pos, im.vp_dir, self.sampler,
+                                (<void *> idata))
+                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+            else:
+                # If we do not have a simple image plane, we have to cast all
+                # our rays 
+                for j in prange(size, schedule="dynamic"):
+                    offset = j * 3
+                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
+                    for i in range(3): v_dir[i] = im.vp_dir[i + offset]
+                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    walk_volume(vc, v_pos, v_dir, self.sampler, 
+                                (<void *> idata))
+                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+            free(v_dir)
+            free(idata)
+            free(v_pos)
         #print self.aimage.max()
         return hit
 
@@ -648,7 +651,7 @@ cdef int walk_volume(VolumeContainer *vc,
                      sample_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0):
+                     np.float64_t enter_t = -1.0) nogil:
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
     cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
