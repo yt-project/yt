@@ -45,17 +45,18 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
     cdef int i
     cdef np.float64_t mi = 1e100, ma = -1e100, v
     cdef int np = px.shape[0]
-    for i in range(np):
-        v = value[i]
-        if v < mi or v > ma:
-            if px[i] + pdx[i] < leftx: continue
-            if px[i] - pdx[i] > rightx: continue
-            if py[i] + pdy[i] < lefty: continue
-            if py[i] - pdy[i] > righty: continue
-            if pdx[i] < mindx or pdy[i] < mindx: continue
-            if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
-            if v < mi: mi = v
-            if v > ma: ma = v
+    with nogil:
+        for i in range(np):
+            v = value[i]
+            if v < mi or v > ma:
+                if px[i] + pdx[i] < leftx: continue
+                if px[i] - pdx[i] > rightx: continue
+                if py[i] + pdy[i] < lefty: continue
+                if py[i] - pdy[i] > righty: continue
+                if pdx[i] < mindx or pdy[i] < mindx: continue
+                if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
+                if v < mi: mi = v
+                if v > ma: ma = v
     return (mi, ma)
 
 @cython.boundscheck(False)

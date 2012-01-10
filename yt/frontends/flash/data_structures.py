@@ -316,6 +316,13 @@ class FLASHStaticOutput(StaticOutput):
             self.current_time = \
                 float(self._find_parameter("real", "time", scalar=True))
 
+        if self._flash_version == 7:
+            self.parameters['timestep'] = float(
+                self._handle["simulation parameters"]["timestep"])
+        else:
+            self.parameters['timestep'] = \
+                float(self._find_parameter("real", "dt", scalar=True))
+
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 
         except:

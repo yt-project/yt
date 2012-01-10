@@ -327,3 +327,87 @@ def splat_points(image, points_x, points_y,
     im = image.copy()
     au.add_points_to_image(im, points_x, points_y, val)
     return im
+
+def write_projection(data, filename, colorbar=True, colorbar_label=None, 
+                    title=None, limits=None, take_log=True, var_fig_size=False):
+    r"""Write a projection or volume rendering to disk with a variety of 
+    pretty parameters such as limits, title, colorbar, etc.  write_projection
+    uses the standard matplotlib interface to create the figure.  N.B. This code
+    only works *after* you have created the projection using the standard 
+    framework (i.e. the Camera interface or off_axis_projection).
+
+    Accepts an NxM sized array representing the projection itself as well
+    as the filename to which you will save this figure.  
+
+    Parameters
+    ----------
+    data : array_like 
+        image array as output by off_axis_projection or camera.snapshot()
+    filename : string 
+        the filename where the data will be saved
+    colorbar : boolean
+        do you want a colorbar generated to the right of the image?
+    colorbar_label : string
+        the label associated with your colorbar
+    title : string
+        the label at the top of the figure
+    limits : 2-element array_like
+        the lower limit and the upper limit to be plotted in the figure 
+        of the data array
+    take_log : boolean
+        plot the log of the data array (and take the log of the limits if set)?
+    var_fig_size : boolean
+        If we want the resolution (and size) of the output image to scale 
+        with the resolution of the image array.  
+
+    Examples
+    --------
+
+    >>> image = off_axis_projection(pf, c, L, W, N, "Density", no_ghost=False)
+    >>> write_projection(image, 'test.png', 
+                         colorbar_label="Column Density (cm$^{-2}$)", 
+                         title="Offaxis Projection", limits=(1e-3,1e-5), 
+                         take_log=True)
+    """
+    import pylab as pl
+
+    # If this is rendered as log, then apply now.
+    if take_log:
+        data = na.log10(data)
+        if limits is not None:
+            limits = na.log10(limits)
+
+
+    # Create the figure and paint the data on
+    fig = pl.figure()
+    ax = fig.add_subplot(111)
+
+    if limits is not None:
+        cax = ax.imshow(data, vmin=limits[0], vmax=limits[1])
+    else:
+        cax = ax.imshow(data)
+
+    if title:
+        ax.set_title(title)
+
+    # Suppress the x and y pixel counts
+    ax.set_xticks(())
+    ax.set_yticks(())
+
+    # Add a color bar and label if requested
+    if colorbar:
+        cbar = fig.colorbar(cax)
+        if colorbar_label:
+            cbar.ax.set_ylabel(colorbar_label)
+
+    # If we want the resolution of the image to scale with the resolution
+    # of the image array. we increase the dpi value accordingly
+    if var_fig_size:
+        N = data.shape[0]
+        mag_factor = N/480.
+        pl.savefig(filename, dpi=100*mag_factor)
+    else:
+        pl.savefig(filename)
+
+    pl.clf()
+    pl.close()

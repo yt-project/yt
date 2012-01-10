@@ -86,6 +86,9 @@ columns = ["GlobalHaloID", "SnapCurrentTimeIdentifier", "SnapZ",
 "ChildHaloID3", "ChildHaloFrac3",
 "ChildHaloID4", "ChildHaloFrac4"]
 
+NumNeighbors = 15
+NumDB = 5
+
 class DatabaseFunctions(object):
     # Common database functions so it doesn't have to be repeated.
     def _open_database(self):
@@ -366,9 +369,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         child_points = na.array(child_points)
         fKD.pos = na.asfortranarray(child_points.T)
         fKD.qv = na.empty(3, dtype='float64')
-        fKD.dist = na.empty(5, dtype='float64')
-        fKD.tags = na.empty(5, dtype='int64')
-        fKD.nn = 5
+        fKD.dist = na.empty(NumNeighbors, dtype='float64')
+        fKD.tags = na.empty(NumNeighbors, dtype='int64')
+        fKD.nn = NumNeighbors
         fKD.sort = True
         fKD.rearrange = True
         create_tree(0)
@@ -395,7 +398,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 nIDs.append(n)
             # We need to fill in fake halos if there aren't enough halos,
             # which can happen at high redshifts.
-            while len(nIDs) < 5:
+            while len(nIDs) < NumNeighbors:
                 nIDs.append(-1)
             candidates[row[0]] = nIDs
         
@@ -405,12 +408,12 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         self.candidates = candidates
         
         # This stores the masses contributed to each child candidate.
-        self.child_mass_arr = na.zeros(len(candidates)*5, dtype='float64')
+        self.child_mass_arr = na.zeros(len(candidates)*NumNeighbors, dtype='float64')
         # Records where to put the entries in the above array.
         self.child_mass_loc = defaultdict(dict)
         for i,halo in enumerate(sorted(candidates)):
             for j, child in enumerate(candidates[halo]):
-                self.child_mass_loc[halo][child] = i*5 + j
+                self.child_mass_loc[halo][child] = i*NumNeighbors + j
 
     def _build_h5_refs(self, filename):
         # For this snapshot, add lists of file names that contain the
@@ -618,8 +621,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         result = self.cursor.fetchone()
         while result:
             mass = result[0]
-            self.child_mass_arr[mark:mark+5] /= mass
-            mark += 5
+            self.child_mass_arr[mark:mark+NumNeighbors] /= mass
+            mark += NumNeighbors
             result = self.cursor.fetchone()
         
         # Get the global ID for the SnapHaloID=0 from the child, this will
@@ -642,14 +645,15 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 # We need to get the GlobalHaloID for this child.
                 child_globalID = baseChildID + child
                 child_indexes.append(child_globalID)
-                child_per.append(self.child_mass_arr[i*5 + j])
+                child_per.append(self.child_mass_arr[i*NumNeighbors + j])
             # Sort by percentages, desending.
             child_per, child_indexes = zip(*sorted(zip(child_per, child_indexes), reverse=True))
             values = []
-            for pair in zip(child_indexes, child_per):
+            for pair_count, pair in enumerate(zip(child_indexes, child_per)):
+                if pair_count == NumDB: break
                 values.extend([int(pair[0]), float(pair[1])])
             #values.extend([parent_currt, parent_halo])
-            # This has the child ID, child percent listed five times, followed
+            # This has the child ID, child percent listed NumDB times, followed
             # by the currt and this parent halo ID (SnapHaloID).
             #values = tuple(values)
             self.write_values.append(values)
@@ -841,7 +845,7 @@ class MergerTreeConnect(DatabaseFunctions):
          [1609, 0.0]]
         """
         parents = []
-        for i in range(5):
+        for i in range(NumDB):
             string = "SELECT GlobalHaloID, ChildHaloFrac%d FROM Halos\
             WHERE ChildHaloID%d=%d;" % (i, i, GlobalHaloID)
             self.cursor.execute(string)
