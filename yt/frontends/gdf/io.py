@@ -49,13 +49,21 @@ class IOHandlerGDFHDF5(BaseIOHandler):
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
         data = (fhandle['/data/grid_%010i/'%grid.id+field][:]).copy()
         fhandle.close()
-        return data
+        if grid.pf.field_ordering == 1:
+            return data.T
+        else:
+            return data
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
+        if grid.pf.field_ordering == 1:
+            sl.reverse()
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
         data = (fhandle['/data/grid_%010i/'%grid.id+field][:][sl]).copy()
         fhandle.close()
-        return data
+        if grid.pf.field_ordering == 1:
+            return data.T
+        else:
+            return data
 
