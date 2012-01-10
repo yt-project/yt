@@ -286,6 +286,8 @@ class FLASHStaticOutput(StaticOutput):
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
         self.domain_right_edge = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+        self.min_level = self._find_parameter(
+            "integer", "lrefine_min", scalar = False) - 1
 
         # Determine domain dimensions
         try:
