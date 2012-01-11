@@ -39,49 +39,23 @@ import yt.utilities.logger
 from yt.utilities.amr_utils import \
     QuadTree, merge_quadtrees
 
-exe_name = os.path.basename(sys.executable)
-# At import time, we determined whether or not we're being run in parallel.
-if exe_name in \
-        ["mpi4py", "embed_enzo",
-         "python"+sys.version[:3]+"-mpi"] \
-    or "--parallel" in sys.argv or '_parallel' in dir(sys) \
-    or any(["ipengine" in arg for arg in sys.argv]):
+parallel_capable = ytcfg.getboolean("yt", "__parallel")
+
+# Set up translation table and import things
+if parallel_capable:
     from mpi4py import MPI
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
-    if parallel_capable:
-        mylog.info("Global parallel computation enabled: %s / %s",
-                   MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-        ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
-        ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel"] = "True"
-        if exe_name == "embed_enzo" or \
-            ("_parallel" in dir(sys) and sys._parallel == True):
-            ytcfg["yt","inline"] = "True"
-        # I believe we do not need to turn this off manually
-        #ytcfg["yt","StoreParameterFiles"] = "False"
-        # Now let's make sure we have the right options set.
-        if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("yt","LogFile"):
-                ytcfg["yt","LogFile"] = "False"
-                yt.utilities.logger.disable_file_logging()
-        yt.utilities.logger.uncolorize_logging()
-        # Even though the uncolorize function already resets the format string,
-        # we reset it again so that it includes the processor.
-        f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
-                                            yt.utilities.logger.ufstring))
-        if len(yt.utilities.logger.rootLogger.handlers) > 0:
-            yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
-        if ytcfg.getboolean("yt", "parallel_traceback"):
-            sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
+    yt.utilities.logger.uncolorize_logging()
+    # Even though the uncolorize function already resets the format string,
+    # we reset it again so that it includes the processor.
+    f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
+                                        yt.utilities.logger.ufstring))
+    if len(yt.utilities.logger.rootLogger.handlers) > 0:
+        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+    if ytcfg.getboolean("yt", "parallel_traceback"):
+        sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
-
-else:
-    parallel_capable = False
-
-# Set up translation table
-if parallel_capable:
     dtype_names = dict(
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
@@ -374,7 +348,8 @@ def parallel_objects(objects, njobs, storage = None):
             to_share[rstore.result_id] = rstore.result
         else:
             yield obj
-    communication_system.communicators.pop()
+    if parallel_capable:
+        communication_system.communicators.pop()
     if storage is not None:
         # Now we have to broadcast it
         new_storage = my_communicator.par_combine_object(

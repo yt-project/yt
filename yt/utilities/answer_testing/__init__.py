@@ -24,7 +24,7 @@ License:
 """
 
 import runner, output_tests
-from runner import RegressionTestRunner, run_main
+from runner import RegressionTestRunner
 
 from output_tests import RegressionTest, SingleOutputTest, \
     MultipleOutputTest, YTStaticOutputTest, create_test
