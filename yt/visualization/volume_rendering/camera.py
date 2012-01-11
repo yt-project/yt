@@ -43,6 +43,7 @@ from numpy import pi
 
 from yt.utilities.amr_utils import \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
+    LightSourceRenderSampler, \
     arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
     pixelize_healpix
 
@@ -55,7 +56,7 @@ class Camera(ParallelAnalysisInterface):
                  sub_samples = 5, pf = None,
                  use_kd=True, l_max=None, no_ghost=True,
                  tree_type='domain',expand_factor=1.0,
-                 le=None, re=None):
+                 le=None, re=None, use_light=False):
         r"""A viewpoint into a volume, for volume rendering.
 
         The camera represents the eye of an observer, which will be used to
@@ -215,6 +216,9 @@ class Camera(ParallelAnalysisInterface):
         self.use_kd = use_kd
         self.l_max = l_max
         self.no_ghost = no_ghost
+        self.use_light = use_light
+        self.light_dir = None
+        self.light_rgba = None
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
         self.tree_type = tree_type
@@ -358,7 +362,19 @@ class Camera(ParallelAnalysisInterface):
                 image, self.unit_vectors[0], self.unit_vectors[1],
                 na.array(self.width),
                 self.transfer_function, self.sub_samples)
-        sampler = VolumeRenderSampler(*args)
+        if self.use_light:
+            if self.light_dir is None:
+                self.set_default_light_dir()
+            temp_dir = na.empty(3,dtype='float64')
+            temp_dir = self.light_dir[0] * self.unit_vectors[1] + \
+                    self.light_dir[1] * self.unit_vectors[2] + \
+                    self.light_dir[2] * self.unit_vectors[0]
+            if self.light_rgba is None:
+                self.set_default_light_rgba()
+            sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
+                    light_rgba=self.light_rgba)
+        else:
+            sampler = VolumeRenderSampler(*args)
         self.volume.initialize_source()
 
         pbar = get_pbar("Ray casting",
@@ -378,6 +394,12 @@ class Camera(ParallelAnalysisInterface):
                 write_bitmap(image, fn)
 
         return image
+
+    def set_default_light_dir(self):
+        self.light_dir = [1.,1.,1.]
+
+    def set_default_light_rgba(self):
+        self.light_rgba = [1.,1.,1.,1.]
 
     def zoom(self, factor):
         r"""Change the distance to the focal point.
@@ -464,8 +486,8 @@ class Camera(ParallelAnalysisInterface):
                     self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
-	    else:
-		dW = 1.0
+            else:
+                dW = 1.0
             position_diff = (na.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
@@ -474,8 +496,8 @@ class Camera(ParallelAnalysisInterface):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
                 dW = (1.0*final_width-na.array(self.width))/n_steps
-	    else:
-		dW = 1.0
+            else:
+                dW = 1.0
             dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:

@@ -42,6 +42,10 @@ cdef inline np.float64_t fmin(np.float64_t f0, np.float64_t f1) nogil:
     if f0 < f1: return f0
     return f1
 
+cdef inline np.float64_t fabs(np.float64_t f0) nogil:
+    if f0 < 0.0: return -f0
+    return f0
+
 cdef inline int iclip(int i, int a, int b) nogil:
     if i < a: return a
     if i > b: return b

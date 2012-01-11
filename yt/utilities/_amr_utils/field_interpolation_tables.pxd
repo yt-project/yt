@@ -25,7 +25,7 @@ License:
 
 cimport cython
 cimport numpy as np
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
@@ -91,3 +91,30 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
     for i in range(3):
         ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
         rgba[i] = dt*trgba[i] + ta * rgba[i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs, 
+        np.float64_t *grad, np.float64_t *l_dir, np.float64_t *l_rgba,
+        np.float64_t *rgba, int n_fits,
+        FieldInterpolationTable fits[6],
+        int field_table_ids[6]) nogil:
+    cdef int i, fid, use
+    cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
+    dot_prod = 0.0
+    for i in range(3):
+        dot_prod += l_dir[i]*grad[i]
+    #dot_prod = fmax(0.0, dot_prod)
+    for i in range(6): istorage[i] = 0.0
+    for i in range(n_fits):
+        istorage[i] = FIT_get_value(&fits[i], dvs)
+    for i in range(n_fits):
+        fid = fits[i].weight_table_id
+        if fid != -1: istorage[i] *= istorage[fid]
+    for i in range(6):
+        trgba[i] = istorage[field_table_ids[i]]
+    for i in range(3):
+        ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
+        rgba[i] = dt*trgba[i] + ta * rgba[i] + dt*dot_prod*l_rgba[i]*trgba[i]*l_rgba[3] #(trgba[0]+trgba[1]+trgba[2])
+

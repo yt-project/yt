@@ -31,7 +31,8 @@ cimport healpix_interface
 from stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from field_interpolation_tables cimport \
-    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer
+    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
+    FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
@@ -307,7 +308,7 @@ cdef void projection_sampler(
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
-    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2]
+    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
     for i in range(imin(3, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
@@ -324,6 +325,8 @@ cdef struct VolumeRenderAccumulator:
     np.float64_t star_er
     np.float64_t star_sigma_num
     kdtree_utils.kdtree *star_list
+    np.float64_t *light_dir
+    np.float64_t *light_rgba
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -367,6 +370,46 @@ cdef void volume_render_sampler(
                           vri.field_table_ids)
         for i in range(vc.n_fields):
             dvs[i] += slopes[i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void volume_render_gradient_sampler(
+                 VolumeContainer *vc, 
+                 np.float64_t v_pos[3],
+                 np.float64_t v_dir[3],
+                 np.float64_t enter_t,
+                 np.float64_t exit_t,
+                 int index[3],
+                 void *data) nogil:
+    cdef ImageAccumulator *im = <ImageAccumulator *> data
+    cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
+            im.supp_data
+    # we assume this has vertex-centered data.
+    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
+                    + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
+    cdef np.float64_t dvs[6]
+    cdef np.float64_t *grad
+    grad = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    for i in range(3):
+        dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
+        dp[i] *= vc.idds[i]
+        ds[i] = v_dir[i] * vc.idds[i] * dt
+    for i in range(vri.n_samples):
+        for j in range(vc.n_fields):
+            dvs[j] = offset_interpolate(vc.dims, dp,
+                    vc.data[j] + offset)
+        eval_gradient(vc.dims, dp, vc.data[0] + offset, grad)
+        FIT_eval_transfer_with_light(dt, dvs, grad, 
+                vri.light_dir, vri.light_rgba,
+                im.rgba, vri.n_fits, 
+                vri.fits, vri.field_table_ids)
+        for j in range(3):
+            dp[j] += ds[j]
+    free(grad)
 
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
@@ -523,6 +566,68 @@ cdef class VolumeRenderSampler(ImageSampler):
         return
         free(self.vra.fits)
         free(self.vra)
+
+cdef class LightSourceRenderSampler(ImageSampler):
+    cdef VolumeRenderAccumulator *vra
+    cdef public object tf_obj
+    cdef public object my_field_tables
+    def __cinit__(self, 
+                  np.ndarray vp_pos,
+                  np.ndarray vp_dir,
+                  np.ndarray[np.float64_t, ndim=1] center,
+                  bounds,
+                  np.ndarray[np.float64_t, ndim=3] image,
+                  np.ndarray[np.float64_t, ndim=1] x_vec,
+                  np.ndarray[np.float64_t, ndim=1] y_vec,
+                  np.ndarray[np.float64_t, ndim=1] width,
+                  tf_obj, n_samples = 10,
+                  light_dir=[1.,1.,1.],
+                  light_rgba=[1.,1.,1.,1.]):
+        ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
+                               x_vec, y_vec, width)
+        cdef int i
+        cdef np.ndarray[np.float64_t, ndim=1] temp
+        # Now we handle tf_obj
+        self.vra = <VolumeRenderAccumulator *> \
+            malloc(sizeof(VolumeRenderAccumulator))
+        self.vra.fits = <FieldInterpolationTable *> \
+            malloc(sizeof(FieldInterpolationTable) * 6)
+        self.vra.n_fits = tf_obj.n_field_tables
+        assert(self.vra.n_fits <= 6)
+        self.vra.n_samples = n_samples
+        self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
+        self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)
+        light_dir /= np.sqrt(light_dir[0]**2 + light_dir[1]**2 + light_dir[2]**2)
+        for i in range(3):
+            self.vra.light_dir[i] = light_dir[i]
+        for i in range(4):
+            self.vra.light_rgba[i] = light_rgba[i]
+        self.my_field_tables = []
+        for i in range(self.vra.n_fits):
+            temp = tf_obj.tables[i].y
+            FIT_initialize_table(&self.vra.fits[i],
+                      temp.shape[0],
+                      <np.float64_t *> temp.data,
+                      tf_obj.tables[i].x_bounds[0],
+                      tf_obj.tables[i].x_bounds[1],
+                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i],
+                      tf_obj.weight_table_ids[i])
+            self.my_field_tables.append((tf_obj.tables[i],
+                                         tf_obj.tables[i].y))
+        for i in range(6):
+            self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
+        self.supp_data = <void *> self.vra
+
+    def setup(self, PartitionedGrid pg):
+        self.sampler = volume_render_gradient_sampler
+
+    def __dealloc__(self):
+        return
+        free(self.vra.fits)
+        free(self.vra)
+        free(self.light_dir)
+        free(self.light_rgba)
+
 
 cdef class GridFace:
     cdef int direction
@@ -684,16 +789,16 @@ cdef int walk_volume(VolumeContainer *vc,
            0.0 <= tl and tl < intersect_t:
             direction = i
             intersect_t = tl
-    if enter_t >= 0.0: intersect_t = enter_t
+    if enter_t >= 0.0: intersect_t = enter_t 
     if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
     for i in range(3):
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
         # tmax[i], the 't' until it crosses out of the grid cell
-        tdelta[i] = step[i] * iv_dir[i] * vc.dds[i]
+        tdelta[i] = step[i] * iv_dir[i] * vc.dds[i] 
         if i == direction and step[i] > 0:
             # Intersection with the left face in this direction
-            cur_ind[i] = 0
+            cur_ind[i] = 0 
         elif i == direction and step[i] < 0:
             # Intersection with the right face in this direction
             cur_ind[i] = vc.dims[i] - 1
