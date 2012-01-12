@@ -228,7 +228,7 @@ cdef class ImageSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, PartitionedGrid pg):
+    def __call__(self, PartitionedGrid pg, int num_threads = 0):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
@@ -261,12 +261,11 @@ cdef class ImageSampler:
         cdef np.float64_t width[3] 
         for i in range(3):
             width[i] = self.width[i]
-        with nogil, parallel():
-            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-            idata.supp_data = self.supp_data
-            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            if im.vd_strides[0] == -1:
+        if im.vd_strides[0] == -1:
+            with nogil, parallel():
+                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+                idata.supp_data = self.supp_data
+                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 for j in prange(size, schedule="dynamic"):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
@@ -282,10 +281,17 @@ cdef class ImageSampler:
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
                                 (<void *> idata))
                     for i in range(3): im.image[i + offset] = idata.rgba[i]
-            else:
+                free(idata)
+                free(v_pos)
+        else:
+            with nogil, parallel():
+                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+                idata.supp_data = self.supp_data
+                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
-                for j in prange(size, schedule="dynamic"):
+                for j in prange(size, schedule="guided"):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
@@ -293,9 +299,9 @@ cdef class ImageSampler:
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
                                 (<void *> idata))
                     for i in range(3): im.image[i + offset] = idata.rgba[i]
-            free(v_dir)
-            free(idata)
-            free(v_pos)
+                free(v_dir)
+                free(idata)
+                free(v_pos)
         return hit
 
 cdef void projection_sampler(
