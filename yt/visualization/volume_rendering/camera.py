@@ -961,7 +961,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     return image[:,:,0]
 
 def allsky_projection(pf, center, radius, nside, field, weight = None,
-                      rotation = None):
+                      inner_radius = 0.05, rotation = None):
     r"""Project through a parameter file, through an allsky-method
     decomposition from HEALpix, and return the image plane.
 
@@ -988,6 +988,15 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
         than a sum.
+    inner_radius : optional, float, defaults to 0.05
+        The radius of the inner clipping plane.  To avoid unphysical local
+        effects (i.e., octopole moments in the resultant image) the starting
+        position for each vector will be expanded outward by this, times the
+        radius, times the individual directional vectors.
+    rotation : optional, 3x3 array
+        If supplied, the vectors will be rotated by this.  You can construct
+        this by, for instance, calling na.array([v1,v2,v3]) where those are the
+        three reference planes of an orthogonal frame (see ortho_find).
 
     Returns
     -------
@@ -1019,7 +1028,6 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     nv = 12*nside**2
     image = na.zeros((nv,1,3), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, na.arange(nv))
-    vs += na.random.random(vs.shape)*1e-10 - 0.5e-10
     vs *= radius
     vs.shape = (nv,1,3)
     if rotation is not None:
@@ -1027,6 +1035,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         for i in range(3):
             vs[:,:,i] = (vs2 * rotation[:,i]).sum(axis=2)
     positions = na.ones((nv, 1, 3), dtype='float64', order='C') * center
+    positions += inner_radius * vs
     uv = na.ones(3, dtype='float64')
     grids = pf.h.sphere(center, radius)._grids
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
