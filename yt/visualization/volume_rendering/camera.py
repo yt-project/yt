@@ -1034,8 +1034,6 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             vs[:,:,i] = (vs2 * rotation[:,i]).sum(axis=2)
     positions = na.ones((nv, 1, 3), dtype='float64', order='C') * center
     dx = min(g.dds.min() for g in pf.h.find_point(center)[0])
-    print inner_radius * dx
-    insert_ipython()
     positions += inner_radius * dx * vs
     vs *= radius
     uv = na.ones(3, dtype='float64')
