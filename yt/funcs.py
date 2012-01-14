@@ -474,7 +474,26 @@ def get_yt_version():
     version = get_hg_version(path)[:12]
     return version
 
+def get_version_stack():
+    import numpy, matplotlib, h5py
+    version_info = {}
+    version_info['yt'] = get_yt_version()
+    version_info['numpy'] = numpy.version.version
+    version_info['matplotlib'] = matplotlib.__version__
+    version_info['h5py'] = h5py.version.version
+    return version_info
 
+def get_script_contents():
+    stack = inspect.stack()
+    top_frame = inspect.stack()[-1]
+    finfo = inspect.getframeinfo(top_frame[0])
+    if finfo[2] != "<module>": return None
+    if not os.path.exists(finfo[0]): return None
+    try:
+        contents = open(finfo[0]).read()
+    except:
+        contents = None
+    return contents
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
