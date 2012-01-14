@@ -471,8 +471,10 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = _get_hg_version(path)[:12]
+    version = get_hg_version(path)[:12]
     return version
+
+
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
