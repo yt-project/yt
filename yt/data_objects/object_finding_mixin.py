@@ -205,17 +205,19 @@ class ObjectFindingMixin(object):
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
 
-    def get_box_grids_below_level(self, left_edge, right_edge, level):
+    def get_box_grids_below_level(self, left_edge, right_edge, level,
+                                  min_level = 0):
         # We discard grids if they are ABOVE the level
         mask = na.empty(self.grids.size, dtype='int32')
         get_box_grids_below_level(left_edge, right_edge,
                             level,
                             self.grid_left_edge, self.grid_right_edge,
-                            self.grid_levels, mask)
+                            self.grid_levels, mask, min_level)
         mask = mask.astype("bool")
         return self.grids[mask], na.where(mask)
 
-    def get_periodic_box_grids_below_level(self, left_edge, right_edge, level):
+    def get_periodic_box_grids_below_level(self, left_edge, right_edge, level,
+                                           min_level = 0):
         mask = na.zeros(self.grids.shape, dtype='bool')
         dl = self.parameter_file.domain_left_edge
         dr = self.parameter_file.domain_right_edge
@@ -232,7 +234,8 @@ class ObjectFindingMixin(object):
                 for off_z in [-1, 0, 1]:
                     nle[2] = (dw[2]*off_z + dl[2]) + left_dist[2]
                     nre = nle + db
-                    g, gi = self.get_box_grids_below_level(nle, nre, level)
+                    g, gi = self.get_box_grids_below_level(nle, nre,
+                                            level, min_level)
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
 
