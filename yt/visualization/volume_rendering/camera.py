@@ -831,6 +831,7 @@ class FisheyeCamera(Camera):
         for i in range(3):
             vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
         del vp2
+        vp *= self.radius
         uv = na.ones(3, dtype='float64')
         positions = na.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
         vector_plane = VectorPlane(positions, vp, self.center,
@@ -855,8 +856,124 @@ class MosaicFisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
+                 pf = None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
                  rotation=None):
+        r"""A fisheye lens camera, taking adantage of image plane decomposition
+        for parallelism..
+
+        The camera represents the eye of an observer, which will be used to
+        generate ray-cast volume renderings of the domain. In this case, the
+        rays are defined by a fisheye lens
+
+        Parameters
+        ----------
+        center : array_like
+            The current "center" of the observer, from which the rays will be
+            cast
+        radius : float
+            The radial distance to cast to
+        resolution : int
+            The number of pixels in each direction.  Must be a single int.
+        volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+            The volume to ray cast through.  Can be specified for finer-grained
+            control, but otherwise will be automatically generated.
+        fields : list of fields, optional
+            This is the list of fields we want to volume render; defaults to
+            Density.
+        log_fields : list of bool, optional
+            Whether we should take the log of the fields before supplying them to
+            the volume rendering mechanism.
+        sub_samples : int, optional
+            The number of samples to take inside every cell per ray.
+        pf : `~yt.data_objects.api.StaticOutput`
+            For now, this is a require parameter!  But in the future it will become
+            optional.  This is the parameter file to volume render.
+        l_max: int, optional
+            Specifies the maximum level to be rendered.  Also
+            specifies the maximum level used in the kd-Tree
+            construction.  Defaults to None (all levels), and only
+            applies if use_kd=True.
+        no_ghost: bool, optional
+            Optimization option.  If True, homogenized bricks will
+            extrapolate out from grid instead of interpolating from
+            ghost zones that have to first be calculated.  This can
+            lead to large speed improvements, but at a loss of
+            accuracy/smoothness in resulting image.  The effects are
+            less notable when the transfer function is smooth and
+            broad. Default: False
+        nimx: int, optional
+            The number by which to decompose the image plane into in the x
+            direction.  Must evenly divide the resolution.
+        nimy: int, optional
+            The number by which to decompose the image plane into in the y 
+            direction.  Must evenly divide the resolution.
+        procs_per_wg: int, optional
+            The number of processors to use on each sub-image. Within each
+            subplane, the volume will be decomposed using the AMRKDTree with
+            procs_per_wg processors.  
+
+        Notes
+        -----
+            The product of nimx*nimy*procs_per_wg must be equal to or less than
+            the total number of mpi processes.  
+
+            Unlike the non-Mosaic camera, this will only return each sub-image
+            to the root processor of each sub-image workgroup in order to save
+            memory.  To save the final image, one must then call
+            MosaicFisheyeCamera.save_image('filename')
+
+        Examples
+        --------
+
+        >>> from yt.mods import *
+        
+        >>> pf = load('DD1717')
+        
+        >>> N = 512 # Pixels (1024^2)
+        >>> c = (pf.domain_right_edge + pf.domain_left_edge)/2. # Center
+        >>> radius = (pf.domain_right_edge - pf.domain_left_edge)/2.
+        >>> fov = 180.0
+        
+        >>> field='Density'
+        >>> mi,ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+        >>> mi,ma = na.log10(mi), na.log10(ma)
+        
+        # You may want to comment out the above lines and manually set the min and max
+        # of the log of the Density field. For example:
+        # mi,ma = -30.5,-26.5
+        
+        # Another good place to center the camera is close to the maximum density.
+        # v,c = pf.h.find_max('Density')
+        # c -= 0.1*radius
+        
+       
+        # Construct transfer function
+        >>> tf = ColorTransferFunction((mi-1, ma+1),nbins=1024)
+        
+        # Sample transfer function with Nc gaussians.  Use col_bounds keyword to limit
+        # the color range to the min and max values, rather than the transfer function
+        # bounds.
+        >>> Nc = 5
+        >>> tf.add_layers(Nc,w=0.005, col_bounds = (mi,ma), alpha=na.logspace(-2,0,Nc),
+        >>>         colormap='RdBu_r')
+        >>> 
+        # Create the camera object. Use the keyword: no_ghost=True if a lot of time is
+        # spent creating vertex-centered data. In this case I'm running with 8
+        # processors, and am splitting the image plane into 4 pieces and using 2
+        # processors on each piece.
+        >>> cam = MosaicFisheyeCamera(c, radius, fov, N,
+        >>>         transfer_function = tf, 
+        >>>         sub_samples = 5, 
+        >>>         pf=pf, 
+        >>>         nimx=2,nimy=2,procs_per_wg=4)
+        
+        # Take a snapshot
+        >>> im = cam.snapshot()
+        
+        # Save the image
+        >>> cam.save_image('fisheye_mosaic.png')
+
+        """
 
         ParallelAnalysisInterface.__init__(self)
         PP = ProcessorPool()
@@ -914,6 +1031,7 @@ class MosaicFisheyeCamera(Camera):
             vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
         del vp2
  
+        vp *= self.radius
         nx, ny = vp.shape[0], vp.shape[1]
         vp.shape = (nx*ny,1,3)
         image = na.zeros((nx*ny,1,3), dtype='float64', order='C')
