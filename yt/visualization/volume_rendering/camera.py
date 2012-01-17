@@ -890,7 +890,7 @@ class MosaicFisheyeCamera(Camera):
             optional.  This is the parameter file to volume render.
         l_max: int, optional
             Specifies the maximum level to be rendered.  Also
-            specifies the maximum level used in the kd-Tree
+            specifies the maximum level used in the AMRKDTree
             construction.  Defaults to None (all levels), and only
             applies if use_kd=True.
         no_ghost: bool, optional
@@ -1016,7 +1016,7 @@ class MosaicFisheyeCamera(Camera):
         self.log_fields = log_fields
         if volume is None:
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
-                               log_fields=log_fields)
+                               log_fields=log_fields,l_max=l_max)
         self.volume = volume
 
     def snapshot(self):
