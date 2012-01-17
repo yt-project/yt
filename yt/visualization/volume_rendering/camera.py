@@ -36,7 +36,7 @@ from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
 
@@ -845,6 +845,118 @@ class FisheyeCamera(Camera):
         image.shape = (self.resolution, self.resolution, 3)
         return image
 
+class MosaicFisheyeCamera(Camera):
+    def __init__(self, center, radius, fov, resolution,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
+                 preload=True, reduce_images=True):
+
+        ParallelAnalysisInterface.__init__(self)
+        PP = ProcessorPool()
+        if procs_per_wg is None:
+            procs_per_wg = PP.size
+        for j in range(nimy):
+            for i in range(nimx):
+                PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
+                
+        for wg in PP.workgroups:
+            if self.comm.rank in wg.ranks:
+                my_wg = wg
+        
+        self.global_comm = self.comm
+        self.comm = my_wg.comm
+        self.wg = my_wg
+        self.imi = int(self.wg.name[0:4])
+        self.imj = int(self.wg.name[5:9])
+        print 'My new communicator has the name %s' % self.wg.name
+
+        if pf is not None: self.pf = pf
+    
+        if iterable(resolution):
+            raise RuntimeError("Resolution must be a single int")
+        self.resolution = resolution
+        self.nimx = nimx
+        self.nimy = nimy
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.fov = fov
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.volume = volume
+
+    def snapshot(self):
+        # We now follow figures 4-7 of:
+        # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
+        # ...but all in Cython.
+
+        vp = arr_fisheye_vectors(self.resolution, self.fov, self.nimx,
+                self.nimy, self.imi, self.imj)
+
+        nx, ny = vp.shape[0], vp.shape[1]
+        vp.shape = (nx*ny,1,3)
+        image = na.zeros((nx*ny,1,3), dtype='float64', order='C')
+        uv = na.ones(3, dtype='float64')
+        positions = na.ones((nx*ny, 1, 3), dtype='float64') * self.center
+        vector_plane = VectorPlane(positions, vp, self.center,
+                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Rendering fisheye of %s^2", self.resolution)
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+
+        total_cells = 0
+        for brick in self.volume.traverse(None, self.center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        image.shape = (nx, ny, 3)
+
+        self.image = image
+       
+        return image
+
+    def save_image(self, fn):
+        if '.png' not in fn:
+            fn = fn + '.png'
+        
+        try:
+            image = self.image
+        except:
+            mylog.error('You must first take a snapshot')
+            raise(UserWarning)
+        
+        image = self.image
+        nx,ny = self.resolution/self.nimx, self.resolution/self.nimy
+
+        if self.comm.rank == 0:
+            if self.global_comm.rank == 0:
+                final_image = na.empty((nx*self.nimx, 
+                    ny*self.nimy, 3),
+                    dtype='float64',order='C')
+                final_image[:nx, :ny, :] = image
+                for j in range(self.nimy):
+                    for i in range(self.nimx):
+                        if i==0 and j==0: continue
+                        arr = self.global_comm.recv_array((self.wg.size)*(j*self.nimx + i), tag = (self.wg.size)*(j*self.nimx + i))
+
+                        final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
+                        del arr
+                write_bitmap(final_image, fn)
+            else:
+                self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
+        return
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, volume = None, no_ghost = True):
