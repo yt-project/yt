@@ -797,8 +797,10 @@ class FisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, no_ghost=False):
+                 pf = None, no_ghost=False, rotation = None):
         ParallelAnalysisInterface.__init__(self)
+        if rotation is None: rotation = na.eye(3)
+        self.rotation = rotation
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
@@ -825,6 +827,10 @@ class FisheyeCamera(Camera):
         # ...but all in Cython.
         vp = arr_fisheye_vectors(self.resolution, self.fov)
         vp.shape = (self.resolution**2,1,3)
+        vp2 = vp.copy()
+        for i in range(3):
+            vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
+        del vp2
         uv = na.ones(3, dtype='float64')
         positions = na.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
         vector_plane = VectorPlane(positions, vp, self.center,
@@ -850,7 +856,7 @@ class MosaicFisheyeCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
-                 preload=True, reduce_images=True):
+                 rotation=None):
 
         ParallelAnalysisInterface.__init__(self)
         PP = ProcessorPool()
@@ -873,6 +879,9 @@ class MosaicFisheyeCamera(Camera):
 
         if pf is not None: self.pf = pf
     
+        if rotation is None: rotation = na.eye(3)
+        self.rotation = rotation
+
         if iterable(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
@@ -900,7 +909,11 @@ class MosaicFisheyeCamera(Camera):
 
         vp = arr_fisheye_vectors(self.resolution, self.fov, self.nimx,
                 self.nimy, self.imi, self.imj)
-
+        vp2 = vp.copy()
+        for i in range(3):
+            vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
+        del vp2
+ 
         nx, ny = vp.shape[0], vp.shape[1]
         vp.shape = (nx*ny,1,3)
         image = na.zeros((nx*ny,1,3), dtype='float64', order='C')
