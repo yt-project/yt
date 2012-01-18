@@ -39,31 +39,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
-from time import time
-def get_rotation_matrix_euler(phi,theta,psi):
-    cost = na.cos(theta)
-    sint = na.sin(theta)
-    cosp = na.cos(phi)
-    sinp = na.sin(phi)
-    coss = na.cos(psi)
-    sins = na.sin(psi)
-    R = na.array([[cost*coss, -cosp*sins + sinp*sint*coss, sinp*sins + cosp*sint*coss],
-                  [cost*sins, cosp*coss + sinp*sint*sins, -sinp*coss + cosp*sint*sins],
-                  [-sint, sinp*cost, cosp*cost]])
-    return R
-
-def get_rotation_matrix(theta, rot_vector):
-    ux = rot_vector[0]
-    uy = rot_vector[1]
-    uz = rot_vector[2]
-    cost = na.cos(theta)
-    sint = na.sin(theta)
-    
-    R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
-                  [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
-                  [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
-
-    return R
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -1067,7 +1042,7 @@ class MosaicFisheyeCamera(Camera):
             rot_vector = na.cross(rvec, self.normal_vector)
             rot_vector /= (rot_vector**2).sum()**0.5
             
-            self.rotation_matrix = get_rotation_matrix(angle,rot_vector)
+            self.rotation_matrix = self.get_rotation_matrix(angle,rot_vector)
             self.normal_vector = na.dot(self.rotation_matrix,self.normal_vector)
             self.north_vector = na.dot(self.rotation_matrix,self.north_vector)
             self.east_vector = na.dot(self.rotation_matrix,self.east_vector)
@@ -1176,17 +1151,10 @@ class MosaicFisheyeCamera(Camera):
         if rot_vector is None:
             rot_vector = self.rotation_vector
         
-        ux = rot_vector[0]
-        uy = rot_vector[1]
-        uz = rot_vector[2]
-        cost = na.cos(theta)
-        sint = na.sin(theta)
         dist = ((self.focal_center - self.center)**2).sum()**0.5
-
-        R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
-                      [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
-                      [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
         
+        R = self.get_rotation_matrix(theta, rot_vector)
+
         self.vp = rotate_vectors(self.vp, R)
         self.normal_vector = na.dot(R,self.normal_vector)
         self.north_vector = na.dot(R,self.north_vector)
@@ -1223,6 +1191,20 @@ class MosaicFisheyeCamera(Camera):
         for i in xrange(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector, keep_focus=keep_focus)
             yield self.snapshot()
+
+    def get_rotation_matrix(self, theta, rot_vector):
+        ux = rot_vector[0]
+        uy = rot_vector[1]
+        uz = rot_vector[2]
+        cost = na.cos(theta)
+        sint = na.sin(theta)
+        
+        R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
+                      [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
+                      [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+
+        return R
+
 
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
