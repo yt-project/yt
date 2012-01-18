@@ -87,6 +87,8 @@ class StaticOutput(object):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
+        self.min_level = 0
+
         self._parse_parameter_file()
         self._set_units()
 

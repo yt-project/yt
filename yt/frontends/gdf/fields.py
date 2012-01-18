@@ -1,11 +1,14 @@
 """
 GDF-specific fields
 
+Author: Samuel W. Skillman <samskillman@gmail.com>
+Affiliation: University of Colorado at Boulder
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2009-2011 J. S. Oishi, Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
+  All Rights Reserved.
 
   This file is part of yt.
 
@@ -53,40 +56,31 @@ KnownGDFFields = FieldInfoContainer()
 add_gdf_field = KnownGDFFields.add_field
 
 add_gdf_field("density", function=NullFunc, take_log=True,
-          validators = [ValidateDataField("density")],
           units=r"\rm{g}/\rm{cm}^3",
           projected_units =r"\rm{g}/\rm{cm}^2")
 
 add_gdf_field("specific_energy", function=NullFunc, take_log=True,
-          validators = [ValidateDataField("specific_energy")],
           units=r"\rm{erg}/\rm{g}")
 
 add_gdf_field("pressure", function=NullFunc, take_log=True,
-          validators = [ValidateDataField("pressure")],
           units=r"\rm{erg}/\rm{g}")
 
-add_gdf_field("velocity_x", function=NullFunc, take_log=True,
-          validators = [ValidateDataField("velocity_x")],
+add_gdf_field("velocity_x", function=NullFunc, take_log=False,
           units=r"\rm{cm}/\rm{s}")
 
 add_gdf_field("velocity_y", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("velocity_y")],
           units=r"\rm{cm}/\rm{s}")
 
 add_gdf_field("velocity_z", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("velocity_z")],
           units=r"\rm{cm}/\rm{s}")
 
 add_gdf_field("mag_field_x", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("mag_field_x")],
           units=r"\rm{cm}/\rm{s}")
 
 add_gdf_field("mag_field_y", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("mag_field_y")],
           units=r"\rm{cm}/\rm{s}")
 
 add_gdf_field("mag_field_z", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("mag_field_z")],
           units=r"\rm{cm}/\rm{s}")
 
 for f,v in log_translation_dict.items():

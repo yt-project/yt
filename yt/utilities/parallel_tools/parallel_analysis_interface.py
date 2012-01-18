@@ -348,7 +348,8 @@ def parallel_objects(objects, njobs, storage = None):
             to_share[rstore.result_id] = rstore.result
         else:
             yield obj
-    communication_system.communicators.pop()
+    if parallel_capable:
+        communication_system.communicators.pop()
     if storage is not None:
         # Now we have to broadcast it
         new_storage = my_communicator.par_combine_object(

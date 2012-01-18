@@ -36,7 +36,7 @@ from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
 
@@ -797,8 +797,10 @@ class FisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, no_ghost=False):
+                 pf = None, no_ghost=False, rotation = None):
         ParallelAnalysisInterface.__init__(self)
+        if rotation is None: rotation = na.eye(3)
+        self.rotation = rotation
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
@@ -825,6 +827,11 @@ class FisheyeCamera(Camera):
         # ...but all in Cython.
         vp = arr_fisheye_vectors(self.resolution, self.fov)
         vp.shape = (self.resolution**2,1,3)
+        vp2 = vp.copy()
+        for i in range(3):
+            vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
+        del vp2
+        vp *= self.radius
         uv = na.ones(3, dtype='float64')
         positions = na.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
         vector_plane = VectorPlane(positions, vp, self.center,
@@ -845,6 +852,242 @@ class FisheyeCamera(Camera):
         image.shape = (self.resolution, self.resolution, 3)
         return image
 
+class MosaicFisheyeCamera(Camera):
+    def __init__(self, center, radius, fov, resolution,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 pf = None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
+                 rotation=None):
+        r"""A fisheye lens camera, taking adantage of image plane decomposition
+        for parallelism..
+
+        The camera represents the eye of an observer, which will be used to
+        generate ray-cast volume renderings of the domain. In this case, the
+        rays are defined by a fisheye lens
+
+        Parameters
+        ----------
+        center : array_like
+            The current "center" of the observer, from which the rays will be
+            cast
+        radius : float
+            The radial distance to cast to
+        resolution : int
+            The number of pixels in each direction.  Must be a single int.
+        volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+            The volume to ray cast through.  Can be specified for finer-grained
+            control, but otherwise will be automatically generated.
+        fields : list of fields, optional
+            This is the list of fields we want to volume render; defaults to
+            Density.
+        log_fields : list of bool, optional
+            Whether we should take the log of the fields before supplying them to
+            the volume rendering mechanism.
+        sub_samples : int, optional
+            The number of samples to take inside every cell per ray.
+        pf : `~yt.data_objects.api.StaticOutput`
+            For now, this is a require parameter!  But in the future it will become
+            optional.  This is the parameter file to volume render.
+        l_max: int, optional
+            Specifies the maximum level to be rendered.  Also
+            specifies the maximum level used in the AMRKDTree
+            construction.  Defaults to None (all levels), and only
+            applies if use_kd=True.
+        no_ghost: bool, optional
+            Optimization option.  If True, homogenized bricks will
+            extrapolate out from grid instead of interpolating from
+            ghost zones that have to first be calculated.  This can
+            lead to large speed improvements, but at a loss of
+            accuracy/smoothness in resulting image.  The effects are
+            less notable when the transfer function is smooth and
+            broad. Default: False
+        nimx: int, optional
+            The number by which to decompose the image plane into in the x
+            direction.  Must evenly divide the resolution.
+        nimy: int, optional
+            The number by which to decompose the image plane into in the y 
+            direction.  Must evenly divide the resolution.
+        procs_per_wg: int, optional
+            The number of processors to use on each sub-image. Within each
+            subplane, the volume will be decomposed using the AMRKDTree with
+            procs_per_wg processors.  
+
+        Notes
+        -----
+            The product of nimx*nimy*procs_per_wg must be equal to or less than
+            the total number of mpi processes.  
+
+            Unlike the non-Mosaic camera, this will only return each sub-image
+            to the root processor of each sub-image workgroup in order to save
+            memory.  To save the final image, one must then call
+            MosaicFisheyeCamera.save_image('filename')
+
+        Examples
+        --------
+
+        >>> from yt.mods import *
+        
+        >>> pf = load('DD1717')
+        
+        >>> N = 512 # Pixels (1024^2)
+        >>> c = (pf.domain_right_edge + pf.domain_left_edge)/2. # Center
+        >>> radius = (pf.domain_right_edge - pf.domain_left_edge)/2.
+        >>> fov = 180.0
+        
+        >>> field='Density'
+        >>> mi,ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+        >>> mi,ma = na.log10(mi), na.log10(ma)
+        
+        # You may want to comment out the above lines and manually set the min and max
+        # of the log of the Density field. For example:
+        # mi,ma = -30.5,-26.5
+        
+        # Another good place to center the camera is close to the maximum density.
+        # v,c = pf.h.find_max('Density')
+        # c -= 0.1*radius
+        
+       
+        # Construct transfer function
+        >>> tf = ColorTransferFunction((mi-1, ma+1),nbins=1024)
+        
+        # Sample transfer function with Nc gaussians.  Use col_bounds keyword to limit
+        # the color range to the min and max values, rather than the transfer function
+        # bounds.
+        >>> Nc = 5
+        >>> tf.add_layers(Nc,w=0.005, col_bounds = (mi,ma), alpha=na.logspace(-2,0,Nc),
+        >>>         colormap='RdBu_r')
+        >>> 
+        # Create the camera object. Use the keyword: no_ghost=True if a lot of time is
+        # spent creating vertex-centered data. In this case I'm running with 8
+        # processors, and am splitting the image plane into 4 pieces and using 2
+        # processors on each piece.
+        >>> cam = MosaicFisheyeCamera(c, radius, fov, N,
+        >>>         transfer_function = tf, 
+        >>>         sub_samples = 5, 
+        >>>         pf=pf, 
+        >>>         nimx=2,nimy=2,procs_per_wg=4)
+        
+        # Take a snapshot
+        >>> im = cam.snapshot()
+        
+        # Save the image
+        >>> cam.save_image('fisheye_mosaic.png')
+
+        """
+
+        ParallelAnalysisInterface.__init__(self)
+        PP = ProcessorPool()
+        if procs_per_wg is None:
+            procs_per_wg = PP.size
+        for j in range(nimy):
+            for i in range(nimx):
+                PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
+                
+        for wg in PP.workgroups:
+            if self.comm.rank in wg.ranks:
+                my_wg = wg
+        
+        self.global_comm = self.comm
+        self.comm = my_wg.comm
+        self.wg = my_wg
+        self.imi = int(self.wg.name[0:4])
+        self.imj = int(self.wg.name[5:9])
+        print 'My new communicator has the name %s' % self.wg.name
+
+        if pf is not None: self.pf = pf
+    
+        if rotation is None: rotation = na.eye(3)
+        self.rotation = rotation
+
+        if iterable(resolution):
+            raise RuntimeError("Resolution must be a single int")
+        self.resolution = resolution
+        self.nimx = nimx
+        self.nimy = nimy
+        self.center = na.array(center, dtype='float64')
+        self.radius = radius
+        self.fov = fov
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields,l_max=l_max)
+        self.volume = volume
+
+    def snapshot(self):
+        # We now follow figures 4-7 of:
+        # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
+        # ...but all in Cython.
+
+        vp = arr_fisheye_vectors(self.resolution, self.fov, self.nimx,
+                self.nimy, self.imi, self.imj)
+        vp2 = vp.copy()
+        for i in range(3):
+            vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
+        del vp2
+ 
+        vp *= self.radius
+        nx, ny = vp.shape[0], vp.shape[1]
+        vp.shape = (nx*ny,1,3)
+        image = na.zeros((nx*ny,1,3), dtype='float64', order='C')
+        uv = na.ones(3, dtype='float64')
+        positions = na.ones((nx*ny, 1, 3), dtype='float64') * self.center
+        vector_plane = VectorPlane(positions, vp, self.center,
+                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Rendering fisheye of %s^2", self.resolution)
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+
+        total_cells = 0
+        for brick in self.volume.traverse(None, self.center, image):
+            brick.cast_plane(tfp, vector_plane)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        image.shape = (nx, ny, 3)
+
+        self.image = image
+       
+        return image
+
+    def save_image(self, fn):
+        if '.png' not in fn:
+            fn = fn + '.png'
+        
+        try:
+            image = self.image
+        except:
+            mylog.error('You must first take a snapshot')
+            raise(UserWarning)
+        
+        image = self.image
+        nx,ny = self.resolution/self.nimx, self.resolution/self.nimy
+
+        if self.comm.rank == 0:
+            if self.global_comm.rank == 0:
+                final_image = na.empty((nx*self.nimx, 
+                    ny*self.nimy, 3),
+                    dtype='float64',order='C')
+                final_image[:nx, :ny, :] = image
+                for j in range(self.nimy):
+                    for i in range(self.nimx):
+                        if i==0 and j==0: continue
+                        arr = self.global_comm.recv_array((self.wg.size)*(j*self.nimx + i), tag = (self.wg.size)*(j*self.nimx + i))
+
+                        final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
+                        del arr
+                write_bitmap(final_image, fn)
+            else:
+                self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
+        return
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, volume = None, no_ghost = True):

@@ -227,7 +227,7 @@ class AMRData(object):
         self._point_indices = {}
         self._vc_data = {}
         for key, val in kwargs.items():
-            mylog.info("Setting %s to %s", key, val)
+            mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
@@ -397,9 +397,10 @@ class AMRData(object):
                      [self.field_parameters])
         return (_reconstruct_object, args)
 
-    def __repr__(self):
+    def __repr__(self, clean = False):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        if clean: s = "%s: " % (self.__class__.__name__)
+        else: s = "%s (%s): " % (self.__class__.__name__, self.pf)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._con_args])
         return s
@@ -2578,14 +2579,8 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         verts = []
         samples = []
         for i, g in enumerate(self._get_grid_objs()):
-            mask = self._get_cut_mask(g) * g.child_mask
-            vals = g.get_vertex_centered_data(field)
-            if sample_values is not None:
-                svals = g.get_vertex_centered_data(sample_values)
-            else:
-                svals = None
-            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds,
-                                        svals)
+            my_verts = self._extract_isocontours_from_grid(
+                            g, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
@@ -2611,6 +2606,20 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         if sample_values is not None:
             return verts, samples
         return verts
+
+
+    @restore_grid_state
+    def _extract_isocontours_from_grid(self, grid, field, value,
+                                       sample_values = None):
+        mask = self._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if sample_values is not None:
+            svals = grid.get_vertex_centered_data(sample_values)
+        else:
+            svals = None
+        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
+                                    grid.dds, svals)
+        return my_verts
 
     def calculate_isocontour_flux(self, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
@@ -2678,18 +2687,24 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         flux = 0.0
         for g in self._get_grid_objs():
-            mask = self._get_cut_mask(g) * g.child_mask
-            vals = g.get_vertex_centered_data(field)
-            if fluxing_field is None:
-                ff = na.ones(vals.shape, dtype="float64")
-            else:
-                ff = g.get_vertex_centered_data(fluxing_field)
-            xv, yv, zv = [g.get_vertex_centered_data(f) for f in 
-                         [field_x, field_y, field_z]]
-            flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
-                        ff, mask, g.LeftEdge, g.dds)
+            flux += self._calculate_flux_in_grid(g, field, value,
+                    field_x, field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
+
+    @restore_grid_state
+    def _calculate_flux_in_grid(self, grid, field, value,
+                    field_x, field_y, field_z, fluxing_field = None):
+        mask = self._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if fluxing_field is None:
+            ff = na.ones(vals.shape, dtype="float64")
+        else:
+            ff = grid.get_vertex_centered_data(fluxing_field)
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+                     [field_x, field_y, field_z]]
+        return march_cubes_grid_flux(value, vals, xv, yv, zv,
+                    ff, mask, grid.LeftEdge, grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                 log_space=True, cumulative=True, cache=False):
@@ -2989,12 +3004,6 @@ class AMRCylinderBase(AMR3DData):
             cm = ( (na.abs(h) <= self._height)
                  & (r <= self._radius))
         return cm
-
-    def volume(self, unit="unitary"):
-        """
-        Return the volume of the cylinder in units of *unit*.
-        """
-        return math.pi * (self._radius)**2. * self._height * pf[unit]**3
 
 class AMRInclinedBox(AMR3DData):
     _type_name="inclined_box"
@@ -3342,11 +3351,13 @@ class AMRCoveringGridBase(AMR3DData):
            na.any(self.right_edge + buffer > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
                             self.left_edge - buffer,
-                            self.right_edge + buffer, self.level)
+                            self.right_edge + buffer, self.level,
+                            min(self.level, self.pf.min_level))
         else:
             grids,ind = self.pf.hierarchy.get_box_grids_below_level(
                 self.left_edge - buffer,
-                self.right_edge + buffer, self.level)
+                self.right_edge + buffer, self.level,
+                min(self.level, self.pf.min_level))
         sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
         self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)][::-1]
 
@@ -3481,11 +3492,39 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
-                 / self.pf.domain_dimensions).max()
-        AMRCoveringGridBase._get_list_of_grids(self, buffer)
-        # We reverse the order to ensure that coarse grids are first
-        self._grids = self._grids[::-1]
+        # Check for ill-behaved AMR schemes (Enzo) where we may have
+        # root-tile-boundary issues.  This is specific to the root tiles not
+        # allowing grids to cross them and also allowing > 1 level of
+        # difference between neighboring areas.
+        nz = 0
+        buf = 0.0
+        d1 = ((self.global_startindex.astype("float64") - 1)
+           / (self.pf.refine_by**self.level))
+        if na.any(d1 == na.rint(d1)):
+            nz = 2 * self.pf.refine_by**self.level
+            buf = self._base_dx
+        cg = self.pf.h.covering_grid(self.level,
+            self.left_edge - buf, self.ActiveDimensions + nz)
+        cg._use_pbar = False
+        count = cg.ActiveDimensions.prod()
+        for g in cg._grids:
+            count -= cg._get_data_from_grid(g, [])
+            if count <= 0:
+                min_level = g.Level
+                break
+        # This should not cost substantial additional time.
+        BLE = self.left_edge - buf
+        BRE = self.right_edge + buf
+        if na.any(BLE < self.pf.domain_left_edge) or \
+           na.any(BRE > self.pf.domain_right_edge):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
+                            BLE, BRE, self.level, min_level)
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids_below_level(
+                BLE, BRE, self.level,
+                min(self.level, min_level))
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
+        self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)]
 
     def get_data(self, field=None):
         self._get_list_of_grids()
@@ -3509,9 +3548,10 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
-                self._update_level_state(last_level + 1)
-                self._refine(1, fields_to_get)
-                last_level = grid.Level
+                while grid.Level > last_level:
+                    self._update_level_state(last_level + 1)
+                    self._refine(1, fields_to_get)
+                    last_level += 1
             self._get_data_from_grid(grid, fields_to_get)
         if self.level > 0:
             for field in fields_to_get:
@@ -3657,6 +3697,19 @@ class AMRBooleanRegionBase(AMR3DData):
                     # Some of local is in overall
                     self._some_overlap.append(grid)
                     continue
+    
+    def __repr__(self):
+        # We'll do this the slow way to be clear what's going on
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s += "["
+        for i, region in enumerate(self.regions):
+            if region in ["OR", "AND", "NOT", "(", ")"]:
+                s += region
+            else:
+                s += region.__repr__(clean = True)
+            if i < (len(self.regions) - 1): s += ", "
+        s += "]"
+        return s
     
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)
