@@ -1149,7 +1149,7 @@ class MosaicFisheyeCamera(Camera):
         >>> cam.rotate(na.pi/4)
         """
         if rot_vector is None:
-            rot_vector = self.rotation_vector
+            rot_vector = self.north_vector
         
         dist = ((self.focal_center - self.center)**2).sum()**0.5
         
