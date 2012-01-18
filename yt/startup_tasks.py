@@ -95,6 +95,8 @@ class SetConfigOption(argparse.Action):
         param, val = values.split("=")
         mylog.debug("Overriding config: %s = %s", param, val)
         ytcfg["yt",param] = val
+        if param == "loglevel": # special case
+            mylog.setLevel(int(val))
 
 parser = argparse.ArgumentParser(description = 'yt command line arguments')
 parser.add_argument("--config", action=SetConfigOption,
