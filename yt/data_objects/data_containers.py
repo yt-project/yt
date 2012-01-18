@@ -3351,11 +3351,13 @@ class AMRCoveringGridBase(AMR3DData):
            na.any(self.right_edge + buffer > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
                             self.left_edge - buffer,
-                            self.right_edge + buffer, self.level)
+                            self.right_edge + buffer, self.level,
+                            min(self.level, self.pf.min_level))
         else:
             grids,ind = self.pf.hierarchy.get_box_grids_below_level(
                 self.left_edge - buffer,
-                self.right_edge + buffer, self.level)
+                self.right_edge + buffer, self.level,
+                min(self.level, self.pf.min_level))
         sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
         self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)][::-1]
 
@@ -3490,11 +3492,27 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
-                 / self.pf.domain_dimensions).max()
-        AMRCoveringGridBase._get_list_of_grids(self, buffer)
+        cg = self.pf.h.covering_grid(self.level,
+            self.left_edge, self.ActiveDimensions)
+        cg._use_pbar = False
+        count = cg.ActiveDimensions.prod()
+        for g in cg._grids:
+            count -= cg._get_data_from_grid(g, [])
+            if count <= 0:
+                min_level = g.Level
+                break
         # We reverse the order to ensure that coarse grids are first
-        self._grids = self._grids[::-1]
+        if na.any(self.left_edge < self.pf.domain_left_edge) or \
+           na.any(self.right_edge > self.pf.domain_right_edge):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
+                            self.left_edge, self.right_edge, self.level,
+                            min_level)
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids_below_level(
+                self.left_edge, self.right_edge, self.level,
+                min(self.level, min_level))
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
+        self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)]
 
     def get_data(self, field=None):
         self._get_list_of_grids()
@@ -3518,9 +3536,10 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
-                self._update_level_state(last_level + 1)
-                self._refine(1, fields_to_get)
-                last_level = grid.Level
+                while grid.Level > last_level:
+                    self._update_level_state(last_level + 1)
+                    self._refine(1, fields_to_get)
+                    last_level += 1
             self._get_data_from_grid(grid, fields_to_get)
         if self.level > 0:
             for field in fields_to_get:
