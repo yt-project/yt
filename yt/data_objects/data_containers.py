@@ -3498,20 +3498,27 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         # difference between neighboring areas.
         nz = 0
         buf = 0.0
-        d1 = ((self.global_startindex.astype("float64") - 1)
+        dl = ((self.global_startindex.astype("float64") + 1)
            / (self.pf.refine_by**self.level))
-        if na.any(d1 == na.rint(d1)):
+        dr = ((self.global_startindex.astype("float64")
+              + self.ActiveDimensions - 1)
+           / (self.pf.refine_by**self.level))
+        if na.any(dl == na.rint(dl)) or na.any(dr == na.rint(dr)):
             nz = 2 * self.pf.refine_by**self.level
             buf = self._base_dx
-        cg = self.pf.h.covering_grid(self.level,
-            self.left_edge - buf, self.ActiveDimensions + nz)
-        cg._use_pbar = False
-        count = cg.ActiveDimensions.prod()
-        for g in cg._grids:
-            count -= cg._get_data_from_grid(g, [])
-            if count <= 0:
-                min_level = g.Level
-                break
+        if nz <= self.pf.refine_by**3: # delta level of 3
+            cg = self.pf.h.covering_grid(self.level,
+                self.left_edge - buf, self.ActiveDimensions + nz)
+            cg._use_pbar = False
+            count = cg.ActiveDimensions.prod()
+            for g in cg._grids:
+                count -= cg._get_data_from_grid(g, [])
+                if count <= 0:
+                    min_level = g.Level
+                    break
+        else:
+            nz = buf = 0
+            min_level = 0
         # This should not cost substantial additional time.
         BLE = self.left_edge - buf
         BRE = self.right_edge + buf
