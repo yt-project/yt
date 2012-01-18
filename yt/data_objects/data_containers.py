@@ -3601,7 +3601,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int32') + 2
+        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
 
         self._cur_dims = output_dims
 
