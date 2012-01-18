@@ -353,6 +353,7 @@ class FLASHStaticOutput(StaticOutput):
             if "bounding box" in fileh["/"].keys():
                 fileh.close()
                 return True
+            fileh.close()
         except:
             pass
         return False
