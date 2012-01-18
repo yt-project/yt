@@ -167,6 +167,8 @@ class FLASHHierarchy(AMRHierarchy):
                 continue
             available = na.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
+        [self.parameter_file.conversion_factors[field] 
+         for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
@@ -351,6 +353,7 @@ class FLASHStaticOutput(StaticOutput):
             if "bounding box" in fileh["/"].keys():
                 fileh.close()
                 return True
+            fileh.close()
         except:
             pass
         return False

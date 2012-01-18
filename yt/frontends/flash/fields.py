@@ -33,7 +33,6 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -110,90 +109,84 @@ def _get_convert(fname):
         return data.convert(fname)
     return _conv
 
-add_field("dens", function=lambda a,b: None, take_log=True,
-          convert_function=_get_convert("dens"),
-          units=r"\rm{g}/\rm{cm}^3")
-add_field("xvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("xvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("yvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("yvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("zvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("zvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("particle_xvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("particle_xvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("particle_yvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("particle_yvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("particle_zvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("particle_zvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("temp", function=lambda a,b: None, take_log=True,
-          convert_function=_get_convert("temp"),
-          units=r"\rm{K}")
-add_field("pres", function=lambda a,b: None, take_log=True,
-          convert_function=_get_convert("pres"),
-          units=r"\rm{unknown}")
+add_flash_field("dens", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("dens"),
+                units=r"\rm{g}/\rm{cm}^3")
+add_flash_field("velx", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("velx"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("vely", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("vely"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("velz", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("velz"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("particle_posx", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_posx"),
+                units=r"\rm{cm}")
+add_flash_field("particle_posy", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_posy"),
+                units=r"\rm{cm}")
+add_flash_field("particle_posz", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_posz"),
+                units=r"\rm{cm}")
+add_flash_field("particle_velx", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_velx"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("particle_vely", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_vely"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("particle_velz", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_velz"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("particle_mass", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("particle_mass"),
+                units=r"\rm{g}")
+add_flash_field("temp", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("temp"),
+                units=r"\rm{K}")
+add_flash_field("pres", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("pres"),
+                units=r"\rm{erg}\//\/\rm{cm}^{3}")
+add_flash_field("pden", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("pden"),
+                units=r"\rm{g}/\rm{cm}^3")
+add_flash_field("magx", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("magx"),
+                units = r"\mathrm{Gau\ss}")
+add_flash_field("magy", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("magy"),
+                units = r"\mathrm{Gau\ss}")
+add_flash_field("magz", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("magz"),
+                units = r"\mathrm{Gau\ss}")
+add_flash_field("magp", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("magp"),
+                units = r"\rm{erg}\//\/\rm{cm}^{3}")
+add_flash_field("divb", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("divb"),
+                units = r"\mathrm{Gau\ss}\/\rm{cm}")
+add_flash_field("game", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("game"),
+                units=r"\rm{ratio\/of\/specific\/heats}")
+add_flash_field("gamc", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("gamc"),
+                units=r"\rm{ratio\/of\/specific\/heats}")
+add_flash_field("gpot", function=lambda a,b: None, take_log=True,
+                convert_function=_get_convert("gpot"),
+                units=r"\rm{ergs\//\/g}")
+add_flash_field("gpol", function=lambda a,b: None, take_log=False,
+                convert_function=_get_convert("gpol"),
+                units = r"\rm{ergs\//\/g}")
 
 for f,v in translation_dict.items():
-    if v not in FLASHFieldInfo:
+    if v not in KnownFLASHFields:
         pfield = v.startswith("particle")
         add_field(v, function=lambda a,b: None, take_log=False,
                   validators = [ValidateDataField(v)],
                   particle_type = pfield)
     #print "Setting up translator from %s to %s" % (v, f)
     _generate_translation(v, f)
-
-add_field("gamc", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gamc")],
-          units = r"\rm{ratio\/of\/specific\/heats}")
-
-add_field("game", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("game")],
-          units = r"\rm{ratio\/of\/specific\/heats}")
-
-add_field("gpot", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gpot")],
-          units = r"\rm{ergs\//\/g}")
-
-add_field("gpol", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gpol")],
-          units = r"\rm{ergs\//\/g}")
-
-add_field("grac", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("grac")],
-          units = r"\rm{cm\/s^{-2}}")
-
-add_field("pden", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("pden")],
-          units = r"\rm{g}\//\/\rm{cm}^{3}")
-
-add_field("pres", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("pres")],
-          units = r"\rm{erg}\//\/\rm{cm}^{3}")
-
-add_field("magx", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("magx")],
-          units = r"\rm{G}")
-
-add_field("magy", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("magy")],
-          units = r"\rm{G}")
-
-add_field("magz", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("magz")],
-          units = r"\rm{G}")
-
-add_field("magp", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("magp")],
-          units = r"\rm{erg}\//\/\rm{cm}^{3}")
-
-add_field("divb", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("divb")],
-          units = r"\rm{G}\/\rm{cm}")
 
 def _convertParticleMassMsun(data):
     return 1.0/1.989e33
