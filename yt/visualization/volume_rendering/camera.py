@@ -32,13 +32,38 @@ from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
     arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
-    arr_ang2pix_nest, arr_fisheye_vectors
+    arr_ang2pix_nest, arr_fisheye_vectors, rotate_vectors
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from numpy import pi
+from time import time
+def get_rotation_matrix_euler(phi,theta,psi):
+    cost = na.cos(theta)
+    sint = na.sin(theta)
+    cosp = na.cos(phi)
+    sinp = na.sin(phi)
+    coss = na.cos(psi)
+    sins = na.sin(psi)
+    R = na.array([[cost*coss, -cosp*sins + sinp*sint*coss, sinp*sins + cosp*sint*coss],
+                  [cost*sins, cosp*coss + sinp*sint*sins, -sinp*coss + cosp*sint*sins],
+                  [-sint, sinp*cost, cosp*cost]])
+    return R
+
+def get_rotation_matrix(theta, rot_vector):
+    ux = rot_vector[0]
+    uy = rot_vector[1]
+    uz = rot_vector[2]
+    cost = na.cos(theta)
+    sint = na.sin(theta)
+    
+    R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
+                  [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
+                  [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+
+    return R
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -800,7 +825,7 @@ class FisheyeCamera(Camera):
                  pf = None, no_ghost=False, rotation = None):
         ParallelAnalysisInterface.__init__(self)
         if rotation is None: rotation = na.eye(3)
-        self.rotation = rotation
+        self.rotation_matrix = rotation
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
         self.radius = radius
@@ -829,7 +854,7 @@ class FisheyeCamera(Camera):
         vp.shape = (self.resolution**2,1,3)
         vp2 = vp.copy()
         for i in range(3):
-            vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
+            vp[:,:,i] = (vp2 * self.rotation_matrix[:,i]).sum(axis=2)
         del vp2
         vp *= self.radius
         uv = na.ones(3, dtype='float64')
@@ -853,7 +878,7 @@ class FisheyeCamera(Camera):
         return image
 
 class MosaicFisheyeCamera(Camera):
-    def __init__(self, center, radius, fov, resolution,
+    def __init__(self, center, radius, fov, resolution, focal_center=None,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
@@ -976,35 +1001,47 @@ class MosaicFisheyeCamera(Camera):
         """
 
         ParallelAnalysisInterface.__init__(self)
-        PP = ProcessorPool()
-        if procs_per_wg is None:
-            procs_per_wg = PP.size
-        for j in range(nimy):
-            for i in range(nimx):
-                PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
-                
-        for wg in PP.workgroups:
-            if self.comm.rank in wg.ranks:
-                my_wg = wg
-        
-        self.global_comm = self.comm
-        self.comm = my_wg.comm
-        self.wg = my_wg
-        self.imi = int(self.wg.name[0:4])
-        self.imj = int(self.wg.name[5:9])
-        print 'My new communicator has the name %s' % self.wg.name
-
+        self.image_decomp = self.comm.size>1
+        if self.image_decomp:
+            PP = ProcessorPool()
+            if procs_per_wg is None:
+                procs_per_wg = PP.size
+            for j in range(nimy):
+                for i in range(nimx):
+                    PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
+                    
+            for wg in PP.workgroups:
+                if self.comm.rank in wg.ranks:
+                    my_wg = wg
+            
+            self.global_comm = self.comm
+            self.comm = my_wg.comm
+            self.wg = my_wg
+            self.imi = int(self.wg.name[0:4])
+            self.imj = int(self.wg.name[5:9])
+            print 'My new communicator has the name %s' % self.wg.name
+            self.nimx = nimx
+            self.nimy = nimy
+        else:
+            self.imi = 0
+            self.imj = 0
+            self.nimx = 1
+            self.nimy = 1
         if pf is not None: self.pf = pf
-    
+        
         if rotation is None: rotation = na.eye(3)
-        self.rotation = rotation
+        self.rotation_matrix = rotation
+        
+        self.normal_vector = na.array([0.,0.,1.])
+        self.north_vector = na.array([1.,0.,0.])
+        self.east_vector = na.array([0.,1.,0.])
+        self.rotation_vector = self.north_vector
 
         if iterable(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
-        self.nimx = nimx
-        self.nimy = nimy
         self.center = na.array(center, dtype='float64')
+        self.focal_center = focal_center
         self.radius = radius
         self.fov = fov
         if transfer_function is None:
@@ -1018,26 +1055,48 @@ class MosaicFisheyeCamera(Camera):
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields,l_max=l_max)
         self.volume = volume
+        self.vp = None
+        self.image = None 
 
-    def snapshot(self):
+    def get_vector_plane(self):
+        if self.focal_center is not None:
+            rvec =  na.array(self.focal_center) - na.array(self.center)
+            rvec /= (rvec**2).sum()**0.5
+            angle = na.arccos( (self.normal_vector*rvec).sum()/( (self.normal_vector**2).sum()**0.5 *
+                (rvec**2).sum()**0.5))
+            rot_vector = na.cross(rvec, self.normal_vector)
+            rot_vector /= (rot_vector**2).sum()**0.5
+            
+            self.rotation_matrix = get_rotation_matrix(angle,rot_vector)
+            self.normal_vector = na.dot(self.rotation_matrix,self.normal_vector)
+            self.north_vector = na.dot(self.rotation_matrix,self.north_vector)
+            self.east_vector = na.dot(self.rotation_matrix,self.east_vector)
+        else:
+            self.focal_center = self.center + self.radius*self.normal_vector  
+        dist = ((self.focal_center - self.center)**2).sum()**0.5
         # We now follow figures 4-7 of:
         # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
         # ...but all in Cython.
-
-        vp = arr_fisheye_vectors(self.resolution, self.fov, self.nimx,
+        
+        self.vp = arr_fisheye_vectors(self.resolution, self.fov, self.nimx, 
                 self.nimy, self.imi, self.imj)
-        vp2 = vp.copy()
-        for i in range(3):
-            vp[:,:,i] = (vp2 * self.rotation[:,i]).sum(axis=2)
-        del vp2
- 
-        vp *= self.radius
-        nx, ny = vp.shape[0], vp.shape[1]
-        vp.shape = (nx*ny,1,3)
+        
+        self.vp = rotate_vectors(self.vp, self.rotation_matrix)
+
+        self.center = self.focal_center - dist*self.normal_vector
+        self.vp *= self.radius
+        nx, ny = self.vp.shape[0], self.vp.shape[1]
+        self.vp.shape = (nx*ny,1,3)
+
+    def snapshot(self):
+        if self.vp is None:
+            self.get_vector_plane()
+
+        nx,ny = self.resolution/self.nimx, self.resolution/self.nimy
         image = na.zeros((nx*ny,1,3), dtype='float64', order='C')
         uv = na.ones(3, dtype='float64')
         positions = na.ones((nx*ny, 1, 3), dtype='float64') * self.center
-        vector_plane = VectorPlane(positions, vp, self.center,
+        vector_plane = VectorPlane(positions, self.vp, self.center,
                         (0.0, 1.0, 0.0, 1.0), image, uv, uv)
         tfp = TransferFunctionProxy(self.transfer_function)
         tfp.ns = self.sub_samples
@@ -1054,6 +1113,8 @@ class MosaicFisheyeCamera(Camera):
         pbar.finish()
         image.shape = (nx, ny, 3)
 
+        if self.image is not None:
+            del self.image
         self.image = image
        
         return image
@@ -1070,24 +1131,99 @@ class MosaicFisheyeCamera(Camera):
         
         image = self.image
         nx,ny = self.resolution/self.nimx, self.resolution/self.nimy
+        if self.image_decomp:
+            if self.comm.rank == 0:
+                if self.global_comm.rank == 0:
+                    final_image = na.empty((nx*self.nimx, 
+                        ny*self.nimy, 3),
+                        dtype='float64',order='C')
+                    final_image[:nx, :ny, :] = image
+                    for j in range(self.nimy):
+                        for i in range(self.nimx):
+                            if i==0 and j==0: continue
+                            arr = self.global_comm.recv_array((self.wg.size)*(j*self.nimx + i), tag = (self.wg.size)*(j*self.nimx + i))
 
-        if self.comm.rank == 0:
-            if self.global_comm.rank == 0:
-                final_image = na.empty((nx*self.nimx, 
-                    ny*self.nimy, 3),
-                    dtype='float64',order='C')
-                final_image[:nx, :ny, :] = image
-                for j in range(self.nimy):
-                    for i in range(self.nimx):
-                        if i==0 and j==0: continue
-                        arr = self.global_comm.recv_array((self.wg.size)*(j*self.nimx + i), tag = (self.wg.size)*(j*self.nimx + i))
-
-                        final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
-                        del arr
-                write_bitmap(final_image, fn)
-            else:
-                self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
+                            final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
+                            del arr
+                    write_bitmap(final_image, fn)
+                else:
+                    self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
+        else:
+            if self.comm.rank == 0:
+                write_bitmap(image, fn)
         return
+
+    def rotate(self, theta, rot_vector=None, keep_focus=True):
+        r"""Rotate by a given angle
+
+        Rotate the view.  If `rot_vector` is None, rotation will occur
+        around the `north_vector`.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to rotate the view.
+        rot_vector  : array_like, optional
+            Specify the rotation vector around which rotation will
+            occur.  Defaults to None, which sets rotation around
+            `north_vector`
+
+        Examples
+        --------
+
+        >>> cam.rotate(na.pi/4)
+        """
+        if rot_vector is None:
+            rot_vector = self.rotation_vector
+        
+        ux = rot_vector[0]
+        uy = rot_vector[1]
+        uz = rot_vector[2]
+        cost = na.cos(theta)
+        sint = na.sin(theta)
+        dist = ((self.focal_center - self.center)**2).sum()**0.5
+
+        R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
+                      [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
+                      [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+        
+        self.vp = rotate_vectors(self.vp, R)
+        self.normal_vector = na.dot(R,self.normal_vector)
+        self.north_vector = na.dot(R,self.north_vector)
+        self.east_vector = na.dot(R,self.east_vector)
+
+        if keep_focus:
+            self.center = self.focal_center - dist*self.normal_vector
+
+    def rotation(self, theta, n_steps, rot_vector=None, keep_focus=True):
+        r"""Loop over rotate, creating a rotation
+
+        This will yield `n_steps` snapshots until the current view has been
+        rotated by an angle `theta`
+
+        Parameters
+        ----------
+        theta : float, in radians
+            Angle (in radians) by which to rotate the view.
+        n_steps : int
+            The number of look_at snapshots to make.
+        rot_vector  : array_like, optional
+            Specify the rotation vector around which rotation will
+            occur.  Defaults to None, which sets rotation around the
+            original `north_vector`
+
+        Examples
+        --------
+
+        >>> for i, snapshot in enumerate(cam.rotation(na.pi, 10)):
+        ...     iw.write_bitmap(snapshot, 'rotation_%04i.png' % i)
+        """
+
+        dtheta = (1.0*theta)/n_steps
+        for i in xrange(n_steps):
+            self.rotate(dtheta, rot_vector=rot_vector, keep_focus=keep_focus)
+            yield self.snapshot()
+
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, volume = None, no_ghost = True):

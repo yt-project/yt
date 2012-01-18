@@ -68,6 +68,7 @@ cdef extern from "math.h":
     double cos(double x)
     double sin(double x)
     double asin(double x)
+    double acos(double x)
 
 cdef struct Triangle:
     Triangle *next
@@ -242,7 +243,8 @@ def arr_ang2pix_nest(long nside,
     return tr
 
 def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
-        nimy=1, int nimi=0, int nimj=0):
+        nimy=1, int nimi=0, int nimj=0, np.float64_t off_theta=0.0, np.float64_t
+        off_phi=0.0):
     # We now follow figures 4-7 of:
     # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
     # ...but all in Cython.
@@ -266,10 +268,24 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
             else:
                 phi = asin(py / r)
             theta = r * fov_rad / 2.0
+            theta += off_theta
+            phi += off_phi
             vp[i,j,0] = sin(theta) * cos(phi)
             vp[i,j,1] = sin(theta) * sin(phi)
             vp[i,j,2] = cos(theta)
     return vp
+
+def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
+        np.ndarray[np.float64_t, ndim=2] R):
+    cdef int nx = vecs.shape[0]
+    cdef int ny = vecs.shape[1]
+    rotated = np.empty((nx,ny,3),dtype='float64') 
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(3):
+                rotated[i,j,k] =\
+                    R[k,0]*vecs[i,j,0]+R[k,1]*vecs[i,j,1]+R[k,2]*vecs[i,j,2]
+    return rotated
 
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
