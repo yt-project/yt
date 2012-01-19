@@ -1017,10 +1017,10 @@ class MosaicFisheyeCamera(Camera):
         if rotation is None: rotation = na.eye(3)
         self.rotation_matrix = rotation
         
-        self.normal_vector = na.array([0.,0.,1.])
-        self.north_vector = na.array([1.,0.,0.])
-        self.east_vector = na.array([0.,1.,0.])
-        self.rotation_vector = self.north_vector
+        self.normal_vector = normal_vector
+        self.north_vector = north_vector
+        self.east_vector = east_vector
+        self.rotation_vector = rotation_vector
 
         if iterable(resolution):
             raise RuntimeError("Resolution must be a single int")
