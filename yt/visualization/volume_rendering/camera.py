@@ -857,7 +857,9 @@ class MosaicFisheyeCamera(Camera):
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
-                 rotation=None):
+                 rotation=None,normal_vector = na.array([0.,0.,1.]),
+                 north_vector=na.array([1.,0.,0.]),east_vector=na.array([0.,1.,0.]),
+                 rotation_vector=na.array([1.,0.,0.])):
         r"""A fisheye lens camera, taking adantage of image plane decomposition
         for parallelism..
 
