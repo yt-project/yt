@@ -123,27 +123,28 @@ add_flash_field("eint", function=NullFunc, take_log=True,
                 units=r"\rm{erg}/\rm{g}")
 add_flash_field("particle_posx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_posx"),
-                units=r"\rm{cm}")
+                units=r"\rm{cm}", particle_type=True)
 add_flash_field("particle_posy", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_posy"),
-                units=r"\rm{cm}")
+                units=r"\rm{cm}", particle_type=True)
 add_flash_field("particle_posz", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_posz"),
-                units=r"\rm{cm}")
+                units=r"\rm{cm}", particle_type=True)
 add_flash_field("particle_velx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_velx"),
-                units=r"\rm{cm}/\rm{s}")
+                units=r"\rm{cm}/\rm{s}", particle_type=True)
 add_flash_field("particle_vely", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_vely"),
-                units=r"\rm{cm}/\rm{s}")
+                units=r"\rm{cm}/\rm{s}", particle_type=True)
 add_flash_field("particle_velz", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_velz"),
-                units=r"\rm{cm}/\rm{s}")
+                units=r"\rm{cm}/\rm{s}", particle_type=True)
 add_flash_field("particle_tag", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_tag"))
+                convert_function=_get_convert("particle_tag"),
+                particle_type=True)
 add_flash_field("particle_mass", function=NullFunc, take_log=False,
                 convert_function=_get_convert("particle_mass"),
-                units=r"\rm{g}")
+                units=r"\rm{g}", particle_type=True)
 add_flash_field("temp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("temp"),
                 units=r"\rm{K}")
