@@ -41,7 +41,8 @@ from yt.utilities.io_handler import \
     io_registry
 
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
+     ValidateDataField
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -178,7 +179,14 @@ class FLASHHierarchy(AMRHierarchy):
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
-
+            if (field not in KnownFLASHFields and
+                field.startswith("particle")) :
+                self.parameter_file.field_info.add_field(field,
+                                                         function=NullFunc,
+                                                         take_log=False,
+                                                         validators = [ValidateDataField(field)],
+                                                         particle_type=True)
+                
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
