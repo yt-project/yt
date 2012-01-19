@@ -106,6 +106,7 @@ class FLASHHierarchy(AMRHierarchy):
         
         self.grid_left_edge[:] = f["/bounding box"][:,:,0]
         self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        
         # Move this to the parameter file
         try:
             nxb = pf._find_parameter("integer", "nxb", True)
@@ -129,7 +130,12 @@ class FLASHHierarchy(AMRHierarchy):
         self.grids = na.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
-
+        dx = ((self.parameter_file.domain_right_edge -
+               self.parameter_file.domain_left_edge)/
+              self.parameter_file.refine_by**(self.grid_levels.max())).astype('float64')
+        self.grid_left_edge = na.rint(self.grid_left_edge/dx)*dx
+        self.grid_right_edge = na.rint(self.grid_right_edge/dx)*dx
+                        
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
@@ -285,9 +291,9 @@ class FLASHStaticOutput(StaticOutput):
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         self.domain_left_edge = na.array(
-            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
+            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
-            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz']).astype("float64")
         self.min_level = self._find_parameter(
             "integer", "lrefine_min", scalar = False) - 1
 

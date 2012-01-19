@@ -453,8 +453,8 @@ class Camera(ParallelAnalysisInterface):
                     self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
-	    else:
-		dW = 1.0
+            else:
+                dW = 1.0
             position_diff = (na.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
@@ -463,8 +463,8 @@ class Camera(ParallelAnalysisInterface):
                     width = na.array([final_width, final_width, final_width]) 
                     # front/back, left/right, top/bottom
                 dW = (1.0*final_width-na.array(self.width))/n_steps
-	    else:
-		dW = 1.0
+            else:
+                dW = 1.0
             dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
@@ -965,7 +965,7 @@ class MosaicFisheyeCamera(Camera):
         >>>         transfer_function = tf, 
         >>>         sub_samples = 5, 
         >>>         pf=pf, 
-        >>>         nimx=2,nimy=2,procs_per_wg=4)
+        >>>         nimx=2,nimy=2,procs_per_wg=2)
         
         # Take a snapshot
         >>> im = cam.snapshot()
@@ -979,8 +979,16 @@ class MosaicFisheyeCamera(Camera):
         self.image_decomp = self.comm.size>1
         if self.image_decomp:
             PP = ProcessorPool()
+            npatches = nimy*nimx
             if procs_per_wg is None:
-                procs_per_wg = PP.size
+                if (PP.size % npatches):
+                    raise RuntimeError("Cannot evenly divide %i procs to %i patches" % (PP.size,npatches))
+                else:
+                    procs_per_wg = PP.size / npatches
+            if (PP.size != npatches*procs_per_wg):
+               raise RuntimeError("You need %i processors to utilize %i procs per one patch in [%i,%i] grid" 
+                     % (npatches*procs_per_wg,procs_per_wg,nimx,nimy))
+ 
             for j in range(nimy):
                 for i in range(nimx):
                     PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
@@ -1204,8 +1212,6 @@ class MosaicFisheyeCamera(Camera):
                       [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
 
         return R
-
-
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, volume = None, no_ghost = True):
