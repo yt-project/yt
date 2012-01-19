@@ -965,7 +965,7 @@ class MosaicFisheyeCamera(Camera):
         >>>         transfer_function = tf, 
         >>>         sub_samples = 5, 
         >>>         pf=pf, 
-        >>>         nimx=2,nimy=2,procs_per_wg=4)
+        >>>         nimx=2,nimy=2,procs_per_wg=2)
         
         # Take a snapshot
         >>> im = cam.snapshot()
@@ -977,8 +977,16 @@ class MosaicFisheyeCamera(Camera):
 
         ParallelAnalysisInterface.__init__(self)
         PP = ProcessorPool()
+        npatches = nimy*nimx
         if procs_per_wg is None:
-            procs_per_wg = PP.size
+            if (PP.size % npatches):
+                raise RuntimeError("Cannot evenly divide %i procs to %i patches" % (PP.size,npatches))
+            else:
+                procs_per_wg = PP.size / npatches
+        else:
+            if (PP.size != npatches*procs_per_wg):
+               raise RuntimeError("You need %i processors to utilize %i procs per one patch in [%i,%i] grid" 
+                     % (npatches*procs_per_wg,procs_per_wg,nimx,nimy))
         for j in range(nimy):
             for i in range(nimx):
                 PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
