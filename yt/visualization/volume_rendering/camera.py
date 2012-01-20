@@ -1202,6 +1202,41 @@ class MosaicFisheyeCamera(Camera):
             self.rotate(dtheta, rot_vector=rot_vector, keep_focus=keep_focus)
             yield self.snapshot()
 
+    def move_to(self,final,n_steps,exponential=False):
+        r"""Loop over a look_at
+
+        This will yield `n_steps` snapshots until the current view has been
+        moved to a final center of `final`.
+
+        Parameters
+        ----------
+        final : array_like
+            The final center to move to after `n_steps`
+        n_steps : int
+            The number of look_at snapshots to make.
+        exponential : boolean
+            Specifies whether the move/zoom transition follows an
+            exponential path toward the destination or linear
+            
+        Examples
+        --------
+
+        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
+        ...     cam.save_image("move_%04i.png" % i)
+        """
+
+        if exponential:
+            position_diff = (na.array(final)/self.center)*1.0
+            dx = position_diff**(1.0/n_steps)
+        else:
+            dx = (na.array(final) - self.center)*1.0/n_steps
+        for i in xrange(n_steps):
+            if exponential:
+                self.center *= dx
+            else:
+                self.center += dx
+            yield self.snapshot()
+
     def get_rotation_matrix(self, theta, rot_vector):
         ux = rot_vector[0]
         uy = rot_vector[1]
