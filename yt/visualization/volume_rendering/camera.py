@@ -1104,7 +1104,7 @@ class MosaicFisheyeCamera(Camera):
        
         return image
 
-    def save_image(self, fn):
+    def save_image(self, fn, clip_ratio=None):
         if '.png' not in fn:
             fn = fn + '.png'
         
@@ -1130,12 +1130,18 @@ class MosaicFisheyeCamera(Camera):
 
                             final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
                             del arr
-                    write_bitmap(final_image, fn)
+                    if clip_ratio is not None:
+                        write_bitmap(final_image, fn, image.mean() + clip_ratio*image.std())
+                    else:
+                        write_bitmap(final_image, fn)
                 else:
                     self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
         else:
             if self.comm.rank == 0:
-                write_bitmap(image, fn)
+                if clip_ratio is not None:
+                    write_bitmap(image, fn, clip_ratio*image.std())
+                else:
+                    write_bitmap(image, fn)
         return
 
     def rotate(self, theta, rot_vector=None, keep_focus=True):
