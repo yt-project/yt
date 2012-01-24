@@ -799,7 +799,7 @@ class YTPastebinGrabCmd(YTCommand):
 
 
 class YTBugreportCmd(YTCommand):
-    name = "bureport"
+    name = "bugreport"
     description = \
         """
         Report a bug in yt
