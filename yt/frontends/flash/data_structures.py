@@ -321,8 +321,8 @@ class FLASHStaticOutput(StaticOutput):
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
         nblockx = self._find_parameter("integer", "nblockx")
-        nblocky = self._find_parameter("integer", "nblockx")
-        nblockz = self._find_parameter("integer", "nblockx")
+        nblocky = self._find_parameter("integer", "nblocky")
+        nblockz = self._find_parameter("integer", "nblockz")
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
