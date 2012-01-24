@@ -27,6 +27,9 @@ import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
 
+def is_colormap(cmap):
+    return isinstance(cmap,cc.Colormap)
+
 def check_color(name):
     try:
         ss = cc.colorConverter.to_rgb(name)
