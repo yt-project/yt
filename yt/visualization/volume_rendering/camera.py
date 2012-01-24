@@ -1138,7 +1138,7 @@ class MosaicFisheyeCamera(Camera):
                             final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
                             del arr
                     if clip_ratio is not None:
-                        write_bitmap(final_image, fn, clip_ratio*final_image.max())
+                        write_bitmap(final_image, fn, clip_ratio*final_image.std())
                     else:
                         write_bitmap(final_image, fn)
                 else:
