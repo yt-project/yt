@@ -45,17 +45,18 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
     cdef int i
     cdef np.float64_t mi = 1e100, ma = -1e100, v
     cdef int np = px.shape[0]
-    for i in range(np):
-        v = value[i]
-        if v < mi or v > ma:
-            if px[i] + pdx[i] < leftx: continue
-            if px[i] - pdx[i] > rightx: continue
-            if py[i] + pdy[i] < lefty: continue
-            if py[i] - pdy[i] > righty: continue
-            if pdx[i] < mindx or pdy[i] < mindx: continue
-            if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
-            if v < mi: mi = v
-            if v > ma: ma = v
+    with nogil:
+        for i in range(np):
+            v = value[i]
+            if v < mi or v > ma:
+                if px[i] + pdx[i] < leftx: continue
+                if px[i] - pdx[i] > rightx: continue
+                if py[i] + pdy[i] < lefty: continue
+                if py[i] - pdy[i] > righty: continue
+                if pdx[i] < mindx or pdy[i] < mindx: continue
+                if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
+                if v < mi: mi = v
+                if v > ma: ma = v
     return (mi, ma)
 
 @cython.boundscheck(False)
@@ -95,13 +96,14 @@ def get_box_grids_below_level(
                         np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
+                        np.ndarray[np.int32_t, ndim=1] mask,
+                        int min_level = 0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
     cdef int inside 
     for i in range(nx):
         mask[i] = 0
-        if levels[i,0] <= level:
+        if levels[i,0] <= level and levels[i,0] >= min_level:
             inside = 1
             for n in range(3):
                 if left_edge[n] >= right_edges[i,n] or \

@@ -37,6 +37,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.utilities.minimal_representation import \
+    MinimalStaticOutput
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -85,6 +87,8 @@ class StaticOutput(object):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
+        self.min_level = 0
+
         self._parse_parameter_file()
         self._set_units()
 
@@ -114,6 +118,10 @@ class StaticOutput(object):
             return hashlib.md5(s).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+
+    @property
+    def _mrep(self):
+        return MinimalStaticOutput(self)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

@@ -69,8 +69,7 @@ from .halo_merger_tree.api import \
 from .halo_profiler.api import \
     VirialFilter, \
     HaloProfiler, \
-    FakeProfile, \
-    shift_projections
+    FakeProfile
 
 from .hierarchy_subset.api import \
     ConstructedRootGrid, \

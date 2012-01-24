@@ -41,7 +41,8 @@ from yt.utilities.io_handler import \
     io_registry
 
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
+     ValidateDataField
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -106,6 +107,7 @@ class FLASHHierarchy(AMRHierarchy):
         
         self.grid_left_edge[:] = f["/bounding box"][:,:,0]
         self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        
         # Move this to the parameter file
         try:
             nxb = pf._find_parameter("integer", "nxb", True)
@@ -129,7 +131,12 @@ class FLASHHierarchy(AMRHierarchy):
         self.grids = na.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
-
+        dx = ((self.parameter_file.domain_right_edge -
+               self.parameter_file.domain_left_edge)/
+              self.parameter_file.refine_by**(self.grid_levels.max())).astype('float64')
+        self.grid_left_edge = na.rint(self.grid_left_edge/dx)*dx
+        self.grid_right_edge = na.rint(self.grid_right_edge/dx)*dx
+                        
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
@@ -167,10 +174,19 @@ class FLASHHierarchy(AMRHierarchy):
                 continue
             available = na.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
+        [self.parameter_file.conversion_factors[field] 
+         for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
-
+            if (field not in KnownFLASHFields and
+                field.startswith("particle")) :
+                self.parameter_file.field_info.add_field(field,
+                                                         function=NullFunc,
+                                                         take_log=False,
+                                                         validators = [ValidateDataField(field)],
+                                                         particle_type=True)
+                
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
@@ -283,9 +299,11 @@ class FLASHStaticOutput(StaticOutput):
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         self.domain_left_edge = na.array(
-            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
+            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
-            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz']).astype("float64")
+        self.min_level = self._find_parameter(
+            "integer", "lrefine_min", scalar = False) - 1
 
         # Determine domain dimensions
         try:
@@ -349,6 +367,7 @@ class FLASHStaticOutput(StaticOutput):
             if "bounding box" in fileh["/"].keys():
                 fileh.close()
                 return True
+            fileh.close()
         except:
             pass
         return False

@@ -35,6 +35,13 @@ import sys, types, os, glob, cPickle, time
 import numpy as na # For historical reasons
 import numpy # In case anyone wishes to use it by name
 
+# This next item will handle most of the actual startup procedures, but it will
+# also attempt to parse the command line and set up the global state of various
+# operations.
+
+import yt.startup_tasks as __startup_tasks
+unparsed_args = __startup_tasks.unparsed_args
+
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
@@ -112,7 +119,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera, off_axis_projection
+    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects

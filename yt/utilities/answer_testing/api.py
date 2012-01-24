@@ -31,7 +31,6 @@ License:
 from .runner import \
     RegressionTestRunner, \
     RegressionTestStorage, \
-    run_main, \
     clear_registry, \
     registry_entries
 
