@@ -84,7 +84,8 @@ class FLASHHierarchy(AMRHierarchy):
         nfacevars = len(facevars)
         if (nfacevars > 0) :
             ncomp += nfacevars
-            self.field_list.append(facevars)
+            for facevar in facevars :
+                self.field_list.append(facevar)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
