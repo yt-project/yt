@@ -41,7 +41,7 @@ INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_FORTHON=1  # Install Forthon?
-INST_PYX=1      # Install PyX?  Sometimes PyX can be problematic without a
+INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 
 # If you've got YT some other place, set this to point to it.
