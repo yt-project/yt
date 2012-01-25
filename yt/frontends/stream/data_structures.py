@@ -42,7 +42,7 @@ from yt.utilities.amr_utils import \
     get_box_grids_level
 
 from .fields import \
-    StreamFieldContainer, \
+    StreamFieldInfo, \
     add_stream_field, \
     KnownStreamFields
 
@@ -246,7 +246,7 @@ class StreamHierarchy(AMRHierarchy):
 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
-    _fieldinfo_class = StreamFieldContainer
+    _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields
     _data_style = 'stream'
 

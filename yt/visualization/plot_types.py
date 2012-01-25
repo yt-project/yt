@@ -231,7 +231,7 @@ class RavenPlot(object):
                 cmap = yt_colormaps[str(cmap)]
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
-        if not is_colormap(cmap):
+        if not is_colormap(cmap) and cmap is not None:
             raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
         else:
             self.cmap = cmap

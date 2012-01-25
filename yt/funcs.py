@@ -541,3 +541,8 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
+def fix_length(length, pf):
+    if isinstance(length, (list, tuple)) and len(length) == 2 and \
+       isinstance(length[1], types.StringTypes):
+       length = length[0]/pf[length[1]]
+    return length
