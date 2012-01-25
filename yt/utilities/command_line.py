@@ -90,7 +90,6 @@ class YTCommand(object):
 
 class GetParameterFiles(argparse.Action):
     def __call__(self, parser, namespace, values, option_string = None):
-        print parser, namespace, values, option_string
         if len(values) == 1:
             pfs = values
         elif len(values) == 2 and namespace.basename is not None:
