@@ -283,17 +283,30 @@ else
     export GETFILE="curl -sSO"
 fi
 
+if type -P sha512sum &> /dev/null
+then
+    echo "Using sha512sum"
+    export SHASUM="sha512sum"
+elif type -P shasum &> /dev/null
+then
+    echo "Using shasum -a 512"
+    export SHASUM="shasum -a 512"
+else
+    echo
+    echo "I am unable to locate any shasum-like utility."
+    echo "ALL FILE INTEGRITY IS NOT VERIFIABLE."
+    echo "THIS IS PROBABLY A BIG DEAL."
+    echo
+    echo "(I'll hang out for a minute for you to consider this.)"
+    sleep 60
+fi
+
 function get_enzotools
 {
     echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
     ${GETFILE} "http://yt-project.org/dependencies/$1" || do_exit
-    if !( which sha512sum &> /dev/null ) 
-    then
-        echo "I am unable to locate sha512sum.  FILE INTEGRITY NOT VERIFIED."
-        return # return if we don't have sha512sum
-    fi
-    ( sha512sum -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
 ORIG_PWD=`pwd`
