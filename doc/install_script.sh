@@ -133,9 +133,9 @@ function host_specific
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "These commands should take care of that for you:"
         echo
-        echo "   $ module unload mvapich-devel"
+        echo "   $ module unload mvapich2"
         echo "   $ module swap pgi gcc"
-        echo "   $ module load mvapich-devel"
+        echo "   $ module load mvapich2"
         echo
     fi
     if [ "${MYHOST##honest}" != "${MYHOST}" ]
