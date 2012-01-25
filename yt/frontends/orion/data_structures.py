@@ -488,6 +488,7 @@ class OrionStaticOutput(StaticOutput):
                 param, vals = map(strip,map(rstrip,line.split("=")))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
+                continue
             if orion2enzoDict.has_key(param):
                 paramName = orion2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
