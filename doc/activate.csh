@@ -9,18 +9,30 @@ deactivate nondestructive
 
 setenv VIRTUAL_ENV "__YT_DIR__"
 
+if ($?PATH == 0) then
+    setenv PATH
+endif
 set _OLD_VIRTUAL_PATH="$PATH"
-setenv PATH "$VIRTUAL_ENV/bin:$PATH"
+setenv PATH "${VIRTUAL_ENV}/bin:${PATH}"
 
 ### Begin extra yt vars
+if ($?YT_DEST == 0) then
+    setenv YT_DEST
+endif
 set _OLD_VIRTUAL_YT_DEST="$YT_DEST"
-setenv YT_DEST "$VIRTUAL_ENV:$YT_DEST"
+setenv YT_DEST "${VIRTUAL_ENV}:${YT_DEST}"
 
+if ($?PYTHONPATH == 0) then
+    setenv PYTHONPATH
+endif
 set _OLD_VIRTUAL_PYTHONPATH="$PYTHONPATH"
-setenv PYTHONPATH "$VIRTUAL_ENV/lib/python2.7/site-packages:$PYTHONPATH"
+setenv PYTHONPATH "${VIRTUAL_ENV}/lib/python2.7/site-packages:${PYTHONPATH}"
 
+if ($?LD_LIBRARY_PATH == 0) then
+    setenv LD_LIBRARY_PATH
+endif
 set _OLD_VIRTUAL_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
-setenv LD_LIBRARY_PATH "$VIRTUAL_ENV/lib:$LD_LIBRARY_PATH"
+setenv LD_LIBRARY_PATH "${VIRTUAL_ENV}/lib:${LD_LIBRARY_PATH}"
 ### End extra yt vars
 
 set _OLD_VIRTUAL_PROMPT="$prompt"

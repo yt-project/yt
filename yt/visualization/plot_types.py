@@ -35,7 +35,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
-from .color_maps import yt_colormaps
+from .color_maps import yt_colormaps, is_colormap
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -231,7 +231,10 @@ class RavenPlot(object):
                 cmap = yt_colormaps[str(cmap)]
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
-        self.cmap = cmap
+        if not is_colormap(cmap) and cmap is not None:
+            raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
+        else:
+            self.cmap = cmap
         
     def __setitem__(self, item, val):
         self.im[item] = val

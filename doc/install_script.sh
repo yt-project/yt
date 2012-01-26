@@ -41,6 +41,8 @@ INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_FORTHON=1  # Install Forthon?
+INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
+                # working TeX installation.
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -131,9 +133,9 @@ function host_specific
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "These commands should take care of that for you:"
         echo
-        echo "   $ module unload mvapich-devel"
+        echo "   $ module unload mvapich2"
         echo "   $ module swap pgi gcc"
-        echo "   $ module load mvapich-devel"
+        echo "   $ module load mvapich2"
         echo
     fi
     if [ "${MYHOST##honest}" != "${MYHOST}" ]
@@ -213,6 +215,10 @@ echo "be installing Mercurial"
 printf "%-15s = %s so I " "INST_ENZO" "${INST_ENZO}"
 get_willwont ${INST_ENZO}
 echo "be checking out Enzo"
+
+printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
+get_willwont ${INST_PYX}
+echo "be installing PyX"
 
 echo
 
@@ -310,6 +316,7 @@ fi
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
+[ $INST_PYX -eq 1 ] && get_enzotools PyX-0.11.1.tar.gz
 get_enzotools Python-2.7.2.tgz
 get_enzotools numpy-1.6.1.tar.gz
 get_enzotools matplotlib-1.1.0.tar.gz
@@ -534,6 +541,7 @@ do_setup_py ipython-0.10
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
 [ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
+[ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
@@ -548,6 +556,12 @@ echo $HDF5_DIR > hdf5.cfg
 ( ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
+
+if !(${DEST_DIR}/bin/python2.7 -c "import readline")
+then
+    echo "Installing pure-python readline"
+    ${DEST_DIR}/bin/pip install readline
+fi
 
 if [ $INST_ENZO -eq 1 ]
 then
