@@ -3349,13 +3349,11 @@ class AMRCoveringGridBase(AMR3DData):
            na.any(self.right_edge + buffer > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
                             self.left_edge - buffer,
-                            self.right_edge + buffer, self.level,
-                            min(self.level, self.pf.min_level))
+                            self.right_edge + buffer, self.level)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids_below_level(
                 self.left_edge - buffer,
-                self.right_edge + buffer, self.level,
-                min(self.level, self.pf.min_level))
+                self.right_edge + buffer, self.level)
         sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
         self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)][::-1]
 
@@ -3490,46 +3488,11 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        # Check for ill-behaved AMR schemes (Enzo) where we may have
-        # root-tile-boundary issues.  This is specific to the root tiles not
-        # allowing grids to cross them and also allowing > 1 level of
-        # difference between neighboring areas.
-        nz = 0
-        buf = 0.0
-        dl = ((self.global_startindex.astype("float64") + 1)
-           / (self.pf.refine_by**self.level))
-        dr = ((self.global_startindex.astype("float64")
-              + self.ActiveDimensions - 1)
-           / (self.pf.refine_by**self.level))
-        if na.any(dl == na.rint(dl)) or na.any(dr == na.rint(dr)):
-            nz = 2 * self.pf.refine_by**self.level
-            buf = self._base_dx
-        if nz <= self.pf.refine_by**3: # delta level of 3
-            cg = self.pf.h.covering_grid(self.level,
-                self.left_edge - buf, self.ActiveDimensions + nz)
-            cg._use_pbar = False
-            count = cg.ActiveDimensions.prod()
-            for g in cg._grids:
-                count -= cg._get_data_from_grid(g, [])
-                if count <= 0:
-                    min_level = g.Level
-                    break
-        else:
-            nz = buf = 0
-            min_level = 0
-        # This should not cost substantial additional time.
-        BLE = self.left_edge - buf
-        BRE = self.right_edge + buf
-        if na.any(BLE < self.pf.domain_left_edge) or \
-           na.any(BRE > self.pf.domain_right_edge):
-            grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
-                            BLE, BRE, self.level, min_level)
-        else:
-            grids,ind = self.pf.hierarchy.get_box_grids_below_level(
-                BLE, BRE, self.level,
-                min(self.level, min_level))
-        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
-        self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)]
+        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
+                 / self.pf.domain_dimensions).max()
+        AMRCoveringGridBase._get_list_of_grids(self, buffer)
+        # We reverse the order to ensure that coarse grids are first
+        self._grids = self._grids[::-1]
 
     def get_data(self, field=None):
         self._get_list_of_grids()
@@ -3553,10 +3516,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
-                while grid.Level > last_level:
-                    self._update_level_state(last_level + 1)
-                    self._refine(1, fields_to_get)
-                    last_level += 1
+                self._update_level_state(last_level + 1)
+                self._refine(1, fields_to_get)
+                last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
         if self.level > 0:
             for field in fields_to_get:
@@ -3599,7 +3561,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
+        output_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int32') + 2
 
         self._cur_dims = output_dims
 
