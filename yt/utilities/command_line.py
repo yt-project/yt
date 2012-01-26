@@ -1079,8 +1079,6 @@ class YTPastebinCmd(YTCommand):
         """
         Post a script to an anonymous pastebin
 
-        Usage: yt pastebin [options] <script>
-
         """
 
     def __call__(self, args):
@@ -1095,12 +1093,7 @@ class YTPastebinGrabCmd(YTCommand):
     description = \
         """
         Print an online pastebin to STDOUT for local use. Paste ID is 
-        the number at the end of the url.  So to locally access pastebin:
-        http://paste.yt-project.org/show/1688/
-
-        Usage: yt pastebin_grab <Paste ID> 
-        Ex: yt pastebin_grab 1688 > script.py
-
+        the number at the end of the url.  
         """
 
     def __call__(self, args):
@@ -1115,7 +1108,7 @@ class YTPlotCmd(YTCommand):
     
     description = \
         """
-        Create a set of images
+        Create a set of images 
 
         """
 
