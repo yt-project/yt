@@ -377,454 +377,6 @@ def _get_yt_supp(uu):
     # Now we think we have our supplemental repository.
     return supp_path
 
-
-class YTUpdateCmd(YTCommand):
-    name = "update"
-    description = \
-        """
-        Update the yt installation to the most recent version
-
-        """
-
-    def __call__(self, opts):
-        import pkg_resources
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
-        print
-        print "yt module located at:"
-        print "    %s" % (path)
-        update_supp = False
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print "The supplemental repositories are located at:"
-                print "    %s" % (spath)
-                update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
-            print
-            print "The current version of the code is:"
-            print
-            print "---"
-            print vstring.strip()
-            print "---"
-            print
-            print "This installation CAN be automatically updated."
-            update_hg(path)
-            print "Updated successfully."
-        else:
-            print
-            print "YT site-packages not in path, so you must"
-            print "update this installation manually by committing and"
-            print "merging your modifications to the code before"
-            print "updating to the newest changeset."
-            print
-
-class YTInstInfoCmd(YTCommand):
-    name = "instinfo"
-    args = (
-            dict(short="-u", long="--update-source", action="store_true",
-                 default = False,
-                 help="Update the yt installation, if able"),
-            dict(short="-o", long="--output-version", action="store",
-                  default = None, dest="outputfile",
-                  help="File into which the current revision number will be" +
-                       "stored")
-           )
-    description = \
-        """
-        Get some information about the yt installation
-
-        """
-
-    def __call__(self, opts):
-        import pkg_resources
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
-        print
-        print "yt module located at:"
-        print "    %s" % (path)
-        update_supp = False
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print "The supplemental repositories are located at:"
-                print "    %s" % (spath)
-                update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
-            print
-            print "The current version of the code is:"
-            print
-            print "---"
-            print vstring.strip()
-            print "---"
-            print
-            print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                update_hg(path)
-            print "Updated successfully."
-        elif opts.update_source:
-            print
-            print "YT site-packages not in path, so you must"
-            print "update this installation manually by committing and"
-            print "merging your modifications to the code before"
-            print "updating to the newest changeset."
-            print
-        if vstring is not None and opts.outputfile is not None:
-            open(opts.outputfile, "w").write(vstring)
-
-class YTLoadCmd(YTCommand):
-    name = "load"
-    description = \
-        """
-        Load a single dataset into an IPython instance
-
-        """
-
-    args = ("pf", )
-
-    def __call__(self, args):
-        if args.pf is None:
-            print "Could not load file."
-            sys.exit()
-        import yt.mods
-
-        import IPython
-        if IPython.__version__.startswith("0.10"):
-            api_version = '0.10'
-        elif IPython.__version__.startswith("0.11"):
-            api_version = '0.11'
-
-        local_ns = yt.mods.__dict__.copy()
-        local_ns['pf'] = args.pf
-
-        if api_version == '0.10':
-            shell = IPython.Shell.IPShellEmbed()
-            shell(local_ns = local_ns,
-                  header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
-                  )
-        else:
-            from IPython.config.loader import Config
-            cfg = Config()
-            cfg.InteractiveShellEmbed.local_ns = local_ns
-            IPython.embed(config=cfg)
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-            ipshell = InteractiveShellEmbed(config=cfg)
-
-class YTHopCmd(YTCommand):
-    args = ('outputfn','bn','thresh','dm_only','skip', 'pf')
-    name = "hop"
-    description = \
-        """
-        Run HOP on one or more datasets
-
-        """
-
-    def __call__(self, args):
-        pf = args.pf
-        kwargs = {'dm_only' : args.dm_only}
-        if args.threshold is not None: kwargs['threshold'] = args.threshold
-        hop_list = HaloFinder(pf, **kwargs)
-        if args.output is None: fn = "%s.hop" % pf
-        else: fn = args.output
-        hop_list.write_out(fn)
-
-class YTPlotCmd(YTCommand):
-    args = ("width", "unit", "bn", "proj", "center",
-            "zlim", "axis", "field", "weight", "skip",
-            "cmap", "output", "grids", "time", "pf")
-    name = "plot"
-    
-    description = \
-        """
-        Create a set of images
-
-        """
-
-    def __call__(self, args):
-        pf = args.pf
-        center = args.center
-        if args.center == (-1,-1,-1):
-            mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
-        elif args.center is None:
-            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
-        pc=PlotCollection(pf, center=center)
-        if args.axis == 4:
-            axes = range(3)
-        else:
-            axes = [args.axis]
-        for ax in axes:
-            mylog.info("Adding plot for axis %i", ax)
-            if args.projection: pc.add_projection(args.field, ax,
-                                    weight_field=args.weight, center=center)
-            else: pc.add_slice(args.field, ax, center=center)
-            if args.grids: pc.plots[-1].modify["grids"]()
-            if args.time: 
-                time = pf.current_time*pf['Time']*pf['years']
-                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
-        pc.set_width(args.width, args.unit)
-        pc.set_cmap(args.cmap)
-        if args.zlim: pc.set_zlim(*args.zlim)
-        if not os.path.isdir(args.output): os.makedirs(args.output)
-        pc.save(os.path.join(args.output,"%s" % (pf)))
-
-class YTMapserverCmd(YTCommand):
-    args = ("proj", "field", "weight",
-            dict(short="-a", long="--axis", action="store", type=int,
-                 dest="axis", default=0, help="Axis (4 for all three)"),
-            dict(short ="-o", long="--host", action="store", type=str,
-                   dest="host", default=None, help="IP Address to bind on"),
-            "pf",
-            )
-    
-    name = "mapserver"
-    description = \
-        """
-        Serve a plot in a GMaps-style interface
-
-        """
-
-    def __call__(self, args):
-        pf = args.pf
-        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
-                                          pf.domain_right_edge))
-        if args.axis == 4:
-            print "Doesn't work with multiple axes!"
-            return
-        if args.projection:
-            p = pc.add_projection(args.field, args.axis, weight_field=args.weight)
-        else:
-            p = pc.add_slice(args.field, args.axis)
-        from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, args.field)
-        import yt.utilities.bottle as bottle
-        bottle.debug(True)
-        if args.host is not None:
-            colonpl = args.host.find(":")
-            if colonpl >= 0:
-                port = int(args.host.split(":")[-1])
-                args.host = args.host[:colonpl]
-            else:
-                port = 8080
-            bottle.run(server='rocket', host=args.host, port=port)
-        else:
-            bottle.run(server='rocket')
-
-class YTRPDBCmd(YTCommand):
-    name = "rpdb"
-    description = \
-        """
-        Connect to a currently running (on localhost) rpd session.
-
-        Commands run with --rpdb will trigger an rpdb session with any
-        uncaught exceptions.
-
-        """
-
-    def __call__(self, args):
-        import rpdb
-        rpdb.run_rpdb(int(task))
-
-class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf')
-    name = "stats"
-    description = \
-        """
-        Print stats and maximum density for one or more datasets
-
-        """
-
-    def __call__(self, args):
-        pf = args.pf
-        pf.h.print_stats()
-        if "Density" in pf.h.field_list:
-            v, c = pf.h.find_max("Density")
-        print "Maximum density: %0.5e at %s" % (v, c)
-        if args.output is not None:
-            t = pf.current_time * pf['years']
-            open(args.output, "a").write(
-                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
-
-class YTPastebinCmd(YTCommand):
-    name = "pastebin"
-    args = (
-             dict(short="-l", long="--language", action="store",
-                  default = None, dest="language",
-                  help="Use syntax highlighter for the file in language"),
-             dict(short="-L", long="--languages", action="store_true",
-                  default = False, dest="languages",
-                  help="Retrive a list of supported languages"),
-             dict(short="-e", long="--encoding", action="store",
-                  default = 'utf-8', dest="encoding",
-                  help="Specify the encoding of a file (default is "
-                        "utf-8 or guessing if available)"),
-             dict(short="-b", long="--open-browser", action="store_true",
-                  default = False, dest="open_browser",
-                  help="Open the paste in a web browser"),
-             dict(short="-p", long="--private", action="store_true",
-                  default = False, dest="private",
-                  help="Paste as private"),
-             dict(short="-c", long="--clipboard", action="store_true",
-                  default = False, dest="clipboard",
-                  help="File to output to; else, print."),
-             dict(short="file", type=str),
-            )
-    description = \
-        """
-        Post a script to an anonymous pastebin
-
-        Usage: yt pastebin [options] <script>
-
-        """
-
-    def __call__(self, args):
-        import yt.utilities.lodgeit as lo
-        lo.main(args.file, languages=args.languages, language=args.language,
-                 encoding=args.encoding, open_browser=args.open_browser,
-                 private=args.private, clipboard=args.clipboard)
-
-class YTPastebinGrabCmd(YTCommand):
-    args = (dict(short="number", type=str),)
-    name = "pastebin_grab"
-    description = \
-        """
-        Print an online pastebin to STDOUT for local use. Paste ID is 
-        the number at the end of the url.  So to locally access pastebin:
-        http://paste.yt-project.org/show/1688/
-
-        Usage: yt pastebin_grab <Paste ID> 
-        Ex: yt pastebin_grab 1688 > script.py
-
-        """
-
-    def __call__(self, args):
-        import yt.utilities.lodgeit as lo
-        lo.main( None, download=args.number )
-
-
-class YTBugreportCmd(YTCommand):
-    name = "bugreport"
-    description = \
-        """
-        Report a bug in yt
-
-        """
-
-    def __call__(self, args):
-        print "==============================================================="
-        print
-        print "Hi there!  Welcome to the yt bugreport taker."
-        print
-        print "==============================================================="
-        print "At any time in advance of the upload of the bug, you should feel free"
-        print "to ctrl-C out and submit the bug report manually by going here:"
-        print "   http://hg.yt-project.org/yt/issues/new"
-        print 
-        print "Also, in order to submit a bug through this interface, you"
-        print "need a Bitbucket account. If you don't have one, exit this "
-        print "bugreport now and run the 'yt bootstrap_dev' command to create one."
-        print
-        print "Have you checked the existing bug reports to make"
-        print "sure your bug has not already been recorded by someone else?"
-        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
-        print
-        print "Finally, are you sure that your bug is, in fact, a bug? It might"
-        print "simply be a misunderstanding that could be cleared up by"
-        print "visiting the yt irc channel or getting advice on the email list:"
-        print "   http://yt-project.org/irc.html"
-        print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
-        print
-        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
-        print
-        print
-        print "Okay, sorry about that. How about a nice, pithy ( < 12 words )"
-        print "summary of the bug?  (e.g. 'Particle overlay problem with parallel "
-        print "projections')"
-        print
-        try:
-            current_version = get_yt_version()
-        except:
-            current_version = "Unavailable"
-        summary = raw_input("Summary? ")
-        bugtype = "bug"
-        data = dict(title = summary, type=bugtype)
-        print
-        print "Okay, now let's get a bit more information."
-        print
-        print "Remember that if you want to submit a traceback, you can run"
-        print "any script with --paste or --detailed-paste to submit it to"
-        print "the pastebin and then include the link in this bugreport."
-        if "EDITOR" in os.environ:
-            print
-            print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
-            loki = raw_input()
-            tf = tempfile.NamedTemporaryFile(delete=False)
-            fn = tf.name
-            tf.close()
-            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
-            content = open(fn).read()
-            try:
-                os.unlink(fn)
-            except:
-                pass
-        else:
-            print
-            print "Couldn't find an $EDITOR variable.  So, let's just take"
-            print "take input here.  Type up your summary until you're ready"
-            print "to be done, and to signal you're done, type --- by itself"
-            print "on a line to signal your completion."
-            print
-            print "(okay, type now)"
-            print
-            lines = []
-            while 1:
-                line = raw_input()
-                if line.strip() == "---": break
-                lines.append(line)
-            content = "\n".join(lines)
-        content = "Reporting Version: %s\n\n%s" % (current_version, content)
-        endpoint = "repositories/yt_analysis/yt/issues"
-        data['content'] = content
-        print
-        print "==============================================================="
-        print 
-        print "Okay, we're going to submit with this:"
-        print
-        print "Summary: %s" % (data['title'])
-        print
-        print "---"
-        print content
-        print "---"
-        print
-        print "==============================================================="
-        print
-        print "Is that okay?  If not, hit ctrl-c.  Otherwise, enter means"
-        print "'submit'.  Next we'll ask for your Bitbucket Username."
-        print "If you don't have one, run the 'yt bootstrap_dev' command."
-        print
-        loki = raw_input()
-        retval = bb_apicall(endpoint, data, use_pass=True)
-        import json
-        retval = json.loads(retval)
-        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
-        print 
-        print "==============================================================="
-        print
-        print "Thanks for your bug report!  Together we'll make yt totally bug free!"
-        print "You can view bug report here:"
-        print "   %s" % url
-        print
-        print "Keep in touch!"
-        print
-
 class YTBootstrapDevCmd(YTCommand):
     name = "bootstrap_dev"
     description = \
@@ -1054,147 +606,139 @@ class YTBootstrapDevCmd(YTCommand):
         print
         print "Good luck!"
 
-class YTServeCmd(YTCommand):
-    name = "serve"
-    args = (
-            dict(short="-o", long="--open-browser", action="store_true",
-                 default = False, dest='open_browser',
-                 help="Open a web browser."),
-            dict(short="-p", long="--port", action="store",
-                 default = 0, dest='port',
-                 help="Port to listen on"),
-            dict(short="-f", long="--find", action="store_true",
-                 default = False, dest="find",
-                 help="At startup, find all *.hierarchy files in the CWD"),
-            dict(short="-d", long="--debug", action="store_true",
-                 default = False, dest="debug",
-                 help="Add a debugging mode for cell execution")
-            )
+class YTBugreportCmd(YTCommand):
+    name = "bugreport"
     description = \
         """
-        Run the Web GUI Reason
+        Report a bug in yt
+
         """
 
     def __call__(self, args):
-        # We have to do a couple things.
-        # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
+        print "==============================================================="
+        print
+        print "Hi there!  Welcome to the yt bugreport taker."
+        print
+        print "==============================================================="
+        print "At any time in advance of the upload of the bug, you should feel free"
+        print "to ctrl-C out and submit the bug report manually by going here:"
+        print "   http://hg.yt-project.org/yt/issues/new"
+        print 
+        print "Also, in order to submit a bug through this interface, you"
+        print "need a Bitbucket account. If you don't have one, exit this "
+        print "bugreport now and run the 'yt bootstrap_dev' command to create one."
+        print
+        print "Have you checked the existing bug reports to make"
+        print "sure your bug has not already been recorded by someone else?"
+        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
+        print
+        print "Finally, are you sure that your bug is, in fact, a bug? It might"
+        print "simply be a misunderstanding that could be cleared up by"
+        print "visiting the yt irc channel or getting advice on the email list:"
+        print "   http://yt-project.org/irc.html"
+        print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+        print
+        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
+        print
+        print
+        print "Okay, sorry about that. How about a nice, pithy ( < 12 words )"
+        print "summary of the bug?  (e.g. 'Particle overlay problem with parallel "
+        print "projections')"
+        print
+        try:
+            current_version = get_yt_version()
+        except:
+            current_version = "Unavailable"
+        summary = raw_input("Summary? ")
+        bugtype = "bug"
+        data = dict(title = summary, type=bugtype)
+        print
+        print "Okay, now let's get a bit more information."
+        print
+        print "Remember that if you want to submit a traceback, you can run"
+        print "any script with --paste or --detailed-paste to submit it to"
+        print "the pastebin and then include the link in this bugreport."
+        if "EDITOR" in os.environ:
             print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
-        if args.port == 0:
-            # This means, choose one at random.  We do this by binding to a
-            # socket and allowing the OS to choose the port for that socket.
-            import socket
-            sock = socket.socket()
-            sock.bind(('', 0))
-            args.port = sock.getsockname()[-1]
-            del sock
-        elif args.port == '-1':
-            port = raw_input("Desired yt port? ")
+            print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
+            loki = raw_input()
+            tf = tempfile.NamedTemporaryFile(delete=False)
+            fn = tf.name
+            tf.close()
+            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
+            content = open(fn).read()
             try:
-                args.port = int(port)
-            except ValueError:
-                print "Please try a number next time."
-                return 1
-        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
-        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+                os.unlink(fn)
+            except:
+                pass
+        else:
             print
-            print "*** You are missing the ExtJS support files. You  ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
+            print "Couldn't find an $EDITOR variable.  So, let's just take"
+            print "take input here.  Type up your summary until you're ready"
+            print "to be done, and to signal you're done, type --- by itself"
+            print "on a line to signal your completion."
             print
-            sys.exit(1)
-        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
-        from yt.gui.reason.extdirect_repl import ExtDirectREPL
-        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
-        hr.debug = PayloadHandler.debug = args.debug
-        if args.find:
-            # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
-            for fn in sorted(glob.glob("*/*.hierarchy")):
-                command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
-        bottle.debug()
-        uuid_serve_functions(open_browser=args.open_browser,
-                    port=int(args.port), repl=hr)
+            print "(okay, type now)"
+            print
+            lines = []
+            while 1:
+                line = raw_input()
+                if line.strip() == "---": break
+                lines.append(line)
+            content = "\n".join(lines)
+        content = "Reporting Version: %s\n\n%s" % (current_version, content)
+        endpoint = "repositories/yt_analysis/yt/issues"
+        data['content'] = content
+        print
+        print "==============================================================="
+        print 
+        print "Okay, we're going to submit with this:"
+        print
+        print "Summary: %s" % (data['title'])
+        print
+        print "---"
+        print content
+        print "---"
+        print
+        print "==============================================================="
+        print
+        print "Is that okay?  If not, hit ctrl-c.  Otherwise, enter means"
+        print "'submit'.  Next we'll ask for your Bitbucket Username."
+        print "If you don't have one, run the 'yt bootstrap_dev' command."
+        print
+        loki = raw_input()
+        retval = bb_apicall(endpoint, data, use_pass=True)
+        import json
+        retval = json.loads(retval)
+        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
+        print 
+        print "==============================================================="
+        print
+        print "Thanks for your bug report!  Together we'll make yt totally bug free!"
+        print "You can view bug report here:"
+        print "   %s" % url
+        print
+        print "Keep in touch!"
+        print
 
-class YTReasonCmd(YTCommand):
-    name = "reason"
-    args = (
-            dict(short="-o", long="--open-browser", action="store_true",
-                 default = False, dest='open_browser',
-                 help="Open a web browser."),
-            dict(short="-p", long="--port", action="store",
-                 default = 0, dest='port',
-                 help="Port to listen on"),
-            dict(short="-f", long="--find", action="store_true",
-                 default = False, dest="find",
-                 help="At startup, find all *.hierarchy files in the CWD"),
-            dict(short="-d", long="--debug", action="store_true",
-                 default = False, dest="debug",
-                 help="Add a debugging mode for cell execution")
-            )
+class YTHopCmd(YTCommand):
+    args = ('outputfn','bn','thresh','dm_only','skip', 'pf')
+    name = "hop"
     description = \
         """
-        Run the Web GUI Reason
+        Run HOP on one or more datasets
+
         """
 
     def __call__(self, args):
-        # We have to do a couple things.
-        # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
-            print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
-        if args.port == 0:
-            # This means, choose one at random.  We do this by binding to a
-            # socket and allowing the OS to choose the port for that socket.
-            import socket
-            sock = socket.socket()
-            sock.bind(('', 0))
-            args.port = sock.getsockname()[-1]
-            del sock
-        elif args.port == '-1':
-            port = raw_input("Desired yt port? ")
-            try:
-                args.port = int(port)
-            except ValueError:
-                print "Please try a number next time."
-                return 1
-        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
-        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
-            print
-            print "*** You are missing the ExtJS support files. You  ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
-            print
-            sys.exit(1)
-        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
-        from yt.gui.reason.extdirect_repl import ExtDirectREPL
-        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
-        hr.debug = PayloadHandler.debug = args.debug
-        if args.find:
-            # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
-            for fn in sorted(glob.glob("*/*.hierarchy")):
-                command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
-        bottle.debug()
-        uuid_serve_functions(open_browser=args.open_browser,
-                    port=int(args.port), repl=hr)
+        pf = args.pf
+        kwargs = {'dm_only' : args.dm_only}
+        if args.threshold is not None: kwargs['threshold'] = args.threshold
+        hop_list = HaloFinder(pf, **kwargs)
+        if args.output is None: fn = "%s.hop" % pf
+        else: fn = args.output
+        hop_list.write_out(fn)
 
-    
 class YTHubSubmitCmd(YTCommand):
     name = "hub_submit"
     args = (
@@ -1369,46 +913,310 @@ class YTHubSubmitCmd(YTCommand):
         rv = urllib2.urlopen(req).read()
         print rv
 
-class YTUploadImageCmd(YTCommand):
-    args = (dict(short="file", type=str),)
+class YTInstInfoCmd(YTCommand):
+    name = "instinfo"
+    args = (
+            dict(short="-u", long="--update-source", action="store_true",
+                 default = False,
+                 help="Update the yt installation, if able"),
+            dict(short="-o", long="--output-version", action="store",
+                  default = None, dest="outputfile",
+                  help="File into which the current revision number will be" +
+                       "stored")
+           )
     description = \
         """
-        Upload an image to imgur.com.  Must be PNG.
+        Get some information about the yt installation
 
         """
-    name = "upload_image"
+
+    def __call__(self, opts):
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
+        if "site-packages" not in path:
+            vstring = get_hg_version(path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring.strip()
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            if opts.update_source:  
+                update_hg(path)
+            print "Updated successfully."
+        elif opts.update_source:
+            print
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
+            print
+        if vstring is not None and opts.outputfile is not None:
+            open(opts.outputfile, "w").write(vstring)
+
+class YTLoadCmd(YTCommand):
+    name = "load"
+    description = \
+        """
+        Load a single dataset into an IPython instance
+
+        """
+
+    args = ("pf", )
+
     def __call__(self, args):
-        filename = args.file
-        if not filename.endswith(".png"):
-            print "File must be a PNG file!"
-            return 1
-        import base64, json, pprint
-        image_data = base64.b64encode(open(filename).read())
-        api_key = 'f62d550859558f28c4c214136bc797c7'
-        parameters = {'key':api_key, 'image':image_data, type:'base64',
-                      'caption': "",
-                      'title': "%s uploaded by yt" % filename}
-        data = urllib.urlencode(parameters)
-        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
-        try:
-            response = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as e:
-            print "ERROR", e
-            return {'uploaded':False}
-        rv = json.loads(response)
-        if 'upload' in rv and 'links' in rv['upload']:
-            print
-            print "Image successfully uploaded!  You can find it at:"
-            print "    %s" % (rv['upload']['links']['imgur_page'])
-            print
-            print "If you'd like to delete it, visit this page:"
-            print "    %s" % (rv['upload']['links']['delete_page'])
-            print
+        if args.pf is None:
+            print "Could not load file."
+            sys.exit()
+        import yt.mods
+
+        import IPython
+        if IPython.__version__.startswith("0.10"):
+            api_version = '0.10'
+        elif IPython.__version__.startswith("0.11"):
+            api_version = '0.11'
+
+        local_ns = yt.mods.__dict__.copy()
+        local_ns['pf'] = args.pf
+
+        if api_version == '0.10':
+            shell = IPython.Shell.IPShellEmbed()
+            shell(local_ns = local_ns,
+                  header =
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  )
         else:
+            from IPython.config.loader import Config
+            cfg = Config()
+            cfg.InteractiveShellEmbed.local_ns = local_ns
+            IPython.embed(config=cfg)
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+            ipshell = InteractiveShellEmbed(config=cfg)
+
+
+class YTMapserverCmd(YTCommand):
+    args = ("proj", "field", "weight",
+            dict(short="-a", long="--axis", action="store", type=int,
+                 dest="axis", default=0, help="Axis (4 for all three)"),
+            dict(short ="-o", long="--host", action="store", type=str,
+                   dest="host", default=None, help="IP Address to bind on"),
+            "pf",
+            )
+    
+    name = "mapserver"
+    description = \
+        """
+        Serve a plot in a GMaps-style interface
+
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
+                                          pf.domain_right_edge))
+        if args.axis == 4:
+            print "Doesn't work with multiple axes!"
+            return
+        if args.projection:
+            p = pc.add_projection(args.field, args.axis, weight_field=args.weight)
+        else:
+            p = pc.add_slice(args.field, args.axis)
+        from yt.gui.reason.pannable_map import PannableMapServer
+        mapper = PannableMapServer(p.data, args.field)
+        import yt.utilities.bottle as bottle
+        bottle.debug(True)
+        if args.host is not None:
+            colonpl = args.host.find(":")
+            if colonpl >= 0:
+                port = int(args.host.split(":")[-1])
+                args.host = args.host[:colonpl]
+            else:
+                port = 8080
+            bottle.run(server='rocket', host=args.host, port=port)
+        else:
+            bottle.run(server='rocket')
+
+class YTPastebinCmd(YTCommand):
+    name = "pastebin"
+    args = (
+             dict(short="-l", long="--language", action="store",
+                  default = None, dest="language",
+                  help="Use syntax highlighter for the file in language"),
+             dict(short="-L", long="--languages", action="store_true",
+                  default = False, dest="languages",
+                  help="Retrive a list of supported languages"),
+             dict(short="-e", long="--encoding", action="store",
+                  default = 'utf-8', dest="encoding",
+                  help="Specify the encoding of a file (default is "
+                        "utf-8 or guessing if available)"),
+             dict(short="-b", long="--open-browser", action="store_true",
+                  default = False, dest="open_browser",
+                  help="Open the paste in a web browser"),
+             dict(short="-p", long="--private", action="store_true",
+                  default = False, dest="private",
+                  help="Paste as private"),
+             dict(short="-c", long="--clipboard", action="store_true",
+                  default = False, dest="clipboard",
+                  help="File to output to; else, print."),
+             dict(short="file", type=str),
+            )
+    description = \
+        """
+        Post a script to an anonymous pastebin
+
+        Usage: yt pastebin [options] <script>
+
+        """
+
+    def __call__(self, args):
+        import yt.utilities.lodgeit as lo
+        lo.main(args.file, languages=args.languages, language=args.language,
+                 encoding=args.encoding, open_browser=args.open_browser,
+                 private=args.private, clipboard=args.clipboard)
+
+class YTPastebinGrabCmd(YTCommand):
+    args = (dict(short="number", type=str),)
+    name = "pastebin_grab"
+    description = \
+        """
+        Print an online pastebin to STDOUT for local use. Paste ID is 
+        the number at the end of the url.  So to locally access pastebin:
+        http://paste.yt-project.org/show/1688/
+
+        Usage: yt pastebin_grab <Paste ID> 
+        Ex: yt pastebin_grab 1688 > script.py
+
+        """
+
+    def __call__(self, args):
+        import yt.utilities.lodgeit as lo
+        lo.main( None, download=args.number )
+
+class YTPlotCmd(YTCommand):
+    args = ("width", "unit", "bn", "proj", "center",
+            "zlim", "axis", "field", "weight", "skip",
+            "cmap", "output", "grids", "time", "pf")
+    name = "plot"
+    
+    description = \
+        """
+        Create a set of images
+
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        center = args.center
+        if args.center == (-1,-1,-1):
+            mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        elif args.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+        center = na.array(center)
+        pc=PlotCollection(pf, center=center)
+        if args.axis == 4:
+            axes = range(3)
+        else:
+            axes = [args.axis]
+        for ax in axes:
+            mylog.info("Adding plot for axis %i", ax)
+            if args.projection: pc.add_projection(args.field, ax,
+                                    weight_field=args.weight, center=center)
+            else: pc.add_slice(args.field, ax, center=center)
+            if args.grids: pc.plots[-1].modify["grids"]()
+            if args.time: 
+                time = pf.current_time*pf['Time']*pf['years']
+                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
+        pc.set_width(args.width, args.unit)
+        pc.set_cmap(args.cmap)
+        if args.zlim: pc.set_zlim(*args.zlim)
+        if not os.path.isdir(args.output): os.makedirs(args.output)
+        pc.save(os.path.join(args.output,"%s" % (pf)))
+
+class YTReasonCmd(YTCommand):
+    name = "reason"
+    args = (
+            dict(short="-o", long="--open-browser", action="store_true",
+                 default = False, dest='open_browser',
+                 help="Open a web browser."),
+            dict(short="-p", long="--port", action="store",
+                 default = 0, dest='port',
+                 help="Port to listen on"),
+            dict(short="-f", long="--find", action="store_true",
+                 default = False, dest="find",
+                 help="At startup, find all *.hierarchy files in the CWD"),
+            dict(short="-d", long="--debug", action="store_true",
+                 default = False, dest="debug",
+                 help="Add a debugging mode for cell execution")
+            )
+    description = \
+        """
+        Run the Web GUI Reason
+        """
+
+    def __call__(self, args):
+        # We have to do a couple things.
+        # First, we check that YT_DEST is set.
+        if "YT_DEST" not in os.environ:
             print
-            print "Something has gone wrong!  Here is the server response:"
+            print "*** You must set the environment variable YT_DEST ***"
+            print "*** to point to the installation location!        ***"
             print
-            pprint.pprint(rv)
+            sys.exit(1)
+        if args.port == 0:
+            # This means, choose one at random.  We do this by binding to a
+            # socket and allowing the OS to choose the port for that socket.
+            import socket
+            sock = socket.socket()
+            sock.bind(('', 0))
+            args.port = sock.getsockname()[-1]
+            del sock
+        elif args.port == '-1':
+            port = raw_input("Desired yt port? ")
+            try:
+                args.port = int(port)
+            except ValueError:
+                print "Please try a number next time."
+                return 1
+        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
+        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+            print
+            print "*** You are missing the ExtJS support files. You  ***"
+            print "*** You can get these by either rerunning the     ***"
+            print "*** install script installing, or downloading     ***"
+            print "*** them manually.                                ***"
+            print
+            sys.exit(1)
+        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
+        import yt.utilities.bottle as bottle
+        from yt.gui.reason.extdirect_repl import ExtDirectREPL
+        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
+        hr = ExtDirectREPL(base_extjs_path)
+        hr.debug = PayloadHandler.debug = args.debug
+        if args.find:
+            # We just have to find them and store references to them.
+            command_line = ["pfs = []"]
+            for fn in sorted(glob.glob("*/*.hierarchy")):
+                command_line.append("pfs.append(load('%s'))" % fn[:-10])
+            hr.execute("\n".join(command_line))
+        bottle.debug()
+        uuid_serve_functions(open_browser=args.open_browser,
+                    port=int(args.port), repl=hr)
 
 class YTRenderCmd(YTCommand):
         
@@ -1496,7 +1304,197 @@ class YTRenderCmd(YTCommand):
             save_name += '.png'
         if cam.comm.rank != -1:
             write_bitmap(image,save_name)
-        
+
+class YTRPDBCmd(YTCommand):
+    name = "rpdb"
+    description = \
+        """
+        Connect to a currently running (on localhost) rpd session.
+
+        Commands run with --rpdb will trigger an rpdb session with any
+        uncaught exceptions.
+
+        """
+
+    def __call__(self, args):
+        import rpdb
+        rpdb.run_rpdb(int(task))
+
+class YTServeCmd(YTCommand):
+    name = "serve"
+    args = (
+            dict(short="-o", long="--open-browser", action="store_true",
+                 default = False, dest='open_browser',
+                 help="Open a web browser."),
+            dict(short="-p", long="--port", action="store",
+                 default = 0, dest='port',
+                 help="Port to listen on"),
+            dict(short="-f", long="--find", action="store_true",
+                 default = False, dest="find",
+                 help="At startup, find all *.hierarchy files in the CWD"),
+            dict(short="-d", long="--debug", action="store_true",
+                 default = False, dest="debug",
+                 help="Add a debugging mode for cell execution")
+            )
+    description = \
+        """
+        Run the Web GUI Reason
+        """
+
+    def __call__(self, args):
+        # We have to do a couple things.
+        # First, we check that YT_DEST is set.
+        if "YT_DEST" not in os.environ:
+            print
+            print "*** You must set the environment variable YT_DEST ***"
+            print "*** to point to the installation location!        ***"
+            print
+            sys.exit(1)
+        if args.port == 0:
+            # This means, choose one at random.  We do this by binding to a
+            # socket and allowing the OS to choose the port for that socket.
+            import socket
+            sock = socket.socket()
+            sock.bind(('', 0))
+            args.port = sock.getsockname()[-1]
+            del sock
+        elif args.port == '-1':
+            port = raw_input("Desired yt port? ")
+            try:
+                args.port = int(port)
+            except ValueError:
+                print "Please try a number next time."
+                return 1
+        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
+        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+            print
+            print "*** You are missing the ExtJS support files. You  ***"
+            print "*** You can get these by either rerunning the     ***"
+            print "*** install script installing, or downloading     ***"
+            print "*** them manually.                                ***"
+            print
+            sys.exit(1)
+        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
+        import yt.utilities.bottle as bottle
+        from yt.gui.reason.extdirect_repl import ExtDirectREPL
+        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
+        hr = ExtDirectREPL(base_extjs_path)
+        hr.debug = PayloadHandler.debug = args.debug
+        if args.find:
+            # We just have to find them and store references to them.
+            command_line = ["pfs = []"]
+            for fn in sorted(glob.glob("*/*.hierarchy")):
+                command_line.append("pfs.append(load('%s'))" % fn[:-10])
+            hr.execute("\n".join(command_line))
+        bottle.debug()
+        uuid_serve_functions(open_browser=args.open_browser,
+                    port=int(args.port), repl=hr)
+
+class YTStatsCmd(YTCommand):
+    args = ('outputfn','bn','skip','pf')
+    name = "stats"
+    description = \
+        """
+        Print stats and maximum density for one or more datasets
+
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        pf.h.print_stats()
+        if "Density" in pf.h.field_list:
+            v, c = pf.h.find_max("Density")
+        print "Maximum density: %0.5e at %s" % (v, c)
+        if args.output is not None:
+            t = pf.current_time * pf['years']
+            open(args.output, "a").write(
+                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
+
+class YTUpdateCmd(YTCommand):
+    name = "update"
+    description = \
+        """
+        Update the yt installation to the most recent version
+
+        """
+
+    def __call__(self, opts):
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
+        if "site-packages" not in path:
+            vstring = get_hg_version(path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring.strip()
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            update_hg(path)
+            print "Updated successfully."
+        else:
+            print
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
+            print
+
+class YTUploadImageCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload an image to imgur.com.  Must be PNG.
+
+        """
+    name = "upload_image"
+    def __call__(self, args):
+        filename = args.file
+        if not filename.endswith(".png"):
+            print "File must be a PNG file!"
+            return 1
+        import base64, json, pprint
+        image_data = base64.b64encode(open(filename).read())
+        api_key = 'f62d550859558f28c4c214136bc797c7'
+        parameters = {'key':api_key, 'image':image_data, type:'base64',
+                      'caption': "",
+                      'title': "%s uploaded by yt" % filename}
+        data = urllib.urlencode(parameters)
+        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        try:
+            response = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as e:
+            print "ERROR", e
+            return {'uploaded':False}
+        rv = json.loads(response)
+        if 'upload' in rv and 'links' in rv['upload']:
+            print
+            print "Image successfully uploaded!  You can find it at:"
+            print "    %s" % (rv['upload']['links']['imgur_page'])
+            print
+            print "If you'd like to delete it, visit this page:"
+            print "    %s" % (rv['upload']['links']['delete_page'])
+            print
+        else:
+            print
+            print "Something has gone wrong!  Here is the server response:"
+            print
+            pprint.pprint(rv)
+
 
 def run_main():
     args = parser.parse_args()
