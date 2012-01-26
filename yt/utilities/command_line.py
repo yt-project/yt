@@ -668,7 +668,7 @@ class YTStatsCmd(YTCommand):
         pf.h.print_stats()
         if "Density" in pf.h.field_list:
             v, c = pf.h.find_max("Density")
-        print "Maximum density: %0.5e at %s" % (v, c)
+            print "Maximum density: %0.5e at %s" % (v, c)
         if args.output is not None:
             t = pf.current_time * pf['years']
             open(args.output, "a").write(
