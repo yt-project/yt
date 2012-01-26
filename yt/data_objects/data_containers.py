@@ -3646,7 +3646,6 @@ class AMRBooleanRegionBase(AMR3DData):
                 region._get_list_of_grids()
                 alias = region
             except AttributeError:
-                region.data._get_list_of_grids()
                 alias = region.data
             for grid in alias._grids:
                 if grid in self._some_overlap or grid in self._all_overlap:
