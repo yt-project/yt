@@ -26,7 +26,6 @@ License:
 import os
 import re
 import weakref
-import pdb
 
 from collections import defaultdict
 from string import strip, rstrip
