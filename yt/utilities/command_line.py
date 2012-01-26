@@ -1092,8 +1092,7 @@ class YTPastebinGrabCmd(YTCommand):
     name = "pastebin_grab"
     description = \
         """
-        Print an online pastebin to STDOUT for local use. Paste ID is 
-        the number at the end of the url.  
+        Print an online pastebin to STDOUT for local use. 
         """
 
     def __call__(self, args):
@@ -1388,7 +1387,7 @@ class YTStatsCmd(YTCommand):
     name = "stats"
     description = \
         """
-        Print stats and maximum density for one or more datasets
+        Print stats and max density for one or more datasets
 
         """
 
