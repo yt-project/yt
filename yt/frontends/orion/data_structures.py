@@ -308,7 +308,7 @@ class OrionHierarchy(AMRHierarchy):
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
         self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
-        self.grid_levels = self.grid_levels.reshape((self.num_grids,1))
+        self.grid_levels = na.array(self.grid_levels.reshape((self.num_grids,1)),dtype='int32')
         grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
         self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
         self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
@@ -509,7 +509,7 @@ class OrionStaticOutput(StaticOutput):
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
-        self.domain_dimensions = self.parameters["TopGridDimensions"]
+        self.domain_dimensions = na.array(self.parameters["TopGridDimensions"],dtype='int32')
         self.refine_by = self.parameters["RefineBy"]
 
         if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):

@@ -868,9 +868,9 @@ class FisheyeCamera(Camera):
 
 class MosaicFisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution, focal_center=None,
-                 transfer_function = None, fields = None,
-                 sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
+                 transfer_function=None, fields=None,
+                 sub_samples=5, log_fields=None, volume=None,
+                 pf=None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
                  rotation=None):
         r"""A fisheye lens camera, taking adantage of image plane decomposition
         for parallelism..
