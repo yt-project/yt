@@ -165,15 +165,7 @@ class FLASHHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
+        AMRHierarchy._setup_derived_fields(self)
         [self.parameter_file.conversion_factors[field] 
          for field in self.field_list]
         for field in self.field_list:
