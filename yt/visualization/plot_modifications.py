@@ -594,23 +594,6 @@ class ClumpContourCallback(PlotCallback):
 
             xf_copy = clump[xf].copy()
             yf_copy = clump[yf].copy()
-
-            #Shift zones that belong shifted, both directions in X and Y.
-            shifted = na.logical_and( xf_copy + DomainWidth[px_index] >= DomainRight[px_index],
-                                      xf_copy + DomainWidth[px_index]<= x1 )
-            xf_copy[na.where(shifted)] += DomainWidth[px_index]
-            
-            shifted = na.logical_and( xf_copy - DomainWidth[px_index] <= DomainLeft[px_index],
-                                      xf_copy - DomainWidth[px_index] >= x0 )
-            xf_copy[na.where(shifted)] -= DomainWidth[px_index]
-            
-            shifted = na.logical_and( yf_copy + DomainWidth[py_index] >= DomainRight[py_index],
-                                      yf_copy + DomainWidth[py_index] <= y1 )
-            yf_copy[na.where(shifted)] += DomainWidth[py_index]
-            
-            shifted = na.logical_and( yf_copy - DomainWidth[py_index] <= DomainLeft[py_index],
-                                      yf_copy - DomainWidth[py_index] >= y0 )
-            yf_copy[na.where(shifted)] -= DomainWidth[py_index]
             
             temp = _MPL.Pixelize(xf_copy, yf_copy, 
                                  clump['dx']/2.0,
