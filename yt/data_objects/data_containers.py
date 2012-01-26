@@ -3642,14 +3642,19 @@ class AMRBooleanRegionBase(AMR3DData):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
         for region in self._all_regions:
-            region._get_list_of_grids()
-            for grid in region._grids:
+            try:
+                region._get_list_of_grids()
+                alias = region
+            except AttributeError:
+                region.data._get_list_of_grids()
+                alias = region.data
+            for grid in alias._grids:
                 if grid in self._some_overlap or grid in self._all_overlap:
                     continue
                 # Get the cut_mask for this grid in this region, and see
                 # if there's any overlap with the overall cut_mask.
                 overall = self._get_cut_mask(grid)
-                local = force_array(region._get_cut_mask(grid),
+                local = force_array(alias._get_cut_mask(grid),
                     grid.ActiveDimensions)
                 # Below we don't want to match empty masks.
                 if overall.sum() == 0 and local.sum() == 0: continue
@@ -3723,6 +3728,11 @@ class AMRBooleanRegionBase(AMR3DData):
                         break
                 level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
                     grid), grid.ActiveDimensions))
+            elif isinstance(item.data, AMRData):
+                level_masks.append(force_array(item.data._get_cut_mask(grid),
+                    grid.ActiveDimensions))
+            else:
+                mylog.error("Item in the boolean construction unidentified.")
         # Now we do the logic on our level_mask.
         # There should be no nested logic anymore.
         # The first item should be a cut_mask,
