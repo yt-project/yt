@@ -84,7 +84,8 @@ class FLASHHierarchy(AMRHierarchy):
         nfacevars = len(facevars)
         if (nfacevars > 0) :
             ncomp += nfacevars
-            self.field_list.append(facevars)
+            for facevar in facevars :
+                self.field_list.append(facevar)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -131,11 +132,20 @@ class FLASHHierarchy(AMRHierarchy):
         self.grids = na.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
-        dx = ((self.parameter_file.domain_right_edge -
-               self.parameter_file.domain_left_edge)/
-              self.parameter_file.refine_by**(self.grid_levels.max())).astype('float64')
-        self.grid_left_edge = na.rint(self.grid_left_edge/dx)*dx
-        self.grid_right_edge = na.rint(self.grid_right_edge/dx)*dx
+        
+
+        # This is a possibly slow and verbose fix, and should be re-examined!
+        rdx = (self.parameter_file.domain_right_edge -
+                self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
+        nlevels = self.grid_levels.max()
+        dxs = na.zeros((nlevels+1,3),dtype='float64')
+        for i in range(nlevels+1):
+            dxs[i] = rdx/self.parameter_file.refine_by**i
+       
+        for i in xrange(self.num_grids):
+            dx = dxs[self.grid_levels[i],:]
+            self.grid_left_edge[i] = na.rint(self.grid_left_edge[i]/dx)*dx
+            self.grid_right_edge[i] = na.rint(self.grid_right_edge[i]/dx)*dx
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
@@ -165,15 +175,7 @@ class FLASHHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
+        AMRHierarchy._setup_derived_fields(self)
         [self.parameter_file.conversion_factors[field] 
          for field in self.field_list]
         for field in self.field_list:
@@ -321,8 +323,8 @@ class FLASHStaticOutput(StaticOutput):
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
         nblockx = self._find_parameter("integer", "nblockx")
-        nblocky = self._find_parameter("integer", "nblockx")
-        nblockz = self._find_parameter("integer", "nblockx")
+        nblocky = self._find_parameter("integer", "nblocky")
+        nblockz = self._find_parameter("integer", "nblockz")
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
