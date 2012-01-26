@@ -84,7 +84,8 @@ class FLASHHierarchy(AMRHierarchy):
         nfacevars = len(facevars)
         if (nfacevars > 0) :
             ncomp += nfacevars
-            self.field_list.append(facevars)
+            for facevar in facevars :
+                self.field_list.append(facevar)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -322,8 +323,8 @@ class FLASHStaticOutput(StaticOutput):
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
         nblockx = self._find_parameter("integer", "nblockx")
-        nblocky = self._find_parameter("integer", "nblockx")
-        nblockz = self._find_parameter("integer", "nblockx")
+        nblocky = self._find_parameter("integer", "nblocky")
+        nblockz = self._find_parameter("integer", "nblockz")
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
