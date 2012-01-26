@@ -535,27 +535,6 @@ class YTHopCmd(YTCommand):
         else: fn = args.output
         hop_list.write_out(fn)
 
-class YTHalosCmd(YTCommand):
-    name = "halos"
-    args = ('make_profiles','make_projections','halo_parameter_file',
-            'halos','halo_hop_style','halo_radius','halo_radius_units', 'pf')
-    description = \
-        """
-        Run HaloProfiler on one dataset
-
-        """
-    def __call__(self, args):
-        import yt.analysis_modules.halo_profiler.api as HP
-        kwargs = {'halos': args.halos,
-                  'halo_radius': args.halo_radius,
-                  'radius_units': args.halo_radius_units}
-
-        hp = HP.HaloProfiler(arg,args.halo_parameter_file,**kwargs)
-        if args.make_profiles:
-            hp.make_profiles()
-        if args.make_projections:
-            hp.make_projections()
-
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center",
             "zlim", "axis", "field", "weight", "skip",
@@ -673,72 +652,6 @@ class YTStatsCmd(YTCommand):
             t = pf.current_time * pf['years']
             open(args.output, "a").write(
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
-
-class YTAnalyzeCmd(YTCommand):
-    
-    name = "analyze"
-    args = ('pf',)
-    description = \
-        """
-        Produce a set of analysis for a given output.  This includes
-        HaloProfiler results with r200, as per the recipe file in the cookbook,
-        profiles of a number of fields, projections of average Density and
-        Temperature, and distribution functions for Density and Temperature.
-
-        """
-
-    def __call__(self, args):
-        # We will do the following things:
-        #   Halo profiling (default parameters ONLY)
-        #   Projections: Density, Temperature
-        #   Full-box distribution functions
-        import yt.analysis_modules.halo_profiler.api as HP
-        hp = HP.HaloProfiler(arg)
-        # Add a filter to remove halos that have no profile points with overdensity
-        # above 200, and with virial masses less than 1e14 solar masses.
-        # Also, return the virial mass and radius to be written out to a file.
-        hp.add_halo_filter(HP.VirialFilter,must_be_virialized=True,
-                           overdensity_field='ActualOverdensity',
-                           virial_overdensity=200, virial_filters=[],
-                           virial_quantities=['TotalMassMsun','RadiusMpc'])
-
-        # Add profile fields.
-        pf = hp.pf
-        all_fields = pf.h.field_list + pf.h.derived_field_list
-        for field, wv, acc in HP.standard_fields:
-            if field not in all_fields: continue
-            hp.add_profile(field, wv, acc)
-        hp.make_profiles(filename="FilteredQuantities.out")
-
-        # Add projection fields.
-        hp.add_projection('Density',weight_field=None)
-        hp.add_projection('Temperature',weight_field='Density')
-        if "Metallicity" in all_fields:
-            hp.add_projection('Metallicity',weight_field='Density')
-
-        # Make projections for all three axes using the filtered halo list and
-        # save data to hdf5 files.
-        hp.make_projections(save_cube=True,save_images=True,
-                            halo_list='filtered',axes=[0,1,2])
-
-        # Now we make full-box projections.
-        pf = EnzoStaticOutput(arg)
-        c = 0.5*(pf.domain_right_edge + pf.domain_left_edge)
-        pc = PlotCollection(pf, center=c)
-        for ax in range(3):
-            pc.add_projection("Density", ax, "Density")
-            pc.add_projection("Temperature", ax, "Density")
-            pc.plots[-1].set_cmap("hot")
-
-        # Time to add some phase plots
-        dd = pf.h.all_data()
-        ph = pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
-                            weight=None)
-        pc_dummy = PlotCollection(pf, center=c)
-        pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
-                            weight="CellMassMsun")
-        ph.modify["line"](pr.field_data["Density"], pr.field_data["Temperature"])
-        pc.save()
 
 class YTPastebinCmd(YTCommand):
     name = "pastebin"
