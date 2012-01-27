@@ -22,6 +22,9 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+import numpy as na
+
 from yt.utilities.physical_constants import \
     mh, kboltz
 from yt.data_objects.field_info_container import \
@@ -135,3 +138,38 @@ add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 def _Temperature(field,data):
     return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
 add_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
+
+# particle fields
+
+def particle_func(p_field, dtype='float64'):
+    def _Particles(field, data):
+        io = data.hierarchy.io
+        if not data.NumberOfParticles > 0:
+            return na.array([], dtype=dtype)
+        else:
+            return io._read_particles(data, p_field).astype(dtype)
+
+    return _Particles
+
+_particle_field_list = ["mass", 
+                        "position_x",
+                        "position_y",
+                        "position_z",
+                        "momentum_x",
+                        "momentum_y",
+                        "momentum_z",
+                        "angmomen_x",
+                        "angmomen_y",
+                        "angmomen_z",
+                        "mlast",
+                        "mdeut",
+                        "n",
+                        "mdot",
+                        "burnstate",
+                        "id"]
+
+for pf in _particle_field_list:
+    pfunc = particle_func("particle_%s" % (pf))
+    add_field("particle_%s" % pf, function=pfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)
