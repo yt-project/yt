@@ -69,8 +69,14 @@ class IOHandlerNative(BaseIOHandler):
             lines = f.readlines()
             particles = []
             for line in lines[1:]:
-                particles.append(read(line, field))
-                
+                if grid.NumberOfParticles > 0:
+                    x = read(line, "particle_position_x")
+                    y = read(line, "particle_position_y") 
+                    z = read(line, "particle_position_z") 
+                    if (grid.LeftEdge[0] < x < grid.RightEdge[0] and
+                        grid.LeftEdge[1] < y < grid.RightEdge[1] and
+                        grid.LeftEdge[2] < z < grid.RightEdge[2]):
+                        particles.append(read(line, field))
         return na.array(particles)
 
     def _read_data_set(self,grid,field):
