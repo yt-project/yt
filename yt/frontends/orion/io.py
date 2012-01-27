@@ -70,12 +70,11 @@ class IOHandlerNative(BaseIOHandler):
             particles = []
             for line in lines[1:]:
                 if grid.NumberOfParticles > 0:
-                    x = read(line, "particle_position_x")
-                    y = read(line, "particle_position_y") 
-                    z = read(line, "particle_position_z") 
-                    if (grid.LeftEdge[0] < x < grid.RightEdge[0] and
-                        grid.LeftEdge[1] < y < grid.RightEdge[1] and
-                        grid.LeftEdge[2] < z < grid.RightEdge[2]):
+                    coord = read(line, "particle_position_x"), \
+                            read(line, "particle_position_y"), \
+                            read(line, "particle_position_z") 
+                    if ( (grid.LeftEdge < coord).all() and 
+                         (coord <= grid.RightEdge).all() ):
                         particles.append(read(line, field))
         return na.array(particles)
 
