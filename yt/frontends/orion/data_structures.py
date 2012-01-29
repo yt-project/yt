@@ -577,6 +577,8 @@ class OrionStaticOutput(StaticOutput):
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
+        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
         for key in yt2orionFieldsDict:
             self.conversion_factors[key] = 1.0
 
