@@ -204,7 +204,7 @@ class ARTHierarchy(AMRHierarchy):
         #                 self.pf.domain_dimensions[None,:], # dims of grids
         #                 na.zeros((1,6), dtype='int64') # empty
         #                 )
-        
+        #import pdb; pdb.set_trace()
         root_psg = _ramses_reader.ProtoSubgrid(
                         na.zeros(3, dtype='int64'), # left index of PSG
                         self.pf.domain_dimensions, # dim of PSG
@@ -393,10 +393,25 @@ class ARTHierarchy(AMRHierarchy):
     #     return L + R
         
     def _parse_hierarchy(self):
-        # We have important work to do
+        """ The root grid has no octs except one which is refined.
+        Still, it is the size of 128 cells along a length.
+        Ignore the proto subgrid created for the root grid - it is wrong.
+        """
+        import pdb; pdb.set_trace()
         grids = []
         gi = 0
         for level, grid_list in enumerate(self.proto_grids):
+            if level ==0:
+                assert len(grid_list)==1 #there should only be one grid on the root level
+                fl = grid_list[0].grid_file_locations
+                props = grid_list[0].get_properties()
+                self.grid_left_edge[gi,:] = na.array([0,0,0])
+                self.grid_right_edge[gi,:] = na.array(self.pf.domain_dimensions)
+                self.grid_dimensions[gi,:] = na.array(self.pf.domain_dimensions)
+                self.grid_levels[gi,:] = level
+                grids.append(self.grid(gi, self, level, fl, props[0,:]))
+                gi+=1
+                continue
             for g in grid_list:
                 fl = g.grid_file_locations
                 props = g.get_properties()
@@ -513,6 +528,7 @@ class ARTStaticOutput(StaticOutput):
         tr  = self.tr
         self.conversion_factors["Temperature"] = tr
         self.conversion_factors["Metal_Density"] = 1
+        self.cosmological_simulation = True
         
         # Now our conversion factors
         for ax in 'xyz':
@@ -616,11 +632,10 @@ class ARTStaticOutput(StaticOutput):
 
         (self.ncell,) = struct.unpack('>l', _read_record(f))
         # Try to figure out the root grid dimensions
-        est = na.log2(self.ncell) / 3
-        if int(est) != est: raise RuntimeError
+        est = int(na.rint(self.ncell**(1.0/3.0)))
         # Note here: this is the number of *cells* on the root grid.
         # This is not the same as the number of Octs.
-        self.domain_dimensions = na.ones(3, dtype='int64') * int(2**est)
+        self.domain_dimensions = na.ones(3, dtype='int64')*est 
 
         self.root_grid_mask_offset = f.tell()
         _skip_record(f) # iOctCh
