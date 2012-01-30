@@ -360,23 +360,14 @@ cdef void volume_render_sampler(
         dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
         dp[i] *= vc.idds[i]
         ds[i] = v_dir[i] * vc.idds[i] * dt
-    for i in range(vc.n_fields):
-        slopes[i] = offset_interpolate(vc.dims, dp,
-                        vc.data[i] + offset)
-    for i in range(3):
-        dp[i] += ds[i] * vri.n_samples
-    cdef np.float64_t temp
-    for i in range(vc.n_fields):
-        temp = slopes[i]
-        slopes[i] -= offset_interpolate(vc.dims, dp,
-                         vc.data[i] + offset)
-        slopes[i] *= -1.0/vri.n_samples
-        dvs[i] = temp
-    for dti in range(vri.n_samples): 
-        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
-                          vri.field_table_ids)
-        for i in range(vc.n_fields):
-            dvs[i] += slopes[i]
+    for i in range(vri.n_samples):
+        for j in range(vc.n_fields):
+            dvs[j] = offset_interpolate(vc.dims, dp,
+                    vc.data[j] + offset)
+        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, 
+                vri.fits, vri.field_table_ids)
+        for j in range(3):
+            dp[j] += ds[j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
