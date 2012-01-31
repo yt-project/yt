@@ -142,8 +142,6 @@ def read_art_tree(char *fn, long offset,
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
     #   iOctPr, iOctLv
-    print min_level, max_level 
-    
     cdef int nchild = 8
     cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1
     cdef np.int64_t next_record
@@ -170,7 +168,7 @@ def read_art_tree(char *fn, long offset,
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
         iOct = iHOLL[Level] - 1
         nLevel = iNOLL[Level]
-        print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
+        #print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
         #print ftell(f)
         for ic1 in range(nLevel):
             iOctMax = max(iOctMax, iOct)
@@ -218,7 +216,7 @@ def read_art_tree(char *fn, long offset,
         
         #find the length of all of the children section
         child_record = ftell(f) +  (next_record+2*sizeof(int))*nLevel*nchild
-        print 'Skipping over hydro vars', ftell(f), child_record
+        #print 'Skipping over hydro vars', ftell(f), child_record
         fseek(f, child_record, SEEK_SET)
         
         # for ic1 in range(nLevel * nchild):

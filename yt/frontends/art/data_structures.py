@@ -143,7 +143,7 @@ class ARTHierarchy(AMRHierarchy):
         LEVEL_OF_EDGE = 7
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         
-        min_eff = 0.2
+        min_eff = 0.40
         
         f = open(self.pf.parameter_filename,'rb')
         self.pf.nhydro_vars, self.pf.level_info, self.pf.level_offsetsa = \
@@ -211,7 +211,6 @@ class ARTHierarchy(AMRHierarchy):
                 self.proto_grids.append([])
                 continue
             ggi = (ogrid_levels == level).ravel()
-            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
             nd = self.pf.domain_dimensions * 2**level
             dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
             fl = ogrid_file_locations[ggi,:]
@@ -248,8 +247,10 @@ class ARTHierarchy(AMRHierarchy):
                         hilbert_indices, unique_indices, left_index, fl)
             
             #iterate over the domains    
-            pbar = get_pbar("Re-gridding ", len(locs))
-            import pdb; pdb.set_trace()
+            step=0
+            pbar = get_pbar("Re-gridding  Level %i"%level, len(locs))
+            psg_eff = []
+            psg_dep = []
             for ddleft_index, ddfl in zip(lefts, locs):
                 #iterate over just the unique octs
                 #why would we ever have non-unique octs?
@@ -278,16 +279,34 @@ class ARTHierarchy(AMRHierarchy):
                 #that only partially fill the grid,it  may be more efficient
                 #to split large patches into smaller patches. We split
                 #if less than 10% the volume of a patch is covered with octs
-                psgs.extend(_ramses_reader.recursive_patch_splitting(
+                psg_split = _ramses_reader.recursive_patch_splitting(
                     psg, idims, initial_left, 
-                    dleft_index, dfl,min_eff=min_eff))
+                    dleft_index, dfl,min_eff=min_eff)
+                    
+                psgs.extend(psg_split)
+                
+                tol = 1.00001
+                psg_eff  += [x.efficiency for x in psg_split] 
+                psg_dep  += [x.num_deep for x in psg_split] 
+                
                 step+=1
                 pbar.update(step)
+            eff_mean = na.mean(psg_eff)
+            eff_nmin = na.sum([e<=min_eff*tol for e in psg_eff])
+            eff_nall = len(psg_eff)
+            dep_mean = na.rint(na.mean(psg_dep))
+            mylog.info("Average subgrid efficiency %02.1f %% and average depth %i",
+                        eff_mean*100.0, dep_mean)
+            mylog.info("%02.1f%% (%i/%i) of grids had minimum efficiency",
+                        eff_nmin*100.0/eff_nall,eff_nmin,eff_nall)
+            mylog.info("Re-gridding level %i: %s octree grids", level, ggi.sum())
+            
+        
             mylog.debug("Done with level % 2i", level)
             pbar.finish()
             self.proto_grids.append(psgs)
-            print sum(len(psg.grid_file_locations) for psg in psgs)
-            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
+            #print sum(len(psg.grid_file_locations) for psg in psgs)
+            #mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
         self.num_grids = sum(len(l) for l in self.proto_grids)
                     
@@ -585,7 +604,7 @@ def _count_art_octs(f, offset,
         #print 'offset:',f.tell()
         Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
            '>iii', _read_record(f))
-        print 'Level %i : '%Lev, iNOLL
+        #print 'Level %i : '%Lev, iNOLL
         #print 'offset after level record:',f.tell()
         iOct = iHOLL[Lev] - 1
         nLevel = iNOLL[Lev]
@@ -606,4 +625,36 @@ def _count_art_octs(f, offset,
         nhydrovars = 8+2
     f.seek(offset)
     return nhydrovars, iNOLL, level_offsets
+
+def _read_art_level(f, level_offsets,level):
+    pos = f.tell()
+    f.seek(level_offsets[leve])
+    #Get the info for this level, skip the rest
+    #print "Reading oct tree data for level", Lev
+    #print 'offset:',f.tell()
+    Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
+       '>iii', _read_record(f))
+    #print 'Level %i : '%Lev, iNOLL
+    #print 'offset after level record:',f.tell()
+    iOct = iHOLL[Lev] - 1
+    nLevel = iNOLL[Lev]
+    nLevCells = nLevel * nchild
+    ntot = ntot + nLevel
+
+    #Skip all the oct hierarchy data
+    #in the future, break this up into large chunks
+    count = nLevel*15
+    le  = numpy.zeros((count,3),dtype='int64')
+    fl  = numpy.zeros((count,6),dtype='int64')
+    idxa,idxb = 0,0
+    chunk = 1e9 #this is ~111MB for 15 dimensional 64 bit arrays
+    while left > 0 :
+        data = na.fromfile(f,dtype='>i',count=chunk*15)
+        data.reshape(chunk,15)
+        left = count-index
+        le[idxa:idxb,:] = data[0:3]
+        fl[idxa:idxb,1] = numpy.arange(chunk)
+    del data
+    f.seek(pos)
+    return le,fl
 
