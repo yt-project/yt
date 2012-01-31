@@ -557,10 +557,10 @@ echo $HDF5_DIR > hdf5.cfg
 touch done
 cd $MY_PWD
 
-if !(${DEST_DIR}/bin/python2.7 -c "import readline")
+if !(${DEST_DIR}/bin/python2.7 -c "import readline" >> ${LOG_FILE})
 then
     echo "Installing pure-python readline"
-    ${DEST_DIR}/bin/pip install readline
+    ${DEST_DIR}/bin/pip install readline 1>> ${LOG_FILE}
 fi
 
 if [ $INST_ENZO -eq 1 ]
