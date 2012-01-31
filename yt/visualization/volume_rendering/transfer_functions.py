@@ -89,7 +89,7 @@ class TransferFunction(object):
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         """
         vals = height * na.exp(-(self.x - location)**2.0/width)
-        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, na.inf)
 
     def add_line(self, start, stop):
         r"""Add a line between two points to the transmission function.
@@ -122,7 +122,7 @@ class TransferFunction(object):
         # not satisfy our bounding box arguments
         vals = slope * (self.x - x0) + y0
         vals[~((self.x >= x0) & (self.x <= x1))] = 0.0
-        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, na.inf)
 
     def add_step(self, start, stop, value):
         r"""Adds a step function to the transfer function.
@@ -156,7 +156,7 @@ class TransferFunction(object):
         """
         vals = na.zeros(self.x.shape, 'float64')
         vals[(self.x >= start) & (self.x <= stop)] = value
-        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, na.inf)
 
     def add_filtered_planck(self, wavelength, trans):
         vals = na.zeros(self.x.shape, 'float64')
