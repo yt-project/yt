@@ -143,8 +143,11 @@ class ARTHierarchy(AMRHierarchy):
         LEVEL_OF_EDGE = 7
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         
+        min_eff = 0.2
+        
         f = open(self.pf.parameter_filename,'rb')
-        self.pf.nhydro_vars, self.pf.level_info = _count_art_octs(f, 
+        self.pf.nhydro_vars, self.pf.level_info, self.pf.level_offsetsa = \
+                         _count_art_octs(f, 
                           self.pf.child_grid_offset,
                           self.pf.min_level, self.pf.max_level)
         self.pf.level_info[0]=self.pf.ncell
@@ -223,7 +226,8 @@ class ARTHierarchy(AMRHierarchy):
             order = max(level + 1 - LEVEL_OF_EDGE, 0)
             
             #compute the hilbert indices up to a certain level
-            #this has nothing to do with our data yet
+            #the indices will associate an oct grid to the nearest
+            #hilbert index?
             hilbert_indices = _ramses_reader.get_hilbert_indices(order, left_index_gridpatch)
             
             # Strictly speaking, we don't care about the index of any
@@ -244,28 +248,41 @@ class ARTHierarchy(AMRHierarchy):
                         hilbert_indices, unique_indices, left_index, fl)
             
             #iterate over the domains    
-            step=0        
-            pbar = get_pbar("Re-gridding ", len(lefts))
+            pbar = get_pbar("Re-gridding ", len(locs))
+            import pdb; pdb.set_trace()
             for ddleft_index, ddfl in zip(lefts, locs):
                 #iterate over just the unique octs
                 #why would we ever have non-unique octs?
                 #perhaps the hilbert ordering may visit the same
                 #oct multiple times - review only unique octs 
-                for idomain in na.unique(ddfl[:,0]):
-                    dom_ind = ddfl[:,0] == idomain
-                    dleft_index = ddleft_index[dom_ind,:]
-                    dfl = ddfl[dom_ind,:]
-                    initial_left = na.min(dleft_index, axis=0)
-                    idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
-                    psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                    dleft_index, dfl)
-                    if psg.efficiency <= 0: continue
-                    self.num_deep = 0
-                    psgs.extend(_ramses_reader.recursive_patch_splitting(
-                        psg, idims, initial_left, 
-                        dleft_index, dfl))
-                pbar.updte(step)
+                #for idomain in na.unique(ddfl[:,1]):
+                #dom_ind = ddfl[:,1] == idomain
+                #dleft_index = ddleft_index[dom_ind,:]
+                #dfl = ddfl[dom_ind,:]
+                
+                dleft_index = ddleft_index
+                dfl = ddfl
+                initial_left = na.min(dleft_index, axis=0)
+                idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
+                
+                #this creates a grid patch that doesn't cover the whole level
+                #necessarily, but with other patches covers all the regions
+                #with octs. This object automatically shrinks its size
+                #to barely encompass the octs inside of it.
+                psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
+                                dleft_index, dfl)
+                if psg.efficiency <= 0: continue
+                self.num_deep = 0
+                
+                #because grid patches may still be mostly empty, and with octs
+                #that only partially fill the grid,it  may be more efficient
+                #to split large patches into smaller patches. We split
+                #if less than 10% the volume of a patch is covered with octs
+                psgs.extend(_ramses_reader.recursive_patch_splitting(
+                    psg, idims, initial_left, 
+                    dleft_index, dfl,min_eff=min_eff))
                 step+=1
+                pbar.update(step)
             mylog.debug("Done with level % 2i", level)
             pbar.finish()
             self.proto_grids.append(psgs)
@@ -552,15 +569,17 @@ def _read_record_size(f):
     f.seek(pos)
     return s[0]
 
-def _count_art_octs(f, offset,
+def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):
-    import gc
+    level_offsets= []
     f.seek(offset)
     nchild,ntot=8,0
     Level = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
     iNOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
     iHOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
     for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+        level_offsets.append(f.tell())
+        
         #Get the info for this level, skip the rest
         #print "Reading oct tree data for level", Lev
         #print 'offset:',f.tell()
@@ -586,5 +605,5 @@ def _count_art_octs(f, offset,
         #find nhydrovars
         nhydrovars = 8+2
     f.seek(offset)
-    return nhydrovars, iNOLL
+    return nhydrovars, iNOLL, level_offsets
 

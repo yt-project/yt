@@ -972,19 +972,26 @@ def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind,
+def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind, 
                             np.ndarray[np.int64_t, ndim=1] uind,
                             np.ndarray[np.int64_t, ndim=2] lefts,
                             np.ndarray[np.int64_t, ndim=2] files):
+    #ind are the hilbert indices 
+    #uind are the unique hilbert indices                        
+    #count[n] track of how many times the nth index of uind occurs in ind
+    
     cdef np.ndarray[np.int64_t, ndim=1] count = np.zeros(uind.shape[0], 'int64')
     cdef int n, i
     cdef np.int64_t mi, mui
+    
+    #fill in the count array
     for i in range(ind.shape[0]):
         mi = ind[i]
         for n in range(uind.shape[0]):
             if uind[n] == mi:
                 count[n] += 1
                 break
+    
     cdef np.int64_t **alefts
     cdef np.int64_t **afiles
     afiles = <np.int64_t **> malloc(sizeof(np.int64_t *) * uind.shape[0])
@@ -994,6 +1001,9 @@ def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind,
     cdef np.ndarray[np.int64_t, ndim=2] left
     all_locations = []
     all_lefts = []
+    
+    #having measure the repetition of each hilbert index,
+    #we can know declare how much memory we will use
     for n in range(uind.shape[0]):
         locations = np.zeros((count[n], 6), 'int64')
         left = np.zeros((count[n], 3), 'int64')
@@ -1002,7 +1012,11 @@ def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind,
         afiles[n] = <np.int64_t *> locations.data
         alefts[n] = <np.int64_t *> left.data
         li[n] = 0
+    
     cdef int fi
+    #now arrange all_locations and all_lefts sequentially
+    #such that when they return to python
+    #the 1d array mutates into a list of lists?
     for i in range(ind.shape[0]):
         mi = ind[i]
         for n in range(uind.shape[0]):
@@ -1022,8 +1036,8 @@ def recursive_patch_splitting(ProtoSubgrid psg,
         np.ndarray[np.int64_t, ndim=1] ind,
         np.ndarray[np.int64_t, ndim=2] left_index,
         np.ndarray[np.int64_t, ndim=2] fl,
-        int num_deep = 0):
-    cdef float min_eff = 0.1
+        int num_deep = 0,
+        float min_eff = 0.1):
     cdef ProtoSubgrid L, R
     cdef np.ndarray[np.int64_t, ndim=1] dims_l, li_l
     cdef np.ndarray[np.int64_t, ndim=1] dims_r, li_r
