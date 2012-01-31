@@ -30,8 +30,6 @@ import cPickle
 import os
 import struct
 
-import pdb
-
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
@@ -204,7 +202,6 @@ class ARTHierarchy(AMRHierarchy):
         #                 self.pf.domain_dimensions[None,:], # dims of grids
         #                 na.zeros((1,6), dtype='int64') # empty
         #                 )
-        #import pdb; pdb.set_trace()
         root_psg = _ramses_reader.ProtoSubgrid(
                         na.zeros(3, dtype='int64'), # left index of PSG
                         self.pf.domain_dimensions, # dim of PSG
@@ -397,28 +394,23 @@ class ARTHierarchy(AMRHierarchy):
         Still, it is the size of 128 cells along a length.
         Ignore the proto subgrid created for the root grid - it is wrong.
         """
-        import pdb; pdb.set_trace()
         grids = []
         gi = 0
         for level, grid_list in enumerate(self.proto_grids):
-            if level ==0:
-                assert len(grid_list)==1 #there should only be one grid on the root level
-                fl = grid_list[0].grid_file_locations
-                props = grid_list[0].get_properties()
-                self.grid_left_edge[gi,:] = na.array([0,0,0])
-                self.grid_right_edge[gi,:] = na.array(self.pf.domain_dimensions)
-                self.grid_dimensions[gi,:] = na.array(self.pf.domain_dimensions)
-                self.grid_levels[gi,:] = level
-                grids.append(self.grid(gi, self, level, fl, props[0,:]))
-                gi+=1
-                continue
+            #The root level spans [0,2]
+            #The next level spans [0,256]
+            #The 3rd Level spans up to 128*2^3, etc.
+            #Correct root level to span up to 128
+            correction=1.0
+            if level == 0:
+                correction=64.0
             for g in grid_list:
                 fl = g.grid_file_locations
                 props = g.get_properties()
                 dds = ((2**level) * self.pf.domain_dimensions).astype("float64")
-                self.grid_left_edge[gi,:] = props[0,:] / dds
-                self.grid_right_edge[gi,:] = props[1,:] / dds
-                self.grid_dimensions[gi,:] = props[2,:]
+                self.grid_left_edge[gi,:] = props[0,:]*correction / dds
+                self.grid_right_edge[gi,:] = props[1,:]*correction / dds
+                self.grid_dimensions[gi,:] = props[2,:]*correction
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
