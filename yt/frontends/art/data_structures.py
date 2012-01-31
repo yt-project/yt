@@ -143,7 +143,7 @@ class ARTHierarchy(AMRHierarchy):
         LEVEL_OF_EDGE = 7
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         
-        min_eff = 0.40
+        min_eff = 0.20
         
         f = open(self.pf.parameter_filename,'rb')
         self.pf.nhydro_vars, self.pf.level_info, self.pf.level_offsetsa = \
@@ -248,9 +248,8 @@ class ARTHierarchy(AMRHierarchy):
             
             #iterate over the domains    
             step=0
-            pbar = get_pbar("Re-gridding  Level %i"%level, len(locs))
+            pbar = get_pbar("Re-gridding  Level %i "%level, len(locs))
             psg_eff = []
-            psg_dep = []
             for ddleft_index, ddfl in zip(lefts, locs):
                 #iterate over just the unique octs
                 #why would we ever have non-unique octs?
@@ -273,7 +272,6 @@ class ARTHierarchy(AMRHierarchy):
                 psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
                                 dleft_index, dfl)
                 if psg.efficiency <= 0: continue
-                self.num_deep = 0
                 
                 #because grid patches may still be mostly empty, and with octs
                 #that only partially fill the grid,it  may be more efficient
@@ -287,19 +285,17 @@ class ARTHierarchy(AMRHierarchy):
                 
                 tol = 1.00001
                 psg_eff  += [x.efficiency for x in psg_split] 
-                psg_dep  += [x.num_deep for x in psg_split] 
                 
                 step+=1
                 pbar.update(step)
             eff_mean = na.mean(psg_eff)
             eff_nmin = na.sum([e<=min_eff*tol for e in psg_eff])
             eff_nall = len(psg_eff)
-            dep_mean = na.rint(na.mean(psg_dep))
-            mylog.info("Average subgrid efficiency %02.1f %% and average depth %i",
-                        eff_mean*100.0, dep_mean)
+            mylog.info("Average subgrid efficiency %02.1f %%",
+                        eff_mean*100.0)
             mylog.info("%02.1f%% (%i/%i) of grids had minimum efficiency",
                         eff_nmin*100.0/eff_nall,eff_nmin,eff_nall)
-            mylog.info("Re-gridding level %i: %s octree grids", level, ggi.sum())
+            mylog.info("Coalesced %s octree grids", ggi.sum())
             
         
             mylog.debug("Done with level % 2i", level)
