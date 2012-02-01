@@ -27,6 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from stdlib cimport malloc, free
+from fp_utils cimport fclip
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -302,7 +303,132 @@ def disk_cells(dobj, gobj):
 
 # Inclined Box
 # Rectangular Prism
+
+def rprism_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i, n
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.ndarray[np.float64_t, ndim=1] rp_left = dobj.left_edge
+    cdef np.ndarray[np.float64_t, ndim=1] rp_right = dobj.right_edge
+    for n in range(ng):
+        inside = 1
+        for i in range(3):
+            if rp_left[i] >= right_edges[n,i] or \
+               rp_right[i] <= left_edges[n,i]:
+                inside = 0
+                break
+        if inside == 1: gridi[n] = 1
+    return gridi
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline int rprism_cell(
+                        np.float64_t x, np.float64_t y, np.float64_t z,
+                        np.float64_t LE[3], np.float64_t RE[3]):
+    if LE[0] > x or RE[0] < x: return 0
+    if LE[1] > y or RE[1] < y: return 0
+    if LE[2] > z or RE[2] < z: return 0
+    return 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def rprism_cells(dobj, gobj):
+    cdef int i, j, k
+    cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+    cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+    cdef np.float64_t LE[3], RE[3]
+    for i in range(3):
+        LE[i] = dobj.LeftEdge[i]
+        RE[i] = dobj.RightEdge[i]
+    # TODO: Implement strict and periodicity ...
+    cdef np.float64_t x, y, z
+    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    x = left_edge[0] + dds[0] * 0.5
+    for i in range(mask.shape[0]):
+        y = left_edge[1] + dds[1] * 0.5
+        for j in range(mask.shape[1]):
+            z = left_edge[2] + dds[2] * 0.5
+            for k in range(mask.shape[2]):
+                mask[i,j,k] = rprism_cell(x, y, z, LE, RE)
+                z += dds[1]
+            y += dds[1]
+        x += dds[0]
+    return mask
+
 # Sphere
+
+def sphere_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i, n
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.float64_t center[3], box_center, relcenter, closest, dist
+    cdef np.float64_t edge
+    for i in range(3):
+        center[i] = dobj.center[i]
+    cdef np.float64_t radius2 = dobj._radius * dobj._radius
+    for n in range(ng):
+        # Check if the sphere is inside the grid
+        if (left_edges[n,0] <= center[0] <= right_edges[n,0] and
+            left_edges[n,1] <= center[1] <= right_edges[n,1] and
+            left_edges[n,2] <= center[2] <= right_edges[n,2]):
+            gridi[n] = 1
+            continue
+        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
+        dist = 0
+        for i in range(3):
+            box_center = (right_edges[n,i] + left_edges[n,i])/2.0
+            relcenter = center[i] - box_center
+            edge = right_edges[n,i] - left_edges[n,i]
+            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
+            dist += closest * closest
+        if dist < radius2: gridi[n] = 1
+    return gridi
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline int sphere_cell(
+                        np.float64_t x, np.float64_t y, np.float64_t z,
+                        np.float64_t center[3], np.float64_t radius2):
+    cdef np.float64_t dist2
+    dist2 = ( (x - center[0])*(x - center[0])
+            + (y - center[1])*(y - center[1])
+            + (z - center[2])*(z - center[2]) )
+    if dist2 < radius2: return 1
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def sphere_cells(dobj, gobj):
+    cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+    cdef np.float64_t radius2 = dobj._radius * dobj._radius
+    cdef np.float64_t center[3]
+    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+    cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+    cdef int i, j, k
+    for i in range(3): center[i] = dobj.center[i]
+    cdef np.float64_t x, y, z
+    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    x = left_edge[0] + dds[0] * 0.5
+    for i in range(mask.shape[0]):
+        y = left_edge[1] + dds[1] * 0.5
+        for j in range(mask.shape[1]):
+            z = left_edge[2] + dds[2] * 0.5
+            for k in range(mask.shape[2]):
+                mask[i,j,k] = sphere_cell(x, y, z, center, radius2)
+                z += dds[1]
+            y += dds[1]
+        x += dds[0]
+    return mask
+
 # Ellipse
                 
 @cython.boundscheck(False)
