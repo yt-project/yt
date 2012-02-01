@@ -47,17 +47,17 @@ ChomboFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 
 add_field("X-momentum", function=lambda a,b: None, take_log=False,
           validators = [ValidateDataField("X-Momentum")],
-          units=r"",display_name=r"B_x")
+          units=r"",display_name=r"M_x")
 ChomboFieldInfo["X-momentum"]._projected_units=r""
 
 add_field("Y-momentum", function=lambda a,b: None, take_log=False,
           validators = [ValidateDataField("Y-Momentum")],
-          units=r"",display_name=r"B_y")
+          units=r"",display_name=r"M_y")
 ChomboFieldInfo["Y-momentum"]._projected_units=r""
 
 add_field("Z-momentum", function=lambda a,b: None, take_log=False,
           validators = [ValidateDataField("Z-Momentum")],
-          units=r"",display_name=r"B_z")
+          units=r"",display_name=r"M_z")
 ChomboFieldInfo["Z-momentum"]._projected_units=r""
 
 add_field("X-magnfield", function=lambda a,b: None, take_log=False,
@@ -128,3 +128,10 @@ def _Density(field,data):
 add_field("Density",function=_Density, take_log=True,
           units=r'\rm{g}/\rm{cm^3}')
     
+def _pressure(field,data):
+    return (data["X-magnfield"]**2 +
+            data["Y-magnfield"]**2 +
+            data["Z-magnfield"]**2)/2.
+add_field("pressure", function=_MagneticEnergy, take_log=True,
+          units=r"",display_name=r"\rm{erg}/\rm{cm}^3")
+ChomboFieldInfo["MagneticEnergy"]._projected_units=r""

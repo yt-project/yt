@@ -146,6 +146,7 @@ class ChomboHierarchy(AMRHierarchy):
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
         levels = f.listnames()[1:]
+        #levels = [fn for fn in f if fn != "Chombo_global"]
         self.grids = []
         i = 0
         for lev in levels:
@@ -313,28 +314,28 @@ class ChomboStaticOutput(StaticOutput):
     def __calc_left_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        LE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[0:3])
+        LE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain'].tolist()))[0:3])
         fileh.close()
         return LE
             
     def __calc_right_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
+        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain'].tolist()))[3:] + 1)
         fileh.close()
         return RE
               
     def __calc_domain_dimensions(self):
         fileh = h5py.File(self.parameter_filename,'r')
-        L_index = ((na.array(fileh['/level_0'].attrs['prob_domain']))[0:3])
-        R_index = ((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
+        L_index = ((na.array(fileh['/level_0'].attrs['prob_domain'].tolist()))[0:3])
+        R_index = ((na.array(fileh['/level_0'].attrs['prob_domain'].tolist()))[3:] + 1)
         return R_index - L_index
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            if (fileh.listnames())[0] == 'Chombo_global':
+            if (fileh.keys())[0] == 'Chombo_global':
                 return True
         except:
             pass
