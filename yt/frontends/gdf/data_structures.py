@@ -178,6 +178,12 @@ class GDFStaticOutput(StaticOutput):
                 self.units[field_name] = self._handle["/field_types/%s" % field_name].attrs['field_to_cgs']
             except:
                 self.units[field_name] = 1.0
+            try:
+                self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
+                   units=self._handle["/field_types/%s" % field_name].attrs['field_units'][0],
+                   projected_units =r"")
+            except:
+                pass
 
         self._handle.close()
         del self._handle
