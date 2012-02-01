@@ -91,7 +91,7 @@ var repl_input = new Ext.FormPanel({
                     },
                     notifyDrop  : function(ddSource, e, data){
 
-                        var varname = data.node.attributes.objdata.varname;
+			var varname = data.node.attributes.objdata.varname;
                         /* There is possibly a better way to do this, where it's also inserted correctly. */
                         var line = repl_input.get("input_line");
                         line.setValue(line.getValue() + varname);
