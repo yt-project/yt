@@ -205,6 +205,105 @@ def cutting_plane_cells(dobj, gobj):
             y += dds[1]
         x += dds[0]
     return mask
+
+# Disk
+
+def disk_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges):
+    cdef int i, j, k, xi, yi, zi
+    cdef int ng = left_edges.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.float64_t *arr[2]
+    arr[0] = <np.float64_t *> left_edges.data
+    arr[1] = <np.float64_t *> right_edges.data
+    cdef np.float64_t x, y, z
+    cdef np.float64_t norm_vec[3], center[3]
+    cdef np.float64_t d = dobj._d # offset to center
+    cdef np.float64_t rs = dobj._radius
+    cdef np.float64_t height = dobj._height
+    cdef np.float64_t H, D, R
+    cdef int cond[4]
+    # * H < height
+    # * R < radius
+    # * not ( all(H > 0) or all(H < 0) )
+    for i in range(3):
+        norm_vec[i] = dobj._norm_vec[i]
+        center[i] = dobj.center[i]
+    for i in range(ng):
+        cond[0] = cond[1] = 0
+        cond[2] = cond[3] = 1
+        for xi in range(2):
+            x = arr[xi][i * 3 + 0]
+            for yi in range(2):
+                y = arr[yi][i * 3 + 1]
+                for zi in range(2):
+                    z = arr[zi][i * 3 + 2]
+                    H = ( x * norm_vec[0]
+                        + y * norm_vec[1]
+                        + z * norm_vec[2]) + d
+                    D = ((x - center[0])**2
+                       + (y - center[1])**2
+                       + (z - center[2])**2)
+                    R = (D - H*H)**0.5
+                    if cond[0] == 0 and H < height: cond[0] = 1
+                    if cond[1] == 0 and R < rs: cond[1] = 1
+                    if cond[2] == 1 and H < 0: cond[2] = 0
+                    if cond[3] == 1 and H > 0: cond[3] = 0
+        if cond[0] == cond[1] == 1 and not (cond[2] == 1 or cond[3] == 1):
+            gridi[i] = 1
+    return gridi
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline int disk_cell(
+                        np.float64_t x, np.float64_t y, np.float64_t z,
+                        np.float64_t norm_vec[3], np.float64_t obj_c[3],
+                        np.float64_t obj_d, np.float64_t obj_r,
+                        np.float64_t obj_h):
+    cdef np.float64_t h, d, r
+    h = x * norm_vec[0] + y * norm_vec[1] + z * norm_vec[2] + obj_d
+    d = ( (x - obj_c[0])**2
+        + (y - obj_c[1])**2
+        + (z - obj_c[2])**2)**0.5
+    r = (d*d - h*h)**0.5
+    if fabs(h) <= obj_h and r <= obj_r: return 1
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def disk_cells(dobj, gobj):
+    cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+    cdef int i, j, k
+    cdef np.float64_t x, y, z, dist
+    cdef np.float64_t norm_vec[3], obj_c[3]
+    cdef np.float64_t obj_d = dobj._d
+    cdef np.float64_t obj_r = dobj._radius
+    cdef np.float64_t obj_h = dobj._h
+    for i in range(3):
+        norm_vec[i] = dobj._norm_vec[i]
+        obj_c[i] = dobj.center[i]
+    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    x = left_edge[0] + dds[0] * 0.5
+    for i in range(mask.shape[0]):
+        y = left_edge[1] + dds[1] * 0.5
+        for j in range(mask.shape[1]):
+            z = left_edge[2] + dds[2] * 0.5
+            for k in range(mask.shape[2]):
+                mask[i,j,k] = disk_cell(x, y, z, norm_vec, obj_c,
+                                    obj_d, obj_r, obj_h)
+                z += dds[1]
+            y += dds[1]
+        x += dds[0]
+    return mask
+
+# Inclined Box
+# Rectangular Prism
+# Sphere
+# Ellipse
                 
 @cython.boundscheck(False)
 @cython.wraparound(False)
