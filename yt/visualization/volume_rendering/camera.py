@@ -926,6 +926,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     # We manually modify the ProjectionTransferFunction to get it to work the
     # way we want, with a second field that's also passed through.
     fields = [field]
+    
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
         def _make_wf(f, w):
@@ -937,7 +938,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
             function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     image = na.zeros((resolution, resolution, 3), dtype='float64',
-                      order='F')
+                      order='C')
     normal_vector, north_vector, east_vector = ortho_find(normal_vector)
     unit_vectors = [north_vector, east_vector, normal_vector]
     back_center= center - 0.5*width * normal_vector
@@ -1103,3 +1104,84 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
     canvas.print_figure(fn)
     return img, count
+
+class ProjectionCamera(Camera):
+    def __init__(self, pf, center, normal_vector, width, resolution,
+            field, weight=None, volume=None, le=None, re=None,
+            north_vector=None):
+        Camera.__init__(self, center, normal_vector, width, resolution, None,
+                fields = field, pf=pf, volume=1,
+                le=le, re=re, north_vector=north_vector)
+        self.field = field
+        self.weight = weight
+        self.resolution = resolution
+
+    def snapshot(self):
+        fields = [self.field]
+        resolution = self.resolution
+        width = self.width[2]
+        pf = self.pf
+        if self.weight is not None:
+            # This is a temporary field, which we will remove at the end.
+            def _make_wf(f, w):
+                def temp_weightfield(a, b):
+                    tr = b[f].astype("float64") * b[w]
+                    return tr
+                return temp_weightfield
+            pf.field_info.add_field("temp_weightfield",
+                function=_make_wf(self.field, self.weight))
+            fields = ["temp_weightfield", self.weight]
+        image = na.zeros((resolution, resolution, 3), dtype='float64',
+                          order='C')
+
+        north_vector = self.unit_vectors[0]
+        east_vector = self.unit_vectors[1]
+        normal_vector = self.unit_vectors[2]
+
+        back_center= self.center - 0.5*width * normal_vector
+        rotp = na.concatenate([na.linalg.pinv(self.unit_vectors).ravel('F'),
+                               back_center])
+
+        sampler = ProjectionSampler(
+            rotp, normal_vector * width, back_center,
+            (-width/2, width/2, -width/2, width/2),
+            image, north_vector, east_vector,
+            na.array([width, width, width], dtype='float64'))
+        
+        # Calculate the eight corners of the box
+        # Back corners ...
+        mi = pf.domain_right_edge.copy()
+        ma = pf.domain_left_edge.copy()
+        for off1 in [-1, 1]:
+            for off2 in [-1, 1]:
+                for off3 in [-1, 1]:
+                    this_point = (self.center + width/2. * off1 * north_vector
+                                         + width/2. * off2 * east_vector
+                                         + width/2. * off3 * normal_vector)
+                    na.minimum(mi, this_point, mi)
+                    na.maximum(ma, this_point, ma)
+        # Now we have a bounding box.
+        grids = pf.h.region(self.center, mi, ma)._grids
+
+        pb = get_pbar("Sampling ", len(grids))
+        for i,grid in enumerate(grids):
+            data = [(grid[field] * grid.child_mask).astype("float64")
+                    for field in fields]
+            pg = PartitionedGrid(
+                grid.id, data,
+                grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
+            grid.clear_data()
+            sampler(pg)
+            pb.update(i)
+        pb.finish()
+        image = sampler.aimage
+        if self.weight is None:
+            dl = width * pf.units[pf.field_info[self.field].projection_conversion]
+            image *= dl
+        else:
+            image[:,:,0] /= image[:,:,1]
+            pf.field_info.pop("temp_weightfield")
+        return image[:,:,0]
+
+data_object_registry["projection_camera"] = ProjectionCamera
+
