@@ -1383,20 +1383,31 @@ class YTServeCmd(YTCommand):
                     port=int(args.port), repl=hr)
 
 class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf')
+    args = ('outputfn','bn','skip','pf', 'field',
+            dict(long="--max", action="store_true", default=False,
+                 dest='max', help="Display maximum of requested field."),
+            dict(long="--min", action="store_true", default=False,
+                 dest='min', help="Display minimum of requested field."))
     name = "stats"
     description = \
         """
-        Print stats and max density for one or more datasets
+        Print stats and max/min value of a given field (if requested),
+        for one or more datasets
+
+        (default field is density)
 
         """
 
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
-        if "Density" in pf.h.field_list:
-            v, c = pf.h.find_max("Density")
-            print "Maximum density: %0.5e at %s" % (v, c)
+        if args.field in pf.h.field_list:
+            if args.max == True:
+                v, c = pf.h.find_max(args.field)
+                print "Maximum %s: %0.5e at %s" % (args.field, v, c)
+            if args.min == True:
+                v, c = pf.h.find_min(args.field)
+                print "Minimum %s: %0.5e at %s" % (args.field, v, c)
         if args.output is not None:
             t = pf.current_time * pf['years']
             open(args.output, "a").write(
