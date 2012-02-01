@@ -31,7 +31,8 @@ cimport healpix_interface
 from stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from field_interpolation_tables cimport \
-    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer
+    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
+    FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
@@ -45,17 +46,15 @@ cdef extern from "math.h":
     double fmod(double x, double y) nogil
     double log2(double x) nogil
     long int lrint(double x) nogil
+    double nearbyint(double x) nogil
     double fabs(double x) nogil
-
-cdef struct VolumeContainer
-ctypedef void sample_function(
-                VolumeContainer *vc,
-                np.float64_t v_pos[3],
-                np.float64_t v_dir[3],
-                np.float64_t enter_t,
-                np.float64_t exit_t,
-                int index[3],
-                void *data) nogil
+    double atan(double x) nogil
+    double atan2(double y, double x) nogil
+    double acos(double x) nogil
+    double asin(double x) nogil
+    double cos(double x) nogil
+    double sin(double x) nogil
+    double sqrt(double x) nogil
 
 cdef struct VolumeContainer:
     int n_fields
@@ -66,6 +65,15 @@ cdef struct VolumeContainer:
     np.float64_t idds[3]
     int dims[3]
 
+ctypedef void sample_function(
+                VolumeContainer *vc,
+                np.float64_t v_pos[3],
+                np.float64_t v_dir[3],
+                np.float64_t enter_t,
+                np.float64_t exit_t,
+                int index[3],
+                void *data) nogil
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -75,6 +83,7 @@ cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.cdivision(True)
     def __cinit__(self,
                   int parent_grid_id, data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
@@ -82,6 +91,7 @@ cdef class PartitionedGrid:
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
+        self.container = NULL
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -105,7 +115,8 @@ cdef class PartitionedGrid:
     def __dealloc__(self):
         # The data fields are not owned by the container, they are owned by us!
         # So we don't need to deallocate them.
-        free(self.container.data)
+        if self.container == NULL: return
+        if self.container.data != NULL: free(self.container.data)
         free(self.container)
 
 cdef struct ImageContainer:
@@ -217,7 +228,7 @@ cdef class ImageSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, PartitionedGrid pg):
+    def __call__(self, PartitionedGrid pg, int num_threads = 0):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
@@ -229,34 +240,39 @@ cdef class ImageSampler:
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4]
         hit = 0
-        self.calculate_extent(extrema, vc)
-        self.get_start_stop(extrema, iter)
-        iter[0] = iclip(iter[0]-1, 0, im.nv[0]-1)
-        iter[1] = iclip(iter[1]+1, 0, im.nv[0]-1)
-        iter[2] = iclip(iter[2]-1, 0, im.nv[1]-1)
-        iter[3] = iclip(iter[3]+1, 0, im.nv[1]-1)
+        cdef int nx, ny, size
+        if im.vd_strides[0] == -1:
+            self.calculate_extent(extrema, vc)
+            self.get_start_stop(extrema, iter)
+            iter[0] = iclip(iter[0]-1, 0, im.nv[0])
+            iter[1] = iclip(iter[1]+1, 0, im.nv[0])
+            iter[2] = iclip(iter[2]-1, 0, im.nv[1])
+            iter[3] = iclip(iter[3]+1, 0, im.nv[1])
+            nx = (iter[1] - iter[0])
+            ny = (iter[3] - iter[2])
+            size = nx * ny
+        else:
+            nx = im.nv[0]
+            ny = 1
+            iter[0] = iter[1] = iter[2] = iter[3] = 0
+            size = nx
         cdef ImageAccumulator *idata
-        cdef void *data
-        cdef int nx = (iter[1] - iter[0])
-        cdef int ny = (iter[3] - iter[2])
-        cdef int size = nx * ny
         cdef np.float64_t px, py 
         cdef np.float64_t width[3] 
         for i in range(3):
             width[i] = self.width[i]
-        #print iter[0], iter[1], iter[2], iter[3], width[0], width[1], width[2]
-        with nogil, parallel():
-            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-            idata.supp_data = self.supp_data
-            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            if im.vd_strides[0] == -1:
+        if im.vd_strides[0] == -1:
+            with nogil, parallel():
+                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+                idata.supp_data = self.supp_data
+                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 for j in prange(size, schedule="dynamic"):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
                     # Dynamically calculate the position
-                    px = width[0] * (<float>vi)/(<float>im.nv[0]-1) - width[0]/2.0
-                    py = width[1] * (<float>vj)/(<float>im.nv[1]-1) - width[1]/2.0
+                    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
+                    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
                     v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
                     v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
@@ -265,24 +281,27 @@ cdef class ImageSampler:
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
                                 (<void *> idata))
                     for i in range(3): im.image[i + offset] = idata.rgba[i]
-            else:
+                free(idata)
+                free(v_pos)
+        else:
+            with nogil, parallel():
+                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+                idata.supp_data = self.supp_data
+                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
-                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                for j in prange(size, schedule="dynamic"):
-                    vj = j % ny
-                    vi = (j - vj) / ny + iter[0]
-                    vj = vj + iter[2]
-                    offset = im.vp_strides[0] * vi + im.vp_strides[1] * vj
-                    for i in range(3): v_pos[i] = im.vp_dir[i + offset]
-                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
-                    offset = im.vd_strides[0] * vi + im.vd_strides[1] * vj
+                for j in prange(size, schedule="guided"):
+                    offset = j * 3
+                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    walk_volume(vc, v_pos, v_dir, self.sampler, data)
+                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    walk_volume(vc, v_pos, v_dir, self.sampler, 
+                                (<void *> idata))
+                    for i in range(3): im.image[i + offset] = idata.rgba[i]
                 free(v_dir)
-            free(idata)
-            free(v_pos)
+                free(idata)
+                free(v_pos)
         return hit
 
 cdef void projection_sampler(
@@ -296,10 +315,7 @@ cdef void projection_sampler(
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
-    # We need this because by default it assumes vertex-centered data.
-    for i in range(3):
-        if index[i] < 0 or index[i] >= vc.dims[i]: return
-    cdef int di = (index[0]*(vc.dims[1])+index[1])*vc.dims[2]+index[2]
+    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
     for i in range(imin(3, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
@@ -316,6 +332,8 @@ cdef struct VolumeRenderAccumulator:
     np.float64_t star_er
     np.float64_t star_sigma_num
     kdtree_utils.kdtree *star_list
+    np.float64_t *light_dir
+    np.float64_t *light_rgba
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -359,6 +377,46 @@ cdef void volume_render_sampler(
                           vri.field_table_ids)
         for i in range(vc.n_fields):
             dvs[i] += slopes[i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void volume_render_gradient_sampler(
+                 VolumeContainer *vc, 
+                 np.float64_t v_pos[3],
+                 np.float64_t v_dir[3],
+                 np.float64_t enter_t,
+                 np.float64_t exit_t,
+                 int index[3],
+                 void *data) nogil:
+    cdef ImageAccumulator *im = <ImageAccumulator *> data
+    cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
+            im.supp_data
+    # we assume this has vertex-centered data.
+    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
+                    + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
+    cdef np.float64_t dvs[6]
+    cdef np.float64_t *grad
+    grad = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    for i in range(3):
+        dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
+        dp[i] *= vc.idds[i]
+        ds[i] = v_dir[i] * vc.idds[i] * dt
+    for i in range(vri.n_samples):
+        for j in range(vc.n_fields):
+            dvs[j] = offset_interpolate(vc.dims, dp,
+                    vc.data[j] + offset)
+        eval_gradient(vc.dims, dp, vc.data[0] + offset, grad)
+        FIT_eval_transfer_with_light(dt, dvs, grad, 
+                vri.light_dir, vri.light_rgba,
+                im.rgba, vri.n_fits, 
+                vri.fits, vri.field_table_ids)
+        for j in range(3):
+            dp[j] += ds[j]
+    free(grad)
 
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
@@ -516,6 +574,68 @@ cdef class VolumeRenderSampler(ImageSampler):
         free(self.vra.fits)
         free(self.vra)
 
+cdef class LightSourceRenderSampler(ImageSampler):
+    cdef VolumeRenderAccumulator *vra
+    cdef public object tf_obj
+    cdef public object my_field_tables
+    def __cinit__(self, 
+                  np.ndarray vp_pos,
+                  np.ndarray vp_dir,
+                  np.ndarray[np.float64_t, ndim=1] center,
+                  bounds,
+                  np.ndarray[np.float64_t, ndim=3] image,
+                  np.ndarray[np.float64_t, ndim=1] x_vec,
+                  np.ndarray[np.float64_t, ndim=1] y_vec,
+                  np.ndarray[np.float64_t, ndim=1] width,
+                  tf_obj, n_samples = 10,
+                  light_dir=[1.,1.,1.],
+                  light_rgba=[1.,1.,1.,1.]):
+        ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
+                               x_vec, y_vec, width)
+        cdef int i
+        cdef np.ndarray[np.float64_t, ndim=1] temp
+        # Now we handle tf_obj
+        self.vra = <VolumeRenderAccumulator *> \
+            malloc(sizeof(VolumeRenderAccumulator))
+        self.vra.fits = <FieldInterpolationTable *> \
+            malloc(sizeof(FieldInterpolationTable) * 6)
+        self.vra.n_fits = tf_obj.n_field_tables
+        assert(self.vra.n_fits <= 6)
+        self.vra.n_samples = n_samples
+        self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
+        self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)
+        light_dir /= np.sqrt(light_dir[0]**2 + light_dir[1]**2 + light_dir[2]**2)
+        for i in range(3):
+            self.vra.light_dir[i] = light_dir[i]
+        for i in range(4):
+            self.vra.light_rgba[i] = light_rgba[i]
+        self.my_field_tables = []
+        for i in range(self.vra.n_fits):
+            temp = tf_obj.tables[i].y
+            FIT_initialize_table(&self.vra.fits[i],
+                      temp.shape[0],
+                      <np.float64_t *> temp.data,
+                      tf_obj.tables[i].x_bounds[0],
+                      tf_obj.tables[i].x_bounds[1],
+                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i],
+                      tf_obj.weight_table_ids[i])
+            self.my_field_tables.append((tf_obj.tables[i],
+                                         tf_obj.tables[i].y))
+        for i in range(6):
+            self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
+        self.supp_data = <void *> self.vra
+
+    def setup(self, PartitionedGrid pg):
+        self.sampler = volume_render_gradient_sampler
+
+    def __dealloc__(self):
+        return
+        free(self.vra.fits)
+        free(self.vra)
+        free(self.light_dir)
+        free(self.light_rgba)
+
+
 cdef class GridFace:
     cdef int direction
     cdef public np.float64_t coord
@@ -642,26 +762,33 @@ cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t *return_t = NULL,
                      np.float64_t enter_t = -1.0) nogil:
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
-    cdef np.float64_t intersect_t = 1.0
+    cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
-    cdef np.float64_t intersect[3], tmax[3], tdelta[3]
+    cdef np.float64_t tmax[3], tdelta[3]
     cdef np.float64_t dist, alpha, dt, exit_t
     cdef np.float64_t tr, tl, temp_x, temp_y, dv
+    direction = -1
+    if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
+       vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
+       vc.left_edge[2] <= v_pos[2] and v_pos[2] <= vc.right_edge[2]:
+        intersect_t = 0.0
+        direction = 3
     for i in range(3):
         if (v_dir[i] < 0):
             step[i] = -1
-        elif (v_dir[i] == 0):
-            step[i] = 1
-            tmax[i] = 1e60
-            iv_dir[i] = 1e60
-            tdelta[i] = 1e-60
+        elif (v_dir[i] == 0.0):
+            step[i] = 0
             continue
         else:
             step[i] = 1
+        iv_dir[i] = 1.0/v_dir[i]
+        if direction == 3: continue
         x = (i+1) % 3
         y = (i+2) % 3
-        iv_dir[i] = 1.0/v_dir[i]
-        tl = (vc.left_edge[i] - v_pos[i])*iv_dir[i]
+        if step[i] > 0:
+            tl = (vc.left_edge[i] - v_pos[i])*iv_dir[i]
+        else:
+            tl = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
         temp_x = (v_pos[x] + tl*v_dir[x])
         temp_y = (v_pos[y] + tl*v_dir[y])
         if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
@@ -669,78 +796,232 @@ cdef int walk_volume(VolumeContainer *vc,
            0.0 <= tl and tl < intersect_t:
             direction = i
             intersect_t = tl
-        tr = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
-        temp_x = (v_pos[x] + tr*v_dir[x])
-        temp_y = (v_pos[y] + tr*v_dir[y])
-        if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
-           vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
-           0.0 <= tr and tr < intersect_t:
-            direction = i
-            intersect_t = tr
-    if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
-       vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
-       vc.left_edge[2] <= v_pos[2] and v_pos[2] <= vc.right_edge[2]:
-        intersect_t = 0.0
-    if enter_t >= 0.0: intersect_t = enter_t
+    if enter_t >= 0.0: intersect_t = enter_t 
     if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
     for i in range(3):
-        intersect[i] = v_pos[i] + intersect_t * v_dir[i]
-        cur_ind[i] = <int> floor((intersect[i] +
-                                  step[i]*1e-8*vc.dds[i] -
-                                  vc.left_edge[i])*vc.idds[i])
-        tmax[i] = (((cur_ind[i]+step[i])*vc.dds[i])+
-                    vc.left_edge[i]-v_pos[i])*iv_dir[i]
-        # This deals with the asymmetry in having our indices refer to the
-        # left edge of a cell, but the right edge of the brick being one
-        # extra zone out.
-        if cur_ind[i] == vc.dims[i] and step[i] < 0:
+        # Two things have to be set inside this loop.
+        # cur_ind[i], the current index of the grid cell the ray is in
+        # tmax[i], the 't' until it crosses out of the grid cell
+        tdelta[i] = step[i] * iv_dir[i] * vc.dds[i] 
+        if i == direction and step[i] > 0:
+            # Intersection with the left face in this direction
+            cur_ind[i] = 0 
+        elif i == direction and step[i] < 0:
+            # Intersection with the right face in this direction
             cur_ind[i] = vc.dims[i] - 1
-        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i]: return 0
+        else:
+            # We are somewhere in the middle of the face
+            temp_x = intersect_t * v_dir[i] + v_pos[i] # current position
+            temp_y = ((temp_x - vc.left_edge[i])*vc.idds[i])
+            cur_ind[i] =  <int> (floor(temp_y))
         if step[i] > 0:
-            tmax[i] = (((cur_ind[i]+1)*vc.dds[i])
-                        +vc.left_edge[i]-v_pos[i])*iv_dir[i]
-        if step[i] < 0:
-            tmax[i] = (((cur_ind[i]+0)*vc.dds[i])
-                        +vc.left_edge[i]-v_pos[i])*iv_dir[i]
-        tdelta[i] = (vc.dds[i]*iv_dir[i])
-        if tdelta[i] < 0: tdelta[i] *= -1
+            temp_y = (cur_ind[i] + 1) * vc.dds[i] + vc.left_edge[i]
+        elif step[i] < 0:
+            temp_y = cur_ind[i] * vc.dds[i] + vc.left_edge[i]
+        tmax[i] = (temp_y - v_pos[i]) * iv_dir[i]
+        if step[i] == 0:
+            tmax[i] = 1e60
     # We have to jumpstart our calculation
+    for i in range(3):
+        if cur_ind[i] == vc.dims[i] and step[i] == 1:
+            return 0
+        if cur_ind[i] == -1 and step[i] == -1:
+            return 0
     enter_t = intersect_t
     hit = 0
     while 1:
-        # dims here is one less than the dimensions of the data,
-        # but we are tracing on the grid, not on the data...
-        if (not (0 <= cur_ind[0] < vc.dims[0])) or \
-           (not (0 <= cur_ind[1] < vc.dims[1])) or \
-           (not (0 <= cur_ind[2] < vc.dims[2])):
-            break
         hit += 1
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
-                exit_t = fmin(tmax[0], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[0] += step[0]
-                enter_t = tmax[0]
-                tmax[0] += tdelta[0]
+                i = 0
             else:
-                exit_t = fmin(tmax[2], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[2] += step[2]
-                enter_t = tmax[2]
-                tmax[2] += tdelta[2]
+                i = 2
         else:
             if tmax[1] < tmax[2]:
-                exit_t = fmin(tmax[1], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[1] += step[1]
-                enter_t = tmax[1]
-                tmax[1] += tdelta[1]
+                i = 1
             else:
-                exit_t = fmin(tmax[2], 1.0)
-                sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
-                cur_ind[2] += step[2]
-                enter_t = tmax[2]
-                tmax[2] += tdelta[2]
-        if enter_t >= 1.0: break
+                i = 2
+        exit_t = fmin(tmax[i], 1.0)
+        sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
+        cur_ind[i] += step[i]
+        enter_t = tmax[i]
+        tmax[i] += tdelta[i]
+        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= 1.0:
+            break
     if return_t != NULL: return_t[0] = exit_t
     return hit
+
+def hp_pix2vec_nest(long nside, long ipix):
+    cdef double v[3]
+    healpix_interface.pix2vec_nest(nside, ipix, v)
+    cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
+    tr[0] = v[0]
+    tr[1] = v[1]
+    tr[2] = v[2]
+    return tr
+
+def arr_pix2vec_nest(long nside,
+                     np.ndarray[np.int64_t, ndim=1] aipix):
+    cdef int n = aipix.shape[0]
+    cdef int i
+    cdef double v[3]
+    cdef long ipix
+    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 3), dtype='float64')
+    for i in range(n):
+        ipix = aipix[i]
+        healpix_interface.pix2vec_nest(nside, ipix, v)
+        tr[i,0] = v[0]
+        tr[i,1] = v[1]
+        tr[i,2] = v[2]
+    return tr
+
+def hp_vec2pix_nest(long nside, double x, double y, double z):
+    cdef double v[3]
+    v[0] = x
+    v[1] = y
+    v[2] = z
+    cdef long ipix
+    healpix_interface.vec2pix_nest(nside, v, &ipix)
+    return ipix
+
+def arr_vec2pix_nest(long nside,
+                     np.ndarray[np.float64_t, ndim=1] x,
+                     np.ndarray[np.float64_t, ndim=1] y,
+                     np.ndarray[np.float64_t, ndim=1] z):
+    cdef int n = x.shape[0]
+    cdef int i
+    cdef double v[3]
+    cdef long ipix
+    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    for i in range(n):
+        v[0] = x[i]
+        v[1] = y[i]
+        v[2] = z[i]
+        healpix_interface.vec2pix_nest(nside, v, &ipix)
+        tr[i] = ipix
+    return tr
+
+def hp_pix2ang_nest(long nside, long ipnest):
+    cdef double theta, phi
+    healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+    return (theta, phi)
+
+def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
+    cdef int n = aipnest.shape[0]
+    cdef int i
+    cdef long ipnest
+    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 2), dtype='float64')
+    cdef double theta, phi
+    for i in range(n):
+        ipnest = aipnest[i]
+        healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+        tr[i,0] = theta
+        tr[i,1] = phi
+    return tr
+
+def hp_ang2pix_nest(long nside, double theta, double phi):
+    cdef long ipix
+    healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+    return ipix
+
+def arr_ang2pix_nest(long nside,
+                     np.ndarray[np.float64_t, ndim=1] atheta,
+                     np.ndarray[np.float64_t, ndim=1] aphi):
+    cdef int n = atheta.shape[0]
+    cdef int i
+    cdef long ipnest
+    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    cdef double theta, phi
+    for i in range(n):
+        theta = atheta[i]
+        phi = aphi[i]
+        healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
+        tr[i] = ipnest
+    return tr
+
+@cython.boundscheck(False)
+@cython.cdivision(False)
+@cython.wraparound(False)
+def pixelize_healpix(long nside,
+                     np.ndarray[np.float64_t, ndim=1] values,
+                     long ntheta, long nphi,
+                     np.ndarray[np.float64_t, ndim=2] irotation):
+    # We will first to pix2vec, rotate, then calculate the angle
+    cdef int i, j, thetai, phii
+    cdef long ipix
+    cdef double v0[3], v1[3]
+    cdef double pi = 3.1415926
+    cdef np.float64_t pi2 = pi/2.0
+    cdef np.float64_t phi, theta
+    cdef np.ndarray[np.float64_t, ndim=2] results
+    cdef np.ndarray[np.int32_t, ndim=2] count
+    results = np.zeros((ntheta, nphi), dtype="float64")
+    count = np.zeros((ntheta, nphi), dtype="int32")
+
+    cdef np.float64_t phi0 = 0
+    cdef np.float64_t dphi = 2.0 * pi/(nphi-1)
+
+    cdef np.float64_t theta0 = 0
+    cdef np.float64_t dtheta = pi/(ntheta-1)
+    # We assume these are the rotated theta and phi
+    for thetai in range(ntheta):
+        theta = theta0 + dtheta * thetai
+        for phii in range(nphi):
+            phi = phi0 + dphi * phii
+            # We have our rotated vector
+            v1[0] = cos(phi) * sin(theta)
+            v1[1] = sin(phi) * sin(theta)
+            v1[2] = cos(theta)
+            # Now we rotate back
+            for i in range(3):
+                v0[i] = 0
+                for j in range(3):
+                    v0[i] += v1[j] * irotation[j,i]
+            # Get the pixel this vector is inside
+            healpix_interface.vec2pix_nest(nside, v0, &ipix)
+            results[thetai, phii] = values[ipix]
+            count[i, j] += 1
+    return results, count
+    for i in range(ntheta):
+        for j in range(nphi):
+            if count[i,j] > 0:
+                results[i,j] /= count[i,j]
+    return results, count
+
+def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
+                        long nside,
+                        np.ndarray[np.float64_t, ndim=2] image,
+                        np.ndarray[np.float64_t, ndim=2] irotation):
+    cdef double pi = np.pi
+    cdef int i, j, k, l
+    cdef np.float64_t x, y, z, zb
+    cdef np.float64_t dx, dy, inside
+    cdef double v0[3], v1[3]
+    dx = 2.0 / (image.shape[1] - 1)
+    dy = 2.0 / (image.shape[0] - 1)
+    cdef np.float64_t s2 = sqrt(2.0)
+    cdef long ipix
+    for i in range(image.shape[1]):
+        x = (-1.0 + i*dx)*s2*2.0
+        for j in range(image.shape[0]):
+            y = (-1.0 + j * dy)*s2
+            zb = (x*x/8.0 + y*y/2.0 - 1.0)
+            if zb > 0: continue
+            z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+            z = z**0.5
+            # Longitude
+            phi = (2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi)
+            # Latitude
+            # We shift it into co-latitude
+            theta = (asin(z*y) + pi/2.0)
+            # Now to account for rotation we translate into vectors
+            v1[0] = cos(phi) * sin(theta)
+            v1[1] = sin(phi) * sin(theta)
+            v1[2] = cos(theta)
+            for k in range(3):
+                v0[k] = 0
+                for l in range(3):
+                    v0[k] += v1[l] * irotation[l,k]
+            healpix_interface.vec2pix_nest(nside, v0, &ipix)
+            #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
+            image[j, i] = pix_image[ipix]

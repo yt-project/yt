@@ -54,6 +54,8 @@ from yt.utilities.linear_interpolators import \
     TrilinearFieldInterpolator
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
+from yt.utilities.minimal_representation import \
+    MinimalProjectionData
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -86,6 +88,20 @@ def restore_grid_state(func):
         tr = func(self, grid, field, *args, **kwargs)
         grid.field_parameters = old_params
         grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
+        return tr
+    return save_state
+
+def restore_field_information_state(func):
+    """
+    A decorator that takes a function with the API of (self, grid, field)
+    and ensures that after the function is called, the field_parameters will
+    be returned to normal.
+    """
+    def save_state(self, grid, field=None, *args, **kwargs):
+        old_params = grid.field_parameters
+        grid.field_parameters = self.field_parameters
+        tr = func(self, grid, field, *args, **kwargs)
+        grid.field_parameters = old_params
         return tr
     return save_state
 
@@ -212,7 +228,7 @@ class AMRData(object):
         self._point_indices = {}
         self._vc_data = {}
         for key, val in kwargs.items():
-            mylog.info("Setting %s to %s", key, val)
+            mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
@@ -382,9 +398,10 @@ class AMRData(object):
                      [self.field_parameters])
         return (_reconstruct_object, args)
 
-    def __repr__(self):
+    def __repr__(self, clean = False):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        if clean: s = "%s: " % (self.__class__.__name__)
+        else: s = "%s (%s): " % (self.__class__.__name__, self.pf)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._con_args])
         return s
@@ -811,6 +828,38 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             self[field] = temp_data[field]
 
     def to_frb(self, width, resolution, center = None):
+        r"""This function returns a FixedResolutionBuffer generated from this
+        object.
+
+        A FixedResolutionBuffer is an object that accepts a variable-resolution
+        2D object and transforms it into an NxM bitmap that can be plotted,
+        examined or processed.  This is a convenience function to return an FRB
+        directly from an existing 2D data object.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+        center : array-like of floats, optional
+            The center of the FRB.  If not specified, defaults to the center of
+            the current object.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> proj = pf.h.proj(0, "Density")
+        >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
+        """
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
@@ -1221,6 +1270,52 @@ class AMRCuttingPlaneBase(AMR2DData):
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
 
+    def to_frb(self, width, resolution):
+        r"""This function returns an ObliqueFixedResolutionBuffer generated
+        from this object.
+
+        An ObliqueFixedResolutionBuffer is an object that accepts a
+        variable-resolution 2D object and transforms it into an NxM bitmap that
+        can be plotted, examined or processed.  This is a convenience function
+        to return an FRB directly from an existing 2D data object.  Unlike the
+        corresponding to_frb function for other AMR2DData objects, this does
+        not accept a 'center' parameter as it is assumed to be centered at the
+        center of the cutting plane.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> cutting = pf.h.cutting(L, c)
+        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_1pc.png')
+        """
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
+
 class AMRFixedResCuttingPlaneBase(AMR2DData):
     """
     AMRFixedResCuttingPlaneBase is an oblique plane through the data,
@@ -1515,6 +1610,10 @@ class AMRQuadTreeProjBase(AMR2DData):
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
+
+    @property
+    def _mrep(self):
+        return MinimalProjectionData(self)
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -2443,14 +2542,8 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         verts = []
         samples = []
         for i, g in enumerate(self._get_grid_objs()):
-            mask = self._get_cut_mask(g) * g.child_mask
-            vals = g.get_vertex_centered_data(field)
-            if sample_values is not None:
-                svals = g.get_vertex_centered_data(sample_values)
-            else:
-                svals = None
-            my_verts = march_cubes_grid(value, vals, mask, g.LeftEdge, g.dds,
-                                        svals)
+            my_verts = self._extract_isocontours_from_grid(
+                            g, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
@@ -2476,6 +2569,20 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         if sample_values is not None:
             return verts, samples
         return verts
+
+
+    @restore_grid_state
+    def _extract_isocontours_from_grid(self, grid, field, value,
+                                       sample_values = None):
+        mask = self._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if sample_values is not None:
+            svals = grid.get_vertex_centered_data(sample_values)
+        else:
+            svals = None
+        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
+                                    grid.dds, svals)
+        return my_verts
 
     def calculate_isocontour_flux(self, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
@@ -2543,18 +2650,24 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         flux = 0.0
         for g in self._get_grid_objs():
-            mask = self._get_cut_mask(g) * g.child_mask
-            vals = g.get_vertex_centered_data(field)
-            if fluxing_field is None:
-                ff = na.ones(vals.shape, dtype="float64")
-            else:
-                ff = g.get_vertex_centered_data(fluxing_field)
-            xv, yv, zv = [g.get_vertex_centered_data(f) for f in 
-                         [field_x, field_y, field_z]]
-            flux += march_cubes_grid_flux(value, vals, xv, yv, zv,
-                        ff, mask, g.LeftEdge, g.dds)
+            flux += self._calculate_flux_in_grid(g, field, value,
+                    field_x, field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
+
+    @restore_grid_state
+    def _calculate_flux_in_grid(self, grid, field, value,
+                    field_x, field_y, field_z, fluxing_field = None):
+        mask = self._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if fluxing_field is None:
+            ff = na.ones(vals.shape, dtype="float64")
+        else:
+            ff = grid.get_vertex_centered_data(fluxing_field)
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+                     [field_x, field_y, field_z]]
+        return march_cubes_grid_flux(value, vals, xv, yv, zv,
+                    ff, mask, grid.LeftEdge, grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                 log_space=True, cumulative=True, cache=False):
@@ -2854,12 +2967,6 @@ class AMRCylinderBase(AMR3DData):
             cm = ( (na.abs(h) <= self._height)
                  & (r <= self._radius))
         return cm
-
-    def volume(self, unit="unitary"):
-        """
-        Return the volume of the cylinder in units of *unit*.
-        """
-        return math.pi * (self._radius)**2. * self._height * pf[unit]**3
 
 class AMRInclinedBox(AMR3DData):
     _type_name="inclined_box"
@@ -3430,7 +3537,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                                    output_field, output_left)
             self.field_data[field] = output_field
 
-    @restore_grid_state
+    @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field].astype("float64") for field in fields]
@@ -3522,6 +3629,19 @@ class AMRBooleanRegionBase(AMR3DData):
                     # Some of local is in overall
                     self._some_overlap.append(grid)
                     continue
+    
+    def __repr__(self):
+        # We'll do this the slow way to be clear what's going on
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s += "["
+        for i, region in enumerate(self.regions):
+            if region in ["OR", "AND", "NOT", "(", ")"]:
+                s += region
+            else:
+                s += region.__repr__(clean = True)
+            if i < (len(self.regions) - 1): s += ", "
+        s += "]"
+        return s
     
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)

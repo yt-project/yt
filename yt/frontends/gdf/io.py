@@ -1,6 +1,8 @@
 """
 The data-file handling functions
 
+Author: Samuel W. Skillman <samskillman@gmail.com>
+Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -35,38 +37,33 @@ class IOHandlerGDFHDF5(BaseIOHandler):
     def _field_dict(self,fhandle):
         keys = fhandle['field_types'].keys()
         val = fhandle['field_types'].keys()
-        # ncomp = int(fhandle['/'].attrs['num_components'])
-        # temp =  fhandle['/'].attrs.listitems()[-ncomp:]
-        # val, keys = zip(*temp)
-        # val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
         return dict(zip(keys,val))
         
     def _read_field_names(self,grid):
         fhandle = h5py.File(grid.filename,'r')
-        return fhandle['field_types'].keys()
+        names = fhandle['field_types'].keys()
+        fhandle.close()
+        return names
     
     def _read_data_set(self,grid,field):
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
-        return fhandle['/data/grid_%010i/'%grid.id+field][:]
-        # field_dict = self._field_dict(fhandle)
-        # lstring = 'level_%i' % grid.Level
-        # lev = fhandle[lstring]
-        # dims = grid.ActiveDimensions
-        # boxsize = dims.prod()
-        
-        # grid_offset = lev[self._offset_string][grid._level_id]
-        # start = grid_offset+field_dict[field]*boxsize
-        # stop = start + boxsize
-        # data = lev[self._data_string][start:stop]
-
-        # return data.reshape(dims, order='F')
-                                          
+        data = (fhandle['/data/grid_%010i/'%grid.id+field][:]).copy()
+        fhandle.close()
+        if grid.pf.field_ordering == 1:
+            return data.T
+        else:
+            return data
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
+        if grid.pf.field_ordering == 1:
+            sl.reverse()
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
-        return fhandle['/data/grid_%010i/'%grid.id+field][:][sl]
-
-    # return self._read_data_set(grid,field)[sl]
+        data = (fhandle['/data/grid_%010i/'%grid.id+field][:][sl]).copy()
+        fhandle.close()
+        if grid.pf.field_ordering == 1:
+            return data.T
+        else:
+            return data
 

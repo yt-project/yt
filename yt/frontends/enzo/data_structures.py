@@ -484,6 +484,15 @@ class EnzoHierarchy(AMRHierarchy):
         if self.num_grids > 40:
             starter = na.random.randint(0, 20)
             random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            # We also add in a bit to make sure that some of the grids have
+            # particles
+            gwp = self.grid_particle_count > 0
+            if na.any(gwp) and not na.any(gwp[(random_sample,)]):
+                # We just add one grid.  This is not terribly efficient.
+                first_grid = na.where(gwp)[0][0]
+                random_sample.resize((21,))
+                random_sample[-1] = first_grid
+                mylog.debug("Added additional grid %s", first_grid)
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")

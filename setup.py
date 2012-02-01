@@ -76,7 +76,7 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 
 import setuptools
 
-VERSION = "2.3dev"
+VERSION = "2.4dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 

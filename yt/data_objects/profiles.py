@@ -133,7 +133,6 @@ class BinnedProfile(ParallelAnalysisInterface):
             if weight:
                 f[u] /= w[u]
             self[field] = f
-        self["myweight"] = w
         self["UsedBins"] = u
 
     def add_fields(self, fields, weight = "CellMassMsun", accumulation = False, fractional=False):
