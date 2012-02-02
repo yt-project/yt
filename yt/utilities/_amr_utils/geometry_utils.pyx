@@ -66,7 +66,7 @@ def ortho_ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
             and (py >= left_edges[i, py])
             and (py < right_edges[i, py])):
             gridi[i] = 1
-    return gridi
+    return gridi.astype("bool")
 
 def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                     np.ndarray[np.float64_t, ndim=2] right_edges):
@@ -120,7 +120,7 @@ def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
            right_edges[gi,2] >= p1[2]:
             gridi[gi] = 1
             continue
-    return gridi
+    return gridi.astype("bool")
 
 def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                       np.ndarray[np.float64_t, ndim=2] right_edges):
@@ -130,10 +130,9 @@ def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
     ax = dobj.axis
     cdef np.float64_t coord = dobj.coord
     for i in range(ng):
-        if left_edges[i, ax] <= coord and \
-           right_edges[i, ax] > coord:
+        if right_edges[i, ax] > coord and left_edges[i, ax] <= coord:
             gridi[i] = 1
-    return gridi
+    return gridi.astype("bool")
 
 def cutting_plane_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges):
@@ -167,7 +166,7 @@ def cutting_plane_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                     if gd >= 0: all_under = 0
         if not (all_over == 1 or all_under == 1):
             gridi[i] = 1
-    return gridi
+    return gridi.astype("bool")
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -252,7 +251,7 @@ def disk_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                     if cond[3] == 1 and H > 0: cond[3] = 0
         if cond[0] == cond[1] == 1 and not (cond[2] == 1 or cond[3] == 1):
             gridi[i] = 1
-    return gridi
+    return gridi.astype("bool")
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -319,7 +318,7 @@ def rprism_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                 inside = 0
                 break
         if inside == 1: gridi[n] = 1
-    return gridi
+    return gridi.astype("bool")
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -388,7 +387,7 @@ def sphere_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
         if dist < radius2: gridi[n] = 1
-    return gridi
+    return gridi.astype("bool")
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
