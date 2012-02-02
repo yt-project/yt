@@ -1,4 +1,6 @@
-import os, os.path, glob
+import os
+import os.path
+import glob
 import sys
 import time
 import subprocess
@@ -9,12 +11,12 @@ from numpy.distutils.misc_util import appendpath
 from numpy.distutils import log
 
 DATA_FILES_HTML = glob.glob('yt/gui/reason/html/*.html')
-DATA_FILES_JS   = glob.glob('yt/gui/reason/html/js/*.js')
-DATA_FILES_PNG  = glob.glob('yt/gui/reason/html/images/*.png') \
+DATA_FILES_JS = glob.glob('yt/gui/reason/html/js/*.js')
+DATA_FILES_PNG = glob.glob('yt/gui/reason/html/images/*.png') \
                 + glob.glob('yt/gui/reason/html/images/*.ico')
-DATA_FILES_LL   = glob.glob('yt/gui/reason/html/leaflet/*.js') \
+DATA_FILES_LL = glob.glob('yt/gui/reason/html/leaflet/*.js') \
                 + glob.glob('yt/gui/reason/html/leaflet/*.css')
-DATA_FILES_LLI  = glob.glob('yt/gui/reason/html/leaflet/images/*.png')
+DATA_FILES_LLI = glob.glob('yt/gui/reason/html/leaflet/images/*.png')
 
 # Verify that we have Cython installed
 try:
@@ -59,7 +61,7 @@ def generate_a_pyrex_source(self, base, ext_name, source, extension):
         options = Cython.Compiler.Main.CompilationOptions(
             defaults=Cython.Compiler.Main.default_options,
             include_path=extension.include_dirs,
-            language=extension.language, cplus = cplus,
+            language=extension.language, cplus=cplus,
             output_file=target_file)
         cython_result = Cython.Compiler.Main.compile(source,
                                                    options=options)
@@ -80,7 +82,8 @@ VERSION = "2.4dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
-def configuration(parent_package='',top_path=None):
+
+def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
     config = Configuration(None, parent_package, top_path)
@@ -88,47 +91,49 @@ def configuration(parent_package='',top_path=None):
                        assume_default_configuration=True,
                        delegate_options_to_subpackages=True,
                        quiet=True)
-    
+
     config.make_config_py()
     #config.make_svn_version_py()
-    config.add_subpackage('yt','yt')
+    config.add_subpackage('yt', 'yt')
     config.add_scripts("scripts/*")
 
     return config
+
 
 def setup_package():
 
     from numpy.distutils.core import setup
 
     setup(
-        name = "yt",
-        version = VERSION,
-        description = "An analysis and visualization toolkit for Astrophysical "
+        name="yt",
+        version=VERSION,
+        description="An analysis and visualization toolkit for Astrophysical "
                     + "simulations, focusing on Adaptive Mesh Refinement data "
                       "from Enzo, Orion, FLASH, and others.",
-        classifiers = [ "Development Status :: 5 - Production/Stable",
-                        "Environment :: Console",
-                        "Intended Audience :: Science/Research",
-                        "License :: OSI Approved :: GNU General Public License (GPL)",
-                        "Operating System :: MacOS :: MacOS X",
-                        "Operating System :: POSIX :: AIX",
-                        "Operating System :: POSIX :: Linux",
-                        "Programming Language :: C",
-                        "Programming Language :: Python",
-                        "Topic :: Scientific/Engineering :: Astronomy",
-                        "Topic :: Scientific/Engineering :: Physics",
-                        "Topic :: Scientific/Engineering :: Visualization", ],
-        keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
-        entry_points = { 'console_scripts' : [
+        classifiers=["Development Status :: 5 - Production/Stable",
+            "Environment :: Console",
+            "Intended Audience :: Science/Research",
+            "License :: OSI Approved :: GNU General Public License (GPL)",
+            "Operating System :: MacOS :: MacOS X",
+            "Operating System :: POSIX :: AIX",
+            "Operating System :: POSIX :: Linux",
+            "Programming Language :: C",
+            "Programming Language :: Python",
+            "Topic :: Scientific/Engineering :: Astronomy",
+            "Topic :: Scientific/Engineering :: Physics",
+            "Topic :: Scientific/Engineering :: Visualization"],
+        keywords='astronomy astrophysics visualization ' + \
+            'amr adaptivemeshrefinement',
+        entry_points={'console_scripts': [
                             'yt = yt.utilities.command_line:run_main',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
-        url = "http://yt-project.org/",
+        url="http://yt-project.org/",
         license="GPL-3",
         configuration=configuration,
         zip_safe=False,
-        data_files = [('yt/gui/reason/html/', DATA_FILES_HTML),
+        data_files=[('yt/gui/reason/html/', DATA_FILES_HTML),
                       ('yt/gui/reason/html/js/', DATA_FILES_JS),
                       ('yt/gui/reason/html/images/', DATA_FILES_PNG),
                       ('yt/gui/reason/html/leaflet/', DATA_FILES_LL),
