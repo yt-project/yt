@@ -37,6 +37,7 @@ from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
+import h5py
 
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
@@ -196,6 +197,11 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     @property
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
+
+    def _read_selection(self, grid, selection, field, handle = None):
+        if handle is None:
+            handle = h5py.File(grid.filename)
+        return handle["/Grid%08i" % grid.id][field][selection.transpose()]
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"

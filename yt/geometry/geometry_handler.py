@@ -1,5 +1,5 @@
 """
-AMR hierarchy container class
+Geometry container base class.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford

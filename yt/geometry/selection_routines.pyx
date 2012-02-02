@@ -204,7 +204,7 @@ def cutting_plane_cells(dobj, gobj):
                 z += dds[1]
             y += dds[1]
         x += dds[0]
-    return mask
+    return mask.astype("bool")
 
 # Disk
 
@@ -219,7 +219,7 @@ def disk_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
     cdef np.float64_t x, y, z
     cdef np.float64_t norm_vec[3], center[3]
     cdef np.float64_t d = dobj._d # offset to center
-    cdef np.float64_t rs = dobj._radius
+    cdef np.float64_t rs = dobj.radius
     cdef np.float64_t height = dobj._height
     cdef np.float64_t H, D, R
     cdef int cond[4]
@@ -281,7 +281,7 @@ def disk_cells(dobj, gobj):
     cdef np.float64_t x, y, z, dist
     cdef np.float64_t norm_vec[3], obj_c[3]
     cdef np.float64_t obj_d = dobj._d
-    cdef np.float64_t obj_r = dobj._radius
+    cdef np.float64_t obj_r = dobj.radius
     cdef np.float64_t obj_h = dobj._h
     for i in range(3):
         norm_vec[i] = dobj._norm_vec[i]
@@ -298,7 +298,7 @@ def disk_cells(dobj, gobj):
                 z += dds[1]
             y += dds[1]
         x += dds[0]
-    return mask
+    return mask.astype("bool")
 
 # Inclined Box
 # Rectangular Prism
@@ -357,7 +357,7 @@ def rprism_cells(dobj, gobj):
                 z += dds[1]
             y += dds[1]
         x += dds[0]
-    return mask
+    return mask.astype("bool")
 
 # Sphere
 
@@ -370,7 +370,7 @@ def sphere_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
     cdef np.float64_t edge
     for i in range(3):
         center[i] = dobj.center[i]
-    cdef np.float64_t radius2 = dobj._radius * dobj._radius
+    cdef np.float64_t radius2 = dobj.radius * dobj.radius
     for n in range(ng):
         # Check if the sphere is inside the grid
         if (left_edges[n,0] <= center[0] <= right_edges[n,0] and
@@ -405,27 +405,38 @@ cdef inline int sphere_cell(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def sphere_cells(dobj, gobj):
+def sphere_cells(dobj, gobj, int fill_mask = 1):
     cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef int nv[3]
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
-    cdef np.float64_t radius2 = dobj._radius * dobj._radius
+    cdef np.float64_t radius2 = dobj.radius * dobj.radius
     cdef np.float64_t center[3]
     cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
     cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
     cdef int i, j, k
-    for i in range(3): center[i] = dobj.center[i]
+    for i in range(3):
+        center[i] = dobj.center[i]
+        nv[i] = gobj.ActiveDimensions[i]
     cdef np.float64_t x, y, z
-    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    cdef int count = 0
+    cdef int mm
+    if fill_mask == 1:
+        mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
     x = left_edge[0] + dds[0] * 0.5
-    for i in range(mask.shape[0]):
+    for i in range(nv[0]):
         y = left_edge[1] + dds[1] * 0.5
-        for j in range(mask.shape[1]):
+        for j in range(nv[1]):
             z = left_edge[2] + dds[2] * 0.5
-            for k in range(mask.shape[2]):
-                mask[i,j,k] = sphere_cell(x, y, z, center, radius2)
+            for k in range(nv[2]):
+                mm = sphere_cell(x, y, z, center, radius2)
+                if fill_mask == 1 and mm == 1:
+                    mask[i,j,k] = 1
+                count += mm
                 z += dds[1]
             y += dds[1]
         x += dds[0]
-    return mask
+    if fill_mask == 1:
+        return count, mask.astype("bool")
+    return count
 
 # Ellipse

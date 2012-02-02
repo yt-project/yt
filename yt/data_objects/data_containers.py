@@ -34,6 +34,7 @@ data_object_registry = {}
 import numpy as na
 import weakref
 import shelve
+from contextlib import contextmanager
 
 from yt.funcs import *
 
@@ -467,7 +468,53 @@ class GridPropertiesMixin(object):
     grid_dimensions = property(__get_grid_dimensions, __set_grid_dimensions,
                              __del_grid_dimensions)
 
-class YTSelectionContainer1D(YTDataContainer, GridPropertiesMixin):
+class GenerationInProgress(Exception):
+    pass
+
+class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysisInterface):
+    _locked = False
+    _sort_by = None
+    def get_data(self, fields=None, in_grids = False):
+        if self._locked == True:
+            raise GenerationInProgress
+        if fields is None:
+            fields = self.fields[:]
+        fields = ensure_list(fields)
+        if self._sort_by is not None and not self._sort_by in fields_to_get and \
+            self._sort_by not in self.field_data:
+            fields.insert(0, self._sort_by)
+        fields_to_get = [f for f in fields if f not in self.field_data]
+        # If in_grids is True, then it's looking for a refresh of the data that
+        # exists in memory somewhere.  I don't yet know the right behavior
+        # here.
+        if in_grids: raise NotImplementedError
+        # The _read method will figure out which fields it needs to get from
+        # disk, and return a dict of those fields along with the fields that
+        # need to be generated.
+        read_field_data, fields_to_generate = self.hierarchy._read_selection(fields_to_get, self)
+        self.field_data.update(read_field_data)
+        # How do we handle dependencies here?
+        with self._field_lock():
+            gen_field_data = {}
+            last_length = -1
+            for field in itertools.cycle(fields_to_generate):
+                if last_length == 0: raise RuntimeError
+                if len(fields_to_generate) > len(gen_field_data): break
+                try:
+                    gen_field_data[field] = self._generate_field(field)
+                    last_length += 1
+                except GenerationInProgress:
+                    continue
+        self.field_data.update(gen_field_data)
+        return gen_field_data.keys() + read_field_data.keys()
+
+    @contextmanager
+    def _field_lock(self):
+        self._locked = True
+        yield
+        self._locked = False
+
+class YTSelectionContainer1D(YTDataContainer):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):
         YTDataContainer.__init__(self, pf, fields, **kwargs)
@@ -475,39 +522,7 @@ class YTSelectionContainer1D(YTDataContainer, GridPropertiesMixin):
         self._sortkey = None
         self._sorted = {}
 
-    def get_data(self, fields=None, in_grids=False):
-        if self._grids == None:
-            self._get_list_of_grids()
-        points = []
-        if not fields:
-            fields_to_get = self.fields[:]
-        else:
-            fields_to_get = ensure_list(fields)
-        if not self.sort_by in fields_to_get and \
-            self.sort_by not in self.field_data:
-            fields_to_get.insert(0, self.sort_by)
-        mylog.debug("Going to obtain %s", fields_to_get)
-        for field in fields_to_get:
-            if self.field_data.has_key(field):
-                continue
-            mylog.info("Getting field %s from %s", field, len(self._grids))
-            if field not in self.hierarchy.field_list and not in_grids:
-                if field not in ("dts", "t") and self._generate_field(field):
-                    continue # True means we already assigned it
-            self[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._grids])
-            if not self.field_data.has_key(field):
-                continue
-            if self._sortkey is None:
-                self._sortkey = na.argsort(self[self.sort_by])
-            # We *always* sort the field here if we have not successfully
-            # generated it above.  This way, fields that are grabbed from the
-            # grids are sorted properly.
-            self[field] = self[field][self._sortkey]
-
-
-class YTSelectionContainer2D(YTDataContainer, GridPropertiesMixin, ParallelAnalysisInterface):
+class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
     """
     Class to represent a set of :class:`YTDataContainer` that's 2-D in nature, and
@@ -528,7 +543,6 @@ class YTSelectionContainer2D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
     def _convert_field_name(self, field):
         return field
 
-    #@time_execution
     def get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
@@ -617,27 +631,6 @@ class YTSelectionContainer2D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
 
-    def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
-        """
-        This returns a uniform grid of points between *LE* and *RE*,
-        interpolated using the nearest neighbor method, with *side* points on a
-        side.
-        """
-        import yt.utilities.delaunay as de
-        if log_spacing:
-            zz = na.log10(self[field])
-        else:
-            zz = self[field]
-        xi, yi = na.array( \
-                 na.mgrid[LE[0]:RE[0]:side*1j, \
-                          LE[1]:RE[1]:side*1j], 'float64')
-        zi = de.Triangulation(self['px'],self['py']).nn_interpolator(zz)\
-                 [LE[0]:RE[0]:side*1j, \
-                  LE[1]:RE[1]:side*1j]
-        if log_spacing:
-            zi = 10**(zi)
-        return [xi,yi,zi]
-
     _okay_to_serialize = True
 
     def _store_fields(self, fields, node_name = None, force = False):
@@ -674,8 +667,7 @@ class YTSelectionContainer2D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
         self._store_fields(self._key_fields, node_name, force)
         self._store_fields(self.fields, node_name, force)
 
-
-class YTSelectionContainer3D(YTDataContainer, GridPropertiesMixin, ParallelAnalysisInterface):
+class YTSelectionContainer3D(YTSelectionContainer):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
     Class describing a cluster of data points, not necessarily sharing any
@@ -723,40 +715,6 @@ class YTSelectionContainer3D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
                 grid["RadiusCode"][pointI].ravel(),
                 dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
-
-    def get_data(self, fields=None, in_grids=False, force_particle_read = False):
-        if self._grids == None:
-            self._get_list_of_grids()
-        points = []
-        if not fields:
-            fields_to_get = self.fields[:]
-        else:
-            fields_to_get = ensure_list(fields)
-        mylog.debug("Going to obtain %s", fields_to_get)
-        for field in fields_to_get:
-            if self.field_data.has_key(field):
-                continue
-            if field not in self.hierarchy.field_list and not in_grids:
-                if self._generate_field(field):
-                    continue # True means we already assigned it
-            # There are a lot of 'ands' here, but I think they are all
-            # necessary.
-            if force_particle_read == False and \
-               self.pf.field_info.has_key(field) and \
-               self.pf.field_info[field].particle_type and \
-               self.pf.h.io._particle_reader and \
-               not isinstance(self, YTBooleanRegionBase):
-                self.particles.get_data(field)
-                if field not in self.field_data:
-                    if self._generate_field(field): continue
-            mylog.info("Getting field %s from %s", field, len(self._grids))
-            self[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._grids])
-        for field in fields_to_get:
-            if not self.field_data.has_key(field):
-                continue
-            self[field] = self[field]
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
