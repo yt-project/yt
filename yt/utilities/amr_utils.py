@@ -28,7 +28,6 @@ from ._amr_utils.ContourFinding import *
 from ._amr_utils.DepthFirstOctree import *
 from ._amr_utils.fortran_reader import *
 from ._amr_utils.freetype_writer import *
-from ._amr_utils.geometry_utils import *
 from ._amr_utils.Interpolators import *
 from ._amr_utils.misc_utilities import *
 from ._amr_utils.Octree import *
@@ -38,4 +37,3 @@ from ._amr_utils.QuadTree import *
 from ._amr_utils.RayIntegrators import *
 from ._amr_utils.grid_traversal import *
 from ._amr_utils.marching_cubes import *
-#from ._amr_utils.VolumeIntegrator import *

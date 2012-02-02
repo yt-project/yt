@@ -126,8 +126,6 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/_amr_utils/freetype_includes.h"])
     config.add_extension("geometry_utils", 
                 ["yt/utilities/_amr_utils/geometry_utils.pyx"],
-               extra_compile_args=['-fopenmp'],
-               extra_link_args=['-fopenmp'],
                 libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
     config.add_extension("Interpolators", 
                 ["yt/utilities/_amr_utils/Interpolators.pyx"],

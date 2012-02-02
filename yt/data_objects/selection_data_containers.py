@@ -37,7 +37,7 @@ from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
     restore_grid_state, cache_mask, cache_point_indices, cache_vc_data, \
     FakeGridForParticles
-from yt.utilities._amr_utils.geometry_utils import \
+from yt.geometry.selection_routines import \
     ortho_ray_grids, ray_grids, slice_grids, cutting_plane_grids
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection, GridChildMaskWrapper

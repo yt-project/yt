@@ -28,5 +28,8 @@ License:
 
 """
 
+from geometry_handler import \
+    GeometryHandler
+
 from grid_geometry_handler import \
     GridGeometryHandler
