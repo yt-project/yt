@@ -34,7 +34,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-           AMRHierarchy
+           GridGeometryHandler
 from yt.data_objects.static_output import \
            StaticOutput
 
@@ -69,7 +69,7 @@ class GDFGrid(AMRGridPatch):
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class GDFHierarchy(AMRHierarchy):
+class GDFHierarchy(GridGeometryHandler):
 
     grid = GDFGrid
     
@@ -80,7 +80,7 @@ class GDFHierarchy(AMRHierarchy):
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = h5py.File(self.hierarchy_filename,'r')
-        AMRHierarchy.__init__(self,pf,data_style)
+        GridGeometryHandler.__init__(self,pf,data_style)
 
         self._fhandle.close()
 
@@ -92,7 +92,7 @@ class GDFHierarchy(AMRHierarchy):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):

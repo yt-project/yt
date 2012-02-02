@@ -32,7 +32,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    AMRHierarchy
+    GridGeometryHandler
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.definitions import \
@@ -56,7 +56,7 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class FLASHHierarchy(AMRHierarchy):
+class FLASHHierarchy(GridGeometryHandler):
 
     grid = FLASHGrid
     
@@ -70,7 +70,7 @@ class FLASHHierarchy(AMRHierarchy):
         self._handle = pf._handle
 
         self.float_type = na.float64
-        AMRHierarchy.__init__(self,pf,data_style)
+        GridGeometryHandler.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
         pass
@@ -90,7 +90,7 @@ class FLASHHierarchy(AMRHierarchy):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):

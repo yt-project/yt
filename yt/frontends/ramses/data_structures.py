@@ -31,7 +31,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-      AMRHierarchy
+      GridGeometryHandler
 from yt.data_objects.static_output import \
       StaticOutput
 
@@ -103,7 +103,7 @@ class RAMSESGrid(AMRGridPatch):
     def __repr__(self):
         return "RAMSESGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class RAMSESHierarchy(AMRHierarchy):
+class RAMSESHierarchy(GridGeometryHandler):
 
     grid = RAMSESGrid
     _handle = None
@@ -117,7 +117,7 @@ class RAMSESHierarchy(AMRHierarchy):
         self.tree_proxy = pf.ramses_tree
 
         self.float_type = na.float64
-        AMRHierarchy.__init__(self,pf,data_style)
+        GridGeometryHandler.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
         pass
@@ -127,7 +127,7 @@ class RAMSESHierarchy(AMRHierarchy):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):

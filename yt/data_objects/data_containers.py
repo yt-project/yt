@@ -365,7 +365,7 @@ class YTDataContainer(object):
         """
         Save an object.  If *filename* is supplied, it will be stored in
         a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.data_objects.api.AMRHierarchy.save_object`.
+        :meth:`yt.data_objects.api.GridGeometryHandler.save_object`.
         """
         if filename is not None:
             ds = shelve.open(filename, protocol=-1)

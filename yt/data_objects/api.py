@@ -31,14 +31,8 @@ License:
 from grid_patch import \
     AMRGridPatch
 
-from hierarchy import \
-    AMRHierarchy
-
 from static_output import \
     StaticOutput
-
-from object_finding_mixin import \
-    ObjectFindingMixin
 
 from particle_io import \
     ParticleIOHandler, \

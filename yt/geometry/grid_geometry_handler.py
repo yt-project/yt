@@ -42,9 +42,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from object_finding_mixin import ObjectFindingMixin
 
-from .data_containers import data_object_registry
+from yt.data_objects.data_containers import data_object_registry
 
-class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
+class GridGeometryHandler(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 
     def __init__(self, pf, data_style):
