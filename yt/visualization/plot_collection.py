@@ -438,7 +438,7 @@ class PlotCollection(object):
             The stride through the particles to plot.  Used to plot every
             fifth, every tenth, etc.  Note that the sorted order of particles
             may result in a biased selection of particles.
-        data_source : `yt.data_objects.api.AMRData`, optional
+        data_source : `yt.data_objects.api.YTDataContainer`, optional
             If specified, this will be the data source used for obtaining
             particles.
         figure : `matplotlib.figure.Figure`, optional
@@ -687,8 +687,8 @@ class PlotCollection(object):
             The initial field to slice and display.
         axis : int
             The axis along which to slice.  Can be 0, 1, or 2 or x, y, z.
-        data_source : `yt.data_objects.api.AMRData`
-            This is a data source respecting the `AMRData` protocol (i.e., it
+        data_source : `yt.data_objects.api.YTDataContainer`
+            This is a data source respecting the `YTDataContainer` protocol (i.e., it
             has grids and so forth) that will be used as input to the
             projection.
         weight_field : string
@@ -863,7 +863,7 @@ class PlotCollection(object):
                            figure=None, axes=None):
         r"""From an existing object, create a 1D, binned profile.
 
-        This function will accept an existing `AMRData` source and from that,
+        This function will accept an existing `YTDataContainer` source and from that,
         it will generate a `Binned1DProfile`, based on the specified options.
         This is useful if you have extracted a region, or if you wish to bin
         some set of massages data -- or even if you wish to bin anything other
@@ -873,8 +873,8 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        data_source : `yt.data_objects.api.AMRData`
-            This is a data source respecting the `AMRData` protocol (i.e., it
+        data_source : `yt.data_objects.api.YTDataContainer`
+            This is a data source respecting the `YTDataContainer` protocol (i.e., it
             has grids and so forth) that will be used as input to the profile
             generation.
         fields : list of strings
@@ -1045,7 +1045,7 @@ class PlotCollection(object):
                                fractional=False):
         r"""From an existing object, create a 2D, binned profile.
 
-        This function will accept an existing `AMRData` source and from that,
+        This function will accept an existing `YTDataContainer` source and from that,
         it will generate a `Binned2DProfile`, based on the specified options.
         This is useful if you have extracted a region, or if you wish to bin
         some set of massages data -- or even if you wish to bin anything other
@@ -1055,8 +1055,8 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        data_source : `yt.data_objects.api.AMRData`
-            This is a data source respecting the `AMRData` protocol (i.e., it
+        data_source : `yt.data_objects.api.YTDataContainer`
+            This is a data source respecting the `YTDataContainer` protocol (i.e., it
             has grids and so forth) that will be used as input to the profile
             generation.
         fields : list of strings
@@ -1272,12 +1272,12 @@ class PlotCollection(object):
                      figure = None, axes = None, plot_options = None):
         r"""Given a data source, make a scatter plot from that data source.
 
-        This is a very simple plot: you give it an instance of `AMRData`, two
+        This is a very simple plot: you give it an instance of `YTDataContainer`, two
         field names, and it will plot them on an axis
 
         Parameters
         ----------
-        data_source : `yt.data_objects.api.AMRData`
+        data_source : `yt.data_objects.api.YTDataContainer`
             This will be the data source from which field values will be
             obtained.
         fields : tuple of strings

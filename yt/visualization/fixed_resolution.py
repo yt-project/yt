@@ -47,7 +47,7 @@ class FixedResolutionBuffer(object):
         requires a deposition step, where individual variable-resolution pixels
         are deposited into a buffer of some resolution, to create an image.
         This object is an interface to that pixelization step: it can deposit
-        multiple fields.  It acts as a standard AMRData object, such that
+        multiple fields.  It acts as a standard YTDataContainer object, such that
         dict-style access returns an image of a given field.
 
         Parameters

@@ -183,17 +183,17 @@ class Streamlines(ParallelAnalysisInterface):
 
     def path(self, streamline_id):
         """
-        Returns an AMR1DData object defined by a streamline.
+        Returns an YTSelectionContainer1D object defined by a streamline.
 
         Parameters
         ----------
         streamline_id : int
             This defines which streamline from the Streamlines object
-            that will define the AMR1DData object.
+            that will define the YTSelectionContainer1D object.
 
         Returns
         -------
-        An AMRStreamlineBase AMR1DData object
+        An AMRStreamlineBase YTSelectionContainer1D object
 
         Examples
         --------

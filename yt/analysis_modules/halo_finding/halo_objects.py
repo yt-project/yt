@@ -2116,7 +2116,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         ----------
         pf : `StaticOutput`
             The parameter file on which halo finding will be conducted.
-        subvolume : `yt.data_objects.api.AMRData`, optional
+        subvolume : `yt.data_objects.api.YTDataContainer`, optional
             A region over which HOP will be run, which can be used to run HOP
             on a subvolume of the full volume. Default = None, which defaults
             to the full volume automatically.
@@ -2209,7 +2209,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         ----------
         pf : `StaticOutput`
             The parameter file on which halo finding will be conducted.
-        subvolume : `yt.data_objects.api.AMRData`, optional
+        subvolume : `yt.data_objects.api.YTDataContainer`, optional
             A region over which HOP will be run, which can be used to run HOP
             on a subvolume of the full volume. Default = None, which defaults
             to the full volume automatically.
