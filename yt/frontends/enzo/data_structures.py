@@ -41,7 +41,7 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.hierarchy import \
+from yt.geometry.grid_geometry_handler import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput

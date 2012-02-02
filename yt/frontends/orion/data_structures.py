@@ -36,7 +36,7 @@ import numpy as na
 from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.data_objects.hierarchy import AMRHierarchy
+from yt.geometry.grid_geometry_handler import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.definitions import mpc_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
