@@ -201,7 +201,12 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_selection(self, grid, selection, field, handle = None):
         if handle is None:
             handle = h5py.File(grid.filename)
-        return handle["/Grid%08i" % grid.id][field][selection.transpose()]
+        if selection is None:
+            selection = grid.child_mask.swapaxes(0,2).astype("bool")
+        else:
+            selection *= grid.child_mask.swapaxes(0,2)
+        tr = handle["/Grid%08i" % grid.id][field][selection]
+        return tr
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"

@@ -405,7 +405,7 @@ cdef inline int sphere_cell(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def sphere_cells(dobj, gobj, int fill_mask = 1):
+def sphere_cells(dobj, gobj, int fill_mask = 1, int transpose = 1):
     cdef np.ndarray[np.int32_t, ndim=3] mask 
     cdef int nv[3]
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
@@ -414,13 +414,26 @@ def sphere_cells(dobj, gobj, int fill_mask = 1):
     cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
     cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
     cdef int i, j, k
+    cdef np.float64_t *arr[2]
+    arr[0] = <np.float64_t *> left_edge.data
+    arr[1] = <np.float64_t *> right_edge.data
+    cdef int corner_count = 0
     for i in range(3):
         center[i] = dobj.center[i]
         nv[i] = gobj.ActiveDimensions[i]
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
+                corner_count += sphere_cell(arr[i][0], arr[j][1], arr[k][2],
+                                            center, radius2)
+    if corner_count == 8:
+        return nv[0] * nv[1] * nv[2], None
     cdef np.float64_t x, y, z
     cdef int count = 0
     cdef int mm
-    if fill_mask == 1:
+    if fill_mask == 1 and transpose == 1:
+        mask = np.zeros(gobj.ActiveDimensions[::-1], dtype='int32')
+    elif fill_mask == 1:
         mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
     x = left_edge[0] + dds[0] * 0.5
     for i in range(nv[0]):
@@ -430,13 +443,16 @@ def sphere_cells(dobj, gobj, int fill_mask = 1):
             for k in range(nv[2]):
                 mm = sphere_cell(x, y, z, center, radius2)
                 if fill_mask == 1 and mm == 1:
-                    mask[i,j,k] = 1
+                    if transpose == 1:
+                        mask[k,j,i] = 1
+                    else:
+                        mask[i,j,k] = 1
                 count += mm
                 z += dds[1]
             y += dds[1]
         x += dds[0]
     if fill_mask == 1:
         return count, mask.astype("bool")
-    return count
+    return count, None
 
 # Ellipse

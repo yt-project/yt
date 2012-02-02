@@ -174,7 +174,11 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         for unit in u:
             print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
 
+    def convert(self, unit):
+        return self.parameter_file.conversion_factors[unit]
+
     def _read_selection(self, fields, selector):
+        if len(fields) == 0: return {}, []
         if getattr(selector, "_grids", None) is None:
             gs = getattr(selection_routines, "%s_grids" % selector._type_name, None)
             if gs is None: raise NotImplementedError
@@ -183,8 +187,9 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         cs = getattr(selection_routines, "%s_cells" % selector._type_name, None)
         if cs is None: raise NotImplementedError
         count = 0
+        mylog.debug("Calculating grid mask sizes")
         for g in selector._grids:
-            count += cs(selector, g, 0)
+            count += cs(selector, g, 0)[0]
         mylog.debug("Getting %s cells", count)
         ind = 0
         fields_to_return = {}
@@ -195,11 +200,22 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 fields_to_return[f] = na.empty(count, 'float64')
             else:
                 fields_to_generate.append(f)
-        for g in selector._grids:
+        if len(fields_to_read) == 0: return {}, fields_to_generate
+        pb = get_pbar("Reading from disk %s" % fields_to_read, len(selector._grids))
+        for i,g in enumerate(selector._grids):
+            pb.update(i)
             count, mask = cs(selector, g, 1)
             for field in fields_to_read:
                 f = fields_to_return[field]
-                f[ind:ind+count] = self.io._read_selection(g, mask, field)
-            ind += count
+                v = self.io._read_selection(g, mask, field)
+                f[ind:ind+v.size] = v
+            ind += v.size
+        pb.finish()
+        for field in fields_to_read:
+            conv_factor = self.pf.field_info[field]._convert_function(self)
+            f = fields_to_return.pop(field)[:ind]
+            na.multiply(f, conv_factor, f)
+            fields_to_return[field] = f
+        mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
