@@ -216,6 +216,8 @@ class ARTHierarchy(AMRHierarchy):
             fl = ogrid_file_locations[ggi,:]
             psgs = []
             
+            if level > 5: continue
+            
             #refers to the left index for the art octgrid
             left_index = ogrid_left_indices[ggi,:]
             
