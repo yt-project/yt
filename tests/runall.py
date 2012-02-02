@@ -1,4 +1,5 @@
-import matplotlib; matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')
 from yt.config import ytcfg
 ytcfg["yt", "loglevel"] = "50"
 ytcfg["yt", "serialize"] = "False"
@@ -29,14 +30,16 @@ import time
 
 cwd = os.path.dirname(globals().get("__file__", os.getcwd()))
 
+
 def load_tests(iname, idir):
     f, filename, desc = imp.find_module(iname, [idir])
     tmod = imp.load_module(iname, f, filename, desc)
     return tmod
 
+
 def find_and_initialize_tests():
     mapping = {}
-    for f in glob.glob(os.path.join(cwd,"*.py")):
+    for f in glob.glob(os.path.join(cwd, "*.py")):
         clear_registry()
         iname = os.path.basename(f[:-3])
         try:
@@ -51,28 +54,28 @@ def find_and_initialize_tests():
 if __name__ == "__main__":
     clear_registry()
     mapping = find_and_initialize_tests()
-    test_storage_directory = ytcfg.get("yt","test_storage_dir")
+    test_storage_directory = ytcfg.get("yt", "test_storage_dir")
     try:
         my_hash = get_yt_version()
     except:
         my_hash = "UNKNOWN%s" % (time.time())
     parser = optparse.OptionParser()
     parser.add_option("-f", "--parameter-file", dest="parameter_file",
-                      default=os.path.join(cwd, "DD0010/moving7_0010"),
-                      help="The parameter file value to feed to 'load' to test against")
+        default=os.path.join(cwd, "DD0010/moving7_0010"),
+        help="The parameter file value to feed to 'load' to test against")
     parser.add_option("-l", "--list", dest="list_tests", action="store_true",
-                      default=False, help="List all tests and then exit")
+        default=False, help="List all tests and then exit")
     parser.add_option("-t", "--tests", dest="test_pattern", default="*",
-                      help="The test name pattern to match.  Can include wildcards.")
+        help="The test name pattern to match.  Can include wildcards.")
     parser.add_option("-o", "--output", dest="storage_dir",
-                      default=test_storage_directory,
-                      help="Base directory for storing test output.")
+        default=test_storage_directory,
+        help="Base directory for storing test output.")
     parser.add_option("-c", "--compare", dest="compare_name",
-                      default=None,
-                      help="The name against which we will compare")
+        default=None,
+        help="The name against which we will compare")
     parser.add_option("-n", "--name", dest="this_name",
-                      default=my_hash,
-                      help="The name we'll call this set of tests")
+        default=my_hash,
+        help="The name we'll call this set of tests")
     opts, args = parser.parse_args()
 
     if opts.list_tests:

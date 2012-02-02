@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import setuptools
-import os, sys
+import os
+import sys
+
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration

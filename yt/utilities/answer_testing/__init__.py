@@ -23,7 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import runner, output_tests
+import runner
+import output_tests
 from runner import RegressionTestRunner
 
 from output_tests import RegressionTest, SingleOutputTest, \
