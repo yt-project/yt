@@ -1,5 +1,5 @@
 """
-Various non-grid data containers.
+Data containers that require processing before they can be utilized.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -24,13 +24,6 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from exceptions import ValueError, KeyError
-from functools import wraps
-from yt.data_objects.data_containers import YTSelectionContainer1D, restore_grid_state, cache_mask, YTSelectionContainer2D, YTSelectionContainer3D, restore_field_information_state
-from yt.data_objects.field_info_container import NeedsOriginalGrid
-from yt.utilities.logger import ytLogger
-
-data_object_registry = {}
 
 import numpy as na
 import math
@@ -38,47 +31,30 @@ import weakref
 import exceptions
 import itertools
 import shelve
+from exceptions import ValueError, KeyError
+from functools import wraps
 
-from yt.funcs import *ensure_list, just_one
-
-ensure_list, get_pbar
-
-ensure_list, get_pbar
-
-get_pbar, just_one, ensure_list, get_memory_usage
-
-just_one, ensure_list, get_memory_usage, get_pbar
-
-from yt.data_objects.derived_quantities import GridChildMaskWrapper
-from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.amr_utils import find_grids_in_inclined_box,\
-    grid_points_in_volume, planar_points_in_volume, VoxelTraversal,\
-    QuadTree, get_box_grids_below_level, ghost_zone_interpolate,\
-    march_cubes_grid, march_cubes_grid_flux, ortho_ray_grids, ray_grids,\
-    slice_grids, cutting_plane_grids, cutting_plane_cells
+from yt.funcs import *
+from yt.utilities.logger import ytLogger
+from .data_containers import \
+    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
+    restore_grid_state, cache_mask, restore_field_information_state
+from .field_info_container import \
+    NeedsOriginalGrid
+from yt.utilities.amr_utils import \
+    QuadTree, ghost_zone_interpolate
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
-from yt.utilities.parallel_tools.parallel_analysis_interface import\
-    ParallelAnalysisInterface
-from yt.utilities.linear_interpolators import\
-    UnilinearFieldInterpolator,\
-    BilinearFieldInterpolator,\
-    TrilinearFieldInterpolator
-from yt.utilities.parameter_file_storage import\
-    ParameterFileStore
-from yt.utilities.minimal_representation import\
+from yt.utilities.minimal_representation import \
     MinimalProjectionData
 
-from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import\
     NeedsGridType,\
     NeedsOriginalGrid,\
     NeedsDataField,\
     NeedsProperty,\
     NeedsParameter
-
-from .data_containers import
 
 class YTStreamlineBase(YTSelectionContainer1D):
     _type_name = "streamline"

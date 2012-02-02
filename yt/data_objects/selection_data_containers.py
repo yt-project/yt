@@ -1,18 +1,50 @@
-from exceptions import ValueError, SyntaxError
-import itertools
+"""
+Data containers based on geometric selection
+
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
+Author: Britton Smith <Britton.Smith@colorado.edu>
+Affiliation: University of Colorado at Boulder
+Homepage: http://yt-project.org/
+License:
+  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import types
 import numpy as na
-from yt.utilities.amr_utils import VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, grid_points_in_volume
-from yt.data_objects.data_containers import YTSelectionContainer1D, restore_grid_state, cache_mask, YTSelectionContainer2D, cache_point_indices, cache_vc_data, YTSelectionContainer3D, FakeGridForParticles, force_array, YTDataContainer
-from yt.utilities._amr_utils.geometry_utils import ortho_ray_grids, ray_grids, slice_grids, cutting_plane_grids
-from yt.data_objects.derived_quantities import DerivedQuantityCollection, GridChildMaskWrapper
-from yt.funcs import just_one, iterable, ensure_list
-from yt.utilities.definitions import x_dict, y_dict, axis_names
+from exceptions import ValueError, SyntaxError
+
+from yt.funcs import *
+from yt.utilities.amr_utils import \
+    VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, \
+    grid_points_in_volume
+from .data_containers import \
+    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
+    restore_grid_state, cache_mask, cache_point_indices, cache_vc_data, \
+    FakeGridForParticles
+from yt.utilities._amr_utils.geometry_utils import \
+    ortho_ray_grids, ray_grids, slice_grids, cutting_plane_grids
+from yt.data_objects.derived_quantities import \
+    DerivedQuantityCollection, GridChildMaskWrapper
+from yt.utilities.definitions import \
+    x_dict, y_dict, axis_names
 from yt.utilities.exceptions import YTSphereTooSmall
 from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
-from yt.utilities.logger import ytLogger
-
-__author__ = 'mturk'
 
 class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
@@ -756,179 +788,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
             (self._top_node, cen_name, L_name)
 
 
-class YTSelectedIndicesBase(YTSelectionContainer3D):
-    """
-    ExtractedRegions are arbitrarily defined containers of data, useful
-    for things like selection along a baryon field.
-    """
-    _type_name = "extracted_region"
-    _con_args = ('_base_region', '_indices')
-    def __init__(self, base_region, indices, force_refresh=True, **kwargs):
-        """An arbitrarily defined data container that allows for selection
-        of all data meeting certain criteria.
-
-        In order to create an arbitrarily selected set of data, the
-        ExtractedRegion takes a `base_region` and a set of `indices`
-        and creates a region within the `base_region` consisting of
-        all data indexed by the `indices`. Note that `indices` must be
-        precomputed. This does not work well for parallelized
-        operations.
-
-        Parameters
-        ----------
-        base_region : yt data source
-            A previously selected data source.
-        indices : array_like
-            An array of indices
-
-        Other Parameters
-        ----------------
-        force_refresh : bool
-           Force a refresh of the data. Defaults to True.
-
-        Examples
-        --------
-        """
-        cen = kwargs.pop("center", None)
-        if cen is None: cen = base_region.get_field_parameter("center")
-        YTSelectionContainer3D.__init__(self, center=cen,
-                            fields=None, pf=base_region.pf, **kwargs)
-        self._base_region = base_region # We don't weakly reference because
-                                        # It is not cyclic
-        if isinstance(indices, types.DictType):
-            self._indices = indices
-            self._grids = self._base_region.pf.h.grids[self._indices.keys()]
-        else:
-            self._grids = None
-            self._base_indices = indices
-        if force_refresh: self._refresh_data()
-
-    def _get_cut_particle_mask(self, grid):
-        # Override to provide a warning
-        mylog.warning("Returning all particles from an Extracted Region.  This could be incorrect!")
-        return True
-
-    def _get_list_of_grids(self):
-        # Okay, so what we're going to want to do is get the pointI from
-        # region._get_point_indices(grid) for grid in base_region._grids,
-        # and then construct an array of those, which we will select along indices.
-        if self._grids != None: return
-        grid_vals, xi, yi, zi = [], [], [], []
-        for grid in self._base_region._grids:
-            xit,yit,zit = self._base_region._get_point_indices(grid)
-            grid_vals.append(na.ones(xit.shape, dtype='int') * (grid.id-grid._id_offset))
-            xi.append(xit)
-            yi.append(yit)
-            zi.append(zit)
-        grid_vals = na.concatenate(grid_vals)[self._base_indices]
-        grid_order = na.argsort(grid_vals)
-        # Note: grid_vals is still unordered
-        grid_ids = na.unique(grid_vals)
-        xi = na.concatenate(xi)[self._base_indices][grid_order]
-        yi = na.concatenate(yi)[self._base_indices][grid_order]
-        zi = na.concatenate(zi)[self._base_indices][grid_order]
-        bc = na.bincount(grid_vals)
-        splits = []
-        for i,v in enumerate(bc):
-            if v > 0: splits.append(v)
-        splits = na.add.accumulate(splits)
-        xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
-        self._indices = {}
-        h = self._base_region.pf.h
-        for grid_id, x, y, z in itertools.izip(grid_ids, xis, yis, zis):
-            # grid_id needs no offset
-            ll = h.grids[grid_id].ActiveDimensions.prod() \
-               - (na.logical_not(h.grids[grid_id].child_mask)).sum()
-            # This means we're completely enclosed, except for child masks
-            if x.size == ll:
-                self._indices[grid_id] = None
-            else:
-                # This will slow things down a bit, but conserve memory
-                self._indices[grid_id] = \
-                    na.zeros(h.grids[grid_id].ActiveDimensions, dtype='bool')
-                self._indices[grid_id][(x,y,z)] = True
-        self._grids = h.grids[self._indices.keys()]
-
-    def _is_fully_enclosed(self, grid):
-        if self._indices[grid.id-grid._id_offset] is None or \
-            (self._indices[grid.id-grid._id_offset][0].size ==
-             grid.ActiveDimensions.prod()):
-            return True
-        return False
-
-    def _get_cut_mask(self, grid):
-        cm = na.zeros(grid.ActiveDimensions, dtype='bool')
-        cm[self._get_point_indices(grid, False)] = True
-        return cm
-
-    __empty_array = na.array([], dtype='bool')
-    def _get_point_indices(self, grid, use_child_mask=True):
-        # Yeah, if it's not true, we don't care.
-        tr = self._indices.get(grid.id-grid._id_offset, self.__empty_array)
-        if tr is None: tr = na.where(grid.child_mask)
-        else: tr = na.where(tr)
-        return tr
-
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
-        s += ", ".join(["%s=%s" % (i, getattr(self,i))
-                       for i in self._con_args if i != "_indices"])
-        return s
-
-    def join(self, other):
-        ng = {}
-        gs = set(self._indices.keys() + other._indices.keys())
-        for g in gs:
-            grid = self.pf.h.grids[g]
-            if g in other._indices and g in self._indices:
-                # We now join the indices
-                ind = na.zeros(grid.ActiveDimensions, dtype='bool')
-                ind[self._indices[g]] = True
-                ind[other._indices[g]] = True
-                if ind.prod() == grid.ActiveDimensions.prod(): ind = None
-            elif g in self._indices:
-                ind = self._indices[g]
-            elif g in other._indices:
-                ind = other._indices[g]
-            # Okay we have indices
-            if ind is not None: ind = ind.copy()
-            ng[g] = ind
-        gl = self.pf.h.grids[list(gs)]
-        gc = self.pf.h.grid_collection(
-            self._base_region.get_field_parameter("center"), gl)
-        return self.pf.h.extracted_region(gc, ng)
-
-
-class YTValueCutExtractionBase(YTSelectionContainer3D):
-    """
-    In-line extracted regions accept a base region and a set of field_cuts to
-    determine which points in a grid should be included.
-    """
-    def __init__(self, base_region, field_cuts, **kwargs):
-        cen = base_region.get_field_parameter("center")
-        YTSelectionContainer3D.__init__(self, center=cen,
-                            fields=None, pf=base_region.pf, **kwargs)
-        self._base_region = base_region # We don't weakly reference because
-                                        # It is not cyclic
-        self._field_cuts = ensure_list(field_cuts)[:]
-        self._refresh_data()
-
-    def _get_list_of_grids(self):
-        self._grids = self._base_region._grids
-
-    def _is_fully_enclosed(self, grid):
-        return False
-
-    @cache_mask
-    def _get_cut_mask(self, grid):
-        point_mask = na.ones(grid.ActiveDimensions, dtype='bool')
-        point_mask *= self._base_region._get_cut_mask(grid)
-        for cut in self._field_cuts:
-            point_mask *= eval(cut)
-        return point_mask
-
-
 class YTCylinderBase(YTSelectionContainer3D):
     """
     We can define a cylinder (or disk) to act as a data object.
@@ -1305,159 +1164,3 @@ class YTSphereBase(YTSelectionContainer3D):
         return cm
 
 
-class YTBooleanRegionBase(YTSelectionContainer3D):
-    """
-    A hybrid region built by boolean comparison between
-    existing regions.
-    """
-    _type_name = "boolean"
-    _con_args = ("regions")
-    def __init__(self, regions, fields = None, pf = None, **kwargs):
-        """
-        This will build a hybrid region based on the boolean logic
-        of the regions.
-
-        Parameters
-        ----------
-        regions : list
-            A list of region objects and strings describing the boolean logic
-            to use when building the hybrid region. The boolean logic can be
-            nested using parentheses.
-
-        Examples
-        --------
-        >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
-            [0.6, 0.6, 0.6])
-        >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
-            [0.55, 0.55, 0.55])
-        >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
-        >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
-        >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
-            sp1, ")"])
-        """
-        # Center is meaningless, but we'll define it all the same.
-        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, pf, **kwargs)
-        self.regions = regions
-        self._all_regions = []
-        self._some_overlap = []
-        self._all_overlap = []
-        self._cut_masks = {}
-        self._get_all_regions()
-        self._make_overlaps()
-        self._get_list_of_grids()
-
-    def _get_all_regions(self):
-        # Before anything, we simply find out which regions are involved in all
-        # of this process, uniquely.
-        for item in self.regions:
-            if isinstance(item, types.StringType): continue
-            self._all_regions.append(item)
-            # So cut_masks don't get messed up.
-            item._boolean_touched = True
-        self._all_regions = na.unique(self._all_regions)
-
-    def _make_overlaps(self):
-        # Using the processed cut_masks, we'll figure out what grids
-        # are left in the hybrid region.
-        for region in self._all_regions:
-            region._get_list_of_grids()
-            for grid in region._grids:
-                if grid in self._some_overlap or grid in self._all_overlap:
-                    continue
-                # Get the cut_mask for this grid in this region, and see
-                # if there's any overlap with the overall cut_mask.
-                overall = self._get_cut_mask(grid)
-                local = force_array(region._get_cut_mask(grid),
-                    grid.ActiveDimensions)
-                # Below we don't want to match empty masks.
-                if overall.sum() == 0 and local.sum() == 0: continue
-                # The whole grid is in the hybrid region if a) its cut_mask
-                # in the original region is identical to the new one and b)
-                # the original region cut_mask is all ones.
-                if (local == na.bitwise_and(overall, local)).all() and \
-                        (local == True).all():
-                    self._all_overlap.append(grid)
-                    continue
-                if (overall == local).any():
-                    # Some of local is in overall
-                    self._some_overlap.append(grid)
-                    continue
-
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
-        s += "["
-        for i, region in enumerate(self.regions):
-            if region in ["OR", "AND", "NOT", "(", ")"]:
-                s += region
-            else:
-                s += region.__repr__(clean = True)
-            if i < (len(self.regions) - 1): s += ", "
-        s += "]"
-        return s
-
-    def _is_fully_enclosed(self, grid):
-        return (grid in self._all_overlap)
-
-    def _get_list_of_grids(self):
-        self._grids = na.array(self._some_overlap + self._all_overlap,
-            dtype='object')
-
-    def _get_cut_mask(self, grid, field=None):
-        if self._is_fully_enclosed(grid):
-            return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
-                and grid.id in self._cut_masks:
-            return self._cut_masks[grid.id]
-        # If we get this far, we have to generate the cut_mask.
-        return self._get_level_mask(self.regions, grid)
-
-    def _get_level_mask(self, ops, grid):
-        level_masks = []
-        end = 0
-        for i, item in enumerate(ops):
-            if end > 0 and i < end:
-                # We skip over things inside parentheses on this level.
-                continue
-            if isinstance(item, YTDataContainer):
-                # Add this regions cut_mask to level_masks
-                level_masks.append(force_array(item._get_cut_mask(grid),
-                    grid.ActiveDimensions))
-            elif item == "AND" or item == "NOT" or item == "OR":
-                level_masks.append(item)
-            elif item == "(":
-                # recurse down, and we'll append the results, which
-                # should be a single cut_mask
-                open_count = 0
-                for ii, item in enumerate(ops[i + 1:]):
-                    # We look for the matching closing parentheses to find
-                    # where we slice ops.
-                    if item == "(":
-                        open_count += 1
-                    if item == ")" and open_count > 0:
-                        open_count -= 1
-                    elif item == ")" and open_count == 0:
-                        end = i + ii + 1
-                        break
-                level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
-                    grid), grid.ActiveDimensions))
-        # Now we do the logic on our level_mask.
-        # There should be no nested logic anymore.
-        # The first item should be a cut_mask,
-        # so that will be our starting point.
-        this_cut_mask = level_masks[0]
-        for i, item in enumerate(level_masks):
-            # I could use a slice above, but I'll keep i consistent instead.
-            if i == 0: continue
-            if item == "AND":
-                # So, the next item in level_masks we want to AND.
-                na.bitwise_and(this_cut_mask, level_masks[i+1], this_cut_mask)
-            if item == "NOT":
-                # It's convenient to remember that NOT == AND NOT
-                na.bitwise_and(this_cut_mask, na.invert(level_masks[i+1]),
-                    this_cut_mask)
-            if item == "OR":
-                na.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
-        if not isinstance(grid, FakeGridForParticles):
-            self._cut_masks[grid.id] = this_cut_mask
-        return this_cut_mask
