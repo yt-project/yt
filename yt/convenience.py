@@ -56,7 +56,7 @@ def all_pfs(basedir='.', skip=None, max_depth=1, name_spec="*.hierarchy", **kwar
 def max_spheres(width, unit, **kwargs):
     """
     This calls :func:`~yt.convenience.all_pfs` and then for each parameter file
-    creates a :class:`~yt.data_objects.api.AMRSphereBase` for each one,
+    creates a :class:`~yt.data_objects.api.YTSphereBase` for each one,
     centered on the point of highest density, with radius *width* in units of
     *unit*.
     """

@@ -523,7 +523,7 @@ class YTSelectionContainer1D(YTDataContainer, GridPropertiesMixin):
             # grids are sorted properly.
             self[field] = self[field][self._sortkey]
        
-class AMROrthoRayBase(YTSelectionContainer1D):
+class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
@@ -602,7 +602,7 @@ class AMROrthoRayBase(YTSelectionContainer1D):
             gf = grid[field][sl]
         return gf[na.where(grid.child_mask[sl])]
 
-class AMRRayBase(YTSelectionContainer1D):
+class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     sort_by = 't'
@@ -676,7 +676,7 @@ class AMRRayBase(YTSelectionContainer1D):
         self._ts[grid.id] = na.abs(ts)
         return mask
 
-class AMRStreamlineBase(YTSelectionContainer1D):
+class YTStreamlineBase(YTSelectionContainer1D):
     _type_name = "streamline"
     _con_args = ('positions')
     sort_by = 't'
@@ -935,7 +935,7 @@ class YTSelectionContainer2D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
         self._store_fields(self._key_fields, node_name, force)
         self._store_fields(self.fields, node_name, force)
 
-class AMRSliceBase(YTSelectionContainer2D):
+class YTSliceBase(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
@@ -1119,7 +1119,7 @@ class AMRSliceBase(YTSelectionContainer2D):
     __quantities = None
     quantities = property(__get_quantities)
 
-class AMRCuttingPlaneBase(YTSelectionContainer2D):
+class YTCuttingPlaneBase(YTSelectionContainer2D):
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = YTSelectionContainer2D._key_fields + ['pz','pdz']
@@ -1316,9 +1316,9 @@ class AMRCuttingPlaneBase(YTSelectionContainer2D):
         frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
         return frb
 
-class AMRFixedResCuttingPlaneBase(YTSelectionContainer2D):
+class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     """
-    AMRFixedResCuttingPlaneBase is an oblique plane through the data,
+    YTFixedResCuttingPlaneBase is an oblique plane through the data,
     defined by a normal vector and a coordinate.  It trilinearly
     interpolates the data to a fixed resolution slice.  It differs from
     the other data objects as it doesn't save the grid data, only the
@@ -1519,7 +1519,7 @@ class AMRFixedResCuttingPlaneBase(YTSelectionContainer2D):
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
         
-class AMRQuadTreeProjBase(YTSelectionContainer2D):
+class YTQuadTreeProjBase(YTSelectionContainer2D):
     _top_node = "/Projections"
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
@@ -1801,7 +1801,7 @@ class AMRQuadTreeProjBase(YTSelectionContainer2D):
             (self._top_node, self.axis)
 
 
-class AMRProjBase(YTSelectionContainer2D):
+class YTOverlapProjBase(YTSelectionContainer2D):
     _top_node = "/Projections"
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "overlap_proj"
@@ -2180,7 +2180,7 @@ class AMRProjBase(YTSelectionContainer2D):
         return  "%s/%s" % \
             (self._top_node, self.axis)
 
-class AMRFixedResProjectionBase(YTSelectionContainer2D):
+class YTFixedResProjectionBase(YTSelectionContainer2D):
     _top_node = "/Projections"
     _type_name = "fixed_res_proj"
     _con_args = ('axis', 'field', 'weight_field')
@@ -2385,7 +2385,7 @@ class YTSelectionContainer3D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
                self.pf.field_info.has_key(field) and \
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader and \
-               not isinstance(self, AMRBooleanRegionBase):
+               not isinstance(self, YTBooleanRegionBase):
                 self.particles.get_data(field)
                 if field not in self.field_data:
                     if self._generate_field(field): continue
@@ -2466,7 +2466,7 @@ class YTSelectionContainer3D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
         Return an InLineExtractedRegion, where the grid cells are cut on the
         fly with a set of field_cuts.
         """
-        return InLineExtractedRegionBase(self, field_cuts)
+        return YTValueCutExtractionBase(self, field_cuts)
 
     def extract_region(self, indices):
         """
@@ -2474,7 +2474,7 @@ class YTSelectionContainer3D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
         as the points in `this` data object with the given *indices*.
         """
         fp = self.field_parameters.copy()
-        return ExtractedRegionBase(self, indices, **fp)
+        return YTSelectedIndicesBase(self, indices, **fp)
 
     def __get_quantities(self):
         if self.__quantities is None:
@@ -2734,7 +2734,7 @@ class YTSelectionContainer3D(YTDataContainer, GridPropertiesMixin, ParallelAnaly
         return self.quantities["TotalQuantity"]("CellVolume")[0] * \
             (self.pf[unit] / self.pf['cm']) ** 3.0
 
-class ExtractedRegionBase(YTSelectionContainer3D):
+class YTSelectedIndicesBase(YTSelectionContainer3D):
     """
     ExtractedRegions are arbitrarily defined containers of data, useful
     for things like selection along a baryon field.
@@ -2877,7 +2877,7 @@ class ExtractedRegionBase(YTSelectionContainer3D):
             self._base_region.get_field_parameter("center"), gl)
         return self.pf.h.extracted_region(gc, ng)
 
-class InLineExtractedRegionBase(YTSelectionContainer3D):
+class YTValueCutExtractionBase(YTSelectionContainer3D):
     """
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.
@@ -2905,7 +2905,7 @@ class InLineExtractedRegionBase(YTSelectionContainer3D):
             point_mask *= eval(cut)
         return point_mask
 
-class AMRCylinderBase(YTSelectionContainer3D):
+class YTCylinderBase(YTSelectionContainer3D):
     """
     We can define a cylinder (or disk) to act as a data object.
     """
@@ -2968,7 +2968,7 @@ class AMRCylinderBase(YTSelectionContainer3D):
                  & (r <= self._radius))
         return cm
 
-class AMRInclinedBox(YTSelectionContainer3D):
+class YTInclinedBoxBase(YTSelectionContainer3D):
     _type_name="inclined_box"
     _con_args = ('origin','box_vectors')
 
@@ -3035,7 +3035,7 @@ class AMRInclinedBox(YTSelectionContainer3D):
         return pm
         
 
-class AMRRegionBase(YTSelectionContainer3D):
+class YTRegionBase(YTSelectionContainer3D):
     """
     AMRRegions are rectangular prisms of data.
     """
@@ -3088,14 +3088,14 @@ class AMRRegionBase(YTSelectionContainer3D):
                  & (grid['z'] + dzp > self.left_edge[2]) )
         return cm
 
-class AMRRegionStrictBase(AMRRegionBase):
+class YTRegionStrictBase(YTRegionBase):
     """
     AMRRegion without any dx padding for cell selection
     """
     _type_name = "region_strict"
     _dx_pad = 0.0
 
-class AMRPeriodicRegionBase(YTSelectionContainer3D):
+class YTPeriodicRegionBase(YTSelectionContainer3D):
     """
     AMRRegions are rectangular prisms of data.
     """
@@ -3164,7 +3164,7 @@ class AMRPeriodicRegionBase(YTSelectionContainer3D):
                           & (grid['z'] + dzp + off_z > self.left_edge[2]) )
             return cm
 
-class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
+class YTPeriodicRegionStrictBase(YTPeriodicRegionBase):
     """
     AMRPeriodicRegion without any dx padding for cell selection
     """
@@ -3176,11 +3176,11 @@ class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
         the selected region encompasses their centers.
 
         """
-        AMRPeriodicRegionBase.__init__(self, center, left_edge, right_edge, 
+        YTPeriodicRegionBase.__init__(self, center, left_edge, right_edge,
                                        fields = None, pf = None, **kwargs)
     
 
-class AMRGridCollectionBase(YTSelectionContainer3D):
+class YTGridCollectionBase(YTSelectionContainer3D):
     """
     An arbitrary selection of grids, within which we accept all points.
     """
@@ -3213,7 +3213,7 @@ class AMRGridCollectionBase(YTSelectionContainer3D):
         pointI = na.where(k == True)
         return pointI
 
-class AMRSphereBase(YTSelectionContainer3D):
+class YTSphereBase(YTSelectionContainer3D):
     """
     A sphere of points
     """
@@ -3275,7 +3275,7 @@ class AMRSphereBase(YTSelectionContainer3D):
             self._cut_masks[grid.id] = cm
         return cm
 
-class AMRCoveringGridBase(YTSelectionContainer3D):
+class YTCoveringGridBase(YTSelectionContainer3D):
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
@@ -3423,9 +3423,9 @@ class AMRCoveringGridBase(YTSelectionContainer3D):
     def RightEdge(self):
         return self.right_edge
 
-class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
+class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"
-    @wraps(AMRCoveringGridBase.__init__)
+    @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
         single, specified resolution.
@@ -3448,14 +3448,14 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
                self.pf.domain_dimensions.astype("float64"))
-        AMRCoveringGridBase.__init__(self, *args, **kwargs)
+        YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
         buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
                  / self.pf.domain_dimensions).max()
-        AMRCoveringGridBase._get_list_of_grids(self, buffer)
+        YTCoveringGridBase._get_list_of_grids(self, buffer)
         # We reverse the order to ensure that coarse grids are first
         self._grids = self._grids[::-1]
 
@@ -3552,7 +3552,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")
 
-class AMRBooleanRegionBase(YTSelectionContainer3D):
+class YTBooleanRegionBase(YTSelectionContainer3D):
     """
     A hybrid region built by boolean comparison between
     existing regions.

@@ -242,7 +242,7 @@ class Halo(object):
         
         Returns
         -------
-        sphere : `yt.data_objects.api.AMRSphereBase`
+        sphere : `yt.data_objects.api.YTSphereBase`
             The empty data source.
 
         Examples
@@ -993,7 +993,7 @@ class LoadedHalo(Halo):
         
         Returns
         -------
-        sphere : `yt.data_objects.api.AMRSphereBase`
+        sphere : `yt.data_objects.api.YTSphereBase`
             The empty data source.
 
         Examples

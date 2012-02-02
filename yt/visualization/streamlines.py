@@ -28,7 +28,7 @@ from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from yt.data_objects.data_containers import AMRStreamlineBase
+from yt.data_objects.data_containers import YTStreamlineBase
         
 class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
@@ -193,7 +193,7 @@ class Streamlines(ParallelAnalysisInterface):
 
         Returns
         -------
-        An AMRStreamlineBase YTSelectionContainer1D object
+        An YTStreamlineBase YTSelectionContainer1D object
 
         Examples
         --------
@@ -205,5 +205,5 @@ class Streamlines(ParallelAnalysisInterface):
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
         
         """
-        return AMRStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
+        return YTStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
         
