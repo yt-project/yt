@@ -174,16 +174,17 @@ class GDFStaticOutput(StaticOutput):
         # This should be improved.
         self._handle = h5py.File(self.parameter_filename, "r")
         for field_name in self._handle["/field_types"]:
+            current_field = self._handle["/field_types/%s" % field_name]
             try:
-                self.units[field_name] = self._handle["/field_types/%s" % field_name].attrs['field_to_cgs']
+                self.units[field_name] = current_field.attrs['field_to_cgs']
             except:
                 self.units[field_name] = 1.0
             try:
-                self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
-                   units=self._handle["/field_types/%s" % field_name].attrs['field_units'][0],
-                   projected_units =r"")
+                current_fields_unit = current_field.attrs['field_units'][0]
             except:
-                pass
+                current_fields_unit = ""
+            self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
+                   units=current_fields_unit, projected_units="")
 
         self._handle.close()
         del self._handle
