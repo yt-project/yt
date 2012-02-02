@@ -111,4 +111,100 @@ class IOHandlerART(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         return self._read_data_set(grid, field)[sl]
 
+def _count_art_octs(f, offset, 
+                   MinLev, MaxLevelNow):
+    level_oct_offsets= [0,]
+    level_child_offsets= [0,]
+    f.seek(offset)
+    nchild,ntot=8,0
+    Level = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    iNOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    iHOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+        level_oct_offsets.append(f.tell())
 
+        #Get the info for this level, skip the rest
+        #print "Reading oct tree data for level", Lev
+        #print 'offset:',f.tell()
+        Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
+           '>iii', _read_record(f))
+        #print 'Level %i : '%Lev, iNOLL
+        #print 'offset after level record:',f.tell()
+        iOct = iHOLL[Lev] - 1
+        nLevel = iNOLL[Lev]
+        nLevCells = nLevel * nchild
+        ntot = ntot + nLevel
+
+        #Skip all the oct hierarchy data
+        ns = _read_record_size(f)
+        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+        f.seek(f.tell()+size * nLevel)
+
+        level_child_offsets.append(f.tell())
+        #Skip the child vars data
+        ns = _read_record_size(f)
+        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+        f.seek(f.tell()+size * nLevel*nchild)
+
+        #find nhydrovars
+        nhydrovars = 8+2
+    f.seek(offset)
+    return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
+
+def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
+    pos = f.tell()
+    f.seek(level_oct_offsets[level])
+    #Get the info for this level, skip the rest
+    junk, nLevel, iOct = struct.unpack(
+       '>iii', _read_record(f))
+    iOct = iOct - 1
+
+    #Skip all the oct hierarchy data
+    #in the future, break this up into large chunks
+    le  = na.zeros((nLevel,3),dtype='int64')
+    fl  = na.zeros((nLevel,6),dtype='int64')
+    idxa,idxb = 0,0
+    chunk = long(1e6) #this is ~111MB for 15 dimensional 64 bit arrays
+    left = nLevel
+    while left > 0 :
+        this_chunk = min(chunk,left)
+        idxb=idxa+this_chunk
+        data = na.fromfile(f,dtype='>i',count=this_chunk*15)
+        data=data.reshape(this_chunk,15)
+        left-=this_chunk
+        le[idxa:idxb,:] = data[:,1:4]
+        fl[idxa:idxb,1] = na.arange(this_chunk)
+        idxa=idxb
+    del data
+    le = le/2**(root_level-1-level)-1
+    f.seek(pos)
+    return le,fl,nLevel
+
+nchem=8+2
+dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
+                ",>%sf4"%(2)+",>i4")
+def _read_art_child(f, level_child_offsets,level,nLevel,field):
+    pos=f.tell()
+    f.seek(level_child_offsets[level])
+    arr = na.fromfile(f, dtype='>f', count=nLevel * 8)
+    arr = arr.reshape((nLevel,16), order="F")
+    arr = arr[3:-1,:].astype("float64")
+    f.seek(pos)
+    return arr[field,:]
+
+def _skip_record(f):
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    f.seek(s[0], 1)
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+
+def _read_record(f):
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
+    ss = f.read(s)
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    return ss
+
+def _read_record_size(f):
+    pos = f.tell()
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    f.seek(pos)
+    return s[0]

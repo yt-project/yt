@@ -55,6 +55,13 @@ except ImportError:
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs
 
+from yt.frontends.art.io import _count_art_octs
+from yt.frontends.art.io import _read_art_level_info
+from yt.frontends.art.io import _read_art_child
+from yt.frontends.art.io import _skip_record
+from yt.frontends.art.io import _read_record
+from yt.frontends.art.io import _read_record_size
+
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
         self.num_deep += 1
@@ -146,58 +153,20 @@ class ARTHierarchy(AMRHierarchy):
         min_eff = 0.20
         
         f = open(self.pf.parameter_filename,'rb')
-        self.pf.nhydro_vars, self.pf.level_info, self.pf.level_offsetsa = \
+        
+        
+        (self.pf.nhydro_vars, self.pf.level_info,
+        self.pf.level_oct_offsets, 
+        self.pf.level_child_offsets) = \
                          _count_art_octs(f, 
                           self.pf.child_grid_offset,
                           self.pf.min_level, self.pf.max_level)
         self.pf.level_info[0]=self.pf.ncell
-        f.close()
-        self.pf.level_info = na.array(self.pf.level_info)
-        num_ogrids = sum(self.pf.level_info) + self.pf.iOctFree
-        print 'found %i oct grids'%num_ogrids
-        num_ogrids *=7
-        print 'instantiating... %i grids'%num_ogrids
-        ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
-        ogrid_levels = na.zeros(num_ogrids, dtype='int64')
-        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        
-        #don't need parents?
-        #ogrid_parents = na.zeros(num_ogrids, dtype="int64")
-        
-        #don't need masks?
-        #ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
-        
-        self.pf.level_offsets = amr_utils.read_art_tree(
-                                self.pf.parameter_filename, 
-                                self.pf.child_grid_offset,
-                                self.pf.min_level, self.pf.max_level,
-                                ogrid_left_indices, ogrid_levels,
-                                ogrid_file_locations)
-                                #ochild_masks,
-                                #ogrid_parents, 
-                                
+        self.pf.level_info = na.array(self.pf.level_info)        
+        self.pf.level_offsets = self.pf.level_child_offsets
         self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
         self.pf.level_offsets[0] = self.pf.root_grid_offset
-        #ochild_masks.reshape((num_ogrids, 8), order="F")
-        ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
-        # This bit of code comes from Chris, and I'm still not sure I have a
-        # handle on what it does.
-        final_indices =  ogrid_left_indices[na.where(ogrid_levels==self.pf.max_level)[0]]
-        divisible=[na.all((final_indices%2**(level))==0) 
-            for level in xrange(self.pf.max_level*2)]
-        root_level = self.pf.max_level+na.where(na.logical_not(divisible))[0][0] 
-        ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
-        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 1) - 1
-
-        # Now we can rescale
-        # root_psg = _ramses_reader.ProtoSubgrid(
-        #                 na.zeros(3, dtype='int64'), # left index of PSG
-        #                 self.pf.domain_dimensions, # dim of PSG
-        #                 na.zeros((1,3), dtype='int64'), # left edges of grids
-        #                 self.pf.domain_dimensions[None,:], # right edges of grids
-        #                 self.pf.domain_dimensions[None,:], # dims of grids
-        #                 na.zeros((1,6), dtype='int64') # empty
-        #                 )
+        
         root_psg = _ramses_reader.ProtoSubgrid(
                         na.zeros(3, dtype='int64'), # left index of PSG
                         self.pf.domain_dimensions, # dim of PSG
@@ -206,23 +175,21 @@ class ARTHierarchy(AMRHierarchy):
                         )
         
         self.proto_grids = [[root_psg],]
+
         for level in xrange(1, len(self.pf.level_info)):
             if self.pf.level_info[level] == 0:
                 self.proto_grids.append([])
                 continue
-            ggi = (ogrid_levels == level).ravel()
-            nd = self.pf.domain_dimensions * 2**level
-            dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
-            fl = ogrid_file_locations[ggi,:]
             psgs = []
-            
             if level > 5: continue
             
-            #refers to the left index for the art octgrid
-            left_index = ogrid_left_indices[ggi,:]
+
+            effs,sizes = [], []
             
-            # We now calculate the hilbert curve position of every left_index,
-            # of the octs, with respect to a lower order hilbert curve.
+            #if level > 6: continue
+            
+            #refers to the left index for the art octgrid
+            left_index, fl, nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
             left_index_gridpatch = left_index >> LEVEL_OF_EDGE
             order = max(level + 1 - LEVEL_OF_EDGE, 0)
             
@@ -297,7 +264,6 @@ class ARTHierarchy(AMRHierarchy):
                         eff_mean*100.0)
             mylog.info("%02.1f%% (%i/%i) of grids had minimum efficiency",
                         eff_nmin*100.0/eff_nall,eff_nmin,eff_nall)
-            mylog.info("Coalesced %s octree grids", ggi.sum())
             
         
             mylog.debug("Done with level % 2i", level)
@@ -569,90 +535,4 @@ class ARTStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         return False # We make no effort to auto-detect ART data
 
-def _skip_record(f):
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    f.seek(s[0], 1)
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-
-def _read_record(f):
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
-    ss = f.read(s)
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    return ss
-
-def _read_record_size(f):
-    pos = f.tell()
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    f.seek(pos)
-    return s[0]
-
-def _count_art_octs(f, offset, 
-                   MinLev, MaxLevelNow):
-    level_offsets= []
-    f.seek(offset)
-    nchild,ntot=8,0
-    Level = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    iNOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    iHOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    for Lev in xrange(MinLev + 1, MaxLevelNow+1):
-        level_offsets.append(f.tell())
-        
-        #Get the info for this level, skip the rest
-        #print "Reading oct tree data for level", Lev
-        #print 'offset:',f.tell()
-        Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
-           '>iii', _read_record(f))
-        #print 'Level %i : '%Lev, iNOLL
-        #print 'offset after level record:',f.tell()
-        iOct = iHOLL[Lev] - 1
-        nLevel = iNOLL[Lev]
-        nLevCells = nLevel * nchild
-        ntot = ntot + nLevel
-
-        #Skip all the oct hierarchy data
-        ns = _read_record_size(f)
-        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
-        f.seek(f.tell()+size * nLevel)
-        
-        #Skip the child vars data
-        ns = _read_record_size(f)
-        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
-        f.seek(f.tell()+size * nLevel*nchild)
-        
-        #find nhydrovars
-        nhydrovars = 8+2
-    f.seek(offset)
-    return nhydrovars, iNOLL, level_offsets
-
-def _read_art_level(f, level_offsets,level):
-    pos = f.tell()
-    f.seek(level_offsets[leve])
-    #Get the info for this level, skip the rest
-    #print "Reading oct tree data for level", Lev
-    #print 'offset:',f.tell()
-    Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
-       '>iii', _read_record(f))
-    #print 'Level %i : '%Lev, iNOLL
-    #print 'offset after level record:',f.tell()
-    iOct = iHOLL[Lev] - 1
-    nLevel = iNOLL[Lev]
-    nLevCells = nLevel * nchild
-    ntot = ntot + nLevel
-
-    #Skip all the oct hierarchy data
-    #in the future, break this up into large chunks
-    count = nLevel*15
-    le  = numpy.zeros((count,3),dtype='int64')
-    fl  = numpy.zeros((count,6),dtype='int64')
-    idxa,idxb = 0,0
-    chunk = 1e9 #this is ~111MB for 15 dimensional 64 bit arrays
-    while left > 0 :
-        data = na.fromfile(f,dtype='>i',count=chunk*15)
-        data.reshape(chunk,15)
-        left = count-index
-        le[idxa:idxb,:] = data[0:3]
-        fl[idxa:idxb,1] = numpy.arange(chunk)
-    del data
-    f.seek(pos)
-    return le,fl
 
