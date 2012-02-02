@@ -24,12 +24,12 @@ License:
 """
 
 import numpy as na
+from yt.data_objects.construction_data_containers import YTStreamlineBase
 from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from yt.data_objects.data_containers import YTStreamlineBase
-        
+
 class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
 

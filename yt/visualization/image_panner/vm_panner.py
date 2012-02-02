@@ -23,10 +23,12 @@ License:
 
 import numpy as na
 import types, os
+from yt.data_objects.construction_data_containers import YTOverlapProjBase
+from yt.data_objects.selection_data_containers import YTSliceBase
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.data_objects.data_containers import \
-    data_object_registry, YTOverlapProjBase, YTSliceBase
+    data_object_registry
 from yt.utilities.definitions import \
     x_dict, y_dict
 from yt.funcs import *
