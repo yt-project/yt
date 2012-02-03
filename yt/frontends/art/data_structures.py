@@ -167,6 +167,20 @@ class ARTHierarchy(AMRHierarchy):
         self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
         self.pf.level_offsets[0] = self.pf.root_grid_offset
         
+        
+        #double check bvalues
+        # num_ogrids = 75019704L/8
+        # ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
+        # ogrid_levels = na.zeros(num_ogrids, dtype='int64')
+        # ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
+        # self.pf.level_offsetso = amr_utils.read_art_tree(
+        #                         self.pf.parameter_filename, 
+        #                         self.pf.child_grid_offset,
+        #                         self.pf.min_level, self.pf.max_level,
+        #                         ogrid_left_indices, ogrid_levels,
+        #                         ogrid_file_locations)
+        # ogrid_left_indices = ogrid_left_indices/2**(15 - ogrid_levels[:,None] - 1) - 1                        
+        
         root_psg = _ramses_reader.ProtoSubgrid(
                         na.zeros(3, dtype='int64'), # left index of PSG
                         self.pf.domain_dimensions, # dim of PSG
@@ -189,14 +203,14 @@ class ARTHierarchy(AMRHierarchy):
             #if level > 6: continue
             
             #refers to the left index for the art octgrid
-            left_index, fl, nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
-            left_index_gridpatch = left_index >> LEVEL_OF_EDGE
+            left_index, fl, iocts,  nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
+            #left_index_gridpatch = left_index >> LEVEL_OF_EDGE
             order = max(level + 1 - LEVEL_OF_EDGE, 0)
             
             #compute the hilbert indices up to a certain level
             #the indices will associate an oct grid to the nearest
             #hilbert index?
-            hilbert_indices = _ramses_reader.get_hilbert_indices(order, left_index_gridpatch)
+            hilbert_indices = _ramses_reader.get_hilbert_indices(order, left_index)
             
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.

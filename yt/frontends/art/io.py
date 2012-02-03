@@ -157,12 +157,14 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #Get the info for this level, skip the rest
     junk, nLevel, iOct = struct.unpack(
        '>iii', _read_record(f))
-    iOct = iOct - 1
+    
+    #fortran indices start at 1
 
     #Skip all the oct hierarchy data
     #in the future, break this up into large chunks
-    le  = na.zeros((nLevel,3),dtype='int64')
-    fl  = na.zeros((nLevel,6),dtype='int64')
+    le     = na.zeros((nLevel,3),dtype='int64')
+    fl     = na.ones((nLevel,6),dtype='int64')
+    iocts  = na.zeros(nLevel+1,dtype='int64')
     idxa,idxb = 0,0
     chunk = long(1e6) #this is ~111MB for 15 dimensional 64 bit arrays
     left = nLevel
@@ -173,12 +175,40 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
         data=data.reshape(this_chunk,15)
         left-=this_chunk
         le[idxa:idxb,:] = data[:,1:4]
-        fl[idxa:idxb,1] = na.arange(this_chunk)
-        idxa=idxb
+        fl[idxa:idxb,1] = na.arange(idxa,idxb)
+        #pad byte is last, LL2, then ioct right before it
+        iocts[idxa:idxb] = data[:,-3] 
+        idxa=idxa+this_chunk
     del data
+    
+    #ioct always represents the index of the next variable
+    #not the current, so shift forward one index
+    #the last index isn't used
+    ioctso = iocts.copy()
+    iocts[1:]=iocts[:-1] #shift
+    iocts = iocts[:nLevel] #chop off the last index
+    iocts[0]=iOct #starting value
+
+    #now correct iocts for fortran indices start @ 1
+    iocts = iocts-1
+
+    assert na.unique(iocts).shape[0] == nLevel
+    
+    #ioct tries to access arrays much larger than le & fl
+    #just make sure they appear in the right order, skipping
+    #the empty space in between
+    idx = na.argsort(iocts)
+
+    #now rearrange le & fl in order of the ioct
+    le = le[idx]
+    fl = fl[idx]
+
+    #left edges are expressed as if they were on 
+    #level 15, so no matter what level max(le)=2**15 
+    #correct to the yt convention
     le = le/2**(root_level-1-level)-1
     f.seek(pos)
-    return le,fl,nLevel
+    return le,fl,iocts,nLevel
 
 nchem=8+2
 dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
