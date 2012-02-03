@@ -38,6 +38,8 @@ from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
 import h5py
+from yt.geometry.selection_routines import \
+    convert_mask_to_indices
 
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
@@ -198,15 +200,16 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
-    def _read_selection(self, grid, selection, field, handle = None):
+    def _read_selection(self, grid, selection, field, arr, handle = None):
         if handle is None:
             handle = h5py.File(grid.filename)
-        if selection is None:
-            selection = grid.child_mask.swapaxes(0,2).astype("bool")
-        else:
-            selection *= grid.child_mask.swapaxes(0,2)
-        tr = handle["/Grid%08i" % grid.id][field][selection]
-        return tr
+        ds = handle["/Grid%08i/%s" % (grid.id, field)]
+        ind = convert_mask_to_indices(selection, arr.size, 0)
+        mspace = h5py.h5s.create_simple(ds.shape)
+        mspace.select_elements(ind, h5py.h5s.SELECT_SET)
+        fspace = h5py.h5s.create_simple(arr.shape)
+        fspace.select_all()
+        ds.id.read(mspace, fspace, arr)
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"

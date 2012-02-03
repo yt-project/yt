@@ -51,6 +51,30 @@ cdef extern from "math.h":
 # These all respect the interface "dobj" and a set of left_edges, right_edges,
 # sometimes also accepting level and mask information.
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
+            int count, int transpose = 0):
+    cdef int i, j, k, cpos
+    cdef np.ndarray[np.int32_t, ndim=2] indices 
+    indices = np.zeros((count, 3), dtype='int32')
+    cpos = 0
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            for k in range(mask.shape[2]):
+                if mask[i,j,k] == 1:
+                    if transpose == 1:
+                        indices[cpos, 0] = k
+                        indices[cpos, 1] = j
+                        indices[cpos, 2] = i
+                    else:
+                        indices[cpos, 0] = i
+                        indices[cpos, 1] = j
+                        indices[cpos, 2] = k
+                    cpos += 1
+    return indices
+
 def ortho_ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                           np.ndarray[np.float64_t, ndim=2] right_edges):
     cdef int i
@@ -405,7 +429,9 @@ cdef inline int sphere_cell(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def sphere_cells(dobj, gobj, int fill_mask = 1, int transpose = 1):
+def sphere_cells(dobj, gobj, 
+                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                 int fill_mask = 1, int transpose = 1):
     cdef np.ndarray[np.int32_t, ndim=3] mask 
     cdef int nv[3]
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
@@ -421,13 +447,6 @@ def sphere_cells(dobj, gobj, int fill_mask = 1, int transpose = 1):
     for i in range(3):
         center[i] = dobj.center[i]
         nv[i] = gobj.ActiveDimensions[i]
-    for i in range(2):
-        for j in range(2):
-            for k in range(2):
-                corner_count += sphere_cell(arr[i][0], arr[j][1], arr[k][2],
-                                            center, radius2)
-    if corner_count == 8:
-        return nv[0] * nv[1] * nv[2], None
     cdef np.float64_t x, y, z
     cdef int count = 0
     cdef int mm
@@ -441,6 +460,7 @@ def sphere_cells(dobj, gobj, int fill_mask = 1, int transpose = 1):
         for j in range(nv[1]):
             z = left_edge[2] + dds[2] * 0.5
             for k in range(nv[2]):
+                if child_mask[i,j,k] == 0: continue
                 mm = sphere_cell(x, y, z, center, radius2)
                 if fill_mask == 1 and mm == 1:
                     if transpose == 1:

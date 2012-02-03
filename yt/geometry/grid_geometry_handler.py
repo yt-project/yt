@@ -189,7 +189,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         count = 0
         mylog.debug("Calculating grid mask sizes")
         for g in selector._grids:
-            count += cs(selector, g, 0)[0]
+            count += cs(selector, g, g.child_mask, 0)[0]
         mylog.debug("Getting %s cells", count)
         ind = 0
         fields_to_return = {}
@@ -204,18 +204,16 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         pb = get_pbar("Reading from disk %s" % fields_to_read, len(selector._grids))
         for i,g in enumerate(selector._grids):
             pb.update(i)
-            count, mask = cs(selector, g, 1)
+            count, mask = cs(selector, g, g.child_mask, 1)
+            if count == 0: continue
             for field in fields_to_read:
                 f = fields_to_return[field]
-                v = self.io._read_selection(g, mask, field)
-                f[ind:ind+v.size] = v
-            ind += v.size
+                self.io._read_selection(g, mask, field, f[ind:ind+count])
         pb.finish()
         for field in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
-            f = fields_to_return.pop(field)[:ind]
-            na.multiply(f, conv_factor, f)
-            fields_to_return[field] = f
+            na.multiply(fields_to_return[field], conv_factor,
+                        fields_to_return[field])
         mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
