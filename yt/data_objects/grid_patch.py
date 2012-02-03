@@ -380,7 +380,7 @@ class AMRGridPatch(object):
         thus, where higher resolution data is available).
 
         """
-        self._child_mask = na.ones(self.ActiveDimensions, 'int32')
+        self._child_mask = na.ones(self.ActiveDimensions, 'bool')
         for child in self.Children:
             self.__fill_child_mask(child, self._child_mask, 0)
         if self.OverlappingSiblings is not None:

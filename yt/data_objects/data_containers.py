@@ -155,7 +155,7 @@ class FakeGridForParticles(object):
                                        'dz':grid['dz']})
         self.dds = grid.dds.copy()
         self.real_grid = grid
-        self.child_mask = 1
+        self.child_mask = True
         self.ActiveDimensions = self.field_data['x'].shape
         self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
         
