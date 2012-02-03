@@ -29,6 +29,7 @@ import weakref
 import h5py
 from exceptions import IOError, TypeError
 from types import ClassType
+import numpy as na
 
 from yt.funcs import *
 from yt.config import ytcfg
