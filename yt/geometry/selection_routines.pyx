@@ -28,6 +28,7 @@ cimport numpy as np
 cimport cython
 from stdlib cimport malloc, free
 from fp_utils cimport fclip
+from cython.parallel import prange, parallel, threadid
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -385,94 +386,144 @@ def rprism_cells(dobj, gobj):
 
 # Sphere
 
-def sphere_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
+cdef class SelectorObject:
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
                      np.ndarray[np.float64_t, ndim=2] right_edges):
-    cdef int i, n
-    cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
-    cdef np.float64_t center[3], box_center, relcenter, closest, dist
-    cdef np.float64_t edge
-    for i in range(3):
-        center[i] = dobj.center[i]
-    cdef np.float64_t radius2 = dobj.radius * dobj.radius
-    for n in range(ng):
-        # Check if the sphere is inside the grid
-        if (left_edges[n,0] <= center[0] <= right_edges[n,0] and
-            left_edges[n,1] <= center[1] <= right_edges[n,1] and
-            left_edges[n,2] <= center[2] <= right_edges[n,2]):
-            gridi[n] = 1
-            continue
+        cdef int i, n
+        cdef int ng = left_edges.shape[0]
+        cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
+        cdef np.float64_t LE[3], RE[3]
+        with nogil, parallel():
+            for n in prange(ng):
+                # Call our selector function
+                # Check if the sphere is inside the grid
+                for i in range(3):
+                    LE[i] = left_edges[n, i]
+                    RE[i] = right_edges[n, i]
+                gridi[n] = self.select_grid(LE, RE)
+        return gridi.astype("bool")
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return 0
+    
+    cdef int select_cell(self, np.float64_t x, np.float64_t y,
+                         np.float64_t z) nogil:
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        child_mask = gobj.child_mask
+        cdef int i, j, k, nv[3]
+        for i in range(3):
+            nv[i] = gobj.ActiveDimensions[i]
+        cdef np.float64_t x, y, z
+        cdef int count = 0
+        with nogil:
+            x = left_edge[0] + dds[0] * 0.5
+            for i in range(nv[0]):
+                y = left_edge[1] + dds[1] * 0.5
+                for j in range(nv[1]):
+                    z = left_edge[2] + dds[2] * 0.5
+                    for k in range(nv[2]):
+                        if child_mask[i,j,k] == 0: continue
+                        count += self.select_cell(x, y, z)
+                        z += dds[1]
+                    y += dds[1]
+                x += dds[0]
+        return count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj, int transpose = 1):
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        child_mask = gobj.child_mask
+        cdef np.ndarray[np.uint8_t, ndim=3] mask 
+        cdef int nv[3]
+        cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
+        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+        cdef int i, j, k
+        for i in range(3):
+            nv[i] = gobj.ActiveDimensions[i]
+        if transpose == 1:
+            mask = np.zeros(gobj.ActiveDimensions[::-1], dtype='uint8')
+        else:
+            mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+        cdef np.float64_t x, y, z
+        with nogil:
+            x = left_edge[0] + dds[0] * 0.5
+            for i in range(nv[0]):
+                y = left_edge[1] + dds[1] * 0.5
+                for j in range(nv[1]):
+                    z = left_edge[2] + dds[2] * 0.5
+                    for k in range(nv[2]):
+                        if child_mask[i,j,k] == 0: continue
+                        if self.select_cell(x, y, z) == 1:
+                            if transpose == 1:
+                                mask[k,j,i] = 1
+                            else:
+                                mask[i,j,k] = 1
+                        z += dds[1]
+                    y += dds[1]
+                x += dds[0]
+        return mask.astype("bool")
+
+cdef class SphereSelector(SelectorObject):
+    cdef np.float64_t radius2
+    cdef np.float64_t center[3]
+
+    def __init__(self, dobj):
+        for i in range(3):
+            self.center[i] = dobj.center[i]
+        self.radius2 = dobj.radius * dobj.radius
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef np.float64_t box_center, relcenter, closest, dist, edge
+        cdef int i
+        if (left_edge[0] <= self.center[0] <= right_edge[0] and
+            left_edge[1] <= self.center[1] <= right_edge[1] and
+            left_edge[2] <= self.center[2] <= right_edge[2]):
+            return 1
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         dist = 0
         for i in range(3):
-            box_center = (right_edges[n,i] + left_edges[n,i])/2.0
-            relcenter = center[i] - box_center
-            edge = right_edges[n,i] - left_edges[n,i]
+            box_center = (right_edge[i] + left_edge[i])/2.0
+            relcenter = self.center[i] - box_center
+            edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
-        if dist < radius2: gridi[n] = 1
-    return gridi.astype("bool")
+        if dist < self.radius2: return 1
+        return 0
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef inline int sphere_cell(
-                        np.float64_t x, np.float64_t y, np.float64_t z,
-                        np.float64_t center[3], np.float64_t radius2):
-    cdef np.float64_t dist2
-    dist2 = ( (x - center[0])*(x - center[0])
-            + (y - center[1])*(y - center[1])
-            + (z - center[2])*(z - center[2]) )
-    if dist2 < radius2: return 1
-    return 0
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t x, np.float64_t y,
+                    np.float64_t z) nogil:
+        cdef np.float64_t dist2
+        dist2 = ( (x - self.center[0])*(x - self.center[0])
+                + (y - self.center[1])*(y - self.center[1])
+                + (z - self.center[2])*(z - self.center[2]) )
+        if dist2 < self.radius2: return 1
+        return 0
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def sphere_cells(dobj, gobj, 
-                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
-                 int fill_mask = 1, int transpose = 1):
-    cdef np.ndarray[np.int32_t, ndim=3] mask 
-    cdef int nv[3]
-    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
-    cdef np.float64_t radius2 = dobj.radius * dobj.radius
-    cdef np.float64_t center[3]
-    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-    cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-    cdef int i, j, k
-    cdef np.float64_t *arr[2]
-    arr[0] = <np.float64_t *> left_edge.data
-    arr[1] = <np.float64_t *> right_edge.data
-    cdef int corner_count = 0
-    for i in range(3):
-        center[i] = dobj.center[i]
-        nv[i] = gobj.ActiveDimensions[i]
-    cdef np.float64_t x, y, z
-    cdef int count = 0
-    cdef int mm
-    if fill_mask == 1 and transpose == 1:
-        mask = np.zeros(gobj.ActiveDimensions[::-1], dtype='int32')
-    elif fill_mask == 1:
-        mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
-    x = left_edge[0] + dds[0] * 0.5
-    for i in range(nv[0]):
-        y = left_edge[1] + dds[1] * 0.5
-        for j in range(nv[1]):
-            z = left_edge[2] + dds[2] * 0.5
-            for k in range(nv[2]):
-                if child_mask[i,j,k] == 0: continue
-                mm = sphere_cell(x, y, z, center, radius2)
-                if fill_mask == 1 and mm == 1:
-                    if transpose == 1:
-                        mask[k,j,i] = 1
-                    else:
-                        mask[i,j,k] = 1
-                count += mm
-                z += dds[1]
-            y += dds[1]
-        x += dds[0]
-    if fill_mask == 1:
-        return count, mask.astype("bool")
-    return count, None
+sphere_selector = SphereSelector
 
 # Ellipse

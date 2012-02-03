@@ -177,21 +177,23 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
 
-    def _read_selection(self, fields, selector):
+    def _read_selection(self, fields, dobj):
         if len(fields) == 0: return {}, []
-        if getattr(selector, "_grids", None) is None:
-            gs = getattr(selection_routines, "%s_grids" % selector._type_name, None)
-            if gs is None: raise NotImplementedError
-            gi = gs(selector, self.grid_left_edge, self.grid_right_edge)
-            selector._grids = self.grids[gi]
-        cs = getattr(selection_routines, "%s_cells" % selector._type_name, None)
-        if cs is None: raise NotImplementedError
+        sclass = getattr(selection_routines, "%s_selector" % dobj._type_name,
+                           None)
+        if sclass is None: raise NotImplementedError
+        selector = sclass(dobj)
+        if getattr(dobj, "_grids", None) is None:
+            gi = selector.select_grids(self.grid_left_edge,
+                                       self.grid_right_edge)
+            dobj._grids = self.grids[gi]
         count = 0
         mylog.debug("Calculating grid mask sizes")
-        for g in selector._grids:
-            count += cs(selector, g, g.child_mask, 0)[0]
+        counts = []
+        for g in dobj._grids:
+            counts.append(selector.count_cells(g))
+        count = sum(counts)
         mylog.debug("Getting %s cells", count)
-        ind = 0
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
         for f in fields:
@@ -201,14 +203,16 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             else:
                 fields_to_generate.append(f)
         if len(fields_to_read) == 0: return {}, fields_to_generate
-        pb = get_pbar("Reading from disk %s" % fields_to_read, len(selector._grids))
-        for i,g in enumerate(selector._grids):
+        pb = get_pbar("Reading from disk %s" % fields_to_read, len(dobj._grids))
+        ind = 0
+        for i,(g,c) in enumerate(zip(dobj._grids, counts)):
             pb.update(i)
-            count, mask = cs(selector, g, g.child_mask, 1)
-            if count == 0: continue
+            if c == 0: continue
+            mask = selector.fill_mask(g, 1)
             for field in fields_to_read:
                 f = fields_to_return[field]
-                self.io._read_selection(g, mask, field, f[ind:ind+count])
+                self.io._read_selection(g, mask, field, f[ind:ind+c])
+            ind += c
         pb.finish()
         for field in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
