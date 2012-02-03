@@ -200,16 +200,20 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
-    def _read_selection(self, grid, selection, field, arr, handle = None):
+    def _read_selection(self, grid, selection, field, arr, handle = None,
+                        count = 0):
         if handle is None:
             handle = h5py.File(grid.filename)
         ds = handle["/Grid%08i/%s" % (grid.id, field)]
-        ind = convert_mask_to_indices(selection, arr.size, 0)
-        mspace = h5py.h5s.create_simple(ds.shape)
-        mspace.select_elements(ind, h5py.h5s.SELECT_SET)
-        fspace = h5py.h5s.create_simple(arr.shape)
-        fspace.select_all()
-        ds.id.read(mspace, fspace, arr)
+        if float(count) / grid.ActiveDimensions.prod() > 0.0:
+            arr[:] = ds[:].transpose()[selection]
+        else:
+            ind = convert_mask_to_indices(selection, arr.size, 1)
+            fspace = h5py.h5s.create_simple(ds.shape)
+            fspace.select_elements(ind, h5py.h5s.SELECT_SET)
+            mspace = h5py.h5s.create_simple(arr.shape)
+            mspace.select_all()
+            ds.id.read(mspace, fspace, arr)
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"

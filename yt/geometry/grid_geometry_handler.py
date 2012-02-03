@@ -208,10 +208,10 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         for i,(g,c) in enumerate(zip(dobj._grids, counts)):
             pb.update(i)
             if c == 0: continue
-            mask = selector.fill_mask(g, 1)
+            mask = selector.fill_mask(g, 0)
             for field in fields_to_read:
                 f = fields_to_return[field]
-                self.io._read_selection(g, mask, field, f[ind:ind+c])
+                self.io._read_selection(g, mask, field, f[ind:ind+c], count=c)
             ind += c
         pb.finish()
         for field in fields_to_read:
