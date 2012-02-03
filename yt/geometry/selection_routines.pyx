@@ -437,8 +437,8 @@ cdef class SelectorObject:
                 for j in range(nv[1]):
                     z = left_edge[2] + dds[2] * 0.5
                     for k in range(nv[2]):
-                        if child_mask[i,j,k] == 0: continue
-                        count += self.select_cell(x, y, z)
+                        if child_mask[i,j,k] == 1:
+                            count += self.select_cell(x, y, z)
                         z += dds[1]
                     y += dds[1]
                 x += dds[0]
@@ -458,11 +458,12 @@ cdef class SelectorObject:
         cdef int i, j, k
         for i in range(3):
             nv[i] = gobj.ActiveDimensions[i]
-        if transpose == 1:
-            mask = np.zeros(gobj.ActiveDimensions[::-1], dtype='uint8')
-        else:
+        if transpose == 0:
             mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+        else:
+            mask = np.zeros(gobj.ActiveDimensions[::-1], dtype='uint8')
         cdef np.float64_t x, y, z
+        cdef int temp
         with nogil:
             x = left_edge[0] + dds[0] * 0.5
             for i in range(nv[0]):
@@ -470,12 +471,10 @@ cdef class SelectorObject:
                 for j in range(nv[1]):
                     z = left_edge[2] + dds[2] * 0.5
                     for k in range(nv[2]):
-                        if child_mask[i,j,k] == 0: continue
-                        if self.select_cell(x, y, z) == 1:
-                            if transpose == 1:
-                                mask[k,j,i] = 1
-                            else:
-                                mask[i,j,k] = 1
+                        if child_mask[i,j,k] == 1:
+                            temp = self.select_cell(x, y, z)
+                            if transpose == 0: mask[i,j,k] = temp
+                            else: mask[k,j,i] = temp
                         z += dds[1]
                     y += dds[1]
                 x += dds[0]
@@ -496,7 +495,7 @@ cdef class SphereSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         cdef np.float64_t box_center, relcenter, closest, dist, edge
-        cdef int i
+        cdef int id
         if (left_edge[0] <= self.center[0] <= right_edge[0] and
             left_edge[1] <= self.center[1] <= right_edge[1] and
             left_edge[2] <= self.center[2] <= right_edge[2]):
@@ -521,7 +520,7 @@ cdef class SphereSelector(SelectorObject):
         dist2 = ( (x - self.center[0])*(x - self.center[0])
                 + (y - self.center[1])*(y - self.center[1])
                 + (z - self.center[2])*(z - self.center[2]) )
-        if dist2 < self.radius2: return 1
+        if dist2 <= self.radius2: return 1
         return 0
 
 sphere_selector = SphereSelector
