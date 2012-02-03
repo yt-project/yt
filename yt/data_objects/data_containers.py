@@ -543,7 +543,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _convert_field_name(self, field):
         return field
 
-    def get_data(self, fields = None):
+    def ___get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -758,26 +758,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
             new_field[pointI] = self[field][i:i+np]
             grid[field] = new_field
             i += np
-
-    def _is_fully_enclosed(self, grid):
-        return na.all(self._get_cut_mask)
-
-    def _get_point_indices(self, grid, use_child_mask=True):
-        k = na.zeros(grid.ActiveDimensions, dtype='bool')
-        k = (k | self._get_cut_mask(grid))
-        if use_child_mask: k = (k & grid.child_mask)
-        return na.where(k)
-
-    def _get_cut_particle_mask(self, grid):
-        if self._is_fully_enclosed(grid):
-            return True
-        fake_grid = FakeGridForParticles(grid)
-        return self._get_cut_mask(fake_grid)
-
-    def _get_particle_indices(self, grid):
-        k = na.zeros(grid.NumberOfParticles, dtype='bool')
-        k = (k | self._get_cut_particle_mask(grid))
-        return na.where(k)
 
     def cut_region(self, field_cuts):
         """
