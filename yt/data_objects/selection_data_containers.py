@@ -801,11 +801,11 @@ class YTCylinderBase(YTSelectionContainer3D):
         can define a cylinder of any proportion.  Only cells whose centers are
         within the cylinder will be selected.
         """
-        YTSelectionContainer3D.__init__(self, na.array(center), fields, pf, **kwargs)
+        YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
         self.set_field_parameter("height_vector", self._norm_vec)
-        self._height = height
-        self._radius = radius
+        self._height = fix_length(height, self.pf)
+        self._radius = fix_length(radius, self.pf)
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
         self._refresh_data()
 
@@ -1008,9 +1008,7 @@ class YTSphereBase(YTSelectionContainer3D):
         """
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
-        if isinstance(radius, (list, tuple)) and len(radius) == 2 and \
-           isinstance(radius[1], types.StringTypes):
-           radius = radius[0]/self.pf[radius[1]]
+        radius = fix_length(radius, self.pf)
         if radius < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)

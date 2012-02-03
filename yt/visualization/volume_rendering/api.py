@@ -38,4 +38,4 @@ from grid_partitioner import HomogenizedVolume, \
 from image_handling import export_rgba, import_rgba, \
                            plot_channel, plot_rgb
 from camera import Camera, PerspectiveCamera, StereoPairCamera, \
-    off_axis_projection
+    off_axis_projection, FisheyeCamera, MosaicFisheyeCamera

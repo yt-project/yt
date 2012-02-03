@@ -155,13 +155,14 @@ def get_box_grids_below_level(
                         np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
+                        np.ndarray[np.int32_t, ndim=1] mask,
+                        int min_level = 0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
     cdef int inside 
     for i in range(nx):
         mask[i] = 0
-        if levels[i,0] <= level:
+        if levels[i,0] <= level and levels[i,0] >= min_level:
             inside = 1
             for n in range(3):
                 if left_edge[n] >= right_edges[i,n] or \

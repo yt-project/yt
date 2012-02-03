@@ -26,6 +26,10 @@ import numpy as na
 import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
+import _colormap_data as _cm
+
+def is_colormap(cmap):
+    return isinstance(cmap,cc.Colormap)
 
 def check_color(name):
     try:
@@ -123,6 +127,15 @@ _cubehelix_data = {
 }
 
 add_cmap("cubehelix", _cubehelix_data)
+
+# Add colormaps in _colormap_data.py that weren't defined here
+_vs = na.linspace(0,1,255)
+for k,v in _cm.color_map_luts.iteritems():
+    if k not in yt_colormaps:
+        cdict = { 'red': zip(_vs,v[0],v[0]),
+                  'green': zip(_vs,v[1],v[1]),
+                  'blue': zip(_vs,v[2],v[2]) }
+        add_cmap(k, cdict)
 
 def _extract_lookup_table(cmap_name):
     cmap = mcm.get_cmap(cmap_name)

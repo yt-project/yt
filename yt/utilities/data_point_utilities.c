@@ -1059,9 +1059,9 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
 
     int n_fields = PyList_Size(oc_data);
     if(n_fields == 0) {
-      PyErr_Format(_dataCubeError,
+      /*PyErr_Format(_dataCubeError,
           "CombineGrids: Length zero for c_data is invalid.");
-      goto _fail;
+      goto _fail;*/
     }
     if (!PyList_Check(og_data) || (PyList_Size(og_data) != n_fields)){
       PyErr_Format(_dataCubeError,

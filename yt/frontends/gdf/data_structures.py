@@ -168,6 +168,9 @@ class GDFStaticOutput(StaticOutput):
         seconds = 1
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
+        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+
         # This should be improved.
         self._handle = h5py.File(self.parameter_filename, "r")
         for field_name in self._handle["/field_types"]:

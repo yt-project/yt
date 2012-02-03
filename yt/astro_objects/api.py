@@ -26,9 +26,9 @@ License:
 
 from .astrophysical_object import \
     AstrophysicalObject, identification_method, correlation_method
-    
+
 from .simulation_volume import \
     SimulationVolume
-    
+
 from .clumped_region import \
     ClumpedRegion
