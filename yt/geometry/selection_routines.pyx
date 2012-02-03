@@ -231,100 +231,6 @@ def cutting_plane_cells(dobj, gobj):
         x += dds[0]
     return mask.astype("bool")
 
-# Disk
-
-def disk_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
-                     np.ndarray[np.float64_t, ndim=2] right_edges):
-    cdef int i, j, k, xi, yi, zi
-    cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
-    cdef np.float64_t *arr[2]
-    arr[0] = <np.float64_t *> left_edges.data
-    arr[1] = <np.float64_t *> right_edges.data
-    cdef np.float64_t x, y, z
-    cdef np.float64_t norm_vec[3], center[3]
-    cdef np.float64_t d = dobj._d # offset to center
-    cdef np.float64_t rs = dobj.radius
-    cdef np.float64_t height = dobj._height
-    cdef np.float64_t H, D, R
-    cdef int cond[4]
-    # * H < height
-    # * R < radius
-    # * not ( all(H > 0) or all(H < 0) )
-    for i in range(3):
-        norm_vec[i] = dobj._norm_vec[i]
-        center[i] = dobj.center[i]
-    for i in range(ng):
-        cond[0] = cond[1] = 0
-        cond[2] = cond[3] = 1
-        for xi in range(2):
-            x = arr[xi][i * 3 + 0]
-            for yi in range(2):
-                y = arr[yi][i * 3 + 1]
-                for zi in range(2):
-                    z = arr[zi][i * 3 + 2]
-                    H = ( x * norm_vec[0]
-                        + y * norm_vec[1]
-                        + z * norm_vec[2]) + d
-                    D = ((x - center[0])**2
-                       + (y - center[1])**2
-                       + (z - center[2])**2)
-                    R = (D - H*H)**0.5
-                    if cond[0] == 0 and H < height: cond[0] = 1
-                    if cond[1] == 0 and R < rs: cond[1] = 1
-                    if cond[2] == 1 and H < 0: cond[2] = 0
-                    if cond[3] == 1 and H > 0: cond[3] = 0
-        if cond[0] == cond[1] == 1 and not (cond[2] == 1 or cond[3] == 1):
-            gridi[i] = 1
-    return gridi.astype("bool")
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef inline int disk_cell(
-                        np.float64_t x, np.float64_t y, np.float64_t z,
-                        np.float64_t norm_vec[3], np.float64_t obj_c[3],
-                        np.float64_t obj_d, np.float64_t obj_r,
-                        np.float64_t obj_h):
-    cdef np.float64_t h, d, r
-    h = x * norm_vec[0] + y * norm_vec[1] + z * norm_vec[2] + obj_d
-    d = ( (x - obj_c[0])**2
-        + (y - obj_c[1])**2
-        + (z - obj_c[2])**2)**0.5
-    r = (d*d - h*h)**0.5
-    if fabs(h) <= obj_h and r <= obj_r: return 1
-    return 0
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def disk_cells(dobj, gobj):
-    cdef np.ndarray[np.int32_t, ndim=3] mask 
-    cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-    cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
-    cdef int i, j, k
-    cdef np.float64_t x, y, z, dist
-    cdef np.float64_t norm_vec[3], obj_c[3]
-    cdef np.float64_t obj_d = dobj._d
-    cdef np.float64_t obj_r = dobj.radius
-    cdef np.float64_t obj_h = dobj._h
-    for i in range(3):
-        norm_vec[i] = dobj._norm_vec[i]
-        obj_c[i] = dobj.center[i]
-    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
-    x = left_edge[0] + dds[0] * 0.5
-    for i in range(mask.shape[0]):
-        y = left_edge[1] + dds[1] * 0.5
-        for j in range(mask.shape[1]):
-            z = left_edge[2] + dds[2] * 0.5
-            for k in range(mask.shape[2]):
-                mask[i,j,k] = disk_cell(x, y, z, norm_vec, obj_c,
-                                    obj_d, obj_r, obj_h)
-                z += dds[1]
-            y += dds[1]
-        x += dds[0]
-    return mask.astype("bool")
-
 # Inclined Box
 # Sphere
 
@@ -498,5 +404,77 @@ cdef class RegionSelector(SelectorObject):
         return 1
 
 region_selector = RegionSelector
+
+cdef class DiskSelector(SelectorObject):
+    cdef np.float64_t norm_vec[3]
+    cdef np.float64_t center[3]
+    cdef np.float64_t d
+    cdef np.float64_t radius2
+    cdef np.float64_t height
+
+    def __init__(self, dobj):
+        cdef int i
+        for i in range(3):
+            self.norm_vec[i] = dobj._norm_vec[i]
+            self.center[i] = dobj.center[i]
+        self.d = dobj._d
+        self.radius2 = dobj._radius * dobj._radius
+        self.height = dobj._height
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef np.float64_t *arr[2]
+        cdef np.float64_t pos[3], H, D, R2, temp
+        cdef int i, j, k, n
+        arr[0] = left_edge
+        arr[1] = right_edge
+        cdef int cond[2]
+        cond[0] = cond[1] = 0
+        for i in range(2):
+            pos[0] = arr[i][0]
+            for j in range(2):
+                pos[1] = arr[j][1]
+                for k in range(2):
+                    pos[2] = arr[k][2]
+                    H = D = 0
+                    for n in range(3):
+                        H += (pos[n] * self.norm_vec[n])
+                        temp = (pos[n] - self.center[n])
+                        D += temp*temp
+                    H += self.d
+                    R2 = (D - H*H)
+                    if fabs(H) < self.height: cond[0] = 1
+                    if R2 < self.radius2: cond[1] = 1
+        # A moment of explanation:
+        #    We want our height to be less than the height AND our radius2 to be
+        #    less than radius2, so we set cond[0] equal to 1 if any corners
+        #    match that criteria.
+        # Note that we OVERSELECT grids, as we are selecting anything within
+        # the height and within the radius, which is kind of a funny thing.
+        # Cell selection takes care of the rest.
+        if cond[0] == 1 and cond[1] == 1:
+            return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef np.float64_t h, d, r2, temp
+        cdef int i
+        h = d = 0
+        for i in range(3):
+            h += pos[i] * self.norm_vec[i]
+            temp = pos[i] - self.center[i]
+            d += temp*temp
+        h += self.d
+        r2 = (d - h*h)
+        if fabs(h) <= self.height and r2 <= self.radius2: return 1
+        return 0
+
+disk_selector = DiskSelector
 
 # Ellipse

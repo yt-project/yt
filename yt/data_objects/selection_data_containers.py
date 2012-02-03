@@ -788,7 +788,7 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
             (self._top_node, cen_name, L_name)
 
 
-class YTCylinderBase(YTSelectionContainer3D):
+class YTDiskBase(YTSelectionContainer3D):
     """
     We can define a cylinder (or disk) to act as a data object.
     """
