@@ -105,8 +105,8 @@ class StaticOutput(object):
         self.create_field_info()
 
     def _set_derived_attrs(self):
-        self.center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
-        self.width = self.domain_right_edge - self.domain_left_edge
+        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+        self.domain_width = self.domain_right_edge - self.domain_left_edge
 
     def __reduce__(self):
         args = (self._hash(),)
