@@ -135,31 +135,59 @@ class OrionHierarchy(AMRHierarchy):
 
         """
         self.grid_particle_count = na.zeros(len(self.grids))
-        fn = self.pf.fullplotdir + "/StarParticles"
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip())
-            for line in lines[1:]:
-                particle_position_x = float(line.split(' ')[1])
-                particle_position_y = float(line.split(' ')[2])
-                particle_position_z = float(line.split(' ')[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask=na.ones(self.num_grids)
-                for i in xrange(len(coord)):
-                    na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                    ind = na.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = na.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
+        try:
+            fn = self.pf.fullplotdir + "/StarParticles"
+            with open(fn, 'r') as f:
+                print 'You do not appear to have a star particle file :(\n'
+                lines = f.readlines()
+                self.num_stars = int(lines[0].strip())
+                for line in lines[1:]:
+                    particle_position_x = float(line.split(' ')[1])
+                    particle_position_y = float(line.split(' ')[2])
+                    particle_position_z = float(line.split(' ')[3])
+                    coord = [particle_position_x, particle_position_y, particle_position_z]
+                    # for each particle, determine which grids contain it
+                    # copied from object_finding_mixin.py
+                    mask=na.ones(self.num_grids)
+                    for i in xrange(len(coord)):
+                        na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                        na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                        ind = na.where(mask == 1)
+                    selected_grids = self.grids[ind]
+                    # in orion, particles always live on the finest level.
+                    # so, we want to assign the particle to the finest of
+                    # the grids we just found
+                    if len(selected_grids) != 0:
+                        grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                        ind = na.where(self.grids == grid)[0][0]
+                        self.grid_particle_count[ind] += 1
+                        self.grids[ind].NumberOfParticles += 1
+        except IOError:
+            fn = self.pf.fullplotdir + "/SinkParticles"
+            with open(fn, 'r') as f:
+                lines = f.readlines()
+                self.num_stars = int(lines[0].strip())
+                for line in lines[1:]:
+                    particle_position_x = float(line.split(' ')[1])
+                    particle_position_y = float(line.split(' ')[2])
+                    particle_position_z = float(line.split(' ')[3])
+                    coord = [particle_position_x, particle_position_y, particle_position_z]
+                    # for each particle, determine which grids contain it
+                    # copied from object_finding_mixin.py
+                    mask=na.ones(self.num_grids)
+                    for i in xrange(len(coord)):
+                        na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                        na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                        ind = na.where(mask == 1)
+                    selected_grids = self.grids[ind]
+                    # in orion, particles always live on the finest level.
+                    # so, we want to assign the particle to the finest of
+                    # the grids we just found
+                    if len(selected_grids) != 0:
+                        grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                        ind = na.where(self.grids == grid)[0][0]
+                        self.grid_particle_count[ind] += 1
+                        self.grids[ind].NumberOfParticles += 1
 
     def readGlobalHeader(self,filename,paranoid_read):
         """
