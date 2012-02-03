@@ -701,7 +701,7 @@ def _ConvertRadiuskpch(data):
     return data.convert("kpch")
 add_field("ParticleRadiuskpch", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}",
+          convert_function = _ConvertRadiuskpch, units=r"\rm{kpc}/\rm{h}",
           particle_type=True,
           display_name = "Particle Radius")
 add_field("Radiuskpch", function=_Radius,
