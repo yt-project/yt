@@ -187,33 +187,16 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             gi = selector.select_grids(self.grid_left_edge,
                                        self.grid_right_edge)
             dobj._grids = self.grids[gi]
-        count = 0
-        mylog.debug("Calculating grid mask sizes")
-        counts = []
-        for g in dobj._grids:
-            counts.append(selector.count_cells(g))
-        count = sum(counts)
-        mylog.debug("Getting %s cells", count)
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
         for f in fields:
             if f in self.field_list:
                 fields_to_read.append(f)
-                fields_to_return[f] = na.empty(count, 'float64')
             else:
                 fields_to_generate.append(f)
-        if len(fields_to_read) == 0: return {}, fields_to_generate
-        pb = get_pbar("Reading from disk %s" % fields_to_read, len(dobj._grids))
-        ind = 0
-        for i,(g,c) in enumerate(zip(dobj._grids, counts)):
-            pb.update(i)
-            if c == 0: continue
-            mask = selector.fill_mask(g, 0)
-            for field in fields_to_read:
-                f = fields_to_return[field]
-                self.io._read_selection(g, mask, field, f[ind:ind+c], count=c)
-            ind += c
-        pb.finish()
+        if len(fields_to_read) == 0 or len(dobj._grids) == 0:
+            return {}, fields_to_generate
+        fields_to_return = self.io._read_selection(dobj._grids, selector, fields_to_read)
         for field in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,

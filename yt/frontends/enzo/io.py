@@ -41,6 +41,9 @@ import h5py
 from yt.geometry.selection_routines import \
     convert_mask_to_indices
 
+import numpy as na
+from yt.funcs import *
+
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
     _data_style = "enzo_hdf4"
@@ -200,20 +203,36 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
-    def _read_selection(self, grid, selection, field, arr, handle = None,
-                        count = 0):
-        if handle is None:
-            handle = h5py.File(grid.filename)
-        ds = handle["/Grid%08i/%s" % (grid.id, field)]
-        if float(count) / grid.ActiveDimensions.prod() > 0.0:
-            arr[:] = ds[:].transpose()[selection]
-        else:
-            ind = convert_mask_to_indices(selection, arr.size, 1)
-            fspace = h5py.h5s.create_simple(ds.shape)
-            fspace.select_elements(ind, h5py.h5s.SELECT_SET)
-            mspace = h5py.h5s.create_simple(arr.shape)
-            mspace.select_all()
-            ds.id.read(mspace, fspace, arr)
+    def _read_selection(self, grids, selector, fields):
+        last = None
+        rv = {}
+        counts = {}
+        for g in grids:
+            counts[g.id] = selector.count_cells(g)
+        count = sum(counts.values())
+        # Now we have to do something unpleasant
+        grids = list(sorted(grids, key=lambda a: a.filename))
+        last = grids[0].filename
+        handle = h5py.File(last)
+        for field in fields:
+            ds = handle["/Grid%08i/%s" % (grids[0].id, field)]
+            rv[field] = na.empty(count, dtype=ds.dtype)
+        ind = 0
+        mylog.info("Reading %s cells of %s fields in %s grids",
+                   count, len(fields), len(grids))
+        for i,g in enumerate(grids):
+            if last != g.filename:
+                handle.close()
+                last = g.filename
+                handle = h5py.File(last)
+            mask = selector.fill_mask(g)
+            c = counts[g.id]
+            for field in fields:
+                ds = handle["/Grid%08i/%s" % (g.id, field)]
+                rv[field][ind:ind+c] = ds[:].transpose()[mask]
+            ind += c
+        handle.close()
+        return rv
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
