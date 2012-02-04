@@ -147,18 +147,6 @@ def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
             continue
     return gridi.astype("bool")
 
-def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
-                      np.ndarray[np.float64_t, ndim=2] right_edges):
-    cdef int i, ax
-    cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
-    ax = dobj.axis
-    cdef np.float64_t coord = dobj.coord
-    for i in range(ng):
-        if right_edges[i, ax] > coord and left_edges[i, ax] <= coord:
-            gridi[i] = 1
-    return gridi.astype("bool")
-
 # Inclined Box
 
 cdef class SelectorObject:
@@ -458,3 +446,26 @@ cdef class CuttingPlaneSelector(SelectorObject):
         return 0
 
 cutting_selector = CuttingPlaneSelector
+
+cdef class SliceSelector(SelectorObject):
+    cdef int axis
+    cdef np.float64_t coord
+
+    def __init__(self, dobj):
+        self.axis = dobj.axis
+        self.coord = dobj.coord
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        if right_edge[self.axis] > self.coord \
+           and left_edge[self.axis] <= self.coord:
+            return 1
+        return 0
+    
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
+           and pos[self.axis] - 0.5*dds[self.axis] <= self.coord:
+            return 1
+        return 0
+
+slice_selector = SliceSelector
