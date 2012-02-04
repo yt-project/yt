@@ -514,7 +514,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         yield
         self._locked = False
 
-class YTSelectionContainer1D(YTDataContainer):
+class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):
         YTDataContainer.__init__(self, pf, fields, **kwargs)
@@ -542,43 +542,6 @@ class YTSelectionContainer2D(YTSelectionContainer):
         
     def _convert_field_name(self, field):
         return field
-
-    def ___get_data(self, fields = None):
-        """
-        Iterates over the list of fields and generates/reads them all.
-        """
-        # We get it for the values in fields and coords
-        # We take a 3-tuple of the coordinate we want to slice through, as well
-        # as the axis we're slicing along
-        self._get_list_of_grids()
-        if not self.has_key('pdx'):
-            self._generate_coords()
-        if fields == None:
-            fields_to_get = self.fields[:]
-        else:
-            fields_to_get = ensure_list(fields)
-        temp_data = {}
-        for field in fields_to_get:
-            if self.field_data.has_key(field): continue
-            if field not in self.hierarchy.field_list:
-                if self._generate_field(field):
-                    continue # A "True" return means we did it
-            # To ensure that we use data from this object as much as possible,
-            # we're going to have to set the same thing several times
-            data = [self._get_data_from_grid(grid, field)
-                    for grid in self._get_grids()]
-            if len(data) == 0: data = na.array([])
-            else: data = na.concatenate(data)
-            temp_data[field] = data
-            # Now the next field can use this field
-            self[field] = temp_data[field] 
-        # We finalize
-        if temp_data != {}:
-            temp_data = self.comm.par_combine_object(temp_data,
-                    datatype='dict', op='cat')
-        # And set, for the next group
-        for field in temp_data.keys():
-            self[field] = temp_data[field]
 
     def to_frb(self, width, resolution, center = None):
         r"""This function returns a FixedResolutionBuffer generated from this

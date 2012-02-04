@@ -37,8 +37,6 @@ from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
     restore_grid_state, cache_mask, cache_point_indices, cache_vc_data, \
     FakeGridForParticles
-from yt.geometry.selection_routines import \
-    ortho_ray_grids, ray_grids
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection, GridChildMaskWrapper
 from yt.utilities.definitions import \
@@ -96,35 +94,6 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     @property
     def coords(self):
         return (self.px, self.py)
-
-    def _get_list_of_grids(self):
-        gi = ortho_ray_grids(self,
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
-        self._grids = self.hierarchy.grids[gi]
-
-    @restore_grid_state
-    def _get_data_from_grid(self, grid, field):
-        # We are orthogonal, so we can feel free to make assumptions
-        # for the sake of speed.
-        if grid.id not in self._cut_masks:
-            gdx = just_one(grid[self.px_dx])
-            gdy = just_one(grid[self.py_dx])
-            x_coord = int((self.px - grid.LeftEdge[self.px_ax])/gdx)
-            y_coord = int((self.py - grid.LeftEdge[self.py_ax])/gdy)
-            sl = [None,None,None]
-            sl[self.px_ax] = slice(x_coord,x_coord+1,None)
-            sl[self.py_ax] = slice(y_coord,y_coord+1,None)
-            sl[self.axis] = slice(None)
-            self._cut_masks[grid.id] = sl
-        else:
-            sl = self._cut_masks[grid.id]
-        if not iterable(grid[field]):
-            gf = grid[field] * na.ones(grid.child_mask[sl].shape)
-        else:
-            gf = grid[field][sl]
-        return gf[na.where(grid.child_mask[sl])]
-
 
 class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"

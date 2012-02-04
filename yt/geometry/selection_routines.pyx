@@ -76,23 +76,6 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
                     cpos += 1
     return indices
 
-def ortho_ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
-                          np.ndarray[np.float64_t, ndim=2] right_edges):
-    cdef int i
-    cdef int ng = left_edges.shape[0]
-    cdef int px_ax = dobj.px_ax
-    cdef int py_ax = dobj.py_ax
-    cdef np.float64_t px = dobj.px
-    cdef np.float64_t py = dobj.py
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32_t')
-    for i in range(ng):
-        if (    (px >= left_edges[i, px])
-            and (px < right_edges[i, px])
-            and (py >= left_edges[i, py])
-            and (py < right_edges[i, py])):
-            gridi[i] = 1
-    return gridi.astype("bool")
-
 def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                     np.ndarray[np.float64_t, ndim=2] right_edges):
     cdef int i, ax
@@ -455,6 +438,9 @@ cdef class SliceSelector(SelectorObject):
         self.axis = dobj.axis
         self.coord = dobj.coord
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         if right_edge[self.axis] > self.coord \
@@ -462,6 +448,9 @@ cdef class SliceSelector(SelectorObject):
             return 1
         return 0
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
            and pos[self.axis] - 0.5*dds[self.axis] <= self.coord:
@@ -469,3 +458,43 @@ cdef class SliceSelector(SelectorObject):
         return 0
 
 slice_selector = SliceSelector
+
+cdef class OrthoRaySelector(SelectorObject):
+
+    cdef np.uint8_t px_ax
+    cdef np.uint8_t py_ax
+    cdef np.float64_t px
+    cdef np.float64_t py
+    cdef int axis
+
+    def __init__(self, dobj):
+        self.axis = dobj.axis
+        self.px_ax = dobj.px_ax
+        self.py_ax = dobj.py_ax
+        self.px = dobj.px
+        self.py = dobj.py
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        if (    (self.px >= left_edge[self.px_ax])
+            and (self.px < right_edge[self.px_ax])
+            and (self.py >= left_edge[self.py_ax])
+            and (self.py < right_edge[self.py_ax])):
+            return 1
+        return 0
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        if (    (self.px >= pos[self.px_ax] - 0.5*dds[self.px_ax])
+            and (self.px <  pos[self.px_ax] + 0.5*dds[self.px_ax])
+            and (self.py >= pos[self.py_ax] - 0.5*dds[self.py_ax])
+            and (self.py <  pos[self.py_ax] + 0.5*dds[self.py_ax])):
+            return 1
+        return 0
+
+ortho_ray_selector = OrthoRaySelector
