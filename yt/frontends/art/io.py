@@ -47,7 +47,7 @@ class IOHandlerART(BaseIOHandler):
         self.level_offsets = level_offsets
         self.level_data = {}
 
-    def preload_level(self, level):
+    def preload_level(self, level,field=None):
         if level in self.level_data: return
         if level == 0:
             self.preload_root_level()
@@ -58,8 +58,12 @@ class IOHandlerART(BaseIOHandler):
         nvals = ncells * (self.nhydro_vars + 6) # 2 vars, 2 pads
         arr = na.fromfile(f, dtype='>f', count=nvals)
         arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
-        arr = arr[3:-1,:].astype("float64")
-        self.level_data[level] = arr
+        arr = arr[3:-1,:]
+        if field==None:
+            self.level_data[level] = arr
+        else:
+            self.level_data[level] = arr[:field+1,:]
+        del arr
 
     def preload_root_level(self):
         f = open(self.filename, 'rb')
@@ -67,11 +71,11 @@ class IOHandlerART(BaseIOHandler):
         ncells = self.level_info[0]
         #pdb.set_trace()
         nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
-        hvar = na.fromfile(f, dtype='>f', count=nhvals).astype("float64")
+        hvar = na.fromfile(f, dtype='>f', count=nhvals).astype("float32")
         hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
         na.fromfile(f,dtype='>i',count=2) #throw away the pads
         nvars = ncells * (2) # 0 vars, 0 pads
-        var = na.fromfile(f, dtype='>f', count=nvars).astype("float64")
+        var = na.fromfile(f, dtype='>f', count=nvars).astype("float32")
         var = var.reshape((2, ncells), order="F")
         arr = na.concatenate((hvar,var))
         self.level_data[0] = arr
@@ -87,15 +91,15 @@ class IOHandlerART(BaseIOHandler):
             tr = self.level_data[0][field_id,:].reshape(
                     pf.domain_dimensions, order="F").copy()
             return tr.swapaxes(0, 2)
-        tr = na.zeros(grid.ActiveDimensions, dtype='float64')
-        filled = na.zeros(grid.ActiveDimensions, dtype='int32')
+        tr = na.zeros(grid.ActiveDimensions, dtype='float32')
+        filled = na.zeros(grid.ActiveDimensions, dtype='uint8')
         to_fill = grid.ActiveDimensions.prod()
         grids = [grid]
         l_delta = 0
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                self.preload_level(g.Level)
+                self.preload_level(g.Level,field=field_id)
                 #print "Filling %s from %s (%s)" % (grid, g, g.Level)
                 to_fill -= au.read_art_grid(field_id, 
                         grid.get_global_startindex(), grid.ActiveDimensions,
@@ -209,6 +213,10 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     le = le/2**(root_level-1-level)-1
     f.seek(pos)
     return le,fl,iocts,nLevel
+
+
+def read_in_particles(f):
+    
 
 nchem=8+2
 dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \

@@ -1043,10 +1043,12 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     cdef np.ndarray[np.int64_t, ndim=1] dims_r, li_r
     cdef int tt, ax, fp, i, j, k, gi
     cdef int tr[3]
-    if num_deep > 300:
+    cdef long volume  =0
+    volume = dims[0]*dims[1]*dims[2]
+    if num_deep > 300 and volume < 452984832L:
         psg.efficiency = min_eff
         return [psg]
-    if psg.efficiency > min_eff or psg.efficiency < 0.0:
+    if (psg.efficiency > min_eff or psg.efficiency < 0.0) and (volume < 452984832L):
         return [psg]
     psg.find_split(tr)
     tt = tr[0]

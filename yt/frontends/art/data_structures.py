@@ -195,9 +195,6 @@ class ARTHierarchy(AMRHierarchy):
                 self.proto_grids.append([])
                 continue
             psgs = []
-            if level > 5: continue
-            
-
             effs,sizes = [], []
             
             #if level > 6: continue
@@ -505,6 +502,10 @@ class ARTStaticOutput(StaticOutput):
         self.parameters["Y_p"] = 0.245
         self.parameters["wmu"] = 4.0/(8.0-5.0*self.parameters["Y_p"])
         self.parameters["gamma"] = 5./3.
+        self.parameters["T_CMB0"] = 2.726  
+        self.parameters["T_min"] = 300.0 #T floor in K
+        self.parameters["boxh"] = self.header_vals['boxh']
+        self.parameters['ng'] = 128 # of 0 level cells in 1d 
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
         self.data_comment = header_vals['jname']
         self.current_time = header_vals['t']
@@ -527,6 +528,38 @@ class ARTStaticOutput(StaticOutput):
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 
+        
+        Om0 = self.parameters['Om0']
+        hubble = self.parameters['hubble']
+        dummy = 100.0 * hubble * na.sqrt(Om0)
+        ng = self.parameters['ng']
+
+        #distance unit #boxh is units of h^-1 Mpc
+        self.parameters["r0"] = self.parameters["boxh"] / self.parameters['ng']
+        r0 = self.parameters["r0"]
+        #time, yrs
+        self.parameters["t0"] = 2.0 / dummy * 3.0856e19 / 3.15e7
+        #velocity velocity units in km/s
+        self.parameters["v0"] = 50.0*self.parameters["r0"]*\
+                na.sqrt(self.parameters["Om0"])
+        #density = 3H0^2 * Om0 / (8*pi*G) - unit of density in Msun/Mpc^3
+        self.parameters["rho0"] = 2.776e11 * hubble**2.0 * Om0
+        rho0 = self.parameters["rho0"]
+        #Pressure = rho0 * v0**2 - unit of pressure in g/cm/s^2
+        self.parameters["P0"] = 4.697e-16 * Om0**2.0 * r0**2.0 * hubble**2.0
+        #T_0 = unit of temperature in K and in keV)
+        #T_0 = 2.61155 * r0**2 * wmu * Om0 ! [keV]
+        self.parameters["T_0"] = 3.03e5 * r0**2.0 * wmu * Om0 # [K]
+        #S_0 = unit of entropy in keV * cm^2
+        self.parameters["S_0"] = 52.077 * wmu53 * hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
+        
+        #mass conversion (Mbox = rho0 * Lbox^3, Mbox_code = Ng^3
+        #     for non-cosmological run aM0 must be defined during initialization
+        #     [aM0] = [Msun]
+        self.parameters["aM0"] = rho0 * (boxh/hubble)**3.0 / ng**3.0
+        
+
+    
         (self.ncell,) = struct.unpack('>l', _read_record(f))
         # Try to figure out the root grid dimensions
         est = int(na.rint(self.ncell**(1.0/3.0)))
