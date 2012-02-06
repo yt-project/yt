@@ -829,7 +829,7 @@ cdef class ProtoSubgrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void find_split(self, int *tr):
+    cdef void find_split(self, int *tr,):
         # First look for zeros
         cdef int i, center, ax
         cdef np.ndarray[ndim=1, dtype=np.int64_t] axes
@@ -837,14 +837,69 @@ cdef class ProtoSubgrid:
         axes = np.argsort(self.dd)[::-1]
         cdef np.int64_t *sig
         for axi in range(3):
-            ax = axes[axi]
-            center = self.dimensions[ax] / 2
-            sig = self.sigs[ax]
+            ax = axes[axi] #iterate over domain dimensions
+            center = self.dimensions[ax] / 2 
+            sig = self.sigs[ax] #an array for the dimension, number of cells along that dim
             for i in range(self.dimensions[ax]):
                 if sig[i] == 0 and i > 0 and i < self.dimensions[ax] - 1:
                     #print "zero: %s (%s)" % (i, self.dimensions[ax])
                     tr[0] = 0; tr[1] = ax; tr[2] = i
                     return
+        zcstrength = 0
+        zcp = 0
+        zca = -1
+        cdef int temp
+        cdef np.int64_t *sig2d
+        for axi in range(3):
+            ax = axes[axi]
+            sig = self.sigs[ax]
+            sig2d = <np.int64_t *> malloc(sizeof(np.int64_t) * self.dimensions[ax])
+            sig2d[0] = sig2d[self.dimensions[ax]-1] = 0
+            for i in range(1, self.dimensions[ax] - 1):
+                sig2d[i] = sig[i-1] - 2*sig[i] + sig[i+1]
+            for i in range(1, self.dimensions[ax] - 1):
+                if sig2d[i] * sig2d[i+1] <= 0:
+                    strength = labs(sig2d[i] - sig2d[i+1])
+                    if (strength > zcstrength) or \
+                       (strength == zcstrength and (abs(center - i) <
+                                                    abs(center - zcp))):
+                        zcstrength = strength
+                        zcp = i
+                        zca = ax
+            free(sig2d)
+        #print "zcp: %s (%s)" % (zcp, self.dimensions[ax])
+        tr[0] = 1; tr[1] = ax; tr[2] = zcp
+        return
+
+    @cython.wraparound(False)
+    cdef void find_split_center(self, int *tr,):
+        # First look for zeros
+        cdef int i, center, ax
+        cdef int flip
+        cdef np.ndarray[ndim=1, dtype=np.int64_t] axes
+        cdef np.int64_t strength, zcstrength, zcp
+        axes = np.argsort(self.dd)[::-1]
+        cdef np.int64_t *sig
+        for axi in range(3):
+            ax = axes[axi] #iterate over domain dimensions
+            center = self.dimensions[ax] / 2 
+            sig = self.sigs[ax] #an array for the dimension, number of cells along that dim
+            #frequently get stuck with many zeroes near the edge of the grid
+            #let's start from the middle, working out
+            for j in range(self.dimensions[ax]/2):
+                flip = 1
+                i = self.dimensions[ax]/2+j
+                if sig[i] == 0 and i > 0 and i < self.dimensions[ax] - 1:
+                    #print "zero: %s (%s)" % (i, self.dimensions[ax])
+                    tr[0] = 0; tr[1] = ax; tr[2] = i
+                    return
+                i = self.dimensions[ax]/2-j
+                if sig[i] == 0 and i > 0 and i < self.dimensions[ax] - 1:
+                    #print "zero: %s (%s)" % (i, self.dimensions[ax])
+                    tr[0] = 0; tr[1] = ax; tr[2] = i
+                    return
+                    
+                
         zcstrength = 0
         zcp = 0
         zca = -1
@@ -1037,7 +1092,8 @@ def recursive_patch_splitting(ProtoSubgrid psg,
         np.ndarray[np.int64_t, ndim=2] left_index,
         np.ndarray[np.int64_t, ndim=2] fl,
         int num_deep = 0,
-        float min_eff = 0.1):
+        float min_eff = 0.1,
+        bool use_center=False):
     cdef ProtoSubgrid L, R
     cdef np.ndarray[np.int64_t, ndim=1] dims_l, li_l
     cdef np.ndarray[np.int64_t, ndim=1] dims_r, li_r
@@ -1050,7 +1106,11 @@ def recursive_patch_splitting(ProtoSubgrid psg,
         return [psg]
     if (psg.efficiency > min_eff or psg.efficiency < 0.0) and (volume < 452984832L):
         return [psg]
-    psg.find_split(tr)
+    if not use_center:    
+        psg.find_split(tr) #default
+    else:
+        psg.find_split_center(tr)    
+        
     tt = tr[0]
     ax = tr[1]
     fp = tr[2]
@@ -1075,7 +1135,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     if L.efficiency <= 0.0: rv_l = []
     elif L.efficiency < min_eff:
         rv_l = recursive_patch_splitting(L, dims_l, li_l,
-                left_index, fl, num_deep + 1, min_eff)
+                left_index, fl, num_deep + 1, min_eff,use_center)
     else:
         rv_l = [L]
     R = ProtoSubgrid(li_r, dims_r, left_index, fl)
@@ -1083,7 +1143,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     if R.efficiency <= 0.0: rv_r = []
     elif R.efficiency < min_eff:
         rv_r = recursive_patch_splitting(R, dims_r, li_r,
-                left_index, fl, num_deep + 1, min_eff)
+                left_index, fl, num_deep + 1, min_eff,use_center)
     else:
         rv_r = [R]
     return rv_r + rv_l

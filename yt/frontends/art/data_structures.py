@@ -62,6 +62,7 @@ from yt.frontends.art.io import _skip_record
 from yt.frontends.art.io import _read_record
 from yt.frontends.art.io import _read_record_size
 from yt.frontends.art.io import _read_struct
+from yt.frontends.art.io import b2t
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -260,7 +261,7 @@ class ARTHierarchy(AMRHierarchy):
                 #if less than 10% the volume of a patch is covered with octs
                 psg_split = _ramses_reader.recursive_patch_splitting(
                     psg, idims, initial_left, 
-                    dleft_index, dfl,min_eff=min_eff)
+                    dleft_index, dfl,min_eff=min_eff,use_center=True)
                     
                 psgs.extend(psg_split)
                 
@@ -318,7 +319,61 @@ class ARTHierarchy(AMRHierarchy):
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
         self.grids = na.empty(len(grids), dtype='object')
-        for gi, g in enumerate(grids): self.grids[gi] = g
+        
+        if self.file_particle_data:
+            lspecies = self.pf.parameters['lspecies']
+            Nrow     = self.pf.parameters['Nrow']
+            nstars = lspecies[-1]
+            a = self.pf.parameters['aexpn']
+            hubble = self.pf.parameters['hubble']
+            ud  = self.pf.parameters['r0']*a/hubble #proper Mpc units
+            uv  = self.pf.parameters['v0']/(a**1.0)*1.0e5 #proper cm/s
+            um  = self.pf.parameters['aM0'] #mass units in solar masses
+            um *= 1.989e33 #convert solar masses to grams 
+            pbar = get_pbar("Loading Particles ",len(g))
+            x,y,z,vx,vy,vz = io._read_in_particles(self.file_particle_data,
+                                                   nstars,Nrow)
+            self.particle_position_x = x*ud
+            self.particle_position_y = y*ud
+            self.particle_position_z = z*ud
+            self.particle_velocity_x = vx*uv
+            self.particle_velocity_y = vy*uv
+            self.particle_velocity_z = vz*uv
+            self.particle_species    = numpy.zeros(x.shape,dtype='int32')
+            self.particle_mass       = numpy.zeros(x.shape,dtype='float32')
+            
+            import pdb; pdb.set_trace()
+            a,b=0,0
+            for b,m in zip(self.pf.lspecies,pf.wspecies):
+                self.particle_species[a:b] = b
+                self.particle_mass[a:b]    = m*um
+                a=b
+            pbar.finish()
+            
+            
+            if self.file_star_data:
+                pbar = get_pbar("Loading Stars ",len(g))
+                data = io._read_in_stars(self.file_particle_data,nstars,nrow) 
+                tdum, adum, nstars, ws_old, ws_oldi, mass, initial_mass,\
+                    tbirth, metals1,metals2 = io._read_in_stars(self.file_star_data)
+                self.particle_star_ages = b2t(tbirth)
+                self.particle_star_metallicity1 = metals1*um
+                self.particle_star_metallicity2 = metals2*um
+                self.particle_star_mass_initial = initial_mass*um
+                self.particle_star_mass_current = mass*um
+                pbar.finish()
+            
+            pbar = get_pbar("Gridding  Particles ",len(g))
+            for gi, g in enumerate(grids): 
+                idx = self.particle_position_x                    
+                self.grids[gi] = g
+                pbar.update(gi)
+            pbar.finish()
+            
+        else:
+            for gi, g in enumerate(grids): 
+                self.grids[gi] = g
+            
 
     def _get_grid_parents(self, grid, LE, RE):
         mask = na.zeros(self.num_grids, dtype='bool')
@@ -387,7 +442,6 @@ class ARTStaticOutput(StaticOutput):
                 self.file_star_data = loc
                 mylog.info("Discovered stellar data:    %s",os.path.basename(loc))
         
-        import pdb; pdb.set_trace()
         StaticOutput.__init__(self, filename, data_style)
         
         self.dimensionality = 3
@@ -668,6 +722,11 @@ class ARTStaticOutput(StaticOutput):
         self.parameters['wspecies'] = self.parameters['wspecies'][:n]
         self.parameters['lspecies'] = self.parameters['lspecies'][:n]
         fh.close()
+        
+        ls_nonzero = [ls for ls in self.parameters['lspecies'] if ls>0 ]
+        mylog.debug("Discovered %i species of particles",len(ls_nonzero))
+        mylog.debug("Particle populations: "+'%1.1e '*len(ls_nonzero),ls_nonzero)
+        
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

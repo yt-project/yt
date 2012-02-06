@@ -218,8 +218,17 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
 def read_in_particles(f):
     pass
 
-def read_in_stars():
-    pass
+def read_in_stars(file,nstars,Nrow):
+    words = 6 # words (reals) per particle: x,y,z,vx,vy,vz
+    real_size = 4 # for file_particle_data; not always true?
+    np = nstars # number of particles including stars, should come from lspecies[-1]
+    np_per_page = Nrow**2 # defined in ART a_setup.h
+    num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
+
+    f = na.fromfile(file, dtype='>f4') # direct access
+    pages = na.vsplit(na.reshape(f, (num_pages, words, np_per_page)), num_pages)
+    x,y,z,vx,vy,vz = tuple(na.squeeze(na.dstack(pages))) # x,y,z,vx,vy,vz
+    return x,y,z,vx,vy,vz
 
 nchem=8+2
 dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
@@ -258,3 +267,71 @@ def _read_struct(f,structure,verbose=False):
         vals[name] = val
         if verbose: print "%s:\t%s\t (%d B)" %(name,val,f.tell())
     return vals
+
+    sqrt = numpy.sqrt
+    sign = numpy.sign
+
+
+#All of these functions are to convert from hydro time var to 
+#proper time
+
+def find_root(f,a,b,tol=1e-6):
+    c = (a+b)/2.0
+    last = -numpy.inf
+    assert(sign(f(a)) != sign(f(b)))  
+    while numpy.abs(f(c)-last) > tol:
+        last=f(c)
+        if sign(last)==sign(f(b)):
+            b=c
+        else:
+            a=c
+        c = (a+b)/2.0
+    return c
+
+def quad(fintegrand,xmin,xmax,n=1e4):
+    spacings = numpy.logspace(numpy.log10(xmin),numpy.log10(xmax),n)
+    integrand_arr = fintegrand(spacings)
+    val = numpy.trapz(integrand_arr,dx=numpy.diff(spacings))
+    return val
+
+def a2b(at,Om0=0.27,Oml0=0.73,h=0.700):
+    def f_a2b(x):
+        val = 0.5*sqrt(Om0) / x**3.0
+        val /= sqrt(Om0/x**3.0 +Oml0 +(1.0 - Om0-Oml0)/x**2.0)
+        return val
+    #val, err = si.quad(f_a2b,1,at)
+    val = quad(f_a2b,1,at)
+    return val
+
+def b2a(bt,**kwargs):
+    #converts code time into expansion factor 
+    #if Om0 ==1and OmL == 0 then b2a is (1 / (1-td))**2
+    #if bt < -190.0 or bt > -.10:  raise 'bt outside of range'
+    f_b2a = lambda at: a2b(at,**kwargs)-bt
+    return find_root(f_b2a,1e-4,1.1)
+    #return so.brenth(f_b2a,1e-4,1.1)
+    #return brent.brent(f_b2a)
+
+def a2t(at,Om0=0.27,Oml0=0.73,h=0.700):
+    integrand = lambda x : 1./(x*sqrt(Oml0+Om0*x**-3.0))
+    #current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
+    current_time = quad(integrand,1e-4,at)
+    #spacings = numpy.logspace(-5,numpy.log10(at),1e5)
+    #integrand_arr = integrand(spacings)
+    #current_time = numpy.trapz(integrand_arr,dx=numpy.diff(spacings))
+    current_time *= 9.779/h
+    return current_time
+
+def b2t(tb,n = 1e2,**kwargs):
+    tb = numpy.array(tb)
+    if tb.shape == (): return a2t(b2a(tb))
+    age_min = a2t(b2a(tb.max(),**kwargs),**kwargs)
+    age_max = a2t(b2a(tb.min(),**kwargs),**kwargs)
+    tbs  = -1.*numpy.logspace(numpy.log10(-tb.min()),
+                          numpy.log10(-tb.max()),n)
+    ages = [a2t(b2a(tbi)) for tbi in tbs]
+    ages = numpy.array(ages)
+    fb2t = numpy.interp(tb,tbs,ages)
+    #fb2t = interp1d(tbs,ages)
+    return fb2t
+
