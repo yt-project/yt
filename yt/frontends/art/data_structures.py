@@ -61,6 +61,7 @@ from yt.frontends.art.io import _read_art_child
 from yt.frontends.art.io import _skip_record
 from yt.frontends.art.io import _read_record
 from yt.frontends.art.io import _read_record_size
+from yt.frontends.art.io import _read_struct
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -355,16 +356,47 @@ class ARTStaticOutput(StaticOutput):
     _handle = None
     
     def __init__(self, filename, data_style='art',
-                 storage_filename = None):
+                 storage_filename = None, 
+                 file_particle_header=None, 
+                 file_particle_data=None,
+                 file_star_data=None):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
+        
+        
+        dirn = os.path.dirname(filename)
+        base = os.path.basename(filename)
+        aexp = base.split('_')[2].replace('.d','')
+        
+        self.file_particle_header = file_particle_header
+        self.file_particle_data = file_particle_data
+        self.file_star_data = file_star_data
+        
+        if file_particle_header is None:
+            loc = filename.replace(base,'PMcrd%s.DAT'%aexp)
+            if os.path.exists(loc):
+                self.file_particle_header = loc
+                mylog.info("Discovered particle header: %s",os.path.basename(loc))
+        if file_particle_data is None:
+            loc = filename.replace(base,'PMcrs0%s.DAT'%aexp)
+            if os.path.exists(loc):
+                self.file_particle_data = loc
+                mylog.info("Discovered particle data:   %s",os.path.basename(loc))
+        if file_star_data is None:
+            loc = filename.replace(base,'stars_%s.dat'%aexp)
+            if os.path.exists(loc):
+                self.file_star_data = loc
+                mylog.info("Discovered stellar data:    %s",os.path.basename(loc))
+        
+        import pdb; pdb.set_trace()
         StaticOutput.__init__(self, filename, data_style)
-        self.storage_filename = storage_filename
         
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'art'
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["InitialTime"]=self.current_time
+        self.storage_filename = storage_filename
+        
         
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -435,7 +467,7 @@ class ARTStaticOutput(StaticOutput):
         #we were already in seconds, go back in to code units
         self.current_time /= self.t0 
         
-        
+    
     def _parse_parameter_file(self):
         # We set our domain to run from 0 .. 1 since we are otherwise
         # unconstrained.
@@ -504,7 +536,7 @@ class ARTStaticOutput(StaticOutput):
         self.parameters["gamma"] = 5./3.
         self.parameters["T_CMB0"] = 2.726  
         self.parameters["T_min"] = 300.0 #T floor in K
-        self.parameters["boxh"] = self.header_vals['boxh']
+        self.parameters["boxh"] = header_vals['boxh']
         self.parameters['ng'] = 128 # of 0 level cells in 1d 
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
         self.data_comment = header_vals['jname']
@@ -533,7 +565,9 @@ class ARTStaticOutput(StaticOutput):
         hubble = self.parameters['hubble']
         dummy = 100.0 * hubble * na.sqrt(Om0)
         ng = self.parameters['ng']
-
+        wmu = self.parameters["wmu"]
+        boxh = header_vals['boxh'] 
+        
         #distance unit #boxh is units of h^-1 Mpc
         self.parameters["r0"] = self.parameters["boxh"] / self.parameters['ng']
         r0 = self.parameters["r0"]
@@ -551,7 +585,7 @@ class ARTStaticOutput(StaticOutput):
         #T_0 = 2.61155 * r0**2 * wmu * Om0 ! [keV]
         self.parameters["T_0"] = 3.03e5 * r0**2.0 * wmu * Om0 # [K]
         #S_0 = unit of entropy in keV * cm^2
-        self.parameters["S_0"] = 52.077 * wmu53 * hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
+        self.parameters["S_0"] = 52.077 * wmu**(5.0/3.0) * hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
         
         #mass conversion (Mbox = rho0 * Lbox^3, Mbox_code = Ng^3
         #     for non-cosmological run aM0 must be defined during initialization
@@ -577,6 +611,63 @@ class ARTStaticOutput(StaticOutput):
         self.child_grid_offset = f.tell()
 
         f.close()
+        
+        if self.file_particle_header is not None:
+            self._read_particle_header(self.file_particle_header)
+        
+    def _read_particle_header(self,fn):    
+        """ Reads control information, various parameters from the 
+            particle data set. Adapted from Daniel Ceverino's 
+            Read_Particles_Binary in analysis_ART.F   
+        """ 
+        header_struct = [
+            ('>i','pad'),
+            ('45s','header'), 
+            ('>f','aexpn'),
+            ('>f','aexp0'),
+            ('>f','amplt'),
+            ('>f','astep'),
+
+            ('>i','istep'),
+            ('>f','partw'),
+            ('>f','tintg'),
+
+            ('>f','Ekin'),
+            ('>f','Ekin1'),
+            ('>f','Ekin2'),
+            ('>f','au0'),
+            ('>f','aeu0'),
+
+
+            ('>i','Nrow'),
+            ('>i','Ngridc'),
+            ('>i','Nspecies'),
+            ('>i','Nseed'),
+
+            ('>f','Om0'),
+            ('>f','Oml0'),
+            ('>f','hubble'),
+            ('>f','Wp5'),
+            ('>f','Ocurv'),
+            ('>f','Omb0'),
+            ('>%ds'%(396),'extras'),
+            ('>f','unknown'),
+
+            ('>i','pad')]
+        fh = open(fn,'rb')
+        vals = _read_struct(fh,header_struct)
+        
+        for k,v in vals.iteritems():
+            self.parameters[k]=v
+        
+        seek_extras = 137
+        fh.seek(seek_extras)
+        n = self.parameters['Nspecies']
+        self.parameters['wspecies'] = na.fromfile(fh,dtype='>f',count=10)
+        self.parameters['lspecies'] = na.fromfile(fh,dtype='>i',count=10)
+        self.parameters['wspecies'] = self.parameters['wspecies'][:n]
+        self.parameters['lspecies'] = self.parameters['lspecies'][:n]
+        fh.close()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

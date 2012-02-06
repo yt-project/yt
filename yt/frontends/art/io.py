@@ -216,7 +216,10 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
 
 
 def read_in_particles(f):
-    
+    pass
+
+def read_in_stars():
+    pass
 
 nchem=8+2
 dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
@@ -246,3 +249,12 @@ def _read_record_size(f):
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
     f.seek(pos)
     return s[0]
+
+def _read_struct(f,structure,verbose=False):
+    vals = {}
+    for format,name in structure:
+        size = struct.calcsize(format)
+        (val,) = struct.unpack(format,f.read(size))
+        vals[name] = val
+        if verbose: print "%s:\t%s\t (%d B)" %(name,val,f.tell())
+    return vals
