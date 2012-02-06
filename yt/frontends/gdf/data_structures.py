@@ -43,6 +43,11 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 import pdb
 
+def _get_convert(fname):
+    def _conv(data):
+        return data.convert(fname)
+    return _conv
+
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, hierarchy, level, start, dimensions):
@@ -184,7 +189,8 @@ class GDFStaticOutput(StaticOutput):
             except:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
-                   units=current_fields_unit, projected_units="")
+                   units=current_fields_unit, projected_units="", 
+                   convert_function=_get_convert(field_name))
 
         self._handle.close()
         del self._handle
