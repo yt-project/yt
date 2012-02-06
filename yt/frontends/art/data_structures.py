@@ -77,14 +77,19 @@ def num_deep_inc(f):
 class ARTGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, hierarchy, level, locations, start_index):
+    def __init__(self, id, hierarchy, level, locations, props):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
+        start_index = props[0]
         self.Level = level
         self.Parent = []
         self.Children = []
         self.locations = locations
         self.start_index = start_index.copy()
+        
+        self.LeftEdge = props[0]
+        self.RightEdge = props[1]
+        self.ActiveDimensions = props[2] 
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -317,7 +322,7 @@ class ARTHierarchy(AMRHierarchy):
                 self.grid_right_edge[gi,:] = props[1,:]*correction / dds
                 self.grid_dimensions[gi,:] = props[2,:]*correction
                 self.grid_levels[gi,:] = level
-                grids.append(self.grid(gi, self, level, fl, props[0,:]))
+                grids.append(self.grid(gi, self, level, fl, props))
                 gi += 1
         self.grids = na.empty(len(grids), dtype='object')
         
@@ -333,7 +338,7 @@ class ARTHierarchy(AMRHierarchy):
             uv  = self.pf.parameters['v0']/(a**1.0)*1.0e5 #proper cm/s
             um  = self.pf.parameters['aM0'] #mass units in solar masses
             um *= 1.989e33 #convert solar masses to grams 
-            pbar = get_pbar("Loading Particles ",5)
+            pbar = get_pbar("Loading Particles   ",5)
             self.pf.particle_position,self.pf.particle_velocity = \
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
@@ -359,7 +364,7 @@ class ARTHierarchy(AMRHierarchy):
                 nstars, mass, imass, tbirth, metals1, metals2 \
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
                 n=min(1e2,len(tbirth))
-                pbar = get_pbar("Stellar ages ",n)
+                pbar = get_pbar("Stellar ages          ",n)
                 self.pf.particle_star_ages = b2t(tbirth,n=n,logger=lambda x: pbar.update(x))
                 pbar.finish()
                 self.pf.particle_star_metallicity1 = metals1/mass
