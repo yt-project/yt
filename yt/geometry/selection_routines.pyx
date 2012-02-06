@@ -551,4 +551,64 @@ cdef class OrthoRaySelector(SelectorObject):
             return 1
         return 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
+        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef np.float64_t dds[3], pos[3]
+        cdef int i, j, k, nv[3]
+        cdef int ind[3][2]
+        child_mask = gobj.child_mask
+        for i in range(3):
+            ind[i][0] = 0
+            ind[i][1] = gobj.ActiveDimensions[i]
+            if self.px_ax == i:
+                ind[i][0] = <int> ((self.px - left_edge[i])/odds[i])
+                ind[i][1] = ind[i][0] + 1
+            elif self.py_ax == i:
+                ind[i][0] = <int> ((self.py - left_edge[i])/odds[i])
+                ind[i][1] = ind[i][0] + 1
+        cdef int count = 0
+        with nogil:
+            for i in range(ind[0][0], ind[0][1]):
+                for j in range(ind[1][0], ind[1][1]):
+                    for k in range(ind[2][0], ind[2][1]):
+                        count += child_mask[i,j,k]
+        return count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
+        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
+        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef np.ndarray[np.uint8_t, ndim=3] mask 
+        cdef np.float64_t dds[3], pos[3]
+        cdef int i, j, k, nv[3]
+        cdef int ind[3][2]
+        child_mask = gobj.child_mask
+        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+        for i in range(3):
+            ind[i][0] = 0
+            ind[i][1] = gobj.ActiveDimensions[i]
+            if self.px_ax == i:
+                ind[i][0] = <int> ((self.px - left_edge[i])/odds[i])
+                ind[i][1] = ind[i][0] + 1
+            elif self.py_ax == i:
+                ind[i][0] = <int> ((self.py - left_edge[i])/odds[i])
+                ind[i][1] = ind[i][0] + 1
+        cdef int count = 0
+        with nogil:
+            for i in range(ind[0][0], ind[0][1]):
+                for j in range(ind[1][0], ind[1][1]):
+                    for k in range(ind[2][0], ind[2][1]):
+                        mask[i,j,k] = child_mask[i,j,k]
+        return mask.astype("bool")
+
 ortho_ray_selector = OrthoRaySelector
