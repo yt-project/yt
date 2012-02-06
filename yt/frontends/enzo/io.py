@@ -221,12 +221,13 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         mylog.info("Reading %s cells of %s fields in %s grids",
                    count, len(fields), len(grids))
         for i,g in enumerate(grids):
+            c = counts[g.id]
+            if c == 0: continue
             if last != g.filename:
                 handle.close()
                 last = g.filename
                 handle = h5py.File(last)
             mask = selector.fill_mask(g)
-            c = counts[g.id]
             for field in fields:
                 ds = handle["/Grid%08i/%s" % (g.id, field)]
                 rv[field][ind:ind+c] = ds[:].transpose()[mask]

@@ -27,7 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from stdlib cimport malloc, free
-from fp_utils cimport fclip
+from fp_utils cimport fclip, iclip
 from cython.parallel import prange, parallel, threadid
 
 cdef extern from "math.h":
@@ -158,7 +158,8 @@ cdef class SelectorObject:
                                np.float64_t right_edge[3]) nogil:
         return 0
     
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         return 0
 
     @cython.boundscheck(False)
@@ -170,24 +171,42 @@ cdef class SelectorObject:
         cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, nv[3]
+        cdef int i, j, k, ind[3][2]
         child_mask = gobj.child_mask
         for i in range(3):
-            nv[i] = gobj.ActiveDimensions[i]
+            ind[i][0] = 0
+            ind[i][1] = gobj.ActiveDimensions[i]
             dds[i] = odds[i]
         cdef int count = 0
+        cdef int check = 1
+        cdef int eterm[3]
+        self.set_bounds(<np.float64_t *> left_edge.data,
+                        <np.float64_t *> right_edge.data,
+                        dds, ind, &check)
         with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
-            for i in range(nv[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
-                for j in range(nv[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
-                    for k in range(nv[2]):
-                        if child_mask[i,j,k] == 1:
-                            count += self.select_cell(pos, dds)
-                        pos[2] += dds[1]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
+            if check == 1:
+                pos[0] = left_edge[0] + dds[0] * 0.5
+                for i in range(ind[0][0], ind[0][1]):
+                    eterm[0] = 0
+                    pos[1] = left_edge[1] + dds[1] * 0.5
+                    for j in range(ind[1][0], ind[1][1]):
+                        eterm[1] = 0
+                        pos[2] = left_edge[2] + dds[2] * 0.5
+                        for k in range(ind[2][0], ind[2][1]):
+                            eterm[2] = 0
+                            if child_mask[i,j,k] == 1:
+                                count += self.select_cell(pos, dds, eterm)
+                            if eterm[2] == 1: break
+                            pos[2] += dds[1]
+                        if eterm[1] == 1: break
+                        pos[1] += dds[1]
+                    if eterm[0] == 1: break
+                    pos[0] += dds[0]
+            else:
+                for i in range(ind[0][0], ind[0][1]):
+                    for j in range(ind[1][0], ind[1][1]):
+                        for k in range(ind[2][0], ind[2][1]):
+                            count += child_mask[i,j,k]
         return count
 
     @cython.boundscheck(False)
@@ -197,7 +216,7 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask 
-        cdef int nv[3]
+        cdef int ind[3][2]
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
         cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
         cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
@@ -205,22 +224,45 @@ cdef class SelectorObject:
         cdef np.float64_t dds[3], pos[3]
         for i in range(3):
             dds[i] = odds[i]
-            nv[i] = gobj.ActiveDimensions[i]
+            ind[i][0] = 0
+            ind[i][1] = gobj.ActiveDimensions[i]
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+        cdef int check = 1
+        cdef int eterm[3]
+        self.set_bounds(<np.float64_t *> left_edge.data,
+                        <np.float64_t *> right_edge.data,
+                        dds, ind, &check)
         cdef int temp
         with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
-            for i in range(nv[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
-                for j in range(nv[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
-                    for k in range(nv[2]):
-                        if child_mask[i,j,k] == 1:
-                            mask[i,j,k] = self.select_cell(pos, dds)
-                        pos[2] += dds[1]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
+            if check == 1:
+                pos[0] = left_edge[0] + dds[0] * 0.5
+                for i in range(ind[0][0], ind[0][1]):
+                    eterm[0] = 0
+                    pos[1] = left_edge[1] + dds[1] * 0.5
+                    for j in range(ind[1][0], ind[1][1]):
+                        eterm[1] = 0
+                        pos[2] = left_edge[2] + dds[2] * 0.5
+                        for k in range(ind[2][0], ind[2][1]):
+                            eterm[2] = 0
+                            if child_mask[i,j,k] == 1:
+                                mask[i,j,k] = self.select_cell(pos, dds, eterm)
+                            if eterm[2] == 1: break
+                            pos[2] += dds[1]
+                        if eterm[1] == 1: break
+                        pos[1] += dds[1]
+                    if eterm[0] == 1: break
+                    pos[0] += dds[0]
+            else:
+                for i in range(ind[0][0], ind[0][1]):
+                    for j in range(ind[1][0], ind[1][1]):
+                        for k in range(ind[2][0], ind[2][1]):
+                            mask[i,j,k] = child_mask[i,j,k]
         return mask.astype("bool")
+
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        return
 
 cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius2
@@ -256,7 +298,8 @@ cdef class SphereSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         cdef np.float64_t dist2, temp
         cdef int i
         dist2 = 0
@@ -293,13 +336,37 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         cdef np.float64_t dxp
         for i in range(3):
             dxp = self.dx_pad * dds[i]
-            if pos[i] - dxp >= self.right_edge[i]: return 0
+            if pos[i] - dxp >= self.right_edge[i]:
+                eterm[i] = 1
+                return 0
             if pos[i] + dxp <= self.left_edge[i]: return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        cdef int temp, i, all_inside
+        # Left pos is left_edge + 0.5 * dds
+        all_inside = 1
+        for i in range(3):
+            if self.left_edge[i] > left_edge[i]:
+                temp = <int> ((self.left_edge[i] - left_edge[i])/dds[i]) - 1
+                ind[i][0] = iclip(temp, ind[i][0], ind[i][1] - 1)
+                all_inside = 0
+            if self.right_edge[i] < right_edge[i]:
+                temp = <int> ((self.right_edge[i] - right_edge[i])/dds[i]) + 1
+                ind[i][1] = iclip(temp, ind[i][0] + 1, ind[i][1])
+                all_inside = 0
+        check[0] = all_inside
+
 
 region_selector = RegionSelector
 
@@ -360,7 +427,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         cdef np.float64_t h, d, r2, temp
         cdef int i
         h = d = 0
@@ -417,7 +485,8 @@ cdef class CuttingPlaneSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         cdef np.float64_t diag2, height
         cdef int i
         height = self.d
@@ -441,56 +510,15 @@ cdef class SliceSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, nv[3]
-        cdef int ind[3][2]
-        child_mask = gobj.child_mask
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        cdef int i
         for i in range(3):
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
             if self.axis == i:
-                ind[i][0] = <int> ((self.coord - left_edge[i])/odds[i])
+                ind[i][0] = <int> ((self.coord - left_edge[i])/dds[i])
                 ind[i][1] = ind[i][0] + 1
-        cdef int count = 0
-        with nogil:
-            for i in range(ind[0][0], ind[0][1]):
-                for j in range(ind[1][0], ind[1][1]):
-                    for k in range(ind[2][0], ind[2][1]):
-                        count += child_mask[i,j,k]
-        return count
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fill_mask(self, gobj):
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.ndarray[np.uint8_t, ndim=3] mask 
-        cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, nv[3]
-        cdef int ind[3][2]
-        child_mask = gobj.child_mask
-        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
-        for i in range(3):
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
-            if self.axis == i:
-                ind[i][0] = <int> ((self.coord - left_edge[i])/odds[i])
-                ind[i][1] = ind[i][0] + 1
-        cdef int count = 0
-        with nogil:
-            for i in range(ind[0][0], ind[0][1]):
-                for j in range(ind[1][0], ind[1][1]):
-                    for k in range(ind[2][0], ind[2][1]):
-                        mask[i,j,k] = child_mask[i,j,k]
-        return mask.astype("bool")
+        check[0] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -505,7 +533,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
            and pos[self.axis] - 0.5*dds[self.axis] <= self.coord:
             return 1
@@ -543,7 +572,8 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
         if (    (self.px >= pos[self.px_ax] - 0.5*dds[self.px_ax])
             and (self.px <  pos[self.px_ax] + 0.5*dds[self.px_ax])
             and (self.py >= pos[self.py_ax] - 0.5*dds[self.py_ax])
@@ -551,64 +581,21 @@ cdef class OrthoRaySelector(SelectorObject):
             return 1
         return 0
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def count_cells(self, gobj):
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, nv[3]
-        cdef int ind[3][2]
-        child_mask = gobj.child_mask
-        for i in range(3):
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
-            if self.px_ax == i:
-                ind[i][0] = <int> ((self.px - left_edge[i])/odds[i])
-                ind[i][1] = ind[i][0] + 1
-            elif self.py_ax == i:
-                ind[i][0] = <int> ((self.py - left_edge[i])/odds[i])
-                ind[i][1] = ind[i][0] + 1
-        cdef int count = 0
-        with nogil:
-            for i in range(ind[0][0], ind[0][1]):
-                for j in range(ind[1][0], ind[1][1]):
-                    for k in range(ind[2][0], ind[2][1]):
-                        count += child_mask[i,j,k]
-        return count
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_mask(self, gobj):
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.ndarray[np.uint8_t, ndim=3] mask 
-        cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, nv[3]
-        cdef int ind[3][2]
-        child_mask = gobj.child_mask
-        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        cdef int i
         for i in range(3):
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
             if self.px_ax == i:
-                ind[i][0] = <int> ((self.px - left_edge[i])/odds[i])
+                ind[i][0] = <int> ((self.px - left_edge[i])/dds[i])
                 ind[i][1] = ind[i][0] + 1
             elif self.py_ax == i:
-                ind[i][0] = <int> ((self.py - left_edge[i])/odds[i])
+                ind[i][0] = <int> ((self.py - left_edge[i])/dds[i])
                 ind[i][1] = ind[i][0] + 1
-        cdef int count = 0
-        with nogil:
-            for i in range(ind[0][0], ind[0][1]):
-                for j in range(ind[1][0], ind[1][1]):
-                    for k in range(ind[2][0], ind[2][1]):
-                        mask[i,j,k] = child_mask[i,j,k]
-        return mask.astype("bool")
+        check[0] = 0
 
 ortho_ray_selector = OrthoRaySelector
