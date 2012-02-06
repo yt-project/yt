@@ -55,6 +55,8 @@ except ImportError:
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs
 
+from yt.frontends.art.io import read_particles
+from yt.frontends.art.io import read_stars
 from yt.frontends.art.io import _count_art_octs
 from yt.frontends.art.io import _read_art_level_info
 from yt.frontends.art.io import _read_art_child
@@ -321,8 +323,8 @@ class ARTHierarchy(AMRHierarchy):
         
 
         if self.pf.file_particle_data:
-            import pdb; pdb.set_trace()
             lspecies = self.pf.parameters['lspecies']
+            wspecies = self.pf.parameters['wspecies']
             Nrow     = self.pf.parameters['Nrow']
             nstars = lspecies[-1]
             a = self.pf.parameters['aexpn']
@@ -331,45 +333,46 @@ class ARTHierarchy(AMRHierarchy):
             uv  = self.pf.parameters['v0']/(a**1.0)*1.0e5 #proper cm/s
             um  = self.pf.parameters['aM0'] #mass units in solar masses
             um *= 1.989e33 #convert solar masses to grams 
-            pbar = get_pbar("Loading Particles ",len(g))
-            x,y,z,vx,vy,vz = io._read_in_particles(self.file_particle_data,
-                                                   nstars,Nrow)
-                                                   
-            lempc = le*pf['Mpc']/root_cells #left edge in kpc
-            rempc = re*pf['Mpc']/root_cells #right edge in kpc
-            wdmpc = rempc-lempc #width in mpc
-                                        
-            self.particle_position   = na.array([(x*ud-lempc)/wdmpc,
-                (y*ud-lempc)/wdmpc,(z*ud-lempc)/wdmpc]).T
-            self.particle_velocity   = na.array([vx*uv,vy*uv,vz*uv]).T
-            self.particle_species    = numpy.zeros(x.shape,dtype='int32')
-            self.particle_mass       = numpy.zeros(x.shape,dtype='float32')
+            pbar = get_pbar("Loading Particles ",5)
+            self.pf.particle_position,self.pf.particle_velocity = \
+                read_particles(self.pf.file_particle_data,nstars,Nrow)
+            pbar.update(1)
+            np = self.pf.particle_position.shape[0]
+            self.pf.particle_position  -= 1.0 #fortran indices start with 0
+            pbar.update(2)
+            self.pf.particle_position  /= self.pf.domain_dimensions #to unitary units (comoving)
+            pbar.update(3)
+            self.pf.particle_velocity  *= uv #to proper cm/s
+            pbar.update(4)
+            self.pf.particle_species    = na.zeros(np,dtype='int32')
+            self.pf.particle_mass       = na.zeros(np,dtype='float32')
             
             a,b=0,0
-            for b,m in zip(self.pf.lspecies,pf.wspecies):
-                self.particle_species[a:b] = b
-                self.particle_mass[a:b]    = m*um
+            for i,(b,m) in enumerate(zip(lspecies,wspecies)):
+                self.pf.particle_species[a:b] = i #particle type
+                self.pf.particle_mass[a:b]    = m*um #mass in grams
                 a=b
             pbar.finish()
             
             
-            if self.file_star_data:
-                pbar = get_pbar("Loading Stars ",len(g))
-                data = io._read_in_stars(self.file_particle_data,nstars,nrow) 
-                tdum, adum, nstars, ws_old, ws_oldi, mass, initial_mass,\
-                    tbirth, metals1,metals2 = io._read_in_stars(self.file_star_data)
-                self.particle_star_ages = b2t(tbirth)
-                self.particle_star_metallicity1 = metals1*um
-                self.particle_star_metallicity2 = metals2*um
-                self.particle_star_mass_initial = initial_mass*um
-                self.particle_star_mass_current = mass*um
+            if self.pf.file_star_data:
+                nstars, mass, imass, tbirth, metals1, metals2 \
+                     = read_stars(self.pf.file_star_data,nstars,Nrow)
+                n=min(1e2,len(tbirth))
+                pbar = get_pbar("Stellar ages ",n)
+                self.pf.particle_star_ages = b2t(tbirth,n=n,logger=lambda x: pbar.update(x))
                 pbar.finish()
+                self.pf.particle_star_metallicity1 = metals1/mass
+                self.pf.particle_star_metallicity2 = metals2/mass
+                self.pf.particle_star_mass_initial = imass*um
+                self.pf.particle_star_mass_current = mass*um
+                
             
             pbar = get_pbar("Gridding  Particles ",len(grids))
             for gi, g in enumerate(grids): 
-                le,re = g.grid_left_edge, g.grid_right_edge
-                idx = na.logical_and(na.all(le < self.particle_position,axis=1),
-                                     na.all(re > self.particle_position,axis=1))
+                le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
+                idx = na.logical_and(na.all(le < self.pf.particle_position,axis=1),
+                                     na.all(re > self.pf.particle_position,axis=1))
                 g.particle_indices = idx
                 self.grids[gi] = g
                 pbar.update(gi)

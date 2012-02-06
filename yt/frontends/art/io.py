@@ -25,11 +25,12 @@ License:
 
 import numpy as na
 import struct
-import pdb
+
+import os
+import os.path
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-import numpy as na
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -215,21 +216,32 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     return le,fl,iocts,nLevel
 
 
-def read_in_particles(f):
-    pass
-
-def read_in_stars(file,nstars,Nrow):
+def read_particles(file,nstars,Nrow):
     words = 6 # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4 # for file_particle_data; not always true?
     np = nstars # number of particles including stars, should come from lspecies[-1]
     np_per_page = Nrow**2 # defined in ART a_setup.h
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
 
-    f = na.fromfile(file, dtype='>f4') # direct access
+    f = na.fromfile(file, dtype='>f4').astype('float32') # direct access
     pages = na.vsplit(na.reshape(f, (num_pages, words, np_per_page)), num_pages)
-    x,y,z,vx,vy,vz = tuple(na.squeeze(na.dstack(pages))) # x,y,z,vx,vy,vz
-    return x,y,z,vx,vy,vz
+    data = na.squeeze(na.dstack(pages)).T # x,y,z,vx,vy,vz
+    return data[:,0:3],data[:,4:]
 
+def read_stars(file,nstars,Nrow):
+    fh = open(file,'rb')
+    tdum,adum   = _read_frecord(fh,'>d')
+    nstars      = _read_frecord(fh,'>i')
+    ws_old, ws_oldi = _read_frecord(fh,'>d')
+    mass    = _read_frecord(fh,'>f') 
+    imass   = _read_frecord(fh,'>f') 
+    tbirth  = _read_frecord(fh,'>f') 
+    if fh.tell() < os.path.getsize(file):
+        metals1 = _read_frecord(fh,'>f') 
+    if fh.tell() < os.path.getsize(file):
+        metals2 = _read_frecord(fh,'>f')     
+    return nstars, mass, imass, tbirth, metals1,metals2
+    
 nchem=8+2
 dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
                 ",>%sf4"%(2)+",>i4")
@@ -247,10 +259,21 @@ def _skip_record(f):
     f.seek(s[0], 1)
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
 
-def _read_record(f):
+def _read_frecord(f,fmt):
+    s1 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
+    count = s1/na.dtype(fmt).itemsize
+    ss = na.fromfile(f,fmt,count=count)
+    s2 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
+    assert s1==s2
+    return ss
+
+
+def _read_record(f,fmt=None):
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
     ss = f.read(s)
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    if fmt is not None:
+        return struct.unpack(ss,fmt)
     return ss
 
 def _read_record_size(f):
@@ -268,18 +291,18 @@ def _read_struct(f,structure,verbose=False):
         if verbose: print "%s:\t%s\t (%d B)" %(name,val,f.tell())
     return vals
 
-    sqrt = numpy.sqrt
-    sign = numpy.sign
 
 
 #All of these functions are to convert from hydro time var to 
 #proper time
+sqrt = na.sqrt
+sign = na.sign
 
 def find_root(f,a,b,tol=1e-6):
     c = (a+b)/2.0
-    last = -numpy.inf
+    last = -na.inf
     assert(sign(f(a)) != sign(f(b)))  
-    while numpy.abs(f(c)-last) > tol:
+    while na.abs(f(c)-last) > tol:
         last=f(c)
         if sign(last)==sign(f(b)):
             b=c
@@ -289,9 +312,9 @@ def find_root(f,a,b,tol=1e-6):
     return c
 
 def quad(fintegrand,xmin,xmax,n=1e4):
-    spacings = numpy.logspace(numpy.log10(xmin),numpy.log10(xmax),n)
+    spacings = na.logspace(na.log10(xmin),na.log10(xmax),n)
     integrand_arr = fintegrand(spacings)
-    val = numpy.trapz(integrand_arr,dx=numpy.diff(spacings))
+    val = na.trapz(integrand_arr,dx=na.diff(spacings))
     return val
 
 def a2b(at,Om0=0.27,Oml0=0.73,h=0.700):
@@ -316,22 +339,25 @@ def a2t(at,Om0=0.27,Oml0=0.73,h=0.700):
     integrand = lambda x : 1./(x*sqrt(Oml0+Om0*x**-3.0))
     #current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand,1e-4,at)
-    #spacings = numpy.logspace(-5,numpy.log10(at),1e5)
+    #spacings = na.logspace(-5,na.log10(at),1e5)
     #integrand_arr = integrand(spacings)
-    #current_time = numpy.trapz(integrand_arr,dx=numpy.diff(spacings))
+    #current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
     current_time *= 9.779/h
     return current_time
 
-def b2t(tb,n = 1e2,**kwargs):
-    tb = numpy.array(tb)
+def b2t(tb,n = 1e2,logger=None,**kwargs):
+    tb = na.array(tb)
     if tb.shape == (): return a2t(b2a(tb))
     age_min = a2t(b2a(tb.max(),**kwargs),**kwargs)
     age_max = a2t(b2a(tb.min(),**kwargs),**kwargs)
-    tbs  = -1.*numpy.logspace(numpy.log10(-tb.min()),
-                          numpy.log10(-tb.max()),n)
-    ages = [a2t(b2a(tbi)) for tbi in tbs]
-    ages = numpy.array(ages)
-    fb2t = numpy.interp(tb,tbs,ages)
+    tbs  = -1.*na.logspace(na.log10(-tb.min()),
+                          na.log10(-tb.max()),n)
+    ages = []
+    for i,tbi in enumerate(tbs):
+        ages += a2t(b2a(tbi)),
+        if logger: logger(i)
+    ages = na.array(ages)
+    fb2t = na.interp(tb,tbs,ages)
     #fb2t = interp1d(tbs,ages)
     return fb2t
 
