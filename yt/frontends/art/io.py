@@ -60,9 +60,9 @@ class IOHandlerART(BaseIOHandler):
         arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
         arr = arr[3:-1,:]
         if field==None:
-            self.level_data[level] = arr
+            self.level_data[level] = arr.astype('float32')
         else:
-            self.level_data[level] = arr[:field+1,:]
+            self.level_data[level] = arr[:field+1,:].astype('float32')
         del arr
 
     def preload_root_level(self):

@@ -1093,7 +1093,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
         np.ndarray[np.int64_t, ndim=2] fl,
         int num_deep = 0,
         float min_eff = 0.1,
-        bool use_center=False):
+        int use_center=0):
     cdef ProtoSubgrid L, R
     cdef np.ndarray[np.int64_t, ndim=1] dims_l, li_l
     cdef np.ndarray[np.int64_t, ndim=1] dims_r, li_r

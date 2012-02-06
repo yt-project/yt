@@ -169,7 +169,6 @@ class ARTHierarchy(AMRHierarchy):
         self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
         self.pf.level_offsets[0] = self.pf.root_grid_offset
         
-        
         #double check bvalues
         # num_ogrids = 75019704L/8
         # ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
@@ -199,7 +198,7 @@ class ARTHierarchy(AMRHierarchy):
             psgs = []
             effs,sizes = [], []
             
-            #if level > 6: continue
+            if level > 5: continue
             
             #refers to the left index for the art octgrid
             left_index, fl, iocts,  nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
@@ -261,7 +260,7 @@ class ARTHierarchy(AMRHierarchy):
                 #if less than 10% the volume of a patch is covered with octs
                 psg_split = _ramses_reader.recursive_patch_splitting(
                     psg, idims, initial_left, 
-                    dleft_index, dfl,min_eff=min_eff,use_center=True)
+                    dleft_index, dfl,min_eff=min_eff,use_center=False)
                     
                 psgs.extend(psg_split)
                 
@@ -320,7 +319,9 @@ class ARTHierarchy(AMRHierarchy):
                 gi += 1
         self.grids = na.empty(len(grids), dtype='object')
         
-        if self.file_particle_data:
+
+        if self.pf.file_particle_data:
+            import pdb; pdb.set_trace()
             lspecies = self.pf.parameters['lspecies']
             Nrow     = self.pf.parameters['Nrow']
             nstars = lspecies[-1]
@@ -333,16 +334,17 @@ class ARTHierarchy(AMRHierarchy):
             pbar = get_pbar("Loading Particles ",len(g))
             x,y,z,vx,vy,vz = io._read_in_particles(self.file_particle_data,
                                                    nstars,Nrow)
-            self.particle_position_x = x*ud
-            self.particle_position_y = y*ud
-            self.particle_position_z = z*ud
-            self.particle_velocity_x = vx*uv
-            self.particle_velocity_y = vy*uv
-            self.particle_velocity_z = vz*uv
+                                                   
+            lempc = le*pf['Mpc']/root_cells #left edge in kpc
+            rempc = re*pf['Mpc']/root_cells #right edge in kpc
+            wdmpc = rempc-lempc #width in mpc
+                                        
+            self.particle_position   = na.array([(x*ud-lempc)/wdmpc,
+                (y*ud-lempc)/wdmpc,(z*ud-lempc)/wdmpc]).T
+            self.particle_velocity   = na.array([vx*uv,vy*uv,vz*uv]).T
             self.particle_species    = numpy.zeros(x.shape,dtype='int32')
             self.particle_mass       = numpy.zeros(x.shape,dtype='float32')
             
-            import pdb; pdb.set_trace()
             a,b=0,0
             for b,m in zip(self.pf.lspecies,pf.wspecies):
                 self.particle_species[a:b] = b
@@ -363,16 +365,21 @@ class ARTHierarchy(AMRHierarchy):
                 self.particle_star_mass_current = mass*um
                 pbar.finish()
             
-            pbar = get_pbar("Gridding  Particles ",len(g))
+            pbar = get_pbar("Gridding  Particles ",len(grids))
             for gi, g in enumerate(grids): 
-                idx = self.particle_position_x                    
+                le,re = g.grid_left_edge, g.grid_right_edge
+                idx = na.logical_and(na.all(le < self.particle_position,axis=1),
+                                     na.all(re > self.particle_position,axis=1))
+                g.particle_indices = idx
                 self.grids[gi] = g
                 pbar.update(gi)
             pbar.finish()
             
         else:
+            pbar = get_pbar("Finalizing grids ",len(grids))
             for gi, g in enumerate(grids): 
                 self.grids[gi] = g
+            pbar.finish()
             
 
     def _get_grid_parents(self, grid, LE, RE):
@@ -414,7 +421,8 @@ class ARTStaticOutput(StaticOutput):
                  storage_filename = None, 
                  file_particle_header=None, 
                  file_particle_data=None,
-                 file_star_data=None):
+                 file_star_data=None,
+                 discover_particles=False):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
         
         
@@ -426,21 +434,22 @@ class ARTStaticOutput(StaticOutput):
         self.file_particle_data = file_particle_data
         self.file_star_data = file_star_data
         
-        if file_particle_header is None:
-            loc = filename.replace(base,'PMcrd%s.DAT'%aexp)
-            if os.path.exists(loc):
-                self.file_particle_header = loc
-                mylog.info("Discovered particle header: %s",os.path.basename(loc))
-        if file_particle_data is None:
-            loc = filename.replace(base,'PMcrs0%s.DAT'%aexp)
-            if os.path.exists(loc):
-                self.file_particle_data = loc
-                mylog.info("Discovered particle data:   %s",os.path.basename(loc))
-        if file_star_data is None:
-            loc = filename.replace(base,'stars_%s.dat'%aexp)
-            if os.path.exists(loc):
-                self.file_star_data = loc
-                mylog.info("Discovered stellar data:    %s",os.path.basename(loc))
+        if discover_particles:
+            if file_particle_header is None:
+                loc = filename.replace(base,'PMcrd%s.DAT'%aexp)
+                if os.path.exists(loc):
+                    self.file_particle_header = loc
+                    mylog.info("Discovered particle header: %s",os.path.basename(loc))
+            if file_particle_data is None:
+                loc = filename.replace(base,'PMcrs0%s.DAT'%aexp)
+                if os.path.exists(loc):
+                    self.file_particle_data = loc
+                    mylog.info("Discovered particle data:   %s",os.path.basename(loc))
+            if file_star_data is None:
+                loc = filename.replace(base,'stars_%s.dat'%aexp)
+                if os.path.exists(loc):
+                    self.file_star_data = loc
+                    mylog.info("Discovered stellar data:    %s",os.path.basename(loc))
         
         StaticOutput.__init__(self, filename, data_style)
         
