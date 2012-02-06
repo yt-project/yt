@@ -91,6 +91,7 @@ class StaticOutput(object):
 
         self._parse_parameter_file()
         self._set_units()
+        self._set_derived_attrs()
 
         # Because we need an instantiated class to check the pf's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -102,6 +103,10 @@ class StaticOutput(object):
         self.print_key_parameters()
 
         self.create_field_info()
+
+    def _set_derived_attrs(self):
+        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+        self.domain_width = self.domain_right_edge - self.domain_left_edge
 
     def __reduce__(self):
         args = (self._hash(),)
