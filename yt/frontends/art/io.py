@@ -36,6 +36,8 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 import yt.utilities.amr_utils as au
 
+from yt.frontends.art.definitions import art_particle_field_names
+
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
 
@@ -83,8 +85,40 @@ class IOHandlerART(BaseIOHandler):
 
     def clear_level(self, level):
         self.level_data.pop(level, None)
+
+    def _read_particle_field(self, grid, field):
+        import pdb; pdb.set_trace()
+        idx = grid.particle_indices
+        if field == 'particle_position':
+            return grid.pf.particle_position[idx]
+        if field == 'particle_mass':
+            return grid.pf.particle_mass[idx]
+        if field == 'particle_velocity':
+            return grid.pf.particle_velocity[idx]
+        sidx = idx-self.pf.particle_star_index
+        sidx = sidx[sidx>=0]
+        if field == 'particle_ages':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            tr[idx] = grid.pf.particle_star_ages[sidx]
+            return tr
+        if field == 'particle_metallicity1':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            tr[idx] = grid.pf.particle_star_metallicity1[sidx]
+            return tr
+        if field == 'particle_metallicity2':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            tr[idx] = grid.pf.particle_star_metallicity2[sidx]
+            return tr
+        if field == 'particle_mass_initial':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            tr[idx] = grid.pf.particle_star_mass_initial[sidx]
+            return tr
+        raise 'Should have matched one of the particle fields...'
+
         
     def _read_data_set(self, grid, field):
+        if field in art_particle_field_names:
+            return self._read_particle_field(grid, field)
         pf = grid.pf
         field_id = grid.pf.h.field_list.index(field)
         if grid.Level == 0: # We only have one root grid

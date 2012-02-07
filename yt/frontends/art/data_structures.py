@@ -54,6 +54,8 @@ except ImportError:
 
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs
+    
+from yt.frontends.art.definitions import art_particle_field_names
 
 from yt.frontends.art.io import read_particles
 from yt.frontends.art.io import read_stars
@@ -149,6 +151,7 @@ class ARTHierarchy(AMRHierarchy):
                             'Pressure','Gamma','GasEnergy',
                             'Metal_DensitySNII', 'Metal_DensitySNIa',
                             'Potential_New','Potential_Old']
+        #self.field_list += art_particle_field_names
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -359,18 +362,19 @@ class ARTHierarchy(AMRHierarchy):
                 a=b
             pbar.finish()
             
+            self.pf.particle_star_index = lspecies[-2]
             
             if self.pf.file_star_data:
                 nstars, mass, imass, tbirth, metals1, metals2 \
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
                 n=min(1e2,len(tbirth))
-                pbar = get_pbar("Stellar ages          ",n)
+                pbar = get_pbar("Stellar Ages        ",n)
                 self.pf.particle_star_ages = b2t(tbirth,n=n,logger=lambda x: pbar.update(x))
                 pbar.finish()
                 self.pf.particle_star_metallicity1 = metals1/mass
                 self.pf.particle_star_metallicity2 = metals2/mass
                 self.pf.particle_star_mass_initial = imass*um
-                self.pf.particle_star_mass_current = mass*um
+                self.pf.particle_mass[-nstars:] = mass*um
                 
             
             pbar = get_pbar("Gridding  Particles ",len(grids))
@@ -379,6 +383,7 @@ class ARTHierarchy(AMRHierarchy):
                 idx = na.logical_and(na.all(le < self.pf.particle_position,axis=1),
                                      na.all(re > self.pf.particle_position,axis=1))
                 g.particle_indices = idx
+                g.NumberOfParticles = idx.sum()
                 self.grids[gi] = g
                 pbar.update(gi)
             pbar.finish()
@@ -408,6 +413,23 @@ class ARTHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
         self.max_level = self.grid_levels.max()
+        
+    def _setup_field_list(self):
+        if self.parameter_file.use_particles:
+            # We know which particle fields will exist -- pending further
+            # changes in the future.
+            for field in art_particle_field_names:
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D,
+                # 2D and 3D fields.
+                self.pf.field_info.add_field(field, NullFunc,
+                                             convert_function=cf,
+                                             take_log=False, particle_type=True)
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
@@ -430,7 +452,8 @@ class ARTStaticOutput(StaticOutput):
                  file_particle_header=None, 
                  file_particle_data=None,
                  file_star_data=None,
-                 discover_particles=False):
+                 discover_particles=False,
+                 use_particles=True):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
         
         
@@ -459,6 +482,8 @@ class ARTStaticOutput(StaticOutput):
                     self.file_star_data = loc
                     mylog.info("Discovered stellar data:    %s",os.path.basename(loc))
         
+        self.use_particles = any([self.file_particle_header,
+            self.file_star_data, self.file_particle_data])
         StaticOutput.__init__(self, filename, data_style)
         
         self.dimensionality = 3

@@ -51,12 +51,17 @@ translation_dict = {"Density":"density",
                     "Pressure":"pressure",
                     "Metallicity":"metallicity",
                     "GasEnergy":"GasEnergy"
+                    #"ParticleMass": "particle_mass"
                    }
 
 for f,v in translation_dict.items():
+    pfield = v.startswith("particle")
     add_art_field(v, function=NullFunc, take_log=False,
-                  validators = [ValidateDataField(v)])
-    add_art_field(f, function=TranslationFunc(v), take_log=True)
+                  validators = [ValidateDataField(v)],
+                  particle_type = pfield)
+    add_art_field(f, function=TranslationFunc(v), take_log=True,
+                  particle_type = pfield)
+    
 
 #def _convertMetallicity(data):
 #    return data.convert("Metal_Density1")
@@ -123,3 +128,34 @@ def _convert_Metal_Density(data):
 add_art_field("Metal_Density", function=_Metal_Density, units = r"\mathrm{K}")
 KnownARTFields["Metal_Density"]._units = r"\mathrm{K}"
 KnownARTFields["Metal_Density"]._convert_function=_convert_Metal_Density
+
+
+#Particle Fields
+
+import pdb; pdb.set_trace()
+
+
+# pm=add_art_field("particle_mass", particle_type=True,
+#     validators = [ValidateDataField("particle_mass")])
+# pm.particle_type = True
+
+#               
+# def _convertParticleMassMsun(data):
+#     return (1/1.989e33)
+# def _particle_mass_m_sun(field, data):
+#     import pdb; pdb.set_trace()
+#     return data['ParticleMass']
+# add_art_field("ParticleMassMsun", function=_particle_mass_m_sun,
+#           particle_type=True, convert_function=_convertParticleMassMsun,
+#           take_log=True, units=r"\rm{M_{\odot}}")
+
+def _convertParticleMassMsun(data):
+    return (1/1.989e33)
+def _particle_mass_m_sun(field, data):
+    import pdb;pdb.set_trace()
+    return data["particle_mass"]
+add_field("ParticleMassMsun", function=_particle_mass_m_sun,
+          validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          take_log=True, units=r"\rm{M_{\odot}}")
+
