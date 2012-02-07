@@ -274,7 +274,8 @@ class ARTHierarchy(AMRHierarchy):
                 if idims.prod() > vol_max or psg.efficiency < min_eff:
                     psg_split = _ramses_reader.recursive_patch_splitting(
                         psg, idims, initial_left, 
-                        dleft_index, dfl,min_eff=min_eff,use_center=False)
+                        dleft_index, dfl,min_eff=min_eff,use_center=True,
+                        split_on_vol=512**3)
                     
                     psgs.extend(psg_split)
                     psg_eff += [x.efficiency for x in psg_split] 
@@ -422,10 +423,12 @@ class ARTHierarchy(AMRHierarchy):
             if len(parents) > 0:
                 g.Parent.extend(parents.tolist())
                 for p in parents: p.Children.append(g)
-            gnop = g.NumberOfParticles
+            if self.pf.file_particle_data:    
+                gnop = g.NumberOfParticles
             g._prepare_grid()
             g._setup_dx()
-            g.NumberOfParticles = gnop
+            if self.pf.file_particle_data:
+                g.NumberOfParticles = gnop
         self.max_level = self.grid_levels.max()
         
     def _setup_field_list(self):

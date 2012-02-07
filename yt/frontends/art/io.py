@@ -150,7 +150,7 @@ class IOHandlerART(BaseIOHandler):
         raise 'Should have matched one of the particle fields...'
 
         
-    def _read_data_set(self, grid, field):
+    def _read_data_set(self, grid, field,add_parents=False):
         if field in art_particle_field_names:
             return self._read_particle_field(grid, field)
         pf = grid.pf
@@ -174,7 +174,8 @@ class IOHandlerART(BaseIOHandler):
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, self.level_data[g.Level],
                         g.Level, 2**l_delta, g.locations)
-                next_grids += g.Parent
+                if add_parents:
+                    next_grids += g.Parent
             grids = next_grids
             l_delta += 1
         return tr

@@ -1093,18 +1093,23 @@ def recursive_patch_splitting(ProtoSubgrid psg,
         np.ndarray[np.int64_t, ndim=2] fl,
         int num_deep = 0,
         float min_eff = 0.1,
-        int use_center=0):
+        int use_center=0,
+        long split_on_vol = 0):
     cdef ProtoSubgrid L, R
     cdef np.ndarray[np.int64_t, ndim=1] dims_l, li_l
     cdef np.ndarray[np.int64_t, ndim=1] dims_r, li_r
     cdef int tt, ax, fp, i, j, k, gi
     cdef int tr[3]
     cdef long volume  =0
+    cdef int max_depth = 40
     volume = dims[0]*dims[1]*dims[2]
-    if num_deep > 300 and volume < 452984832L:
+    if split_on_vol>0:
+        if volume > split_on_vol:
+            return [psg]
+    if num_deep > max_depth:
         psg.efficiency = min_eff
         return [psg]
-    if (psg.efficiency > min_eff or psg.efficiency < 0.0) and (volume < 452984832L):
+    if (psg.efficiency > min_eff or psg.efficiency < 0.0):
         return [psg]
     if not use_center:    
         psg.find_split(tr) #default
@@ -1135,7 +1140,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     if L.efficiency <= 0.0: rv_l = []
     elif L.efficiency < min_eff:
         rv_l = recursive_patch_splitting(L, dims_l, li_l,
-                left_index, fl, num_deep + 1, min_eff,use_center)
+                left_index, fl, num_deep + 1, min_eff,use_center,split_on_vol)
     else:
         rv_l = [L]
     R = ProtoSubgrid(li_r, dims_r, left_index, fl)
@@ -1143,7 +1148,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     if R.efficiency <= 0.0: rv_r = []
     elif R.efficiency < min_eff:
         rv_r = recursive_patch_splitting(R, dims_r, li_r,
-                left_index, fl, num_deep + 1, min_eff,use_center)
+                left_index, fl, num_deep + 1, min_eff,use_center,split_on_vol)
     else:
         rv_r = [R]
     return rv_r + rv_l

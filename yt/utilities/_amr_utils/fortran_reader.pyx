@@ -310,7 +310,7 @@ def read_art_grid(int varindex,
         domain = ogrid_info[0]
         #print "Loading", domain, ogrid_info
         grid_id = ogrid_info[1]
-        og_start_index = ogrid_info[3:6]
+        og_start_index = ogrid_info[3:6] #the oct left edge
         for i in range(2*ref_factor):
             di = i + og_start_index[0] * ref_factor
             if di < start_index[0] or di >= end_index[0]: continue
