@@ -561,7 +561,8 @@ class ARTStaticOutput(StaticOutput):
         self.time_units['days']  = seconds / (3600*24.0)
 
         #we were already in seconds, go back in to code units
-        self.current_time /= self.t0 
+        #self.current_time /= self.t0 
+        #self.current_time = b2t(self.current_time,n=1)
         
     
     def _parse_parameter_file(self):
@@ -636,6 +637,7 @@ class ARTStaticOutput(StaticOutput):
         self.parameters['ng'] = 128 # of 0 level cells in 1d 
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
         self.data_comment = header_vals['jname']
+        self.current_time_raw = header_vals['t']
         self.current_time = header_vals['t']
         self.omega_lambda = header_vals['Oml0']
         self.omega_matter = header_vals['Om0']
@@ -646,13 +648,13 @@ class ARTStaticOutput(StaticOutput):
         #nchem is nhydrovars-8, so we typically have 2 extra chem species 
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         #self.hubble_time /= 3.168876e7 #Gyr in s 
-        def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
-            return 1./(x*na.sqrt(oml+omb*x**-3.0))
-        spacings = na.logspace(-5,na.log10(self.parameters['aexpn']),1e5)
-        integrand_arr = integrand(spacings)
-        self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
-        self.current_time *= self.hubble_time
-                
+        # def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
+        #     return 1./(x*na.sqrt(oml+omb*x**-3.0))
+        # spacings = na.logspace(-5,na.log10(self.parameters['aexpn']),1e5)
+        # integrand_arr = integrand(spacings)
+        # self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
+        # self.current_time *= self.hubble_time
+        self.current_time = b2t(self.current_time_raw)*1.0e9*365*3600*24         
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 

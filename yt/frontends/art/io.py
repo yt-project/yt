@@ -381,7 +381,11 @@ def a2t(at,Om0=0.27,Oml0=0.73,h=0.700):
 
 def b2t(tb,n = 1e2,logger=None,**kwargs):
     tb = na.array(tb)
-    if tb.shape == (): return a2t(b2a(tb))
+    if type(tb) == type(1.1): 
+        return a2t(b2a(tb))
+    if tb.shape == (): 
+        return a2t(b2a(tb))
+    if len(tb) < n: n= len(tb)
     age_min = a2t(b2a(tb.max(),**kwargs),**kwargs)
     age_max = a2t(b2a(tb.min(),**kwargs),**kwargs)
     tbs  = -1.*na.logspace(na.log10(-tb.min()),
