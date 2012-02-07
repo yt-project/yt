@@ -44,14 +44,15 @@ KnownARTFields = FieldInfoContainer()
 add_art_field = KnownARTFields.add_field
 
 translation_dict = {"Density":"density",
-                    "TotalEnergy":"TotalEnergy",
+                    "TotalEnergy":"total_energy",
                     "x-velocity":"velocity_x",
                     "y-velocity":"velocity_y",
                     "z-velocity":"velocity_z",
                     "Pressure":"pressure",
                     "Metallicity":"metallicity",
-                    "GasEnergy":"GasEnergy",
-                    "particle_mass":"ParticleMass"
+                    "GasEnergy":"gas_energy",
+                    "ParticleMass":"particle_mass",
+                    "Temperature":'temperature'
                    }
 
 for f,v in translation_dict.items():

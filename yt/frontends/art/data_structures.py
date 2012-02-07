@@ -137,7 +137,6 @@ class ARTHierarchy(AMRHierarchy):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-
         self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
         self._setup_field_list()
@@ -147,12 +146,12 @@ class ARTHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         # This will need to be generalized to be used elsewhere.
-        self.field_list = [ 'Density','TotalEnergy',
-                            'x-momentum','y-momentum','z-momentum',
-                            'Pressure','Gamma','GasEnergy',
-                            'Metal_DensitySNII', 'Metal_DensitySNIa',
-                            'Potential_New','Potential_Old',
-                            'particle_mass']
+        self.field_list = ['Density','TotalEnergy',
+                           'x-momentum','y-momentum','z-momentum',
+                           'Pressure','Gamma','GasEnergy',
+                           'Metal_DensitySNII', 'Metal_DensitySNIa',
+                           'Potential_New','Potential_Old',
+                           'particle_mass']
         self.field_list += art_particle_field_names
 
     def _setup_classes(self):
@@ -165,6 +164,8 @@ class ARTHierarchy(AMRHierarchy):
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         
         min_eff = 0.20
+        
+        vol_max = 256**3
         
         f = open(self.pf.parameter_filename,'rb')
         
@@ -209,6 +210,8 @@ class ARTHierarchy(AMRHierarchy):
                 continue
             psgs = []
             effs,sizes = [], []
+
+            if level > self.pf.limit_level : continue
             
             #refers to the left index for the art octgrid
             left_index, fl, iocts,  nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
@@ -268,14 +271,19 @@ class ARTHierarchy(AMRHierarchy):
                 #that only partially fill the grid,it  may be more efficient
                 #to split large patches into smaller patches. We split
                 #if less than 10% the volume of a patch is covered with octs
-                psg_split = _ramses_reader.recursive_patch_splitting(
-                    psg, idims, initial_left, 
-                    dleft_index, dfl,min_eff=min_eff,use_center=False)
+                if idims.prod() > vol_max or psg.efficiency < min_eff:
+                    psg_split = _ramses_reader.recursive_patch_splitting(
+                        psg, idims, initial_left, 
+                        dleft_index, dfl,min_eff=min_eff,use_center=False)
                     
-                psgs.extend(psg_split)
+                    psgs.extend(psg_split)
+                    psg_eff += [x.efficiency for x in psg_split] 
+                else:
+                    psgs.append(psg)
+                    psg_eff =  [psg.efficiency,]
                 
                 tol = 1.00001
-                psg_eff  += [x.efficiency for x in psg_split] 
+                
                 
                 step+=1
                 pbar.update(step)
@@ -459,7 +467,8 @@ class ARTStaticOutput(StaticOutput):
                  file_particle_data=None,
                  file_star_data=None,
                  discover_particles=False,
-                 use_particles=True):
+                 use_particles=True,
+                 limit_level=None):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
         
         
@@ -470,6 +479,12 @@ class ARTStaticOutput(StaticOutput):
         self.file_particle_header = file_particle_header
         self.file_particle_data = file_particle_data
         self.file_star_data = file_star_data
+        
+        if limit_level is None:
+            self.limit_level = na.inf
+        else:
+            mylog.info("Using maximum level: %i",limit_level)
+            self.limit_level = limit_level
         
         if discover_particles:
             if file_particle_header is None:

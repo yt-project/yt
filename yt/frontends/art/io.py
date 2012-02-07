@@ -51,6 +51,40 @@ class IOHandlerART(BaseIOHandler):
         self.level_data = {}
 
     def preload_level(self, level,field=None):
+        """ Reads in the full ART tree. From the ART source:
+            iOctLv :    >0   - level of an oct
+            iOctPr :         - parent of an oct
+            iOctCh :    >0   - pointer to an oct of children
+                        0   - there are no children; the cell is a leaf
+            iOctNb :    >0   - pointers to neighbouring cells 
+            iOctPs :         - coordinates of Oct centers
+            
+            iOctLL1:         - doubly linked list of octs
+            iOctLL2:         - doubly linked list of octs
+            
+            tl - current  time moment for level L
+            tlold - previous time moment for level L
+            dtl - dtime0/2**iTimeBin
+            dtlold -  previous time step for level L
+            iSO - sweep order
+            
+            hvar(1,*) - gas density 
+            hvar(2,*) - gas energy 
+            hvar(3,*) - x-momentum 
+            hvar(4,*) - y-momentum
+            hvar(5,*) - z-momentum
+            hvar(6,*) - pressure
+            hvar(7,*) - Gamma
+            hvar(8,*) - internal energy 
+
+            var (1,*) - total density 
+            var (2,*) - potential (new)
+            var (3,*) - potential (old)
+            
+            
+            
+        """
+        
         if level in self.level_data: return
         if level == 0:
             self.preload_root_level()
@@ -61,18 +95,18 @@ class IOHandlerART(BaseIOHandler):
         nvals = ncells * (self.nhydro_vars + 6) # 2 vars, 2 pads
         arr = na.fromfile(f, dtype='>f', count=nvals)
         arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
-        arr = arr[3:-1,:]
+        assert na.all(arr[0,:]==arr[-1,:]) #pads must be equal
+        arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
         if field==None:
             self.level_data[level] = arr.astype('float32')
         else:
-            self.level_data[level] = arr[:field+1,:].astype('float32')
+            self.level_data[level] = arr.astype('float32')
         del arr
 
     def preload_root_level(self):
         f = open(self.filename, 'rb')
         f.seek(self.level_offsets[0] + 4) # Ditch the header
         ncells = self.level_info[0]
-        #pdb.set_trace()
         nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
         hvar = na.fromfile(f, dtype='>f', count=nhvals).astype("float32")
         hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
@@ -81,12 +115,13 @@ class IOHandlerART(BaseIOHandler):
         var = na.fromfile(f, dtype='>f', count=nvars).astype("float32")
         var = var.reshape((2, ncells), order="F")
         arr = na.concatenate((hvar,var))
-        self.level_data[0]
+        self.level_data[0] = arr
 
     def clear_level(self, level):
         self.level_data.pop(level, None)
 
     def _read_particle_field(self, grid, field):
+        #This will be cleaned up later
         idx = grid.particle_indices
         if field == 'particle_position':
             return grid.pf.particle_position[idx]
