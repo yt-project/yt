@@ -140,7 +140,8 @@ class ARTHierarchy(AMRHierarchy):
 
         self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
-
+        self._setup_field_list()
+        
     def _initialize_data_storage(self):
         pass
 
@@ -150,9 +151,10 @@ class ARTHierarchy(AMRHierarchy):
                             'x-momentum','y-momentum','z-momentum',
                             'Pressure','Gamma','GasEnergy',
                             'Metal_DensitySNII', 'Metal_DensitySNIa',
-                            'Potential_New','Potential_Old']
-        #self.field_list += art_particle_field_names
-    
+                            'Potential_New','Potential_Old',
+                            'particle_mass']
+        self.field_list += art_particle_field_names
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -207,8 +209,6 @@ class ARTHierarchy(AMRHierarchy):
                 continue
             psgs = []
             effs,sizes = [], []
-            
-            if level > 5: continue
             
             #refers to the left index for the art octgrid
             left_index, fl, iocts,  nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
@@ -355,6 +355,11 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_species    = na.zeros(np,dtype='int32')
             self.pf.particle_mass       = na.zeros(np,dtype='float32')
             
+            # self.pf.conversion_factors['particle_mass'] = 1.0
+            # self.pf.conversion_factors['particle_species'] = 1.0
+            # self.pf.conversion_factors['particle_velocity'] = 1.0
+            # self.pf.conversion_factors['particle_position'] = 1.0
+            
             a,b=0,0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
                 self.pf.particle_species[a:b] = i #particle type
@@ -376,14 +381,13 @@ class ARTHierarchy(AMRHierarchy):
                 self.pf.particle_star_mass_initial = imass*um
                 self.pf.particle_mass[-nstars:] = mass*um
                 
-            
             pbar = get_pbar("Gridding  Particles ",len(grids))
             for gi, g in enumerate(grids): 
                 le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
                 idx = na.logical_and(na.all(le < self.pf.particle_position,axis=1),
                                      na.all(re > self.pf.particle_position,axis=1))
                 g.particle_indices = idx
-                g.NumberOfParticles = idx.sum()
+                g.NumberOfParticles = na.sum(idx)
                 self.grids[gi] = g
                 pbar.update(gi)
             pbar.finish()
@@ -410,8 +414,10 @@ class ARTHierarchy(AMRHierarchy):
             if len(parents) > 0:
                 g.Parent.extend(parents.tolist())
                 for p in parents: p.Children.append(g)
+            gnop = g.NumberOfParticles
             g._prepare_grid()
             g._setup_dx()
+            g.NumberOfParticles = gnop
         self.max_level = self.grid_levels.max()
         
     def _setup_field_list(self):

@@ -81,13 +81,12 @@ class IOHandlerART(BaseIOHandler):
         var = na.fromfile(f, dtype='>f', count=nvars).astype("float32")
         var = var.reshape((2, ncells), order="F")
         arr = na.concatenate((hvar,var))
-        self.level_data[0] = arr
+        self.level_data[0]
 
     def clear_level(self, level):
         self.level_data.pop(level, None)
 
     def _read_particle_field(self, grid, field):
-        import pdb; pdb.set_trace()
         idx = grid.particle_indices
         if field == 'particle_position':
             return grid.pf.particle_position[idx]

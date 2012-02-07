@@ -50,25 +50,28 @@ translation_dict = {"Density":"density",
                     "z-velocity":"velocity_z",
                     "Pressure":"pressure",
                     "Metallicity":"metallicity",
-                    "GasEnergy":"GasEnergy"
-                    #"ParticleMass": "particle_mass"
+                    "GasEnergy":"GasEnergy",
+                    "particle_mass":"ParticleMass"
                    }
 
 for f,v in translation_dict.items():
-    pfield = v.startswith("particle")
+    pfield = v.lower().startswith("particle")
     add_art_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)],
                   particle_type = pfield)
     add_art_field(f, function=TranslationFunc(v), take_log=True,
                   particle_type = pfield)
+
+#Particle Fields
+def _get_convert(fname):
+    def _conv(data):
+        return 1.0
+    return _conv
+
+add_art_field("particle_mass", function=NullFunc, take_log=False,
+              convert_function=_get_convert("particle_mass"),
+              units=r"\rm{g}", particle_type=True)
     
-
-#def _convertMetallicity(data):
-#    return data.convert("Metal_Density1")
-#KnownARTFields["Metal_Density1"]._units = r"1"
-#KnownARTFields["Metal_Density1"]._projected_units = r"1"
-#KnownARTFields["Metal_Density1"]._convert_function=_convertMetallicity
-
 
 def _convertDensity(data):
     return data.convert("Density")
@@ -130,32 +133,4 @@ KnownARTFields["Metal_Density"]._units = r"\mathrm{K}"
 KnownARTFields["Metal_Density"]._convert_function=_convert_Metal_Density
 
 
-#Particle Fields
-
-import pdb; pdb.set_trace()
-
-
-# pm=add_art_field("particle_mass", particle_type=True,
-#     validators = [ValidateDataField("particle_mass")])
-# pm.particle_type = True
-
-#               
-# def _convertParticleMassMsun(data):
-#     return (1/1.989e33)
-# def _particle_mass_m_sun(field, data):
-#     import pdb; pdb.set_trace()
-#     return data['ParticleMass']
-# add_art_field("ParticleMassMsun", function=_particle_mass_m_sun,
-#           particle_type=True, convert_function=_convertParticleMassMsun,
-#           take_log=True, units=r"\rm{M_{\odot}}")
-
-def _convertParticleMassMsun(data):
-    return (1/1.989e33)
-def _particle_mass_m_sun(field, data):
-    import pdb;pdb.set_trace()
-    return data["particle_mass"]
-add_field("ParticleMassMsun", function=_particle_mass_m_sun,
-          validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          take_log=True, units=r"\rm{M_{\odot}}")
 
