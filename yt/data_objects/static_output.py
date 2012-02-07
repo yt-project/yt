@@ -218,17 +218,9 @@ class StaticOutput(object):
     _get_hierarchy = True
     @property
     def field_info(self):
-        if getattr(self,"_field_info", None) is None:
-            # The setting up of fields occurs in the hierarchy, which is only
-            # instantiated once.  So we have to double check to make sure that,
-            # in the event of double-loads of a parameter file, we do not blow
-            # away the exising field_info.
-            self._field_info = FieldInfoContainer.create_with_fallback(
-                    self._fieldinfo_fallback)
         if self._get_hierarchy:
             self._get_hierarchy=False
-            h = self.hierarchy
-            del h
+            self.hierarchy
         return self._field_info
 
 def _reconstruct_pf(*args, **kwargs):
