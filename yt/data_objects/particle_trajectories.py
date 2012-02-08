@@ -19,11 +19,25 @@ class ParticleTrajectoryCollection(object) :
         self.num_indices = len(indices)
         self.num_steps = len(filenames)
         self.times = []
+
+        # Default fields 
         
         if fields is None : fields = ["particle_position_x",
                                       "particle_position_y",
                                       "particle_position_z"]
 
+        """
+        The following loops through the parameter files
+        and performs two tasks. The first is to isolate
+        the particles with the correct indices, and the
+        second is to create a sorted list of these particles.
+        We also make a list of the current time from each file. 
+        Right now, the code assumes (and checks for) the
+        particle indices existing in each file (a limitation I
+        would like to lift at some point since some codes
+        (e.g., FLASH) destroy particles leaving the domain.
+        """
+        
         for pf in self.pfs :
             dd = pf.h.all_data()
             newtags = dd["particle_index"].astype("int")
@@ -37,11 +51,15 @@ class ParticleTrajectoryCollection(object) :
             self.times.append(pf.current_time)
 
         self.times = na.array(self.times)
+
+        # We'll check against this list to make sure we don't try to
+        # include grid data
         
         self.particle_fields = [field for field in self.pfs[0].h.derived_field_list
                                 if (field.startswith("particle") or
                                     field.startswith("Particle"))]
 
+        # Now instantiate the requested fields 
         for field in fields :
 
             self.get_data(field)
@@ -55,7 +73,10 @@ class ParticleTrajectoryCollection(object) :
         return self.field_data.keys()
 
     def __getitem__(self, key) :
-            
+        """
+        Get the field associated with key,
+        checking to make sure it is a particle field.
+        """
         if key not in self.particle_fields :
             print "Not a valid particle field!"
             raise KeyError
@@ -73,11 +94,18 @@ class ParticleTrajectoryCollection(object) :
         self.field_data[key] = val
                         
     def __delitem__(self, key) :
-
+        """
+        Delete the field from the trajectory
+        """
         del self.field_data[key]
 
     def __iter__(self) :
-        
+
+        """
+        This iterates over the trajectories for
+        the different particles, returning dicts
+        of fields for each trajectory
+        """
         for idx in xrange(self.num_indices) :
             traj = {}
             traj["particle_index"] = self.indices[idx]
@@ -88,10 +116,17 @@ class ParticleTrajectoryCollection(object) :
             
     def __len__(self) :
 
+        """
+        The number of individual trajectories
+        """
         return self.num_indices
 
     def add_fields(self, fields) :
 
+        """
+        Add a list of fields to an existing trajectory
+        """
+        
         for field in fields :
 
             if not self.field_data.has_key(field):
@@ -99,7 +134,13 @@ class ParticleTrajectoryCollection(object) :
                 self.get_data(field)
                 
     def get_data(self, field) :
-            
+
+        """
+        Get a field to include in the trajectory collection.
+        The trajectory collection itself is a dict of 2D numpy arrays,
+        with shape (num_indices, num_steps)
+        """
+        
         if not self.field_data.has_key(field):
             
             particles = na.empty((0))
@@ -116,7 +157,11 @@ class ParticleTrajectoryCollection(object) :
         return self.field_data[field]
 
     def trajectory_from_index(self, index) :
-            
+
+        """
+        Retrieve a single trajectory corresponding to index "index"
+        """
+        
         mask = na.in1d(self.indices, (index,), assume_unique=True)
 
         if not na.any(mask) :
@@ -138,6 +183,12 @@ class ParticleTrajectoryCollection(object) :
 
     def write_out(self, filename_base) :
 
+        """
+        Write out particle trajectories to tab-separated ASCII files (one
+        for each trajectory) with the field names in the file header. Each
+        file is named with a basename and the index number. 
+        """
+        
         fields = [field for field in sorted(self.field_data.keys())]
 
         num_fields = len(fields)
@@ -161,6 +212,12 @@ class ParticleTrajectoryCollection(object) :
             
     def write_out_h5(self, filename) :
 
+        """
+        Write out all the particle trajectories to a single HDF5 file
+        that contains the indices, the times, and the 2D array for each
+        field individually
+        """
+        
         fid = h5py.File(filename, "w")
 
         fields = [field for field in sorted(self.field_data.keys())]
