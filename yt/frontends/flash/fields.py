@@ -148,6 +148,9 @@ add_flash_field("particle_mass", function=NullFunc, take_log=False,
 add_flash_field("temp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("temp"),
                 units=r"\rm{K}")
+add_flash_field("tele", function=NullFunc, take_log=True,
+                convert_function=_get_convert("tele"),
+                units = r"\rm{K}")
 add_flash_field("pres", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pres"),
                 units=r"\rm{erg}\//\/\rm{cm}^{3}")
