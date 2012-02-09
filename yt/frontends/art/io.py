@@ -123,34 +123,55 @@ class IOHandlerART(BaseIOHandler):
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
         idx = grid.particle_indices
-        if field == 'particle_position':
-            return grid.pf.particle_position[idx]
+        if field == 'particle_position_x':
+            return grid.pf.particle_position[idx][:,0]
+        if field == 'particle_position_y':
+            return grid.pf.particle_position[idx][:,1]
+        if field == 'particle_position_z':
+            return grid.pf.particle_position[idx][:,2]
         if field == 'particle_mass':
             return grid.pf.particle_mass[idx]
-        if field == 'particle_velocity':
-            return grid.pf.particle_velocity[idx]
-        sidx = idx-self.pf.particle_star_index
-        sidx = sidx[sidx>=0]
-        if field == 'particle_ages':
+        if field == 'particle_velocity_x':
+            return grid.pf.particle_velocity[idx][:,0]
+        if field == 'particle_velocity_y':
+            return grid.pf.particle_velocity[idx][:,1]
+        if field == 'particle_velocity_z':
+            return grid.pf.particle_velocity[idx][:,2]
+        
+        tridx = grid.particle_indices >= grid.pf.particle_star_index
+        sidx  = grid.particle_indices[tridx] - grid.pf.particle_star_index
+        n = grid.particle_indices
+        if field == 'particle_creation_time':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-0.0
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_ages[sidx]
+            return tr
+        if field == 'particle_metallicity_fraction':
             tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            tr[idx] = grid.pf.particle_star_ages[sidx]
+            if sidx.shape[0]>0:
+                tr[tridx]  = grid.pf.particle_star_metallicity1[sidx]
+                tr[tridx] += grid.pf.particle_star_metallicity2[sidx]
             return tr
         if field == 'particle_metallicity1':
             tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            tr[idx] = grid.pf.particle_star_metallicity1[sidx]
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_metallicity1[sidx]
             return tr
         if field == 'particle_metallicity2':
             tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            tr[idx] = grid.pf.particle_star_metallicity2[sidx]
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_metallicity2[sidx]
             return tr
         if field == 'particle_mass_initial':
             tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            tr[idx] = grid.pf.particle_star_mass_initial[sidx]
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_mass_initial[sidx]
             return tr
         raise 'Should have matched one of the particle fields...'
 
         
-    def _read_data_set(self, grid, field,add_parents=False):
+    def _read_data_set(self, grid, field):
+        #import pdb; pdb.set_trace()
         if field in art_particle_field_names:
             return self._read_particle_field(grid, field)
         pf = grid.pf
@@ -161,10 +182,10 @@ class IOHandlerART(BaseIOHandler):
                     pf.domain_dimensions, order="F").copy()
             return tr.swapaxes(0, 2)
         tr = na.zeros(grid.ActiveDimensions, dtype='float32')
-        filled = na.zeros(grid.ActiveDimensions, dtype='uint8')
-        to_fill = grid.ActiveDimensions.prod()
         grids = [grid]
         l_delta = 0
+        filled = na.zeros(grid.ActiveDimensions, dtype='uint8')
+        to_fill = grid.ActiveDimensions.prod()
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
@@ -174,8 +195,7 @@ class IOHandlerART(BaseIOHandler):
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, self.level_data[g.Level],
                         g.Level, 2**l_delta, g.locations)
-                if add_parents:
-                    next_grids += g.Parent
+                next_grids += g.Parent
             grids = next_grids
             l_delta += 1
         return tr
@@ -295,7 +315,7 @@ def read_particles(file,nstars,Nrow):
     f = na.fromfile(file, dtype='>f4').astype('float32') # direct access
     pages = na.vsplit(na.reshape(f, (num_pages, words, np_per_page)), num_pages)
     data = na.squeeze(na.dstack(pages)).T # x,y,z,vx,vy,vz
-    return data[:,0:3],data[:,4:]
+    return data[:,0:3],data[:,3:]
 
 def read_stars(file,nstars,Nrow):
     fh = open(file,'rb')

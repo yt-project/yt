@@ -51,9 +51,10 @@ translation_dict = {"Density":"density",
                     "Pressure":"pressure",
                     "Metallicity":"metallicity",
                     "GasEnergy":"gas_energy",
-                    "ParticleMass":"particle_mass",
-                    "Temperature":'temperature'
-                   }
+                    "Temperature":'temperature',
+                    "ParticleMassMsun":"particle_mass",
+                    'creation_time':'particle_creation_time',
+                    'metallicity_fraction':'particle_metallicity_fraction'}
 
 for f,v in translation_dict.items():
     pfield = v.lower().startswith("particle")

@@ -1104,7 +1104,7 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     cdef int max_depth = 40
     volume = dims[0]*dims[1]*dims[2]
     if split_on_vol>0:
-        if volume > split_on_vol:
+        if volume < split_on_vol:
             return [psg]
     if num_deep > max_depth:
         psg.efficiency = min_eff

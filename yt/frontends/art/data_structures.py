@@ -150,8 +150,7 @@ class ARTHierarchy(AMRHierarchy):
                            'x-momentum','y-momentum','z-momentum',
                            'Pressure','Gamma','GasEnergy',
                            'Metal_DensitySNII', 'Metal_DensitySNIa',
-                           'Potential_New','Potential_Old',
-                           'particle_mass']
+                           'Potential_New','Potential_Old']
         self.field_list += art_particle_field_names
 
     def _setup_classes(self):
@@ -163,9 +162,9 @@ class ARTHierarchy(AMRHierarchy):
         LEVEL_OF_EDGE = 7
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         
-        min_eff = 0.20
+        min_eff = 0.05
         
-        vol_max = 256**3
+        vol_max = 500**3
         
         f = open(self.pf.parameter_filename,'rb')
         
@@ -275,7 +274,7 @@ class ARTHierarchy(AMRHierarchy):
                     psg_split = _ramses_reader.recursive_patch_splitting(
                         psg, idims, initial_left, 
                         dleft_index, dfl,min_eff=min_eff,use_center=True,
-                        split_on_vol=512**3)
+                        split_on_vol=vol_max)
                     
                     psgs.extend(psg_split)
                     psg_eff += [x.efficiency for x in psg_split] 
@@ -361,18 +360,23 @@ class ARTHierarchy(AMRHierarchy):
             pbar.update(3)
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
-            self.pf.particle_species    = na.zeros(np,dtype='int32')
-            self.pf.particle_mass       = na.zeros(np,dtype='float32')
+            self.pf.particle_species    = na.zeros(np,dtype='uint8')
+            self.pf.particle_mass       = na.zeros(np,dtype='float64')
             
-            # self.pf.conversion_factors['particle_mass'] = 1.0
-            # self.pf.conversion_factors['particle_species'] = 1.0
-            # self.pf.conversion_factors['particle_velocity'] = 1.0
-            # self.pf.conversion_factors['particle_position'] = 1.0
+            dist = self.pf['cm']/self.pf.domain_dimensions[0]
+            self.pf.conversion_factors['particle_mass'] = um #solar mass in g
+            self.pf.conversion_factors['particle_species'] = 1.0
+            for ax in 'xyz':
+                self.pf.conversion_factors['particle_velocity_%s'%ax] = 1.0
+                self.pf.conversion_factors['particle_position_%s'%ax] = dist
+            self.pf.conversion_factors['particle_creation_time'] =  31556926.0
+            self.pf.conversion_factors['particle_metallicity_fraction']=1.0
+            
             
             a,b=0,0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
                 self.pf.particle_species[a:b] = i #particle type
-                self.pf.particle_mass[a:b]    = m*um #mass in grams
+                self.pf.particle_mass[a:b]    = m #mass in solar masses
                 a=b
             pbar.finish()
             
@@ -383,12 +387,13 @@ class ARTHierarchy(AMRHierarchy):
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
                 n=min(1e2,len(tbirth))
                 pbar = get_pbar("Stellar Ages        ",n)
-                self.pf.particle_star_ages = b2t(tbirth,n=n,logger=lambda x: pbar.update(x))
+                self.pf.particle_star_ages  = b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
+                self.pf.particle_star_ages *= 1.0e9
                 pbar.finish()
                 self.pf.particle_star_metallicity1 = metals1/mass
                 self.pf.particle_star_metallicity2 = metals2/mass
-                self.pf.particle_star_mass_initial = imass*um
-                self.pf.particle_mass[-nstars:] = mass*um
+                self.pf.particle_star_mass_initial = imass*self.pf.parameters['aM0']
+                self.pf.particle_mass[-nstars:] = mass*self.pf.parameters['aM0']
                 
             pbar = get_pbar("Gridding  Particles ",len(grids))
             for gi, g in enumerate(grids): 
@@ -532,8 +537,10 @@ class ARTStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-
+        
+        
         z = self.current_redshift
+        
         h = self.hubble_constant
         boxcm_cal = self["boxh"]
         boxcm_uncal = boxcm_cal / h
@@ -660,6 +667,7 @@ class ARTStaticOutput(StaticOutput):
         self.parameters["boxh"] = header_vals['boxh']
         self.parameters['ng'] = 128 # of 0 level cells in 1d 
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
+        self.parameters['CosmologyInitialRedshift']=self.current_redshift
         self.data_comment = header_vals['jname']
         self.current_time_raw = header_vals['t']
         self.current_time = header_vals['t']
