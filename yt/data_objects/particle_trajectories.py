@@ -1,3 +1,25 @@
+"""
+Author: John ZuHone <jzuhone@gmail.com>
+Affiliation: NASA/GSFC
+License:
+  Copyright (C) 2012 John ZuHone All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import TimeSeriesData
 from yt.funcs import *
@@ -7,6 +29,50 @@ import h5py
 
 class ParticleTrajectoryCollection(object) :
 
+    r"""A collection of particle trajectories in time over a series of
+    parameter files. 
+
+    The ParticleTrajectoryCollection object contains a collection of
+    particle trajectories for a specified set of particle indices. 
+    
+    Parameters
+    ----------
+    filenames : list of strings
+        A time-sorted list of filenames to construct the TimeSeriesData
+        object.
+    indices : array_like
+        An integer array of particle indices whose trajectories we
+        want to track. If they are not sorted they will be sorted.
+    fields : list of strings, optional
+        A set of fields that is retrieved when the trajectory
+        collection is instantiated.
+        Default : None (will default to the fields 'particle_position_x',
+        'particle_position_y', 'particle_position_z')
+
+    Examples
+    ________
+    >>> from yt.mods import *
+    >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
+    >>> my_fns.sort()
+    >>> fields = ["particle_position_x", "particle_position_y",
+    >>>           "particle_position_z", "particle_velocity_x",
+    >>>           "particle_velocity_y", "particle_velocity_z"]
+    >>> pf = load(my_fns[0])
+    >>> init_sphere = pf.h.sphere(pf.domain_center, (.5, "unitary"))
+    >>> indices = init_sphere["particle_index"].astype("int")
+    >>> trajs = ParticleTrajectoryCollection(my_fns, indices, fields=fields)
+    >>> for t in trajs :
+    >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+
+    Notes
+    -----
+    As of this time only particle trajectories that are complete over the
+    set of specified parameter files are supported. If any particle's history
+    ends for some reason (e.g. leaving the simulation domain or being actively
+    destroyed), the whole trajectory collection of which it is a set must end
+    at or before the particle's last timestep. This is a limitation we hope to
+    lift at some point in the future.     
+    """
     def __init__(self, filenames, indices, fields = None) :
 
         indices.sort() # Just in case the caller wasn't careful
@@ -33,7 +99,7 @@ class ParticleTrajectoryCollection(object) :
         second is to create a sorted list of these particles.
         We also make a list of the current time from each file. 
         Right now, the code assumes (and checks for) the
-        particle indices existing in each file (a limitation I
+        particle indices existing in each file, a limitation I
         would like to lift at some point since some codes
         (e.g., FLASH) destroy particles leaving the domain.
         """
@@ -62,7 +128,7 @@ class ParticleTrajectoryCollection(object) :
         # Now instantiate the requested fields 
         for field in fields :
 
-            self.get_data(field)
+            self._get_data(field)
             
     def has_key(self, key) :
 
@@ -83,7 +149,7 @@ class ParticleTrajectoryCollection(object) :
         
         if not self.field_data.has_key(key) :
 
-            self.get_data(key)
+            self._get_data(key)
 
         return self.field_data[key]
     
@@ -125,15 +191,27 @@ class ParticleTrajectoryCollection(object) :
 
         """
         Add a list of fields to an existing trajectory
+
+        Parameters
+        ----------
+        fields : list of strings
+            A list of fields to be added to the current trajectory
+            collection.
+
+        Examples
+        ________
+        >>> from yt.mods import *
+        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs.add_fields(["particle_mass", "particle_gpot"])
         """
         
         for field in fields :
 
             if not self.field_data.has_key(field):
 
-                self.get_data(field)
+                self._get_data(field)
                 
-    def get_data(self, field) :
+    def _get_data(self, field) :
 
         """
         Get a field to include in the trajectory collection.
@@ -159,7 +237,28 @@ class ParticleTrajectoryCollection(object) :
     def trajectory_from_index(self, index) :
 
         """
-        Retrieve a single trajectory corresponding to index "index"
+        Retrieve a single trajectory corresponding to a specific particle
+        index
+
+        Parameters
+        ----------
+        index : int
+            This defines which particle trajectory from the
+            ParticleTrajectoryCollection object will be returned.
+
+        Returns
+        -------
+        A dictionary corresponding to the particle's trajectory and the
+        fields along that trajectory
+
+        Examples
+        --------
+        >>> from yt.mods import *
+        >>> import matplotlib.pylab as pl
+        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> traj = trajs.trajectory_from_index(indices[0])
+        >>> pl.plot(traj["particle_time"], traj["particle_position_x"], "-x")
+        >>> pl.savefig("orbit")
         """
         
         mask = na.in1d(self.indices, (index,), assume_unique=True)
@@ -186,7 +285,18 @@ class ParticleTrajectoryCollection(object) :
         """
         Write out particle trajectories to tab-separated ASCII files (one
         for each trajectory) with the field names in the file header. Each
-        file is named with a basename and the index number. 
+        file is named with a basename and the index number.
+
+        Parameters
+        ----------
+        filename_base : string
+            The prefix for the outputted ASCII files.
+
+        Examples
+        --------
+        >>> from yt.mods import *
+        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs.write_out("orbit_trajectory")       
         """
         
         fields = [field for field in sorted(self.field_data.keys())]
@@ -216,6 +326,17 @@ class ParticleTrajectoryCollection(object) :
         Write out all the particle trajectories to a single HDF5 file
         that contains the indices, the times, and the 2D array for each
         field individually
+
+        Parameters
+        ---------
+        filename : string
+            The output filename for the HDF5 file
+
+        Examples
+        --------
+        >>> from yt.mods import *
+        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs.write_out_h5("orbit_trajectories")                
         """
         
         fid = h5py.File(filename, "w")
