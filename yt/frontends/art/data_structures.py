@@ -238,7 +238,6 @@ class ARTHierarchy(AMRHierarchy):
             #referring to the domain on which they live
             locs, lefts = _ramses_reader.get_array_indices_lists(
                         hilbert_indices, unique_indices, left_index, fl)
-            
             #iterate over the domains    
             step=0
             pbar = get_pbar("Re-gridding  Level %i "%level, len(locs))
@@ -257,7 +256,6 @@ class ARTHierarchy(AMRHierarchy):
                 dfl = ddfl
                 initial_left = na.min(dleft_index, axis=0)
                 idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
-                
                 #this creates a grid patch that doesn't cover the whole level
                 #necessarily, but with other patches covers all the regions
                 #with octs. This object automatically shrinks its size
@@ -421,21 +419,36 @@ class ARTHierarchy(AMRHierarchy):
         return self.grids[mask]
 
     def _populate_grid_objects(self):
+        mask = na.empty(self.grids.size, dtype='int32')
+        pb = get_pbar("Populating grids", len(self.grids))
         for gi,g in enumerate(self.grids):
-            parents = self._get_grid_parents(g,
-                            self.grid_left_edge[gi,:],
-                            self.grid_right_edge[gi,:])
+            pb.update(gi)
+            amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level - 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
-                g.Parent.extend(parents.tolist())
+                g.Parent.extend((p for p in parents.tolist()
+                        if p.locations[0,0] == g.locations[0,0]))
                 for p in parents: p.Children.append(g)
-            if self.pf.file_particle_data:    
-                gnop = g.NumberOfParticles
+            # Now we do overlapping siblings; note that one has to "win" with
+            # siblings, so we assume the lower ID one will "win"
+            amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask, gi)
+            mask[gi] = False
+            siblings = self.grids[mask.astype("bool")]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
             g._prepare_grid()
             g._setup_dx()
-            if self.pf.file_particle_data:
-                g.NumberOfParticles = gnop
+        pb.finish()
         self.max_level = self.grid_levels.max()
-        
+
     def _setup_field_list(self):
         if self.parameter_file.use_particles:
             # We know which particle fields will exist -- pending further
