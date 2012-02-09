@@ -162,9 +162,9 @@ class ARTHierarchy(AMRHierarchy):
         LEVEL_OF_EDGE = 7
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         
-        min_eff = 0.05
+        min_eff = 0.30
         
-        vol_max = 500**3
+        vol_max = 128**3
         
         f = open(self.pf.parameter_filename,'rb')
         
@@ -215,12 +215,17 @@ class ARTHierarchy(AMRHierarchy):
             #refers to the left index for the art octgrid
             left_index, fl, iocts,  nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
             #left_index_gridpatch = left_index >> LEVEL_OF_EDGE
-            order = max(level + 1 - LEVEL_OF_EDGE, 0)
             
             #compute the hilbert indices up to a certain level
             #the indices will associate an oct grid to the nearest
             #hilbert index?
-            hilbert_indices = _ramses_reader.get_hilbert_indices(order, left_index)
+            base_level = int( na.log10(self.pf.domain_dimensions.max()) /
+                              na.log10(2))
+            hilbert_indices = _ramses_reader.get_hilbert_indices(
+                                    level + base_level, left_index)
+            print base_level, hilbert_indices.max(),
+            hilbert_indices = hilbert_indices >> base_level + LEVEL_OF_EDGE
+            print hilbert_indices.max()
             
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
