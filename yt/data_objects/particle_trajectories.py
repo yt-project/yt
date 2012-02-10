@@ -22,6 +22,7 @@ License:
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import TimeSeriesData
+from yt.utilities.amr_utils import sample_field_at_positions
 from yt.funcs import *
 
 import numpy as na
@@ -88,9 +89,13 @@ class ParticleTrajectoryCollection(object) :
 
         # Default fields 
         
-        if fields is None : fields = ["particle_position_x",
-                                      "particle_position_y",
-                                      "particle_position_z"]
+        if fields is None : fields = []
+
+        # Must ALWAYS have these fields
+        
+        fields = fields + ["particle_position_x",
+                           "particle_position_y",
+                           "particle_position_z"]
 
         """
         The following loops through the parameter files
@@ -107,7 +112,7 @@ class ParticleTrajectoryCollection(object) :
         for pf in self.pfs :
             dd = pf.h.all_data()
             newtags = dd["particle_index"].astype("int")
-            if not na.all(na.in1d(indices, newtags)) :
+            if not na.all(na.in1d(indices, newtags, assume_unique=True)) :
                 print "Not all requested particle ids contained in this file!"
                 raise IndexError
             mask = na.in1d(newtags, indices, assume_unique=True)
@@ -118,12 +123,15 @@ class ParticleTrajectoryCollection(object) :
 
         self.times = na.array(self.times)
 
-        # We'll check against this list to make sure we don't try to
-        # include grid data
-        
-        self.particle_fields = [field for field in self.pfs[0].h.derived_field_list
-                                if (field.startswith("particle") or
-                                    field.startswith("Particle"))]
+        # Set up the derived field list and the particle field list
+        # so that if the requested field is a particle field, we'll
+        # just copy the field over, but if the field is a grid field,
+        # we will first copy the field over to the particle positions
+        # and then return the field. 
+
+        self.derived_field_list = self.pfs[0].h.derived_field_list
+        self.particle_fields = [field for field in self.derived_field_list
+                                if self.pfs[0].field_info[field].particle_type]
 
         # Now instantiate the requested fields 
         for field in fields :
@@ -143,10 +151,7 @@ class ParticleTrajectoryCollection(object) :
         Get the field associated with key,
         checking to make sure it is a particle field.
         """
-        if key not in self.particle_fields :
-            print "Not a valid particle field!"
-            raise KeyError
-        
+
         if not self.field_data.has_key(key) :
 
             self._get_data(key)
@@ -222,13 +227,41 @@ class ParticleTrajectoryCollection(object) :
         if not self.field_data.has_key(field):
             
             particles = na.empty((0))
-                            
+
+            step = int(0)
+                
             for pf, mask, sort in zip(self.pfs, self.masks, self.sorts) :
-            
-                dd = pf.h.all_data()
-                pfield = dd[field][mask]
-                particles = na.append(particles, pfield[sort])
-            
+                                    
+                if field in self.particle_fields :
+
+                    # This is easy... just get the particle fields
+
+                    dd = pf.h.all_data()
+                    pfield = dd[field][mask]
+                    particles = na.append(particles, pfield[sort])
+
+                else :
+
+                    # This is hard... must loop over grids
+
+                    pfield = na.zeros((self.num_indices))
+                    x = self["particle_position_x"][:,step]
+                    y = self["particle_position_y"][:,step]
+                    z = self["particle_position_z"][:,step]
+
+                    leaf_grids = [g for g in pf.h.grids if len(g.Children) == 0]
+                        
+                    for grid in leaf_grids :
+
+                        pfield += sample_field_at_positions(grid[field],
+                                                            grid.LeftEdge,
+                                                            grid.RightEdge,
+                                                            x, y, z)
+
+                    particles = na.append(particles, pfield)
+
+                step += 1
+                
             self[field] = particles.reshape(self.num_steps,
                                             self.num_indices).transpose()
 
