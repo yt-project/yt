@@ -348,125 +348,27 @@ def read_art_grid(int varindex,
     return to_fill
 
 @cython.cdivision(True)
-@cython.boundscheck(True)
-@cython.wraparound(False)
-def read_art_grid_nocheck(int varindex, 
-              np.ndarray[np.int64_t, ndim=1] start_index,
-              np.ndarray[np.int32_t, ndim=1] grid_dims,
-              np.ndarray[np.float32_t, ndim=3] data,
-              np.ndarray[np.float32_t, ndim=2] level_data,
-              int level, int ref_factor,
-              component_grid_info):
-    cdef int gi, i, j, k, domain, offset, grid_id
-    cdef int ir, jr, kr
-    cdef int offi, offj, offk, odind
-    cdef np.int64_t di, dj, dk
-    cdef np.ndarray[np.int64_t, ndim=1] ogrid_info
-    cdef np.ndarray[np.int64_t, ndim=1] og_start_index
-    cdef np.float64_t temp_data
-    cdef np.int64_t end_index[3]
-    cdef int kr_offset, jr_offset, ir_offset
-    cdef int to_fill = 0
-    # Note that indexing into a cell is:
-    #   (k*2 + j)*2 + i
-    for i in range(3):
-        end_index[i] = start_index[i] + grid_dims[i]
-    for gi in range(len(component_grid_info)):
-        ogrid_info = component_grid_info[gi]
-        #print "Loading", domain, ogrid_info
-        grid_id = ogrid_info[1]
-        og_start_index = ogrid_info[3:6] #the oct left edge
-        for i in range(2*ref_factor):
-            di = i + og_start_index[0] * ref_factor
-            ir = <int> (i / ref_factor)
-            for j in range(2 * ref_factor):
-                dj = j + og_start_index[1] * ref_factor
-                jr = <int> (j / ref_factor)
-                for k in range(2 * ref_factor):
-                    dk = k + og_start_index[2] * ref_factor
-                    kr = <int> (k / ref_factor)
-                    offi = di - start_index[0]
-                    offj = dj - start_index[1]
-                    offk = dk - start_index[2]
-                    odind = (kr*2 + jr)*2 + ir
-                    if level > 0:
-                        odind = (kr*2 + jr)*2 + ir
-                        temp_data = level_data[varindex, 8*grid_id + odind]
-                    else:
-                        kr_offset = kr + <int> (start_index[0] / ref_factor)
-                        jr_offset = jr + <int> (start_index[1] / ref_factor)
-                        ir_offset = ir + <int> (start_index[2] / ref_factor)
-                        odind = (kr_offset * grid_dims[0] + jr_offset)*grid_dims[1] + ir_offset
-                        temp_data = level_data[varindex, odind]
-                    data[offi, offj, offk] = temp_data
-                    to_fill += 1
-    return to_fill
-
-
-@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def read_art_grid_light(int varindex, 
-              np.ndarray[np.int64_t, ndim=1] start_index,
-              np.ndarray[np.int32_t, ndim=1] grid_dims,
-              np.ndarray[np.float64_t, ndim=3] data,
-              np.ndarray[np.float64_t, ndim=2] level_data,
-              int level, int ref_factor,
-              component_grid_info):
-    cdef int gi, i, j, k, domain, offset, grid_id
-    cdef int ir, jr, kr
-    cdef int offi, offj, offk, odind
-    cdef np.int64_t di, dj, dk
-    cdef np.ndarray[np.int64_t, ndim=1] ogrid_info
-    cdef np.ndarray[np.int64_t, ndim=1] og_start_index
-    cdef np.float64_t temp_data
-    cdef np.int64_t end_index[3]
-    cdef int kr_offset, jr_offset, ir_offset
-    cdef int to_fill = 0
-    # Note that indexing into a cell is:
-    #   (k*2 + j)*2 + i
-    for i in range(3):
-        end_index[i] = start_index[i] + grid_dims[i]
-    for gi in range(len(component_grid_info)):
-        ogrid_info = component_grid_info[gi]
-        domain = ogrid_info[0]
-        #print "Loading", domain, ogrid_info
-        grid_id = ogrid_info[1]
-        og_start_index = ogrid_info[3:]
-        for i in range(2*ref_factor):
-            di = i + og_start_index[0] * ref_factor
-            if di < start_index[0] or di >= end_index[0]: continue
-            ir = <int> (i / ref_factor)
-            for j in range(2 * ref_factor):
-                dj = j + og_start_index[1] * ref_factor
-                if dj < start_index[1] or dj >= end_index[1]: continue
-                jr = <int> (j / ref_factor)
-                for k in range(2 * ref_factor):
-                    dk = k + og_start_index[2] * ref_factor
-                    if dk < start_index[2] or dk >= end_index[2]: continue
-                    kr = <int> (k / ref_factor)
-                    offi = di - start_index[0]
-                    offj = dj - start_index[1]
-                    offk = dk - start_index[2]
-                    #print offi, filled.shape[0],
-                    #print offj, filled.shape[1],
-                    #print offk, filled.shape[2]
-                    if level > 0:
-                        odind = (kr*2 + jr)*2 + ir
-                        # Replace with an ART-specific reader
-                        #temp_data = local_hydro_data.m_var_array[
-                        #        level][8*offset + odind]
-                        temp_data = level_data[varindex, 8*grid_id + odind]
-                    else:
-                        kr_offset = kr + <int> (start_index[0] / ref_factor)
-                        jr_offset = jr + <int> (start_index[1] / ref_factor)
-                        ir_offset = ir + <int> (start_index[2] / ref_factor)
-                        odind = (kr_offset * grid_dims[0] + jr_offset)*grid_dims[1] + ir_offset
-                        temp_data = level_data[varindex, odind]
-                    data[offi, offj, offk] = temp_data
-                    to_fill += 1
-    return to_fill
+def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
+                    np.ndarray[np.uint8_t, ndim=4] art_child_masks,
+                    np.ndarray[np.uint8_t, ndim=3] child_mask):
 
+    #loop over file_locations, for each row exracting the index & LE
+    #of the oct we will pull pull from art_child_masks
+    #then use the art_child_masks info to fill in child_mask
+    cdef int i,ioct,x,y,z
+    cdef int nocts = file_locations.shape[0]
+    cdef int lex,ley,lez
+    for i in range(nocts):
+        ioct = file_locations[i,1]
+        lex = file_locations[i,3] #the oct left edge
+        ley = file_locations[i,4]
+        lez = file_locations[i,5]
+        for x in range(2):
+            for y in range(2):
+                for z in range(2):
+                    child_mask[lex+x,ley+y,lez+z] = art_child_masks[ioct,x,y,z]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

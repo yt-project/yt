@@ -57,6 +57,7 @@ from yt.utilities.physical_constants import \
     
 from yt.frontends.art.definitions import art_particle_field_names
 
+from yt.frontends.art.io import read_child_mask_level
 from yt.frontends.art.io import read_particles
 from yt.frontends.art.io import read_stars
 from yt.frontends.art.io import _count_art_octs
@@ -64,6 +65,7 @@ from yt.frontends.art.io import _read_art_level_info
 from yt.frontends.art.io import _read_art_child
 from yt.frontends.art.io import _skip_record
 from yt.frontends.art.io import _read_record
+from yt.frontends.art.io import _read_frecord
 from yt.frontends.art.io import _read_record_size
 from yt.frontends.art.io import _read_struct
 from yt.frontends.art.io import b2t
@@ -79,7 +81,7 @@ def num_deep_inc(f):
 class ARTGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, hierarchy, level, locations, props):
+    def __init__(self, id, hierarchy, level, locations, props,child_mask=None):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
         start_index = props[0]
@@ -92,6 +94,8 @@ class ARTGrid(AMRGridPatch):
         self.LeftEdge = props[0]
         self.RightEdge = props[1]
         self.ActiveDimensions = props[2] 
+        if child_mask is not None:
+            self._set_child_mask(child_mask)
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -181,18 +185,11 @@ class ARTHierarchy(AMRHierarchy):
         self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
         self.pf.level_offsets[0] = self.pf.root_grid_offset
         
-        #double check bvalues
-        # num_ogrids = 75019704L/8
-        # ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
-        # ogrid_levels = na.zeros(num_ogrids, dtype='int64')
-        # ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        # self.pf.level_offsetso = amr_utils.read_art_tree(
-        #                         self.pf.parameter_filename, 
-        #                         self.pf.child_grid_offset,
-        #                         self.pf.min_level, self.pf.max_level,
-        #                         ogrid_left_indices, ogrid_levels,
-        #                         ogrid_file_locations)
-        # ogrid_left_indices = ogrid_left_indices/2**(15 - ogrid_levels[:,None] - 1) - 1                        
+        self.pf.level_art_child_masks = {}
+        cm = self.pf.root_iOctCh>0
+        cm_shape = (1,)+cm.shape 
+        self.pf.level_art_child_masks[0] = cm.reshape(cm_shape).astype('uint8')        
+        del cm
         
         root_psg = _ramses_reader.ProtoSubgrid(
                         na.zeros(3, dtype='int64'), # left index of PSG
@@ -202,7 +199,6 @@ class ARTHierarchy(AMRHierarchy):
                         )
         
         self.proto_grids = [[root_psg],]
-
         for level in xrange(1, len(self.pf.level_info)):
             if self.pf.level_info[level] == 0:
                 self.proto_grids.append([])
@@ -213,8 +209,16 @@ class ARTHierarchy(AMRHierarchy):
             if level > self.pf.limit_level : continue
             
             #refers to the left index for the art octgrid
-            left_index, fl, iocts,  nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
+            left_index, fl, nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
             #left_index_gridpatch = left_index >> LEVEL_OF_EDGE
+            
+            #read in the child masks for this level and save them
+            idc, art_child_mask = read_child_mask_level(f, self.pf.level_child_offsets,
+                level,nocts*8,nhydro_vars=self.pf.nhydro_vars)
+            art_child_mask = art_child_mask.reshape((nocts,2,2,2))
+            self.pf.level_art_child_masks[level]=art_child_mask
+            
+            
             
             #compute the hilbert indices up to a certain level
             #the indices will associate an oct grid to the nearest
@@ -222,7 +226,7 @@ class ARTHierarchy(AMRHierarchy):
             base_level = int( na.log10(self.pf.domain_dimensions.max()) /
                               na.log10(2))
             hilbert_indices = _ramses_reader.get_hilbert_indices(
-                                    level + base_level, left_index)
+                                    level + base_level-2, left_index)
             print base_level, hilbert_indices.max(),
             hilbert_indices = hilbert_indices >> base_level + LEVEL_OF_EDGE
             print hilbert_indices.max()
@@ -241,8 +245,11 @@ class ARTHierarchy(AMRHierarchy):
             #split into list of lists, with domains containing 
             #lists of sub octgrid left indices and an index
             #referring to the domain on which they live
+            pbar = get_pbar("Calc Hilbert Indices ",1)
             locs, lefts = _ramses_reader.get_array_indices_lists(
                         hilbert_indices, unique_indices, left_index, fl)
+            pbar.finish()
+            
             #iterate over the domains    
             step=0
             pbar = get_pbar("Re-gridding  Level %i "%level, len(locs))
@@ -336,7 +343,12 @@ class ARTHierarchy(AMRHierarchy):
                 self.grid_right_edge[gi,:] = props[1,:]*correction / dds
                 self.grid_dimensions[gi,:] = props[2,:]*correction
                 self.grid_levels[gi,:] = level
-                grids.append(self.grid(gi, self, level, fl, props))
+                child_mask = na.zeros(props[2,:]*correction,'uint8')
+                amr_utils.fill_child_mask(fl,
+                    self.pf.level_art_child_masks[level],
+                    child_mask)
+                grids.append(self.grid(gi, self, level, fl, 
+                    na.array(props*correction).astype('int64'), child_mask))
                 gi += 1
         self.grids = na.empty(len(grids), dtype='object')
         
@@ -750,7 +762,10 @@ class ARTStaticOutput(StaticOutput):
         self.domain_dimensions = na.ones(3, dtype='int64')*est 
 
         self.root_grid_mask_offset = f.tell()
-        _skip_record(f) # iOctCh
+        #_skip_record(f) # iOctCh
+        root_cells = self.domain_dimensions.prod()
+        self.root_iOctCh = _read_frecord(f,'>i')[:root_cells]
+        self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,order='F')
         self.root_grid_offset = f.tell()
         _skip_record(f) # hvar
         _skip_record(f) # var

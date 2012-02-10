@@ -253,9 +253,8 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
        '>iii', _read_record(f))
     
     #fortran indices start at 1
-
+    
     #Skip all the oct hierarchy data
-    #in the future, break this up into large chunks
     le     = na.zeros((nLevel,3),dtype='int64')
     fl     = na.ones((nLevel,6),dtype='int64')
     iocts  = na.zeros(nLevel+1,dtype='int64')
@@ -301,8 +300,16 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #level 15, so no matter what level max(le)=2**15 
     #correct to the yt convention
     le = le/2**(root_level-1-level)-1
+    
+    #now read the hvars and vars arrays
+    #we are looking for iOctCh
+    #we record if iOctCh is >0, in which it is subdivided
+    iOctCh  = na.zeros((nLevel+1,8),dtype='bool')
+    
+    
+    
     f.seek(pos)
-    return le,fl,iocts,nLevel
+    return le,fl,nLevel
 
 
 def read_particles(file,nstars,Nrow):
@@ -330,6 +337,57 @@ def read_stars(file,nstars,Nrow):
     if fh.tell() < os.path.getsize(file):
         metals2 = _read_frecord(fh,'>f')     
     return nstars, mass, imass, tbirth, metals1,metals2
+
+def read_child_mask_level(f,nLevel,nhydro_vars):
+    nchild = 8
+    read_struct(f,self.header_struct,deposit_obj=self)
+    
+    ss = read_record(f)
+    MinLev, MaxLevelNow = struct.unpack('>ii', ss)
+    self.MinLev, self.MaxLevelNow = MinLev, MaxLevelNow
+    
+    if verbose: print "MinLev", MinLev
+    if verbose: print "MaxLevelNow", MaxLevelNow
+    
+    tl = read_array(f, dtype='>d', count=MaxLevelNow+1)
+    dtl = read_array(f, dtype='>d', count=MaxLevelNow+1)
+    tlold = read_array(f, dtype='>d', count=MaxLevelNow+1)
+    dtlold = read_array(f, dtype='>d', count=MaxLevelNow+1)
+    iSO = read_array(f, dtype='>f', count=MaxLevelNow+1)
+    self.tl, self.dtl,self.tlold, self.dtlold, self.iSO = \
+        tl, dtl,tlold, dtlold, iSO
+    
+    ss = read_record(f)
+    ncell = struct.unpack('>l', ss)[0]
+    self.ncell = ncell
+    if verbose: print "NCELL", ncell
+    
+    iOctCh = read_array(f, dtype='>i', count=ncell)
+    
+    return idc,ioctch
+
+def read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
+    f.seek(level_child_offsets[level])
+    nvals = nLevel * (nhydro_vars + 6) # 2 vars, 2 pads
+    ioctch = na.zeros(nLevel,dtype='uint8')
+    idc = na.zeros(nLevel,dtype='int32')
+    
+    chunk = long(1e6)
+    left = nLevel
+    width = nhydro_vars+6
+    a,b=0,0
+    while left > 0:
+        chunk = min(chunk,left)
+        b += chunk
+        arr = na.fromfile(f, dtype='>i', count=chunk*width)
+        arr = arr.reshape((width, chunk), order="F")
+        assert na.all(arr[0,:]==arr[-1,:]) #pads must be equal
+        idc[a:b]    = arr[1,:]
+        ioctch[a:b] = arr[2,:]>0 #we only care if its above zero
+        a=b
+        left -= chunk
+    assert left==0
+    return idc,ioctch
     
 nchem=8+2
 dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
