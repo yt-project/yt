@@ -3692,7 +3692,8 @@ class AMRBooleanRegionBase(AMR3DData):
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
-        for region in self._all_regions:
+        pbar = get_pbar("Building boolean", len(self._all_regions))
+        for i, region in enumerate(self._all_regions):
             try:
                 region._get_list_of_grids()
                 alias = region
@@ -3719,6 +3720,8 @@ class AMRBooleanRegionBase(AMR3DData):
                     # Some of local is in overall
                     self._some_overlap.append(grid)
                     continue
+            pbar.update(i)
+        pbar.finish()
     
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
