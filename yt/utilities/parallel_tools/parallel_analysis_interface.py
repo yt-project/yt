@@ -349,7 +349,7 @@ def parallel_objects(objects, njobs, storage = None):
         else:
             yield obj
     if parallel_capable:
-        communication_system.communicators.pop()
+        communication_system.pop()
     if storage is not None:
         # Now we have to broadcast it
         new_storage = my_communicator.par_combine_object(
