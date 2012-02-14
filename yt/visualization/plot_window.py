@@ -36,6 +36,11 @@ from .tick_locators import LogLocator, LinearLocator
 
 from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_string
+from yt.utilities.definitions import \
+    x_dict, x_names, \
+    y_dict, y_names, \
+    axis_names, \
+    axis_labels
 
 def invalidate_data(f):
     @wraps(f)
@@ -309,7 +314,11 @@ _metadata_template = """
 <br>
 Field of View:  %(x_width)0.3f %(unit)s<br>
 Minimum Value:  %(mi)0.3e %(units)s<br>
-Maximum Value:  %(ma)0.3e %(units)s
+Maximum Value:  %(ma)0.3e %(units)s<br>
+Central Point:  (data coords)<br>
+&nbsp;&nbsp;&nbsp;%(xc)0.14f<br>
+&nbsp;&nbsp;&nbsp;%(yc)0.14f<br>
+&nbsp;&nbsp;&nbsp;%(zc)0.14f
 """
 
 class PWViewerExtJS(PWViewer):
@@ -402,11 +411,21 @@ class PWViewerExtJS(PWViewer):
         y_width = self.ylim[1] - self.ylim[0]
         unit = get_smallest_appropriate_unit(x_width, self._frb.pf)
         units = self.get_field_units(field)
+        center = getattr(self._frb.data_source, "center", None)
+        if center is None or self._frb.axis == 4:
+            xc, yc, zc = -999, -999, -999
+        else:
+            center[x_dict[self._frb.axis]] = 0.5 * (
+                self.xlim[0] + self.xlim[1])
+            center[y_dict[self._frb.axis]] = 0.5 * (
+                self.ylim[0] + self.ylim[1])
+            xc, yc, zc = center
         md = _metadata_template % dict(
                 pf = self._frb.pf,
                 x_width = x_width*self._frb.pf[unit],
                 y_width = y_width*self._frb.pf[unit],
-                unit = unit, units = units, mi = mi, ma = ma)
+                unit = unit, units = units, mi = mi, ma = ma,
+                xc = xc, yc = yc, zc = zc)
         return md
 
     def image_recenter(self, img_x, img_y, img_size_x, img_size_y):
