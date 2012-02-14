@@ -40,7 +40,6 @@ import base64
 import imp
 import threading
 import Queue
-import glob
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -388,11 +387,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             return {'status': 'FAIL', 'filename': filename,
                     'error': 'Unexpected error.'}
         return {'status': 'SUCCESS', 'filename': filename}
-    
-    @lockit
-    def get_directory_listing(self):
-        filenames = glob.glob('./*')
-        return {'status': 'SUCCESS', 'filenames': filenames}
 
     @lockit
     def paste_session(self):
@@ -751,7 +745,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         funccall = "\n".join((line.strip() for line in funccall.splitlines()))
         self.execute(funccall, hide = False)
         pf = self.locals['_tpf']
-
 
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"

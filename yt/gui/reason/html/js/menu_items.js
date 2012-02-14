@@ -32,29 +32,8 @@ License:
 var main_menu = {
     text: 'Menu',
     id: 'main_menu',
-    menu: [//{xtype:'menuitem', text: 'Open', disabled: true},
-           {xtype:'menuitem', text: 'Open', 
-	    handler: function(b,e) {
-		   Ext.Msg.prompt("We have somewhat less important work to do.",
-				  "Enter directory path.",
-		   function(btn, text) {
-		   if (btn == 'ok'){
-		       yt_rpc.ExtDirectREPL.get_directory_listing({filename:text},
-		       function(f, a) {
-			   if (a.result['status'] == 'SUCCESS') {
-			       var alert_text = 'List of files: ' + a.result['filenames']
-			       Ext.Msg.alert('Success! ', alert_text);
-			       var record = new logging_store.recordType({record: alert_text });
-			       logging_store.add(record, number_log_records++);
-			   } else {
-			       Ext.Msg.alert('Always naysaying!',
-					     'Failed to get list of files');
-			   }
-		       });
-		   }
-				  });
-	       }
-	   },
+    menu: [
+           {xtype:'menuitem', text: 'Open', disabled: true},
            {xtype:'menuitem', text: 'Open Directory', disabled: true},
            {xtype: 'menuseparator'},
            {xtype:'menuitem', text: 'Save Script',
