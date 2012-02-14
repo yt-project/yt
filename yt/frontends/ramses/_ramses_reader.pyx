@@ -1025,6 +1025,7 @@ def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
         hilbert_indices[o] = h
     return hilbert_indices
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_array_indices_lists(np.ndarray[np.int64_t, ndim=1] ind, 

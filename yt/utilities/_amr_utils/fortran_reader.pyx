@@ -348,9 +348,10 @@ def read_art_grid(int varindex,
     return to_fill
 
 @cython.cdivision(True)
-@cython.boundscheck(False)
+@cython.boundscheck(True)
 @cython.wraparound(False)
 def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
+                    np.ndarray[np.int64_t, ndim=1] grid_le,
                     np.ndarray[np.uint8_t, ndim=4] art_child_masks,
                     np.ndarray[np.uint8_t, ndim=3] child_mask):
 
@@ -361,10 +362,10 @@ def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
     cdef int nocts = file_locations.shape[0]
     cdef int lex,ley,lez
     for i in range(nocts):
-        ioct = file_locations[i,1]
-        lex = file_locations[i,3] #the oct left edge
-        ley = file_locations[i,4]
-        lez = file_locations[i,5]
+        ioct = file_locations[i,1] #from fortran to python indexing?
+        lex = file_locations[i,3] - grid_le[0] #the oct left edge x
+        ley = file_locations[i,4] - grid_le[1]
+        lez = file_locations[i,5] - grid_le[2]
         for x in range(2):
             for y in range(2):
                 for z in range(2):

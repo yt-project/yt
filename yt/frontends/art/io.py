@@ -338,35 +338,7 @@ def read_stars(file,nstars,Nrow):
         metals2 = _read_frecord(fh,'>f')     
     return nstars, mass, imass, tbirth, metals1,metals2
 
-def read_child_mask_level(f,nLevel,nhydro_vars):
-    nchild = 8
-    read_struct(f,self.header_struct,deposit_obj=self)
-    
-    ss = read_record(f)
-    MinLev, MaxLevelNow = struct.unpack('>ii', ss)
-    self.MinLev, self.MaxLevelNow = MinLev, MaxLevelNow
-    
-    if verbose: print "MinLev", MinLev
-    if verbose: print "MaxLevelNow", MaxLevelNow
-    
-    tl = read_array(f, dtype='>d', count=MaxLevelNow+1)
-    dtl = read_array(f, dtype='>d', count=MaxLevelNow+1)
-    tlold = read_array(f, dtype='>d', count=MaxLevelNow+1)
-    dtlold = read_array(f, dtype='>d', count=MaxLevelNow+1)
-    iSO = read_array(f, dtype='>f', count=MaxLevelNow+1)
-    self.tl, self.dtl,self.tlold, self.dtlold, self.iSO = \
-        tl, dtl,tlold, dtlold, iSO
-    
-    ss = read_record(f)
-    ncell = struct.unpack('>l', ss)[0]
-    self.ncell = ncell
-    if verbose: print "NCELL", ncell
-    
-    iOctCh = read_array(f, dtype='>i', count=ncell)
-    
-    return idc,ioctch
-
-def read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
+def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     f.seek(level_child_offsets[level])
     nvals = nLevel * (nhydro_vars + 6) # 2 vars, 2 pads
     ioctch = na.zeros(nLevel,dtype='uint8')
@@ -382,8 +354,9 @@ def read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
         arr = na.fromfile(f, dtype='>i', count=chunk*width)
         arr = arr.reshape((width, chunk), order="F")
         assert na.all(arr[0,:]==arr[-1,:]) #pads must be equal
-        idc[a:b]    = arr[1,:]
-        ioctch[a:b] = arr[2,:]>0 #we only care if its above zero
+        idc[a:b]    = arr[1,:]-1 #fix fortran indexing
+        ioctch[a:b] = arr[2,:]==0 #if it is above zero, then refined info available
+        #zero in the mask means there is refinement available
         a=b
         left -= chunk
     assert left==0

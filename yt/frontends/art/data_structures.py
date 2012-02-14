@@ -57,7 +57,7 @@ from yt.utilities.physical_constants import \
     
 from yt.frontends.art.definitions import art_particle_field_names
 
-from yt.frontends.art.io import read_child_mask_level
+from yt.frontends.art.io import _read_child_mask_level
 from yt.frontends.art.io import read_particles
 from yt.frontends.art.io import read_stars
 from yt.frontends.art.io import _count_art_octs
@@ -213,11 +213,12 @@ class ARTHierarchy(AMRHierarchy):
             #left_index_gridpatch = left_index >> LEVEL_OF_EDGE
             
             #read in the child masks for this level and save them
-            idc, art_child_mask = read_child_mask_level(f, self.pf.level_child_offsets,
+            idc, art_child_mask = _read_child_mask_level(f, self.pf.level_child_offsets,
                 level,nocts*8,nhydro_vars=self.pf.nhydro_vars)
             art_child_mask = art_child_mask.reshape((nocts,2,2,2))
             self.pf.level_art_child_masks[level]=art_child_mask
-            
+            #child_mask is zero where child grids exist and
+            #thus where higher resolution data is available
             
             
             #compute the hilbert indices up to a certain level
@@ -226,15 +227,15 @@ class ARTHierarchy(AMRHierarchy):
             base_level = int( na.log10(self.pf.domain_dimensions.max()) /
                               na.log10(2))
             hilbert_indices = _ramses_reader.get_hilbert_indices(
-                                    level + base_level-2, left_index)
-            print base_level, hilbert_indices.max(),
+                                    level + base_level, left_index)
+            #print base_level, hilbert_indices.max(),
             hilbert_indices = hilbert_indices >> base_level + LEVEL_OF_EDGE
-            print hilbert_indices.max()
+            #print hilbert_indices.max()
             
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
             unique_indices = na.unique(hilbert_indices)
-            mylog.debug("Level % 2i has % 10i unique indices for %0.3e octs",
+            mylog.info("Level % 2i has % 10i unique indices for %0.3e octs",
                         level, unique_indices.size, hilbert_indices.size)
             
             #use the hilbert indices to order oct grids so that consecutive
@@ -327,28 +328,29 @@ class ARTHierarchy(AMRHierarchy):
         """
         grids = []
         gi = 0
+        
         for level, grid_list in enumerate(self.proto_grids):
             #The root level spans [0,2]
             #The next level spans [0,256]
             #The 3rd Level spans up to 128*2^3, etc.
             #Correct root level to span up to 128
-            correction=1.0
+            correction=1L
             if level == 0:
-                correction=64.0
+                correction=64L
             for g in grid_list:
                 fl = g.grid_file_locations
-                props = g.get_properties()
+                props = g.get_properties()*correction
                 dds = ((2**level) * self.pf.domain_dimensions).astype("float64")
-                self.grid_left_edge[gi,:] = props[0,:]*correction / dds
-                self.grid_right_edge[gi,:] = props[1,:]*correction / dds
-                self.grid_dimensions[gi,:] = props[2,:]*correction
+                self.grid_left_edge[gi,:] = props[0,:] / dds
+                self.grid_right_edge[gi,:] = props[1,:] / dds
+                self.grid_dimensions[gi,:] = props[2,:]
                 self.grid_levels[gi,:] = level
-                child_mask = na.zeros(props[2,:]*correction,'uint8')
-                amr_utils.fill_child_mask(fl,
+                child_mask = na.zeros(props[2,:],'uint8')
+                amr_utils.fill_child_mask(fl,props[0],
                     self.pf.level_art_child_masks[level],
                     child_mask)
                 grids.append(self.grid(gi, self, level, fl, 
-                    na.array(props*correction).astype('int64'), child_mask))
+                    props*na.array(correction).astype('int64')))
                 gi += 1
         self.grids = na.empty(len(grids), dtype='object')
         
@@ -368,11 +370,13 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_position,self.pf.particle_velocity = \
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
-            np = self.pf.particle_position.shape[0]
+            np = lspecies[-1]
+            self.pf.particle_position   = self.pf.particle_position[:np]
             self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
             self.pf.particle_position  /= self.pf.domain_dimensions #to unitary units (comoving)
             pbar.update(3)
+            self.pf.particle_velocity   = self.pf.particle_velocity[:np]
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
             self.pf.particle_species    = na.zeros(np,dtype='uint8')
@@ -395,33 +399,61 @@ class ARTHierarchy(AMRHierarchy):
                 a=b
             pbar.finish()
             
+            import pdb; pdb.set_trace()
+            
             self.pf.particle_star_index = lspecies[-2]
             
             if self.pf.file_star_data:
                 nstars, mass, imass, tbirth, metals1, metals2 \
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
-                n=min(1e2,len(tbirth))
-                pbar = get_pbar("Stellar Ages        ",n)
-                self.pf.particle_star_ages  = b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
-                self.pf.particle_star_ages *= 1.0e9
+                nstars = nstars[0] 
+                if nstars > 0 :
+                    n=min(1e2,len(tbirth))
+                    pbar = get_pbar("Stellar Ages        ",n)
+                    self.pf.particle_star_ages  = \
+                        b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
+                    self.pf.particle_star_ages *= 1.0e9
+                    pbar.finish()
+                    self.pf.particle_star_metallicity1 = metals1/mass
+                    self.pf.particle_star_metallicity2 = metals2/mass
+                    self.pf.particle_star_mass_initial = imass*self.pf.parameters['aM0']
+                    self.pf.particle_mass[-nstars:] = mass*self.pf.parameters['aM0']
+            
+            if False:
+                left = self.pf.particle_position.shape[0]
+                pbar = get_pbar("Gridding  Particles ",left)
+                pos = self.pf.particle_position.copy()
+                pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T
+                for level in range(self.pf.max_level,self.pf.min_level-1,-1):
+                    lidx = self.grid_levels[:,0] == level
+                    for gi,gidx in enumerate(na.where(lidx)[0]): 
+                        g = grids[gidx]
+                        assert g is not None
+                        le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
+                        idx = na.logical_and(na.all(le < pos[:,1:],axis=1),
+                                             na.all(re > pos[:,1:],axis=1))
+                        np = na.sum(idx)                     
+                        g.NumberOfParticles = np
+                        if np==0: 
+                            g.particle_indices = []
+                            #we have no particles in this grid
+                        else:
+                            fidx = pos[:,0][idx]
+                            g.particle_indices = fidx
+                            pos = pos[~idx] #throw out gridded particles from future gridding
+                        self.grids[gidx] = g
+                        left -= np
+                        pbar.update(left)
                 pbar.finish()
-                self.pf.particle_star_metallicity1 = metals1/mass
-                self.pf.particle_star_metallicity2 = metals2/mass
-                self.pf.particle_star_mass_initial = imass*self.pf.parameters['aM0']
-                self.pf.particle_mass[-nstars:] = mass*self.pf.parameters['aM0']
+            else:
+                pbar = get_pbar("Finalizing grids ",len(grids))
+                for gi, g in enumerate(grids): 
+                    self.grids[gi] = g
+                pbar.finish()
                 
-            pbar = get_pbar("Gridding  Particles ",len(grids))
-            for gi, g in enumerate(grids): 
-                le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
-                idx = na.logical_and(na.all(le < self.pf.particle_position,axis=1),
-                                     na.all(re > self.pf.particle_position,axis=1))
-                g.particle_indices = idx
-                g.NumberOfParticles = na.sum(idx)
-                self.grids[gi] = g
-                pbar.update(gi)
-            pbar.finish()
             
         else:
+            
             pbar = get_pbar("Finalizing grids ",len(grids))
             for gi, g in enumerate(grids): 
                 self.grids[gi] = g
