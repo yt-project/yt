@@ -67,19 +67,19 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                control_panel.get("zoomout2x").handler();
             }
         },
-        {key: 'i',
+        {key: 'k',
          shift: false,
          fn: function(){
                control_panel.get("singleuparrow").handler();
             }
         },
-        {key: 'k',
+        {key: 'j',
          shift: false,
          fn: function(){
                control_panel.get("singledownarrow").handler();
             }
         },
-        {key: 'j',
+        {key: 'h',
          shift: false,
          fn: function(){
                control_panel.get("singleleftarrow").handler();
@@ -91,19 +91,19 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                control_panel.get("singlerightarrow").handler();
             }
         },
-        {key: 'I',
+        {key: 'K',
          shift: true,
          fn: function(){
                control_panel.get("doubleuparrow").handler();
             }
         },
-        {key: 'K',
+        {key: 'J',
          shift: true,
          fn: function(){
                control_panel.get("doubledownarrow").handler();
             }
         },
-        {key: 'J',
+        {key: 'H',
          shift: true,
          fn: function(){
                control_panel.get("doubleleftarrow").handler();
