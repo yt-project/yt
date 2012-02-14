@@ -226,6 +226,8 @@ class FLASHStaticOutput(StaticOutput):
         if len(self.parameters) == 0:
             self._parse_parameter_file()
         self.conversion_factors = defaultdict(lambda: 1.0)
+        if "EOSType" not in self.parameters:
+            self.parameters["EOSType"] = -1
         if self.cosmological_simulation == 1:
             self._setup_comoving_units()
         else:
@@ -331,6 +333,8 @@ class FLASHStaticOutput(StaticOutput):
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+
+        self.parameters['Gamma'] = self._find_parameter("real", "gamma")
 
         if self._flash_version == 7:
             self.current_time = float(
