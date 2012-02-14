@@ -52,6 +52,8 @@ ytcfgDefaults = dict(
     pasteboard_repo = '',
     test_storage_dir = '/does/not/exist',
     enzo_db = '',
+    hub_url = 'https://127.0.0.1:5000/',
+    hub_api_key = '',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten
