@@ -60,7 +60,8 @@ from yt.data_objects.api import \
     derived_field, add_field, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
-    TimeSeriesData, AnalysisTask, analysis_task
+    TimeSeriesData, AnalysisTask, analysis_task, \
+    ParticleTrajectoryCollection
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info

@@ -148,6 +148,9 @@ add_flash_field("particle_mass", function=NullFunc, take_log=False,
 add_flash_field("temp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("temp"),
                 units=r"\rm{K}")
+add_flash_field("tele", function=NullFunc, take_log=True,
+                convert_function=_get_convert("tele"),
+                units = r"\rm{K}")
 add_flash_field("pres", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pres"),
                 units=r"\rm{erg}\//\/\rm{cm}^{3}")
@@ -196,9 +199,11 @@ for f,v in translation_dict.items():
         else :
             dname = f                    
         ff = KnownFLASHFields[v]
+        pfield = f.startswith("particle")
         add_field(f, TranslationFunc(v),
                   take_log=KnownFLASHFields[v].take_log,
-                  units = ff._units, display_name=dname)
+                  units = ff._units, display_name=dname,
+                  particle_type = pfield)
 
 def _convertParticleMassMsun(data):
     return 1.0/1.989e33
