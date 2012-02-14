@@ -43,7 +43,78 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     }
 
     this.widget_keys = new Ext.KeyMap(document, [
-        {key: 'z', fn: function(){control_panel.get("zoom10x").handler();}}
+        {key: 'z',
+         shift: false,
+         fn: function(){
+               control_panel.get("zoom10x").handler();
+            }
+        },
+        {key: 'Z',
+         shift: true,
+         fn: function(){
+               control_panel.get("zoom2x").handler();
+            }
+        },
+        {key: 'x',
+         shift: false,
+         fn: function(){
+               control_panel.get("zoomout10x").handler();
+            }
+        },
+        {key: 'X',
+         shift: true,
+         fn: function(){
+               control_panel.get("zoomout2x").handler();
+            }
+        },
+        {key: 'k',
+         shift: false,
+         fn: function(){
+               control_panel.get("singleuparrow").handler();
+            }
+        },
+        {key: 'j',
+         shift: false,
+         fn: function(){
+               control_panel.get("singledownarrow").handler();
+            }
+        },
+        {key: 'h',
+         shift: false,
+         fn: function(){
+               control_panel.get("singleleftarrow").handler();
+            }
+        },
+        {key: 'l',
+         shift: false,
+         fn: function(){
+               control_panel.get("singlerightarrow").handler();
+            }
+        },
+        {key: 'K',
+         shift: true,
+         fn: function(){
+               control_panel.get("doubleuparrow").handler();
+            }
+        },
+        {key: 'J',
+         shift: true,
+         fn: function(){
+               control_panel.get("doubledownarrow").handler();
+            }
+        },
+        {key: 'H',
+         shift: true,
+         fn: function(){
+               control_panel.get("doubleleftarrow").handler();
+            }
+        },
+        {key: 'L',
+         shift: true,
+         fn: function(){
+               control_panel.get("doublerightarrow").handler();
+            }
+        },
     ]);
     var widget_keys = this.widget_keys;
     widget_keys.disable();
@@ -159,6 +230,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 /* the single buttons for 10% pan*/
                     xtype:'button',
                     iconCls: 'singleuparrow',
+                    id: 'singleuparrow',
                     //text: 'North',
                     x: 40,
                     y: 10,
@@ -170,6 +242,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype:'button',
                     iconCls: 'singlerightarrow',
+                    id: 'singlerightarrow',
                     //text:'East',
                     x : 60,
                     y : 30,
@@ -182,6 +255,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype:'button',
                     iconCls: 'singledownarrow',
+                    id: 'singledownarrow',
                     //text: 'South',
                     x: 40,
                     y: 50,
@@ -194,6 +268,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype: 'button',
                     iconCls: 'singleleftarrow',
+                    id: 'singleleftarrow',
                     //text: 'West',
                     x: 20,
                     y: 30,
@@ -208,6 +283,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 {
                     xtype:'button',
                     iconCls: 'doubleuparrow',
+                    id:'doubleuparrow',
                     //text: 'North',
                     x: 40,
                     y: 80,
@@ -219,6 +295,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype:'button',
                     iconCls: 'doublerightarrow',
+                    id:'doublerightarrow',
                     //text:'East',
                     x : 60,
                     y : 100,
@@ -232,6 +309,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     xtype:'button',
                     iconCls: 'doubledownarrow',
                     //text: 'South',
+                    id: 'doubledownarrow',
                     x: 40,
                     y: 120,
                     handler: function(b,e) {
@@ -243,6 +321,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype: 'button',
                     iconCls: 'doubleleftarrow',
+                    id: 'doubleleftarrow',
                     //text: 'West',
                     x: 20,
                     y: 100,
@@ -270,6 +349,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 },{
                     xtype: 'button',
                     text: 'Zoom In 2x',
+                    id: "zoom2x",
                     x: 10,
                     y: 185,
                     width: 80,
@@ -282,6 +362,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 },{
                     xtype: 'button',
                     text: 'Zoom Out 2x',
+                    id:'zoomout2x',
                     x: 10,
                     y: 210,
                     width: 80,
@@ -294,6 +375,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 },{
                     xtype: 'button',
                     text: 'Zoom Out 10x',
+                    id:'zoomout10x',
                     x: 10,
                     y: 235,
                     width: 80,
