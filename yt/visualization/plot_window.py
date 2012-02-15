@@ -369,12 +369,10 @@ class PWViewerExtJS(PWViewer):
             fields = self._frb.data.keys()
             addl_keys = {}
         if self._colorbar_valid == False:
-            print "ADDITIONAL KEYS BEING ADDED"
             addl_keys['colorbar_image'] = self._get_cbar_image()
             self._colorbar_valid = True
         min_zoom = 200*self._frb.pf.h.get_smallest_dx() * self._frb.pf['unitary']
         for field in fields:
-            print "GENERATING NEW FRB", field, self._field_transform[field].name
             to_plot = apply_colormap(self._frb[field],
                 func = self._field_transform[field],
                 cmap_name = self._colormaps[field])
