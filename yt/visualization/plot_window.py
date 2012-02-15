@@ -61,6 +61,22 @@ def invalidate_plot(f):
         return f(*args, **kwargs)
     return newfunc
 
+class FieldTransform(object):
+    def __init__(self, name, func, locator):
+        self.name = name
+        self.func = func
+        self.locator = locator
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def ticks(self, mi, ma):
+        print mi, ma
+        return self.locator(mi, ma)
+
+log_transform = FieldTransform('log10', na.log10, LogLocator())
+linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
+
 class PlotWindow(object):
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, periodic = True):
         r"""
@@ -247,14 +263,14 @@ class PWViewer(PlotWindow):
         self._field_transform = {}
         for field in self._frb.data.keys():
             if self._frb.pf.field_info[field].take_log:
-                self._field_transform[field] = na.log
+                self._field_transform[field] = log_transform
             else:
-                self._field_transform[field] = lambda x: x
+                self._field_transform[field] = linear_transform
 
         if setup: self._setup_plots()
 
     @invalidate_plot
-    def set_log(self,field,log):
+    def set_log(self, field, log):
         """set a field to log or linear.
         
         Parameters
@@ -266,11 +282,13 @@ class PWViewer(PlotWindow):
 
         """
         if log:
-            self._field_transform[field] = na.log
+            self._field_transform[field] = log_transform
         else:
-            self._field_transform[field] = lambda x: x
+            self._field_transform[field] = linear_transform
 
     def set_transform(self, field, func):
+        if not isinstance(FieldTransform, func):
+            raise RuntimeError
         self._field_transform[field] = func
 
     @invalidate_plot
@@ -350,9 +368,7 @@ class PWViewerExtJS(PWViewer):
             x_width = self.xlim[1] - self.xlim[0]
             zoom_fac = na.log10(x_width*self._frb.pf['unitary'])/na.log10(min_zoom)
             zoom_fac = 100.0*max(0.0, zoom_fac)
-            ticks = self.get_ticks(self._frb[field].min(),
-                                   self._frb[field].max(), 
-                                   take_log = self._frb.pf.field_info[field].take_log)
+            ticks = self.get_ticks(field)
             payload = {'type':'png_string',
                        'image_data':img_data,
                        'metadata_string': self.get_metadata(field),
@@ -361,26 +377,17 @@ class PWViewerExtJS(PWViewer):
             payload.update(addl_keys)
             ph.add_payload(payload)
 
-    def get_ticks(self, mi, ma, height = 400, take_log = False):
+    def get_ticks(self, field, height = 400):
         # This will eventually change to work with non-logged fields
         ticks = []
-        if take_log and mi > 0.0 and ma > 0.0:
-            ll = LogLocator() 
-            tick_locs = ll(mi, ma)
-            mi = na.log10(mi)
-            ma = na.log10(ma)
-            for v1,v2 in zip(tick_locs, na.log10(tick_locs)):
-                if v2 < mi or v2 > ma: continue
-                p = height - height * (v2 - mi)/(ma - mi)
-                ticks.append((p,v1,v2))
-                #print v1, v2, mi, ma, height, p
-        else:
-            ll = LinearLocator()
-            tick_locs = ll(mi, ma)
-            for v in tick_locs:
-                p = height - height * (v - mi)/(ma-mi)
-                ticks.append((p,v,"%0.3e" % (v)))
-
+        transform = self._field_transform[field]
+        mi, ma = self._frb[field].min(), self._frb[field].max()
+        tick_locs = transform.ticks(mi, ma)
+        mi, ma = transform((mi, ma))
+        for v1,v2 in zip(tick_locs, transform(tick_locs)):
+            if v2 < mi or v2 > ma: continue
+            p = height - height * (v2 - mi)/(ma - mi)
+            ticks.append((p,v1,v2))
         return ticks
 
     def _get_cbar_image(self, height = 400, width = 40):
@@ -441,9 +448,9 @@ class PWViewerExtJS(PWViewer):
         self._current_field = field
         self._frb[field]
         if self._frb.pf.field_info[field].take_log:
-            self._field_transform[field] = na.log
+            self._field_transform[field] = log_transform
         else:
-            self._field_transform[field] = lambda x: x
+            self._field_transform[field] = linear_transform
 
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source

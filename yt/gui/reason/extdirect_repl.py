@@ -130,7 +130,6 @@ class ExecutionThread(threading.Thread):
 
     def execute_one(self, code, hide):
         self.repl.executed_cell_texts.append(code)
-
         result = ProgrammaticREPL.execute(self.repl, code)
         if self.repl.debug:
             print "==================== Cell Execution ===================="
