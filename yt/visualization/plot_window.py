@@ -45,27 +45,32 @@ from yt.utilities.definitions import \
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        f(*args, **kwargs)
+        rv = f(*args, **kwargs)
         args[0]._data_valid = False
         args[0]._plot_valid = False
         args[0]._recreate_frb()
         if args[0]._initfinished:
             args[0]._setup_plots()
+        return rv
     return newfunc
 
 def invalidate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
         args[0]._plot_valid = False
         args[0]._setup_plots()
-        return f(*args, **kwargs)
+        return rv
     return newfunc
+
+field_transforms = {}
 
 class FieldTransform(object):
     def __init__(self, name, func, locator):
         self.name = name
         self.func = func
         self.locator = locator
+        field_transforms[name] = self
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
@@ -286,10 +291,11 @@ class PWViewer(PlotWindow):
         else:
             self._field_transform[field] = linear_transform
 
-    def set_transform(self, field, func):
-        if not isinstance(FieldTransform, func):
-            raise RuntimeError
-        self._field_transform[field] = func
+    @invalidate_plot
+    def set_transform(self, field, name):
+        if name not in field_transforms: 
+            raise KeyError(name)
+        self._field_transform[field] = field_transforms[name]
 
     @invalidate_plot
     def set_cmap(self):
@@ -361,6 +367,7 @@ class PWViewerExtJS(PWViewer):
             addl_keys = {}
         min_zoom = 200*self._frb.pf.h.get_smallest_dx() * self._frb.pf['unitary']
         for field in fields:
+            print "GENERATING NEW FRB", field, self._field_transform[field].name
             to_plot = apply_colormap(self._frb[field], func = self._field_transform[field])
             pngs = write_png_to_string(to_plot)
             img_data = base64.b64encode(pngs)

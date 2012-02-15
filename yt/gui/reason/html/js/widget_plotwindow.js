@@ -451,6 +451,28 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                           title: 'Plot Editor',
                           id: 'plot_edit',
                           flex: 1,
+                          items : [
+                             {
+                               text: 'Display',
+                               x: 20,
+                               y: 20,
+                               width : 100,
+                               xtype: 'combo',
+                               editable: false,
+                               triggerAction: 'all',
+                               validateOnBlur: false,
+                               store: ['log10', 'linear'],
+                               value: widget_data['initial_transform'],
+                               listeners: {select: function(combo, record, index){ 
+                                   var newValue = '"' + record.data['field1'] + '"';
+                                   yt_rpc.ExtDirectREPL.execute(
+                                       {code:python_varname + '.set_transform('
+                                         + python_varname + '._current_field, '
+                                         + newValue + ')', hide:false},
+                                         cell_finished);
+                               }}
+                             }
+                          ]
                         }]
                 }
             ]
