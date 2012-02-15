@@ -83,6 +83,8 @@ log_transform = FieldTransform('log10', na.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
 class PlotWindow(object):
+    _plot_valid = False
+    _colorbar_valid = False
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, periodic = True):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
@@ -300,6 +302,7 @@ class PWViewer(PlotWindow):
 
     @invalidate_plot
     def set_cmap(self, field, cmap_name):
+        self._colorbar_valid = False
         self._colormaps[field] = cmap_name
 
     @invalidate_plot
@@ -365,6 +368,10 @@ class PWViewerExtJS(PWViewer):
         else:
             fields = self._frb.data.keys()
             addl_keys = {}
+        if self._colorbar_valid == False:
+            print "ADDITIONAL KEYS BEING ADDED"
+            addl_keys['colorbar_image'] = self._get_cbar_image()
+            self._colorbar_valid = True
         min_zoom = 200*self._frb.pf.h.get_smallest_dx() * self._frb.pf['unitary']
         for field in fields:
             print "GENERATING NEW FRB", field, self._field_transform[field].name

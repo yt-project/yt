@@ -538,6 +538,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.image_panel = this.panel.get("image_panel_"+python_varname);
     this.ticks = this.panel.get("ticks_"+python_varname);
     var ticks = this.ticks;
+    var colorbar = this.panel.get("colorbar_"+python_varname);
     this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
     var image_dom = this.image_panel.el.dom;
@@ -552,7 +553,6 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         metadata_string = payload['metadata_string'];
         ticks.removeAll();
         Ext.each(payload['ticks'], function(tick, index) {
-            console.log(tick);
             ticks.add({xtype:'panel',
                        width: 10, height:1,
                        style: 'background-color: #000000;',
@@ -565,9 +565,11 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                               'font-size: 12px;',
                        html: '' + tick[2] + '',
                        x:12, y: 4 + tick[0]});
-            examine = tick;
         });
-        examine = payload['ticks'];
+        if (payload['colorbar_image'] != null) {
+            colorbar.el.dom.src = "data:image/png;base64," +
+                payload['colorbar_image'];
+        }
         ticks.doLayout();
     }
 
