@@ -94,8 +94,8 @@ class ARTGrid(AMRGridPatch):
         self.LeftEdge = props[0]
         self.RightEdge = props[1]
         self.ActiveDimensions = props[2] 
-        if child_mask is not None:
-            self._set_child_mask(child_mask)
+        #if child_mask is not None:
+        #    self._set_child_mask(child_mask)
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume

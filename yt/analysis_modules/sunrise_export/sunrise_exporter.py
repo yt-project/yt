@@ -235,9 +235,12 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     hdus.writeto(fn, clobber=True)
 
 def initialize_octree_list(pf, fields):
+    #import pdb; pdb.set_trace()
+    i=0
     o_length = r_length = 0
     grids = []
     levels_finest, levels_all = defaultdict(lambda: 0), defaultdict(lambda: 0)
+    pbar = get_pbar("Initializing octs ",len(pf.h.grids))
     for g in pf.h.grids:
         ff = na.array([g[f] for f in fields])
         grids.append(amr_utils.OctreeGrid(
@@ -250,6 +253,8 @@ def initialize_octree_list(pf, fields):
         levels_all[g.Level] += g.ActiveDimensions.prod()
         levels_finest[g.Level] += g.child_mask.ravel().sum()
         g.clear_data()
+        i+=1
+        pbar.update(i)
     ogl = amr_utils.OctreeGridList(grids)
     return ogl, levels_finest, levels_all
 

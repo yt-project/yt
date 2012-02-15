@@ -43,6 +43,7 @@ add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = ARTFieldInfo.add_field
 
+import numpy as na
 
 #these are just the hydro fields
 known_art_fields = [ 'Density','TotalEnergy',
@@ -73,6 +74,8 @@ for f in known_art_fields:
 #Temperature
 
 #Derived fields that are untested:
+#metallicities
+#xyzvelocity
 
 #Individual definitions for native fields
 def _convertDensity(data):
@@ -153,33 +156,38 @@ ARTFieldInfo["PotentialOld"]._units = r"\rm{g}/\rm{cm}^3"
 ARTFieldInfo["PotentialOld"]._projected_units = r"\rm{g}/\rm{cm}^2"
 ARTFieldInfo["PotentialOld"]._convert_function=_convertPotentialOld
 
-####### Derived fields (are lowercase)
+####### Derived fields
 
 def _temperature(field, data):
-    tr  = data["GasEnergy"] / data["Density"]
-    tr /= data.pf.conversion_factors["GasEnergy"]
-    tr *= data.pf.conversion_factors["Density"]
+    tr  = data["GasEnergy"].astype('float64') #~1
+    d = data["Density"].astype('float64')
+    d[d==0.0] = -1.0 #replace the zeroes (that cause infs)
+    tr /= d #
+    assert na.all(na.isfinite(tr)) #diagnosing some problem...
     return tr
 def _converttemperature(data):
-    return data.convert("Temperature")
-add_field("temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
-ARTFieldInfo["temperature"]._units = r"\mathrm{K}"
-ARTFieldInfo["temperature"]._projected_units = r"\mathrm{K}"
-ARTFieldInfo["temperature"]._convert_function=_converttemperature
+    x  = data.pf.conversion_factors["Density"]
+    x /= data.pf.conversion_factors["GasEnergy"]
+    x *= data.pf.conversion_factors["Temperature"]
+    return x
+add_field("Temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Temperature"]._units = r"\mathrm{K}"
+ARTFieldInfo["Temperature"]._projected_units = r"\mathrm{K}"
+ARTFieldInfo["Temperature"]._convert_function=_converttemperature
 
 def _metallicity_snII(field, data):
     tr  = data["MetalDensitySNII"] / data["Density"]
     return tr
-add_field("metallicity_snII", function=_metallicity_snII, units = r"\mathrm{K}",take_log=True)
-ARTFieldInfo["metallicity_snII"]._units = r""
-ARTFieldInfo["metallicity_snII"]._projected_units = r""
+add_field("Metallicity_SNII", function=_metallicity_snII, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metallicity_SNII"]._units = r""
+ARTFieldInfo["Metallicity_SNII"]._projected_units = r""
 
 def _metallicity_snIa(field, data):
     tr  = data["MetalDensitySNIa"] / data["Density"]
     return tr
-add_field("metallicity_snIa", function=_metallicity_snIa, units = r"\mathrm{K}",take_log=True)
-ARTFieldInfo["metallicity_snIa"]._units = r""
-ARTFieldInfo["metallicity_snIa"]._projected_units = r""
+add_field("Metallicity_SNIa", function=_metallicity_snIa, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metallicity_SNIa"]._units = r""
+ARTFieldInfo["Metallicity_SNIa"]._projected_units = r""
 
 def _x_velocity(data):
     tr  = data["XMomentumDensity"]/data["Density"]
@@ -201,6 +209,15 @@ def _z_velocity(data):
 add_field("z_velocity", function=_z_velocity, units = r"\mathrm{cm/s}",take_log=False)
 ARTFieldInfo["z_velocity"]._units = r"\rm{cm}/\rm{s}"
 ARTFieldInfo["z_velocity"]._projected_units = r"\rm{cm}/\rm{s}"
+
+
+def _metal_density(field, data):
+    tr  = data["MetalDensitySNIa"]
+    tr += data["MetalDensitySNII"]
+    return tr
+add_field("Metal_Density", function=_metal_density, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metal_Density"]._units = r""
+ARTFieldInfo["Metal_Density"]._projected_units = r""
 
 
 #Particle fields
