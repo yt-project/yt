@@ -180,7 +180,7 @@ class IOHandlerART(BaseIOHandler):
             self.preload_level(0)
             tr = self.level_data[0][field_id,:].reshape(
                     pf.domain_dimensions, order="F").copy()
-            return tr.swapaxes(0, 2)
+            return tr.swapaxes(0, 2).astype("float64")
         tr = na.zeros(grid.ActiveDimensions, dtype='float32')
         grids = [grid]
         l_delta = 0
@@ -198,7 +198,7 @@ class IOHandlerART(BaseIOHandler):
                 next_grids += g.Parent
             grids = next_grids
             l_delta += 1
-        return tr
+        return tr.astype("float64")
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

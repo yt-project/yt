@@ -150,12 +150,12 @@ class ARTHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         # This will need to be generalized to be used elsewhere.
-        self.field_list = ['Density','TotalEnergy',
-                           'x-momentum','y-momentum','z-momentum',
-                           'Pressure','Gamma','GasEnergy',
-                           'Metal_DensitySNII', 'Metal_DensitySNIa',
-                           'Potential_New','Potential_Old']
-        self.field_list += art_particle_field_names
+        self.field_list = [ 'Density','TotalEnergy',
+             'XMomentumDensity','YMomentumDensity','ZMomentumDensity',
+             'Pressure','Gamma','GasEnergy',
+             'MetalDensitySNII', 'MetalDensitySNIa',
+             'PotentialNew','PotentialOld']
+        # self.field_list += art_particle_field_names
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -399,8 +399,6 @@ class ARTHierarchy(AMRHierarchy):
                 a=b
             pbar.finish()
             
-            import pdb; pdb.set_trace()
-            
             self.pf.particle_star_index = lspecies[-2]
             
             if self.pf.file_star_data:
@@ -413,6 +411,7 @@ class ARTHierarchy(AMRHierarchy):
                     self.pf.particle_star_ages  = \
                         b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
                     self.pf.particle_star_ages *= 1.0e9
+                    self.pf.particle_star_ages *= 365*24*3600 #to seconds
                     pbar.finish()
                     self.pf.particle_star_metallicity1 = metals1/mass
                     self.pf.particle_star_metallicity2 = metals2/mass
@@ -635,14 +634,17 @@ class ARTStaticOutput(StaticOutput):
         # this is 3H0^2 / (8pi*G) *h*Omega0 with H0=100km/s. 
         # ie, critical density 
         self.rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
-        self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))      
-        self.conversion_factors["Density"] = \
-            self.rho0*(aexpn**-3.0)
-        self.conversion_factors["GasEnergy"] = \
-            self.rho0*self.v0**2*(aexpn**-5.0)
+        self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))     
         tr  = self.tr
+        
+        #factors to multiply the native code units to CGS
+        self.conversion_factors['Pressure'] = self.parameters["P0"] #already cgs
+        self.conversion_factors['Velocity'] = self.parameters['v0']*1e3 #km/s -> cm/s
+        self.conversion_factors["Mass"] = self.parameters["aM0"] * 1.98892e33
+        self.conversion_factors["Density"] = self.rho0*(aexpn**-3.0)
+        self.conversion_factors["GasEnergy"] = self.rho0*self.v0**2*(aexpn**-5.0)
         self.conversion_factors["Temperature"] = tr
-        self.conversion_factors["Metal_Density"] = 1
+        self.conversion_factors["Potential"] = 1.0
         self.cosmological_simulation = True
         
         # Now our conversion factors
@@ -650,8 +652,10 @@ class ARTStaticOutput(StaticOutput):
             # Add on the 1e5 to get to cm/s
             self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
         seconds = self.t0
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
+        self.time_units['gyr']   = 1.0/(1.0e9*365*3600*24.0)
+        self.time_units['myr']   = 1.0/(1.0e6*365*3600*24.0)
+        self.time_units['years'] = 1.0/(365*3600*24.0)
+        self.time_units['days']  = 1.0 / (3600*24.0)
 
         #we were already in seconds, go back in to code units
         #self.current_time /= self.t0 
@@ -784,7 +788,7 @@ class ARTStaticOutput(StaticOutput):
         #     [aM0] = [Msun]
         self.parameters["aM0"] = rho0 * (boxh/hubble)**3.0 / ng**3.0
         
-
+        #CGS for everything in the next block
     
         (self.ncell,) = struct.unpack('>l', _read_record(f))
         # Try to figure out the root grid dimensions
