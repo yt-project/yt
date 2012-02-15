@@ -334,7 +334,10 @@ class FLASHStaticOutput(StaticOutput):
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
-        self.parameters['Gamma'] = self._find_parameter("real", "gamma")
+        try:
+            self.parameters['Gamma'] = self._find_parameter("real", "gamma")
+        except KeyError:
+            pass
 
         if self._flash_version == 7:
             self.current_time = float(
