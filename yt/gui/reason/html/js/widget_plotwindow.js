@@ -479,6 +479,48 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                          + newValue + ')', hide:false},
                                          cell_finished);
                                }}
+                             },
+                             {
+                               x: 10,
+                               y: 60,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Colormap',
+                             },
+                             {
+                               x: 80,
+                               y: 60,
+                               width : 140,
+                               xtype: 'combo',
+                               editable: false,
+                               triggerAction: 'all',
+                               validateOnBlur: false,
+                               store: ['algae', 'RdBu', 'gist_stern',  
+                                       'hot', 'jet', 'kamae', 
+                                        'B-W LINEAR', 'BLUE',
+                                        'GRN-RED-BLU-WHT', 'RED TEMPERATURE',
+                                        'BLUE', 'STD GAMMA-II', 'PRISM',
+                                        'RED-PURPLE', 'GREEN', 'GRN',
+                                        'GREEN-PINK', 'BLUE-RED', '16 LEVEL',
+                                        'RAINBOW', 'STEPS', 'STERN SPECIAL',
+                                        'Haze', 'Blue - Pastel - Red',
+                                        'Pastels', 'Hue Sat Lightness 1',
+                                        'Hue Sat Lightness 2', 'Hue Sat Value 1',
+                                        'Hue Sat Value 2', 'Purple-Red + Stripes',
+                                        'Beach', 'Mac Style', 'Eos A', 'Eos B',
+                                        'Hardcandy', 'Nature', 'Ocean', 'Peppermint',
+                                        'Plasma', 'Blue-Red', 'Rainbow', 'Blue Waves',
+                                        'Volcano', 'Waves', 'Rainbow18',
+                                        'Rainbow + white', 'Rainbow + black'],
+                               value: 'algae',
+                               listeners: {select: function(combo, record, index){ 
+                                   var newValue = '"' + record.data['field1'] + '"';
+                                   yt_rpc.ExtDirectREPL.execute(
+                                       {code:python_varname + '.set_cmap('
+                                         + python_varname + '._current_field, '
+                                         + newValue + ')', hide:false},
+                                         cell_finished);
+                               }}
                              }
                           ]
                         }]

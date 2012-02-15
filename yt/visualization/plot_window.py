@@ -266,6 +266,7 @@ class PWViewer(PlotWindow):
         setup = kwargs.pop("setup", True)
         PlotWindow.__init__(self, *args,**kwargs)
         self._field_transform = {}
+        self._colormaps = defaultdict(lambda: 'algae')
         for field in self._frb.data.keys():
             if self._frb.pf.field_info[field].take_log:
                 self._field_transform[field] = log_transform
@@ -298,8 +299,8 @@ class PWViewer(PlotWindow):
         self._field_transform[field] = field_transforms[name]
 
     @invalidate_plot
-    def set_cmap(self):
-        pass
+    def set_cmap(self, field, cmap_name):
+        self._colormaps[field] = cmap_name
 
     @invalidate_plot
     def set_zlim(self):
@@ -352,7 +353,6 @@ class PWViewerExtJS(PWViewer):
     _ext_widget_id = None
     _current_field = None
     _widget_name = "plot_window"
-    cmap = 'algae'
 
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
@@ -368,7 +368,9 @@ class PWViewerExtJS(PWViewer):
         min_zoom = 200*self._frb.pf.h.get_smallest_dx() * self._frb.pf['unitary']
         for field in fields:
             print "GENERATING NEW FRB", field, self._field_transform[field].name
-            to_plot = apply_colormap(self._frb[field], func = self._field_transform[field])
+            to_plot = apply_colormap(self._frb[field],
+                func = self._field_transform[field],
+                cmap_name = self._colormaps[field])
             pngs = write_png_to_string(to_plot)
             img_data = base64.b64encode(pngs)
             # We scale the width between 200*min_dx and 1.0
@@ -397,12 +399,12 @@ class PWViewerExtJS(PWViewer):
             ticks.append((p,v1,v2))
         return ticks
 
-    def _get_cbar_image(self, height = 400, width = 40):
-        # Right now there's just the single 'cmap', but that will eventually
-        # change.  I think?
+    def _get_cbar_image(self, height = 400, width = 40, field = None):
+        if field is None: field = self._current_field
+        cmap_name = self._colormaps[field]
         vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
         vals = vals.transpose()
-        to_plot = apply_colormap(vals)
+        to_plot = apply_colormap(vals, cmap_name = cmap_name)
         pngs = write_png_to_string(to_plot)
         img_data = base64.b64encode(pngs)
         return img_data
@@ -507,7 +509,6 @@ class YtPlot(object):
 class Yt2DPlot(YtPlot):
     zmin = None
     zmax = None
-    cmap = 'algae'
     zlabel = None
 
     # def __init__(self, data):
@@ -518,17 +519,14 @@ class Yt2DPlot(YtPlot):
         self.zmin = zmin
         self.zmax = zmax
 
-    @invalidate_plot
-    def set_cmap(self,cmap):
-        self.cmap = cmap
-
 class YtWindowPlot(Yt2DPlot):
     def __init__(self, data, size=(10,8)):
         YtPlot.__init__(self, data, size)
         self.__init_image(data)
 
     def __init_image(self, data):
-        self.image = self.axes.imshow(data,cmap=self.cmap)
+        #self.image = self.axes.imshow(data, cmap=self.cmap)
+        pass
 
 class YtProfilePlot(Yt2DPlot):
     def __init__(self):
