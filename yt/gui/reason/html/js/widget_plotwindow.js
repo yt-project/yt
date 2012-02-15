@@ -46,25 +46,25 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
         {key: 'z',
          shift: false,
          fn: function(){
-               control_panel.get("zoom10x").handler();
+               control_panel.get("zoom2x").handler();
             }
         },
         {key: 'Z',
          shift: true,
          fn: function(){
-               control_panel.get("zoom2x").handler();
+               control_panel.get("zoom10x").handler();
             }
         },
         {key: 'x',
          shift: false,
          fn: function(){
-               control_panel.get("zoomout10x").handler();
+               control_panel.get("zoomout2x").handler();
             }
         },
         {key: 'X',
          shift: true,
          fn: function(){
-               control_panel.get("zoomout2x").handler();
+               control_panel.get("zoomout10x").handler();
             }
         },
         {key: 'k',
