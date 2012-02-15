@@ -76,8 +76,11 @@ class FieldTransform(object):
         return self.func(*args, **kwargs)
 
     def ticks(self, mi, ma):
-        print mi, ma
-        return self.locator(mi, ma)
+        try:
+            ticks = self.locator(mi, ma)
+        except:
+            ticks = []
+        return ticks
 
 log_transform = FieldTransform('log10', na.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
