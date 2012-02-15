@@ -316,7 +316,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
         if node[0] != "/": node = "/%s" % node
 
-        myGroup = self._data_file['.']
+        myGroup = self._data_file['/']
         for group in node.split('/'):
             if group:
                 if group not in myGroup:
