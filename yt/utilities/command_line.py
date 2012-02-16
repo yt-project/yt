@@ -47,10 +47,11 @@ def _fix_pf(arg):
 def _add_arg(sc, arg):
     if isinstance(arg, types.StringTypes):
         arg = _common_options[arg].copy()
+    argc = dict(arg.items())
     argnames = []
-    if "short" in arg: argnames.append(arg.pop('short'))
-    if "long" in arg: argnames.append(arg.pop('long'))
-    sc.add_argument(*argnames, **arg)
+    if "short" in argc: argnames.append(argc.pop('short'))
+    if "long" in argc: argnames.append(argc.pop('long'))
+    sc.add_argument(*argnames, **argc)
 
 class YTCommand(object):
     args = ()
@@ -63,12 +64,14 @@ class YTCommand(object):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
             if cls.name is not None:
-                sc = subparsers.add_parser(cls.name,
-                    description = cls.description,
-                    help = cls.description)
-                sc.set_defaults(func=cls.run)
-                for arg in cls.args:
-                    _add_arg(sc, arg)
+                names = ensure_list(cls.name)
+                for name in names:
+                    sc = subparsers.add_parser(name,
+                        description = cls.description,
+                        help = cls.description)
+                    sc.set_defaults(func=cls.run)
+                    for arg in cls.args:
+                        _add_arg(sc, arg)
 
     @classmethod
     def run(cls, args):
@@ -1243,6 +1246,7 @@ class YTRPDBCmd(YTCommand):
         rpdb.run_rpdb(int(task))
 
 class YTGUICmd(YTCommand):
+    name = ["serve", "reason"]
     args = (
             dict(short="-o", long="--open-browser", action="store_true",
                  default = False, dest='open_browser',
@@ -1310,12 +1314,6 @@ class YTGUICmd(YTCommand):
         bottle.debug()
         uuid_serve_functions(open_browser=args.open_browser,
                     port=int(args.port), repl=hr)
-
-class YTServeCmd(YTGUICmd):
-    name = "serve"
-
-class YTReasonCmd(YTGUICmd):
-    name = "reason"
 
 class YTStatsCmd(YTCommand):
     args = ('outputfn','bn','skip','pf', 'field',
