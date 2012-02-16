@@ -40,7 +40,6 @@ INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
-INST_FORTHON=1  # Install Forthon?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 
@@ -204,10 +203,6 @@ printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
 get_willwont ${INST_SQLITE3}
 echo "be installing SQLite3"
 
-printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
-get_willwont ${INST_FORTHON}
-echo "be installing Forthon (for Halo Finding, etc)"
-
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
@@ -323,7 +318,6 @@ cd ${DEST_DIR}/src
 # Now we dump all our SHA512 files out.
 
 echo '8da1b0af98203254a1cf776d73d09433f15b5090871f9fd6d712cea32bcd44446b7323ae1069b28907d2728e77944a642825c61bc3b54ceb46c91897cc4f6051  Cython-0.15.1.tar.gz' > Cython-0.15.1.tar.gz.sha512
-echo '2564011f64cd7ea24d49c6103603ced857bcb79a3837032b959005b64f9da226a08c95d920ae59034ca2c5957a45c99949811649de9e5e73cdbb23396e11f756  Forthon-0.8.5.tar.gz' > Forthon-0.8.5.tar.gz.sha512
 echo 'b8a12bf05b3aafa71135e47da81440fd0f16a4bd91954bc5615ad3d3b7f9df7d5a7d5620dc61088dc6b04952c5c66ebda947a4cfa33ed1be614c8ca8c0f11dff  PhiloGL-1.4.2.zip' > PhiloGL-1.4.2.zip.sha512
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
 echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
@@ -361,7 +355,6 @@ get_enzotools mercurial-2.0.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.1.tar.gz
-get_enzotools Forthon-0.8.5.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
 get_enzotools PhiloGL-1.4.2.zip
@@ -577,7 +570,6 @@ fi
 do_setup_py ipython-0.10
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
-[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
@@ -589,7 +581,6 @@ echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 [ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
-[ $INST_FORTHON -eq 1 ] && ( ( cd yt/utilities/kdtree && FORTHON_EXE=${DEST_DIR}/bin/Forthon make 2>&1 ) 1>> ${LOG_FILE} )
 ( ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
