@@ -447,6 +447,11 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                           html: 'Welcome to the Plot Window.',
                           height: 200,
                         }, {
+                          xtype: 'tabpanel',
+                          flex: 1,
+                          activeTab: 0,
+                          items: [
+                        {
                           xtype: 'panel',
                           title: 'Plot Editor',
                           id: 'plot_edit',
@@ -523,7 +528,57 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                }}
                              }
                           ]
-                        }]
+                        }, {
+                          xtype: 'panel',
+                          title: 'Contours',
+                          id: 'contour_edit',
+                          style: {fontFamily: '"Inconsolata", monospace'},
+                          layout: 'absolute',
+                          flex: 1,
+                          items : [
+                             {
+                               x: 10,
+                               y: 20,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Field',
+                             },
+                             {
+                               x: 80,
+                               y: 20,
+                               width : 160,
+                               xtype: 'combo',
+                               editable: false,
+                               triggerAction: 'all',
+                               validateOnBlur: false,
+                               store: widget_data['fields'],
+                               listeners: {select: function(combo, record, index){ 
+                               }}
+                             },
+                             {
+                               x: 10,
+                               y: 60,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Levels',
+                             },
+                             {
+                               x: 80,
+                               y: 60,
+                               width : 160,
+                               xtype: 'slider',
+                               minValue: 0,
+                               maxValue: 10,
+                               value: 0,
+                               increment: 1,
+                               plugins: new Ext.slider.Tip(),
+                               listeners: {select: function(combo, record, index){ 
+                               }}
+                             }
+                          ]
+                        }
+                        ] } /* tabpanel items and entry */
+                        ]
                 }
             ]
         }
