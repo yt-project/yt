@@ -15,7 +15,7 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_SUFFIX="yt-`uname -p`"
+DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
 
