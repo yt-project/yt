@@ -448,6 +448,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                           height: 200,
                         }, {
                           xtype: 'tabpanel',
+                          id: 'editor_panel',
                           flex: 1,
                           activeTab: 0,
                           items: [
@@ -549,31 +550,60 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                width : 160,
                                xtype: 'combo',
                                editable: false,
+                               id: 'field',
                                triggerAction: 'all',
                                validateOnBlur: false,
+                               value:widget_data['initial_field'],
                                store: widget_data['fields'],
-                               listeners: {select: function(combo, record, index){ 
-                               }}
-                             },
-                             {
+                             }, {
                                x: 10,
                                y: 60,
                                width: 70,
                                xtype: 'label',
                                text: 'Levels',
-                             },
-                             {
+                             }, {
                                x: 80,
                                y: 60,
                                width : 160,
                                xtype: 'slider',
+                               id: 'ncont',
                                minValue: 0,
                                maxValue: 10,
-                               value: 0,
+                               value: 5,
                                increment: 1,
                                plugins: new Ext.slider.Tip(),
-                               listeners: {select: function(combo, record, index){ 
-                               }}
+                             }, {
+                               x: 10,
+                               y: 100,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Logspaced',
+                             }, {
+                               x: 80,
+                               y: 100,
+                               width : 160,
+                               xtype: 'checkbox',
+                               id: 'logit',
+                               checked: true,
+                             }, {
+                               x: 10,
+                               y: 180,
+                               width: 80,
+                               xtype: 'button',
+                               text: 'Apply',
+                               handler: function(b, e) {
+                                  field = contour_window.get('field').getValue();
+                                  ncont = contour_window.get('ncont').getValue();
+                                  logit = contour_window.get('logit').getValue();
+                                  if (logit == false) logit = 'False';
+                                  else if (logit == true) logit = 'True';
+                                  yt_rpc.ExtDirectREPL.execute(
+                                      {code:python_varname
+                                       + '.set_contour_info("' + field + '", '
+                                       + ncont + ', ' + logit + ')',
+                                        hide:false},
+                                      cell_finished);
+                               }
                              }
                           ]
                         }
@@ -596,6 +626,9 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     var colorbar = this.panel.get("colorbar_"+python_varname);
     this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
+    var contour_window = this.panel.get("rhs_panel_" + python_varname);
+    contour_window = contour_window.get("editor_panel");
+    contour_window = contour_window.get("contour_edit");
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
     var metadata_string;
@@ -603,7 +636,6 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
         this.zoom_scroll.setValue(0, payload['zoom'], true);
-        examine = this.metadata_panel;
         this.metadata_panel.update(payload['metadata_string']);
         metadata_string = payload['metadata_string'];
         ticks.removeAll();

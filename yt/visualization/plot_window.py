@@ -268,7 +268,7 @@ class PlotWindow(object):
     @invalidate_plot
     def set_contour_info(self, field_name, n_cont = 8, colors = None,
                          logit = True):
-        if field_name == "None":
+        if field_name == "None" or n_cont == 0:
             self._contour_info = None
             return
         self._contour_info = (field_name, n_cont, colors, logit)
@@ -389,8 +389,7 @@ class PWViewerExtJS(PWViewer):
             to_plot = apply_colormap(self._frb[field],
                 func = self._field_transform[field],
                 cmap_name = self._colormaps[field])
-            self._apply_modifications(to_plot)
-            pngs = write_png_to_string(to_plot)
+            pngs = self._apply_modifications(to_plot)
             img_data = base64.b64encode(pngs)
             # We scale the width between 200*min_dx and 1.0
             x_width = self.xlim[1] - self.xlim[0]
@@ -406,12 +405,12 @@ class PWViewerExtJS(PWViewer):
             ph.add_payload(payload)
 
     def _apply_modifications(self, img):
+        if self._contour_info is None:
+            return write_png_to_string(img)
         from matplotlib.figure import Figure
         from yt.visualization._mpl_imports import \
             FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
         from yt.utilities.delaunay.triangulate import Triangulation as triang
-
-        if self._contour_info is None: return img
         plot_args = {}
         field, number, colors, logit = self._contour_info
         if colors is not None: plot_args['colors'] = colors
@@ -421,13 +420,13 @@ class PWViewerExtJS(PWViewer):
         # Now we need to get our field values
         raw_data = self._frb.data_source
         b = self._frb.bounds
-        xi = na.mgrid[b[0]:b[1]:(vi / 8) * 1j]
-        yi = na.mgrid[b[2]:b[3]:(vj / 8) * 1j]
+        xi, yi = na.mgrid[b[0]:b[1]:(vi / 8) * 1j,
+                          b[2]:b[3]:(vj / 8) * 1j]
         x = raw_data['px']
         y = raw_data['py']
         z = raw_data[field]
         if logit: z = na.log10(z)
-        fvals = triang(x,y).nn_interpolator(z)(xi,yi)
+        fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()
 
         fig = Figure((vi/100.0, vj/100.0), dpi = 100)
         fig.figimage(img)
@@ -436,7 +435,7 @@ class PWViewerExtJS(PWViewer):
         ax.patch.set_alpha(0.0)
 
         # Now contour it
-        ax.contour(fvals, colors='w')
+        ax.contour(fvals, number, colors='w')
         canvas = FigureCanvasAgg(fig)
         f = cStringIO.StringIO()
         canvas.print_figure(f)
