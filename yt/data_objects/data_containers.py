@@ -3613,7 +3613,6 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         input_right = (self._old_global_endindex - 0.5) * rf
         output_left = self.global_startindex + 0.5
         output_right = self.global_endindex - 0.5
-        print input_left, input_right, output_left, output_right
         output_dims = (output_right - output_left + 1).astype('int32')
 
         self._cur_dims = output_dims
