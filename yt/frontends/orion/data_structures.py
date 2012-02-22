@@ -178,6 +178,8 @@ class OrionHierarchy(AMRHierarchy):
                             self.grids[ind].NumberOfParticles += 1
         except IOError:
                 return None
+
+        return True
                 
     def readGlobalHeader(self,filename,paranoid_read):
         """
