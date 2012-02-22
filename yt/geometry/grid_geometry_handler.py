@@ -41,7 +41,6 @@ from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from object_finding_mixin import ObjectFindingMixin
-import selection_routines
 
 from yt.data_objects.data_containers import data_object_registry
 
@@ -177,16 +176,16 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
 
+    def _find_grids_selector(self, dobj):
+        if getattr(dobj, "_grids", None) is None:
+            gi = dobj.selector.select_grids(self.grid_left_edge,
+                                            self.grid_right_edge)
+            dobj._grids = self.grids[gi]
+
     def _read_selection(self, fields, dobj):
         if len(fields) == 0: return {}, []
-        sclass = getattr(selection_routines, "%s_selector" % dobj._type_name,
-                           None)
-        if sclass is None: raise NotImplementedError
-        selector = sclass(dobj)
-        if getattr(dobj, "_grids", None) is None:
-            gi = selector.select_grids(self.grid_left_edge,
-                                       self.grid_right_edge)
-            dobj._grids = self.grids[gi]
+        selector = dobj.selector
+        self._find_grids_selector(dobj)
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
         for f in fields:
@@ -196,11 +195,18 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 fields_to_generate.append(f)
         if len(fields_to_read) == 0 or len(dobj._grids) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_selection(dobj._grids, selector, fields_to_read)
+        fields_to_return = self.io._read_selection(dobj._grids, selector,
+                                                   fields_to_read, dobj.size)
         for field in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
+
+    def _count_selection(self, dobj):
+        selector = dobj.selector
+        self._find_grids_selector(dobj)
+        count = sum((selector.count_cells(g) for g in dobj._grids))
+        return count
 

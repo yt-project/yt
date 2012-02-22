@@ -120,13 +120,11 @@ add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
 def _Ones(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64')
+    return na.ones(data.shape, dtype='float64')
 add_field("Ones", function=_Ones,
-          validators=[ValidateSpatial(0)],
           projection_conversion="unitary",
           display_field = False)
-add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
-          display_field = False)
+add_field("CellsPerBin", function=_Ones, display_field = False)
 
 def _SoundSpeed(field, data):
     if data.pf["EOSType"] == 1:

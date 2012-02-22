@@ -227,6 +227,10 @@ class AMRGridPatch(object):
             [self.LeftEdge[0],  self.RightEdge[1], self.LeftEdge[2]],
             ], dtype='float64')
 
+    @property
+    def shape(self):
+        return tuple(self.ActiveDimensions)
+
     def _generate_overlap_masks(self, axis, LE, RE):
         """
         Generate a mask that shows which cells overlap with arbitrary arrays

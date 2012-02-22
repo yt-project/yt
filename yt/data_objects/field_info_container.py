@@ -149,6 +149,8 @@ class FieldDetector(defaultdict):
         self.flat = flat
         self._spatial = not flat
         self.ActiveDimensions = [nd,nd,nd]
+        self.shape = tuple(self.ActiveDimensions)
+        self.size = na.prod(self.ActiveDimensions)
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = na.ones(3, "float64")

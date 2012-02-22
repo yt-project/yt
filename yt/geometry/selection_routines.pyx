@@ -228,6 +228,7 @@ cdef class SelectorObject:
             ind[i][1] = gobj.ActiveDimensions[i]
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         cdef int check = 1
+        cdef int total = 0
         cdef int eterm[3]
         self.set_bounds(<np.float64_t *> left_edge.data,
                         <np.float64_t *> right_edge.data,
@@ -246,6 +247,7 @@ cdef class SelectorObject:
                             eterm[2] = 0
                             if child_mask[i,j,k] == 1:
                                 mask[i,j,k] = self.select_cell(pos, dds, eterm)
+                                total += mask[i,j,k]
                             if eterm[2] == 1: break
                             pos[2] += dds[1]
                         if eterm[1] == 1: break
@@ -257,6 +259,8 @@ cdef class SelectorObject:
                     for j in range(ind[1][0], ind[1][1]):
                         for k in range(ind[2][0], ind[2][1]):
                             mask[i,j,k] = child_mask[i,j,k]
+                            total += mask[i,j,k]
+        if total == 0: return None
         return mask.astype("bool")
 
     cdef void set_bounds(self,

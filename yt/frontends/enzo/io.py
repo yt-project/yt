@@ -203,35 +203,32 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
-    def _read_selection(self, grids, selector, fields):
+    def _read_selection(self, grids, selector, fields, size):
         last = None
         rv = {}
-        counts = {}
-        for g in grids:
-            counts[g.id] = selector.count_cells(g)
-        count = sum(counts.values())
         # Now we have to do something unpleasant
+
         grids = list(sorted(grids, key=lambda a: a.filename))
         last = grids[0].filename
         handle = h5py.File(last)
         for field in fields:
             ds = handle["/Grid%08i/%s" % (grids[0].id, field)]
-            rv[field] = na.empty(count, dtype=ds.dtype)
+            rv[field] = na.empty(size, dtype=ds.dtype)
         ind = 0
         mylog.info("Reading %s cells of %s fields in %s grids",
-                   count, fields, len(grids))
+                   size, fields, len(grids))
         for i,g in enumerate(grids):
-            c = counts[g.id]
-            if c == 0: continue
             if last != g.filename:
                 handle.close()
                 last = g.filename
                 handle = h5py.File(last)
             mask = selector.fill_mask(g)
+            if mask is None: continue
             for field in fields:
                 ds = handle["/Grid%08i/%s" % (g.id, field)]
-                rv[field][ind:ind+c] = ds[:].transpose()[mask]
-            ind += c
+                data = ds[:].transpose()[mask]
+                rv[field][ind:ind+data.size] = data
+            ind += data.size
         handle.close()
         return rv
 

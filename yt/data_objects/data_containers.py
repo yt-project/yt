@@ -49,6 +49,7 @@ from yt.utilities.parameter_file_storage import \
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
     NeedsGridType
+import yt.geometry.selection_routines
 
 def force_array(item, shape):
     try:
@@ -477,7 +478,23 @@ class GenerationInProgress(Exception):
 class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysisInterface):
     _locked = False
     _sort_by = None
+    _selector = None
+    size = None
+    shape = None
+
+    @property
+    def selector(self):
+        if self._selector is not None: return self._selector
+        sclass = getattr(yt.geometry.selection_routines,
+                         "%s_selector" % self._type_name, None)
+        if sclass is None: raise NotImplementedError
+        self._selector = sclass(self)
+        return self._selector
+
     def get_data(self, fields=None, in_grids = False):
+        if self.size is None:
+            self.size = self.hierarchy._count_selection(self)
+            self.shape = (self.size,)
         if fields is None: return
         fields = ensure_list(fields)
         # For 1D objects, or anything thant wants a sorting.
