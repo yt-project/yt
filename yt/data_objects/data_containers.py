@@ -225,7 +225,9 @@ class YTDataContainer(object):
             pass
         elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
-        elif center == ("max"): # is this dangerous for race conditions?
+        elif center in ("center", "c"): # is this dangerous for race conditions?
+            center = self.pf.domain_center
+        elif center == "max": # is this dangerous for race conditions?
             center = self.pf.h.find_max("Density")[1]
         elif center.startswith("max_"):
             center = self.pf.h.find_max(center[4:])[1]
@@ -332,10 +334,9 @@ class YTDataContainer(object):
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
-                return False
+                return na.ones(10) * -999
             else:
-                self[field] = self.pf.field_info[field](self)
-                return True
+                return self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
             raise KeyError(field)
 
@@ -469,21 +470,34 @@ class GridPropertiesMixin(object):
                              __del_grid_dimensions)
 
 class GenerationInProgress(Exception):
-    pass
+    def __init__(self, fields):
+        self.fields = fields
+        super(GenerationInProgress, self).__init__()
 
 class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysisInterface):
     _locked = False
     _sort_by = None
     def get_data(self, fields=None, in_grids = False):
-        if self._locked == True:
-            raise GenerationInProgress
-        if fields is None:
-            fields = self.fields[:]
+        if fields is None: return
         fields = ensure_list(fields)
+        # For 1D objects, or anything thant wants a sorting.
         if self._sort_by is not None and not self._sort_by in fields_to_get and \
             self._sort_by not in self.field_data:
             fields.insert(0, self._sort_by)
+        # Now we collect all our fields
         fields_to_get = [f for f in fields if f not in self.field_data]
+        if len(fields_to_get) == 0:
+            return
+        elif self._locked == True:
+            raise GenerationInProgress(fields)
+        # At this point, we want to figure out *all* our dependencies.
+        inspected = 0
+        for field in itertools.cycle(fields_to_get):
+            if inspected >= len(fields_to_get): break
+            fd = self.pf.field_info[field].get_dependencies(pf=self.pf)
+            deps = [d for d in fd.requested if d not in fields_to_get]
+            fields_to_get += deps
+            inspected += 1
         # If in_grids is True, then it's looking for a refresh of the data that
         # exists in memory somewhere.  I don't yet know the right behavior
         # here.
@@ -496,16 +510,21 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         # How do we handle dependencies here?
         with self._field_lock():
             gen_field_data = {}
-            last_length = -1
-            for field in itertools.cycle(fields_to_generate):
-                if last_length == 0: raise RuntimeError
-                if len(fields_to_generate) > len(gen_field_data): break
-                try:
-                    gen_field_data[field] = self._generate_field(field)
-                    last_length += 1
-                except GenerationInProgress:
+            last_length = len(fields_to_generate)
+            field_iter = itertools.cycle(fields_to_generate)
+            while last_length > 0:
+                field = field_iter.next()
+                assert len(fields_to_generate) >= len(gen_field_data)
+                if field in gen_field_data:
                     continue
-        self.field_data.update(gen_field_data)
+                try:
+                    self.field_data[field] = self._generate_field(field)
+                    last_length -= 1
+                except GenerationInProgress as gip:
+                    for f in gip.fields:
+                        if f not in fields_to_generate:
+                            fields_to_generate.append(f)
+                            last_length += 1
         return gen_field_data.keys() + read_field_data.keys()
 
     @contextmanager

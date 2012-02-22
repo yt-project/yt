@@ -201,6 +201,6 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             conv_factor = self.pf.field_info[field]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
-        mylog.debug("Don't know how to read %s", fields_to_generate)
+        #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 

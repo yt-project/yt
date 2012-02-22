@@ -219,7 +219,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             rv[field] = na.empty(count, dtype=ds.dtype)
         ind = 0
         mylog.info("Reading %s cells of %s fields in %s grids",
-                   count, len(fields), len(grids))
+                   count, fields, len(grids))
         for i,g in enumerate(grids):
             c = counts[g.id]
             if c == 0: continue
