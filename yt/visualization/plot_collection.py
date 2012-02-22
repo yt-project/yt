@@ -1152,9 +1152,9 @@ class PlotCollection(object):
         p = self._add_plot(PhasePlot(profile, fields, 
                                                id, cmap=cmap,
                                                figure=figure, axes=axes))
-        if len(fields) > 2:
-            # This will add all the fields to the profile object
-            p.switch_z(fields[2], weight=weight, accumulation=accumulation, fractional=fractional)
+        # This will add all the fields to the profile object
+        for i in range(2, len(fields)):
+            p.switch_z(fields[i], weight=weight, accumulation=accumulation, fractional=fractional)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, center = None, cmap=None,
