@@ -217,6 +217,9 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             # This needs to be parallelized
             for g in dobj._grids:
                 yield [g], self._count_selection(dobj, [g])
+        elif chunking_style == "grids":
+            for gs in (dobj._grids[i::20] for i in xrange(20)):
+                yield gs, self._count_selection(dobj, gs)
         else:
             raise NotImplementedError
 

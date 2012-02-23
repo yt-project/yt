@@ -27,7 +27,6 @@ License:
 
 import itertools
 import types
-from yt.data_objects.derived_quantities import GridChildMaskWrapper
 
 data_object_registry = {}
 
@@ -479,6 +478,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
     _locked = False
     _sort_by = None
     _selector = None
+    _current_chunk = None
     size = None
     shape = None
 
@@ -495,11 +495,11 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         # This is an iterator that will yield the necessary chunks.
         for chunk in self.hierarchy._chunk(self, chunking_style):
             with self._chunked_read(chunk):
-                self.get_data(fields, chunk=chunk)
+                self.get_data(fields)
                 # NOTE: we yield before releasing the context
-                yield self.field_data
+                yield self
 
-    def get_data(self, fields=None, in_grids = False, chunk = None):
+    def get_data(self, fields=None, in_grids = False):
         if self.size is None:
             self.size = self.hierarchy._count_selection(self)
             self.shape = (self.size,)
@@ -531,7 +531,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
         read_field_data, fields_to_generate = self.hierarchy._read_selection(
-                                fields_to_get, self, chunk)
+                                fields_to_get, self, self._current_chunk)
         self.field_data.update(read_field_data)
         # How do we handle dependencies here?
         with self._field_lock():
@@ -565,15 +565,18 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         # field_data, size, shape
         old_field_data = self.field_data
         old_size = self.size
+        old_chunk = self._current_chunk
         # Replace with new ...
         self.field_data = YTFieldData()
         size = chunk[1]
         self.size = size
         self.shape = (size,)
+        self._current_chunk = chunk
         yield
         self.field_data = old_field_data
         self.size = old_size
         self.shape = (old_size,)
+        self._current_chunk = old_chunk
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
@@ -1353,7 +1356,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid, field=None):
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
+        if not isinstance(grid, (FakeGridForParticles)):
                 and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.

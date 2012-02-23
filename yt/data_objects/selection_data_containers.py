@@ -38,7 +38,7 @@ from .data_containers import \
     restore_grid_state, cache_mask, cache_point_indices, cache_vc_data, \
     FakeGridForParticles
 from yt.data_objects.derived_quantities import \
-    DerivedQuantityCollection, GridChildMaskWrapper
+    DerivedQuantityCollection
 from yt.utilities.definitions import \
     x_dict, y_dict, axis_names
 from yt.utilities.exceptions import YTSphereTooSmall

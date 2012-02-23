@@ -41,26 +41,6 @@ __CUDA_BLOCK_SIZE = 256
 
 quantity_info = {}
 
-class GridChildMaskWrapper:
-    def __init__(self, grid, data_source):
-        self.grid = grid
-        self.data_source = data_source
-        # We have a local cache so that *within* a call to the DerivedQuantity
-        # function, we only read each field once.  Otherwise, when preloading
-        # the field will be popped and removed and lost if the underlying data
-        # source's _get_data_from_grid method is wrapped by restore_state.
-        # This is common.  So, if data[something] is accessed multiple times by
-        # a single quantity, the second time will re-read the data the slow
-        # way.
-        self.local_cache = {}
-    def __getattr__(self, attr):
-        return getattr(self.grid, attr)
-    def __getitem__(self, item):
-        if item not in self.local_cache:
-            data = self.data_source._get_data_from_grid(self.grid, item)
-            self.local_cache[item] = data
-        return self.local_cache[item]
-
 class DerivedQuantity(ParallelAnalysisInterface):
     def __init__(self, collection, name, function,
                  combine_function, units = "",
@@ -77,28 +57,22 @@ class DerivedQuantity(ParallelAnalysisInterface):
         self.force_unlazy = force_unlazy
 
     def __call__(self, *args, **kwargs):
-        lazy_reader = kwargs.pop('lazy_reader', True)
-        preload = kwargs.pop('preload', ytcfg.getboolean("yt","__parallel"))
-        if preload:
+        lazy_reader = kwargs.pop('lazy_reader', True) and not self.force_unlazy
+        if lazy_reader:
             if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
             lazy_reader = True
             e = FieldDetector(flat = True)
             e.NumberOfParticles = 1
             self.func(e, *args, **kwargs)
-            mylog.debug("Preloading %s", e.requested)
-            self.comm.preload([g for g in self._get_grid_objs()], e.requested,
-                          self._data_source.pf.h.io)
-        if lazy_reader and not self.force_unlazy:
-            return self._call_func_lazy(args, kwargs)
+            return self._call_func_lazy(args, kwargs, fields = e.requested)
         else:
             return self._call_func_unlazy(args, kwargs)
 
-    def _call_func_lazy(self, args, kwargs):
+    def _call_func_lazy(self, args, kwargs, fields):
         self.retvals = [ [] for i in range(self.n_ret)]
-        for gi,g in enumerate(self._get_grids()):
-            rv = self.func(GridChildMaskWrapper(g, self._data_source), *args, **kwargs)
+        for ds in self._data_source.chunks(fields, chunking_style="grids"):
+            rv = self.func(ds, *args, **kwargs)
             for i in range(self.n_ret): self.retvals[i].append(rv[i])
-            g.clear_data()
         self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]
         return self.c_func(self._data_source, *self.retvals)
 
