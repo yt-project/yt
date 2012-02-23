@@ -339,10 +339,14 @@ class YTDataContainer(object):
         except NeedsGridType, ngt_exception:
             rv = na.empty(self.size, dtype="float64")
             ind = 0
-            for i,chunk in enumerate(self.chunks(field, "spatial")):
+            ngz = ngt_exception.ghost_zones
+            for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
                 mask = self.selector.fill_mask(self._current_chunk[0])
                 if mask is None: continue
-                data = self[field][mask]
+                data = self[field]
+                if ngz > 0:
+                    data = data[ngz:-ngz, ngz:-ngz, ngz:-ngz]
+                data = data[mask]
                 rv[ind:ind+data.size] = data
                 ind += data.size
         else:
@@ -503,9 +507,9 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         self._selector = sclass(self)
         return self._selector
 
-    def chunks(self, fields, chunking_style):
+    def chunks(self, fields, chunking_style, **kwargs):
         # This is an iterator that will yield the necessary chunks.
-        for chunk in self.hierarchy._chunk(self, chunking_style):
+        for chunk in self.hierarchy._chunk(self, chunking_style, **kwargs):
             with self._chunked_read(chunk):
                 self.get_data(fields)
                 # NOTE: we yield before releasing the context
