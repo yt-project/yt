@@ -491,7 +491,15 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         self._selector = sclass(self)
         return self._selector
 
-    def get_data(self, fields=None, in_grids = False):
+    def chunks(self, fields, chunking_style):
+        # This is an iterator that will yield the necessary chunks.
+        for chunk in self.hierarchy._chunk(self, chunking_style):
+            with self._chunked_read(chunk):
+                self.get_data(fields, chunk=chunk)
+                # NOTE: we yield before releasing the context
+                yield self.field_data
+
+    def get_data(self, fields=None, in_grids = False, chunk = None):
         if self.size is None:
             self.size = self.hierarchy._count_selection(self)
             self.shape = (self.size,)
@@ -522,7 +530,8 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
-        read_field_data, fields_to_generate = self.hierarchy._read_selection(fields_to_get, self)
+        read_field_data, fields_to_generate = self.hierarchy._read_selection(
+                                fields_to_get, self, chunk)
         self.field_data.update(read_field_data)
         # How do we handle dependencies here?
         with self._field_lock():
@@ -549,6 +558,22 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         self._locked = True
         yield
         self._locked = False
+
+    @contextmanager
+    def _chunked_read(self, chunk):
+        # There are several items that need to be swapped out
+        # field_data, size, shape
+        old_field_data = self.field_data
+        old_size = self.size
+        # Replace with new ...
+        self.field_data = YTFieldData()
+        size = chunk[1]
+        self.size = size
+        self.shape = (size,)
+        yield
+        self.field_data = old_field_data
+        self.size = old_size
+        self.shape = (old_size,)
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False

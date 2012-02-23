@@ -182,10 +182,15 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                                             self.grid_right_edge)
             dobj._grids = self.grids[gi]
 
-    def _read_selection(self, fields, dobj):
+    def _read_selection(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
         selector = dobj.selector
-        self._find_grids_selector(dobj)
+        if chunk is None:
+            self._find_grids_selector(dobj)
+            grids = dobj._grids
+            chunk_size = dobj.size
+        else:
+            grids, chunk_size = chunk
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
         for f in fields:
@@ -193,10 +198,10 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 fields_to_read.append(f)
             else:
                 fields_to_generate.append(f)
-        if len(fields_to_read) == 0 or len(dobj._grids) == 0:
+        if len(fields_to_read) == 0 or len(grids) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_selection(dobj._grids, selector,
-                                                   fields_to_read, dobj.size)
+        fields_to_return = self.io._read_selection(grids, selector,
+                                                   fields_to_read, chunk_size)
         for field in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,
@@ -204,9 +209,22 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
-    def _count_selection(self, dobj):
+    def _chunk(self, dobj, chunking_style):
+        # A chunk is either None or (grids, size)
+        if chunking_style == "all":
+            yield None
+        elif chunking_style == "grid":
+            # This needs to be parallelized
+            for g in dobj._grids:
+                yield [g], self._count_selection(dobj, [g])
+        else:
+            raise NotImplementedError
+
+    def _count_selection(self, dobj, grids = None):
         selector = dobj.selector
-        self._find_grids_selector(dobj)
-        count = sum((selector.count_cells(g) for g in dobj._grids))
+        if grids is None:
+            self._find_grids_selector(dobj)
+            grids = dobj._grids
+        count = sum((selector.count_cells(g) for g in grids))
         return count
 
