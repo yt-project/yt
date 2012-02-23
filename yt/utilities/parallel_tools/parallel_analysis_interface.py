@@ -337,10 +337,10 @@ def parallel_objects(objects, njobs, storage = None):
             break
     if parallel_capable:
         communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    obj_ids = na.arange(len(objects))
+    obj_iter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
 
     to_share = {}
-    for result_id, obj in zip(obj_ids, objects)[my_new_id::njobs]:
+    for result_id, obj in obj_iter:
         if storage is not None:
             rstore = ResultsStorage()
             rstore.result_id = result_id

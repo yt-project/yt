@@ -34,7 +34,7 @@ from yt.data_objects.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, parallel_objects
 from yt.utilities.amr_utils import Octree
 
 __CUDA_BLOCK_SIZE = 256
@@ -57,41 +57,28 @@ class DerivedQuantity(ParallelAnalysisInterface):
         self.force_unlazy = force_unlazy
 
     def __call__(self, *args, **kwargs):
-        lazy_reader = kwargs.pop('lazy_reader', True) and not self.force_unlazy
-        if lazy_reader:
-            if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
-            lazy_reader = True
-            e = FieldDetector(flat = True)
-            e.NumberOfParticles = 1
-            self.func(e, *args, **kwargs)
-            return self._call_func_lazy(args, kwargs, fields = e.requested)
-        else:
-            return self._call_func_unlazy(args, kwargs)
-
-    def _call_func_lazy(self, args, kwargs, fields):
-        self.retvals = [ [] for i in range(self.n_ret)]
-        for ds in self._data_source.chunks(fields, chunking_style="io"):
+        e = FieldDetector(flat = True)
+        e.NumberOfParticles = 1
+        fields = e.requested
+        self.func(e, *args, **kwargs)
+        retvals = [ [] for i in range(self.n_ret)]
+        chunks = self._data_source.chunks([], chunking_style="io")
+        for ds in parallel_objects(chunks, -1):
             rv = self.func(ds, *args, **kwargs)
-            for i in range(self.n_ret): self.retvals[i].append(rv[i])
-        self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]
-        return self.c_func(self._data_source, *self.retvals)
-
-    def _finalize_parallel(self):
+            for i in range(self.n_ret): retvals[i].append(rv[i])
+        retvals = [na.array(retvals[i]) for i in range(self.n_ret)]
         # Note that we do some fancy footwork here.
         # _par_combine_object and its affiliated alltoall function
         # assume that the *long* axis is the last one.  However,
         # our long axis is the first one!
         rv = []
-        for my_list in self.retvals:
+        for my_list in retvals:
             data = na.array(my_list).transpose()
             rv.append(self.comm.par_combine_object(data,
                         datatype="array", op="cat").transpose())
-        self.retvals = rv
+        retvals = rv
+        return self.c_func(self._data_source, *retvals)
         
-    def _call_func_unlazy(self, args, kwargs):
-        retval = self.func(self._data_source, *args, **kwargs)
-        return self.c_func(self._data_source, *retval)
-
 def add_quantity(name, **kwargs):
     if 'function' not in kwargs or 'combine_function' not in kwargs:
         mylog.error("Not adding field %s because both function and combine_function must be provided" % name)

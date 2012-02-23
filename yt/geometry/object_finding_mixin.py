@@ -68,7 +68,7 @@ class ObjectFindingMixin(object):
         mylog.debug("Searching %s grids for maximum value of %s",
                     len(source._grids), field)
         max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"]( field, lazy_reader=True)
+            source.quantities["MaxLocation"]( field )
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
               max_val, mx, my, mz)
         self.parameters["Max%sValue" % (field)] = max_val
