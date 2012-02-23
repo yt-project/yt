@@ -132,6 +132,7 @@ class GeometryHandler(ParallelAnalysisInterface):
             try:
                 fd = self.parameter_file.field_info[field].get_dependencies(
                             pf = self.parameter_file)
+                self.parameter_file.field_dependencies[field] = fd
             except:
                 continue
             available = na.all([f in self.field_list for f in fd.requested])

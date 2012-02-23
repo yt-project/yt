@@ -213,6 +213,8 @@ class StaticOutput(object):
             # away the exising field_info.
             self.field_info = FieldInfoContainer.create_with_fallback(
                                 self._fieldinfo_fallback)
+        if getattr(self, "field_dependencies", None) is None:
+            self.field_dependencies = {}
 
         
 

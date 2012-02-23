@@ -225,7 +225,8 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 yield g, size
         elif chunking_style == "io":
             gfiles = defaultdict(list)
-            for g in gobjs: gfiles[g.filename].append(g)
+            for g in gobjs:
+                gfiles[g.filename].append(g)
             for fn in sorted(gfiles):
                 gs = gfiles[fn]
                 yield gs, self._count_selection(dobj, gs)

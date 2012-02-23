@@ -531,7 +531,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         inspected = 0
         for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
-            fd = self.pf.field_info[field].get_dependencies(pf=self.pf)
+            fd = self.pf.field_dependencies[field]
             deps = [d for d in fd.requested if d not in fields_to_get]
             fields_to_get += deps
             inspected += 1
