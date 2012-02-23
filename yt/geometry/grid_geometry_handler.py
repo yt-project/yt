@@ -25,7 +25,7 @@ License:
 
 import h5py
 import numpy as na
-import string, re, gc, time, cPickle, pdb
+import string, re, gc, time, cPickle
 import weakref
 
 from itertools import chain, izip
@@ -198,7 +198,6 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 fields_to_read.append(f)
             else:
                 fields_to_generate.append(f)
-        import pdb; pdb.set_trace()
         if len(fields_to_read) == 0 or len(grids) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_selection(grids, selector,
@@ -216,8 +215,10 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             yield None
         elif chunking_style == "grid":
             # This needs to be parallelized
-            for g in dobj._grids:
-                yield [g], self._count_selection(dobj, [g])
+            for i,g in enumerate(dobj._grids):
+                size = self._count_selection(dobj, [g])
+                if size == 0: continue
+                yield g, size
         elif chunking_style == "grids":
             for gs in (dobj._grids[i::20] for i in xrange(20)):
                 yield gs, self._count_selection(dobj, gs)

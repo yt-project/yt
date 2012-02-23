@@ -327,22 +327,34 @@ class YTDataContainer(object):
         del self.field_data[key]
 
     def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator
-            try:
-                self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # We leave this to be implementation-specific
-                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
-                return na.ones(10) * -999
-            else:
-                return self.pf.field_info[field](self)
-        else: # Can't find the field, try as it might
+        if not self.pf.field_info.has_key(field):
             raise KeyError(field)
+        # First we check the validator
+        if self._current_chunk is None:
+            gen_obj = self
+        else:
+            gen_obj = self._current_chunk[0]
+        try:
+            self.pf.field_info[field].check_available(gen_obj)
+        except NeedsGridType, ngt_exception:
+            rv = na.empty(self.size, dtype="float64")
+            ind = 0
+            for i,chunk in enumerate(self.chunks(field, "grid")):
+                mask = self.selector.fill_mask(self._current_chunk[0])
+                if mask is None: continue
+                data = self[field][mask]
+                rv[ind:ind+data.size] = data
+                ind += data.size
+        else:
+            rv = self.pf.field_info[field](gen_obj)
+        return rv
 
-    def _generate_field_in_grids(self, field, num_ghost_zones=0):
-        for grid in self._grids:
-            grid[field] = self.__touch_grid_field(grid, field)
+    def _parameter_iterate(self, seq):
+        for obj in seq:
+            old_fp = obj.field_parameters
+            obj.field_parameters = self.field_parameters
+            yield obj
+            obj.field_parameters = old_fp
 
     @restore_grid_state
     def __touch_grid_field(self, grid, field):
@@ -535,23 +547,22 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         self.field_data.update(read_field_data)
         # How do we handle dependencies here?
         with self._field_lock():
-            gen_field_data = {}
             last_length = len(fields_to_generate)
-            field_iter = itertools.cycle(fields_to_generate)
+            index = -1
+            added_fields = []
             while last_length > 0:
-                field = field_iter.next()
-                assert len(fields_to_generate) >= len(gen_field_data)
-                if field in gen_field_data:
-                    continue
+                index += 1
+                field = fields_to_generate[index % len(fields_to_generate)]
+                if field in self.field_data: continue
                 try:
                     self.field_data[field] = self._generate_field(field)
+                    added_fields.append(field)
                     last_length -= 1
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)
                             last_length += 1
-        return gen_field_data.keys() + read_field_data.keys()
 
     @contextmanager
     def _field_lock(self):
@@ -566,17 +577,20 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         old_field_data = self.field_data
         old_size = self.size
         old_chunk = self._current_chunk
+        old_locked = self._locked
         # Replace with new ...
         self.field_data = YTFieldData()
         size = chunk[1]
         self.size = size
         self.shape = (size,)
+        self._locked = False
         self._current_chunk = chunk
         yield
         self.field_data = old_field_data
         self.size = old_size
         self.shape = (old_size,)
         self._current_chunk = old_chunk
+        self._locked = old_locked
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
