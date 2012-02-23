@@ -603,3 +603,28 @@ cdef class OrthoRaySelector(SelectorObject):
         check[0] = 0
 
 ortho_ray_selector = OrthoRaySelector
+
+cdef class GridCollectionSelector(SelectorObject):
+
+    def __init__(self, dobj):
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        check[0] = 0
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges):
+        raise RuntimeError
+    
+grid_collection_selector = GridCollectionSelector
+

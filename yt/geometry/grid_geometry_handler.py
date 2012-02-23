@@ -211,16 +211,21 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
 
     def _chunk(self, dobj, chunking_style):
         # A chunk is either None or (grids, size)
+        if dobj._current_chunk is None:
+            gobjs = dobj._grids
+        else:
+            gobjs = dobj._current_chunk[0]
         if chunking_style == "all":
             yield None
         elif chunking_style == "spatial":
             # This needs to be parallelized
-            for i,g in enumerate(dobj._grids):
+            for i,g in enumerate(gobjs):
                 size = self._count_selection(dobj, [g])
                 if size == 0: continue
                 yield g, size
         elif chunking_style == "io":
-            for gs in (dobj._grids[i::20] for i in xrange(20)):
+            NJ = 2
+            for gs in (gobjs[i::NJ] for i in xrange(NJ)):
                 yield gs, self._count_selection(dobj, gs)
         else:
             raise NotImplementedError

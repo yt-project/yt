@@ -932,7 +932,7 @@ class YTGridCollectionBase(YTSelectionContainer3D):
         Child cells are not returned.
         """
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
-        self._grids = na.array(grid_list)
+        self._grids = grid_list
         self.grid_list = self._grids
 
     def _get_list_of_grids(self):

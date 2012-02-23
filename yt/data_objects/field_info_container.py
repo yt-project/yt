@@ -412,7 +412,7 @@ class ValidateSpatial(FieldValidator):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
         #if isinstance(data, FieldDetector): return True
-        if not data._spatial:
+        if not getattr(data, '_spatial', False):
             raise NeedsGridType(self.ghost_zones,self.fields)
         if self.ghost_zones <= data._num_ghost_zones:
             return True
