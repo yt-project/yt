@@ -213,13 +213,13 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         # A chunk is either None or (grids, size)
         if chunking_style == "all":
             yield None
-        elif chunking_style == "grid":
+        elif chunking_style == "spatial":
             # This needs to be parallelized
             for i,g in enumerate(dobj._grids):
                 size = self._count_selection(dobj, [g])
                 if size == 0: continue
                 yield g, size
-        elif chunking_style == "grids":
+        elif chunking_style == "io":
             for gs in (dobj._grids[i::20] for i in xrange(20)):
                 yield gs, self._count_selection(dobj, gs)
         else:

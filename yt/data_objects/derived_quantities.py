@@ -70,7 +70,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def _call_func_lazy(self, args, kwargs, fields):
         self.retvals = [ [] for i in range(self.n_ret)]
-        for ds in self._data_source.chunks(fields, chunking_style="grids"):
+        for ds in self._data_source.chunks(fields, chunking_style="io"):
             rv = self.func(ds, *args, **kwargs)
             for i in range(self.n_ret): self.retvals[i].append(rv[i])
         self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]

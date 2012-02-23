@@ -339,7 +339,7 @@ class YTDataContainer(object):
         except NeedsGridType, ngt_exception:
             rv = na.empty(self.size, dtype="float64")
             ind = 0
-            for i,chunk in enumerate(self.chunks(field, "grid")):
+            for i,chunk in enumerate(self.chunks(field, "spatial")):
                 mask = self.selector.fill_mask(self._current_chunk[0])
                 if mask is None: continue
                 data = self[field][mask]
@@ -574,17 +574,11 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
     def _chunked_read(self, chunk):
         # There are several items that need to be swapped out
         # field_data, size, shape
-        old_field_data = self.field_data
-        old_size = self.size
-        old_chunk = self._current_chunk
-        old_locked = self._locked
-        # Replace with new ...
-        self.field_data = YTFieldData()
-        size = chunk[1]
-        self.size = size
-        self.shape = (size,)
-        self._locked = False
-        self._current_chunk = chunk
+        old_field_data, self.field_data = self.field_data, YTFieldData()
+        old_size, self.size = self.size, chunk[1]
+        old_chunk, self._current_chunk = self._current_chunk, chunk
+        old_locked, self._locked = self._locked, False
+        self.shape = (self.size,)
         yield
         self.field_data = old_field_data
         self.size = old_size
