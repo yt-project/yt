@@ -615,38 +615,36 @@ def _MaxLocation(data, field):
     This function returns the location of the maximum of a set
     of fields.
     """
-    ma, maxi, mx, my, mz, mg = -1e90, -1, -1, -1, -1, -1
+    ma, maxi, mx, my, mz = -1e90, -1, -1, -1, -1
     if data[field].size > 0:
         maxi = na.argmax(data[field])
         ma = data[field][maxi]
         mx, my, mz = [data[ax][maxi] for ax in 'xyz']
-        mg = data["GridIndices"][maxi]
-    return (ma, maxi, mx, my, mz, mg)
+    return (ma, maxi, mx, my, mz)
 def _combMaxLocation(data, *args):
     args = [na.atleast_1d(arg) for arg in args]
     i = na.argmax(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
 add_quantity("MaxLocation", function=_MaxLocation,
-             combine_function=_combMaxLocation, n_ret = 6)
+             combine_function=_combMaxLocation, n_ret = 5)
 
 def _MinLocation(data, field):
     """
     This function returns the location of the minimum of a set
     of fields.
     """
-    ma, mini, mx, my, mz, mg = 1e90, -1, -1, -1, -1, -1
+    ma, mini, mx, my, mz = 1e90, -1, -1, -1, -1
     if data[field].size > 0:
         mini = na.argmin(data[field])
         ma = data[field][mini]
         mx, my, mz = [data[ax][mini] for ax in 'xyz']
-        mg = data["GridIndices"][mini]
-    return (ma, mini, mx, my, mz, mg)
+    return (ma, mini, mx, my, mz)
 def _combMinLocation(data, *args):
     args = [na.atleast_1d(arg) for arg in args]
     i = na.argmin(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
 add_quantity("MinLocation", function=_MinLocation,
-             combine_function=_combMinLocation, n_ret = 6)
+             combine_function=_combMinLocation, n_ret = 5)
 
 
 def _TotalQuantity(data, fields):

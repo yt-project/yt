@@ -224,8 +224,10 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 if size == 0: continue
                 yield g, size
         elif chunking_style == "io":
-            NJ = 2
-            for gs in (gobjs[i::NJ] for i in xrange(NJ)):
+            gfiles = defaultdict(list)
+            for g in gobjs: gfiles[g.filename].append(g)
+            for fn in sorted(gfiles):
+                gs = gfiles[fn]
                 yield gs, self._count_selection(dobj, gs)
         else:
             raise NotImplementedError
