@@ -144,8 +144,8 @@ cdef class SelectorObject:
         cdef int ng = left_edges.shape[0]
         cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
         cdef np.float64_t LE[3], RE[3]
-        with nogil, parallel():
-            for n in prange(ng):
+        with nogil:
+            for n in range(ng):
                 # Call our selector function
                 # Check if the sphere is inside the grid
                 for i in range(3):
