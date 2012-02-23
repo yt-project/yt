@@ -1356,8 +1356,8 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid, field=None):
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles)):
-                and grid.id in self._cut_masks:
+        if not isinstance(grid, (FakeGridForParticles,)) \
+             and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.
         return self._get_level_mask(self.regions, grid)

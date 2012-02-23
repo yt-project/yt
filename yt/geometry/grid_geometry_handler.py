@@ -198,6 +198,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 fields_to_read.append(f)
             else:
                 fields_to_generate.append(f)
+        import pdb; pdb.set_trace()
         if len(fields_to_read) == 0 or len(grids) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_selection(grids, selector,

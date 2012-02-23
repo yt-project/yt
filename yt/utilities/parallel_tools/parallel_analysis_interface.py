@@ -747,14 +747,6 @@ class ParallelAnalysisInterface(object):
         self._grids = self.comm._grids
         self._distributed = self.comm._distributed
 
-    def _get_objs(self, attr, *args, **kwargs):
-        if self._distributed:
-            rr = kwargs.pop("round_robin", False)
-            self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, attr=attr,
-                    round_robin=rr)
-        return ObjectIterator(self, attr=attr)
-
     def _get_grids(self, *args, **kwargs):
         if self._distributed:
             self._initialize_parallel(*args, **kwargs)
