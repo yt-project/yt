@@ -289,13 +289,6 @@ class YTDataContainer(object):
         """
         return self.field_data.has_key(key)
 
-    def _refresh_data(self):
-        """
-        Wipes data and rereads/regenerates it from the self.fields.
-        """
-        self.clear_data()
-        self.get_data()
-
     def keys(self):
         return self.field_data.keys()
 
@@ -304,8 +297,6 @@ class YTDataContainer(object):
         Returns a single field.  Will add if necessary.
         """
         if not self.field_data.has_key(key):
-            if key not in self.fields:
-                self.fields.append(key)
             self.get_data(key)
         return self.field_data[key]
 
@@ -329,6 +320,12 @@ class YTDataContainer(object):
     def _generate_field(self, field):
         if not self.pf.field_info.has_key(field):
             raise KeyError(field)
+        if self.pf.field_info[field].particle_type:
+            return self._generate_particle_field(field)
+        else:
+            return self._generate_fluid_field(field)
+
+    def _generate_fluid_field(self, field):
         # First we check the validator
         if self._current_chunk is None:
             gen_obj = self
@@ -353,16 +350,15 @@ class YTDataContainer(object):
             rv = self.pf.field_info[field](gen_obj)
         return rv
 
+    def _generate_particle_field(self, field):
+        raise NotImplementedError
+
     def _parameter_iterate(self, seq):
         for obj in seq:
             old_fp = obj.field_parameters
             obj.field_parameters = self.field_parameters
             yield obj
             obj.field_parameters = old_fp
-
-    @restore_grid_state
-    def __touch_grid_field(self, grid, field):
-        return grid[field]
 
     _key_fields = None
     def write_out(self, filename, fields=None, format="%0.16e"):
@@ -1136,7 +1132,6 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
         else:
             self._grids = None
             self._base_indices = indices
-        if force_refresh: self._refresh_data()
 
     def _get_cut_particle_mask(self, grid):
         # Override to provide a warning
@@ -1247,7 +1242,6 @@ class YTValueCutExtractionBase(YTSelectionContainer3D):
         self._base_region = base_region # We don't weakly reference because
                                         # It is not cyclic
         self._field_cuts = ensure_list(field_cuts)[:]
-        self._refresh_data()
 
     def _get_list_of_grids(self):
         self._grids = self._base_region._grids

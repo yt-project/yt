@@ -195,14 +195,15 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         fields_to_read, fields_to_generate = [], []
         for f in fields:
             if f in self.field_list:
-                fields_to_read.append(f)
+                pfield = self.pf.field_info[field].particle_type
+                fields_to_read.append((f, pfield))
             else:
                 fields_to_generate.append(f)
         if len(fields_to_read) == 0 or len(grids) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_selection(grids, selector,
                                                    fields_to_read, chunk_size)
-        for field in fields_to_read:
+        for field, pfield in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])

@@ -203,6 +203,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
+    def _count_particles(self, grids, selector, handle):
+        pass
+
     def _read_selection(self, grids, selector, fields, size):
         last = None
         rv = {}
@@ -211,9 +214,16 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         grids = list(sorted(grids, key=lambda a: a.filename))
         last = grids[0].filename
         handle = h5py.File(last)
-        for field in fields:
+        if any(pfield for pfield, field in fields):
+            read_particles = True
+            particle_size = self._count_particles(grids, selector, handle)
+        if any(pfield is False for pfield, field in fields):
+            read_fluids = True
+        for pfield, field in fields:
             ds = handle["/Grid%08i/%s" % (grids[0].id, field)]
-            rv[field] = na.empty(size, dtype=ds.dtype)
+            if pfield: fsize = particle_size
+            else: fsize = size
+            rv[field] = na.empty(fsize, dtype=ds.dtype)
         ind = 0
         mylog.info("Reading %s cells of %s fields in %s grids",
                    size, fields, len(grids))
@@ -222,12 +232,19 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 handle.close()
                 last = g.filename
                 handle = h5py.File(last)
-            mask = selector.fill_mask(g)
+            if read_fluids:
+                mask = selector.fill_mask(g)
+            if read_particles:
+                x,y,z = self._get_particle_positions(g, handle)
+                mask = selector.fill_point_mask(g, x, y, z)
             if mask is None: continue
-            for field in fields:
-                ds = handle["/Grid%08i/%s" % (g.id, field)]
-                data = ds[:].transpose()[mask]
-                rv[field][ind:ind+data.size] = data
+            for field, pfield in fields:
+                if pfield is False:
+                    ds = handle["/Grid%08i/%s" % (g.id, field)]
+                    data = ds[:].transpose()[mask]
+                    rv[field][ind:ind+data.size] = data
+                else:
+                    raise NotImplementedError
             ind += data.size
         handle.close()
         return rv

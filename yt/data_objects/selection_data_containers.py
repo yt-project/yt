@@ -89,7 +89,6 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         self.py_dx = 'd%s'%(axis_names[self.py_ax])
         self.px, self.py = coords
         self.sort_by = axis_names[self.axis]
-        self._refresh_data()
 
     @property
     def coords(self):
@@ -139,7 +138,6 @@ class YTRayBase(YTSelectionContainer1D):
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = {}, {}
-        #self._refresh_data()
 
     def _get_list_of_grids(self):
         gi = ray_grids(self,
@@ -218,9 +216,7 @@ class YTSliceBase(YTSelectionContainer2D):
         YTSelectionContainer2D.__init__(self, axis, fields, pf, **kwargs)
         self._set_center(center)
         self.coord = coord
-        if node_name is False:
-            self._refresh_data()
-        else:
+        if node_name is not False:
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
 
@@ -231,7 +227,7 @@ class YTSliceBase(YTSelectionContainer2D):
         """
         mylog.debug("Setting coordinate to %0.5e" % coord)
         self.coord = coord
-        self._refresh_data()
+        self.field_data.clear()
 
     def shift(self, val):
         """
@@ -249,7 +245,7 @@ class YTSliceBase(YTSelectionContainer2D):
             self.coord += dx * val
         else:
             raise ValueError(val)
-        self._refresh_data()
+        self.field_data.clear()
 
     def _generate_coords(self):
         points = []
@@ -426,9 +422,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         self.set_field_parameter('cp_x_vec',self._x_vec)
         self.set_field_parameter('cp_y_vec',self._y_vec)
         self.set_field_parameter('cp_z_vec',self._norm_vec)
-        if node_name is False:
-            self._refresh_data()
-        else:
+        if node_name is not False:
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
 
@@ -609,9 +603,7 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
-        if node_name is False:
-            self._refresh_data()
-        else:
+        if node_name is not False:
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
 
@@ -705,9 +697,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
-        self._refresh_data()
-        return
-
     #@time_execution
     def get_data(self, fields = None):
         """
@@ -776,7 +765,6 @@ class YTDiskBase(YTSelectionContainer3D):
         self._height = fix_length(height, self.pf)
         self._radius = fix_length(radius, self.pf)
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
-        self._refresh_data()
 
     def _get_list_of_grids(self):
         H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.grid_corners,
@@ -840,7 +828,6 @@ class YTInclinedBoxBase(YTSelectionContainer3D):
         center = origin + 0.5*self.box_vectors.sum(axis=0)
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self._setup_rotation_parameters()
-        self._refresh_data()
 
     def _setup_rotation_parameters(self):
         xv = self.box_vectors[0,:]
@@ -917,7 +904,6 @@ class YTRegionBase(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
         self.right_edge = right_edge
-        self._refresh_data()
 
 class YTGridCollectionBase(YTSelectionContainer3D):
     """
@@ -983,4 +969,3 @@ class YTSphereBase(YTSelectionContainer3D):
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
-        self._refresh_data()
