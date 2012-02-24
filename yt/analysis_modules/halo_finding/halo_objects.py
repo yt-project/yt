@@ -2243,7 +2243,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
                 total_mass = \
                     self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
             else:
-                total_mass = self.comm.mpi_allreduce(self._data_source["ParticleMassMsun"].sum(dtype='float64'), op='sum')
+                total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0], op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -2255,14 +2255,17 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             self.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
-        # reflect particles around the periodic boundary
-        #self._reposition_particles((LE, RE))
-        if dm_only:
+        # sub_mass can be skipped if subvolume is not used and this is not
+        # parallel.
+        if subvolume is None and \
+                ytcfg.getint("yt", "__topcomm_parallel_size") == 1:
+            sub_mass = total_mass
+        elif dm_only:
             select = self._get_dm_indices()
             sub_mass = self._data_source["ParticleMassMsun"][select].sum(dtype='float64')
         else:
             sub_mass = \
-                self._data_source["ParticleMassMsun"].sum(dtype='float64')
+                self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0]
         HOPHaloList.__init__(self, self._data_source,
             threshold * total_mass / sub_mass, dm_only)
         self._parse_halolist(total_mass / sub_mass)

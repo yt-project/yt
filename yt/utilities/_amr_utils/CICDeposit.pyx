@@ -78,3 +78,32 @@ def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,
         field[i1  ,j1-1,k1  ] += mass[n] * dx2 * dy  * dz2
         field[i1-1,j1  ,k1  ] += mass[n] * dx  * dy2 * dz2
         field[i1  ,j1  ,k1  ] += mass[n] * dx2 * dy2 * dz2
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def sample_field_at_positions(np.ndarray[np.float64_t, ndim=3] arr,
+                              np.ndarray[np.float64_t, ndim=1] left_edge,
+                              np.ndarray[np.float64_t, ndim=1] right_edge,
+                              np.ndarray[np.float64_t, ndim=1] pos_x,
+                              np.ndarray[np.float64_t, ndim=1] pos_y,
+                              np.ndarray[np.float64_t, ndim=1] pos_z):
+    cdef np.float64_t idds[3], pp[3]
+    cdef int dims[3], npart, ind[3]
+    cdef int i, j
+    npart = pos_x.shape[0]
+    cdef np.ndarray[np.float64_t, ndim=1] sample 
+    sample = np.zeros(npart, dtype='float64')
+    for i in range(3):
+        dims[i] = arr.shape[i]
+        idds[i] = (<np.float64_t> dims[i]) / (right_edge[i] - left_edge[i])
+    for i in range(npart):
+        if not ((left_edge[0] <= pos_x[i] <= right_edge[0]) and 
+                (left_edge[1] <= pos_y[i] <= right_edge[1]) and
+                (left_edge[2] <= pos_z[i] <= right_edge[2])):
+            continue
+        ind[0] = <int> ((pos_x[i] - left_edge[0]) * idds[0])
+        ind[1] = <int> ((pos_y[i] - left_edge[1]) * idds[1])
+        ind[2] = <int> ((pos_z[i] - left_edge[2]) * idds[2])
+        sample[i] = arr[ind[0], ind[1], ind[2]]
+    return sample

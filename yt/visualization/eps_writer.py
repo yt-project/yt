@@ -293,6 +293,7 @@ class DualEPS(object):
                 _xlabel = ""
                 _ylabel = ""
             else:
+                units = units.replace('mpc', 'Mpc')
                 _xlabel = '%s (%s)' % (x_names[plot.data.axis], units)
                 _ylabel = '%s (%s)' % (y_names[plot.data.axis], units)
             _tickcolor = pyx.color.cmyk.white
