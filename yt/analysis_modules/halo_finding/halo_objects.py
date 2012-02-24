@@ -2250,6 +2250,8 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # Derived Quantities.
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE, ds_RE)
+        else:
+            self._data_source = pf.h.all_data()
         self.padding = padding  # * pf["unitary"] # This should be clevererer
         padded, LE, RE, self._data_source = \
             self.partition_hierarchy_3d(ds=self._data_source,
@@ -2344,6 +2346,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE,
                 ds_RE)
+        else:
+            self._data_source = pf.h.all_data()
         padded, LE, RE, self._data_source = \
             self.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
