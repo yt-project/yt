@@ -1240,10 +1240,15 @@ class YTRPDBCmd(YTCommand):
         uncaught exceptions.
 
         """
+    args = (
+            dict(short="-t", long="--task", action="store",
+                 default = 0, dest='task',
+                 help="Open a web browser."),
+           )
 
     def __call__(self, args):
         import rpdb
-        rpdb.run_rpdb(int(task))
+        rpdb.run_rpdb(int(args.task))
 
 class YTGUICmd(YTCommand):
     name = ["serve", "reason"]

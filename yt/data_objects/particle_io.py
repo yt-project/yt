@@ -29,6 +29,17 @@ from yt.funcs import *
 
 particle_handler_registry = defaultdict()
 
+def particle_converter(func):
+    from .data_containers import YTFieldData
+    def save_state(grid):
+        old_params = grid.field_parameters
+        old_keys = grid.field_data.keys()
+        tr = func(grid)
+        grid.field_parameters = old_params
+        grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
+        return tr
+    return save_state
+
 class ParticleIOHandler(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -82,6 +93,7 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
                 func = f._convert_function
             else:
                 func = f.particle_convert
+            func = particle_converter(func)
             conv_factors.append(
               na.fromiter((func(g) for g in grid_list),
                           count=len(grid_list), dtype='float64'))
@@ -90,7 +102,7 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
         rvs = self.pf.h.io._read_particles(
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)
-        for [n, v] in zip(fields_to_read, rvs):
+        for [n, v] in zip(fields, rvs):
             self.source.field_data[n] = v
 
 class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
