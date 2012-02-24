@@ -298,6 +298,47 @@ class GeometryHandler(ParallelAnalysisInterface):
         setattr(self, name, obj)
 
 class YTDataChunk(object):
-    def __init__(self, objs, data_size):
+    _icoords = (None, None, None)
+    _fcoords = (None, None, None)
+
+    def __init__(self, dobj, chunk_type, objs, data_size):
+        self.dobj = dobj
+        self.chunk_type = chunk_type
         self.objs = objs
         self.data_size = data_size
+
+    def icoords(self, axis):
+        if self.chunk_style != "spatial": raise NotImplementedError
+        if self._icoords[axis] is not None:
+            return self._icoords[axis]
+        ci = na.empty(self.data_size, dtype='int64')
+        if self.data_size == 0: return ci
+        ind = 0
+        for obj in self.objs:
+            c = obj.icoords(self.dobj, axis)
+            if c.size == 0: continue
+            ci[ind:ind+c.size] = c
+            ind += c.size
+        ll = list(self._icoords)
+        ll[axis] = ci
+        self._icoords = tuple(ll)
+        return self._icoords[axis]
+
+    def fcoords(self, axis):
+        if self.chunk_style != "spatial": raise NotImplementedError
+        if self._fcoords[axis] is not None:
+            return self._fcoords[axis]
+        ci = na.empty(self.data_size, dtype='int64')
+        if self.data_size == 0: return ci
+        ind = 0
+        for obj in self.objs:
+            c = obj.fcoords(self.dobj, axis)
+            if c.size == 0: continue
+            ci[ind:ind+c.size] = c
+            ind += c.size
+        ll = list(self._fcoords)
+        ll[axis] = ci
+        self._fcoords = tuple(ll)
+        return self._fcoords[axis]
+
+

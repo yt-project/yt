@@ -214,13 +214,14 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
     def _chunk(self, dobj, chunking_style, ngz = 0):
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:
+            self._find_grids_selector(dobj)
             gobjs = dobj._grids
         else:
             gobjs = dobj._current_chunk.objs
         if ngz != 0 and chunking_style != "spatial":
             raise NotImplementedError
         if chunking_style == "all":
-            yield None
+            yield YTDataChunk(dobj, "all", gobjs, dobj.size)
         elif chunking_style == "spatial":
             # This needs to be parallelized
             for i,og in enumerate(gobjs):
@@ -230,14 +231,14 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                     g = og
                 size = self._count_selection(dobj, [og])
                 if size == 0: continue
-                yield YTDataChunk([g], size)
+                yield YTDataChunk(dobj, "spatial", [g], size)
         elif chunking_style == "io":
             gfiles = defaultdict(list)
             for g in gobjs:
                 gfiles[g.filename].append(g)
             for fn in sorted(gfiles):
                 gs = gfiles[fn]
-                yield YTDataChunk(gs, self._count_selection(dobj, gs))
+                yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs))
         else:
             raise NotImplementedError
 
