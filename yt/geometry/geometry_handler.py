@@ -296,3 +296,8 @@ class GeometryHandler(ParallelAnalysisInterface):
         self.object_types.append(name)
         obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
+
+class YTDataChunk(object):
+    def __init__(self, objs, data_size):
+        self.objs = objs
+        self.data_size = data_size

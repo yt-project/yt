@@ -35,7 +35,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
-from yt.geometry.geometry_handler import GeometryHandler
+from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -190,12 +190,13 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             grids = dobj._grids
             chunk_size = dobj.size
         else:
-            grids, chunk_size = chunk
+            grids = chunk.objs
+            chunk_size = chunk.data_size
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
         for f in fields:
             if f in self.field_list:
-                pfield = self.pf.field_info[field].particle_type
+                pfield = self.pf.field_info[f].particle_type
                 fields_to_read.append((f, pfield))
             else:
                 fields_to_generate.append(f)
@@ -215,7 +216,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         if dobj._current_chunk is None:
             gobjs = dobj._grids
         else:
-            gobjs = dobj._current_chunk[0]
+            gobjs = dobj._current_chunk.objs
         if ngz != 0 and chunking_style != "spatial":
             raise NotImplementedError
         if chunking_style == "all":
@@ -226,14 +227,14 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
                 size = self._count_selection(dobj, [og])
                 if size == 0: continue
-                yield g, size
+                yield YTDataChunk([g], size)
         elif chunking_style == "io":
             gfiles = defaultdict(list)
             for g in gobjs:
                 gfiles[g.filename].append(g)
             for fn in sorted(gfiles):
                 gs = gfiles[fn]
-                yield gs, self._count_selection(dobj, gs)
+                yield YTDataChunk(gs, self._count_selection(dobj, gs))
         else:
             raise NotImplementedError
 

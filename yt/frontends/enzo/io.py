@@ -214,19 +214,20 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         grids = list(sorted(grids, key=lambda a: a.filename))
         last = grids[0].filename
         handle = h5py.File(last)
-        if any(pfield for pfield, field in fields):
+        read_particles = read_fluids = False
+        if any(pfield for field, pfield in fields):
             read_particles = True
             particle_size = self._count_particles(grids, selector, handle)
-        if any(pfield is False for pfield, field in fields):
+        if any(pfield is False for field, pfield in fields):
             read_fluids = True
-        for pfield, field in fields:
+        for field, pfield in fields:
             ds = handle["/Grid%08i/%s" % (grids[0].id, field)]
             if pfield: fsize = particle_size
             else: fsize = size
             rv[field] = na.empty(fsize, dtype=ds.dtype)
         ind = 0
         mylog.info("Reading %s cells of %s fields in %s grids",
-                   size, fields, len(grids))
+                   size, [f1 for f1, f2 in fields], len(grids))
         for i,g in enumerate(grids):
             if last != g.filename:
                 handle.close()

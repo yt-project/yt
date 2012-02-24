@@ -330,7 +330,7 @@ class YTDataContainer(object):
         if self._current_chunk is None:
             gen_obj = self
         else:
-            gen_obj = self._current_chunk[0]
+            gen_obj = self._current_chunk.objs[0]
         try:
             self.pf.field_info[field].check_available(gen_obj)
         except NeedsGridType, ngt_exception:
@@ -338,7 +338,7 @@ class YTDataContainer(object):
             ind = 0
             ngz = ngt_exception.ghost_zones
             for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
-                mask = self.selector.fill_mask(self._current_chunk[0])
+                mask = self.selector.fill_mask(self._current_chunk.objs[0])
                 if mask is None: continue
                 data = self[field]
                 if ngz > 0:
@@ -575,7 +575,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         # There are several items that need to be swapped out
         # field_data, size, shape
         old_field_data, self.field_data = self.field_data, YTFieldData()
-        old_size, self.size = self.size, chunk[1]
+        old_size, self.size = self.size, chunk.data_size
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
         self.shape = (self.size,)
