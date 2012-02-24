@@ -2413,9 +2413,6 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for field in fields_to_get:
             if self.field_data.has_key(field):
                 continue
-            if field not in self.hierarchy.field_list and not in_grids:
-                if self._generate_field(field):
-                    continue # True means we already assigned it
             # There are a lot of 'ands' here, but I think they are all
             # necessary.
             if force_particle_read == False and \
@@ -2426,6 +2423,10 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                 self.particles.get_data(field)
                 if field not in self.field_data:
                     if self._generate_field(field): continue
+                continue
+            if field not in self.hierarchy.field_list and not in_grids:
+                if self._generate_field(field):
+                    continue # True means we already assigned it
             mylog.info("Getting field %s from %s", field, len(self._grids))
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
