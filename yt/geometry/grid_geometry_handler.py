@@ -224,7 +224,10 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         elif chunking_style == "spatial":
             # This needs to be parallelized
             for i,og in enumerate(gobjs):
-                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+                if ngz > 0:
+                    g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+                else:
+                    g = og
                 size = self._count_selection(dobj, [og])
                 if size == 0: continue
                 yield YTDataChunk([g], size)
