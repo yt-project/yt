@@ -308,7 +308,6 @@ class YTDataChunk(object):
         self.data_size = data_size
 
     def icoords(self, axis):
-        if self.chunk_style != "spatial": raise NotImplementedError
         if self._icoords[axis] is not None:
             return self._icoords[axis]
         ci = na.empty(self.data_size, dtype='int64')
@@ -325,7 +324,6 @@ class YTDataChunk(object):
         return self._icoords[axis]
 
     def fcoords(self, axis):
-        if self.chunk_style != "spatial": raise NotImplementedError
         if self._fcoords[axis] is not None:
             return self._fcoords[axis]
         ci = na.empty(self.data_size, dtype='int64')

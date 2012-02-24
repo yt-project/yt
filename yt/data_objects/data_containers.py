@@ -327,8 +327,7 @@ class YTDataContainer(object):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        if self._current_chunk is None or \
-            self._current_chunk.chunk_type == "all":
+        if self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
@@ -506,6 +505,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
 
     def chunks(self, fields, chunking_style, **kwargs):
         # This is an iterator that will yield the necessary chunks.
+        self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
         for chunk in self.hierarchy._chunk(self, chunking_style, **kwargs):
             with self._chunked_read(chunk):
