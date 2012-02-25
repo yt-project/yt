@@ -341,7 +341,7 @@ class YTDataChunk(object):
     def fcoords(self, axis):
         if self._fcoords[axis] is not None:
             return self._fcoords[axis]
-        ci = na.empty(self.data_size, dtype='int64')
+        ci = na.empty(self.data_size, dtype='float64')
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
