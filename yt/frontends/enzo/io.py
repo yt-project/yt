@@ -81,7 +81,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 last = g.filename
                 handle = h5py.File(last)
             if read_fluids:
-                mask = selector.fill_mask(g)
+                mask = g.select(selector)
             if read_particles:
                 x,y,z = self._get_particle_positions(g, handle)
                 mask = selector.fill_point_mask(g, x, y, z)

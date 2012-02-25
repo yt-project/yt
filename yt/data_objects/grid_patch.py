@@ -506,7 +506,7 @@ class AMRGridPatch(object):
         return new_field
 
     def icoords(self, dobj, axis):
-        mask = dobj.selector.fill_mask(self)
+        mask = self.select(dobj.selector)
         if mask is None: return na.empty(0, dtype='int64')
         ci = na.ones(self.shape, dtype='int64') 
         ci += self.get_global_startindex()[axis]
@@ -514,3 +514,6 @@ class AMRGridPatch(object):
         shape[axis] = self.ActiveDimensions[axis]
         ii = na.arange(self.ActiveDimensions[axis]).reshape(tuple(shape))
         return (ci + ii)[mask]
+
+    def select(self, selector):
+        return selector.fill_mask(self)

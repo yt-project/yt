@@ -327,7 +327,8 @@ class YTDataContainer(object):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        if self._current_chunk.chunk_type != "spatial":
+        if self._current_chunk is None or \
+           self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
@@ -338,7 +339,7 @@ class YTDataContainer(object):
             ind = 0
             ngz = ngt_exception.ghost_zones
             for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
-                mask = self.selector.fill_mask(self._current_chunk.objs[0])
+                mask = self._current_chunk.objs[0].select(self.selector)
                 if mask is None: continue
                 data = self[field]
                 if ngz > 0:
