@@ -297,6 +297,21 @@ class GeometryHandler(ParallelAnalysisInterface):
         obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
 
+    def _chunk(self, dobj, chunking_style, ngz = 0):
+        # A chunk is either None or (grids, size)
+        if dobj._current_chunk is None:
+            self._identify_base_chunk(dobj)
+        if ngz != 0 and chunking_style != "spatial":
+            raise NotImplementedError
+        if chunking_style == "all":
+            return self._chunk_all(dobj)
+        elif chunking_style == "spatial":
+            return self._chunk_spatial(dobj, ngz)
+        elif chunking_style == "io":
+            return self._chunk_io(dobj)
+        else:
+            raise NotImplementedError
+
 class YTDataChunk(object):
     _icoords = (None, None, None)
     _fcoords = (None, None, None)

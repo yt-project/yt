@@ -176,7 +176,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
 
-    def _find_grids_selector(self, dobj):
+    def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
@@ -186,7 +186,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         if len(fields) == 0: return {}, []
         selector = dobj.selector
         if chunk is None:
-            self._find_grids_selector(dobj)
+            self._identify_base_chunk(dobj)
             grids = dobj._grids
             chunk_size = dobj.size
         else:
@@ -211,42 +211,34 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
-    def _chunk(self, dobj, chunking_style, ngz = 0):
-        # A chunk is either None or (grids, size)
-        if dobj._current_chunk is None:
-            self._find_grids_selector(dobj)
-            gobjs = dobj._grids
-        else:
-            gobjs = dobj._current_chunk.objs
-        if ngz != 0 and chunking_style != "spatial":
-            raise NotImplementedError
-        if chunking_style == "all":
-            yield YTDataChunk(dobj, "all", gobjs, dobj.size)
-        elif chunking_style == "spatial":
-            # This needs to be parallelized
-            for i,og in enumerate(gobjs):
-                if ngz > 0:
-                    g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
-                else:
-                    g = og
-                size = self._count_selection(dobj, [og])
-                if size == 0: continue
-                yield YTDataChunk(dobj, "spatial", [g], size)
-        elif chunking_style == "io":
-            gfiles = defaultdict(list)
-            for g in gobjs:
-                gfiles[g.filename].append(g)
-            for fn in sorted(gfiles):
-                gs = gfiles[fn]
-                yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs))
-        else:
-            raise NotImplementedError
-
     def _count_selection(self, dobj, grids = None):
         selector = dobj.selector
         if grids is None:
-            self._find_grids_selector(dobj)
+            self._identify_base_chunk(dobj)
             grids = dobj._grids
-        count = sum((selector.count_cells(g) for g in grids))
+        count = sum((g.count(selector) for g in grids))
         return count
 
+    def _chunk_all(self, dobj):
+        if chunking_style == "all":
+            yield YTDataChunk(dobj, "all", gobjs, dobj.size)
+        
+    def _chunk_spatial(self, dobj, ngz):
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
+        for i,og in enumerate(gobjs):
+            if ngz > 0:
+                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+            else:
+                g = og
+            size = self._count_selection(dobj, [og])
+            if size == 0: continue
+            yield YTDataChunk(dobj, "spatial", [g], size)
+
+    def _chunk_io(self, dobj):
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
+        for g in gobjs:
+            gfiles[g.filename].append(g)
+        for fn in sorted(gfiles):
+            gs = gfiles[fn]
+            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs))

@@ -517,3 +517,6 @@ class AMRGridPatch(object):
 
     def select(self, selector):
         return selector.fill_mask(self)
+
+    def count(self, selector):
+        return selector.count_cells(self)
