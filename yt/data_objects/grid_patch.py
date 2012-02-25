@@ -508,11 +508,22 @@ class AMRGridPatch(object):
     def icoords(self, dobj, axis):
         mask = self.select(dobj.selector)
         if mask is None: return na.empty(0, dtype='int64')
-        ci = na.ones(self.shape, dtype='int64') 
+        ci = na.zeros(self.shape, dtype='int64') 
         ci += self.get_global_startindex()[axis]
         shape = [1, 1, 1]
         shape[axis] = self.ActiveDimensions[axis]
         ii = na.arange(self.ActiveDimensions[axis]).reshape(tuple(shape))
+        return (ci + ii)[mask]
+
+    def fcoords(self, dobj, axis):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty(0, dtype='float64')
+        ci = na.zeros(self.shape, dtype='float64') 
+        ci += self.LeftEdge[axis]
+        shape = [1, 1, 1]
+        shape[axis] = self.ActiveDimensions[axis]
+        ii = na.arange(self.ActiveDimensions[axis]).reshape(tuple(shape)) + 0.5
+        ii *= self.dds[axis]
         return (ci + ii)[mask]
 
     def select(self, selector):

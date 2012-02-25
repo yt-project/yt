@@ -220,8 +220,8 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         return count
 
     def _chunk_all(self, dobj):
-        if chunking_style == "all":
-            yield YTDataChunk(dobj, "all", gobjs, dobj.size)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
+        yield YTDataChunk(dobj, "all", gobjs, dobj.size)
         
     def _chunk_spatial(self, dobj, ngz):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
