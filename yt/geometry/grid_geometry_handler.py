@@ -182,7 +182,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                                             self.grid_right_edge)
             dobj._grids = self.grids[gi]
         if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection
+            dobj.size = self._count_selection(dobj)
             dobj.shape = (dobj.size,)
 
     def _count_selection(self, dobj, grids = None):
