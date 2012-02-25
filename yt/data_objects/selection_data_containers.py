@@ -34,9 +34,7 @@ from yt.utilities.amr_utils import \
     VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, \
     grid_points_in_volume
 from .data_containers import \
-    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
-    restore_grid_state, cache_mask, cache_point_indices, cache_vc_data, \
-    FakeGridForParticles
+    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection
 from yt.utilities.definitions import \
@@ -139,13 +137,6 @@ class YTRayBase(YTSelectionContainer1D):
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = {}, {}
 
-    def _get_list_of_grids(self):
-        gi = ray_grids(self,
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
-        self._grids = self.hierarchy.grids[gi]
-
-    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         mask = na.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
@@ -156,7 +147,6 @@ class YTRayBase(YTSelectionContainer1D):
             gf = gf * na.ones(grid.child_mask.shape)
         return gf[mask]
 
-    @cache_mask
     def _get_cut_mask(self, grid):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         dts = na.zeros(grid.ActiveDimensions, dtype='float64')
@@ -172,7 +162,7 @@ class YTSliceBase(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
-    #@time_execution
+
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, **kwargs):
         """
@@ -275,81 +265,9 @@ class YTSliceBase(YTSelectionContainer2D):
 
         self.ActiveDimensions = (t.shape[1], 1, 1)
 
-    def _get_list_of_grids(self):
-        gi = slice_grids(self,
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
-        self._grids = self.hierarchy.grids[gi]
-
-    def __cut_mask_child_mask(self, grid):
-        mask = grid.child_mask.copy()
-        return mask
-
-    def _generate_grid_coords(self, grid):
-        xaxis = x_dict[self.axis]
-        yaxis = y_dict[self.axis]
-        ds, dx, dy = grid.dds[self.axis], grid.dds[xaxis], grid.dds[yaxis]
-        sl_ind = int((self.coord-self.pf.domain_left_edge[self.axis])/ds) - \
-                     grid.get_global_startindex()[self.axis]
-        sl = [slice(None), slice(None), slice(None)]
-        sl[self.axis] = slice(sl_ind, sl_ind + 1)
-        #sl.reverse()
-        sl = tuple(sl)
-        nx = grid.child_mask.shape[xaxis]
-        ny = grid.child_mask.shape[yaxis]
-        mask = self.__cut_mask_child_mask(grid)[sl]
-        cm = na.where(mask.ravel()== 1)
-        cmI = na.indices((nx,ny))
-        xind = cmI[0,:].ravel()
-        xpoints = na.ones(cm[0].shape, 'float64')
-        xpoints *= xind[cm]*dx+(grid.LeftEdge[xaxis] + 0.5*dx)
-        yind = cmI[1,:].ravel()
-        ypoints = na.ones(cm[0].shape, 'float64')
-        ypoints *= yind[cm]*dy+(grid.LeftEdge[yaxis] + 0.5*dy)
-        zpoints = na.ones(xpoints.shape, 'float64') * self.coord
-        dx = na.ones(xpoints.shape, 'float64') * dx/2.0
-        dy = na.ones(xpoints.shape, 'float64') * dy/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx, dy]).swapaxes(0,1)
-        return t
-
-    @restore_grid_state
-    def _get_data_from_grid(self, grid, field):
-        # So what's our index of slicing?  This is what we need to figure out
-        # first, so we can deal with our data in the fastest way.
-        dx = grid.dds[self.axis]
-        sl_ind = int((self.coord-self.pf.domain_left_edge[self.axis])/dx) - \
-                     grid.get_global_startindex()[self.axis]
-        sl = [slice(None), slice(None), slice(None)]
-        sl[self.axis] = slice(sl_ind, sl_ind + 1)
-        sl = tuple(sl)
-        if self.pf.field_info.has_key(field) and self.pf.field_info[field].particle_type:
-            return grid[field]
-        elif field in self.pf.field_info and self.pf.field_info[field].not_in_all:
-            dv = grid[field][sl]
-        elif not grid.has_key(field):
-            conv_factor = 1.0
-            if self.pf.field_info.has_key(field):
-                conv_factor = self.pf.field_info[field]._convert_function(self)
-            dv = self.hierarchy.io._read_data_slice(grid, field, self.axis, sl_ind) * conv_factor
-        else:
-            dv = grid[field]
-            if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
-            dv = dv[sl]
-        mask = self.__cut_mask_child_mask(grid)[sl]
-        dataVals = dv.ravel()[mask.ravel() == 1]
-        return dataVals
-
     def _gen_node_name(self):
         return "%s/%s_%s" % \
             (self._top_node, self.axis, self.coord)
-
-    def __get_quantities(self):
-        if self.__quantities is None:
-            self.__quantities = DerivedQuantityCollection(self)
-        return self.__quantities
-    __quantities = None
-    quantities = property(__get_quantities)
-
 
 class YTCuttingPlaneBase(YTSelectionContainer2D):
     _plane = None
@@ -435,24 +353,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
                                           self.pf.h.grid_right_edge)
         self._grids = self.hierarchy.grids[gridi.astype("bool")]
 
-    @cache_mask
-    def _get_cut_mask(self, grid):
-        # This is slow.  Suggestions for improvement would be great...
-        ss = grid.ActiveDimensions
-        D = na.ones(ss) * self._d
-        x = grid.LeftEdge[0] + grid.dds[0] * \
-                (na.arange(grid.ActiveDimensions[0], dtype='float64')+0.5)
-        y = grid.LeftEdge[1] + grid.dds[1] * \
-                (na.arange(grid.ActiveDimensions[1], dtype='float64')+0.5)
-        z = grid.LeftEdge[2] + grid.dds[2] * \
-                (na.arange(grid.ActiveDimensions[2], dtype='float64')+0.5)
-        D += (x * self._norm_vec[0]).reshape(ss[0],1,1)
-        D += (y * self._norm_vec[1]).reshape(1,ss[1],1)
-        D += (z * self._norm_vec[2]).reshape(1,1,ss[2])
-        diag_dist = na.sqrt(na.sum(grid.dds**2.0))
-        cm = (na.abs(D) <= 0.5*diag_dist) # Boolean
-        return cm
-
     def _generate_coords(self):
         points = []
         for grid in self._get_grids():
@@ -467,32 +367,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         self['pdx'] = t[:,3] * 0.5
         self['pdy'] = t[:,3] * 0.5
         self['pdz'] = t[:,3] * 0.5
-
-    def _generate_grid_coords(self, grid):
-        pointI = self._get_point_indices(grid)
-        coords = [grid[ax][pointI].ravel() for ax in 'xyz']
-        coords.append(na.ones(coords[0].shape, 'float64') * just_one(grid['dx']))
-        return na.array(coords).swapaxes(0,1)
-
-    def _get_data_from_grid(self, grid, field):
-        if not self.pf.field_info[field].particle_type:
-            pointI = self._get_point_indices(grid)
-            if grid[field].size == 1: # dx, dy, dz, cellvolume
-                t = grid[field] * na.ones(grid.ActiveDimensions)
-                return t[pointI].ravel()
-            return grid[field][pointI].ravel()
-        else:
-            return grid[field]
-
-    def interpolate_discretize(self, *args, **kwargs):
-        pass
-
-    @cache_point_indices
-    def _get_point_indices(self, grid, use_child_mask=True):
-        k = na.zeros(grid.ActiveDimensions, dtype='bool')
-        k = (k | self._get_cut_mask(grid))
-        if use_child_mask: k = (k & grid.child_mask)
-        return na.where(k)
 
     def _gen_node_name(self):
         cen_name = ("%s" % (self.center,)).replace(" ","_")[1:-1]
@@ -697,7 +571,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
-    #@time_execution
     def get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
@@ -727,7 +600,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     def interpolate_discretize(self, *args, **kwargs):
         pass
 
-    @cache_vc_data
     def _calc_vertex_centered_data(self, grid, field):
         #return grid.retrieve_ghost_zones(1, field, smoothed=False)
         return grid.get_vertex_centered_data(field)
@@ -789,7 +661,6 @@ class YTDiskBase(YTSelectionContainer3D):
         return (na.all(na.abs(H) < self._height, axis=0) \
             and na.all(R < self._radius, axis=0))
 
-    @cache_mask
     def _get_cut_mask(self, grid):
         if self._is_fully_enclosed(grid):
             return True
@@ -927,7 +798,6 @@ class YTGridCollectionBase(YTSelectionContainer3D):
     def _is_fully_enclosed(self, grid):
         return True
 
-    @cache_mask
     def _get_cut_mask(self, grid):
         return na.ones(grid.ActiveDimensions, dtype='bool')
 

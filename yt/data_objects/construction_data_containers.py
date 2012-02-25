@@ -37,8 +37,7 @@ from functools import wraps
 from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
-    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
-    restore_grid_state, cache_mask, restore_field_information_state
+    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
 from .field_info_container import \
     NeedsOriginalGrid
 from yt.utilities.amr_utils import \
@@ -117,7 +116,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
         p = na.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
         self._grids = self.hierarchy.grids[p]
 
-    @restore_grid_state
+    #@restore_grid_state
     def _get_data_from_grid(self, grid, field):
         mask = na.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
@@ -125,7 +124,6 @@ class YTStreamlineBase(YTSelectionContainer1D):
         if field == 't': return self._ts[grid.id][mask]
         return grid[field][mask]
 
-    @cache_mask
     def _get_cut_mask(self, grid):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         dts = na.zeros(grid.ActiveDimensions, dtype='float64')
@@ -417,7 +415,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                 point_mask *= eval(cut)
         return point_mask
 
-    @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         if self._check_region:
@@ -546,7 +543,6 @@ class YTOverlapProjBase(YTSelectionContainer2D):
             self._node_name = "%s/%s" % (self._top_node,self._node_name)
             self._okay_to_serialize = True
 
-    #@time_execution
     def __calculate_overlap(self, level):
         s = self.source
         mylog.info("Generating overlap masks for level %s", level)
@@ -675,7 +671,6 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                 raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
-    #@time_execution
     def get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
@@ -797,7 +792,6 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                 point_mask *= eval(cut)
         return point_mask
 
-    @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         if self._check_region:
@@ -923,7 +917,6 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         for grid in self._grids:
             self._flush_data_to_grid(grid, fields_to_get)
 
-    @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
@@ -1074,7 +1067,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
                                    output_field, output_left)
             self.field_data[field] = output_field
 
-    @restore_field_information_state
+    #@restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field].astype("float64") for field in fields]
@@ -1213,7 +1206,7 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
                 dls[level].append(float(just_one(grid['d%s' % axis_names[self.axis]])))
         return dls
 
-    @restore_grid_state
+    #@restore_grid_state
     def _get_data_from_grid(self, grid, fields, dls):
         g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]

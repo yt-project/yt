@@ -182,6 +182,10 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                                             self.grid_right_edge)
             dobj._grids = self.grids[gi]
 
+    def _count_selection(self, dobj, grids = None):
+        count = sum((g.count(dobj.selector) for g in dobj._grids))
+        return count
+
     def _read_selection(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
         selector = dobj.selector
@@ -210,14 +214,6 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                         fields_to_return[field])
         #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
-
-    def _count_selection(self, dobj, grids = None):
-        selector = dobj.selector
-        if grids is None:
-            self._identify_base_chunk(dobj)
-            grids = dobj._grids
-        count = sum((g.count(selector) for g in grids))
-        return count
 
     def _chunk_all(self, dobj):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)

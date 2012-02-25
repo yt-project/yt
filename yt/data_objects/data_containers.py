@@ -60,120 +60,11 @@ def force_array(item, shape):
         else:
             return na.zeros(shape, dtype='bool')
 
-def restore_grid_state(func):
-    """
-    A decorator that takes a function with the API of (self, grid, field)
-    and ensures that after the function is called, the field_parameters will
-    be returned to normal.
-    """
-    def save_state(self, grid, field=None, *args, **kwargs):
-        old_params = grid.field_parameters
-        old_keys = grid.field_data.keys()
-        grid.field_parameters = self.field_parameters
-        tr = func(self, grid, field, *args, **kwargs)
-        grid.field_parameters = old_params
-        grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
-        return tr
-    return save_state
-
-def restore_field_information_state(func):
-    """
-    A decorator that takes a function with the API of (self, grid, field)
-    and ensures that after the function is called, the field_parameters will
-    be returned to normal.
-    """
-    def save_state(self, grid, field=None, *args, **kwargs):
-        old_params = grid.field_parameters
-        grid.field_parameters = self.field_parameters
-        tr = func(self, grid, field, *args, **kwargs)
-        grid.field_parameters = old_params
-        return tr
-    return save_state
-
-def cache_mask(func):
-    """
-    For computationally intensive indexing operations, we can cache
-    between calls.
-    """
-    def check_cache(self, grid):
-        if isinstance(grid, FakeGridForParticles):
-            return func(self, grid)
-        elif grid.id not in self._cut_masks or \
-                hasattr(self, "_boolean_touched"):
-            cm = func(self, grid)
-            self._cut_masks[grid.id] = cm
-        return self._cut_masks[grid.id]
-    return check_cache
-
-def cache_point_indices(func):
-    """
-    For computationally intensive indexing operations, we can cache
-    between calls.
-    """
-    def check_cache(self, grid, use_child_mask=True):
-        if isinstance(grid, FakeGridForParticles):
-            return func(self, grid, use_child_mask)
-        elif grid.id not in self._point_indices:
-            cm = func(self, grid, use_child_mask)
-            self._point_indices[grid.id] = cm
-        return self._point_indices[grid.id]
-    return check_cache
-
-def cache_vc_data(func):
-    """
-    For computationally intensive operations, we can cache between
-    calls.
-    """
-    def check_cache(self, grid, field):
-        if isinstance(grid, FakeGridForParticles):
-            return func(self, grid, field)
-        elif grid.id not in self._vc_data[field]:
-            vc = func(self, grid, field)
-            self._vc_data[field][grid.id] = vc
-        return self._vc_data[field][grid.id]
-    return check_cache
-
 class YTFieldData(dict):
     """
     A Container object for field data, instead of just having it be a dict.
     """
     pass
-
-class FakeGridForParticles(object):
-    """
-    Mock up a grid to insert particle positions and radii
-    into for purposes of confinement in an :class:`YTSelectionContainer3D`.
-    """
-    def __init__(self, grid):
-        self._corners = grid._corners
-        self.field_parameters = {}
-        self.field_data = YTFieldData({'x':grid['particle_position_x'],
-                                       'y':grid['particle_position_y'],
-                                       'z':grid['particle_position_z'],
-                                       'dx':grid['dx'],
-                                       'dy':grid['dy'],
-                                       'dz':grid['dz']})
-        self.dds = grid.dds.copy()
-        self.real_grid = grid
-        self.child_mask = True
-        self.ActiveDimensions = self.field_data['x'].shape
-        self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
-        
-    def __getitem__(self, field):
-        if field not in self.field_data.keys():
-            if field == "RadiusCode":
-                center = self.field_parameters['center']
-                tempx = na.abs(self['x'] - center[0])
-                tempx = na.minimum(tempx, self.DW[0] - tempx)
-                tempy = na.abs(self['y'] - center[1])
-                tempy = na.minimum(tempy, self.DW[1] - tempy)
-                tempz = na.abs(self['z'] - center[2])
-                tempz = na.minimum(tempz, self.DW[2] - tempz)
-                tr = na.sqrt( tempx**2.0 + tempy**2.0 + tempz**2.0 )
-            else:
-                raise KeyError(field)
-        else: tr = self.field_data[field]
-        return tr
 
 class YTDataContainer(object):
     """
@@ -724,78 +615,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._set_center(center)
         self.coords = None
         self._grids = None
-
-    def _generate_coords(self):
-        mylog.info("Generating coords for %s grids", len(self._grids))
-        points = []
-        for i,grid in enumerate(self._grids):
-            #grid._generate_coords()
-            if ( (i%100) == 0):
-                mylog.info("Working on % 7i / % 7i", i, len(self._grids))
-            grid.set_field_parameter("center", self.center)
-            points.append((na.ones(
-                grid.ActiveDimensions,dtype='float64')*grid['dx'])\
-                    [self._get_point_indices(grid)])
-            t = na.concatenate([t,points])
-            del points
-        self['dx'] = t
-        #self['dy'] = t
-        #self['dz'] = t
-        mylog.info("Done with coordinates")
-
-    @restore_grid_state
-    def _generate_grid_coords(self, grid, field=None):
-        pointI = self._get_point_indices(grid)
-        dx = na.ones(pointI[0].shape[0], 'float64') * grid.dds[0]
-        tr = na.array([grid['x'][pointI].ravel(), \
-                grid['y'][pointI].ravel(), \
-                grid['z'][pointI].ravel(), \
-                grid["RadiusCode"][pointI].ravel(),
-                dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
-        return tr
-
-    @restore_grid_state
-    def _get_data_from_grid(self, grid, field):
-        if field in self.pf.field_info and self.pf.field_info[field].particle_type:
-            # int64 -> float64 with the first real set of data
-            if grid.NumberOfParticles == 0: return na.array([], dtype='int64')
-            pointI = self._get_particle_indices(grid)
-            if self.pf.field_info[field].vector_field:
-                f = grid[field]
-                return na.array([f[i,:][pointI] for i in range(3)])
-            if self._is_fully_enclosed(grid): return grid[field].ravel()
-            return grid[field][pointI].ravel()
-        if field in self.pf.field_info and self.pf.field_info[field].vector_field:
-            pointI = self._get_point_indices(grid)
-            f = grid[field]
-            return na.array([f[i,:][pointI] for i in range(3)])
-        else:
-            tr = grid[field]
-            if tr.size == 1: # dx, dy, dz, cellvolume
-                tr = tr * na.ones(grid.ActiveDimensions, dtype='float64')
-            if len(grid.Children) == 0 and grid.OverlappingSiblings is None \
-                and self._is_fully_enclosed(grid):
-                return tr.ravel()
-            pointI = self._get_point_indices(grid)
-            return tr[pointI].ravel()
-
-    def _flush_data_to_grids(self, field, default_val, dtype='float32'):
-        """
-        A dangerous, thusly underscored, thing to do to a data object,
-        we can flush back any changes in a given field that have been made
-        with a default value for the rest of the grid.
-        """
-        i = 0
-        for grid in self._grids:
-            pointI = self._get_point_indices(grid)
-            np = pointI[0].ravel().size
-            if grid.has_key(field):
-                new_field = grid[field]
-            else:
-                new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
-            new_field[pointI] = self[field][i:i+np]
-            grid[field] = new_field
-            i += np
+        self.quantities = DerivedQuantityCollection(self)
 
     def cut_region(self, field_cuts):
         """
@@ -811,13 +631,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         fp = self.field_parameters.copy()
         return YTSelectedIndicesBase(self, indices, **fp)
-
-    def __get_quantities(self):
-        if self.__quantities is None:
-            self.__quantities = DerivedQuantityCollection(self)
-        return self.__quantities
-    __quantities = None
-    quantities = property(__get_quantities)
 
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):
@@ -907,7 +720,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return verts
 
 
-    @restore_grid_state
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        sample_values = None):
         mask = self._get_cut_mask(grid) * grid.child_mask
@@ -991,7 +803,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
-    @restore_grid_state
     def _calculate_flux_in_grid(self, grid, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
         mask = self._get_cut_mask(grid) * grid.child_mask
@@ -1252,7 +1063,6 @@ class YTValueCutExtractionBase(YTSelectionContainer3D):
     def _is_fully_enclosed(self, grid):
         return False
 
-    @cache_mask
     def _get_cut_mask(self, grid):
         point_mask = na.ones(grid.ActiveDimensions, dtype='bool')
         point_mask *= self._base_region._get_cut_mask(grid)
