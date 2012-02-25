@@ -130,10 +130,10 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
     cdef int cp
+    cdef int s = 0
     for i_off in range(i_f):
         i = i_off + i_i
         cx = (leftedges[0] + i*dx)
-        if i_f > 2: print k, cz
         for j_off in range(j_f):
             j = j_off + j_i
             cy = (leftedges[1] + j*dx)
@@ -160,9 +160,8 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                     genealogy[cp, 0] = curpos[level+1] 
                     # set next parent id to id of current cell
                     genealogy[curpos[level+1]:curpos[level+1]+8, 1] = cp
-                    s = RecurseOctreeByLevels(child_i, child_j, child_k, 2, 2, 2,
+                    RecurseOctreeByLevels(child_i, child_j, child_k, 2, 2, 2,
                                               curpos, ci, output, genealogy,
                                               corners, grids)
                 curpos[level] += 1
-    return s
-
+    return
