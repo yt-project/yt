@@ -386,6 +386,9 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
     size = None
     shape = None
 
+    def __init__(self, *args, **kwargs):
+        super(YTSelectionContainer, self).__init__(*args, **kwargs)
+
     @property
     def selector(self):
         if self._selector is not None: return self._selector
@@ -406,9 +409,8 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
                 yield self
 
     def get_data(self, fields=None, in_grids = False):
-        if self.size is None:
-            self.size = self.hierarchy._count_selection(self)
-            self.shape = (self.size,)
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         if fields is None: return
         fields = ensure_list(fields)
         # For 1D objects, or anything thant wants a sorting.
@@ -483,7 +485,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):
-        YTDataContainer.__init__(self, pf, fields, **kwargs)
+        super(YTSelectionContainer1D, self).__init__(pf, fields, **kwargs)
         self._grids = None
         self._sortkey = None
         self._sorted = {}
@@ -502,7 +504,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         """
         ParallelAnalysisInterface.__init__(self)
         self.axis = axis
-        YTDataContainer.__init__(self, pf, fields, **kwargs)
+        super(YTSelectionContainer2D, self).__init__(pf, fields, **kwargs)
         self.field = ensure_list(fields)[0]
         self.set_field_parameter("axis",axis)
         
@@ -611,7 +613,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         for fields and quantities that require it.
         """
         ParallelAnalysisInterface.__init__(self)
-        YTDataContainer.__init__(self, pf, fields, **kwargs)
+        super(YTSelectionContainer3D, self).__init__(pf, fields, **kwargs)
         self._set_center(center)
         self.coords = None
         self._grids = None
