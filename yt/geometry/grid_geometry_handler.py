@@ -184,6 +184,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
             dobj.shape = (dobj.size,)
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _count_selection(self, dobj, grids = None):
         if grids is None: grids = dobj._grids

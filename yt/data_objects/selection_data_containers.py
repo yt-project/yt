@@ -162,6 +162,7 @@ class YTSliceBase(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
+    _container_fields = ("px", "py", "pdx", "pdy")
 
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, **kwargs):
@@ -264,6 +265,18 @@ class YTSliceBase(YTSelectionContainer2D):
         self[axis_names[self.axis]] = t[2,:]
 
         self.ActiveDimensions = (t.shape[1], 1, 1)
+
+    def _generate_container_field(self, field):
+        if field == "px":
+            return self._current_chunk.fcoords(x_dict[self.axis])
+        elif field == "py":
+            return self._current_chunk.fcoords(y_dict[self.axis])
+        elif field == "pdx":
+            f = "d%s" % (axis_names[x_dict[self.axis]])
+            return self._generate_field(f)
+        elif field == "pdy":
+            f = "d%s" % (axis_names[x_dict[self.axis]])
+            return self._generate_field(f)
 
     def _gen_node_name(self):
         return "%s/%s_%s" % \

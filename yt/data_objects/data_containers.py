@@ -76,6 +76,7 @@ class YTDataContainer(object):
     _num_ghost_zones = 0
     _con_args = ()
     _skip_add = False
+    _container_fields = ()
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -209,9 +210,11 @@ class YTDataContainer(object):
         del self.field_data[key]
 
     def _generate_field(self, field):
-        if not self.pf.field_info.has_key(field):
+        if field in self._container_fields:
+            return self._generate_container_field(field)
+        elif not self.pf.field_info.has_key(field):
             raise KeyError(field)
-        if self.pf.field_info[field].particle_type:
+        elif self.pf.field_info[field].particle_type:
             return self._generate_particle_field(field)
         else:
             return self._generate_fluid_field(field)
@@ -243,6 +246,9 @@ class YTDataContainer(object):
         return rv
 
     def _generate_particle_field(self, field):
+        raise NotImplementedError
+
+    def _generate_container_field(self, field):
         raise NotImplementedError
 
     def _parameter_iterate(self, seq):
@@ -427,10 +433,11 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         inspected = 0
         for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
+            inspected += 1
+            if field not in self.pf.field_dependencies: continue
             fd = self.pf.field_dependencies[field]
             deps = [d for d in fd.requested if d not in fields_to_get]
             fields_to_get += deps
-            inspected += 1
         # If in_grids is True, then it's looking for a refresh of the data that
         # exists in memory somewhere.  I don't yet know the right behavior
         # here.
