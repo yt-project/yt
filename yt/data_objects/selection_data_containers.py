@@ -288,6 +288,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['pz','pdz']
     _type_name = "cutting"
     _con_args = ('normal', 'center')
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
+
     def __init__(self, normal, center, fields = None, node_name = None,
                  **kwargs):
         """
@@ -433,6 +435,42 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
         return frb
 
+    def _generate_container_field(self, field):
+        if field == "px":
+            x = self._current_chunk.fcoords(0) - self.center[0]
+            y = self._current_chunk.fcoords(1) - self.center[1]
+            z = self._current_chunk.fcoords(2) - self.center[2]
+            tr = na.zeros(self.size, dtype='float64')
+            tr += x * self._x_vec[0]
+            tr += y * self._x_vec[1]
+            tr += z * self._x_vec[2]
+            return tr
+        elif field == "py":
+            x = self._current_chunk.fcoords(0) - self.center[0]
+            y = self._current_chunk.fcoords(1) - self.center[1]
+            z = self._current_chunk.fcoords(2) - self.center[2]
+            tr = na.zeros(self.size, dtype='float64')
+            tr += x * self._y_vec[0]
+            tr += y * self._y_vec[1]
+            tr += z * self._y_vec[2]
+            return tr
+        elif field == "pz":
+            x = self._current_chunk.fcoords(0) - self.center[0]
+            y = self._current_chunk.fcoords(1) - self.center[1]
+            z = self._current_chunk.fcoords(2) - self.center[2]
+            tr = na.zeros(self.size, dtype='float64')
+            tr += x * self._norm_vec[0]
+            tr += y * self._norm_vec[1]
+            tr += z * self._norm_vec[2]
+            return tr
+        elif field == "pdx":
+            return self._current_chunk.fwidth(0) * 0.5
+        elif field == "pdy":
+            return self._current_chunk.fwidth(1) * 0.5
+        elif field == "pdz":
+            return self._current_chunk.fwidth(2) * 0.5
+        else:
+            raise KeyError(field)
 
 class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     """
