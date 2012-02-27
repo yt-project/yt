@@ -40,6 +40,7 @@ from .field_info_container import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter
+from yt.geometry.selection_routines import convert_mask_to_indices
 
 class AMRGridPatch(object):
     _spatial = True
@@ -57,7 +58,8 @@ class AMRGridPatch(object):
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
                  '_child_mask', '_child_indices', '_child_index_mask',
-                 '_parent_id', '_children_ids']
+                 '_parent_id', '_children_ids',
+                 '_last_mask', '_last_selector_id']
 
     def __init__(self, id, filename=None, hierarchy=None):
         self.field_data = YTFieldData()
@@ -67,6 +69,8 @@ class AMRGridPatch(object):
         self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
+        self._last_mask = None
+        self._last_selector_id = None
 
     def get_global_startindex(self):
         """
@@ -507,29 +511,18 @@ class AMRGridPatch(object):
 
     def icoords(self, dobj):
         mask = self.select(dobj.selector)
-        if mask is None: return na.empty(0, dtype='int64')
-        coords = na.empty((mask.sum(), 3), dtype='float64')
-        ci = na.zeros(self.shape, dtype='int64') 
-        for axis in range(3):
-            ci[:] = self.get_global_startindex()[axis]
-            shape = [1, 1, 1]
-            shape[axis] = self.ActiveDimensions[axis]
-            ii = na.arange(self.ActiveDimensions[axis]).reshape(tuple(shape))
-            coords[:,axis] = (ci + ii)[mask]
+        if mask is None: return na.empty((0,3), dtype='int64')
+        coords = convert_mask_to_indices(mask, mask.sum())
+        coords += self.get_global_startindex()[None, :]
         return coords
 
     def fcoords(self, dobj):
         mask = self.select(dobj.selector)
         if mask is None: return na.empty((0,3), dtype='float64')
-        coords = na.empty((mask.sum(), 3), dtype='float64')
-        ci = na.zeros(self.shape, dtype='float64') 
-        for axis in range(3):
-            ci[:] = self.LeftEdge[axis]
-            shape = [1, 1, 1]
-            shape[axis] = self.ActiveDimensions[axis]
-            ii = na.arange(self.ActiveDimensions[axis]).reshape(tuple(shape)) + 0.5
-            ii *= self.dds[axis]
-            coords[:,axis] = (ci + ii)[mask]
+        coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
+        coords += 0.5
+        coords *= self.dds[None, :]
+        coords += self.LeftEdge[None, :]
         return coords
 
     def fwidth(self, dobj):
@@ -540,8 +533,23 @@ class AMRGridPatch(object):
             coords[:,axis] = self.dds[axis]
         return coords
 
+    def ires(self, dobj):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty(0, dtype='int64')
+        coords = na.empty(mask.sum(), dtype='int64')
+        coords[:] = self.Level
+        return coords
+
     def select(self, selector):
-        return selector.fill_mask(self)
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
 
     def count(self, selector):
-        return selector.count_cells(self)
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)

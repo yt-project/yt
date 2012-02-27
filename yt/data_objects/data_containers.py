@@ -490,6 +490,22 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
         self._current_chunk = old_chunk
         self._locked = old_locked
 
+    @property
+    def icoords(self):
+        return self._current_chunk.icoords
+
+    @property
+    def fcoords(self):
+        return self._current_chunk.fcoords
+
+    @property
+    def ires(self):
+        return self._current_chunk.ires
+
+    @property
+    def fwidth(self):
+        return self._current_chunk.fwidth
+
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):

@@ -75,7 +75,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             rv[field] = na.empty(fsize, dtype=ds.dtype)
         ind = 0
         ng = sum(len(c.objs) for c in chunks)
-        print len(chunks), ng
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f1 for f1, f2 in fields], ng)
         for chunk in chunks:

@@ -365,3 +365,18 @@ class YTDataChunk(object):
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
         return ci
+
+    _ires = None
+    @property
+    def ires(self):
+        if self._ires is not None: return self._ires
+        ci = na.empty(self.data_size, dtype='int64')
+        self._ires = ci
+        if self.data_size == 0: return self._ires
+        ind = 0
+        for obj in self.objs:
+            c = obj.ires(self.dobj)
+            if c.shape == 0: continue
+            ci[ind:ind+c.size] = c
+            ind += c.size
+        return ci

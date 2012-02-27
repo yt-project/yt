@@ -238,34 +238,6 @@ class YTSliceBase(YTSelectionContainer2D):
             raise ValueError(val)
         self.field_data.clear()
 
-    def _generate_coords(self):
-        points = []
-        for grid in self._get_grids():
-            points.append(self._generate_grid_coords(grid))
-        if len(points) == 0:
-            points = None
-            t = self.comm.par_combine_object(None, datatype="array", op="cat")
-        else:
-            points = na.concatenate(points)
-            # We have to transpose here so that _par_combine_object works
-            # properly, as it and the alltoall assume the long axis is the last
-            # one.
-            t = self.comm.par_combine_object(points.transpose(),
-                        datatype="array", op="cat")
-        self['px'] = t[0,:]
-        self['py'] = t[1,:]
-        self['pz'] = t[2,:]
-        self['pdx'] = t[3,:]
-        self['pdy'] = t[4,:]
-        self['pdz'] = t[3,:] # Does not matter!
-
-        # Now we set the *actual* coordinates
-        self[axis_names[x_dict[self.axis]]] = t[0,:]
-        self[axis_names[y_dict[self.axis]]] = t[1,:]
-        self[axis_names[self.axis]] = t[2,:]
-
-        self.ActiveDimensions = (t.shape[1], 1, 1)
-
     def _generate_container_field(self, field):
         if field == "px":
             return self._current_chunk.fcoords[:,x_dict[self.axis]]
@@ -362,26 +334,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     @property
     def normal(self):
         return self._norm_vec
-
-    def _get_list_of_grids(self):
-        gridi = cutting_plane_grids(self, self.pf.h.grid_left_edge,
-                                          self.pf.h.grid_right_edge)
-        self._grids = self.hierarchy.grids[gridi.astype("bool")]
-
-    def _generate_coords(self):
-        points = []
-        for grid in self._get_grids():
-            points.append(self._generate_grid_coords(grid))
-        if len(points) == 0: points = None
-        else: points = na.concatenate(points)
-        t = self.comm.par_combine_object(points, datatype="array", op="cat")
-        pos = (t[:,0:3] - self.center)
-        self['px'] = na.dot(pos, self._x_vec)
-        self['py'] = na.dot(pos, self._y_vec)
-        self['pz'] = na.dot(pos, self._norm_vec)
-        self['pdx'] = t[:,3] * 0.5
-        self['pdy'] = t[:,3] * 0.5
-        self['pdz'] = t[:,3] * 0.5
 
     def _gen_node_name(self):
         cen_name = ("%s" % (self.center,)).replace(" ","_")[1:-1]
