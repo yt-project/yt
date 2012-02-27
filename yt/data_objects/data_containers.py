@@ -232,15 +232,16 @@ class YTDataContainer(object):
             rv = na.empty(self.size, dtype="float64")
             ind = 0
             ngz = ngt_exception.ghost_zones
-            for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
-                mask = self._current_chunk.objs[0].select(self.selector)
-                if mask is None: continue
-                data = self[field]
-                if ngz > 0:
-                    data = data[ngz:-ngz, ngz:-ngz, ngz:-ngz]
-                data = data[mask]
-                rv[ind:ind+data.size] = data
-                ind += data.size
+            for io_chunk in self.chunks([], "io"):
+                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
+                    mask = self._current_chunk.objs[0].select(self.selector)
+                    if mask is None: continue
+                    data = self[field]
+                    if ngz > 0:
+                        data = data[ngz:-ngz, ngz:-ngz, ngz:-ngz]
+                    data = data[mask]
+                    rv[ind:ind+data.size] = data
+                    ind += data.size
         else:
             rv = self.pf.field_info[field](gen_obj)
         return rv

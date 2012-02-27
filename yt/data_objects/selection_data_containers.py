@@ -272,11 +272,11 @@ class YTSliceBase(YTSelectionContainer2D):
         elif field == "py":
             return self._current_chunk.fcoords(y_dict[self.axis])
         elif field == "pdx":
-            f = "d%s" % (axis_names[x_dict[self.axis]])
-            return self._generate_field(f)
+            return self._current_chunk.fwidth(x_dict[self.axis]) * 0.5
         elif field == "pdy":
-            f = "d%s" % (axis_names[x_dict[self.axis]])
-            return self._generate_field(f)
+            return self._current_chunk.fwidth(y_dict[self.axis]) * 0.5
+        else:
+            raise KeyError(field)
 
     def _gen_node_name(self):
         return "%s/%s_%s" % \

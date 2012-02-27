@@ -315,6 +315,7 @@ class GeometryHandler(ParallelAnalysisInterface):
 class YTDataChunk(object):
     _icoords = (None, None, None)
     _fcoords = (None, None, None)
+    _fwidth  = (None, None, None)
 
     def __init__(self, dobj, chunk_type, objs, data_size):
         self.dobj = dobj
@@ -354,4 +355,18 @@ class YTDataChunk(object):
         self._fcoords = tuple(ll)
         return self._fcoords[axis]
 
-
+    def fwidth(self, axis):
+        if self._fwidth[axis] is not None:
+            return self._fwidth[axis]
+        ci = na.empty(self.data_size, dtype='float64')
+        if self.data_size == 0: return ci
+        ind = 0
+        for obj in self.objs:
+            c = obj.fwidth(self.dobj, axis)
+            if c.size == 0: continue
+            ci[ind:ind+c.size] = c
+            ind += c.size
+        ll = list(self._fwidth)
+        ll[axis] = ci
+        self._fwidth = tuple(ll)
+        return self._fwidth[axis]

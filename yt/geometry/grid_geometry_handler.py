@@ -180,7 +180,8 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         if getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
-            dobj._grids = self.grids[gi]
+            grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
+            dobj._grids = na.array(grids, dtype='object')
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
             dobj.shape = (dobj.size,)
@@ -196,10 +197,8 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         selector = dobj.selector
         if chunk is None:
             self._identify_base_chunk(dobj)
-            grids = dobj._grids
             chunk_size = dobj.size
         else:
-            grids = chunk.objs
             chunk_size = chunk.data_size
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
@@ -209,10 +208,12 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
                 fields_to_read.append((f, pfield))
             else:
                 fields_to_generate.append(f)
-        if len(fields_to_read) == 0 or len(grids) == 0:
+        if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_selection(grids, selector,
-                                                   fields_to_read, chunk_size)
+        fields_to_return = self.io._read_selection(self._chunk_io(dobj),
+                                                   selector,
+                                                   fields_to_read,
+                                                   chunk_size)
         for field, pfield in fields_to_read:
             conv_factor = self.pf.field_info[field]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,

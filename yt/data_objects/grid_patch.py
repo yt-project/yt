@@ -526,6 +526,11 @@ class AMRGridPatch(object):
         ii *= self.dds[axis]
         return (ci + ii)[mask]
 
+    def fwidth(self, dobj, axis):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty(0, dtype='float64')
+        return na.ones(mask.sum(), dtype='float64') * self.dds[axis]
+
     def select(self, selector):
         return selector.fill_mask(self)
 
