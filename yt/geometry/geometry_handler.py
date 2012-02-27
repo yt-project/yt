@@ -313,9 +313,6 @@ class GeometryHandler(ParallelAnalysisInterface):
             raise NotImplementedError
 
 class YTDataChunk(object):
-    _icoords = (None, None, None)
-    _fcoords = (None, None, None)
-    _fwidth  = (None, None, None)
 
     def __init__(self, dobj, chunk_type, objs, data_size):
         self.dobj = dobj
@@ -323,50 +320,48 @@ class YTDataChunk(object):
         self.objs = objs
         self.data_size = data_size
 
-    def icoords(self, axis):
-        if self._icoords[axis] is not None:
-            return self._icoords[axis]
-        ci = na.empty(self.data_size, dtype='int64')
-        if self.data_size == 0: return ci
+    _fcoords = None
+    @property
+    def fcoords(self):
+        if self._fcoords is not None: return self._fcoords
+        ci = na.empty((self.data_size, 3), dtype='float64')
+        self._fcoords = ci
+        if self.data_size == 0: return self._fcoords
         ind = 0
         for obj in self.objs:
-            c = obj.icoords(self.dobj, axis)
-            if c.size == 0: continue
-            ci[ind:ind+c.size] = c
-            ind += c.size
-        ll = list(self._icoords)
-        ll[axis] = ci
-        self._icoords = tuple(ll)
-        return self._icoords[axis]
+            c = obj.fcoords(self.dobj)
+            if c.shape[0] == 0: continue
+            ci[ind:ind+c.shape[0], :] = c
+            ind += c.shape[0]
+        return self._fcoords
 
-    def fcoords(self, axis):
-        if self._fcoords[axis] is not None:
-            return self._fcoords[axis]
-        ci = na.empty(self.data_size, dtype='float64')
-        if self.data_size == 0: return ci
-        ind = 0
-        for obj in self.objs:
-            c = obj.fcoords(self.dobj, axis)
-            if c.size == 0: continue
-            ci[ind:ind+c.size] = c
-            ind += c.size
-        ll = list(self._fcoords)
-        ll[axis] = ci
-        self._fcoords = tuple(ll)
-        return self._fcoords[axis]
 
-    def fwidth(self, axis):
-        if self._fwidth[axis] is not None:
-            return self._fwidth[axis]
-        ci = na.empty(self.data_size, dtype='float64')
-        if self.data_size == 0: return ci
+    _icoords = None
+    @property
+    def icoords(self):
+        if self._icoords is not None: return self._icoords
+        ci = na.empty((self.data_size, 3), dtype='int64')
+        self._icoords = ci
+        if self.data_size == 0: return self._icoords
         ind = 0
         for obj in self.objs:
-            c = obj.fwidth(self.dobj, axis)
-            if c.size == 0: continue
-            ci[ind:ind+c.size] = c
-            ind += c.size
-        ll = list(self._fwidth)
-        ll[axis] = ci
-        self._fwidth = tuple(ll)
-        return self._fwidth[axis]
+            c = obj.icoords(self.dobj)
+            if c.shape[0] == 0: continue
+            ci[ind:ind+c.shape[0], :] = c
+            ind += c.shape[0]
+        return ci
+
+    _fwidth = None
+    @property
+    def fwidth(self):
+        if self._fwidth is not None: return self._fwidth
+        ci = na.empty((self.data_size, 3), dtype='float64')
+        self._fwidth = ci
+        if self.data_size == 0: return self._fwidth
+        ind = 0
+        for obj in self.objs:
+            c = obj.fwidth(self.dobj)
+            if c.shape[0] == 0: continue
+            ci[ind:ind+c.shape[0], :] = c
+            ind += c.shape[0]
+        return ci
