@@ -53,16 +53,71 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
+    def _read_particle_selection(self, chunks, selector, fields):
+        last = None
+        rv = {}
+        chunks = list(chunks)
+        # Now we have to do something unpleasant
+        dobj = chunks[0].dobj
+        if "particle_type" not in dobj.pf.h.field_list and \
+           any((ftype != "all" for ftype, fname in fields)):
+            raise NotImplementedError("Sorry, but you'll have to manually " +
+                    "discriminate without a particle_type field")
+        mylog.debug("First pass: counting particles.")
+        last = chunks[0].objs[0].filename
+        handle = h5py.File(last)
+        xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
+        size = 0
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.NumberOfParticles == 0: continue
+                if last != g.filename:
+                    last = g.filename
+                    handle = h5py.File(last)
+                base = handle["/Grid%08i" % g.id]
+                x, y, z = (base["particle_position_%s" %
+                            ax][:].astype("float64") for ax in 'xyz')
+                size += g.count_particles(selector, x, y, z)
+            handle.close()
+        last = chunks[0].objs[0].filename
+        handle = h5py.File(last)
+        for field in fields:
+            # TODO: figure out dataset types
+            rv[field] = na.empty(size, dtype='float64')
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+        ind = 0
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.NumberOfParticles == 0: continue
+                if last != g.filename:
+                    last = g.filename
+                    handle = h5py.File(last)
+                base = handle["/Grid%08i" % g.id]
+                x, y, z = (base["particle_position_%s" %
+                            ax][:].astype("float64") for ax in 'xyz')
+                mask = g.select_particles(selector, x, y, z)
+                if mask is None: continue
+                for field in fields:
+                    ftype, fname = field
+                    ds = handle["/Grid%08i/%s" % (g.id, fname)]
+                    data = ds[self._base][mask]
+                    rv[field][ind:ind+data.size] = data
+                ind += data.size
+            handle.close()
+        return rv
+        
     def _read_fluid_selection(self, chunks, selector, fields, size):
         last = None
         rv = {}
-        # Now we have to do something unpleasant
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
 
+        # Now we have to do something unpleasant
         chunks = list(chunks)
         last = chunks[0].objs[0].filename
         handle = h5py.File(last)
-        if any((ftype != "gas" for ftype, fname in fields)):
-            raise NotImplementedError
         for field in fields:
             ftype, fname = field
             ds = handle["/Grid%08i/%s" % (chunks[0].objs[0].id, fname)]

@@ -192,6 +192,30 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
+    def _read_particle_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        selector = dobj.selector
+        if chunk is None:
+            self._identify_base_chunk(dobj)
+        fields_to_return = {}
+        fields_to_read, fields_to_generate = [], []
+        for ftype, fname in fields:
+            if fname in self.field_list:
+                fields_to_read.append((ftype, fname))
+            else:
+                fields_to_generate.append((ftype, fname))
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+        fields_to_return = self.io._read_particle_selection(
+                    self._chunk_io(dobj), selector,
+                    fields_to_read)
+        for field in fields_to_read:
+            ftype, fname = field
+            conv_factor = self.pf.field_info[fname]._convert_function(self)
+            na.multiply(fields_to_return[field], conv_factor,
+                        fields_to_return[field])
+        return fields_to_return, fields_to_generate
+
     def _read_fluid_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
         selector = dobj.selector

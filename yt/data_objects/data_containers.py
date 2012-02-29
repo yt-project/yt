@@ -305,6 +305,38 @@ class YTDataContainer(object):
                        for i in self._con_args])
         return s
 
+    def _get_field_info(self, fname):
+        if fname not in self.pf.field_info:
+            raise YTFieldNotFound(fname, self.pf)
+        finfo = self.pf.field_info[fname]
+        return finfo
+
+    def _determine_fields(self, fields):
+        fields = ensure_list(fields)
+        explicit_fields = []
+        for field in fields:
+            if isinstance(field, types.TupleType):
+                if len(field) != 2 or \
+                   not isinstance(field[0], types.StringTypes) or \
+                   not isinstance(field[1], types.StringTypes):
+                    raise YTFieldNotParseable(field)
+                ftype, fname = field
+                finfo = self._get_field_info(fname)
+                explicit_fields.append(field)
+            else:
+                fname = field
+                finfo = self._get_field_info(fname)
+                if finfo.particle_type:
+                    ftype = "all"
+                else:
+                    ftype = self.pf.default_fluid_type
+            if finfo.particle_type and ftype not in self.pf.particle_types:
+                raise YTFieldTypeNotFound(ftype)
+            elif not finfo.particle_type and ftype not in self.pf.fluid_types:
+                raise YTFieldTypeNotFound(ftype)
+            explicit_fields.append((ftype, fname))
+        return explicit_fields
+
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
@@ -340,38 +372,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
-    def _get_field_info(self, fname):
-        if fname not in self.pf.field_info:
-            raise YTFieldNotFound(fname, self.pf)
-        finfo = self.pf.field_info[fname]
-        return finfo
-
-    def _determine_fields(self, fields):
-        fields = ensure_list(fields)
-        explicit_fields = []
-        for field in fields:
-            if isinstance(field, types.TupleType):
-                if len(field) != 2 or \
-                   not isinstance(field[0], types.StringTypes) or \
-                   not isinstance(field[1], types.StringTypes):
-                    raise YTFieldNotParseable(field)
-                ftype, fname = field
-                finfo = self._get_field_info(fname)
-                explicit_fields.append(field)
-            else:
-                fname = field
-                finfo = self._get_field_info(fname)
-                if finfo.particle_type:
-                    ftype = "all"
-                else:
-                    ftype = self.pf.default_fluid_type
-            if finfo.particle_type and ftype not in self.pf.particle_types:
-                raise YTFieldTypeNotFound(ftype)
-            elif ftype not in self.pf.fluid_types:
-                raise YTFieldTypeNotFound(ftype)
-            explicit_fields.append((ftype, fname))
-        return explicit_fields
-
     def get_data(self, fields=None):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -395,18 +395,22 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get += deps
         # We now split up into readers for the types of fields
         fluids, particles = [], []
-        for ftype, field in fields_to_get:
-            if self.pf.field_info[field].particle_type:
-                particles.append((ftype, field))
+        for ftype, fname in fields_to_get:
+            if self.pf.field_info[fname].particle_type:
+                particles.append((ftype, fname))
             else:
-                fluids.append((ftype, field))
+                fluids.append((ftype, fname))
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
-        read_field_data, fields_to_generate = self.hierarchy._read_fluid_fields(
-                                fields_to_get, self, self._current_chunk)
-        self.field_data.update(read_field_data)
-        # How do we handle dependencies here?
+        read_fluids, gen_fluids = self.hierarchy._read_fluid_fields(
+                                        fluids, self, self._current_chunk)
+        self.field_data.update(read_fluids)
+
+        read_particles, gen_particles = self.hierarchy._read_particle_fields(
+                                        particles, self, self._current_chunk)
+        self.field_data.update(read_particles)
+        fields_to_generate = gen_fluids + gen_particles
         index = 0
         with self._field_lock():
             while any(f not in self.field_data for f in fields_to_generate):

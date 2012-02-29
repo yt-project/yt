@@ -553,3 +553,12 @@ class AMRGridPatch(object):
             return self._last_mask.sum()
         self.select(selector)
         return self.count(selector)
+
+    def count_particles(self, selector, x, y, z):
+        # We don't cache the selector results
+        count = selector.count_points(x,y,z)
+        return count
+
+    def select_particles(self, selector, x, y, z):
+        mask = selector.select_points(x,y,z)
+        return mask

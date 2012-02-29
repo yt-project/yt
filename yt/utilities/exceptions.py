@@ -48,3 +48,10 @@ class YTAxesNotOrthogonalError(YTException):
 
     def __str__(self):
         return "The supplied axes are not orthogonal.  %s" % (self.axes)
+
+class YTFieldTypeNotFound(YTException):
+    def __init__(self, fname):
+        self.fname = fname
+
+    def __str__(self):
+        return "Could not find field '%s'." % (self.fname)

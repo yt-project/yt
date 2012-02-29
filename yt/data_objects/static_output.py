@@ -48,6 +48,11 @@ _cached_pfs = weakref.WeakValueDictionary()
 _pf_store = ParameterFileStore()
 
 class StaticOutput(object):
+
+    default_fluid_type = "gas"
+    fluid_types = ("gas",)
+    particle_types = ("all",)
+
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)

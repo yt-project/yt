@@ -268,6 +268,50 @@ cdef class SelectorObject:
                          np.float64_t dds[3], int ind[3][2], int *check):
         return
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_points(self, np.ndarray[np.float64_t, ndim=1] x,
+                           np.ndarray[np.float64_t, ndim=1] y,
+                           np.ndarray[np.float64_t, ndim=1] z,
+                           np.float64_t radius = 0.0):
+        cdef int count = 0
+        cdef int i
+        cdef np.float64_t dds[3], pos[3]
+        dds[0] = dds[1] = dds[2] = radius
+        cdef int eterm[3]
+        with nogil:
+            for i in range(x.shape[0]):
+                pos[0] = x[i]
+                pos[1] = y[i]
+                pos[2] = z[i]
+                count += self.select_cell(pos, dds, eterm)
+        return count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_points(self, np.ndarray[np.float64_t, ndim=1] x,
+                            np.ndarray[np.float64_t, ndim=1] y,
+                            np.ndarray[np.float64_t, ndim=1] z,
+                            np.float64_t radius = 0.0):
+        cdef int count = 0
+        cdef int i
+        cdef np.float64_t dds[3], pos[3]
+        dds[0] = dds[1] = dds[2] = radius
+        cdef int eterm[3]
+        cdef np.ndarray[np.uint8_t, ndim=1] mask 
+        mask = np.zeros(x.shape[0], dtype='uint8')
+        with nogil:
+            for i in range(x.shape[0]):
+                pos[0] = x[i]
+                pos[1] = y[i]
+                pos[2] = z[i]
+                mask[i] = self.select_cell(pos, dds, eterm)
+                count += mask[i]
+        if count == 0: return None
+        return mask.astype("bool")
+
 cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
