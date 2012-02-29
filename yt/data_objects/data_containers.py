@@ -259,10 +259,11 @@ class YTDataContainer(object):
         try:
             self.pf.field_info[fname].check_available(gen_obj)
         except NeedsGridType, ngt_exception:
+            if ngt_exception.ghost_zones != 0:
+                raise NotImplementedError
             size = self._count_particles(ftype)
             rv = na.empty(size, dtype="float64")
             ind = 0
-            assert(ngt_exception.ghost_zones == 0)
             for io_chunk in self.chunks([], "io"):
                 for i,chunk in enumerate(self.chunks(field, "spatial")):
                     x, y, z = (self[ftype, 'particle_position_%s' % ax]
