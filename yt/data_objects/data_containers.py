@@ -407,7 +407,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                 fields_to_get, self, self._current_chunk)
         self.field_data.update(read_field_data)
         # How do we handle dependencies here?
-        import pdb;pdb.set_trace()
         with self._field_lock():
             last_length = len(fields_to_generate)
             index = -1
