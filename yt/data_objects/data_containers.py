@@ -407,11 +407,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                 fields_to_get, self, self._current_chunk)
         self.field_data.update(read_field_data)
         # How do we handle dependencies here?
-        index = -1
+        index = 0
         with self._field_lock():
             while any(f not in self.field_data for f in fields_to_generate):
-                index += 1
                 field = fields_to_generate[index % len(fields_to_generate)]
+                index += 1
                 if field in self.field_data: continue
                 try:
                     self.field_data[field] = self._generate_field(field)
