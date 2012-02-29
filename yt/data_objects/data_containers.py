@@ -249,7 +249,47 @@ class YTDataContainer(object):
         return rv
 
     def _generate_particle_field(self, field):
-        raise NotImplementedError
+        # First we check the validator
+        ftype, fname = field
+        if self._current_chunk is None or \
+           self._current_chunk.chunk_type != "spatial":
+            gen_obj = self
+        else:
+            gen_obj = self._current_chunk.objs[0]
+        try:
+            self.pf.field_info[fname].check_available(gen_obj)
+        except NeedsGridType, ngt_exception:
+            size = self._count_particles(ftype)
+            rv = na.empty(size, dtype="float64")
+            ind = 0
+            assert(ngt_exception.ghost_zones == 0)
+            for io_chunk in self.chunks([], "io"):
+                for i,chunk in enumerate(self.chunks(field, "spatial")):
+                    x, y, z = (self[ftype, 'particle_position_%s' % ax]
+                               for ax in 'xyz')
+                    mask = self._current_chunk.objs[0].select_particles(
+                        self.selector, x, y, z)
+                    if mask is None: continue
+                    # This requests it from the grid and does NOT mask it
+                    data = self[field][mask]
+                    rv[ind:ind+data.size] = data
+                    ind += data.size
+        else:
+            rv = self.pf.field_info[fname](gen_obj)
+        return rv
+
+    def _count_particles(self, ftype):
+        for (f1, f2), val in self.field_data.items():
+            if f1 == ftype:
+                return val.size
+        size = 0
+        for io_chunk in self.chunks([], "io"):
+            for i,chunk in enumerate(self.chunks([], "spatial")):
+                x, y, z = (self[ftype, 'particle_position_%s' % ax]
+                            for ax in 'xyz')
+                size += self._current_chunk.objs[0].count_particles(
+                    self.selector, x, y, z)
+        return size
 
     def _generate_container_field(self, field):
         raise NotImplementedError

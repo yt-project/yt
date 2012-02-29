@@ -103,6 +103,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     ftype, fname = field
                     ds = handle["/Grid%08i/%s" % (g.id, fname)]
                     data = ds[self._base][mask]
+                    data 
                     rv[field][ind:ind+data.size] = data
                 ind += data.size
             handle.close()
