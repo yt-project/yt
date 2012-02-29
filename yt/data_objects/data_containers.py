@@ -65,6 +65,7 @@ class YTFieldData(dict):
     A Container object for field data, instead of just having it be a dict.
     """
     pass
+        
 
 class YTDataContainer(object):
     """
@@ -163,8 +164,6 @@ class YTDataContainer(object):
         Clears out all data from the YTDataContainer instance, freeing memory.
         """
         self.field_data.clear()
-        if self._grids is not None:
-            for grid in self._grids: grid.clear_data()
 
     def clear_cache(self):
         """
@@ -188,9 +187,10 @@ class YTDataContainer(object):
         """
         Returns a single field.  Will add if necessary.
         """
-        if not self.field_data.has_key(key):
+        if key not in self.field_data:
             self.get_data(key)
-        return self.field_data[key]
+        f = self._determine_fields(key)[0]
+        return self.field_data[f]
 
     def __setitem__(self, key, val):
         """
@@ -210,24 +210,26 @@ class YTDataContainer(object):
         del self.field_data[key]
 
     def _generate_field(self, field):
-        if field in self._container_fields:
+        ftype, fname = field
+        if fname in self._container_fields:
             return self._generate_container_field(field)
-        elif not self.pf.field_info.has_key(field):
+        elif fname not in self.pf.field_info:
             raise KeyError(field)
-        elif self.pf.field_info[field].particle_type:
+        elif self.pf.field_info[fname].particle_type:
             return self._generate_particle_field(field)
         else:
             return self._generate_fluid_field(field)
 
     def _generate_fluid_field(self, field):
         # First we check the validator
+        ftype, fname = field
         if self._current_chunk is None or \
            self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            self.pf.field_info[field].check_available(gen_obj)
+            self.pf.field_info[fname].check_available(gen_obj)
         except NeedsGridType, ngt_exception:
             rv = na.empty(self.size, dtype="float64")
             ind = 0
@@ -243,7 +245,7 @@ class YTDataContainer(object):
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
-            rv = self.pf.field_info[field](gen_obj)
+            rv = self.pf.field_info[fname](gen_obj)
         return rv
 
     def _generate_particle_field(self, field):
@@ -303,89 +305,12 @@ class YTDataContainer(object):
                        for i in self._con_args])
         return s
 
-class GridPropertiesMixin(object):
-
-    def select_grids(self, level):
-        """
-        Return all grids on a given level.
-        """
-        grids = [g for g in self._grids if g.Level == level]
-        return grids
-
-    def select_grid_indices(self, level):
-        return na.where(self.grid_levels == level)
-
-    def __get_grid_left_edge(self):
-        if self.__grid_left_edge == None:
-            self.__grid_left_edge = na.array([g.LeftEdge for g in self._grids])
-        return self.__grid_left_edge
-
-    def __del_grid_left_edge(self):
-        del self.__grid_left_edge
-        self.__grid_left_edge = None
-
-    def __set_grid_left_edge(self, val):
-        self.__grid_left_edge = val
-
-    __grid_left_edge = None
-    grid_left_edge = property(__get_grid_left_edge, __set_grid_left_edge,
-                              __del_grid_left_edge)
-
-    def __get_grid_right_edge(self):
-        if self.__grid_right_edge == None:
-            self.__grid_right_edge = na.array([g.RightEdge for g in self._grids])
-        return self.__grid_right_edge
-
-    def __del_grid_right_edge(self):
-        del self.__grid_right_edge
-        self.__grid_right_edge = None
-
-    def __set_grid_right_edge(self, val):
-        self.__grid_right_edge = val
-
-    __grid_right_edge = None
-    grid_right_edge = property(__get_grid_right_edge, __set_grid_right_edge,
-                             __del_grid_right_edge)
-
-    def __get_grid_levels(self):
-        if self.__grid_levels == None:
-            self.__grid_levels = na.array([g.Level for g in self._grids])
-        return self.__grid_levels
-
-    def __del_grid_levels(self):
-        del self.__grid_levels
-        self.__grid_levels = None
-
-    def __set_grid_levels(self, val):
-        self.__grid_levels = val
-
-    __grid_levels = None
-    grid_levels = property(__get_grid_levels, __set_grid_levels,
-                             __del_grid_levels)
-
-
-    def __get_grid_dimensions(self):
-        if self.__grid_dimensions == None:
-            self.__grid_dimensions = na.array([g.ActiveDimensions for g in self._grids])
-        return self.__grid_dimensions
-
-    def __del_grid_dimensions(self):
-        del self.__grid_dimensions
-        self.__grid_dimensions = None
-
-    def __set_grid_dimensions(self, val):
-        self.__grid_dimensions = val
-
-    __grid_dimensions = None
-    grid_dimensions = property(__get_grid_dimensions, __set_grid_dimensions,
-                             __del_grid_dimensions)
-
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
         super(GenerationInProgress, self).__init__()
 
-class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysisInterface):
+class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _locked = False
     _sort_by = None
     _selector = None
@@ -415,15 +340,43 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
                 # NOTE: we yield before releasing the context
                 yield self
 
-    def get_data(self, fields=None, in_grids = False):
+    def _get_field_info(self, fname):
+        if fname not in self.pf.field_info:
+            raise YTFieldNotFound(fname, self.pf)
+        finfo = self.pf.field_info[fname]
+        return finfo
+
+    def _determine_fields(self, fields):
+        fields = ensure_list(fields)
+        explicit_fields = []
+        for field in fields:
+            if isinstance(field, types.TupleType):
+                if len(field) != 2 or \
+                   not isinstance(field[0], types.StringTypes) or \
+                   not isinstance(field[1], types.StringTypes):
+                    raise YTFieldNotParseable(field)
+                ftype, fname = field
+                finfo = self._get_field_info(fname)
+                explicit_fields.append(field)
+            else:
+                fname = field
+                finfo = self._get_field_info(fname)
+                if finfo.particle_type:
+                    ftype = "all"
+                else:
+                    ftype = self.pf.default_fluid_type
+            if finfo.particle_type and ftype not in self.pf.particle_types:
+                raise YTFieldTypeNotFound(ftype)
+            elif ftype not in self.pf.fluid_types:
+                raise YTFieldTypeNotFound(ftype)
+            explicit_fields.append((ftype, fname))
+        return explicit_fields
+
+    def get_data(self, fields=None):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
         if fields is None: return
-        fields = ensure_list(fields)
-        # For 1D objects, or anything thant wants a sorting.
-        if self._sort_by is not None and not self._sort_by in fields_to_get and \
-            self._sort_by not in self.field_data:
-            fields.insert(0, self._sort_by)
+        fields = self._determine_fields(fields)
         # Now we collect all our fields
         fields_to_get = [f for f in fields if f not in self.field_data]
         if len(fields_to_get) == 0:
@@ -432,24 +385,29 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
             raise GenerationInProgress(fields)
         # At this point, we want to figure out *all* our dependencies.
         inspected = 0
-        for field in itertools.cycle(fields_to_get):
+        for ftype, field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
             inspected += 1
             if field not in self.pf.field_dependencies: continue
             fd = self.pf.field_dependencies[field]
-            deps = [d for d in fd.requested if d not in fields_to_get]
+            requested = self._determine_fields(fd.requested)
+            deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
-        # If in_grids is True, then it's looking for a refresh of the data that
-        # exists in memory somewhere.  I don't yet know the right behavior
-        # here.
-        if in_grids: raise NotImplementedError
+        # We now split up into readers for the types of fields
+        fluids, particles = [], []
+        for ftype, field in fields_to_get:
+            if self.pf.field_info[field].particle_type:
+                particles.append((ftype, field))
+            else:
+                fluids.append((ftype, field))
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
-        read_field_data, fields_to_generate = self.hierarchy._read_selection(
+        read_field_data, fields_to_generate = self.hierarchy._read_fluid_fields(
                                 fields_to_get, self, self._current_chunk)
         self.field_data.update(read_field_data)
         # How do we handle dependencies here?
+        import pdb;pdb.set_trace()
         with self._field_lock():
             last_length = len(fields_to_generate)
             index = -1
@@ -463,6 +421,7 @@ class YTSelectionContainer(YTDataContainer, GridPropertiesMixin, ParallelAnalysi
                     added_fields.append(field)
                     last_length -= 1
                 except GenerationInProgress as gip:
+                    print "GENERATION IN PROGRESS"
                     for f in gip.fields:
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)

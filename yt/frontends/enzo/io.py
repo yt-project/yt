@@ -53,7 +53,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
-    def _read_selection(self, chunks, selector, fields, size):
+    def _read_fluid_selection(self, chunks, selector, fields, size):
         last = None
         rv = {}
         # Now we have to do something unpleasant
@@ -61,40 +61,29 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         chunks = list(chunks)
         last = chunks[0].objs[0].filename
         handle = h5py.File(last)
-        read_particles = read_fluids = False
-        if any(pfield for field, pfield in fields):
+        if any((ftype != "gas" for ftype, fname in fields)):
             raise NotImplementedError
-            read_particles = True
-            particle_size = self._count_particles(grids, selector, handle)
-        if any(pfield is False for field, pfield in fields):
-            read_fluids = True
-        for field, pfield in fields:
-            ds = handle["/Grid%08i/%s" % (chunks[0].objs[0].id, field)]
-            if pfield: fsize = particle_size
-            else: fsize = size
+        for field in fields:
+            ftype, fname = field
+            ds = handle["/Grid%08i/%s" % (chunks[0].objs[0].id, fname)]
+            fsize = size
             rv[field] = na.empty(fsize, dtype=ds.dtype)
         ind = 0
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
-                   size, [f1 for f1, f2 in fields], ng)
+                   size, [f2 for f1, f2 in fields], ng)
         for chunk in chunks:
             for g in chunk.objs:
                 if last != g.filename:
                     last = g.filename
                     handle = h5py.File(last)
-                if read_fluids:
-                    mask = g.select(selector)
-                if read_particles:
-                    x,y,z = self._get_particle_positions(g, handle)
-                    mask = selector.fill_point_mask(g, x, y, z)
+                mask = g.select(selector)
                 if mask is None: continue
-                for field, pfield in fields:
-                    if pfield is False:
-                        ds = handle["/Grid%08i/%s" % (g.id, field)]
-                        data = ds[self._base].swapaxes(0,2)[mask]
-                        rv[field][ind:ind+data.size] = data
-                    else:
-                        raise NotImplementedError
+                for field in fields:
+                    ftype, fname = field
+                    ds = handle["/Grid%08i/%s" % (g.id, fname)]
+                    data = ds[self._base].swapaxes(0,2)[mask]
+                    rv[field][ind:ind+data.size] = data
                 ind += data.size
             handle.close()
         return rv

@@ -192,7 +192,7 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
-    def _read_selection(self, fields, dobj, chunk = None):
+    def _read_fluid_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
         selector = dobj.selector
         if chunk is None:
@@ -202,20 +202,20 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
             chunk_size = chunk.data_size
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
-        for f in fields:
-            if f in self.field_list:
-                pfield = self.pf.field_info[f].particle_type
-                fields_to_read.append((f, pfield))
+        for ftype, fname in fields:
+            if fname in self.field_list:
+                fields_to_read.append((ftype, fname))
             else:
-                fields_to_generate.append(f)
+                fields_to_generate.append((ftype, fname))
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_selection(self._chunk_io(dobj),
+        fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
                                                    selector,
                                                    fields_to_read,
                                                    chunk_size)
-        for field, pfield in fields_to_read:
-            conv_factor = self.pf.field_info[field]._convert_function(self)
+        for field in fields_to_read:
+            ftype, fname = field
+            conv_factor = self.pf.field_info[fname]._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         #mylog.debug("Don't know how to read %s", fields_to_generate)

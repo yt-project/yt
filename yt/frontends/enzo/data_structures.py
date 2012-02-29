@@ -669,6 +669,8 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
+    default_fluid_type = "gas"
+    fluid_types = ("gas",)
     def __init__(self, filename, data_style=None,
                  file_style = None,
                  parameter_override = None,
