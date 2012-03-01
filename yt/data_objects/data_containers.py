@@ -1564,7 +1564,8 @@ class AMRQuadTreeProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,**kwargs):
+                 preload_style='level', serialize=True,
+                 style = "integrate", **kwargs):
         """
         This is a data object corresponding to a line integral through the
         simulation domain.
@@ -1628,6 +1629,13 @@ class AMRQuadTreeProjBase(AMR2DData):
         >>> print qproj["Density"]
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        self.proj_style = style
+        if style == "mip":
+            self.func = na.max
+        elif style == "integrate":
+            self.func = na.sum # for the future
+        else:
+            raise NotImplementedError(style)
         self.weight_field = weight_field
         self._field_cuts = field_cuts
         self.serialize = serialize
@@ -1635,7 +1643,6 @@ class AMRQuadTreeProjBase(AMR2DData):
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
-        self.func = na.sum # for the future
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.max_level
@@ -1678,7 +1685,8 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
-        return QuadTree(na.array([xd,yd], dtype='int64'), nvals)
+        return QuadTree(na.array([xd,yd], dtype='int64'), nvals,
+                        style = self.proj_style)
 
     def _get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -1689,7 +1697,12 @@ class AMRQuadTreeProjBase(AMR2DData):
             if field is None: continue
             dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
             convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
-        return na.array(dls), na.array(convs)
+        dls = na.array(dls)
+        convs = na.array(convs)
+        if self.proj_style == "mip":
+            dls[:] = 1.0
+            convs[:] = 1.0
+        return dls, convs
 
     def get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
@@ -1723,7 +1736,13 @@ class AMRQuadTreeProjBase(AMR2DData):
             mylog.debug("End of projecting level level %s, memory usage %0.3e", 
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
-        tree = self.comm.merge_quadtree_buffers(tree)
+        if self.proj_style == "mip":
+            merge_style = -1
+        elif self.proj_style == "integrate":
+            merge_style = 1
+        else:
+            raise NotImplementedError
+        tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -2613,7 +2632,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        sample_values = None):
         mask = self._get_cut_mask(grid) * grid.child_mask
-        vals = grid.get_vertex_centered_data(field)
+        vals = grid.get_vertex_centered_data(field, no_ghost = False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
