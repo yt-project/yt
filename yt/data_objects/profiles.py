@@ -31,6 +31,7 @@ import numpy as na
 from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
+from yt.utilities.amr_utils import bin_profile1d
 from yt.utilities.data_point_utilities import \
     Bin1DProfile, Bin2DProfile, Bin3DProfile
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -88,9 +89,11 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._ngrids = 0
         self.__data = {}         # final results will go here
         self.__weight_data = {}  # we need to track the weights as we go
+        self.__std_data = {}
         for field in fields:
             self.__data[field] = self._get_empty_field()
             self.__weight_data[field] = self._get_empty_field()
+            self.__std_data = self._get_empty_field()
         self.__used = self._get_empty_field().astype('bool')
         #pbar = get_pbar('Binning grids', len(self._data_source._grids))
         for gi,grid in enumerate(self._get_grids(fields)):
@@ -103,10 +106,12 @@ class BinnedProfile(ParallelAnalysisInterface):
                 continue
             for field in fields:
                 # We get back field values, weight values, used bins
-                f, w, u = self._bin_field(grid, field, weight, accumulation,
+                f, w, q, u = self._bin_field(grid, field, weight, accumulation,
                                           args=args, check_cut=True)
                 self.__data[field] += f        # running total
                 self.__weight_data[field] += w # running total
+                self.__std_data[field] += w * (q/w + \
+                    (f/w - self.__data[field]/self.__weight_field[field])**2) # running total
                 self.__used = (self.__used | u)       # running 'or'
             grid.clear_data()
         # When the loop completes the parallel finalizer gets called
@@ -115,24 +120,37 @@ class BinnedProfile(ParallelAnalysisInterface):
         for field in fields:
             if weight: # Now, at the end, we divide out.
                 self.__data[field][ub] /= self.__weight_data[field][ub]
+                self.__std_data[field][ub] /= self.__weight_data[field][ub]
             self[field] = self.__data[field]
+            self["%s_std" % field] = na.sqrt(self.__std_data[field])
         self["UsedBins"] = self.__used
-        del self.__data, self.__weight_data, self.__used
+        del self.__data, self.__std_data, self.__weight_data, self.__used
 
     def _finalize_parallel(self):
+        my_mean = {}
+        my_weight = {}
+        for key in self.__data:
+            my_mean[key] = self.__data[key] / self.__weight_field[key]
+            my_weight[key] = self.__weight_data[key]
         for key in self.__data:
             self.__data[key] = self.comm.mpi_allreduce(self.__data[key], op='sum')
         for key in self.__weight_data:
             self.__weight_data[key] = self.comm.mpi_allreduce(self.__weight_data[key], op='sum')
+        for key in self.__std_data:
+            self.__std_data[key] = my_weight[key] * (self.__std_data[key] / my_weight[key] + \
+                                                     (my_mean[key] - self.__data[key])**2)
+            self.__std_data[key] = self.comm.mpi_allreduce(self.__std_data[key], op='sum')
         self.__used = self.comm.mpi_allreduce(self.__used, op='sum')
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:
-            f, w, u = self._bin_field(self._data_source, field, weight,
-                                      accumulation, self._args, check_cut = False)
+            f, w, q, u = self._bin_field(self._data_source, field, weight,
+                                         accumulation, self._args, check_cut = False)
             if weight:
                 f[u] /= w[u]
+                q[u] = na.sqrt(q[u] / w[u])
             self[field] = f
+            self["%s_std" % field] = q
         self["UsedBins"] = u
 
     def add_fields(self, fields, weight = "CellMassMsun", accumulation = False, fractional=False):
@@ -246,20 +264,27 @@ class BinnedProfile1D(BinnedProfile):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        Bin1DProfile(bin_indices_x, weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        # Bin1DProfile(bin_indices_x, weight_data, source_data,
+        #              weight_field, binned_field,
+        #              m_field, q_field, used_field)
+        bin_profile1d(bin_indices_x, weight_data, source_data,
+                      weight_field, binned_field,
+                      m_field, q_field, used_field)
         # Fix for laziness, because at the *end* we will be
         # summing up all of the histograms and dividing by the
         # weights.  Accumulation likely doesn't work with weighted
         # average fields.
         if accumulation: 
             binned_field = na.add.accumulate(binned_field)
-        return binned_field, weight_field, used_field.astype("bool")
+        return binned_field, weight_field, q_field, \
+            used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
