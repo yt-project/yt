@@ -46,11 +46,11 @@ def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
         bin = bins_x[n]
         bval = bsource[n]
         wval = wsource[n]
-        qresult[bin] += (wresult[bin] * (wval*bval - mresult[bin])**2) / \
+        qresult[bin] += (wresult[bin] * wval * (bval - mresult[bin])**2) / \
             (wresult[bin] + wval)
         wresult[bin] += wval
         bresult[bin] += wval*bval
-        mresult[bin] += (wval*bval - mresult[bin]) / wresult[bin]
+        mresult[bin] += wval * (bval - mresult[bin]) / wresult[bin]
         used[bin] = 1
 
 @cython.boundscheck(False)
