@@ -93,7 +93,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         for field in fields:
             self.__data[field] = self._get_empty_field()
             self.__weight_data[field] = self._get_empty_field()
-            self.__std_data = self._get_empty_field()
+            self.__std_data[field] = self._get_empty_field()
         self.__used = self._get_empty_field().astype('bool')
         #pbar = get_pbar('Binning grids', len(self._data_source._grids))
         for gi,grid in enumerate(self._get_grids(fields)):
@@ -110,8 +110,9 @@ class BinnedProfile(ParallelAnalysisInterface):
                                           args=args, check_cut=True)
                 self.__data[field] += f        # running total
                 self.__weight_data[field] += w # running total
-                self.__std_data[field] += w * (q/w + \
-                    (f/w - self.__data[field]/self.__weight_field[field])**2) # running total
+                self.__std_data[field][u] += w[u] * (q[u]/w[u] + \
+                    (f[u]/w[u] -
+                     self.__data[field][u]/self.__weight_data[field][u])**2) # running total
                 self.__used = (self.__used | u)       # running 'or'
             grid.clear_data()
         # When the loop completes the parallel finalizer gets called
@@ -130,15 +131,19 @@ class BinnedProfile(ParallelAnalysisInterface):
         my_mean = {}
         my_weight = {}
         for key in self.__data:
-            my_mean[key] = self.__data[key] / self.__weight_field[key]
-            my_weight[key] = self.__weight_data[key]
+            my_mean[key] = self._get_empty_field()
+            my_weight[key] = self._get_empty_field()
+        ub = na.where(self.__used)
+        for key in self.__data:
+            my_mean[key][ub] = self.__data[key][ub] / self.__weight_data[key][ub]
+            my_weight[key][ub] = self.__weight_data[key][ub]
         for key in self.__data:
             self.__data[key] = self.comm.mpi_allreduce(self.__data[key], op='sum')
         for key in self.__weight_data:
             self.__weight_data[key] = self.comm.mpi_allreduce(self.__weight_data[key], op='sum')
         for key in self.__std_data:
-            self.__std_data[key] = my_weight[key] * (self.__std_data[key] / my_weight[key] + \
-                                                     (my_mean[key] - self.__data[key])**2)
+            self.__std_data[key][ub] = my_weight[key][ub] * (self.__std_data[key][ub] / my_weight[key][ub] + \
+                (my_mean[key][ub] - self.__data[key][ub]/self.__weight_data[key][ub])**2)
             self.__std_data[key] = self.comm.mpi_allreduce(self.__std_data[key], op='sum')
         self.__used = self.comm.mpi_allreduce(self.__used, op='sum')
 
