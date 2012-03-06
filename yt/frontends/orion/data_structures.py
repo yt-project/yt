@@ -127,8 +127,6 @@ class OrionHierarchy(AMRHierarchy):
         self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self,pf, self.data_style)
-        self._setup_data_io()
-        self._setup_field_list()
         self._populate_hierarchy()
         
     def readGlobalHeader(self,filename,paranoid_read):
@@ -359,19 +357,6 @@ class OrionHierarchy(AMRHierarchy):
         mask[grid_ind] = True
         mask = na.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
         return self.grids[mask]
-
-    def _setup_field_list(self):
-        self.derived_field_list = []
-        for field in self.field_info:
-            try:
-                fd = self.field_info[field].get_dependencies(pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
 
     def _count_grids(self):
         """this is already provided in 
