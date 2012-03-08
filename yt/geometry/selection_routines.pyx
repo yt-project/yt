@@ -29,6 +29,7 @@ cimport cython
 from stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
 from cython.parallel import prange, parallel, threadid
+from geometry_utils cimport point_to_hilbert
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -153,6 +154,25 @@ cdef class SelectorObject:
                     RE[i] = right_edges[n, i]
                 gridi[n] = self.select_grid(LE, RE)
         return gridi.astype("bool")
+
+    def select_octs(self, int max_level,
+                    np.ndarray[np.float64_t, ndim=1] domain_left_edge,
+                    np.ndarray[np.float64_t, ndim=1] domain_right_edge,
+                    np.ndarray[np.uint64_t, ndim=1] hilbert_indices):
+        cdef int i, n
+        cdef int no = hilbert_indices.shape[0]
+        cdef np.ndarray[np.uint8_t, ndim=1] oct_mask = np.zeros(ng, dtype='uint8')
+        cdef np.float64_t LE[3], RE[3]
+        with nogil:
+            for n in range(no):
+                # Call our selector function
+                # Check if the sphere is inside the grid
+                for i in range(3):
+                    LE[i] = 
+                    RE[i] = 
+                octi[n] = self.select_grid(LE, RE)
+        return gridi.astype("bool")
+
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:

@@ -172,3 +172,155 @@ def obtain_rvec(data):
                     rg[2,i,j,k] = zg[i,j,k] - c[2]
         return rg
 
+@cython.cdivision
+cdef np.int64_t graycode(np.int64_t x):
+    return x^(x>>1)
+
+@cython.cdivision
+cdef np.int64_t igraycode(np.int64_t x):
+    cdef np.int64_t i, j
+    if x == 0:
+        return x
+    m = <np.int64_t> ceil(log2(x)) + 1
+    i, j = x, 1
+    while j < m:
+        i = i ^ (x>>j)
+        j += 1
+    return i
+
+@cython.cdivision
+cdef np.int64_t direction(np.int64_t x, np.int64_t n):
+    #assert x < 2**n
+    if x == 0:
+        return 0
+    elif x%2 == 0:
+        return tsb(x-1, n)%n
+    else:
+        return tsb(x, n)%n
+
+@cython.cdivision
+cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
+    #assert x < 2**width
+    cdef np.int64_t i = 0
+    while x&1 and i <= width:
+        x = x >> 1
+        i += 1
+    return i
+
+@cython.cdivision
+cdef np.int64_t bitrange(np.int64_t x, np.int64_t width,
+                         np.int64_t start, np.int64_t end):
+    return x >> (width-end) & ((2**(end-start))-1)
+
+@cython.cdivision
+cdef np.int64_t rrot(np.int64_t x, np.int64_t i, np.int64_t width):
+    i = i%width
+    x = (x>>i) | (x<<width-i)
+    return x&(2**width-1)
+
+@cython.cdivision
+cdef np.int64_t lrot(np.int64_t x, np.int64_t i, np.int64_t width):
+    i = i%width
+    x = (x<<i) | (x>>width-i)
+    return x&(2**width-1)
+
+@cython.cdivision
+cdef np.int64_t transform(np.int64_t entry, np.int64_t direction,
+                          np.int64_t width, np.int64_t x):
+    return rrot((x^entry), direction + 1, width)
+
+@cython.cdivision
+cdef np.int64_t entry(np.int64_t x):
+    if x == 0: return 0
+    return graycode(2*((x-1)/2))
+
+@cython.cdivision
+cdef np.int64_t setbit(np.int64_t x, np.int64_t w, np.int64_t i, np.int64_t b):
+    if b == 1:
+        return x | 2**(w-i-1)
+    elif b == 0:
+        return x & ~2**(w-i-1)
+
+@cython.cdivision
+cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
+    cdef np.int64_t h, e, d, l, b, w
+    h = e = d = 0
+    for i in range(order):
+        l = 0
+        for x in range(3):
+            b = bitrange(p[3-x-1], order, i, i+1)
+            l |= (b<<x)
+        l = transform(e, d, 3, l)
+        w = igraycode(l)
+        e = e ^ lrot(entry(w), d+1, 3)
+        d = (d + direction(w, 3) + 1)%3
+        h = (h<<3)|w
+    return h
+
+#def hilbert_point(dimension, order, h):
+#    """
+#        Convert an index on the Hilbert curve of the specified dimension and
+#        order to a set of point coordinates.
+#    """
+#    #    The bit widths in this function are:
+#    #        p[*]  - order
+#    #        h     - order*dimension
+#    #        l     - dimension
+#    #        e     - dimension
+#    hwidth = order*dimension
+#    e, d = 0, 0
+#    p = [0]*dimension
+#    for i in range(order):
+#        w = utils.bitrange(h, hwidth, i*dimension, i*dimension+dimension)
+#        l = utils.graycode(w)
+#        l = itransform(e, d, dimension, l)
+#        for j in range(dimension):
+#            b = utils.bitrange(l, dimension, j, j+1)
+#            p[j] = utils.setbit(p[j], order, i, b)
+#        e = e ^ utils.lrot(entry(w), d+1, dimension)
+#        d = (d + direction(w, dimension) + 1)%dimension
+#    return p
+
+@cython.cdivision
+cdef void hilbert_to_point(int order, np.int64_t h, np.int64_t *p):
+    cdef np.int64_t hwidth, e, d, w, l, b
+    cdef int i
+    hwidth = 3 * order
+    e = d = p[0] = p[1] = p[2] = 0
+    for i in range(order):
+        w = bitrange(h, hwidth, i*3, i*3+3)
+        l = graycode(w)
+        l = lrot(l, d +1, 3)^e
+        for j in range(3):
+            b = bitrange(l, 3, j, j+1)
+            p[j] = setbit(p[j], order, i, b)
+        e = e ^ lrot(entry(w), d+1, 3)
+        d = (d + direction(w, 3) + 1)%3
+
+@cython.cdivision
+def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
+    # This is inspired by the scurve package by user cortesi on GH.
+    cdef int i
+    cdef np.int64_t p[3]
+    cdef np.ndarray[np.int64_t, ndim=1] hilbert_indices
+    hilbert_indices = np.zeros(left_index.shape[0], 'int64')
+    for i in range(left_index.shape[0]):
+        p[0] = left_index[i, 0]
+        p[1] = left_index[i, 1]
+        p[2] = left_index[i, 2]
+        hilbert_indices[i] = point_to_hilbert(order, p)
+    return hilbert_indices
+
+@cython.cdivision
+def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
+    # This is inspired by the scurve package by user cortesi on GH.
+    cdef int i, j
+    cdef np.int64_t p[3]
+    cdef np.ndarray[np.int64_t, ndim=2] positions
+    positions = np.zeros((indices.shape[0], 3), 'int64')
+    for i in range(indices.shape[0]):
+        hilbert_to_point(order, indices[i], p)
+        for j in range(3):
+            positions[i, j] = p[j]
+    return positions
+

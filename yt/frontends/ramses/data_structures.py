@@ -30,8 +30,8 @@ import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-      GridGeometryHandler
+from yt.geometry.octree_geometry_handler import \
+      OctreeGeometryHandler
 from yt.data_objects.static_output import \
       StaticOutput
 
@@ -49,66 +49,9 @@ from yt.utilities.io_handler import \
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
-def num_deep_inc(f):
-    def wrap(self, *args, **kwargs):
-        self.num_deep += 1
-        rv = f(self, *args, **kwargs)
-        self.num_deep -= 1
-        return rv
-    return wrap
+class RAMSESGeometryHandler(OctreeGeometryHandler):
 
-class RAMSESGrid(AMRGridPatch):
-    _id_offset = 0
-    #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, locations, start_index):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
-        self.Level = level
-        self.Parent = []
-        self.Children = []
-        self.locations = locations
-        self.domain = locations[0,0]
-        self.start_index = start_index.copy()
-
-    def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
-
-    def get_global_startindex(self):
-        """
-        Return the integer starting index for each dimension at the current
-        level.
-        """
-        if self.start_index != None:
-            return self.start_index
-        if len(self.Parent) == 0:
-            start_index = self.LeftEdge / self.dds
-            return na.rint(start_index).astype('int64').ravel()
-        pdx = self.Parent[0].dds
-        start_index = (self.Parent[0].get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
-        return self.start_index
-
-    def __repr__(self):
-        return "RAMSESGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
-class RAMSESHierarchy(GridGeometryHandler):
-
-    grid = RAMSESGrid
-    _handle = None
-    
-    def __init__(self,pf,data_style='ramses'):
+    def __init__(self, pf, data_style='ramses'):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -117,10 +60,7 @@ class RAMSESHierarchy(GridGeometryHandler):
         self.tree_proxy = pf.ramses_tree
 
         self.float_type = na.float64
-        GridGeometryHandler.__init__(self,pf,data_style)
-
-    def _initialize_data_storage(self):
-        pass
+        super(RAMSESGeometryHandler, self).__init__(pf, data_style)
 
     def _detect_fields(self):
         self.field_list = self.tree_proxy.field_names[:]
@@ -130,153 +70,23 @@ class RAMSESHierarchy(GridGeometryHandler):
         GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
-    def _count_grids(self):
-        # We have to do all the patch-coalescing here.
-        LEVEL_OF_EDGE = 7
-        MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
-        level_info = self.tree_proxy.count_zones()
-        num_ogrids = sum(level_info)
-        ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
-        ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
-        ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
-        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        ogrid_hilbert_indices = na.zeros(num_ogrids, dtype='uint64')
-        ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
+    def _count_octs(self):
+        self.level_info = self.tree_proxy.count_zones()
+        self.num_octs = sum(self.level_info)
+
+    def _initialize_octree(self):
+        octree = self._create_octree_structure(
         self.tree_proxy.fill_hierarchy_arrays(
             self.pf.domain_dimensions,
-            ogrid_left_edge, ogrid_right_edge,
-            ogrid_levels, ogrid_file_locations, 
-            ogrid_hilbert_indices, ochild_masks,
+            self.oct_levels, self.oct_file_locations, 
+            self.oct_hilbert_indices, self.oct_refined,
             self.pf.domain_left_edge, self.pf.domain_right_edge)
-        #insert_ipython()
-        # Now we can rescale
-        mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
-        DL = self.pf.domain_left_edge
-        DR = self.pf.domain_right_edge
-        DW = DR - DL
-        ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
-        ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
-        #import pdb;pdb.set_trace()
-        # We now have enough information to run the patch coalescing 
-        self.proto_grids = []
-        for level in xrange(len(level_info)):
-            if level_info[level] == 0: continue
-            # Get the indices of grids on this level
-            ggi = (ogrid_levels == level).ravel()
-            dims = na.ones((ggi.sum(), 3), dtype='int64') * 2 
-            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
-            nd = self.pf.domain_dimensions * 2**level
-            fl = ogrid_file_locations[ggi,:]
-            # Now our initial protosubgrid
-            #if level == 6: raise RuntimeError
-            # We want grids that cover no more than MAX_EDGE cells in every direction
-            psgs = []
-            # left_index is integers of the index, with respect to this level
-            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
-            # we've got octs, so it's +2
-            pbar = get_pbar("Re-gridding ", left_index.shape[0])
-            dlp = [None, None, None]
-            i = 0
-            # We now calculate the hilbert curve position of every left_index,
-            # of the octs, with respect to a lower order hilbert curve.
-            left_index_gridpatch = left_index >> LEVEL_OF_EDGE
-            order = max(level + 1 - LEVEL_OF_EDGE, 0)
-            # I'm not sure the best way to do this.
-            hilbert_indices = _ramses_reader.get_hilbert_indices(order, left_index_gridpatch)
-            #print level, hilbert_indices.min(), hilbert_indices.max()
-            # Strictly speaking, we don't care about the index of any
-            # individual oct at this point.  So we can then split them up.
-            unique_indices = na.unique(hilbert_indices)
-            mylog.debug("Level % 2i has % 10i unique indices for %0.3e octs",
-                        level, unique_indices.size, hilbert_indices.size)
-            locs, lefts = _ramses_reader.get_array_indices_lists(
-                        hilbert_indices, unique_indices, left_index, fl)
-            for ddleft_index, ddfl in zip(lefts, locs):
-                for idomain in na.unique(ddfl[:,0]):
-                    dom_ind = ddfl[:,0] == idomain
-                    dleft_index = ddleft_index[dom_ind,:]
-                    dfl = ddfl[dom_ind,:]
-                    initial_left = na.min(dleft_index, axis=0)
-                    idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
-                    psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                    dleft_index, dfl)
-                    if psg.efficiency <= 0: continue
-                    self.num_deep = 0
-                    psgs.extend(_ramses_reader.recursive_patch_splitting(
-                        psg, idims, initial_left, 
-                        dleft_index, dfl))
-            mylog.debug("Done with level % 2i", level)
-            pbar.finish()
-            self.proto_grids.append(psgs)
-            print sum(len(psg.grid_file_locations) for psg in psgs)
-            sums = na.zeros(3, dtype='int64')
-            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
-            if len(self.proto_grids[level]) == 1: continue
-            #for g in self.proto_grids[level]:
-            #    sums += [s.sum() for s in g.sigs]
-            #assert(na.all(sums == dims.prod(axis=1).sum()))
-        self.num_grids = sum(len(l) for l in self.proto_grids)
-
-    def _parse_hierarchy(self):
-        # We have important work to do
-        grids = []
-        gi = 0
-        DL, DR = self.pf.domain_left_edge, self.pf.domain_right_edge
-        DW = DR - DL
-        for level, grid_list in enumerate(self.proto_grids):
-            for g in grid_list:
-                fl = g.grid_file_locations
-                props = g.get_properties()
-                self.grid_left_edge[gi,:] = (props[0,:] / (2.0**(level+1))) * DW + DL
-                self.grid_right_edge[gi,:] = (props[1,:] / (2.0**(level+1))) * DW + DL
-                self.grid_dimensions[gi,:] = props[2,:]
-                self.grid_levels[gi,:] = level
-                grids.append(self.grid(gi, self, level, fl, props[0,:]))
-                gi += 1
-        self.proto_grids = []
-        self.grids = na.empty(len(grids), dtype='object')
-        for gi, g in enumerate(grids): self.grids[gi] = g
-
-    def _populate_grid_objects(self):
-        mask = na.empty(self.grids.size, dtype='int32')
-        print self.grid_levels.dtype
-        for gi,g in enumerate(self.grids):
-            get_box_grids_level(self.grid_left_edge[gi,:],
-                                self.grid_right_edge[gi,:],
-                                g.Level - 1,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask)
-            parents = self.grids[mask.astype("bool")]
-            if len(parents) > 0:
-                g.Parent.extend((p for p in parents.tolist()
-                        if p.locations[0,0] == g.locations[0,0]))
-                for p in parents: p.Children.append(g)
-            # Now we do overlapping siblings; note that one has to "win" with
-            # siblings, so we assume the lower ID one will "win"
-            get_box_grids_level(self.grid_left_edge[gi,:],
-                                self.grid_right_edge[gi,:],
-                                g.Level,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask, gi)
-            mask[gi] = False
-            siblings = self.grids[mask.astype("bool")]
-            if len(siblings) > 0:
-                g.OverlappingSiblings = siblings.tolist()
-            g._prepare_grid()
-            g._setup_dx()
-        self.max_level = self.grid_levels.max()
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.tree_proxy)
+        self.max_level = self.oct_levels.max()
 
 class RAMSESStaticOutput(StaticOutput):
-    _hierarchy_class = RAMSESHierarchy
+    _hierarchy_class = RAMSESGeometryHandler
     _fieldinfo_fallback = RAMSESFieldInfo
     _fieldinfo_known = KnownRAMSESFields
-    _handle = None
     
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
