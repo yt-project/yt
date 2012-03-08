@@ -265,7 +265,7 @@ cdef np.int64_t setbit(np.int64_t x, np.int64_t w, np.int64_t i, np.int64_t b):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
-    cdef np.int64_t h, e, d, l, b, w
+    cdef np.int64_t h, e, d, l, b, w, i, x
     h = e = d = 0
     for i in range(order):
         l = 0
@@ -308,7 +308,7 @@ cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
 @cython.wraparound(False)
 cdef void hilbert_to_point(int order, np.int64_t h, np.int64_t *p):
     cdef np.int64_t hwidth, e, d, w, l, b
-    cdef int i
+    cdef int i, j
     hwidth = 3 * order
     e = d = p[0] = p[1] = p[2] = 0
     for i in range(order):
