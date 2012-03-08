@@ -40,9 +40,9 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                         np.ndarray[np.float64_t, ndim=1] right_edge,
                         int level,
@@ -67,9 +67,9 @@ def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
         if inside == 1: mask[i] = 1
         else: mask[i] = 0
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 def get_box_grids_below_level(
                         np.ndarray[np.float64_t, ndim=1] left_edge,
                         np.ndarray[np.float64_t, ndim=1] right_edge,
@@ -94,9 +94,9 @@ def get_box_grids_below_level(
 
 # Finally, miscellaneous routines.
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
                          np.ndarray[np.float64_t, ndim=2] left_edges,
                          np.ndarray[np.float64_t, ndim=2] right_edges,
@@ -129,9 +129,9 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
         return rv
     raise KeyError
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 def obtain_rvec(data):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
@@ -172,11 +172,15 @@ def obtain_rvec(data):
                     rg[2,i,j,k] = zg[i,j,k] - c[2]
         return rg
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t graycode(np.int64_t x):
     return x^(x>>1)
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t igraycode(np.int64_t x):
     cdef np.int64_t i, j
     if x == 0:
@@ -188,7 +192,9 @@ cdef np.int64_t igraycode(np.int64_t x):
         j += 1
     return i
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t direction(np.int64_t x, np.int64_t n):
     #assert x < 2**n
     if x == 0:
@@ -198,7 +204,9 @@ cdef np.int64_t direction(np.int64_t x, np.int64_t n):
     else:
         return tsb(x, n)%n
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
     #assert x < 2**width
     cdef np.int64_t i = 0
@@ -207,41 +215,55 @@ cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
         i += 1
     return i
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t bitrange(np.int64_t x, np.int64_t width,
                          np.int64_t start, np.int64_t end):
     return x >> (width-end) & ((2**(end-start))-1)
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t rrot(np.int64_t x, np.int64_t i, np.int64_t width):
     i = i%width
     x = (x>>i) | (x<<width-i)
     return x&(2**width-1)
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t lrot(np.int64_t x, np.int64_t i, np.int64_t width):
     i = i%width
     x = (x<<i) | (x>>width-i)
     return x&(2**width-1)
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t transform(np.int64_t entry, np.int64_t direction,
                           np.int64_t width, np.int64_t x):
     return rrot((x^entry), direction + 1, width)
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t entry(np.int64_t x):
     if x == 0: return 0
     return graycode(2*((x-1)/2))
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t setbit(np.int64_t x, np.int64_t w, np.int64_t i, np.int64_t b):
     if b == 1:
         return x | 2**(w-i-1)
     elif b == 0:
         return x & ~2**(w-i-1)
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
     cdef np.int64_t h, e, d, l, b, w
     h = e = d = 0
@@ -281,7 +303,9 @@ cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
 #        d = (d + direction(w, dimension) + 1)%dimension
 #    return p
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef void hilbert_to_point(int order, np.int64_t h, np.int64_t *p):
     cdef np.int64_t hwidth, e, d, w, l, b
     cdef int i
@@ -297,7 +321,9 @@ cdef void hilbert_to_point(int order, np.int64_t h, np.int64_t *p):
         e = e ^ lrot(entry(w), d+1, 3)
         d = (d + direction(w, 3) + 1)%3
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
     # This is inspired by the scurve package by user cortesi on GH.
     cdef int i
@@ -311,7 +337,9 @@ def get_hilbert_indices(int order, np.ndarray[np.int64_t, ndim=2] left_index):
         hilbert_indices[i] = point_to_hilbert(order, p)
     return hilbert_indices
 
-@cython.cdivision
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
     # This is inspired by the scurve package by user cortesi on GH.
     cdef int i, j
