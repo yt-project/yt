@@ -256,7 +256,7 @@ class ChomboStaticOutput(StaticOutput):
             self.dimensionality = 3
             self.refine_by = []
             fileh = h5py.File(self.parameter_filename,'r')
-            for level in range(0,fileh.attrs['max_level']):
+            for level in range(0,fileh.attrs['num_levels']):
                 self.refine_by.append(fileh['/level_'+str(level)].attrs['ref_ratio'])
 
     def _parse_pluto_file(self, ini_filename):
