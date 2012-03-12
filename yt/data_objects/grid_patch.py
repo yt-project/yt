@@ -364,7 +364,7 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        rf = self.pf.refine_by
+        rf = self.pf.refine_by[child.Level-1]
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = na.maximum(0, cgi/rf - gi)
         endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,

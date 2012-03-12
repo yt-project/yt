@@ -85,7 +85,8 @@ class ChomboGrid(AMRGridPatch):
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
             na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+        self.start_index = (start_index*self.pf.refine_by[self.Level-1]).astype('int64').ravel()
+        print self.start_index
         return self.start_index
 
     def _setup_dx(self):
