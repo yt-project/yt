@@ -228,7 +228,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         if n_unique > my_max:
             best_dim = dim
             my_max = n_unique
-            my_split = (n_unique-1)/2
+            my_split = (n_unique)/2
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
