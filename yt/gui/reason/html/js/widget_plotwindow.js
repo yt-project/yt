@@ -145,11 +145,13 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                         id: "img_" + this.id,
                         width: 400,
                         height: 400,
+                        draggable: false,
                     },
                     x: 100,
                     y: 10,
                     width: 400,
                     height: 400,
+                    draggable: false,
                     listeners: {
                         afterrender: function(c){
                             c.el.on('click', function(e){
@@ -162,6 +164,25 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                     + c.el.dom.height + ")";
                                 yt_rpc.ExtDirectREPL.execute(
                                 {code:cc, hide:true}, cell_finished); 
+                            });
+                            c.el.on('mousedown', function(e){
+                                c.drag_start = true;
+                                c.drag_start_pos = e.getXY();
+                            });
+                            c.el.on('mouseup', function(e){
+                                c.drag_start = false;
+                                drag_stop = e.getXY();
+                                delta_x = drag_stop[0] - c.drag_start_pos[0];
+                                delta_y = drag_stop[1] - c.drag_start_pos[1];
+                                if (((delta_x < -10) || (delta_x > 10)) ||
+                                    ((delta_y < -10) || (delta_y > 10))) {
+                                    rel_x = -delta_x / 400;
+                                    rel_y = -delta_y / 400;
+                                    cc = python_varname + '.pan_rel((' + 
+                                        rel_x + ',' + rel_y + '))';
+                                    yt_rpc.ExtDirectREPL.execute(
+                                    {code:cc, hide:true}, cell_finished); 
+                                }
                             });
                         }
                     }

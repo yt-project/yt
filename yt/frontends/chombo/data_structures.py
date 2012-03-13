@@ -68,16 +68,32 @@ class ChomboGrid(AMRGridPatch):
         self.Parent = []
         self.Children = []
         self.Level = level
-        self.start_index = start.copy()#.transpose()
-        self.stop_index = stop.copy()#.transpose()
         self.ActiveDimensions = stop - start + 1
+
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        
+        """
+        if self.start_index != None:
+            return self.start_index
+        if self.Parent == []:
+            iLE = self.LeftEdge - self.pf.domain_left_edge
+            start_index = iLE / self.dds
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = self.Parent[0].dds
+        start_index = (self.Parent[0].get_global_startindex()) + \
+            na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+        self.start_index = (start_index*self.pf.refine_by[self.Level-1]).astype('int64').ravel()
+        return self.start_index
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
+            self.dds = self.Parent[0].dds / self.pf.refine_by[self.Level-1]
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
@@ -91,8 +107,8 @@ class ChomboHierarchy(AMRHierarchy):
     grid = ChomboGrid
     
     def __init__(self,pf,data_style='chombo_hdf5'):
-        self.domain_left_edge = pf.domain_left_edge # need these to determine absolute grid locations
-        self.domain_right_edge = pf.domain_right_edge # need these to determine absolute grid locations
+        self.domain_left_edge = pf.domain_left_edge
+        self.domain_right_edge = pf.domain_right_edge
         self.data_style = data_style
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
@@ -100,12 +116,11 @@ class ChomboHierarchy(AMRHierarchy):
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.hierarchy = os.path.abspath(self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self._fhandle = h5py.File(self.hierarchy_filename)
+        self._fhandle = h5py.File(self.hierarchy_filename, 'r')
 
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = [fn for fn in self._fhandle if fn != "Chombo_global"]
+        self._levels = self._fhandle.keys()[1:]
         AMRHierarchy.__init__(self,pf,data_style)
-
         self._fhandle.close()
 
     def _initialize_data_storage(self):
@@ -113,7 +128,7 @@ class ChomboHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         ncomp = int(self._fhandle['/'].attrs['num_components'])
-        self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
+        self.field_list = [c[1] for c in self._fhandle['/'].attrs.items()[-ncomp:]]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -130,8 +145,8 @@ class ChomboHierarchy(AMRHierarchy):
         
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
-        levels = [fn for fn in f if fn != "Chombo_global"]
-        self.grids = []
+        levels = f.keys()[1:]
+        grids = []
         i = 0
         for lev in levels:
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
@@ -140,17 +155,18 @@ class ChomboHierarchy(AMRHierarchy):
             for level_id, box in enumerate(boxes):
                 si = na.array([box['lo_%s' % ax] for ax in 'ijk'])
                 ei = na.array([box['hi_%s' % ax] for ax in 'ijk'])
-                pg = self.grid(len(self.grids),self,level=level_number,
+                pg = self.grid(len(grids),self,level=level_number,
                                start = si, stop = ei)
-                self.grids.append(pg)
-                self.grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*si.astype(self.float_type) + self.domain_left_edge
-                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1) + self.domain_left_edge
+                grids.append(pg)
+                grids[-1]._level_id = level_id
+                self.grid_left_edge[i] = dx*si.astype(self.float_type)
+                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1)
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
         self.grids = na.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
+#        self.grids = na.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -179,8 +195,8 @@ class ChomboStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
-        # hardcoded for now 
-        self.current_time = 0.0
+        fileh = h5py.File(filename,'r')
+        self.current_time = fileh.attrs['time']
         self.ini_filename = ini_filename
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
@@ -230,15 +246,18 @@ class ChomboStaticOutput(StaticOutput):
         """
         if os.path.isfile('pluto.ini'):
             self._parse_pluto_file('pluto.ini')
-        elif os.path.isfile('orion2.ini'):
-            self._parse_pluto_file('orion2.ini')
         else:
+            if os.path.isfile('orion2.ini'): self._parse_pluto_file('orion2.ini')
             self.unique_identifier = \
-                                   int(os.stat(self.parameter_filename)[ST_CTIME])
-            self.domain_left_edge = na.array([0.,0.,0.])
+                int(os.stat(self.parameter_filename)[ST_CTIME])
+            self.domain_left_edge = self.__calc_left_edge()
             self.domain_right_edge = self.__calc_right_edge()
+            self.domain_dimensions = self.__calc_domain_dimensions()
             self.dimensionality = 3
-            self.refine_by = 2
+            self.refine_by = []
+            fileh = h5py.File(self.parameter_filename,'r')
+            for level in range(0,fileh.attrs['num_levels']):
+                self.refine_by.append(fileh['/level_'+str(level)].attrs['ref_ratio'])
 
     def _parse_pluto_file(self, ini_filename):
         """
@@ -268,36 +287,26 @@ class ChomboStaticOutput(StaticOutput):
                     else:
                         self.parameters[paramName] = t
 
-            # assumes 3D for now
-            elif param.startswith("X1-grid"):
-                t = vals.split()
-                low1 = float(t[1])
-                high1 = float(t[4])
-                N1 = int(t[2])
-            elif param.startswith("X2-grid"):
-                t = vals.split()
-                low2 = float(t[1])
-                high2 = float(t[4])
-                N2 = int(t[2])
-            elif param.startswith("X3-grid"):
-                t = vals.split()
-                low3 = float(t[1])
-                high3 = float(t[4])
-                N3 = int(t[2])
+    def __calc_left_edge(self):
+        fileh = h5py.File(self.parameter_filename,'r')
+        dx0 = fileh['/level_0'].attrs['dx']
+        LE = dx0*((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        fileh.close()
+        return LE
 
-        self.dimensionality = 3
-        self.domain_left_edge = na.array([low1,low2,low3])
-        self.domain_right_edge = na.array([high1,high2,high3])
-        self.domain_dimensions = na.array([N1,N2,N3])
-        self.refine_by = self.parameters["RefineBy"]
-            
     def __calc_right_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
+        RE = dx0*((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
         fileh.close()
         return RE
-                   
+                  
+    def __calc_domain_dimensions(self):
+        fileh = h5py.File(self.parameter_filename,'r')
+        L_index = ((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        R_index = ((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        return R_index - L_index
+ 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
@@ -308,7 +317,6 @@ class ChomboStaticOutput(StaticOutput):
         except:
             pass
         return False
-
 
     @parallel_root_only
     def print_key_parameters(self):
