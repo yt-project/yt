@@ -426,7 +426,7 @@ class PWViewerExtJS(PWViewer):
         y = raw_data['py']
         z = raw_data[field]
         if logit: z = na.log10(z)
-        fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()
+        fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()[::-1,:]
 
         fig = Figure((vi/100.0, vj/100.0), dpi = 100)
         fig.figimage(img)
