@@ -31,9 +31,7 @@ import numpy as na
 from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.utilities.amr_utils import bin_profile1d
-from yt.utilities.data_point_utilities import \
-    Bin1DProfile, Bin2DProfile, Bin3DProfile
+from yt.utilities.amr_utils import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
@@ -123,7 +121,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 self.__data[field][ub] /= self.__weight_data[field][ub]
                 self.__std_data[field][ub] /= self.__weight_data[field][ub]
             self[field] = self.__data[field]
-            self["%s_std" % field] = na.sqrt(self.__std_data[field])
+            #self["%s_std" % field] = na.sqrt(self.__std_data[field])
         self["UsedBins"] = self.__used
         del self.__data, self.__std_data, self.__weight_data, self.__used
 
@@ -442,6 +440,8 @@ class BinnedProfile2D(BinnedProfile):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1].ravel().astype('int64')
@@ -450,8 +450,8 @@ class BinnedProfile2D(BinnedProfile):
         weight_data = weight_data[mi]
         nx = bin_indices_x.size
         #mylog.debug("Binning %s / %s times", source_data.size, nx)
-        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        bin_profile2d(bin_indices_x, bin_indices_y, weight_data, source_data,
+                      weight_field, binned_field, m_field, q_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
@@ -459,7 +459,8 @@ class BinnedProfile2D(BinnedProfile):
                 binned_field = na.add.accumulate(binned_field, axis=0)
             if accumulation[1]:
                 binned_field = na.add.accumulate(binned_field, axis=1)
-        return binned_field, weight_field, used_field.astype('bool')
+        return binned_field, weight_field, q_field, \
+            used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
@@ -694,6 +695,8 @@ class BinnedProfile3D(BinnedProfile):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1].ravel().astype('int64')
@@ -701,10 +704,9 @@ class BinnedProfile3D(BinnedProfile):
         bin_indices_z = args[3].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        Bin3DProfile(
-            bin_indices_x, bin_indices_y, bin_indices_z,
-            weight_data, source_data,
-            weight_field, binned_field, used_field)
+        bin_profile3d(bin_indices_x, bin_indices_y, bin_indices_z,
+                      weight_data, source_data, weight_field, binned_field,
+                      m_field, q_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
@@ -714,7 +716,8 @@ class BinnedProfile3D(BinnedProfile):
                 binned_field = na.add.accumulate(binned_field, axis=1)
             if accumulation[2]:
                 binned_field = na.add.accumulate(binned_field, axis=2)
-        return binned_field, weight_field, used_field.astype('bool')
+        return binned_field, weight_field, q_field, \
+            used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
