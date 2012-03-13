@@ -121,7 +121,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 self.__data[field][ub] /= self.__weight_data[field][ub]
                 self.__std_data[field][ub] /= self.__weight_data[field][ub]
             self[field] = self.__data[field]
-            #self["%s_std" % field] = na.sqrt(self.__std_data[field])
+            self["%s_std" % field] = na.sqrt(self.__std_data[field])
         self["UsedBins"] = self.__used
         del self.__data, self.__std_data, self.__weight_data, self.__used
 
