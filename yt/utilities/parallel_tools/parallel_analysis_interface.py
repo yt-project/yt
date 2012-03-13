@@ -154,6 +154,9 @@ def parallel_simple_proxy(func):
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
+        if hasattr(self, "dont_wrap"):
+            if func.func_name in self.dont_wrap:
+                return func(self, *args, **kwargs)
         if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         comm = _get_comm((self,))
