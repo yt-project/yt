@@ -276,9 +276,6 @@ class BinnedProfile1D(BinnedProfile):
         bin_indices_x = args[1].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        # Bin1DProfile(bin_indices_x, weight_data, source_data,
-        #              weight_field, binned_field,
-        #              m_field, q_field, used_field)
         bin_profile1d(bin_indices_x, weight_data, source_data,
                       weight_field, binned_field,
                       m_field, q_field, used_field)
