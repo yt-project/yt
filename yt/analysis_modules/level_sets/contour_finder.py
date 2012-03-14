@@ -61,7 +61,6 @@ def identify_contours(data_source, field, min_val, max_val,
     cur_max_id = np.sum([g.ActiveDimensions.prod() for g in data_source._grids])
     pbar = get_pbar("First pass", len(data_source._grids))
     grids = sorted(data_source._grids, key=lambda g: -g.Level)
-    total_contours = 0
     tree = amr_utils.ContourTree()
     for gi,grid in enumerate(grids):
         pbar.update(gi+1)
@@ -85,8 +84,7 @@ def identify_contours(data_source, field, min_val, max_val,
         zi = zi_u[cor_order]
         while data_point_utilities.FindContours(grid["tempContours"], xi, yi, zi) < 0:
             pass
-        total_contours += na.unique(grid["tempContours"][grid["tempContours"] > -1]).size
-        new_contours = na.unique(grid["tempContours"][grid["tempContours"] > -1])
+        new_contours = tree.cull_candidates(grid["tempContours"])
         tree.add_contours(new_contours)
     pbar.finish()
     pbar = get_pbar("Calculating joins ", len(data_source._grids))
@@ -99,9 +97,8 @@ def identify_contours(data_source, field, min_val, max_val,
         bt = amr_utils.construct_boundary_relationships(fd)
         # This recipe is from josef.pktd on the SciPy mailing list:
         # http://mail.scipy.org/pipermail/numpy-discussion/2009-August/044664.html
-        c = bt.view([('',bt.dtype)]*bt.shape[1])
-        bt = na.unique(c).view(bt.dtype).reshape(-1,bt.shape[1])
-        tree.add_joins(bt)
+        joins = tree.cull_joins(bt)
+        tree.add_joins(joins)
     pbar.finish()
     joins = tree.export()
     ff = data_source["tempContours"].astype("int64")
@@ -112,11 +109,14 @@ def identify_contours(data_source, field, min_val, max_val,
     data_source.get_data("tempContours")
     contour_ind = {}
     i = 0
-    for contour_id in np.unique(data_source["tempContours"]):
-        if contour_id == -1: continue
-        contour_ind[i] = np.where(data_source["tempContours"] == contour_id)
+    handled = set()
+    for contour_id in data_source["tempContours"]:
+        if contour_id == -1 or contour_id in handled: continue
+        handled.add(contour_id)
+        contour_ind[i] = na.where(data_source["tempContours"] == contour_id)
         mylog.debug("Contour id %s has %s cells", i, contour_ind[i][0].size)
         i += 1
+    print "TREE ENTRIES", tree.count()
     mylog.info("Identified %s contours between %0.5e and %0.5e",
                len(contour_ind.keys()),min_val,max_val)
     for grid in chain(grid_set):

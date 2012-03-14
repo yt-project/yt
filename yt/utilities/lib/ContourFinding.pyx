@@ -74,6 +74,32 @@ cdef void contour_union(ContourID *node1, ContourID *node2):
         node2.parent = node1
         node1.rank += 1
 
+cdef struct CandidateContour
+
+cdef struct CandidateContour:
+    np.int64_t contour_id
+    np.int64_t join_id
+    CandidateContour *next
+
+cdef int candidate_contains(CandidateContour *first,
+                            np.int64_t contour_id,
+                            np.int64_t join_id = -1):
+    while first != NULL:
+        if first.contour_id == contour_id \
+            and first.join_id == join_id: return 1
+        first = first.next
+    return 0
+
+cdef CandidateContour *candidate_add(CandidateContour *first,
+                                     np.int64_t contour_id,
+                                     np.int64_t join_id = -1):
+    cdef CandidateContour *node
+    node = <CandidateContour *> malloc(sizeof(CandidateContour))
+    node.contour_id = contour_id
+    node.join_id = join_id
+    node.next = first
+    return node
+
 cdef class ContourTree:
     cdef ContourID *first
     cdef ContourID *last
@@ -105,6 +131,62 @@ cdef class ContourTree:
 
     def add_contour(self, np.int64_t contour_id):
         self.last = contour_create(contour_id, self.last)
+
+    def cull_candidates(self, np.ndarray[np.int64_t, ndim=3] candidates):
+        # This is a helper function.
+        cdef int i, j, k, ni, nj, nk, nc
+        cdef CandidateContour *first = NULL
+        cdef CandidateContour *temp
+        cdef np.int64_t cid
+        nc = 0
+        ni = candidates.shape[0]
+        nj = candidates.shape[1]
+        nk = candidates.shape[2]
+        for i in range(ni):
+            for j in range(nj):
+                for k in range(nk):
+                    cid = candidates[i,j,k]
+                    if cid == -1: continue
+                    if candidate_contains(first, cid) == 0:
+                        nc += 1
+                        first = candidate_add(first, cid)
+        cdef np.ndarray[np.int64_t, ndim=1] contours
+        contours = np.empty(nc, dtype="int64")
+        i = 0
+        while first != NULL:
+            contours[i] = first.contour_id
+            i += 1
+            temp = first.next
+            free(first)
+            first = temp
+        return contours
+
+    def cull_joins(self, np.ndarray[np.int64_t, ndim=2] cjoins):
+        cdef int i, j, k, ni, nj, nk, nc
+        cdef CandidateContour *first = NULL
+        cdef CandidateContour *temp
+        cdef np.int64_t cid1, cid2
+        nc = 0
+        ni = cjoins.shape[0]
+        for i in range(ni):
+            cid1 = cjoins[i,0]
+            cid2 = cjoins[i,1]
+            if cid1 == -1: continue
+            if cid2 == -1: continue
+            if candidate_contains(first, cid1, cid2) == 0:
+                nc += 1
+                first = candidate_add(first, cid1, cid2)
+        cdef np.ndarray[np.int64_t, ndim=2] contours
+        contours = np.empty((nc,2), dtype="int64")
+        i = 0
+        while first != NULL:
+            contours[i,0] = first.contour_id
+            contours[i,1] = first.join_id
+            i += 1
+            temp = first.next
+            free(first)
+            first = temp
+        return contours
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
