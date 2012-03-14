@@ -219,18 +219,18 @@ class FixedResolutionBuffer(object):
 
         """
         This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filenames are
-        *filename_prefix* plus an underscore plus the name of the field. If 
-        clobber is set to True, this will overwrite any existing FITS file.
+        or all the fields already in the object.  The output filename is
+        *filename_prefix*. If clobber is set to True, this will overwrite any
+        existing FITS file.
 
         This requires the *pyfits* module, which is a standalone module
         provided by STSci to interface with FITS-format files.
         """
-        r"""Export a set of pixelized fields to a set of fits files.
+        r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filenames are
-        the specified prefix plus an underscore plus the name of the field.
+        or all the fields already in the object.  The output filename is the
+        the specified prefix.
 
         Parameters
         ----------
@@ -249,6 +249,8 @@ class FixedResolutionBuffer(object):
         """
         
         import pyfits
+        from os import system
+        
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
         if fields is None: 
@@ -270,9 +272,9 @@ class FixedResolutionBuffer(object):
 
             if (first) :
                 hdu = pyfits.PrimaryHDU(self[field])
+                first = False
             else :
                 hdu = pyfits.ImageHDU(self[field])
-                first = False
                 
             if self.data_source.has_key('weight_field'):
                 weightname = self.data_source._weight
@@ -282,20 +284,16 @@ class FixedResolutionBuffer(object):
             hdu.header.update("Field", field)
             hdu.header.update("Time", simtime)
 
-            """
-            hdu.header.update('WCSNAMEP', 'PHYSICAL')
-            hdu.header.update('MFORM1', 'X,Y')
-            hdu.header.update('MFORM2', 'X,Y')
-            hdu.header.update('CTYPE1P', "X")
-            hdu.header.update('CTYPE2P', "Y")
+            hdu.header.update('WCSNAMEP', "PHYSICAL")            
+            hdu.header.update('CTYPE1P', "LINEAR")
+            hdu.header.update('CTYPE2P', "LINEAR")
             hdu.header.update('CRPIX1P', 0.5)
             hdu.header.update('CRPIX2P', 0.5)
             hdu.header.update('CRVAL1P', xmin)
             hdu.header.update('CRVAL2P', ymin)
             hdu.header.update('CDELT1P', dx)
             hdu.header.update('CDELT2P', dy)
-            """
-            
+                    
             hdu.header.update('CTYPE1', "LINEAR")
             hdu.header.update('CTYPE2', "LINEAR")                                
             hdu.header.update('CUNIT1', units)
@@ -321,7 +319,10 @@ class FixedResolutionBuffer(object):
 
         hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)
         
-        if (gzip_file) : system("gzip -f %s.fits" % (filename_prefix))
+        if (gzip_file) :
+            clob = ""
+            if (clobber) : clob = "-f"
+            system("gzip "+clob+" %s.fits" % (filename_prefix))
         
     def open_in_ds9(self, field, take_log=True):
         """
