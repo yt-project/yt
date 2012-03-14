@@ -45,18 +45,12 @@ def export_rgba(image, fn, h5=True, fits=False, ):
         f.close()
     if fits:
         try:
-            hdu = pyfits.PrimaryHDU(image[:,:,0])
-            hdulist = pyfits.HDUList([hdu])
-            hdulist.writeto('%s_r.fits'%fn,clobber=True)
-            hdu = pyfits.PrimaryHDU(image[:,:,1])
-            hdulist = pyfits.HDUList([hdu])
-            hdulist.writeto('%s_g.fits'%fn,clobber=True)
-            hdu = pyfits.PrimaryHDU(image[:,:,2])
-            hdulist = pyfits.HDUList([hdu])
-            hdulist.writeto('%s_b.fits'%fn,clobber=True)
-            hdu = pyfits.PrimaryHDU(image[:,:,3])
-            hdulist = pyfits.HDUList([hdu])
-            hdulist.writeto('%s_a.fits'%fn,clobber=True)
+            hdur = pyfits.PrimaryHDU(image[:,:,0])
+            hdug = pyfits.ImageHDU(image[:,:,1])
+            hdub = pyfits.ImageHDU(image[:,:,2])
+            hdua = pyfits.ImageHDU(image[:,:,3])
+            hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
+            hdulist.writeto('%s.fits'%fn,clobber=True)
         except: print 'You do not have pyfits, install before attempting to use fits exporter'
 
 def import_rgba(name, h5=True):
