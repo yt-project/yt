@@ -62,7 +62,7 @@ def identify_contours(data_source, field, min_val, max_val,
     pbar = get_pbar("First pass", len(data_source._grids))
     grids = sorted(data_source._grids, key=lambda g: -g.Level)
     total_contours = 0
-    tree = []
+    tree = amr_utils.ContourTree()
     for gi,grid in enumerate(grids):
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
@@ -85,10 +85,9 @@ def identify_contours(data_source, field, min_val, max_val,
         zi = zi_u[cor_order]
         while data_point_utilities.FindContours(grid["tempContours"], xi, yi, zi) < 0:
             pass
-        total_contours += np.unique(grid["tempContours"][grid["tempContours"] > -1]).size
-        new_contours = np.unique(grid["tempContours"][grid["tempContours"] > -1]).tolist()
-        tree += zip(new_contours, new_contours)
-    tree = set(tree)
+        total_contours += na.unique(grid["tempContours"][grid["tempContours"] > -1]).size
+        new_contours = na.unique(grid["tempContours"][grid["tempContours"] > -1])
+        tree.add_contours(new_contours)
     pbar.finish()
     pbar = get_pbar("Calculating joins ", len(data_source._grids))
     grid_set = set()
@@ -98,29 +97,13 @@ def identify_contours(data_source, field, min_val, max_val,
         grid_set.update(set(cg._grids))
         fd = cg["tempContours"].astype('int64')
         boundary_tree = amr_utils.construct_boundary_relationships(fd)
-        tree.update(((a, b) for a, b in boundary_tree))
+        tree.add_joins(boundary_tree)
     pbar.finish()
-    sort_new = np.array(list(tree), dtype='int64')
-    mylog.info("Coalescing %s joins", sort_new.shape[0])
-    joins = coalesce_join_tree(sort_new)
-    #joins = [(i, np.array(list(j), dtype="int64")) for i, j in sorted(joins.items())]
-    pbar = get_pbar("Joining ", len(joins))
-    # This process could and should be done faster
-    print "Joining..."
-    t1 = time.time()
+    sort_new = na.array(list(tree), dtype='int64')
+    joins = tree.export()
     ff = data_source["tempContours"].astype("int64")
     amr_utils.update_joins(joins, ff)
     data_source["tempContours"] = ff.astype("float64")
-    #for i, new in enumerate(sorted(joins.keys())):
-    #    pbar.update(i)
-    #    old_set = joins[new]
-    #    for old in old_set:
-    #        if old == new: continue
-    #        i1 = (data_source["tempContours"] == old)
-    #        data_source["tempContours"][i1] = new
-    t2 = time.time()
-    print "Finished joining in %0.2e seconds" % (t2-t1)
-    pbar.finish()
     data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
     del data_source.field_data["tempContours"] # Force a reload from the grids
     data_source.get_data("tempContours")

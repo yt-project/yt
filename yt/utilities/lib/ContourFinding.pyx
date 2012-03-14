@@ -29,49 +29,114 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
     if i0 < i1: return i0
     return i1
 
-cdef extern from "union_find.h":
-    ctypedef struct forest_node:
-        void *value
-        forest_node *parent
-        int rank
+cdef struct ContourID
 
-    forest_node* MakeSet(void* value)
-    void Union(forest_node* node1, forest_node* node2)
-    forest_node* Find(forest_node* node)
+cdef struct ContourID:
+    np.int64_t contour_id
+    int rank
+    ContourID *parent
+    ContourID *next
+    ContourID *prev
 
-ctypedef struct CellIdentifier:
-    np.int64_t hindex
-    int level
+cdef ContourID *contour_create(np.int64_t contour_id,
+                               ContourID *prev = NULL):
+    node = <ContourID *> malloc(sizeof(ContourID *))
+    node.contour_id = contour_id
+    node.parent = NULL
+    node.rank = 0
+    node.prev = prev
+    if prev != NULL: prev.next = node
+    return node
 
-cdef class GridContourContainer:
-    cdef np.int64_t dims[3]
-    cdef np.int64_t start_indices[3]
-    cdef forest_node **join_tree
-    cdef np.int64_t ncells
+cdef void contour_delete(ContourID *node):
+    if node.prev != NULL: node.prev.next = node.next
+    if node.next != NULL: node.next.prev = node.prev
+    free(node)
 
-    def __init__(self, dimensions, indices):
-        cdef int i
-        self.ncells = 1
-        for i in range(3):
-            self.ncells *= dimensions[i]
-            self.dims[i] = dimensions[i]
-            self.start_indices[i] = indices[i]
-        self.join_tree = <forest_node **> malloc(sizeof(forest_node) 
-                                                 * self.ncells)
-        for i in range(self.ncells): self.join_tree[i] = NULL
+cdef ContourID *contour_find(ContourID *node):
+    cdef ContourID *temp, *root
+    root = node
+    while root.parent !=  NULL:
+        root = root.parent
+    while node.parent != NULL:
+        temp = node.parent
+        node.parent = root
+        node = temp
+    return root
 
+cdef void contour_union(ContourID *node1, ContourID *node2):
+    if node1.rank > node2.rank:
+        node2.parent = node1
+    elif node2.rank > node1.rank:
+        node1.parent = node2
+    else:
+        node2.parent = node1
+        node1.rank += 1
+
+cdef class ContourTree:
+    cdef ContourID *first
+    cdef ContourID *last
+
+    def clear(self):
+        # Here, we wipe out ALL of our contours, but not the pointers to them
+        cdef ContourID *cur, *next
+        cur = self.first
+        while cur != NULL:
+            next = cur.next
+            free(cur)
+            cur = next
+
+    def add_contours(self, np.ndarray[np.int64_t, ndim=1] contour_ids):
+        cdef int i, n
+        n = contour_ids.shape[0]
+        cdef ContourID *cur = self.last
+        for i in range(n):
+            cur = contour_create(contour_ids[i], cur)
+            if self.first == NULL: self.first = cur
+        self.last = cur
+
+    def add_contour(self, np.int64_t contour_id):
+        self.last = contour_create(contour_id, self.last)
+
+    def add_joins(self, np.ndarray[np.int64_t, ndim=2] join_tree):
+        cdef int i, n
+        cdef np.int64_t cid1, cid2
+        # Okay, this requires lots of iteration, unfortunately
+        cdef ContourID *cur, *root
+        n = join_tree.shape[0]
+        for i in range(n):
+            cid1 = join_tree[n, 0]
+            cid2 = join_tree[n, 1]
+            c1 = c2 = NULL
+            while c1 == NULL and c2 == NULL and cur != NULL:
+                if cur.contour_id == cid1:
+                    c1 = contour_find(cur)
+                if cur.contour_id == cid2:
+                    c2 = contour_find(cur)
+                cur == cur.next
+            if c1 == NULL or c2 == NULL: raise RuntimeError
+            contour_union(c1, c2)
+
+    def export(self):
+        cdef int n = 0
+        cdef ContourID *cur, *root
+        cur = self.first
+        while cur != NULL:
+            cur = cur.next
+            n += 1
+        cdef np.ndarray[np.int64_t, ndim=2] joins 
+        joins = np.empty((n, 2), dtype="int64")
+        n = 0
+        while cur != NULL:
+            root = contour_find(cur)
+            joins[n, 0] = cur.contour_id
+            joins[n, 1] = root.contour_id
+            cur = cur.next
+            n += 1
+        return joins
+    
     def __dealloc__(self):
-        cdef int i
-        for i in range(self.ncells):
-            if self.join_tree[i] != NULL: free(self.join_tree[i])
-        free(self.join_tree)
-
-    #def construct_join_tree(self,
-    #            np.ndarray[np.float64_t, ndim=3] field,
-    #            np.ndarray[np.bool_t, ndim=3] mask):
-    #    # This only looks at the components of the grid that are actually
-    #    # inside this grid -- boundary conditions are handled later.
-    #    pass
+        self.clear()
 
 #@cython.boundscheck(False)
 #@cython.wraparound(False)
@@ -228,16 +293,13 @@ def extract_identified_contours(int max_ind, joins):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def update_joins(joins, np.ndarray[np.int64_t, ndim=1] contour_ids):
-    cdef np.int64_t new, old, i, oi
-    cdef int n, on
-    cdef np.ndarray[np.int64_t, ndim=1] old_set
-    #print contour_ids.shape[0]
-    n = contour_ids.shape[0]
-    for new, old_set in joins:
-        #print new
-        on = old_set.shape[0]
-        for i in range(n):
-            for oi in range(on):
-                old = old_set[oi]
-                if contour_ids[i] == old: contour_ids[i] = new
+def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
+                 np.ndarray[np.int64_t, ndim=1] contour_ids):
+    cdef np.int64_t new, old
+    cdef int i, j, nc, nj
+    nc = contour_ids.shape[0]
+    nj = joins.shape[0]
+    for i in range(nc):
+        for j in range(nj):
+            if contour_ids[i] == joins[j,0]:
+                contour_ids[i] = joins[j,1]
