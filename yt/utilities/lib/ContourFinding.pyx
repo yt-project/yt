@@ -91,6 +91,8 @@ cdef class ContourTree:
     def __init__(self):
         self.first = self.last = NULL
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def add_contours(self, np.ndarray[np.int64_t, ndim=1] contour_ids):
         cdef int i, n
         n = contour_ids.shape[0]
@@ -104,6 +106,8 @@ cdef class ContourTree:
     def add_contour(self, np.int64_t contour_id):
         self.last = contour_create(contour_id, self.last)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def add_joins(self, np.ndarray[np.int64_t, ndim=2] join_tree):
         cdef int i, n, ins
         cdef np.int64_t cid1, cid2
@@ -143,6 +147,8 @@ cdef class ContourTree:
             n += 1
         return n
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def export(self):
         cdef int n = self.count()
         cdef ContourID *cur, *root
@@ -161,8 +167,8 @@ cdef class ContourTree:
     def __dealloc__(self):
         self.clear()
 
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def construct_boundary_relationships(
         np.ndarray[dtype=np.int64_t, ndim=3] contour_ids):
     # We only look at the boundary and one cell in
