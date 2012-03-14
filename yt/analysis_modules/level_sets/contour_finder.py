@@ -96,10 +96,13 @@ def identify_contours(data_source, field, min_val, max_val,
         cg = grid.retrieve_ghost_zones(1, "tempContours", smoothed=False)
         grid_set.update(set(cg._grids))
         fd = cg["tempContours"].astype('int64')
-        boundary_tree = amr_utils.construct_boundary_relationships(fd)
-        tree.add_joins(boundary_tree)
+        bt = amr_utils.construct_boundary_relationships(fd)
+        # This recipe is from josef.pktd on the SciPy mailing list:
+        # http://mail.scipy.org/pipermail/numpy-discussion/2009-August/044664.html
+        c = bt.view([('',bt.dtype)]*bt.shape[1])
+        bt = na.unique(c).view(bt.dtype).reshape(-1,bt.shape[1])
+        tree.add_joins(bt)
     pbar.finish()
-    sort_new = na.array(list(tree), dtype='int64')
     joins = tree.export()
     ff = data_source["tempContours"].astype("int64")
     amr_utils.update_joins(joins, ff)

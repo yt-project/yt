@@ -40,9 +40,9 @@ cdef struct ContourID:
 
 cdef ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
-    node = <ContourID *> malloc(sizeof(ContourID *))
+    node = <ContourID *> malloc(sizeof(ContourID))
     node.contour_id = contour_id
-    node.parent = NULL
+    node.next = node.parent = NULL
     node.rank = 0
     node.prev = prev
     if prev != NULL: prev.next = node
@@ -56,8 +56,9 @@ cdef void contour_delete(ContourID *node):
 cdef ContourID *contour_find(ContourID *node):
     cdef ContourID *temp, *root
     root = node
-    while root.parent !=  NULL:
+    while root.parent !=  NULL and root.parent != root:
         root = root.parent
+    if root == root.parent: root.parent = NULL
     while node.parent != NULL:
         temp = node.parent
         node.parent = root
@@ -85,12 +86,17 @@ cdef class ContourTree:
             next = cur.next
             free(cur)
             cur = next
+        self.first = self.last = NULL
+
+    def __init__(self):
+        self.first = self.last = NULL
 
     def add_contours(self, np.ndarray[np.int64_t, ndim=1] contour_ids):
         cdef int i, n
         n = contour_ids.shape[0]
         cdef ContourID *cur = self.last
         for i in range(n):
+            #print i, contour_ids[i]
             cur = contour_create(contour_ids[i], cur)
             if self.first == NULL: self.first = cur
         self.last = cur
@@ -99,31 +105,48 @@ cdef class ContourTree:
         self.last = contour_create(contour_id, self.last)
 
     def add_joins(self, np.ndarray[np.int64_t, ndim=2] join_tree):
-        cdef int i, n
+        cdef int i, n, ins
         cdef np.int64_t cid1, cid2
         # Okay, this requires lots of iteration, unfortunately
         cdef ContourID *cur, *root
         n = join_tree.shape[0]
+        #print "Counting"
+        #print "Checking", self.count()
         for i in range(n):
-            cid1 = join_tree[n, 0]
-            cid2 = join_tree[n, 1]
+            ins = 0
+            cid1 = join_tree[i, 0]
+            cid2 = join_tree[i, 1]
             c1 = c2 = NULL
-            while c1 == NULL and c2 == NULL and cur != NULL:
+            cur = self.first
+            #print "Looking for ", cid1, cid2
+            while c1 == NULL or c2 == NULL:
                 if cur.contour_id == cid1:
                     c1 = contour_find(cur)
                 if cur.contour_id == cid2:
                     c2 = contour_find(cur)
-                cur == cur.next
-            if c1 == NULL or c2 == NULL: raise RuntimeError
-            contour_union(c1, c2)
+                ins += 1
+                cur = cur.next
+                if cur == NULL: break
+            if c1 == NULL or c2 == NULL:
+                if c1 == NULL: print "  Couldn't find ", cid1
+                if c2 == NULL: print "  Couldn't find ", cid2
+                print "  Inspected ", ins
+                raise RuntimeError
+            else:
+                contour_union(c1, c2)
 
-    def export(self):
+    def count(self):
         cdef int n = 0
-        cdef ContourID *cur, *root
-        cur = self.first
+        cdef ContourID *cur = self.first
         while cur != NULL:
             cur = cur.next
             n += 1
+        return n
+
+    def export(self):
+        cdef int n = self.count()
+        cdef ContourID *cur, *root
+        cur = self.first
         cdef np.ndarray[np.int64_t, ndim=2] joins 
         joins = np.empty((n, 2), dtype="int64")
         n = 0
@@ -303,3 +326,4 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
         for j in range(nj):
             if contour_ids[i] == joins[j,0]:
                 contour_ids[i] = joins[j,1]
+                break
