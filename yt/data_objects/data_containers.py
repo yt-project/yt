@@ -985,9 +985,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
             from yt.analysis_modules.level_sets.api import identify_contours
             cids = identify_contours(self, field, cons[level], mv,
                                      cached_fields)
-            for cid, cid_ind in cids.items():
-                contours[level][cid] = self.extract_region(cid_ind)
-        return cons, contours
+            #for cid, cid_ind in cids.items():
+            #    contours[level][cid] = self.extract_region(cid_ind)
+        return #cons, contours
 
     def paint_grids(self, field, value, default_value=None):
         """

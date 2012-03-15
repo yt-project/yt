@@ -21,6 +21,10 @@ from libc.stdlib cimport malloc, free
 cdef extern from "math.h":
     double fabs(double x)
 
+cdef extern from "stdlib.h":
+    # NOTE that size_t might not be int
+    void *alloca(int)
+
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0
     return i1
@@ -33,7 +37,6 @@ cdef struct ContourID
 
 cdef struct ContourID:
     np.int64_t contour_id
-    int rank
     ContourID *parent
     ContourID *next
     ContourID *prev
@@ -41,9 +44,9 @@ cdef struct ContourID:
 cdef ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
     node = <ContourID *> malloc(sizeof(ContourID))
+    #print "Creating contour with id", contour_id
     node.contour_id = contour_id
     node.next = node.parent = NULL
-    node.rank = 0
     node.prev = prev
     if prev != NULL: prev.next = node
     return node
@@ -56,7 +59,7 @@ cdef void contour_delete(ContourID *node):
 cdef ContourID *contour_find(ContourID *node):
     cdef ContourID *temp, *root
     root = node
-    while root.parent !=  NULL and root.parent != root:
+    while root.parent != NULL and root.parent != root:
         root = root.parent
     if root == root.parent: root.parent = NULL
     while node.parent != NULL:
@@ -66,13 +69,10 @@ cdef ContourID *contour_find(ContourID *node):
     return root
 
 cdef void contour_union(ContourID *node1, ContourID *node2):
-    if node1.rank > node2.rank:
+    if node1.contour_id < node2.contour_id:
         node2.parent = node1
-    elif node2.rank > node1.rank:
+    elif node2.contour_id < node1.contour_id:
         node1.parent = node2
-    else:
-        node2.parent = node1
-        node1.rank += 1
 
 cdef struct CandidateContour
 
@@ -248,6 +248,71 @@ cdef class ContourTree:
     
     def __dealloc__(self):
         self.clear()
+
+cdef class GridContourTree:
+    cdef np.float64_t min_val
+    cdef np.float64_t max_val
+
+    def __init__(self, np.float64_t min_val, np.float64_t max_val):
+        self.min_val = min_val
+        self.max_val = max_val
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def identify_contours(self, np.ndarray[np.float64_t, ndim=3] values,
+                                np.ndarray[np.int64_t, ndim=3] contour_ids,
+                                np.ndarray[np.int32_t, cast=True, ndim=3] child_mask,
+                                np.int64_t start):
+        cdef int i, j, k, ni, nj, nk, offset
+        cdef int off_i, off_j, off_k, oi, ok, oj
+        cdef ContourID *cur = NULL
+        cdef ContourID *c1, *c2
+        cdef np.float64_t v
+        cdef np.int64_t nc
+        ni = values.shape[0]
+        nj = values.shape[1]
+        nk = values.shape[2]
+        nc = 0
+        cdef ContourID **container = <ContourID**> malloc(
+                sizeof(ContourID*)*ni*nj*nk)
+        for i in range(ni*nj*nk): container[i] = NULL
+        for i in range(ni):
+            for j in range(nj):
+                for k in range(nk):
+                    if child_mask[i,j,k] == 0: continue
+                    v = values[i,j,k]
+                    if v < self.min_val or v > self.max_val: continue
+                    nc += 1
+                    c1 = contour_create(nc + start)
+                    cur = container[i*nj*nk + j*nk + k] = c1
+                    for oi in range(3):
+                        off_i = oi - 1 + i
+                        if not (0 <= off_i < ni): continue
+                        for oj in range(3):
+                            off_j = oj - 1 + j
+                            if not (0 <= off_j < nj): continue
+                            for ok in range(3):
+                                if oi == oj == ok == 1: continue
+                                if off_k > k and off_j > j and off_i > i:
+                                    continue
+                                off_k = ok - 1 + k
+                                if not (0 <= off_k < nk): continue
+                                offset = off_i*nj*nk + off_j*nk + off_k
+                                c2 = container[offset]
+                                if c2 == NULL: continue
+                                c2 = contour_find(c2)
+                                contour_union(cur, c2)
+                                cur = contour_find(cur)
+        for i in range(ni):
+            for j in range(nj):
+                for k in range(nk):
+                    c1 = container[i*nj*nk + j*nk + k]
+                    if c1 == NULL: continue
+                    cur = c1
+                    c1 = contour_find(c1)
+                    contour_ids[i,j,k] = c1.contour_id
+                    #free(cur)
+        free(container)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

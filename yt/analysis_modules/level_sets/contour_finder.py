@@ -58,33 +58,23 @@ def coalesce_join_tree(jtree1):
 
 def identify_contours(data_source, field, min_val, max_val,
                           cached_fields=None):
-    cur_max_id = np.sum([g.ActiveDimensions.prod() for g in data_source._grids])
     pbar = get_pbar("First pass", len(data_source._grids))
     grids = sorted(data_source._grids, key=lambda g: -g.Level)
     tree = amr_utils.ContourTree()
+    gct = amr_utils.GridContourTree(min_val, max_val)
+    total_contours = 0
     for gi,grid in enumerate(grids):
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
-        if cm is True: cm = np.ones(grid.ActiveDimensions, dtype='bool')
+        if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='int32')
         old_field_parameters = grid.field_parameters
         grid.field_parameters = data_source.field_parameters
-        local_ind = np.where( (grid[field] > min_val)
-                            & (grid[field] < max_val) & cm )
+        values = grid[field]
         grid.field_parameters = old_field_parameters
-        if local_ind[0].size == 0: continue
-        kk = np.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
-        grid["tempContours"] = np.ones(grid.ActiveDimensions, dtype='int64') * -1
-        grid["tempContours"][local_ind] = kk[:]
-        cur_max_id -= local_ind[0].size
-        xi_u,yi_u,zi_u = np.where(grid["tempContours"] > -1)
-        cor_order = np.argsort(-1*grid["tempContours"][(xi_u,yi_u,zi_u)])
-        fd_orig = grid["tempContours"].copy()
-        xi = xi_u[cor_order]
-        yi = yi_u[cor_order]
-        zi = zi_u[cor_order]
-        while data_point_utilities.FindContours(grid["tempContours"], xi, yi, zi) < 0:
-            pass
+        grid["tempContours"] = na.zeros(grid.ActiveDimensions, "int64") - 1
+        gct.identify_contours(values, grid["tempContours"], cm, total_contours)
         new_contours = tree.cull_candidates(grid["tempContours"])
+        total_contours += new_contours.shape[0]
         tree.add_contours(new_contours)
     pbar.finish()
     pbar = get_pbar("Calculating joins ", len(data_source._grids))
