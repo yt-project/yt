@@ -292,7 +292,7 @@ class FLASHStaticOutput(StaticOutput):
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                if ptype = "string" :
+                if ptype == "string" :
                     return pval.strip()
                 else :
                     return pval
