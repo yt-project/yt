@@ -311,7 +311,9 @@ cdef class GridContourTree:
                     cur = c1
                     c1 = contour_find(c1)
                     contour_ids[i,j,k] = c1.contour_id
-                    #free(cur)
+        
+        for i in range(ni*nj*nk): 
+            if container[i] != NULL: free(container[i])
         free(container)
 
 @cython.boundscheck(False)
