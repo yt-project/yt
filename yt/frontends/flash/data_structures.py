@@ -289,7 +289,7 @@ class FLASHStaticOutput(StaticOutput):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
         if nn not in self._handle: raise KeyError(nn)
-        for tpname, pval in self._handle[nn][:]:
+        for tpname, pval in zip(self._handle[nn][:,'name'], self._handle[nn][:,'value']):
             if tpname.strip() == pname:
                 return pval
         raise KeyError(pname)
