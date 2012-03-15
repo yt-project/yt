@@ -502,7 +502,8 @@ class OrionStaticOutput(StaticOutput):
         castro = any(("castro." in line for line in open(pfn)))
         nyx = any(("nyx." in line for line in open(pfn)))
         maestro = os.path.exists(os.path.join(pname, "job_info"))
-        orion = (not castro) and (not maestro) and (not nyx)
+        really_orion = any(("geometry.prob_lo" in line for line in open(pfn)))
+        orion = (not castro) and (not maestro) and (not nyx) and really_orion
         return orion
         
     def _parse_parameter_file(self):

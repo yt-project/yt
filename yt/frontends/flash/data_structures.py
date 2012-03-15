@@ -379,7 +379,7 @@ class FLASHStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            if "bounding box" in fileh["/"].keys():
+            if "integer scalars" in fileh["/"].keys():
                 fileh.close()
                 return True
             fileh.close()
