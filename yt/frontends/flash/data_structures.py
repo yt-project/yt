@@ -317,16 +317,19 @@ class FLASHStaticOutput(StaticOutput):
             nxb = self._find_parameter("integer", "nxb", scalar = True)
             nyb = self._find_parameter("integer", "nyb", scalar = True)
             nzb = self._find_parameter("integer", "nzb", scalar = True)
-            dimensionality = self._find_parameter("integer", "dimensionality",
-                                    scalar = True)
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
-                              for ax in 'xyz']
+                              for ax in 'xyz'] # FLASH2 only!
+        try:
+            dimensionality = self._find_parameter("integer", "dimensionality",
+                                                  scalar = True)
+        except KeyError:
             dimensionality = 3
             if nzb == 1: dimensionality = 2
             if nyb == 1: dimensionality = 1
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
+
         nblockx = self._find_parameter("integer", "nblockx")
         nblocky = self._find_parameter("integer", "nblocky")
         nblockz = self._find_parameter("integer", "nblockz")
@@ -334,7 +337,10 @@ class FLASHStaticOutput(StaticOutput):
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
-        self.parameters['Gamma'] = self._find_parameter("real", "gamma")
+        try:
+            self.parameters['Gamma'] = self._find_parameter("real", "gamma")
+        except KeyError:
+            pass
 
         if self._flash_version == 7:
             self.current_time = float(

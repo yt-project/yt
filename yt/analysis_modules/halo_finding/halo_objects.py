@@ -105,11 +105,19 @@ class Halo(object):
         --------
         >>> com = halos[0].center_of_mass()
         """
-        c_vec = self.maximum_density_location() - na.array([0.5, 0.5, 0.5])
+        if self.CoM is not None:
+            return self.CoM
         pm = self["ParticleMassMsun"]
-        cx = (self["particle_position_x"] - c_vec[0])
-        cy = (self["particle_position_y"] - c_vec[1])
-        cz = (self["particle_position_z"] - c_vec[2])
+        cx = self["particle_position_x"]
+        cy = self["particle_position_y"]
+        cz = self["particle_position_z"]
+        if isinstance(self, FOFHalo):
+            c_vec = na.array([cx[0], cy[0], cz[0]]) - self.pf.domain_center
+        else:
+            c_vec = self.maximum_density_location() - self.pf.domain_center
+        cx = (cx - c_vec[0])
+        cy = (cy - c_vec[1])
+        cz = (cz - c_vec[2])
         com = na.array([v - na.floor(v) for v in [cx, cy, cz]])
         return (com * pm).sum(axis=1) / pm.sum() + c_vec
 
@@ -123,6 +131,8 @@ class Halo(object):
         --------
         >>> max_dens = halos[0].maximum_density()
         """
+        if self.max_dens_point is not None:
+            return self.max_dens_point[0]
         return self._max_dens[self.id][0]
 
     def maximum_density_location(self):
@@ -135,6 +145,8 @@ class Halo(object):
         --------
         >>> max_dens_loc = halos[0].maximum_density_location()
         """
+        if self.max_dens_point is not None:
+            return self.max_dens_point[1:]
         return na.array([
                 self._max_dens[self.id][1],
                 self._max_dens[self.id][2],
@@ -150,6 +162,8 @@ class Halo(object):
         --------
         >>> halos[0].total_mass()
         """
+        if self.group_total_mass is not None:
+            return self.group_total_mass
         return self["ParticleMassMsun"].sum()
 
     def bulk_velocity(self):
@@ -162,6 +176,8 @@ class Halo(object):
         --------
         >>> bv = halos[0].bulk_velocity()
         """
+        if self.bulk_vel is not None:
+            return self.bulk_vel
         pm = self["ParticleMassMsun"]
         vx = (self["particle_velocity_x"] * pm).sum()
         vy = (self["particle_velocity_y"] * pm).sum()
@@ -180,6 +196,8 @@ class Halo(object):
         --------
         >>> rms_vel = halos[0].rms_velocity()
         """
+        if self.rms_vel is not None:
+            return self.rms_vel
         bv = self.bulk_velocity()
         pm = self["ParticleMassMsun"]
         sm = pm.sum()
@@ -211,6 +229,8 @@ class Halo(object):
         --------
         >>> radius = halos[0].maximum_radius()
         """
+        if self.max_radius is not None:
+            return self.max_radius
         if center_of_mass:
             center = self.center_of_mass()
         else:
@@ -266,6 +286,8 @@ class Halo(object):
         return sphere
 
     def get_size(self):
+        if self.size is not None:
+            return self.size
         return self.indices.size
 
     def write_particle_list(self, handle):
@@ -418,6 +440,7 @@ class Halo(object):
 
 
 class HOPHalo(Halo):
+    _name = "HOPHalo"
     pass
 
 
@@ -427,292 +450,6 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         "get_size", "get_sphere", "write_particle_list", "__getitem__",
         "virial_info", "virial_bin", "virial_mass", "virial_radius",
         "rms_velocity"]
-
-    def maximum_density(self):
-        r"""Return the HOP-identified maximum density.
-
-        Return the HOP-identified maximum density.
-
-        Examples
-        --------
-        >>> max_dens = halos[0].maximum_density()
-        """
-        if self.max_dens_point is not None:
-            return self.max_dens_point[0]
-        max = self.comm.mpi_allreduce(self._max_dens[self.id][0], op='max')
-        return max
-
-    def maximum_density_location(self):
-        r"""Return the location HOP identified as maximally dense.
-
-        Return the location HOP identified as maximally dense.
-
-        Examples
-        --------
-        >>> max_dens_loc = halos[0].maximum_density_location()
-        """
-        if self.max_dens_point is not None:
-            return self.max_dens_point[1:]
-        # If I own the maximum density, my location is globally correct.
-        max_dens = self.maximum_density()
-        if self._max_dens[self.id][0] == max_dens:
-            value = na.array([
-                self._max_dens[self.id][1],
-                self._max_dens[self.id][2],
-                self._max_dens[self.id][3]])
-        else:
-            value = na.array([0, 0, 0])
-        # This works, and isn't appropriate but for now will be fine...
-        value = self.comm.mpi_allreduce(value, op='sum')
-        return value
-
-    def center_of_mass(self):
-        r"""Calculate and return the center of mass.
-
-        The center of mass of the halo is directly calculated and returned.
-
-        Examples
-        --------
-        >>> com = halos[0].center_of_mass()
-        """
-        # If it's precomputed, we save time!
-        if self.CoM is not None:
-            return self.CoM
-        # This need to be called by all tasks, but not all will end up using
-        # it.
-        c_vec = self.maximum_density_location() - na.array([0.5, 0.5, 0.5])
-        if self.indices is not None:
-            pm = self["ParticleMassMsun"]
-            cx = (self["particle_position_x"] - c_vec[0])
-            cy = (self["particle_position_y"] - c_vec[1])
-            cz = (self["particle_position_z"] - c_vec[2])
-            com = na.array([v - na.floor(v) for v in [cx, cy, cz]])
-            my_mass = pm.sum()
-            my_com = ((com * pm).sum(axis=1) / my_mass + c_vec) * my_mass
-        else:
-            my_mass = 0.
-            my_com = na.array([0., 0., 0.])
-        global_mass = self.comm.mpi_allreduce(my_mass, op='sum')
-        global_com = self.comm.mpi_allreduce(my_com, op='sum')
-        return global_com / global_mass
-
-    def total_mass(self):
-        r"""Returns the total mass in solar masses of the halo.
-
-        Returns the total mass in solar masses of just the particles in the
-        halo.
-
-        Examples
-        --------
-        >>> halos[0].total_mass()
-        """
-        if self.group_total_mass is not None:
-            return self.group_total_mass
-        if self.indices is not None:
-            my_mass = self["ParticleMassMsun"].sum()
-        else:
-            my_mass = 0.
-        global_mass = self.comm.mpi_allreduce(float(my_mass), op='sum')
-        return global_mass
-
-    def bulk_velocity(self):
-        r"""Returns the mass-weighted average velocity in cm/s.
-
-        This calculates and returns the mass-weighted average velocity of just
-        the particles in the halo in cm/s.
-
-        Examples
-        --------
-        >>> bv = halos[0].bulk_velocity()
-        """
-        if self.bulk_vel is not None:
-            return self.bulk_vel
-        # Unf. this cannot be reasonably computed inside of parallelHOP because
-        # we don't pass velocities in.
-        if self.indices is not None:
-            pm = self["ParticleMassMsun"]
-            vx = (self["particle_velocity_x"] * pm).sum()
-            vy = (self["particle_velocity_y"] * pm).sum()
-            vz = (self["particle_velocity_z"] * pm).sum()
-            pm = pm.sum()
-        else:
-            pm = 0.
-            vx = 0.
-            vy = 0.
-            vz = 0.
-        bv = na.array([vx, vy, vz, pm])
-        global_bv = self.comm.mpi_allreduce(bv, op='sum')
-        return global_bv[:3] / global_bv[3]
-
-    def rms_velocity(self):
-        r"""Returns the mass-weighted RMS velocity for the halo
-        particles in cgs units.
-
-        Calculate and return the mass-weighted RMS velocity for just the
-        particles in the halo.  The bulk velocity of the halo is subtracted
-        before computation.
-
-        Examples
-        --------
-        >>> rms_vel = halos[0].rms_velocity()
-        """
-        if self.rms_vel is not None:
-            return self.rms_vel
-        bv = self.bulk_velocity()
-        pm = self["ParticleMassMsun"]
-        sm = pm.sum()
-        if self.indices is not None:
-            vx = (self["particle_velocity_x"] - bv[0]) * pm / sm
-            vy = (self["particle_velocity_y"] - bv[1]) * pm / sm
-            vz = (self["particle_velocity_z"] - bv[2]) * pm / sm
-            s = vx ** 2 + vy ** 2 + vz ** 2
-            s = na.sum(s)
-            size = vx.size
-            ss = na.array([s, float(size)])
-        else:
-            ss = na.array([0., 0.])
-        global_ss = self.comm.mpi_allreduce(ss, op='sum')
-        ms = global_ss[0] / global_ss[1]
-        return na.sqrt(ms) * global_ss[1]
-
-    def maximum_radius(self, center_of_mass=True):
-        r"""Returns the maximum radius in the halo for all particles,
-        either from the point of maximum density or from the
-        center of mass.
-
-        The maximum radius from the most dense point is calculated.  This
-        accounts for periodicity.
-
-        Parameters
-        ----------
-        center_of_mass : bool
-            True chooses the center of mass when
-            calculating the maximum radius.
-            False chooses from the maximum density location for HOP halos
-            (it has no effect for FOF halos).
-            Default = True.
-
-        Examples
-        --------
-        >>> radius = halos[0].maximum_radius()
-        """
-        if self.max_radius is not None:
-            return self.max_radius
-        if center_of_mass:
-            center = self.center_of_mass()
-        else:
-            center = self.maximum_density_location()
-        DW = self.data.pf.domain_right_edge - self.data.pf.domain_left_edge
-        if self.indices is not None:
-            rx = na.abs(self["particle_position_x"] - center[0])
-            ry = na.abs(self["particle_position_y"] - center[1])
-            rz = na.abs(self["particle_position_z"] - center[2])
-            r = na.sqrt(na.minimum(rx, DW[0] - rx) ** 2.0
-                    + na.minimum(ry, DW[1] - ry) ** 2.0
-                    + na.minimum(rz, DW[2] - rz) ** 2.0)
-            my_max = r.max()
-
-        else:
-            my_max = 0.
-        return self.comm.mpi_allreduce(my_max, op='max')
-
-    def get_size(self):
-        if self.size is not None:
-            return self.size
-        if self.indices is not None:
-            my_size = self.indices.size
-        else:
-            my_size = 0
-        global_size = self.comm.mpi_allreduce(my_size, op='sum')
-        return global_size
-
-    def __getitem__(self, key):
-        if ytcfg.getboolean("yt", "inline") == False:
-            return self.data[key][self.indices]
-        else:
-            return self.data[key][self.indices]
-
-    def virial_mass(self, virial_overdensity=200., bins=300):
-        r"""Return the virial mass of the halo
-        in Msun, using only the particles
-        in the halo (no baryonic information used).
-
-        The virial mass is calculated, using the built in `Halo.virial_info`
-        functionality.  The mass is then returned.
-
-        Parameters
-        ----------
-        virial_overdensity : float
-            The overdensity threshold compared to the universal average when
-            calculating the virial mass. Default = 200.
-        bins : int
-            The number of spherical bins used to calculate overdensities.
-            Default = 300.
-
-        Returns
-        -------
-        mass : float
-            The virial mass in solar masses of the particles in the halo.  -1
-            if not virialized.
-
-        Examples
-        --------
-        >>> vm = halos[0].virial_mass()
-        """
-        self.virial_info(bins=bins)
-        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity,
-            bins=bins)
-        if vir_bin != -1:
-            return self.mass_bins[vir_bin]
-        else:
-            return -1
-
-    def virial_radius(self, virial_overdensity=200., bins=300):
-        r"""Return the virial radius of the halo in code units.
-
-        The virial radius of the halo is calculated, using only the particles
-        in the halo (no baryonic information used). Returns -1 if the halo is
-        not virialized.
-
-        Parameters
-        ----------
-        virial_overdensity : float
-            The overdensity threshold compared to the universal average when
-            calculating the virial radius. Default = 200.
-        bins : integer
-            The number of spherical bins used to calculate overdensities.
-            Default = 300.
-
-        Returns
-        -------
-        radius : float
-            The virial raius in code units of the particles in the halo.  -1
-            if not virialized.
-
-        Examples
-        --------
-        >>> vr = halos[0].virial_radius()
-        """
-        self.virial_info(bins=bins)
-        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity,
-            bins=bins)
-        if vir_bin != -1:
-            return self.radial_bins[vir_bin]
-        else:
-            return -1
-
-    def virial_bin(self, virial_overdensity=200., bins=300):
-        r"""Returns the bin index of the virial radius of the halo. Generally,
-        it is better to call virial_radius instead, which calls this function
-        automatically.
-        """
-        self.virial_info(bins=bins)
-        over = (self.overdensity > virial_overdensity)
-        if (over == True).any():
-            vir_bin = max(na.arange(bins + 1)[over])
-            return vir_bin
-        else:
-            return -1
 
     def virial_info(self, bins=300):
         r"""Calculates the virial information for the halo. Generally, it is
@@ -780,27 +517,6 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
 
 
 class FOFHalo(Halo):
-
-    def center_of_mass(self):
-        r"""Calculate and return the center of mass.
-
-        The center of mass of the halo is directly calculated and returned.
-
-        Examples
-        --------
-        >>> com = halos[0].center_of_mass()
-        """
-        pm = self["ParticleMassMsun"]
-        cx = self["particle_position_x"]
-        cy = self["particle_position_y"]
-        cz = self["particle_position_z"]
-        c_vec = na.array([cx[0], cy[0], cz[0]]) - na.array([0.5, 0.5, 0.5])
-        cx = cx - c_vec[0]
-        cy = cy - c_vec[1]
-        cz = cz - c_vec[2]
-        com = na.array([v - na.floor(v) for v in [cx, cy, cz]])
-        com = (pm * com).sum(axis=1) / pm.sum() + c_vec
-        return com
 
     def maximum_density(self):
         r"""Not implemented."""
@@ -904,100 +620,6 @@ class LoadedHalo(Halo):
             f.close()
             del f
         return field_data
-
-    def center_of_mass(self):
-        r"""Calculate and return the center of mass.
-
-        The center of mass of the halo is directly calculated and returned.
-
-        Examples
-        --------
-        >>> com = halos[0].center_of_mass()
-        """
-        return self.CoM
-
-    def maximum_density_location(self):
-        r"""Return the location HOP identified as maximally dense.
-
-        Return the location HOP identified as maximally dense.
-
-        Examples
-        --------
-        >>> max_dens_loc = halos[0].maximum_density_location()
-        """
-        return self.max_dens_point[1:]
-
-    def maximum_density(self):
-        r"""Return the HOP-identified maximum density.
-
-        Return the HOP-identified maximum density.
-
-        Examples
-        --------
-        >>> max_dens = halos[0].maximum_density()
-        """
-        return self.max_dens_point[0]
-
-    def total_mass(self):
-        r"""Returns the total mass in solar masses of the halo.
-
-        Returns the total mass in solar masses of just the particles in the
-        halo.
-
-        Examples
-        --------
-        >>> halos[0].total_mass()
-        """
-        return self.group_total_mass
-
-    def bulk_velocity(self):
-        r"""Returns the mass-weighted average velocity in cm/s.
-
-        This calculates and returns the mass-weighted average velocity of just
-        the particles in the halo in cm/s.
-
-        Examples
-        --------
-        >>> bv = halos[0].bulk_velocity()
-        """
-        return self.bulk_vel
-
-    def rms_velocity(self):
-        r"""Returns the mass-weighted RMS velocity for the halo
-        particles in cgs units.
-
-        Calculate and return the mass-weighted RMS velocity for just the
-        particles in the halo.  The bulk velocity of the halo is subtracted
-        before computation.
-
-        Examples
-        --------
-        >>> rms_vel = halos[0].rms_velocity()
-        """
-        return self.rms_vel
-
-    def maximum_radius(self):
-        r"""Returns the maximum radius in the halo for all particles,
-        either from the point of maximum density or from the
-        center of mass.
-
-        The maximum radius from the most dense point is calculated.  This
-        accounts for periodicity.
-
-        Parameters
-        ----------
-        center_of_mass : bool
-            True chooses the center of mass when
-            calculating the maximum radius.
-            False chooses from the maximum density location for HOP halos
-            (it has no effect for FOF halos).
-            Default = True.
-
-        Examples
-        --------
-        >>> radius = halos[0].maximum_radius()
-        """
-        return self.max_radius
 
     def get_sphere(self):
         r"""Returns a sphere source.
@@ -2243,26 +1865,31 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
                 total_mass = \
                     self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
             else:
-                total_mass = self.comm.mpi_allreduce(self._data_source["ParticleMassMsun"].sum(dtype='float64'), op='sum')
+                total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0], op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE, ds_RE)
+        else:
+            self._data_source = pf.h.all_data()
         self.padding = padding  # * pf["unitary"] # This should be clevererer
         padded, LE, RE, self._data_source = \
             self.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
-        # reflect particles around the periodic boundary
-        #self._reposition_particles((LE, RE))
-        if dm_only:
+        # sub_mass can be skipped if subvolume is not used and this is not
+        # parallel.
+        if subvolume is None and \
+                ytcfg.getint("yt", "__topcomm_parallel_size") == 1:
+            sub_mass = total_mass
+        elif dm_only:
             select = self._get_dm_indices()
             sub_mass = self._data_source["ParticleMassMsun"][select].sum(dtype='float64')
         else:
             sub_mass = \
-                self._data_source["ParticleMassMsun"].sum(dtype='float64')
+                self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0]
         HOPHaloList.__init__(self, self._data_source,
             threshold * total_mass / sub_mass, dm_only)
         self._parse_halolist(total_mass / sub_mass)
@@ -2341,6 +1968,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         if subvolume is not None:
             self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE,
                 ds_RE)
+        else:
+            self._data_source = pf.h.all_data()
         padded, LE, RE, self._data_source = \
             self.partition_hierarchy_3d(ds=self._data_source,
             padding=self.padding)

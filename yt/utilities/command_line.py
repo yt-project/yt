@@ -47,10 +47,11 @@ def _fix_pf(arg):
 def _add_arg(sc, arg):
     if isinstance(arg, types.StringTypes):
         arg = _common_options[arg].copy()
+    argc = dict(arg.items())
     argnames = []
-    if "short" in arg: argnames.append(arg.pop('short'))
-    if "long" in arg: argnames.append(arg.pop('long'))
-    sc.add_argument(*argnames, **arg)
+    if "short" in argc: argnames.append(argc.pop('short'))
+    if "long" in argc: argnames.append(argc.pop('long'))
+    sc.add_argument(*argnames, **argc)
 
 class YTCommand(object):
     args = ()
@@ -63,12 +64,14 @@ class YTCommand(object):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
             if cls.name is not None:
-                sc = subparsers.add_parser(cls.name,
-                    description = cls.description,
-                    help = cls.description)
-                sc.set_defaults(func=cls.run)
-                for arg in cls.args:
-                    _add_arg(sc, arg)
+                names = ensure_list(cls.name)
+                for name in names:
+                    sc = subparsers.add_parser(name,
+                        description = cls.description,
+                        help = cls.description)
+                    sc.set_defaults(func=cls.run)
+                    for arg in cls.args:
+                        _add_arg(sc, arg)
 
     @classmethod
     def run(cls, args):
@@ -1140,76 +1143,6 @@ class YTPlotCmd(YTCommand):
         if not os.path.isdir(args.output): os.makedirs(args.output)
         pc.save(os.path.join(args.output,"%s" % (pf)))
 
-class YTReasonCmd(YTCommand):
-    name = "reason"
-    args = (
-            dict(short="-o", long="--open-browser", action="store_true",
-                 default = False, dest='open_browser',
-                 help="Open a web browser."),
-            dict(short="-p", long="--port", action="store",
-                 default = 0, dest='port',
-                 help="Port to listen on"),
-            dict(short="-f", long="--find", action="store_true",
-                 default = False, dest="find",
-                 help="At startup, find all *.hierarchy files in the CWD"),
-            dict(short="-d", long="--debug", action="store_true",
-                 default = False, dest="debug",
-                 help="Add a debugging mode for cell execution")
-            )
-    description = \
-        """
-        Run the Web GUI Reason
-        """
-
-    def __call__(self, args):
-        # We have to do a couple things.
-        # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
-            print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
-        if args.port == 0:
-            # This means, choose one at random.  We do this by binding to a
-            # socket and allowing the OS to choose the port for that socket.
-            import socket
-            sock = socket.socket()
-            sock.bind(('', 0))
-            args.port = sock.getsockname()[-1]
-            del sock
-        elif args.port == '-1':
-            port = raw_input("Desired yt port? ")
-            try:
-                args.port = int(port)
-            except ValueError:
-                print "Please try a number next time."
-                return 1
-        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
-        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
-            print
-            print "*** You are missing the ExtJS support files. You  ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
-            print
-            sys.exit(1)
-        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
-        from yt.gui.reason.extdirect_repl import ExtDirectREPL
-        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
-        hr.debug = PayloadHandler.debug = args.debug
-        if args.find:
-            # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
-            for fn in sorted(glob.glob("*/*.hierarchy")):
-                command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
-        bottle.debug()
-        uuid_serve_functions(open_browser=args.open_browser,
-                    port=int(args.port), repl=hr)
-
 class YTRenderCmd(YTCommand):
         
     args = ("width", "unit", "center","enhance",'outputfn',
@@ -1307,13 +1240,18 @@ class YTRPDBCmd(YTCommand):
         uncaught exceptions.
 
         """
+    args = (
+            dict(short="-t", long="--task", action="store",
+                 default = 0, dest='task',
+                 help="Open a web browser."),
+           )
 
     def __call__(self, args):
         import rpdb
-        rpdb.run_rpdb(int(task))
+        rpdb.run_rpdb(int(args.task))
 
-class YTServeCmd(YTCommand):
-    name = "serve"
+class YTGUICmd(YTCommand):
+    name = ["serve", "reason"]
     args = (
             dict(short="-o", long="--open-browser", action="store_true",
                  default = False, dest='open_browser',
