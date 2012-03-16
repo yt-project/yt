@@ -478,6 +478,7 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
     nc = contour_ids.shape[0]
     nj = joins.shape[0]
     for i in range(nc):
+        if contour_ids[i] == -1: continue
         for j in range(nj):
             if contour_ids[i] == joins[j,0]:
                 contour_ids[i] = joins[j,1]
