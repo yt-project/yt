@@ -81,6 +81,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.port = str(self.port)
 
     def run(self, block_ratio = 1):
+        if block_ratio != 1:
+            raise NotImplementedError
         self._get_hosts()
         self.handler.setup_rockstar(self.server_address, self.port,
                     parallel = self.comm.size > 1,

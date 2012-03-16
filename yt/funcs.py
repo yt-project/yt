@@ -24,6 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, os
+import contextlib
 import warnings, struct, subprocess
 from math import floor, ceil
 
@@ -562,3 +563,15 @@ def fix_length(length, pf):
        isinstance(length[1], types.StringTypes):
        length = length[0]/pf[length[1]]
     return length
+
+@contextlib.contextmanager
+def parallel_profile(prefix):
+    import cProfile
+    from yt.config import ytcfg
+    fn = "%s_%04i.cprof" % (prefix,
+                ytcfg.getint("yt", "__topcomm_parallel_rank"))
+    p = cProfile.Profile()
+    p.enable()
+    yield
+    p.disable()
+    p.dump_stats(fn)
