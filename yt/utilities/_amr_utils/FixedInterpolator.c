@@ -96,6 +96,11 @@ void vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
          {0,0,1}, {1,0,1}, {1,1,1}, {0,1,1}};
 
     npy_float64 mu = ((isovalue - v1) / (v2 - v1));
+
+    if (fabs(1.0 - isovalue/v1) < 0.000001) mu = 0.0;
+    if (fabs(1.0 - isovalue/v2) < 0.000001) mu = 1.0;
+    if (fabs(v1/v2) < 0.000001) mu = 0.0;
+
     vl[0] = x; vl[1] = y; vl[2] = z;
     for (i=0;i<3;i++)
         vl[i] += dds[i] * cverts[vind1][i]
