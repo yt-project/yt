@@ -564,8 +564,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                width: 70,
                                xtype: 'label',
                                text: 'Field',
-                             },
-                             {
+                             }, {
                                x: 80,
                                y: 20,
                                width : 160,
@@ -627,6 +626,47 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                }
                              }
                           ]
+                        }, {
+                          xtype: 'panel',
+                          title: 'Velocity Vectors',
+                          id: 'vector_edit',
+                          style: {fontFamily: '"Inconsolata", monospace'},
+                          layout: 'absolute',
+                          flex: 1,
+                          items : [
+                             {
+                               x: 10,
+                               y: 60,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Skip Factor',
+                             }, {
+                               x: 80,
+                               y: 60,
+                               width : 160,
+                               xtype: 'slider',
+                               id: 'skip',
+                               minValue: 1,
+                               maxValue: 64,
+                               value: 32,
+                               increment: 1,
+                               plugins: new Ext.slider.Tip(),
+                             }, {
+                               x: 10,
+                               y: 180,
+                               width: 80,
+                               xtype: 'button',
+                               text: 'Apply',
+                               handler: function(b, e) {
+                                  skip = vector_window.get('skip').getValue();
+                                  yt_rpc.ExtDirectREPL.execute(
+                                      {code:python_varname
+                                       + '.set_vector_info('+skip+')',
+                                        hide:false},
+                                      cell_finished);
+                               }
+                             }
+                          ]
                         }
                         ] } /* tabpanel items and entry */
                         ]
@@ -650,6 +690,9 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     var contour_window = this.panel.get("rhs_panel_" + python_varname);
     contour_window = contour_window.get("editor_panel");
     contour_window = contour_window.get("contour_edit");
+    var vector_window = this.panel.get("rhs_panel_" + python_varname);
+    vector_window = vector_window.get("editor_panel");
+    vector_window = vector_window.get("vector_edit");
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
     var metadata_string;
