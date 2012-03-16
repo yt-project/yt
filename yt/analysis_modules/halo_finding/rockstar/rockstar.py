@@ -97,9 +97,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             if self.workgroup.name == "server":
                 self.handler.start_server()
             elif self.workgroup.name == "readers":
-                time.sleep(0.5 + self.workgroup.comm.rank/10.0)
+                #time.sleep(0.5 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
             elif self.workgroup.name == "writers":
-                time.sleep(1.0 + self.workgroup.comm.rank/10.0)
+                #time.sleep(1.0 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
         self.comm.barrier()
