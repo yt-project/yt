@@ -130,7 +130,6 @@ class ExecutionThread(threading.Thread):
 
     def execute_one(self, code, hide):
         self.repl.executed_cell_texts.append(code)
-
         result = ProgrammaticREPL.execute(self.repl, code)
         if self.repl.debug:
             print "==================== Cell Execution ===================="
@@ -562,10 +561,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
         _tfield_list.sort()
         _tcb = _tpw._get_cbar_image()
+        _ttrans = _tpw._field_transform[_tpw._current_field].name
         _twidget_data = {'fields': _tfield_list,
                          'initial_field': _tfield,
                          'title': "%%s Slice" %% (_tpf),
-                         'colorbar': _tcb}
+                         'colorbar': _tcb,
+                         'initial_transform' : _ttrans}
         """ % dict(pfname = pfname,
                    center_string = center_string,
                    axis = inv_axis_names[axis],

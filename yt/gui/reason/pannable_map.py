@@ -63,10 +63,10 @@ class PannableMapServer(object):
 
     #@exc_writeout
     def map(self, L, x, y):
-        dd = 1.0 / (2.0**(int(L)-1))
+        dd = 1.0 / (2.0**(int(L)))
         relx = int(x) * dd
         rely = int(y) * dd
-        DW = (self.pf.domain_left_edge + self.pf.domain_right_edge)/2.0
+        DW = (self.pf.domain_right_edge - self.pf.domain_left_edge)
         xl = self.pf.domain_left_edge[0] + relx * DW[0]
         yl = self.pf.domain_left_edge[1] + rely * DW[1]
         xr = xl + dd*DW[0]

@@ -726,6 +726,8 @@ class NyxStaticOutput(StaticOutput):
         seconds = self.time_units["s"]
         self.time_units["days"] = seconds / (3600 * 24.0)
         self.time_units["years"] = seconds / (3600 * 24.0 * 365)
+        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
+        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
 
         # not the most useful right now, but someday
         for key in nyx_particle_field_names:

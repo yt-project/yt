@@ -290,7 +290,7 @@ def generate_flat_octree(pf, fields, subregion_bounds = None):
 
 def generate_levels_octree(pf, fields):
     fields = ensure_list(fields) + ["Ones", "Ones"]
-    ogl, levels_finest, levels_all = initialize_octree_list(fields)
+    ogl, levels_finest, levels_all = initialize_octree_list(pf, fields)
     o_length = na.sum(levels_finest.values())
     r_length = na.sum(levels_all.values())
     output = na.zeros((r_length,len(fields)), dtype='float64')

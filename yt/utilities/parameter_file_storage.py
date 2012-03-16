@@ -62,6 +62,7 @@ class ParameterFileStore(object):
     _distributed = True
     _processing = False
     _owner = 0
+    _register = True
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -74,6 +75,7 @@ class ParameterFileStore(object):
         Otherwise, use read-only settings.
 
         """
+        if self._register == False: return
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
             self._read_only = False
             self.init_db()
@@ -81,6 +83,7 @@ class ParameterFileStore(object):
         else:
             self._read_only = True
             self._records = {}
+        self._register = False
 
     @parallel_simple_proxy
     def init_db(self):

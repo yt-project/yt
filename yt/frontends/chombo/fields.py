@@ -38,45 +38,64 @@ KnownChomboFields = FieldInfoContainer()
 add_chombo_field = KnownChomboFields.add_field
 
 ChomboFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_chombo_field = ChomboFieldInfo.add_field
+add_field = ChomboFieldInfo.add_field
 
-add_field = add_chombo_field
+add_chombo_field("density", function=NullFunc, take_log=True,
+                 validators = [ValidateDataField("density")],
+                 units=r"\rm{g}/\rm{cm}^3")
 
-add_field("density", function=NullFunc, take_log=True,
-          validators = [ValidateDataField("density")],
-          units=r"\rm{g}/\rm{cm}^3")
+KnownChomboFields["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 
-ChomboFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+add_chombo_field("X-momentum", function=NullFunc, take_log=False,
+                 validators = [ValidateDataField("X-Momentum")],
+                 units=r"",display_name=r"M_x")
+KnownChomboFields["X-momentum"]._projected_units=r""
 
-add_field("X-momentum", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("X-Momentum")],
-          units=r"",display_name=r"B_x")
-ChomboFieldInfo["X-momentum"]._projected_units=r""
+add_chombo_field("Y-momentum", function=NullFunc, take_log=False,
+                 validators = [ValidateDataField("Y-Momentum")],
+                 units=r"",display_name=r"M_y")
+KnownChomboFields["Y-momentum"]._projected_units=r""
 
-add_field("Y-momentum", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("Y-Momentum")],
-          units=r"",display_name=r"B_y")
-ChomboFieldInfo["Y-momentum"]._projected_units=r""
+add_chombo_field("Z-momentum", function=NullFunc, take_log=False,
+                 validators = [ValidateDataField("Z-Momentum")],
+                 units=r"",display_name=r"M_z")
+KnownChomboFields["Z-momentum"]._projected_units=r""
 
-add_field("Z-momentum", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("Z-Momentum")],
-          units=r"",display_name=r"B_z")
-ChomboFieldInfo["Z-momentum"]._projected_units=r""
+add_chombo_field("X-magnfield", function=NullFunc, take_log=False,
+                 validators = [ValidateDataField("X-Magnfield")],
+                 units=r"",display_name=r"B_x")
+KnownChomboFields["X-magnfield"]._projected_units=r""
 
-add_field("X-magnfield", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("X-Magnfield")],
-          units=r"",display_name=r"B_x")
-ChomboFieldInfo["X-magnfield"]._projected_units=r""
+add_chombo_field("Y-magnfield", function=NullFunc, take_log=False,
+                 validators = [ValidateDataField("Y-Magnfield")],
+                 units=r"",display_name=r"B_y")
+KnownChomboFields["Y-magnfield"]._projected_units=r""
 
-add_field("Y-magnfield", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("Y-Magnfield")],
-          units=r"",display_name=r"B_y")
-ChomboFieldInfo["Y-magnfield"]._projected_units=r""
+add_chombo_field("Z-magnfield", function=NullFunc, take_log=False,
+                  validators = [ValidateDataField("Z-Magnfield")],
+                  units=r"",display_name=r"B_z")
+KnownChomboFields["Z-magnfield"]._projected_units=r""
 
-add_field("Z-magnfield", function=NullFunc, take_log=False,
-          validators = [ValidateDataField("Z-Magnfield")],
-          units=r"",display_name=r"B_z")
-ChomboFieldInfo["Z-magnfield"]._projected_units=r""
+add_chombo_field("energy-density", function=lambda a,b: None, take_log=True,
+                 validators = [ValidateDataField("energy-density")],
+                 units=r"\rm{erg}/\rm{cm}^3")
+KnownChomboFields["energy-density"]._projected_units =r""
+
+add_chombo_field("radiation-energy-density", function=lambda a,b: None, take_log=True,
+                 validators = [ValidateDataField("radiation-energy-density")],
+                 units=r"\rm{erg}/\rm{cm}^3")
+KnownChomboFields["radiation-energy-density"]._projected_units =r""
+
+def _Density(field,data):
+    """A duplicate of the density field. This is needed because when you try 
+    to instantiate a PlotCollection without passing in a center, the code
+    will try to generate one for you using the "Density" field, which gives an error 
+    if it isn't defined.
+
+    """
+    return data["density"]
+add_field("Density",function=_Density, take_log=True,
+          units=r'\rm{g}/\rm{cm^3}')
 
 def _MagneticEnergy(field,data):
     return (data["X-magnfield"]**2 +

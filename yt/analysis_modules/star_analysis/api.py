@@ -32,4 +32,3 @@ from .sfr_spectrum import \
     StarFormationRate, \
     SpectrumBuilder, \
     Zsun
-

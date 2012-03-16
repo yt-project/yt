@@ -43,7 +43,78 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     }
 
     this.widget_keys = new Ext.KeyMap(document, [
-        {key: 'z', fn: function(){control_panel.get("zoom10x").handler();}}
+        {key: 'z',
+         shift: false,
+         fn: function(){
+               control_panel.get("zoom2x").handler();
+            }
+        },
+        {key: 'Z',
+         shift: true,
+         fn: function(){
+               control_panel.get("zoom10x").handler();
+            }
+        },
+        {key: 'x',
+         shift: false,
+         fn: function(){
+               control_panel.get("zoomout2x").handler();
+            }
+        },
+        {key: 'X',
+         shift: true,
+         fn: function(){
+               control_panel.get("zoomout10x").handler();
+            }
+        },
+        {key: 'k',
+         shift: false,
+         fn: function(){
+               control_panel.get("singleuparrow").handler();
+            }
+        },
+        {key: 'j',
+         shift: false,
+         fn: function(){
+               control_panel.get("singledownarrow").handler();
+            }
+        },
+        {key: 'h',
+         shift: false,
+         fn: function(){
+               control_panel.get("singleleftarrow").handler();
+            }
+        },
+        {key: 'l',
+         shift: false,
+         fn: function(){
+               control_panel.get("singlerightarrow").handler();
+            }
+        },
+        {key: 'K',
+         shift: true,
+         fn: function(){
+               control_panel.get("doubleuparrow").handler();
+            }
+        },
+        {key: 'J',
+         shift: true,
+         fn: function(){
+               control_panel.get("doubledownarrow").handler();
+            }
+        },
+        {key: 'H',
+         shift: true,
+         fn: function(){
+               control_panel.get("doubleleftarrow").handler();
+            }
+        },
+        {key: 'L',
+         shift: true,
+         fn: function(){
+               control_panel.get("doublerightarrow").handler();
+            }
+        },
     ]);
     var widget_keys = this.widget_keys;
     widget_keys.disable();
@@ -74,11 +145,13 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                         id: "img_" + this.id,
                         width: 400,
                         height: 400,
+                        draggable: false,
                     },
                     x: 100,
                     y: 10,
                     width: 400,
                     height: 400,
+                    draggable: false,
                     listeners: {
                         afterrender: function(c){
                             c.el.on('click', function(e){
@@ -91,6 +164,25 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                                     + c.el.dom.height + ")";
                                 yt_rpc.ExtDirectREPL.execute(
                                 {code:cc, hide:true}, cell_finished); 
+                            });
+                            c.el.on('mousedown', function(e){
+                                c.drag_start = true;
+                                c.drag_start_pos = e.getXY();
+                            });
+                            c.el.on('mouseup', function(e){
+                                c.drag_start = false;
+                                drag_stop = e.getXY();
+                                delta_x = drag_stop[0] - c.drag_start_pos[0];
+                                delta_y = drag_stop[1] - c.drag_start_pos[1];
+                                if (((delta_x < -10) || (delta_x > 10)) ||
+                                    ((delta_y < -10) || (delta_y > 10))) {
+                                    rel_x = -delta_x / 400;
+                                    rel_y = -delta_y / 400;
+                                    cc = python_varname + '.pan_rel((' + 
+                                        rel_x + ',' + rel_y + '))';
+                                    yt_rpc.ExtDirectREPL.execute(
+                                    {code:cc, hide:true}, cell_finished); 
+                                }
                             });
                         }
                     }
@@ -159,6 +251,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 /* the single buttons for 10% pan*/
                     xtype:'button',
                     iconCls: 'singleuparrow',
+                    id: 'singleuparrow',
                     //text: 'North',
                     x: 40,
                     y: 10,
@@ -170,6 +263,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype:'button',
                     iconCls: 'singlerightarrow',
+                    id: 'singlerightarrow',
                     //text:'East',
                     x : 60,
                     y : 30,
@@ -182,6 +276,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype:'button',
                     iconCls: 'singledownarrow',
+                    id: 'singledownarrow',
                     //text: 'South',
                     x: 40,
                     y: 50,
@@ -194,6 +289,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype: 'button',
                     iconCls: 'singleleftarrow',
+                    id: 'singleleftarrow',
                     //text: 'West',
                     x: 20,
                     y: 30,
@@ -208,6 +304,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 {
                     xtype:'button',
                     iconCls: 'doubleuparrow',
+                    id:'doubleuparrow',
                     //text: 'North',
                     x: 40,
                     y: 80,
@@ -219,6 +316,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype:'button',
                     iconCls: 'doublerightarrow',
+                    id:'doublerightarrow',
                     //text:'East',
                     x : 60,
                     y : 100,
@@ -232,6 +330,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                     xtype:'button',
                     iconCls: 'doubledownarrow',
                     //text: 'South',
+                    id: 'doubledownarrow',
                     x: 40,
                     y: 120,
                     handler: function(b,e) {
@@ -243,6 +342,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 }, {
                     xtype: 'button',
                     iconCls: 'doubleleftarrow',
+                    id: 'doubleleftarrow',
                     //text: 'West',
                     x: 20,
                     y: 100,
@@ -270,6 +370,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 },{
                     xtype: 'button',
                     text: 'Zoom In 2x',
+                    id: "zoom2x",
                     x: 10,
                     y: 185,
                     width: 80,
@@ -282,6 +383,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 },{
                     xtype: 'button',
                     text: 'Zoom Out 2x',
+                    id:'zoomout2x',
                     x: 10,
                     y: 210,
                     width: 80,
@@ -294,6 +396,7 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                 },{
                     xtype: 'button',
                     text: 'Zoom Out 10x',
+                    id:'zoomout10x',
                     x: 10,
                     y: 235,
                     width: 80,
@@ -365,11 +468,168 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                           html: 'Welcome to the Plot Window.',
                           height: 200,
                         }, {
+                          xtype: 'tabpanel',
+                          id: 'editor_panel',
+                          flex: 1,
+                          activeTab: 0,
+                          items: [
+                        {
                           xtype: 'panel',
                           title: 'Plot Editor',
                           id: 'plot_edit',
+                          style: {fontFamily: '"Inconsolata", monospace'},
+                          layout: 'absolute',
                           flex: 1,
-                        }]
+                          items : [
+                             {
+                               x: 10,
+                               y: 20,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Display',
+                             },
+                             {
+                               x: 80,
+                               y: 20,
+                               width : 80,
+                               xtype: 'combo',
+                               editable: false,
+                               triggerAction: 'all',
+                               validateOnBlur: false,
+                               store: ['log10', 'linear'],
+                               value: widget_data['initial_transform'],
+                               listeners: {select: function(combo, record, index){ 
+                                   var newValue = '"' + record.data['field1'] + '"';
+                                   yt_rpc.ExtDirectREPL.execute(
+                                       {code:python_varname + '.set_transform('
+                                         + python_varname + '._current_field, '
+                                         + newValue + ')', hide:false},
+                                         cell_finished);
+                               }}
+                             },
+                             {
+                               x: 10,
+                               y: 60,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Colormap',
+                             },
+                             {
+                               x: 80,
+                               y: 60,
+                               width : 140,
+                               xtype: 'combo',
+                               editable: false,
+                               triggerAction: 'all',
+                               validateOnBlur: false,
+                               store: ['algae', 'RdBu', 'gist_stern',  
+                                       'hot', 'jet', 'kamae', 
+                                        'B-W LINEAR', 'BLUE',
+                                        'GRN-RED-BLU-WHT', 'RED TEMPERATURE',
+                                        'BLUE', 'STD GAMMA-II', 'PRISM',
+                                        'RED-PURPLE', 'GREEN', 'GRN',
+                                        'GREEN-PINK', 'BLUE-RED', '16 LEVEL',
+                                        'RAINBOW', 'STEPS', 'STERN SPECIAL',
+                                        'Haze', 'Blue - Pastel - Red',
+                                        'Pastels', 'Hue Sat Lightness 1',
+                                        'Hue Sat Lightness 2', 'Hue Sat Value 1',
+                                        'Hue Sat Value 2', 'Purple-Red + Stripes',
+                                        'Beach', 'Mac Style', 'Eos A', 'Eos B',
+                                        'Hardcandy', 'Nature', 'Ocean', 'Peppermint',
+                                        'Plasma', 'Blue-Red', 'Rainbow', 'Blue Waves',
+                                        'Volcano', 'Waves', 'Rainbow18',
+                                        'Rainbow + white', 'Rainbow + black'],
+                               value: 'algae',
+                               listeners: {select: function(combo, record, index){ 
+                                   var newValue = '"' + record.data['field1'] + '"';
+                                   yt_rpc.ExtDirectREPL.execute(
+                                       {code:python_varname + '.set_cmap('
+                                         + python_varname + '._current_field, '
+                                         + newValue + ')', hide:false},
+                                         cell_finished);
+                               }}
+                             }
+                          ]
+                        }, {
+                          xtype: 'panel',
+                          title: 'Contours',
+                          id: 'contour_edit',
+                          style: {fontFamily: '"Inconsolata", monospace'},
+                          layout: 'absolute',
+                          flex: 1,
+                          items : [
+                             {
+                               x: 10,
+                               y: 20,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Field',
+                             },
+                             {
+                               x: 80,
+                               y: 20,
+                               width : 160,
+                               xtype: 'combo',
+                               editable: false,
+                               id: 'field',
+                               triggerAction: 'all',
+                               validateOnBlur: false,
+                               value:widget_data['initial_field'],
+                               store: widget_data['fields'],
+                             }, {
+                               x: 10,
+                               y: 60,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Levels',
+                             }, {
+                               x: 80,
+                               y: 60,
+                               width : 160,
+                               xtype: 'slider',
+                               id: 'ncont',
+                               minValue: 0,
+                               maxValue: 10,
+                               value: 5,
+                               increment: 1,
+                               plugins: new Ext.slider.Tip(),
+                             }, {
+                               x: 10,
+                               y: 100,
+                               width: 70,
+                               xtype: 'label',
+                               text: 'Logspaced',
+                             }, {
+                               x: 80,
+                               y: 100,
+                               width : 160,
+                               xtype: 'checkbox',
+                               id: 'logit',
+                               checked: true,
+                             }, {
+                               x: 10,
+                               y: 180,
+                               width: 80,
+                               xtype: 'button',
+                               text: 'Apply',
+                               handler: function(b, e) {
+                                  field = contour_window.get('field').getValue();
+                                  ncont = contour_window.get('ncont').getValue();
+                                  logit = contour_window.get('logit').getValue();
+                                  if (logit == false) logit = 'False';
+                                  else if (logit == true) logit = 'True';
+                                  yt_rpc.ExtDirectREPL.execute(
+                                      {code:python_varname
+                                       + '.set_contour_info("' + field + '", '
+                                       + ncont + ', ' + logit + ')',
+                                        hide:false},
+                                      cell_finished);
+                               }
+                             }
+                          ]
+                        }
+                        ] } /* tabpanel items and entry */
+                        ]
                 }
             ]
         }
@@ -384,8 +644,12 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.image_panel = this.panel.get("image_panel_"+python_varname);
     this.ticks = this.panel.get("ticks_"+python_varname);
     var ticks = this.ticks;
+    var colorbar = this.panel.get("colorbar_"+python_varname);
     this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
     this.zoom_scroll = this.panel.get("slider_" + python_varname);
+    var contour_window = this.panel.get("rhs_panel_" + python_varname);
+    contour_window = contour_window.get("editor_panel");
+    contour_window = contour_window.get("contour_edit");
     var image_dom = this.image_panel.el.dom;
     var control_panel = this.panel;
     var metadata_string;
@@ -393,12 +657,10 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
     this.accept_results = function(payload) {
         this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
         this.zoom_scroll.setValue(0, payload['zoom'], true);
-        examine = this.metadata_panel;
         this.metadata_panel.update(payload['metadata_string']);
         metadata_string = payload['metadata_string'];
         ticks.removeAll();
         Ext.each(payload['ticks'], function(tick, index) {
-            console.log(tick);
             ticks.add({xtype:'panel',
                        width: 10, height:1,
                        style: 'background-color: #000000;',
@@ -411,9 +673,11 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
                               'font-size: 12px;',
                        html: '' + tick[2] + '',
                        x:12, y: 4 + tick[0]});
-            examine = tick;
         });
-        examine = payload['ticks'];
+        if (payload['colorbar_image'] != null) {
+            colorbar.el.dom.src = "data:image/png;base64," +
+                payload['colorbar_image'];
+        }
         ticks.doLayout();
     }
 

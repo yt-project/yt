@@ -263,6 +263,16 @@ add_enzo_field("Dark_Matter_Density", function=NullFunc,
           display_name = "Dark\ Matter\ Density",
           not_in_all = True)
 
+def _Dark_Matter_Mass(field, data):
+    return data['Dark_Matter_Density'] * data["CellVolume"]
+add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
+          validators=ValidateDataField("Dark_Matter_Density"),
+          display_name="Dark\ Matter\ Mass", units=r"\rm{g}")
+add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
+          convert_function=_convertCellMassMsun,
+          validators=ValidateDataField("Dark_Matter_Density"),
+          display_name="Dark\ Matter\ Mass", units=r"M_{\odot}")
+
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
 KnownEnzoFields["Temperature"].units = r"K"
 KnownEnzoFields["Dust_Temperature"]._units = r"\rm{K}"
@@ -296,11 +306,12 @@ add_field("star_density", function=_spdensity,
 def _dmpdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
-    if 'creation_time' in data.keys():
+    if 'creation_time' in data.pf.field_info:
         filter = data['creation_time'] <= 0.0
         if not filter.any(): return blank
     else:
         filter = na.ones(data.NumberOfParticles, dtype='bool')
+    if not filter.any(): return blank
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
                            data["particle_position_y"][filter].astype(na.float64),
                            data["particle_position_z"][filter].astype(na.float64),
@@ -312,6 +323,46 @@ def _dmpdensity(field, data):
     return blank
 add_field("dm_density", function=_dmpdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _cic_particle_field(field, data):
+    """
+    Create a grid field for particle quantities weighted by particle mass, 
+    using cloud-in-cell deposit.
+    """
+    particle_field = field.name[4:]
+    top = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return top
+    particle_field_data = data[particle_field] * data['particle_mass']
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                           data["particle_position_y"].astype(na.float64),
+                           data["particle_position_z"].astype(na.float64),
+                           particle_field_data.astype(na.float32),
+                           na.int64(data.NumberOfParticles),
+                           top, na.array(data.LeftEdge).astype(na.float64),
+                           na.array(data.ActiveDimensions).astype(na.int32), 
+                           na.float64(data['dx']))
+    del particle_field_data
+
+    bottom = na.zeros(data.ActiveDimensions, dtype='float32')
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                           data["particle_position_y"].astype(na.float64),
+                           data["particle_position_z"].astype(na.float64),
+                           data["particle_mass"].astype(na.float32),
+                           na.int64(data.NumberOfParticles),
+                           bottom, na.array(data.LeftEdge).astype(na.float64),
+                           na.array(data.ActiveDimensions).astype(na.int32), 
+                           na.float64(data['dx']))
+    top[bottom == 0] = 0.0
+    bnz = bottom.nonzero()
+    top[bnz] /= bottom[bnz]
+    return top
+
+add_field('cic_particle_velocity_x', function=_cic_particle_field,
+          take_log=False, validators=[ValidateSpatial(0)])
+add_field('cic_particle_velocity_y', function=_cic_particle_field,
+          take_log=False, validators=[ValidateSpatial(0)])
+add_field('cic_particle_velocity_z', function=_cic_particle_field,
+          take_log=False, validators=[ValidateSpatial(0)])
 
 def _star_field(field, data):
     """

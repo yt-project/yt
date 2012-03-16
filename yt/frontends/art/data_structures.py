@@ -30,6 +30,8 @@ import cPickle
 import os
 import struct
 
+import pdb
+
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
@@ -143,29 +145,46 @@ class ARTHierarchy(AMRHierarchy):
         # We have to do all the patch-coalescing here.
         #level_info is used by the IO so promoting it to the static
         # output class
-        self.pf.level_info = [self.pf.ncell] # skip root grid for now
+        #self.pf.level_info = [self.pf.ncell] # skip root grid for now
         #leve_info = []
-        amr_utils.count_art_octs(
-                self.pf.parameter_filename, self.pf.child_grid_offset,
-                self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
-                self.pf.level_info)
+        # amr_utils.count_art_octs(
+        #         self.pf.parameter_filename, self.pf.child_grid_offset,
+        #         self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
+        #         self.pf.level_info)
+        
+        f = open(self.pf.parameter_filename,'rb')
+        self.pf.nhydro_vars, self.pf.level_info = _count_art_octs(f, 
+                          self.pf.child_grid_offset,
+                          self.pf.min_level, self.pf.max_level)
+        self.pf.level_info[0]=self.pf.ncell
+        f.close()
         self.pf.level_info = na.array(self.pf.level_info)
         num_ogrids = sum(self.pf.level_info) + self.pf.iOctFree
+        print 'found %i oct grids'%num_ogrids
+        num_ogrids *=7
+        print 'instantiating... %i grids'%num_ogrids
         ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
         ogrid_levels = na.zeros(num_ogrids, dtype='int64')
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        ogrid_parents = na.zeros(num_ogrids, dtype="int64")
-        ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
+        
+        #don't need parents?
+        #ogrid_parents = na.zeros(num_ogrids, dtype="int64")
+        
+        #don't need masks?
+        #ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
+        
         self.pf.level_offsets = amr_utils.read_art_tree(
                                 self.pf.parameter_filename, 
                                 self.pf.child_grid_offset,
                                 self.pf.min_level, self.pf.max_level,
                                 ogrid_left_indices, ogrid_levels,
-                                ogrid_parents, ochild_masks,
                                 ogrid_file_locations)
+                                #ochild_masks,
+                                #ogrid_parents, 
+                                
         self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
         self.pf.level_offsets[0] = self.pf.root_grid_offset
-        ochild_masks.reshape((num_ogrids, 8), order="F")
+        #ochild_masks.reshape((num_ogrids, 8), order="F")
         ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
         # This bit of code comes from Chris, and I'm still not sure I have a
         # handle on what it does.
@@ -177,14 +196,22 @@ class ARTHierarchy(AMRHierarchy):
         ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 1) - 1
 
         # Now we can rescale
+        # root_psg = _ramses_reader.ProtoSubgrid(
+        #                 na.zeros(3, dtype='int64'), # left index of PSG
+        #                 self.pf.domain_dimensions, # dim of PSG
+        #                 na.zeros((1,3), dtype='int64'), # left edges of grids
+        #                 self.pf.domain_dimensions[None,:], # right edges of grids
+        #                 self.pf.domain_dimensions[None,:], # dims of grids
+        #                 na.zeros((1,6), dtype='int64') # empty
+        #                 )
+        
         root_psg = _ramses_reader.ProtoSubgrid(
                         na.zeros(3, dtype='int64'), # left index of PSG
                         self.pf.domain_dimensions, # dim of PSG
                         na.zeros((1,3), dtype='int64'), # left edges of grids
-                        self.pf.domain_dimensions[None,:], # right edges of grids
-                        self.pf.domain_dimensions[None,:], # dims of grids
                         na.zeros((1,6), dtype='int64') # empty
                         )
+        
         self.proto_grids = [[root_psg],]
         for level in xrange(1, len(self.pf.level_info)):
             if self.pf.level_info[level] == 0:
@@ -200,22 +227,46 @@ class ARTHierarchy(AMRHierarchy):
             # We want grids that cover no more than MAX_EDGE cells in every direction
             MAX_EDGE = 128
             psgs = []
+            #refers to the left index for the art octgrid
             left_index = ogrid_left_indices[ggi,:]
             right_index = left_index + 2
+            #Since we are re-gridding these octs on larger meshes
+            #each sub grid has length MAX_EDGE, and so get the LE of
+            #grids fit inside the domain
+            # nd is the dimensions of the domain at this level
             lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
             #lefts = zip(*[l.ravel() for l in lefts])
             pbar = get_pbar("Re-gridding ", lefts[0].size)
             min_ind = na.min(left_index, axis=0)
             max_ind = na.max(right_index, axis=0)
+            
+            #iterate over the ith dimension of the yt grids
             for i,dli in enumerate(lefts[0]):
                 pbar.update(i)
+                
+                #skip this grid if there are no art grids inside
+                #of the zeroeth dimension
                 if min_ind[0] > dli + nd[0]: continue
                 if max_ind[0] < dli: continue
+                
+                # span of the current domain limited to max_edge
                 idim = min(nd[0] - dli, MAX_EDGE)
+
+                #gdi finds all of the art octs grids inside the 
+                #ith dimension of our current grid
                 gdi = ((dli  <= right_index[:,0])
                      & (dli + idim >= left_index[:,0]))
+                     
+
+                #if none of our art octs fit inside, skip                    
                 if not na.any(gdi): continue
+                
+                #iterate over the jth dimension of the yt grids
                 for dlj in lefts[1]:
+                    
+                    #this is the same process as in the previous dimension
+                    #find art octs inside this grid's jth dimension, 
+                    #skip if there are none
                     if min_ind[1] > dlj + nd[1]: continue
                     if max_ind[1] < dlj: continue
                     idim = min(nd[1] - dlj, MAX_EDGE)
@@ -223,6 +274,8 @@ class ARTHierarchy(AMRHierarchy):
                          & (dlj + idim >= left_index[:,1])
                          & (gdi))
                     if not na.any(gdj): continue
+                    
+                    #Same story: iterate over kth dimension grids
                     for dlk in lefts[2]:
                         if min_ind[2] > dlk + nd[2]: continue
                         if max_ind[2] < dlk: continue
@@ -231,84 +284,113 @@ class ARTHierarchy(AMRHierarchy):
                              & (dlk + idim >= left_index[:,2])
                              & (gdj))
                         if not na.any(gdk): continue
+                        
+                        #these are coordinates for yt grid
                         left = na.array([dli, dlj, dlk])
+                        
+                        #does this ravel really do anything?
                         domain_left = left.ravel()
+                        
+                        #why are we adding this to zero?
                         initial_left = na.zeros(3, dtype='int64') + domain_left
+                        
+                        #still not sure why multiplying against one 
+                        #just type casting?
                         idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
+                        
                         # We want to find how many grids are inside.
+                        
+                        #this gives us the LE and RE, domain dims,
+                        # and file locations
+                        # for art octs within this grid
                         dleft_index = left_index[gdk,:]
                         dright_index = right_index[gdk,:]
                         ddims = dims[gdk,:]
                         dfl = fl[gdk,:]
+                        
+                        #create a sub grid composed
+                        #of the new yt grid LE, span,
+                        #and a series of the contained art grid properties:
+                        # left edge, right edge, (not sure what dims is) and file locations
                         psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                        dleft_index, dright_index, ddims, dfl)
+                                        dleft_index, dfl)
+                        
                         #print "Gridding from %s to %s + %s" % (
                         #    initial_left, initial_left, idims)
                         if psg.efficiency <= 0: continue
                         self.num_deep = 0
-                        psgs.extend(self._recursive_patch_splitting(
-                            psg, idims, initial_left, 
-                            dleft_index, dright_index, ddims, dfl))
-                        #psgs.extend([psg])
+                        # psgs.extend(self._recursive_patch_splitting(
+                        #     psg, idims, initial_left, 
+                        #     dleft_index, dright_index, ddims, dfl))
+                        
+                        #I'm not sure how this patch splitting process
+                        #does, or how it works
+                        psgs.extend(_ramses_reader.recursive_patch_splitting(
+                            psg, idims, initial_left, dleft_index, dfl))
+                        
+                        # psgs.extend(self._recursive_patch_splitting(
+                        #     psg, idims, initial_left, 
+                        #     dleft_index, dright_index, ddims, dfl))
+                        psgs.extend([psg])
             pbar.finish()
             self.proto_grids.append(psgs)
             sums = na.zeros(3, dtype='int64')
             mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
-            for g in self.proto_grids[level]:
-                sums += [s.sum() for s in g.sigs]
-            assert(na.all(sums == dims.prod(axis=1).sum()))
+            # for g in self.proto_grids[level]:
+            #     sums += [s.sum() for s in g.sigs]
+            # assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
     num_deep = 0
 
-    @num_deep_inc
-    def _recursive_patch_splitting(self, psg, dims, ind,
-            left_index, right_index, gdims, fl):
-        min_eff = 0.1 # This isn't always respected.
-        if self.num_deep > 40:
-            # If we've recursed more than 100 times, we give up.
-            psg.efficiency = min_eff
-            return [psg]
-        if psg.efficiency > min_eff or psg.efficiency < 0.0:
-            return [psg]
-        tt, ax, fp = psg.find_split()
-        if (fp % 2) != 0:
-            if dims[ax] != fp + 1:
-                fp += 1
-            else:
-                fp -= 1
-        #print " " * self.num_deep + "Got ax", ax, "fp", fp
-        dims_l = dims.copy()
-        dims_l[ax] = fp
-        li_l = ind.copy()
-        if na.any(dims_l <= 0): return [psg]
-        L = _ramses_reader.ProtoSubgrid(
-                li_l, dims_l, left_index, right_index, gdims, fl)
-        #print " " * self.num_deep + "L", tt, L.efficiency
-        #if L.efficiency > 1.0: raise RuntimeError
-        if L.efficiency <= 0.0: L = []
-        elif L.efficiency < min_eff:
-            L = self._recursive_patch_splitting(L, dims_l, li_l,
-                    left_index, right_index, gdims, fl)
-        else:
-            L = [L]
-        dims_r = dims.copy()
-        dims_r[ax] -= fp
-        li_r = ind.copy()
-        li_r[ax] += fp
-        if na.any(dims_r <= 0): return [psg]
-        R = _ramses_reader.ProtoSubgrid(
-                li_r, dims_r, left_index, right_index, gdims, fl)
-        #print " " * self.num_deep + "R", tt, R.efficiency
-        #if R.efficiency > 1.0: raise RuntimeError
-        if R.efficiency <= 0.0: R = []
-        elif R.efficiency < min_eff:
-            R = self._recursive_patch_splitting(R, dims_r, li_r,
-                    left_index, right_index, gdims, fl)
-        else:
-            R = [R]
-        return L + R
+    # @num_deep_inc
+    # def _recursive_patch_splitting(self, psg, dims, ind,
+    #         left_index, right_index, gdims, fl):
+    #     min_eff = 0.1 # This isn't always respected.
+    #     if self.num_deep > 40:
+    #         # If we've recursed more than 100 times, we give up.
+    #         psg.efficiency = min_eff
+    #         return [psg]
+    #     if psg.efficiency > min_eff or psg.efficiency < 0.0:
+    #         return [psg]
+    #     tt, ax, fp = psg.find_split()
+    #     if (fp % 2) != 0:
+    #         if dims[ax] != fp + 1:
+    #             fp += 1
+    #         else:
+    #             fp -= 1
+    #     #print " " * self.num_deep + "Got ax", ax, "fp", fp
+    #     dims_l = dims.copy()
+    #     dims_l[ax] = fp
+    #     li_l = ind.copy()
+    #     if na.any(dims_l <= 0): return [psg]
+    #     L = _ramses_reader.ProtoSubgrid(
+    #             li_l, dims_l, left_index, right_index, gdims, fl)
+    #     #print " " * self.num_deep + "L", tt, L.efficiency
+    #     #if L.efficiency > 1.0: raise RuntimeError
+    #     if L.efficiency <= 0.0: L = []
+    #     elif L.efficiency < min_eff:
+    #         L = self._recursive_patch_splitting(L, dims_l, li_l,
+    #                 left_index, right_index, gdims, fl)
+    #     else:
+    #         L = [L]
+    #     dims_r = dims.copy()
+    #     dims_r[ax] -= fp
+    #     li_r = ind.copy()
+    #     li_r[ax] += fp
+    #     if na.any(dims_r <= 0): return [psg]
+    #     R = _ramses_reader.ProtoSubgrid(
+    #             li_r, dims_r, left_index, right_index, gdims, fl)
+    #     #print " " * self.num_deep + "R", tt, R.efficiency
+    #     #if R.efficiency > 1.0: raise RuntimeError
+    #     if R.efficiency <= 0.0: R = []
+    #     elif R.efficiency < min_eff:
+    #         R = self._recursive_patch_splitting(R, dims_r, li_r,
+    #                 left_index, right_index, gdims, fl)
+    #     else:
+    #         R = [R]
+    #     return L + R
         
     def _parse_hierarchy(self):
         # We have important work to do
@@ -365,8 +447,7 @@ class ARTStaticOutput(StaticOutput):
     
     def __init__(self, filename, data_style='art',
                  storage_filename = None):
-        if _ramses_reader is None:
-            import yt.frontends.ramses._ramses_reader as _ramses_reader
+        import yt.frontends.ramses._ramses_reader as _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         
@@ -440,6 +521,8 @@ class ARTStaticOutput(StaticOutput):
         seconds = self.t0
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
+        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
 
         #we were already in seconds, go back in to code units
         self.current_time /= self.t0 
@@ -566,4 +649,46 @@ def _read_record(f):
     ss = f.read(s)
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
     return ss
+
+def _read_record_size(f):
+    pos = f.tell()
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    f.seek(pos)
+    return s[0]
+
+def _count_art_octs(f, offset,
+                   MinLev, MaxLevelNow):
+    import gc
+    f.seek(offset)
+    nchild,ntot=8,0
+    Level = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    iNOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    iHOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+        #Get the info for this level, skip the rest
+        #print "Reading oct tree data for level", Lev
+        #print 'offset:',f.tell()
+        Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
+           '>iii', _read_record(f))
+        print 'Level %i : '%Lev, iNOLL
+        #print 'offset after level record:',f.tell()
+        iOct = iHOLL[Lev] - 1
+        nLevel = iNOLL[Lev]
+        nLevCells = nLevel * nchild
+        ntot = ntot + nLevel
+
+        #Skip all the oct hierarchy data
+        ns = _read_record_size(f)
+        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+        f.seek(f.tell()+size * nLevel)
+        
+        #Skip the child vars data
+        ns = _read_record_size(f)
+        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+        f.seek(f.tell()+size * nLevel*nchild)
+        
+        #find nhydrovars
+        nhydrovars = 8+2
+    f.seek(offset)
+    return nhydrovars, iNOLL
 

@@ -34,6 +34,87 @@ cdef extern from "stdlib.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=1] bsource,
+                  np.ndarray[np.float64_t, ndim=1] wresult,
+                  np.ndarray[np.float64_t, ndim=1] bresult,
+                  np.ndarray[np.float64_t, ndim=1] mresult,
+                  np.ndarray[np.float64_t, ndim=1] qresult,
+                  np.ndarray[np.float64_t, ndim=1] used):
+    cdef int n
+    cdef np.int64_t bin
+    cdef np.float64_t wval, bval
+    for n in range(bins_x.shape[0]):
+        bin = bins_x[n]
+        bval = bsource[n]
+        wval = wsource[n]
+        qresult[bin] += (wresult[bin] * wval * (bval - mresult[bin])**2) / \
+            (wresult[bin] + wval)
+        wresult[bin] += wval
+        bresult[bin] += wval*bval
+        mresult[bin] += wval * (bval - mresult[bin]) / wresult[bin]
+        used[bin] = 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.int64_t, ndim=1] bins_y,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=1] bsource,
+                  np.ndarray[np.float64_t, ndim=2] wresult,
+                  np.ndarray[np.float64_t, ndim=2] bresult,
+                  np.ndarray[np.float64_t, ndim=2] mresult,
+                  np.ndarray[np.float64_t, ndim=2] qresult,
+                  np.ndarray[np.float64_t, ndim=2] used):
+    cdef int n
+    cdef np.int64_t bin
+    cdef np.float64_t wval, bval
+    for n in range(bins_x.shape[0]):
+        bini = bins_x[n]
+        binj = bins_y[n]
+        bval = bsource[n]
+        wval = wsource[n]
+        qresult[bini, binj] += (wresult[bini, binj] * wval * (bval - mresult[bini, binj])**2) / \
+            (wresult[bini, binj] + wval)
+        wresult[bini, binj] += wval
+        bresult[bini, binj] += wval*bval
+        mresult[bini, binj] += wval * (bval - mresult[bini, binj]) / wresult[bini, binj]
+        used[bini, binj] = 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.int64_t, ndim=1] bins_y,
+                  np.ndarray[np.int64_t, ndim=1] bins_z,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=1] bsource,
+                  np.ndarray[np.float64_t, ndim=3] wresult,
+                  np.ndarray[np.float64_t, ndim=3] bresult,
+                  np.ndarray[np.float64_t, ndim=3] mresult,
+                  np.ndarray[np.float64_t, ndim=3] qresult,
+                  np.ndarray[np.float64_t, ndim=3] used):
+    cdef int n
+    cdef np.int64_t bin
+    cdef np.float64_t wval, bval
+    for n in range(bins_x.shape[0]):
+        bini = bins_x[n]
+        binj = bins_y[n]
+        bink = bins_z[n]
+        bval = bsource[n]
+        wval = wsource[n]
+        qresult[bini, binj, bink] += (wresult[bini, binj, bink] * wval * (bval - mresult[bini, binj, bink])**2) / \
+            (wresult[bini, binj, bink] + wval)
+        wresult[bini, binj, bink] += wval
+        bresult[bini, binj, bink] += wval*bval
+        mresult[bini, binj, bink] += wval * (bval - mresult[bini, binj, bink]) / wresult[bini, binj, bink]
+        used[bini, binj, bink] = 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.ndarray[np.float64_t, ndim=1] py,
                      np.ndarray[np.float64_t, ndim=1] pdx,
@@ -45,17 +126,18 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
     cdef int i
     cdef np.float64_t mi = 1e100, ma = -1e100, v
     cdef int np = px.shape[0]
-    for i in range(np):
-        v = value[i]
-        if v < mi or v > ma:
-            if px[i] + pdx[i] < leftx: continue
-            if px[i] - pdx[i] > rightx: continue
-            if py[i] + pdy[i] < lefty: continue
-            if py[i] - pdy[i] > righty: continue
-            if pdx[i] < mindx or pdy[i] < mindx: continue
-            if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
-            if v < mi: mi = v
-            if v > ma: ma = v
+    with nogil:
+        for i in range(np):
+            v = value[i]
+            if v < mi or v > ma:
+                if px[i] + pdx[i] < leftx: continue
+                if px[i] - pdx[i] > rightx: continue
+                if py[i] + pdy[i] < lefty: continue
+                if py[i] - pdy[i] > righty: continue
+                if pdx[i] < mindx or pdy[i] < mindx: continue
+                if maxdx > 0 and (pdx[i] > maxdx or pdy[i] > maxdx): continue
+                if v < mi: mi = v
+                if v > ma: ma = v
     return (mi, ma)
 
 @cython.boundscheck(False)
@@ -95,13 +177,14 @@ def get_box_grids_below_level(
                         np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
+                        np.ndarray[np.int32_t, ndim=1] mask,
+                        int min_level = 0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
     cdef int inside 
     for i in range(nx):
         mask[i] = 0
-        if levels[i,0] <= level:
+        if levels[i,0] <= level and levels[i,0] >= min_level:
             inside = 1
             for n in range(3):
                 if left_edge[n] >= right_edges[i,n] or \
@@ -226,7 +309,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         if n_unique > my_max:
             best_dim = dim
             my_max = n_unique
-            my_split = (n_unique-1)/2
+            my_split = (n_unique)/2
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):

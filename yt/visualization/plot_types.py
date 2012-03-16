@@ -35,7 +35,8 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
-from .color_maps import yt_colormaps
+from .color_maps import yt_colormaps, is_colormap
+from yt.utilities.exceptions import YTNoDataInObjectError
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -170,10 +171,11 @@ class RavenPlot(object):
 
         Only ONE of the following options can be specified. If all 3 are
         specified, they will be used in the following precedence order:
-            ticks - a list of floating point numbers at which to put ticks
-            minmaxtick - display DEFAULT ticks with min & max also displayed
-            nticks - if ticks not specified, can automatically determine a
-               number of ticks to be evenly spaced in log space
+
+        * ``ticks`` - a list of floating point numbers at which to put ticks
+        * ``minmaxtick`` - display DEFAULT ticks with min & max also displayed
+        * ``nticks`` - if ticks not specified, can automatically determine a
+          number of ticks to be evenly spaced in log space
         """
         # This next call fixes some things, but is slower...
         self._redraw_image()
@@ -230,7 +232,10 @@ class RavenPlot(object):
                 cmap = yt_colormaps[str(cmap)]
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
-        self.cmap = cmap
+        if not is_colormap(cmap) and cmap is not None:
+            raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
+        else:
+            self.cmap = cmap
         
     def __setitem__(self, item, val):
         self.im[item] = val
@@ -375,6 +380,8 @@ class VMPlot(RavenPlot):
 
     def _redraw_image(self, *args):
         buff = self._get_buff()
+        if self[self.axis_names["Z"]].size == 0:
+            raise YTNoDataInObjectError(self.data)
         mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
                     na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),

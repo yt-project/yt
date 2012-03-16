@@ -134,18 +134,23 @@ def read_art_tree(char *fn, long offset,
                   int min_level, int max_level, 
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
-                  np.ndarray[np.int64_t, ndim=1] oct_parents,
-                  np.ndarray[np.int64_t, ndim=1] oct_mask,
                   np.ndarray[np.int64_t, ndim=2] oct_info):
+    #             np.ndarray[np.int64_t, ndim=1] oct_mask,
+    #             np.ndarray[np.int64_t, ndim=1] oct_parents,
+    
     # This accepts the filename of the ART header and an integer offset that
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
     #   iOctPr, iOctLv
+    print min_level, max_level 
+    
     cdef int nchild = 8
-    cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1, next_record
+    cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1
+    cdef np.int64_t next_record
+    cdef long long child_record
     cdef int idc, cm
     cdef int iOctPs[3]
-    cdef int dummy_records[9]
+    cdef np.int64_t dummy_records[9]
     cdef int readin
     cdef FILE *f = fopen(fn, "rb")
     fseek(f, offset, SEEK_SET)
@@ -166,13 +171,14 @@ def read_art_tree(char *fn, long offset,
         iOct = iHOLL[Level] - 1
         nLevel = iNOLL[Level]
         print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
-        total_cells += nLevel
+        #print ftell(f)
         for ic1 in range(nLevel):
             iOctMax = max(iOctMax, iOct)
             #print readin, iOct, nLevel, sizeof(int) 
             next_record = ftell(f)
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-            next_record += readin + 2*sizeof(int)
+            assert readin==52
+            next_record += readin + sizeof(int)
             fread(iOctPs, sizeof(int), 3, f)
             FIX_LONG(iOctPs[0]); FIX_LONG(iOctPs[1]); FIX_LONG(iOctPs[2])
             oct_indices[iOct, 0] = iOctPs[0]
@@ -182,21 +188,47 @@ def read_art_tree(char *fn, long offset,
             #grid_info[iOct, 2] = iOctPr # we don't seem to need this
             fread(dummy_records, sizeof(int), 6, f) # skip Nb
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-            oct_parents[iOct] = readin - 1
+            #oct_parents[iOct] = readin - 1
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             oct_levels[iOct] = readin
             fread(&iOct, sizeof(int), 1, f); FIX_LONG(iOct);
             iOct -= 1
+            assert next_record > 0
             fseek(f, next_record, SEEK_SET)
+            fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+            assert readin==52
+            
         total_masked = 0
         level_offsets.append(ftell(f))
-        for ic1 in range(nLevel * nchild):
-            fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
-            fread(&idc, sizeof(int), 1, f); FIX_LONG(idc); idc -= 1 + (128**3)
-            fread(&cm, sizeof(int), 1, f); FIX_LONG(cm)
-            if cm == 0: oct_mask[idc] = 1
-            else: total_masked += 1
-            fseek(f, next_record - sizeof(int), SEEK_CUR)
+        
+        #skip over the hydro variables
+        #find the length of one child section
+        #print 'measuring child record ',
+        fread(&next_record, sizeof(int), 1, f); 
+        #print next_record,
+        FIX_LONG(next_record)
+        #print next_record
+        fseek(f,ftell(f)-sizeof(int),SEEK_SET) #rewind
+        #This is a sloppy fix; next_record is 64bit
+        #and I don't think FIX_LONG(next_record) is working 
+        #correctly for 64bits
+        if next_record > 4294967296L:
+            next_record -= 4294967296L
+        assert next_record == 56
+        
+        #find the length of all of the children section
+        child_record = ftell(f) +  (next_record+2*sizeof(int))*nLevel*nchild
+        print 'Skipping over hydro vars', ftell(f), child_record
+        fseek(f, child_record, SEEK_SET)
+        
+        # for ic1 in range(nLevel * nchild):
+        #     fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
+        #     fread(&idc, sizeof(int), 1, f); FIX_LONG(idc); idc -= 1 + (128**3)
+        #     fread(&cm, sizeof(int), 1, f); FIX_LONG(cm)
+        #     #if cm == 0: oct_mask[idc] = 1
+        #     #else: total_masked += 1
+        #     assert next_record > 0
+        #     fseek(f, next_record - sizeof(int), SEEK_CUR)
     fclose(f)
     return level_offsets
 
