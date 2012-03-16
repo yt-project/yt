@@ -643,7 +643,7 @@ class Communicator(object):
         return buf
 
     @parallel_passthrough
-    def merge_quadtree_buffers(self, qt):
+    def merge_quadtree_buffers(self, qt, merge_style):
         # This is a modified version of pairwise reduction from Lisandro Dalcin,
         # in the reductions demo of mpi4py
         size = self.comm.size
@@ -668,8 +668,8 @@ class Communicator(object):
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2])
-                    qto.frombuffer(*buf)
-                    merge_quadtrees(qt, qto)
+                    qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
+                    merge_quadtrees(qt, qto, style = merge_style)
                     del qto
                     #self.send_quadtree(target, qt, tgd, args)
             mask <<= 1
@@ -688,7 +688,7 @@ class Communicator(object):
         self.refined = buf[0]
         if rank != 0:
             qt = QuadTree(tgd, args[2])
-            qt.frombuffer(*buf)
+            qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 
 
