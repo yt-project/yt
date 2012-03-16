@@ -15,7 +15,7 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_SUFFIX="yt-`uname -m`"
+DEST_SUFFIX="yt-`uname -p`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="stable" # This is the branch to which we will forcibly update.
 
@@ -40,6 +40,7 @@ INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
+INST_FORTHON=1  # Install Forthon?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -156,20 +157,8 @@ function host_specific
     if [ "${MYOS##Darwin}" != "${MYOS}" ]
     then
         echo "Looks like you're running on Mac OSX."
-	echo
-	echo "NOTE: you must have the Xcode command line tools installed."
         echo
-	echo "OS X 10.5: download Xcode 3.0 from the mac developer tools"
-	echo "website"
-        echo
-	echo "OS X 10.6: download Xcode 3.2 from the mac developer tools" 
-	echo "website"
-        echo
-	echo "OS X 10.7: download Xcode 4.0 from the mac app store or" 
-	echo "alternatively download the Xcode command line tools from" 
-	echo "the mac developer tools website"
-        echo
-	echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
+        echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
         echo "Leopard) or newer.  If you do, please set the following"
         echo "environment variables, remove any broken installation tree, and"
         echo "re-run this script verbatim."
@@ -212,6 +201,10 @@ echo "be installing freetype2"
 printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
 get_willwont ${INST_SQLITE3}
 echo "be installing SQLite3"
+
+printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
+get_willwont ${INST_FORTHON}
+echo "be installing Forthon (for Halo Finding, etc)"
 
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
@@ -324,6 +317,7 @@ get_enzotools mercurial-2.0.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.1.tar.gz
+get_enzotools Forthon-0.8.5.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
 get_enzotools PhiloGL-1.4.2.zip
@@ -364,7 +358,6 @@ then
         cd zlib-1.2.3
         ( ./configure --shared --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -382,7 +375,6 @@ then
         cd libpng-1.2.43
         ( ./configure CPPFLAGS=-I${DEST_DIR}/include CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -400,7 +392,6 @@ then
         cd freetype-2.4.4
         ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -418,7 +409,6 @@ then
         cd hdf5-1.8.7
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -437,7 +427,6 @@ then
         cd sqlite-autoconf-3070500
         ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -453,7 +442,6 @@ then
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
-    ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 fi
@@ -545,6 +533,7 @@ fi
 do_setup_py ipython-0.10
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
+[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
@@ -555,6 +544,7 @@ echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 [ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
+[ $INST_FORTHON -eq 1 ] && ( ( cd yt/utilities/kdtree && FORTHON_EXE=${DEST_DIR}/bin/Forthon make 2>&1 ) 1>> ${LOG_FILE} )
 ( ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
