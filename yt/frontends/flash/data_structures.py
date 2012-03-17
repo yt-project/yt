@@ -325,12 +325,12 @@ class FLASHStaticOutput(StaticOutput):
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz'] # FLASH2 only!
         try:
-            dimensionality = self._find_parameter("integer", "dimensionality",
-                                                  scalar = True)
+            dimensionality = float(self._find_parameter("integer", "dimensionality",
+                                                  scalar = True))
         except KeyError:
-            dimensionality = 3
-            if nzb == 1: dimensionality = 2
-            if nyb == 1: dimensionality = 1
+            dimensionality = 3.
+            if nzb == 1: dimensionality = 2.
+            if nyb == 1: dimensionality = 1.
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
 
