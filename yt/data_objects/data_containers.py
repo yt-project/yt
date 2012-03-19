@@ -3337,11 +3337,11 @@ class AMREllipsoidBase(AMR3DData):
     We can define an ellipsoid to act as a data object.
     """
     _type_name = "ellipsoid"
-    _con_args = ('center', '_A', '_B', '_C', '_e1', '_tilt')
-    def __init__(self, center, A, B, C, e1, tilt, fields=None,
+    _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
+    def __init__(self, center, A, B, C, e0, tilt, fields=None,
                  pf=None, **kwargs):
         """
-        By providing a *center*,*A*,*B*,*C*,*e1*,*tilt* we
+        By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
         can define a ellipsoid of any proportion.  Only cells whose centers are
         within the ellipsoid will be selected.
         """
@@ -3352,7 +3352,7 @@ class AMREllipsoidBase(AMR3DData):
         self._A = A
         self._B = B
         self._C = C
-        self._e1 = e1
+        self._e0 = e0
         self._tilt = tilt
         
         # define the rotation matrix needed later
@@ -3372,31 +3372,31 @@ class AMREllipsoidBase(AMR3DData):
                                    [0, 0, 1]])
             return rot_matrix
 
-        # find the t1 angle needed to rotate about z axis to align e1 to x
-        t1 = na.arctan(e1[1] / e1[0])
-        # rotate e1 by -t1
-        r1 = (e1 * RZ(-t1).transpose()).sum(axis = 1)
-        # find the t2 angle needed to rotate about y axis to align e1 to x
+        # find the t1 angle needed to rotate about z axis to align e0 to x
+        t1 = na.arctan(e0[1] / e0[0])
+        # rotate e0 by -t1
+        r1 = (e0 * RZ(-t1).transpose()).sum(axis = 1)
+        # find the t2 angle needed to rotate about y axis to align e0 to x
         t2 = na.arctan(-r1[2] / r1[0])
         """
-        calculate the original e2
-        given the tilt about the x axis when e1 was aligned 
+        calculate the original e1
+        given the tilt about the x axis when e0 was aligned 
         to x after t1, t2 rotations about z, y
         """
-        e2 = ((0, 1, 0) * RX(tilt).transpose()).sum(axis = 1)
-        e2 = (e2 * RY(t2).transpose()).sum(axis = 1)
-        e2 = (e2 * RZ(t1).transpose()).sum(axis = 1)
-        e3 = na.cross(e1, e2)
+        e1 = ((0, 1, 0) * RX(tilt).transpose()).sum(axis = 1)
+        e1 = (e1 * RY(t2).transpose()).sum(axis = 1)
+        e1 = (e1 * RZ(t1).transpose()).sum(axis = 1)
+        e2 = na.cross(e0, e1)
 
+	self._e1 = e1
 	self._e2 = e2
-	self._e3 = e3
 
         self.set_field_parameter('A', A)
         self.set_field_parameter('B', B)
         self.set_field_parameter('C', C)
+        self.set_field_parameter('e0', e0)
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
-        self.set_field_parameter('e3', e3)
         self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
         self._refresh_data()
 
@@ -3431,15 +3431,15 @@ class AMREllipsoidBase(AMR3DData):
         # square the results
         # find the smallest
         # sums it
+        vrdote0_2 = (na.multiply(dotarr, self._e0)**2).min(axis \
+                                                           = 0).sum(axis = 1)
         vrdote1_2 = (na.multiply(dotarr, self._e1)**2).min(axis \
                                                            = 0).sum(axis = 1)
         vrdote2_2 = (na.multiply(dotarr, self._e2)**2).min(axis \
                                                            = 0).sum(axis = 1)
-        vrdote3_2 = (na.multiply(dotarr, self._e3)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        return na.all(vrdote1_2 / self._A**2 + \
-                      vrdote2_2 / self._B**2 + \
-                      vrdote3_2 / self._C**2 <=1.0)
+        return na.all(vrdote0_2 / self._A**2 + \
+                      vrdote1_2 / self._B**2 + \
+                      vrdote2_2 / self._C**2 <=1.0)
 
     @restore_grid_state # Pains me not to decorate with cache_mask here
     def _get_cut_mask(self, grid, field = None):
@@ -3467,9 +3467,9 @@ class AMREllipsoidBase(AMR3DData):
             # restrict distance to only the smallest cases
             vec = na.choose(index, case)
             # sum up to get the dot product with e_vectors
-            dot_evec += na.array([vec * self._e1[i], \
-                                  vec * self._e2[i], \
-                                  vec * self._e3[i]])
+            dot_evec += na.array([vec * self._e0[i], \
+                                  vec * self._e1[i], \
+                                  vec * self._e2[i]])
         # Calculate the eqn of ellipsoid, if it is inside
         # then result should be <= 1.0
         Inside = dot_evec[0]**2 / self._A**2 + \
