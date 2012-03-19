@@ -328,9 +328,9 @@ class FLASHStaticOutput(StaticOutput):
             dimensionality = self._find_parameter("integer", "dimensionality",
                                                   scalar = True)
         except KeyError:
-            dimensionality = 3.
-            if nzb == 1: dimensionality = 2.
-            if nyb == 1: dimensionality = 1.
+            dimensionality = 3
+            if nzb == 1: dimensionality = 2
+            if nyb == 1: dimensionality = 1
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
 
