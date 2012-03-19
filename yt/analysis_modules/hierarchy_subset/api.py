@@ -33,4 +33,3 @@ from .hierarchy_subset import \
     AMRExtractedGridProxy, \
     ExtractedHierarchy, \
     ExtractedParameterFile
-

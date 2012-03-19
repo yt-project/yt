@@ -466,24 +466,19 @@ class EnzoHierarchy(AMRHierarchy):
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-
     def _generate_random_grids(self):
         if self.num_grids > 40:
             starter = na.random.randint(0, 20)
             random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            # We also add in a bit to make sure that some of the grids have
+            # particles
+            gwp = self.grid_particle_count > 0
+            if na.any(gwp) and not na.any(gwp[(random_sample,)]):
+                # We just add one grid.  This is not terribly efficient.
+                first_grid = na.where(gwp)[0][0]
+                random_sample.resize((21,))
+                random_sample[-1] = first_grid
+                mylog.debug("Added additional grid %s", first_grid)
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
@@ -891,6 +886,8 @@ class EnzoStaticOutput(StaticOutput):
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
+        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
 
     def _setup_comoving_units(self):
         z = self["CosmologyCurrentRedshift"]

@@ -41,7 +41,8 @@ from yt.utilities.io_handler import \
     io_registry
 
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
+from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
+     ValidateDataField
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -83,7 +84,8 @@ class FLASHHierarchy(AMRHierarchy):
         nfacevars = len(facevars)
         if (nfacevars > 0) :
             ncomp += nfacevars
-            self.field_list.append(facevars)
+            for facevar in facevars :
+                self.field_list.append(facevar)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -106,6 +108,7 @@ class FLASHHierarchy(AMRHierarchy):
         
         self.grid_left_edge[:] = f["/bounding box"][:,:,0]
         self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        
         # Move this to the parameter file
         try:
             nxb = pf._find_parameter("integer", "nxb", True)
@@ -129,7 +132,21 @@ class FLASHHierarchy(AMRHierarchy):
         self.grids = na.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
+        
 
+        # This is a possibly slow and verbose fix, and should be re-examined!
+        rdx = (self.parameter_file.domain_right_edge -
+                self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
+        nlevels = self.grid_levels.max()
+        dxs = na.zeros((nlevels+1,3),dtype='float64')
+        for i in range(nlevels+1):
+            dxs[i] = rdx/self.parameter_file.refine_by**i
+       
+        for i in xrange(self.num_grids):
+            dx = dxs[self.grid_levels[i],:]
+            self.grid_left_edge[i] = na.rint(self.grid_left_edge[i]/dx)*dx
+            self.grid_right_edge[i] = na.rint(self.grid_right_edge[i]/dx)*dx
+                        
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
@@ -158,19 +175,20 @@ class FLASHHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
+        AMRHierarchy._setup_derived_fields(self)
+        [self.parameter_file.conversion_factors[field] 
+         for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
-
+            if (field not in KnownFLASHFields and
+                field.startswith("particle")) :
+                self.parameter_file.field_info.add_field(field,
+                                                         function=NullFunc,
+                                                         take_log=False,
+                                                         validators = [ValidateDataField(field)],
+                                                         particle_type=True)
+                
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
@@ -208,6 +226,8 @@ class FLASHStaticOutput(StaticOutput):
         if len(self.parameters) == 0:
             self._parse_parameter_file()
         self.conversion_factors = defaultdict(lambda: 1.0)
+        if "EOSType" not in self.parameters:
+            self.parameters["EOSType"] = -1
         if self.cosmological_simulation == 1:
             self._setup_comoving_units()
         else:
@@ -219,6 +239,9 @@ class FLASHStaticOutput(StaticOutput):
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
+        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
 
@@ -266,9 +289,13 @@ class FLASHStaticOutput(StaticOutput):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
         if nn not in self._handle: raise KeyError(nn)
-        for tpname, pval in self._handle[nn][:]:
+        for tpname, pval in zip(self._handle[nn][:,'name'],
+                                self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                return pval
+                if ptype == "string" :
+                    return pval.strip()
+                else :
+                    return pval
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
@@ -283,31 +310,41 @@ class FLASHStaticOutput(StaticOutput):
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         self.domain_left_edge = na.array(
-            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
+            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
-            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz']).astype("float64")
+        self.min_level = self._find_parameter(
+            "integer", "lrefine_min", scalar = False) - 1
 
         # Determine domain dimensions
         try:
             nxb = self._find_parameter("integer", "nxb", scalar = True)
             nyb = self._find_parameter("integer", "nyb", scalar = True)
             nzb = self._find_parameter("integer", "nzb", scalar = True)
-            dimensionality = self._find_parameter("integer", "dimensionality",
-                                    scalar = True)
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
-                              for ax in 'xyz']
+                              for ax in 'xyz'] # FLASH2 only!
+        try:
+            dimensionality = self._find_parameter("integer", "dimensionality",
+                                                  scalar = True)
+        except KeyError:
             dimensionality = 3
             if nzb == 1: dimensionality = 2
             if nyb == 1: dimensionality = 1
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
+
         nblockx = self._find_parameter("integer", "nblockx")
-        nblocky = self._find_parameter("integer", "nblockx")
-        nblockz = self._find_parameter("integer", "nblockx")
+        nblocky = self._find_parameter("integer", "nblocky")
+        nblockz = self._find_parameter("integer", "nblockz")
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+
+        try:
+            self.parameters['Gamma'] = self._find_parameter("real", "gamma")
+        except KeyError:
+            pass
 
         if self._flash_version == 7:
             self.current_time = float(
@@ -315,6 +352,13 @@ class FLASHStaticOutput(StaticOutput):
         else:
             self.current_time = \
                 float(self._find_parameter("real", "time", scalar=True))
+
+        if self._flash_version == 7:
+            self.parameters['timestep'] = float(
+                self._handle["simulation parameters"]["timestep"])
+        else:
+            self.parameters['timestep'] = \
+                float(self._find_parameter("real", "dt", scalar=True))
 
         try:
             use_cosmo = self._find_parameter("logical", "usecosmology") 
@@ -342,6 +386,7 @@ class FLASHStaticOutput(StaticOutput):
             if "bounding box" in fileh["/"].keys():
                 fileh.close()
                 return True
+            fileh.close()
         except:
             pass
         return False

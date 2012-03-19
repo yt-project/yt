@@ -37,6 +37,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.utilities.minimal_representation import \
+    MinimalStaticOutput
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -85,8 +87,11 @@ class StaticOutput(object):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
+        self.min_level = 0
+
         self._parse_parameter_file()
         self._set_units()
+        self._set_derived_attrs()
 
         # Because we need an instantiated class to check the pf's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -98,6 +103,10 @@ class StaticOutput(object):
         self.print_key_parameters()
 
         self.create_field_info()
+
+    def _set_derived_attrs(self):
+        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+        self.domain_width = self.domain_right_edge - self.domain_left_edge
 
     def __reduce__(self):
         args = (self._hash(),)
@@ -114,6 +123,10 @@ class StaticOutput(object):
             return hashlib.md5(s).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+
+    @property
+    def _mrep(self):
+        return MinimalStaticOutput(self)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -192,16 +205,23 @@ class StaticOutput(object):
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
 
+    _field_info = None
     def create_field_info(self):
-        if getattr(self, "field_info", None) is None:
+        if getattr(self, "_field_info", None) is None:
             # The setting up of fields occurs in the hierarchy, which is only
             # instantiated once.  So we have to double check to make sure that,
             # in the event of double-loads of a parameter file, we do not blow
             # away the exising field_info.
-            self.field_info = FieldInfoContainer.create_with_fallback(
+            self._field_info = FieldInfoContainer.create_with_fallback(
                                 self._fieldinfo_fallback)
 
-        
+    _get_hierarchy = True
+    @property
+    def field_info(self):
+        if self._get_hierarchy:
+            self._get_hierarchy=False
+            self.hierarchy
+        return self._field_info
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

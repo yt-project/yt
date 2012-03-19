@@ -31,7 +31,6 @@ License:
 from .runner import \
     RegressionTestRunner, \
     RegressionTestStorage, \
-    run_main, \
     clear_registry, \
     registry_entries
 
@@ -58,4 +57,3 @@ from .boolean_region_tests import \
     TestBooleanANDParticleQuantity, \
     TestBooleanORParticleQuantity, \
     TestBooleanNOTParticleQuantity
-

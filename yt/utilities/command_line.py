@@ -23,10 +23,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.config import ytcfg
+ytcfg["yt","__command_line"] = "True"
+from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
-import cmdln as cmdln
-import optparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
+import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
 import urllib, urllib2, base64
 
 def _fix_pf(arg):
@@ -40,13 +42,71 @@ def _fix_pf(arg):
         pf = load(arg[:-10])
     else:
         pf = load(arg)
-    if pf is None:
-        raise IOError
     return pf
 
+def _add_arg(sc, arg):
+    if isinstance(arg, types.StringTypes):
+        arg = _common_options[arg].copy()
+    argc = dict(arg.items())
+    argnames = []
+    if "short" in argc: argnames.append(argc.pop('short'))
+    if "long" in argc: argnames.append(argc.pop('long'))
+    sc.add_argument(*argnames, **argc)
+
+class YTCommand(object):
+    args = ()
+    name = None
+    description = ""
+    aliases = ()
+    npfs = 1
+
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            if cls.name is not None:
+                names = ensure_list(cls.name)
+                for name in names:
+                    sc = subparsers.add_parser(name,
+                        description = cls.description,
+                        help = cls.description)
+                    sc.set_defaults(func=cls.run)
+                    for arg in cls.args:
+                        _add_arg(sc, arg)
+
+    @classmethod
+    def run(cls, args):
+        self = cls()
+        # Some commands need to be run repeatedly on parameter files
+        # In fact, this is the rule and the opposite is the exception
+        # BUT, we only want to parse the arguments once.
+        if cls.npfs > 1:
+            self(args)
+        else:
+            if len(getattr(args, "pf", [])) > 1:
+                pfs = args.pf
+                for pf in pfs:
+                    args.pf = pf
+                    self(args)
+            else:
+                args.pf = getattr(args, 'pf', [None])[0]
+                self(args)
+
+class GetParameterFiles(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string = None):
+        if len(values) == 1:
+            pfs = values
+        elif len(values) == 2 and namespace.basename is not None:
+            pfs = ["%s%04i" % (namespace.basename, r)
+                   for r in range(int(values[0]), int(values[1]), namespace.skip) ]
+        else:
+            pfs = values
+        namespace.pf = [_fix_pf(pf) for pf in pfs]
+
 _common_options = dict(
+    pf      = dict(short="pf", action=GetParameterFiles,
+                   nargs="+", help="Parameter files to run on"),
     axis    = dict(short="-a", long="--axis",
-                   action="store", type="int",
+                   action="store", type=int,
                    dest="axis", default=4,
                    help="Axis (4 for all three)"),
     log     = dict(short="-l", long="--log",
@@ -54,207 +114,176 @@ _common_options = dict(
                    dest="takelog", default=True,
                    help="Take the log of the field?"),
     text    = dict(short="-t", long="--text",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="text", default=None,
                    help="Textual annotation"),
     field   = dict(short="-f", long="--field",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="field", default="Density",
                    help="Field to color by"),
     weight  = dict(short="-g", long="--weight",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="weight", default=None,
                    help="Field to weight projections with"),
-    cmap    = dict(short="", long="--colormap",
-                   action="store", type="string",
+    cmap    = dict(long="--colormap",
+                   action="store", type=str,
                    dest="cmap", default="jet",
                    help="Colormap name"),
     zlim    = dict(short="-z", long="--zlim",
-                   action="store", type="float",
+                   action="store", type=float,
                    dest="zlim", default=None,
                    nargs=2,
                    help="Color limits (min, max)"),
-    dex     = dict(short="", long="--dex",
-                   action="store", type="float",
+    dex     = dict(long="--dex",
+                   action="store", type=float,
                    dest="dex", default=None,
                    nargs=1,
                    help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
-                   action="store", type="float",
+                   action="store", type=float,
                    dest="width", default=1.0,
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="unit", default='unitary',
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
-                   action="store", type="float",
+                   action="store", type=float,
                    dest="center", default=None,
                    nargs=3,
                    help="Center, space separated (-1 -1 -1 for max)"),
+    max     = dict(short="-m", long="--max",
+                   action="store_true",
+                   dest="max",default=False,
+                   help="Center the plot on the density maximum"),
     bn      = dict(short="-b", long="--basename",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="basename", default=None,
                    help="Basename of parameter files"),
     output  = dict(short="-o", long="--output",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="output", default="frames/",
                    help="Folder in which to place output images"),
     outputfn= dict(short="-o", long="--output",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="output", default=None,
                    help="File in which to place output"),
     skip    = dict(short="-s", long="--skip",
-                   action="store", type="int",
+                   action="store", type=int,
                    dest="skip", default=1,
                    help="Skip factor for outputs"),
     proj    = dict(short="-p", long="--projection",
                    action="store_true", 
                    dest="projection", default=False,
                    help="Use a projection rather than a slice"),
-    maxw    = dict(short="", long="--max-width",
-                   action="store", type="float",
+    maxw    = dict(long="--max-width",
+                   action="store", type=float,
                    dest="max_width", default=1.0,
                    help="Maximum width in code units"),
-    minw    = dict(short="", long="--min-width",
-                   action="store", type="float",
+    minw    = dict(long="--min-width",
+                   action="store", type=float,
                    dest="min_width", default=50,
                    help="Minimum width in units of smallest dx (default: 50)"),
     nframes = dict(short="-n", long="--nframes",
-                   action="store", type="int",
+                   action="store", type=int,
                    dest="nframes", default=100,
                    help="Number of frames to generate"),
-    slabw   = dict(short="", long="--slab-width",
-                   action="store", type="float",
+    slabw   = dict(long="--slab-width",
+                   action="store", type=float,
                    dest="slab_width", default=1.0,
                    help="Slab width in specified units"),
     slabu   = dict(short="-g", long="--slab-unit",
-                   action="store", type="string",
+                   action="store", type=str,
                    dest="slab_unit", default='1',
                    help="Desired units for the slab"),
-    ptype   = dict(short="", long="--particle-type",
-                   action="store", type="int",
+    ptype   = dict(long="--particle-type",
+                   action="store", type=int,
                    dest="ptype", default=2,
                    help="Particle type to select"),
-    agecut  = dict(short="", long="--age-cut",
-                   action="store", type="float",
+    agecut  = dict(long="--age-cut",
+                   action="store", type=float,
                    dest="age_filter", default=None,
                    nargs=2,
                    help="Bounds for the field to select"),
-    uboxes  = dict(short="", long="--unit-boxes",
+    uboxes  = dict(long="--unit-boxes",
                    action="store_true",
                    dest="unit_boxes",
                    help="Display helpful unit boxes"),
-    thresh  = dict(short="", long="--threshold",
-                   action="store", type="float",
+    thresh  = dict(long="--threshold",
+                   action="store", type=float,
                    dest="threshold", default=None,
                    help="Density threshold"),
-    dm_only = dict(short="", long="--all-particles",
+    dm_only = dict(long="--all-particles",
                    action="store_false", 
                    dest="dm_only", default=True,
                    help="Use all particles"),
-    grids   = dict(short="", long="--show-grids",
+    grids   = dict(long="--show-grids",
                    action="store_true",
                    dest="grids", default=False,
                    help="Show the grid boundaries"),
-    time    = dict(short="", long="--time",
+    time    = dict(long="--time",
                    action="store_true",
                    dest="time", default=False,
                    help="Print time in years on image"),
-    contours    = dict(short="", long="--contours",
-                   action="store",type="int",
+    contours    = dict(long="--contours",
+                   action="store",type=int,
                    dest="contours", default=None,
                    help="Number of Contours for Rendering"),
-    contour_width  = dict(short="", long="--contour_width",
-                   action="store",type="float",
+    contour_width  = dict(long="--contour_width",
+                   action="store",type=float,
                    dest="contour_width", default=None,
                    help="Width of gaussians used for rendering."),
-    enhance   = dict(short="", long="--enhance",
+    enhance   = dict(long="--enhance",
                    action="store_true",
                    dest="enhance", default=False,
                    help="Enhance!"),
     valrange  = dict(short="-r", long="--range",
-                   action="store", type="float",
+                   action="store", type=float,
                    dest="valrange", default=None,
                    nargs=2,
                    help="Range, space separated"),
-    up  = dict(short="", long="--up",
-                   action="store", type="float",
+    up  = dict(long="--up",
+                   action="store", type=float,
                    dest="up", default=None,
                    nargs=3,
                    help="Up, space separated"),
-    viewpoint  = dict(short="", long="--viewpoint",
-                   action="store", type="float",
+    viewpoint  = dict(long="--viewpoint",
+                   action="store", type=float,
                    dest="viewpoint", default=[1., 1., 1.],
                    nargs=3,
                    help="Viewpoint, space separated"),
-    pixels    = dict(short="", long="--pixels",
-                   action="store",type="int",
+    pixels    = dict(long="--pixels",
+                   action="store",type=int,
                    dest="pixels", default=None,
                    help="Number of Pixels for Rendering"),
-    halos   = dict(short="", long="--halos",
-                   action="store", type="string",
+    halos   = dict(long="--halos",
+                   action="store", type=str,
                    dest="halos",default="multiple",
                    help="Run halo profiler on a 'single' halo or 'multiple' halos."),
-    halo_radius = dict(short="", long="--halo_radius",
-                       action="store", type="float",
+    halo_radius = dict(long="--halo_radius",
+                       action="store", type=float,
                        dest="halo_radius",default=0.1,
                        help="Constant radius for profiling halos if using hop output files with no radius entry. Default: 0.1."),
-    halo_radius_units = dict(short="", long="--halo_radius_units",
-                             action="store", type="string",
+    halo_radius_units = dict(long="--halo_radius_units",
+                             action="store", type=str,
                              dest="halo_radius_units",default="1",
                              help="Units for radius used with --halo_radius flag. Default: '1' (code units)."),
-    halo_hop_style = dict(short="", long="--halo_hop_style",
-                          action="store", type="string",
+    halo_hop_style = dict(long="--halo_hop_style",
+                          action="store", type=str,
                           dest="halo_hop_style",default="new",
                           help="Style of hop output file.  'new' for yt_hop files and 'old' for enzo_hop files."),
-    halo_parameter_file = dict(short="", long="--halo_parameter_file",
-                               action="store", type="string",
+    halo_parameter_file = dict(long="--halo_parameter_file",
+                               action="store", type=str,
                                dest="halo_parameter_file",default=None,
                                help="HaloProfiler parameter file."),
-    make_profiles = dict(short="", long="--make_profiles",
+    make_profiles = dict(long="--make_profiles",
                          action="store_true", default=False,
                          help="Make profiles with halo profiler."),
-    make_projections = dict(short="", long="--make_projections",
+    make_projections = dict(long="--make_projections",
                             action="store_true", default=False,
                             help="Make projections with halo profiler.")
 
     )
-
-def _add_options(parser, *options):
-    for opt in options:
-        oo = _common_options[opt].copy()
-        parser.add_option(oo.pop("short"), oo.pop("long"), **oo)
-
-def _get_parser(*options):
-    parser = optparse.OptionParser()
-    _add_options(parser, *options)
-    return parser
-
-def add_cmd_options(options):
-    opts = []
-    for option in options:
-        vals = _common_options[option].copy()
-        opts.append(([vals.pop("short"), vals.pop("long")],
-                      vals))
-    def apply_options(func):
-        for args, kwargs in opts:
-            func = cmdln.option(*args, **kwargs)(func)
-        return func
-    return apply_options
-
-def check_args(func):
-    @wraps(func)
-    def arg_iterate(self, subcmd, opts, *args):
-        if len(args) == 1:
-            pfs = args
-        elif len(args) == 2 and opts.basename is not None:
-            pfs = ["%s%04i" % (opts.basename, r)
-                   for r in range(int(args[0]), int(args[1]), opts.skip) ]
-        else: pfs = args
-        for arg in pfs:
-            func(self, subcmd, opts, arg)
-    return arg_iterate
 
 def _update_hg(path, skip_rebuild = False):
     from mercurial import hg, ui, commands
@@ -355,537 +384,13 @@ def _get_yt_supp(uu):
     # Now we think we have our supplemental repository.
     return supp_path
 
-class YTCommands(cmdln.Cmdln):
-    name="yt"
-
-    def __init__(self, *args, **kwargs):
-        cmdln.Cmdln.__init__(self, *args, **kwargs)
-        cmdln.Cmdln.do_help.aliases.append("h")
-
-    def do_update(self, subcmd, opts):
-        """
-        Update the yt installation to the most recent version
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        import pkg_resources
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
-        print
-        print "yt module located at:"
-        print "    %s" % (path)
-        update_supp = False
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print "The supplemental repositories are located at:"
-                print "    %s" % (spath)
-                update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = _get_hg_version(path)
-            print
-            print "The current version of the code is:"
-            print
-            print "---"
-            print vstring.strip()
-            print "---"
-            print
-            print "This installation CAN be automatically updated."
-            _update_hg(path)
-            print "Updated successfully."
-        else:
-            print
-            print "YT site-packages not in path, so you must"
-            print "update this installation manually by committing and"
-            print "merging your modifications to the code before"
-            print "updating to the newest changeset."
-            print
-
-    @cmdln.option("-u", "--update-source", action="store_true",
-                  default = False,
-                  help="Update the yt installation, if able")
-    @cmdln.option("-o", "--output-version", action="store",
-                  default = None, dest="outputfile",
-                  help="File into which the current revision number will be stored")
-    def do_instinfo(self, subcmd, opts):
-        """
-        Get some information about the yt installation
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        import pkg_resources
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
-        print
-        print "yt module located at:"
-        print "    %s" % (path)
-        update_supp = False
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print "The supplemental repositories are located at:"
-                print "    %s" % (spath)
-                update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = _get_hg_version(path)
-            print
-            print "The current version of the code is:"
-            print
-            print "---"
-            print vstring.strip()
-            print "---"
-            print
-            print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                _update_hg(path)
-            print "Updated successfully."
-        elif opts.update_source:
-            print
-            print "YT site-packages not in path, so you must"
-            print "update this installation manually by committing and"
-            print "merging your modifications to the code before"
-            print "updating to the newest changeset."
-            print
-        if vstring is not None and opts.outputfile is not None:
-            open(opts.outputfile, "w").write(vstring)
-
-    def do_load(self, subcmd, opts, arg):
-        """
-        Load a single dataset into an IPython instance
-
-        ${cmd_option_list}
-        """
-        try:
-            pf = _fix_pf(arg)
-        except IOError:
-            print "Could not load file."
-            sys.exit()
-        import yt.mods
-
-        import IPython
-        if IPython.__version__.startswith("0.10"):
-            api_version = '0.10'
-        elif IPython.__version__.startswith("0.11"):
-            api_version = '0.11'
-
-        local_ns = yt.mods.__dict__.copy()
-        local_ns['pf'] = pf
-
-        if api_version == '0.10':
-            shell = IPython.Shell.IPShellEmbed()
-            shell(local_ns = local_ns,
-                  header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
-                  )
-        else:
-            from IPython.config.loader import Config
-            cfg = Config()
-            cfg.InteractiveShellEmbed.local_ns = local_ns
-            IPython.embed(config=cfg)
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-            ipshell = InteractiveShellEmbed(config=cfg)
-
-    @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
-    @check_args
-    def do_hop(self, subcmd, opts, arg):
-        """
-        Run HOP on one or more datasets
-
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        kwargs = {'dm_only' : opts.dm_only}
-        if opts.threshold is not None: kwargs['threshold'] = opts.threshold
-        hop_list = HaloFinder(pf, **kwargs)
-        if opts.output is None: fn = "%s.hop" % pf
-        else: fn = opts.output
-        hop_list.write_out(fn)
-
-    @add_cmd_options(['make_profiles','make_projections','halo_parameter_file',
-                      'halos','halo_hop_style','halo_radius','halo_radius_units'])
-    def do_halos(self, subcmd, opts, arg):
-        """
-        Run HaloProfiler on one dataset
-
-        ${cmd_option_list}
-        """
-        import yt.analysis_modules.halo_profiler.api as HP
-        kwargs = {'halos': opts.halos,
-                  'halo_radius': opts.halo_radius,
-                  'radius_units': opts.halo_radius_units}
-
-        hp = HP.HaloProfiler(arg,opts.halo_parameter_file,**kwargs)
-        if opts.make_profiles:
-            hp.make_profiles()
-        if opts.make_projections:
-            hp.make_projections()
-
-    @add_cmd_options(["width", "unit", "bn", "proj", "center",
-                      "zlim", "axis", "field", "weight", "skip",
-                      "cmap", "output", "grids", "time"])
-    @check_args
-    def do_plot(self, subcmd, opts, arg):
-        """
-        Create a set of images
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        center = opts.center
-        if opts.center == (-1,-1,-1):
-            mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
-        elif opts.center is None:
-            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
-        pc=PlotCollection(pf, center=center)
-        if opts.axis == 4:
-            axes = range(3)
-        else:
-            axes = [opts.axis]
-        for ax in axes:
-            mylog.info("Adding plot for axis %i", ax)
-            if opts.projection: pc.add_projection(opts.field, ax,
-                                    weight_field=opts.weight, center=center)
-            else: pc.add_slice(opts.field, ax, center=center)
-            if opts.grids: pc.plots[-1].modify["grids"]()
-            if opts.time: 
-                time = pf.current_time*pf['Time']*pf['years']
-                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
-        pc.set_width(opts.width, opts.unit)
-        pc.set_cmap(opts.cmap)
-        if opts.zlim: pc.set_zlim(*opts.zlim)
-        if not os.path.isdir(opts.output): os.makedirs(opts.output)
-        pc.save(os.path.join(opts.output,"%s" % (pf)))
-
-    @add_cmd_options(["proj", "field", "weight"])
-    @cmdln.option("-a", "--axis", action="store", type="int",
-                   dest="axis", default=0, help="Axis (4 for all three)")
-    @cmdln.option("-o", "--host", action="store", type="string",
-                   dest="host", default=None, help="IP Address to bind on")
-    @check_args
-    def do_mapserver(self, subcmd, opts, arg):
-        """
-        Serve a plot in a GMaps-style interface
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
-                                          pf.domain_right_edge))
-        if opts.axis == 4:
-            print "Doesn't work with multiple axes!"
-            return
-        if opts.projection:
-            p = pc.add_projection(opts.field, opts.axis, weight_field=opts.weight)
-        else:
-            p = pc.add_slice(opts.field, opts.axis)
-        from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, opts.field)
-        import yt.utilities.bottle as bottle
-        bottle.debug(True)
-        if opts.host is not None:
-            colonpl = opts.host.find(":")
-            if colonpl >= 0:
-                port = int(opts.host.split(":")[-1])
-                opts.host = opts.host[:colonpl]
-            else:
-                port = 8080
-            bottle.run(server='rocket', host=opts.host, port=port)
-        else:
-            bottle.run(server='rocket')
-
-    def do_rpdb(self, subcmd, opts, task):
-        """
-        Connect to a currently running (on localhost) rpd session.
-
-        Commands run with --rpdb will trigger an rpdb session with any
-        uncaught exceptions.
-
-        ${cmd_usage} 
-        ${cmd_option_list}
-        """
-        import rpdb
-        rpdb.run_rpdb(int(task))
-
-    @add_cmd_options(['outputfn','bn','skip'])
-    @check_args
-    def do_stats(self, subcmd, opts, arg):
-        """
-        Print stats and maximum density for one or more datasets
-
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        pf.h.print_stats()
-        if "Density" in pf.h.field_list:
-            v, c = pf.h.find_max("Density")
-        print "Maximum density: %0.5e at %s" % (v, c)
-        if opts.output is not None:
-            t = pf.current_time * pf['years']
-            open(opts.output, "a").write(
-                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
-
-    @add_cmd_options([])
-    def _do_analyze(self, subcmd, opts, arg):
-        """
-        Produce a set of analysis for a given output.  This includes
-        HaloProfiler results with r200, as per the recipe file in the cookbook,
-        profiles of a number of fields, projections of average Density and
-        Temperature, and distribution functions for Density and Temperature.
-
-        ${cmd_option_list}
-        """
-        # We will do the following things:
-        #   Halo profiling (default parameters ONLY)
-        #   Projections: Density, Temperature
-        #   Full-box distribution functions
-        import yt.analysis_modules.halo_profiler.api as HP
-        hp = HP.HaloProfiler(arg)
-        # Add a filter to remove halos that have no profile points with overdensity
-        # above 200, and with virial masses less than 1e14 solar masses.
-        # Also, return the virial mass and radius to be written out to a file.
-        hp.add_halo_filter(HP.VirialFilter,must_be_virialized=True,
-                           overdensity_field='ActualOverdensity',
-                           virial_overdensity=200, virial_filters=[],
-                           virial_quantities=['TotalMassMsun','RadiusMpc'])
-
-        # Add profile fields.
-        pf = hp.pf
-        all_fields = pf.h.field_list + pf.h.derived_field_list
-        for field, wv, acc in HP.standard_fields:
-            if field not in all_fields: continue
-            hp.add_profile(field, wv, acc)
-        hp.make_profiles(filename="FilteredQuantities.out")
-
-        # Add projection fields.
-        hp.add_projection('Density',weight_field=None)
-        hp.add_projection('Temperature',weight_field='Density')
-        if "Metallicity" in all_fields:
-            hp.add_projection('Metallicity',weight_field='Density')
-
-        # Make projections for all three axes using the filtered halo list and
-        # save data to hdf5 files.
-        hp.make_projections(save_cube=True,save_images=True,
-                            halo_list='filtered',axes=[0,1,2])
-
-        # Now we make full-box projections.
-        pf = EnzoStaticOutput(arg)
-        c = 0.5*(pf.domain_right_edge + pf.domain_left_edge)
-        pc = PlotCollection(pf, center=c)
-        for ax in range(3):
-            pc.add_projection("Density", ax, "Density")
-            pc.add_projection("Temperature", ax, "Density")
-            pc.plots[-1].set_cmap("hot")
-
-        # Time to add some phase plots
-        dd = pf.h.all_data()
-        ph = pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
-                            weight=None)
-        pc_dummy = PlotCollection(pf, center=c)
-        pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
-                            weight="CellMassMsun")
-        ph.modify["line"](pr.field_data["Density"], pr.field_data["Temperature"])
-        pc.save()
-
-    @cmdln.option("-d", "--desc", action="store",
-                  default = None, dest="desc",
-                  help="Description for this pasteboard entry")
-    def do_pasteboard(self, subcmd, opts, arg):
-        """
-        Place a file into your pasteboard.
-        """
-        if opts.desc is None: raise RuntimeError
-        from yt.utilities.pasteboard import PostInventory
-        pp = PostInventory()
-        pp.add_post(arg, desc=opts.desc)
-
-    @cmdln.option("-l", "--language", action="store",
-                  default = None, dest="language",
-                  help="Use syntax highlighter for the file in language")
-    @cmdln.option("-L", "--languages", action="store_true",
-                  default = False, dest="languages",
-                  help="Retrive a list of supported languages")
-    @cmdln.option("-e", "--encoding", action="store",
-                  default = 'utf-8', dest="encoding",
-                  help="Specify the encoding of a file (default is "
-                        "utf-8 or guessing if available)")
-    @cmdln.option("-b", "--open-browser", action="store_true",
-                  default = False, dest="open_browser",
-                  help="Open the paste in a web browser")
-    @cmdln.option("-p", "--private", action="store_true",
-                  default = False, dest="private",
-                  help="Paste as private")
-    @cmdln.option("-c", "--clipboard", action="store_true",
-                  default = False, dest="clipboard",
-                  help="File to output to; else, print.")
-    def do_pastebin(self, subcmd, opts, arg):
-        """
-        Post a script to an anonymous pastebin
-
-        Usage: yt pastebin [options] <script>
-
-        ${cmd_option_list}
-        """
-        import yt.utilities.lodgeit as lo
-        lo.main( arg, languages=opts.languages, language=opts.language,
-                 encoding=opts.encoding, open_browser=opts.open_browser,
-                 private=opts.private, clipboard=opts.clipboard)
-
-    def do_pastebin_grab(self, subcmd, opts, arg):
-        """
-        Print an online pastebin to STDOUT for local use. Paste ID is 
-        the number at the end of the url.  So to locally access pastebin:
-        http://paste.yt-project.org/show/1688/
-
-        Usage: yt pastebin_grab <Paste ID> 
-        Ex: yt pastebin_grab 1688 > script.py
-
-        """
-        import yt.utilities.lodgeit as lo
-        lo.main( None, download=arg )
-
-    @cmdln.option("-o", "--output", action="store",
-                  default = None, dest="output_fn",
-                  help="File to output to; else, print.")
-    def do_pasteboard_grab(self, subcmd, opts, username, paste_id):
-        """
-        Download from your or another user's pasteboard
-
-        ${cmd_usage} 
-        ${cmd_option_list}
-        """
-        from yt.utilities.pasteboard import retrieve_pastefile
-        retrieve_pastefile(username, paste_id, opts.output_fn)
-
-    def do_bugreport(self, subcmd, opts):
-        """
-        Report a bug in yt
-
-        ${cmd_usage} 
-        ${cmd_option_list}
-        """
-        print "==============================================================="
-        print
-        print "Hi there!  Welcome to the yt bugreport taker."
-        print
-        print "==============================================================="
-        print "At any time in advance of the upload of the bug, you should feel free"
-        print "to ctrl-C out and submit the bug report manually by going here:"
-        print "   http://hg.yt-project.org/yt/issues/new"
-        print 
-        print "Also, in order to submit a bug through this interface, you"
-        print "need a Bitbucket account. If you don't have one, exit this "
-        print "bugreport now and run the 'yt bootstrap_dev' command to create one."
-        print
-        print "Have you checked the existing bug reports to make"
-        print "sure your bug has not already been recorded by someone else?"
-        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
-        print
-        print "Finally, are you sure that your bug is, in fact, a bug? It might"
-        print "simply be a misunderstanding that could be cleared up by"
-        print "visiting the yt irc channel or getting advice on the email list:"
-        print "   http://yt-project.org/irc.html"
-        print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
-        print
-        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
-        print
-        print
-        print "Okay, sorry about that. How about a nice, pithy ( < 12 words )"
-        print "summary of the bug?  (e.g. 'Particle overlay problem with parallel "
-        print "projections')"
-        print
-        try:
-            current_version = get_yt_version()
-        except:
-            current_version = "Unavailable"
-        summary = raw_input("Summary? ")
-        bugtype = "bug"
-        data = dict(title = summary, type=bugtype)
-        print
-        print "Okay, now let's get a bit more information."
-        print
-        print "Remember that if you want to submit a traceback, you can run"
-        print "any script with --paste or --detailed-paste to submit it to"
-        print "the pastebin and then include the link in this bugreport."
-        if "EDITOR" in os.environ:
-            print
-            print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
-            loki = raw_input()
-            tf = tempfile.NamedTemporaryFile(delete=False)
-            fn = tf.name
-            tf.close()
-            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
-            content = open(fn).read()
-            try:
-                os.unlink(fn)
-            except:
-                pass
-        else:
-            print
-            print "Couldn't find an $EDITOR variable.  So, let's just take"
-            print "take input here.  Type up your summary until you're ready"
-            print "to be done, and to signal you're done, type --- by itself"
-            print "on a line to signal your completion."
-            print
-            print "(okay, type now)"
-            print
-            lines = []
-            while 1:
-                line = raw_input()
-                if line.strip() == "---": break
-                lines.append(line)
-            content = "\n".join(lines)
-        content = "Reporting Version: %s\n\n%s" % (current_version, content)
-        endpoint = "repositories/yt_analysis/yt/issues"
-        data['content'] = content
-        print
-        print "==============================================================="
-        print 
-        print "Okay, we're going to submit with this:"
-        print
-        print "Summary: %s" % (data['title'])
-        print
-        print "---"
-        print content
-        print "---"
-        print
-        print "==============================================================="
-        print
-        print "Is that okay?  If not, hit ctrl-c.  Otherwise, enter means"
-        print "'submit'.  Next we'll ask for your Bitbucket Username."
-        print "If you don't have one, run the 'yt bootstrap_dev' command."
-        print
-        loki = raw_input()
-        retval = bb_apicall(endpoint, data, use_pass=True)
-        import json
-        retval = json.loads(retval)
-        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
-        print 
-        print "==============================================================="
-        print
-        print "Thanks for your bug report!  Together we'll make yt totally bug free!"
-        print "You can view bug report here:"
-        print "   %s" % url
-        print
-        print "Keep in touch!"
-        print
-
-    def do_bootstrap_dev(self, subcmd, opts):
+class YTBootstrapDevCmd(YTCommand):
+    name = "bootstrap_dev"
+    description = \
         """
         Bootstrap a yt development environment
-
-        ${cmd_usage} 
-        ${cmd_option_list}
         """
+    def __call__(self, args):
         from mercurial import hg, ui, commands
         import imp
         import getpass
@@ -895,7 +400,7 @@ class YTCommands(cmdln.Cmdln):
         print "Hi there!  Welcome to the yt development bootstrap tool."
         print
         print "This should get you started with mercurial as well as a few"
-        print "other handy things, like a pasteboard of your very own."
+        print "other handy things"
         print
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
@@ -917,7 +422,6 @@ class YTCommands(cmdln.Cmdln):
         print " 1. Setting up your ~/.hgrc to have a username."
         print " 2. Setting up your bitbucket user account and the hgbb"
         print "    extension."
-        print " 3. Setting up a new pasteboard repository."
         print
         firstname = lastname = email_address = bbusername = repo_list = None
         # Now we try to import the cedit extension.
@@ -1090,89 +594,6 @@ class YTCommands(cmdln.Cmdln):
         # We now reload the UI's config file so that it catches the [bb]
         # section changes.
         uu.readconfig(hgrc_path[0])
-        # Now the only thing remaining to do is to set up the pasteboard
-        # repository.
-        # This is, unfortunately, the most difficult.
-        print
-        print "We are now going to set up a pasteboard. This is a mechanism"
-        print "for versioned posting of snippets, collaboration and"
-        print "discussion."
-        print
-        # Let's get the full list of repositories
-        pasteboard_name = "%s.bitbucket.org" % (bbusername.lower())
-        if repo_list is None:
-            rv = hgbb._bb_apicall(uu, "users/%s" % bbusername, None, False)
-            rv = json.loads(rv)
-            repo_list = rv['repositories']
-        create = True
-        for repo in repo_list:
-            if repo['name'] == pasteboard_name:
-                create = False
-        if create:
-            # Now we first create the repository, but we
-            # will only use the creation API, not the bbcreate command.
-            print
-            print "I am now going to create the repository:"
-            print "    ", pasteboard_name
-            print "on BitBucket.org.  This will set up the domain"
-            print "     http://%s" % (pasteboard_name)
-            print "which will point to the current contents of the repo."
-            print
-            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
-            data = dict(name=pasteboard_name)
-            hgbb._bb_apicall(uu, 'repositories', data)
-        # Now we clone
-        pasteboard_path = os.path.join(os.environ["YT_DEST"], "src",
-                                       pasteboard_name)
-        if os.path.isdir(pasteboard_path):
-            print "Found an existing clone of the pasteboard repo:"
-            print "    ", pasteboard_path
-        else:
-            print
-            print "I will now clone a copy of your pasteboard repo."
-            print
-            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
-            commands.clone(uu, "https://%s@bitbucket.org/%s/%s" % (
-                             bbusername, bbusername, pasteboard_name),
-                           pasteboard_path)
-            pbtemplate_path = os.path.join(supp_path, "pasteboard_template")
-            pb_hgrc_path = os.path.join(pasteboard_path, ".hg", "hgrc")
-            cedit.config.setoption(uu, [pb_hgrc_path],
-                                   "paths.pasteboard = " + pbtemplate_path)
-            if create:
-                # We have to pull in the changesets from the pasteboard.
-                pb_repo = hg.repository(uu, pasteboard_path)
-                commands.pull(uu, pb_repo,
-                              os.path.join(supp_path, "pasteboard_template"))
-        if ytcfg.get("yt","pasteboard_repo") != pasteboard_path:
-            print
-            print "Now setting the pasteboard_repo option in"
-            print "~/.yt/config to point to %s" % (pasteboard_path)
-            print
-            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
-            dotyt_path = os.path.expanduser("~/.yt")
-            if not os.path.isdir(dotyt_path):
-                print "There's no directory:"
-                print "    ", dotyt_path
-                print "I will now create it."
-                print
-                loki = raw_input("Press enter to go on, Ctrl-C to exit.")
-                os.mkdir(dotyt_path)
-            ytcfg_path = os.path.expanduser("~/.yt/config")
-            cedit.config.setoption(uu, [ytcfg_path],
-                        "yt.pasteboard_repo=%s" % (pasteboard_path))
-        try:
-            import pygments
-            install_pygments = False
-        except ImportError:
-            install_pygments = True
-        if install_pygments:
-            print "You are missing the Pygments package.  Installing."
-            import pip
-            rv = pip.main(["install", "pygments"])
-            if rv == 1:
-                print "Unable to install Pygments.  Please report this bug to yt-users."
-                sys.exit(1)
         try:
             import lxml
             install_lxml = False
@@ -1188,136 +609,157 @@ class YTCommands(cmdln.Cmdln):
         print
         print "All done!"
         print
-        print "You're now set up to use the 'yt pasteboard' command"
-        print "as well as develop using Mercurial and BitBucket."
+        print "You're now set up to develop using Mercurial and BitBucket."
         print
         print "Good luck!"
 
-    @cmdln.option("-o", "--open-browser", action="store_true",
-                  default = False, dest='open_browser',
-                  help="Open a web browser.")
-    @cmdln.option("-p", "--port", action="store",
-                  default = 0, dest='port',
-                  help="Port to listen on")
-    @cmdln.option("-f", "--find", action="store_true",
-                  default = False, dest="find",
-                  help="At startup, find all *.hierarchy files in the CWD")
-    @cmdln.option("-d", "--debug", action="store_true",
-                  default = False, dest="debug",
-                  help="Add a debugging mode for cell execution")
-    def do_serve(self, subcmd, opts):
+class YTBugreportCmd(YTCommand):
+    name = "bugreport"
+    description = \
         """
-        Run the Web GUI Reason
+        Report a bug in yt
+
         """
-        # We have to do a couple things.
-        # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
+
+    def __call__(self, args):
+        print "==============================================================="
+        print
+        print "Hi there!  Welcome to the yt bugreport taker."
+        print
+        print "==============================================================="
+        print "At any time in advance of the upload of the bug, you should feel free"
+        print "to ctrl-C out and submit the bug report manually by going here:"
+        print "   http://hg.yt-project.org/yt/issues/new"
+        print 
+        print "Also, in order to submit a bug through this interface, you"
+        print "need a Bitbucket account. If you don't have one, exit this "
+        print "bugreport now and run the 'yt bootstrap_dev' command to create one."
+        print
+        print "Have you checked the existing bug reports to make"
+        print "sure your bug has not already been recorded by someone else?"
+        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
+        print
+        print "Finally, are you sure that your bug is, in fact, a bug? It might"
+        print "simply be a misunderstanding that could be cleared up by"
+        print "visiting the yt irc channel or getting advice on the email list:"
+        print "   http://yt-project.org/irc.html"
+        print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+        print
+        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
+        print
+        print
+        print "Okay, sorry about that. How about a nice, pithy ( < 12 words )"
+        print "summary of the bug?  (e.g. 'Particle overlay problem with parallel "
+        print "projections')"
+        print
+        try:
+            current_version = get_yt_version()
+        except:
+            current_version = "Unavailable"
+        summary = raw_input("Summary? ")
+        bugtype = "bug"
+        data = dict(title = summary, type=bugtype)
+        print
+        print "Okay, now let's get a bit more information."
+        print
+        print "Remember that if you want to submit a traceback, you can run"
+        print "any script with --paste or --detailed-paste to submit it to"
+        print "the pastebin and then include the link in this bugreport."
+        if "EDITOR" in os.environ:
             print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
-        if opts.port == 0:
-            # This means, choose one at random.  We do this by binding to a
-            # socket and allowing the OS to choose the port for that socket.
-            import socket
-            sock = socket.socket()
-            sock.bind(('', 0))
-            opts.port = sock.getsockname()[-1]
-            del sock
-        elif opts.port == '-1':
-            port = raw_input("Desired yt port? ")
+            print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
+            loki = raw_input()
+            tf = tempfile.NamedTemporaryFile(delete=False)
+            fn = tf.name
+            tf.close()
+            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
+            content = open(fn).read()
             try:
-                opts.port = int(port)
-            except ValueError:
-                print "Please try a number next time."
-                return 1
-        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
-        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+                os.unlink(fn)
+            except:
+                pass
+        else:
             print
-            print "*** You are missing the ExtJS support files. You  ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
+            print "Couldn't find an $EDITOR variable.  So, let's just take"
+            print "take input here.  Type up your summary until you're ready"
+            print "to be done, and to signal you're done, type --- by itself"
+            print "on a line to signal your completion."
             print
-            sys.exit(1)
-        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
-        from yt.gui.reason.extdirect_repl import ExtDirectREPL
-        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
-        hr.debug = PayloadHandler.debug = opts.debug
-        if opts.find:
-            # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
-            for fn in sorted(glob.glob("*/*.hierarchy")):
-                command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
-        bottle.debug()
-        uuid_serve_functions(open_browser=opts.open_browser,
-                    port=int(opts.port), repl=hr)
+            print "(okay, type now)"
+            print
+            lines = []
+            while 1:
+                line = raw_input()
+                if line.strip() == "---": break
+                lines.append(line)
+            content = "\n".join(lines)
+        content = "Reporting Version: %s\n\n%s" % (current_version, content)
+        endpoint = "repositories/yt_analysis/yt/issues"
+        data['content'] = content
+        print
+        print "==============================================================="
+        print 
+        print "Okay, we're going to submit with this:"
+        print
+        print "Summary: %s" % (data['title'])
+        print
+        print "---"
+        print content
+        print "---"
+        print
+        print "==============================================================="
+        print
+        print "Is that okay?  If not, hit ctrl-c.  Otherwise, enter means"
+        print "'submit'.  Next we'll ask for your Bitbucket Username."
+        print "If you don't have one, run the 'yt bootstrap_dev' command."
+        print
+        loki = raw_input()
+        retval = bb_apicall(endpoint, data, use_pass=True)
+        import json
+        retval = json.loads(retval)
+        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
+        print 
+        print "==============================================================="
+        print
+        print "Thanks for your bug report!  Together we'll make yt totally bug free!"
+        print "You can view bug report here:"
+        print "   %s" % url
+        print
+        print "Keep in touch!"
+        print
 
-    
-    def _do_remote(self, subcmd, opts):
-        import getpass, sys, socket, time, webbrowser
-        import yt.utilities.pexpect as pex
+class YTHopCmd(YTCommand):
+    args = ('outputfn','bn','thresh','dm_only','skip', 'pf')
+    name = "hop"
+    description = \
+        """
+        Run HOP on one or more datasets
 
-        host = raw_input('Hostname: ')
-        user = raw_input('User: ')
-        password = getpass.getpass('Password: ')
+        """
 
-        sock = socket.socket()
-        sock.bind(('', 0))
-        port = sock.getsockname()[-1]
-        del sock
+    def __call__(self, args):
+        pf = args.pf
+        kwargs = {'dm_only' : args.dm_only}
+        if args.threshold is not None: kwargs['threshold'] = args.threshold
+        hop_list = HaloFinder(pf, **kwargs)
+        if args.output is None: fn = "%s.hop" % pf
+        else: fn = args.output
+        hop_list.write_out(fn)
 
-        child = pex.spawn('ssh -L %s:localhost:%s -l %s %s'%(port, port, user, host))
-        ssh_newkey = 'Are you sure you want to continue connecting'
-        i = child.expect([pex.TIMEOUT, ssh_newkey, 'password: '])
-        if i == 0: # Timeout
-            print 'ERROR!'
-            print 'SSH could not login. Here is what SSH said:'
-            print child.before, child.after
-            return 1
-        if i == 1: # SSH does not have the public key. Just accept it.
-            child.sendline ('yes')
-            child.expect ('password: ')
-            i = child.expect([pex.TIMEOUT, 'password: '])
-            if i == 0: # Timeout
-                print 'ERROR!'
-                print 'SSH could not login. Here is what SSH said:'
-                print child.before, child.after
-                return 1
-        print "Sending password"
-        child.sendline(password)
-        del password
-        print "Okay, sending serving command"
-        child.sendline('yt serve -p -1')
-        print "Waiting ..."
-        child.expect('Desired yt port?')
-        child.sendline("%s" % port)
-        child.expect('     http://localhost:([0-9]*)/(.+)/\r')
-        print "Got:", child.match.group(1), child.match.group(2)
-        port, urlprefix = child.match.group(1), child.match.group(2)
-        print "Sleeping one second and opening browser"
-        time.sleep(1)
-        webbrowser.open("http://localhost:%s/%s/" % (port, urlprefix))
-        print "Press Ctrl-C to terminate session"
-        child.readlines()
-        while 1:
-            time.sleep(1)
-
-    @cmdln.option("-R", "--repo", action="store", type="string",
-                  dest="repo", default=".", help="Repository to upload")
-    def do_hubsubmit(self, subcmd, opts):
+class YTHubSubmitCmd(YTCommand):
+    name = "hub_submit"
+    args = (
+            dict(long="--repo", action="store", type=str,
+                 dest="repo", default=".", help="Repository to upload"),
+           )
+    description = \
         """
         Submit a mercurial repository to the yt Hub
         (http://hub.yt-project.org/), creating a BitBucket repo in the process
         if necessary.
-
-        ${cmd_usage}
-        ${cmd_option_list}
         """
+
+    def __call__(self, args):
         import imp
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
@@ -1340,10 +782,10 @@ class YTCommands(cmdln.Cmdln):
             sys.exit(1)
         hgbb = imp.load_module("hgbb", *result)
         try:
-            repo = hg.repository(uu, opts.repo)
+            repo = hg.repository(uu, args.repo)
             conf = config.config()
-            if os.path.exists(os.path.join(opts.repo,".hg","hgrc")):
-                conf.read(os.path.join(opts.repo, ".hg", "hgrc"))
+            if os.path.exists(os.path.join(args.repo,".hg","hgrc")):
+                conf.read(os.path.join(args.repo, ".hg", "hgrc"))
             needs_bb = True
             if "paths" in conf.sections():
                 default = conf['paths'].get("default", "")
@@ -1358,7 +800,7 @@ class YTCommands(cmdln.Cmdln):
                             break
         except error.RepoError:
             print "Unable to find repo at:"
-            print "   %s" % (os.path.abspath(opts.repo))
+            print "   %s" % (os.path.abspath(args.repo))
             print
             print "Would you like to initialize one?  If this message"
             print "surprises you, you should perhaps press Ctrl-C to quit."
@@ -1369,8 +811,8 @@ class YTCommands(cmdln.Cmdln):
                 print "Okay, rad -- we'll let you handle it and get back to",
                 print " us."
                 return 1
-            commands.init(uu, dest=opts.repo)
-            repo = hg.repository(uu, opts.repo)
+            commands.init(uu, dest=args.repo)
+            repo = hg.repository(uu, args.repo)
             commands.add(uu, repo)
             commands.commit(uu, repo, message="Initial automated import by yt")
             needs_bb = True
@@ -1395,7 +837,7 @@ class YTCommands(cmdln.Cmdln):
                 print
                 print "to get set up and ready to go."
                 return 1
-            bb_repo_name = os.path.basename(os.path.abspath(opts.repo))
+            bb_repo_name = os.path.basename(os.path.abspath(args.repo))
             print
             print "I am now going to create the repository:"
             print "    ", bb_repo_name
@@ -1478,13 +920,499 @@ class YTCommands(cmdln.Cmdln):
         rv = urllib2.urlopen(req).read()
         print rv
 
-    def do_upload_image(self, subcmd, opts, filename):
+class YTInstInfoCmd(YTCommand):
+    name = "instinfo"
+    args = (
+            dict(short="-u", long="--update-source", action="store_true",
+                 default = False,
+                 help="Update the yt installation, if able"),
+            dict(short="-o", long="--output-version", action="store",
+                  default = None, dest="outputfile",
+                  help="File into which the current revision number will be" +
+                       "stored")
+           )
+    description = \
+        """
+        Get some information about the yt installation
+
+        """
+
+    def __call__(self, opts):
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
+        if "site-packages" not in path:
+            vstring = get_hg_version(path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring.strip()
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            if opts.update_source:  
+                update_hg(path)
+            print "Updated successfully."
+        elif opts.update_source:
+            print
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
+            print
+        if vstring is not None and opts.outputfile is not None:
+            open(opts.outputfile, "w").write(vstring)
+
+class YTLoadCmd(YTCommand):
+    name = "load"
+    description = \
+        """
+        Load a single dataset into an IPython instance
+
+        """
+
+    args = ("pf", )
+
+    def __call__(self, args):
+        if args.pf is None:
+            print "Could not load file."
+            sys.exit()
+        import yt.mods
+
+        import IPython
+        if IPython.__version__.startswith("0.10"):
+            api_version = '0.10'
+        elif IPython.__version__.startswith("0.11"):
+            api_version = '0.11'
+
+        local_ns = yt.mods.__dict__.copy()
+        local_ns['pf'] = args.pf
+
+        if api_version == '0.10':
+            shell = IPython.Shell.IPShellEmbed()
+            shell(local_ns = local_ns,
+                  header =
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  )
+        else:
+            from IPython.config.loader import Config
+            cfg = Config()
+            cfg.InteractiveShellEmbed.local_ns = local_ns
+            IPython.embed(config=cfg)
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+            ipshell = InteractiveShellEmbed(config=cfg)
+
+
+class YTMapserverCmd(YTCommand):
+    args = ("proj", "field", "weight",
+            dict(short="-a", long="--axis", action="store", type=int,
+                 dest="axis", default=0, help="Axis (4 for all three)"),
+            dict(short ="-o", long="--host", action="store", type=str,
+                   dest="host", default=None, help="IP Address to bind on"),
+            "pf",
+            )
+    
+    name = "mapserver"
+    description = \
+        """
+        Serve a plot in a GMaps-style interface
+
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
+                                          pf.domain_right_edge))
+        if args.axis == 4:
+            print "Doesn't work with multiple axes!"
+            return
+        if args.projection:
+            p = pc.add_projection(args.field, args.axis, weight_field=args.weight)
+        else:
+            p = pc.add_slice(args.field, args.axis)
+        from yt.gui.reason.pannable_map import PannableMapServer
+        mapper = PannableMapServer(p.data, args.field)
+        import yt.utilities.bottle as bottle
+        bottle.debug(True)
+        if args.host is not None:
+            colonpl = args.host.find(":")
+            if colonpl >= 0:
+                port = int(args.host.split(":")[-1])
+                args.host = args.host[:colonpl]
+            else:
+                port = 8080
+            bottle.run(server='rocket', host=args.host, port=port)
+        else:
+            bottle.run(server='rocket')
+
+class YTPastebinCmd(YTCommand):
+    name = "pastebin"
+    args = (
+             dict(short="-l", long="--language", action="store",
+                  default = None, dest="language",
+                  help="Use syntax highlighter for the file in language"),
+             dict(short="-L", long="--languages", action="store_true",
+                  default = False, dest="languages",
+                  help="Retrive a list of supported languages"),
+             dict(short="-e", long="--encoding", action="store",
+                  default = 'utf-8', dest="encoding",
+                  help="Specify the encoding of a file (default is "
+                        "utf-8 or guessing if available)"),
+             dict(short="-b", long="--open-browser", action="store_true",
+                  default = False, dest="open_browser",
+                  help="Open the paste in a web browser"),
+             dict(short="-p", long="--private", action="store_true",
+                  default = False, dest="private",
+                  help="Paste as private"),
+             dict(short="-c", long="--clipboard", action="store_true",
+                  default = False, dest="clipboard",
+                  help="File to output to; else, print."),
+             dict(short="file", type=str),
+            )
+    description = \
+        """
+        Post a script to an anonymous pastebin
+
+        """
+
+    def __call__(self, args):
+        import yt.utilities.lodgeit as lo
+        lo.main(args.file, languages=args.languages, language=args.language,
+                 encoding=args.encoding, open_browser=args.open_browser,
+                 private=args.private, clipboard=args.clipboard)
+
+class YTPastebinGrabCmd(YTCommand):
+    args = (dict(short="number", type=str),)
+    name = "pastebin_grab"
+    description = \
+        """
+        Print an online pastebin to STDOUT for local use. 
+        """
+
+    def __call__(self, args):
+        import yt.utilities.lodgeit as lo
+        lo.main( None, download=args.number )
+
+class YTPlotCmd(YTCommand):
+    args = ("width", "unit", "bn", "proj", "center",
+            "zlim", "axis", "field", "weight", "skip",
+            "cmap", "output", "grids", "time", "pf",
+            "max")
+    
+    name = "plot"
+    
+    description = \
+        """
+        Create a set of images 
+
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        center = args.center
+        if args.center == (-1,-1,-1):
+            mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        if args.max:
+            v, center = pf.h.find_max("Density")
+        elif args.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+        center = na.array(center)
+        pc=PlotCollection(pf, center=center)
+        if args.axis == 4:
+            axes = range(3)
+        else:
+            axes = [args.axis]
+        for ax in axes:
+            mylog.info("Adding plot for axis %i", ax)
+            if args.projection: pc.add_projection(args.field, ax,
+                                    weight_field=args.weight, center=center)
+            else: pc.add_slice(args.field, ax, center=center)
+            if args.grids: pc.plots[-1].modify["grids"]()
+            if args.time: 
+                time = pf.current_time*pf['Time']*pf['years']
+                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
+        pc.set_width(args.width, args.unit)
+        pc.set_cmap(args.cmap)
+        if args.zlim: pc.set_zlim(*args.zlim)
+        if not os.path.isdir(args.output): os.makedirs(args.output)
+        pc.save(os.path.join(args.output,"%s" % (pf)))
+
+class YTRenderCmd(YTCommand):
+        
+    args = ("width", "unit", "center","enhance",'outputfn',
+            "field", "cmap", "contours", "viewpoint",
+            "pixels","up","valrange","log","contour_width", "pf")
+    name = "render"
+    description = \
+        """
+        Create a simple volume rendering
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        center = args.center
+        if args.center == (-1,-1,-1):
+            mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        elif args.center is None:
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+        center = na.array(center)
+
+        L = args.viewpoint
+        if L is None:
+            L = [1.]*3
+        L = na.array(args.viewpoint)
+
+        unit = args.unit
+        if unit is None:
+            unit = '1'
+        width = args.width
+        if width is None:
+            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
+        width /= pf[unit]
+
+        N = args.pixels
+        if N is None:
+            N = 512 
+        
+        up = args.up
+        if up is None:
+            up = [0.,0.,1.]
+            
+        field = args.field
+        if field is None:
+            field = 'Density'
+        
+        log = args.takelog
+        if log is None:
+            log = True
+
+        myrange = args.valrange
+        if myrange is None:
+            roi = pf.h.region(center, center-width, center+width)
+            mi, ma = roi.quantities['Extrema'](field)[0]
+            if log:
+                mi, ma = na.log10(mi), na.log10(ma)
+        else:
+            mi, ma = myrange[0], myrange[1]
+
+        n_contours = args.contours
+        if n_contours is None:
+            n_contours = 7
+
+        contour_width = args.contour_width
+
+        cmap = args.cmap
+        if cmap is None:
+            cmap = 'jet'
+        tf = ColorTransferFunction((mi-2, ma+2))
+        tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
+
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        image = cam.snapshot()
+
+        if args.enhance:
+            for i in range(3):
+                image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
+            image[image>1.0]=1.0
+            
+        save_name = args.output
+        if save_name is None:
+            save_name = "%s"%pf+"_"+field+"_rendering.png"
+        if not '.png' in save_name:
+            save_name += '.png'
+        if cam.comm.rank != -1:
+            write_bitmap(image,save_name)
+
+class YTRPDBCmd(YTCommand):
+    name = "rpdb"
+    description = \
+        """
+        Connect to a currently running (on localhost) rpd session.
+
+        Commands run with --rpdb will trigger an rpdb session with any
+        uncaught exceptions.
+
+        """
+    args = (
+            dict(short="-t", long="--task", action="store",
+                 default = 0, dest='task',
+                 help="Open a web browser."),
+           )
+
+    def __call__(self, args):
+        import rpdb
+        rpdb.run_rpdb(int(args.task))
+
+class YTGUICmd(YTCommand):
+    name = ["serve", "reason"]
+    args = (
+            dict(short="-o", long="--open-browser", action="store_true",
+                 default = False, dest='open_browser',
+                 help="Open a web browser."),
+            dict(short="-p", long="--port", action="store",
+                 default = 0, dest='port',
+                 help="Port to listen on"),
+            dict(short="-f", long="--find", action="store_true",
+                 default = False, dest="find",
+                 help="At startup, find all *.hierarchy files in the CWD"),
+            dict(short="-d", long="--debug", action="store_true",
+                 default = False, dest="debug",
+                 help="Add a debugging mode for cell execution")
+            )
+    description = \
+        """
+        Run the Web GUI Reason
+        """
+
+    def __call__(self, args):
+        # We have to do a couple things.
+        # First, we check that YT_DEST is set.
+        if "YT_DEST" not in os.environ:
+            print
+            print "*** You must set the environment variable YT_DEST ***"
+            print "*** to point to the installation location!        ***"
+            print
+            sys.exit(1)
+        if args.port == 0:
+            # This means, choose one at random.  We do this by binding to a
+            # socket and allowing the OS to choose the port for that socket.
+            import socket
+            sock = socket.socket()
+            sock.bind(('', 0))
+            args.port = sock.getsockname()[-1]
+            del sock
+        elif args.port == '-1':
+            port = raw_input("Desired yt port? ")
+            try:
+                args.port = int(port)
+            except ValueError:
+                print "Please try a number next time."
+                return 1
+        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
+        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+            print
+            print "*** You are missing the ExtJS support files. You  ***"
+            print "*** You can get these by either rerunning the     ***"
+            print "*** install script installing, or downloading     ***"
+            print "*** them manually.                                ***"
+            print
+            sys.exit(1)
+        from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
+        import yt.utilities.bottle as bottle
+        from yt.gui.reason.extdirect_repl import ExtDirectREPL
+        from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
+        hr = ExtDirectREPL(base_extjs_path)
+        hr.debug = PayloadHandler.debug = args.debug
+        if args.find:
+            # We just have to find them and store references to them.
+            command_line = ["pfs = []"]
+            for fn in sorted(glob.glob("*/*.hierarchy")):
+                command_line.append("pfs.append(load('%s'))" % fn[:-10])
+            hr.execute("\n".join(command_line))
+        bottle.debug()
+        uuid_serve_functions(open_browser=args.open_browser,
+                    port=int(args.port), repl=hr)
+
+class YTStatsCmd(YTCommand):
+    args = ('outputfn','bn','skip','pf', 'field',
+            dict(long="--max", action="store_true", default=False,
+                 dest='max', help="Display maximum of requested field."),
+            dict(long="--min", action="store_true", default=False,
+                 dest='min', help="Display minimum of requested field."))
+    name = "stats"
+    description = \
+        """
+        Print stats and max/min value of a given field (if requested),
+        for one or more datasets
+
+        (default field is density)
+
+        """
+
+    def __call__(self, args):
+        pf = args.pf
+        pf.h.print_stats()
+        if args.field in pf.h.field_list:
+            if args.max == True:
+                v, c = pf.h.find_max(args.field)
+                print "Maximum %s: %0.5e at %s" % (args.field, v, c)
+            if args.min == True:
+                v, c = pf.h.find_min(args.field)
+                print "Minimum %s: %0.5e at %s" % (args.field, v, c)
+        if args.output is not None:
+            t = pf.current_time * pf['years']
+            open(args.output, "a").write(
+                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
+
+class YTUpdateCmd(YTCommand):
+    name = "update"
+    description = \
+        """
+        Update the yt installation to the most recent version
+
+        """
+
+    def __call__(self, opts):
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        update_supp = False
+        if "YT_DEST" in os.environ:
+            spath = os.path.join(
+                     os.environ["YT_DEST"], "src", "yt-supplemental")
+            if os.path.isdir(spath):
+                print "The supplemental repositories are located at:"
+                print "    %s" % (spath)
+                update_supp = True
+        vstring = None
+        if "site-packages" not in path:
+            vstring = get_hg_version(path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring.strip()
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            update_hg(path)
+            print "Updated successfully."
+        else:
+            print
+            print "YT site-packages not in path, so you must"
+            print "update this installation manually by committing and"
+            print "merging your modifications to the code before"
+            print "updating to the newest changeset."
+            print
+
+class YTUploadImageCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
         """
         Upload an image to imgur.com.  Must be PNG.
 
-        ${cmd_usage} 
-        ${cmd_option_list}
         """
+    name = "upload_image"
+    def __call__(self, args):
+        filename = args.file
         if not filename.endswith(".png"):
             print "File must be a PNG file!"
             return 1
@@ -1516,97 +1444,9 @@ class YTCommands(cmdln.Cmdln):
             print
             pprint.pprint(rv)
 
-    @add_cmd_options(["width", "unit", "center","enhance",'outputfn',
-                      "field", "cmap", "contours", "viewpoint",
-                      "pixels","up","valrange","log","contour_width"])
-    @check_args
-    def do_render(self, subcmd, opts, arg):
-        """
-        Create a simple volume rendering
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        pf = _fix_pf(arg)
-        center = opts.center
-        if opts.center == (-1,-1,-1):
-            mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
-        elif opts.center is None:
-            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
-
-        L = opts.viewpoint
-        if L is None:
-            L = [1.]*3
-        L = na.array(opts.viewpoint)
-
-        unit = opts.unit
-        if unit is None:
-            unit = '1'
-        width = opts.width
-        if width is None:
-            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
-        width /= pf[unit]
-
-        N = opts.pixels
-        if N is None:
-            N = 512 
-        
-        up = opts.up
-        if up is None:
-            up = [0.,0.,1.]
-            
-        field = opts.field
-        if field is None:
-            field = 'Density'
-        
-        log = opts.takelog
-        if log is None:
-            log = True
-
-        myrange = opts.valrange
-        if myrange is None:
-            roi = pf.h.region(center, center-width, center+width)
-            mi, ma = roi.quantities['Extrema'](field)[0]
-            if log:
-                mi, ma = na.log10(mi), na.log10(ma)
-        else:
-            mi, ma = myrange[0], myrange[1]
-
-        n_contours = opts.contours
-        if n_contours is None:
-            n_contours = 7
-
-        contour_width = opts.contour_width
-
-        cmap = opts.cmap
-        if cmap is None:
-            cmap = 'jet'
-        tf = ColorTransferFunction((mi-2, ma+2))
-        tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
-
-        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
-        image = cam.snapshot()
-
-        if opts.enhance:
-            for i in range(3):
-                image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
-            image[image>1.0]=1.0
-            
-        save_name = opts.output
-        if save_name is None:
-            save_name = "%s"%pf+"_"+field+"_rendering.png"
-        if not '.png' in save_name:
-            save_name += '.png'
-        if cam.comm.rank != -1:
-            write_bitmap(image,save_name)
-        
 
 def run_main():
-    for co in ["--parallel", "--paste"]:
-        if co in sys.argv: del sys.argv[sys.argv.index(co)]
-    YT = YTCommands()
-    sys.exit(YT.main())
+    args = parser.parse_args()
+    args.func(args)
 
 if __name__ == "__main__": run_main()

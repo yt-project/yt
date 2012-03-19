@@ -35,6 +35,13 @@ import sys, types, os, glob, cPickle, time
 import numpy as na # For historical reasons
 import numpy # In case anyone wishes to use it by name
 
+# This next item will handle most of the actual startup procedures, but it will
+# also attempt to parse the command line and set up the global state of various
+# operations.
+
+import yt.startup_tasks as __startup_tasks
+unparsed_args = __startup_tasks.unparsed_args
+
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
@@ -53,7 +60,8 @@ from yt.data_objects.api import \
     derived_field, add_field, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
-    TimeSeriesData, AnalysisTask, analysis_task
+    TimeSeriesData, AnalysisTask, analysis_task, \
+    ParticleTrajectoryCollection
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -108,11 +116,11 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image
+    apply_colormap, scale_image, write_projection, write_fits
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera, off_axis_projection
+    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
@@ -121,6 +129,10 @@ for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
+# Import some helpful math utilities
+from yt.utilities.math_utils import \
+    ortho_find, quartiles
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -

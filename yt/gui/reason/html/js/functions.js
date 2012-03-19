@@ -65,7 +65,6 @@ function cell_finished(result) {
                 repl_input.get("input_line").setValue("");
             }
             if (OutputContainer.items.length > 1) {
-                examine = cell;
                 OutputContainer.body.dom.scrollTop = 
                 OutputContainer.body.dom.scrollHeight -
                 cell.body.dom.scrollHeight - 20;
@@ -142,7 +141,6 @@ function fill_tree(my_pfs) {
             iconCls: 'pf_icon'}));
         this_pf = treePanel.root.lastChild
         Ext.each(pf.objects, function(obj, obj_index) {
-            examine = this_pf;
             this_pf.appendChild(new Ext.tree.TreeNode(
                 {text: obj.name,
                  leaf: true,

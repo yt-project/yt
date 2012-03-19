@@ -24,42 +24,16 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, os
-import warnings, struct
+import contextlib
+import warnings, struct, subprocess
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.progressbar as pb
 import yt.utilities.rpdb as rpdb
-
-# Some compatibility functions.  In the long run, these *should* disappear as
-# we move toward newer python versions.  Most were implemented to get things
-# running on DataStar.
-
-# If we're running on python2.4, we need a 'wraps' function
-def blank_wrapper(f):
-    return lambda a: a
-
-try:
-    from functools import wraps
-except ImportError:
-    wraps = blank_wrapper
-
-# We need to ensure that we have a defaultdict implementation
-
-class __defaultdict(dict):
-    def __init__(self, func):
-        self.__func = func
-        dict.__init__(self)
-    def __getitem__(self, key):
-        if not self.has_key(key):
-            self.__setitem__(key, self.__func())
-        return dict.__getitem__(self, key)
-
-try:
-    from collections import defaultdict
-except ImportError:
-    defaultdict = __defaultdict
+from collections import defaultdict
+from functools import wraps
 
 # Some functions for handling sequences and other types
 
@@ -78,7 +52,7 @@ def ensure_list(obj):
     string to a list, for instance ensuring the *fields* as an argument is a
     list.
     """
-    if obj == None:
+    if obj is None:
         return [obj]
     if not isinstance(obj, types.ListType):
         return [obj]
@@ -120,6 +94,22 @@ try:
 except ImportError:
     pass
 
+def __memory_fallback(pid):
+    """
+    Get process memory from a system call.
+    """
+    value = os.popen('ps -o rss= -p %d' % pid).read().strip().split('\n')
+    if len(value) == 1: return float(value[0])
+    value.pop(0)
+    for line in value:
+        online = line.split()
+        if online[0] != pid: continue
+        try:
+            return float(online[2])
+        except:
+            return 0.0
+    return 0.0
+
 def get_memory_usage():
     """
     Returning resident size in megabytes
@@ -128,10 +118,10 @@ def get_memory_usage():
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
+        return __memory_fallback(pid) / 1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
+        return __memory_fallback(pid) / 1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
@@ -385,18 +375,6 @@ def signal_problem(signo, frame):
 def signal_ipython(signo, frame):
     insert_ipython(2)
 
-# We use two signals, SIGUSR1 and SIGUSR2.  In a non-threaded environment,
-# we set up handlers to process these by printing the current stack and to
-# raise a RuntimeError.  The latter can be used, inside pdb, to catch an error
-# and then examine the current stack.
-try:
-    signal.signal(signal.SIGUSR1, signal_print_traceback)
-    mylog.debug("SIGUSR1 registered for traceback printing")
-    signal.signal(signal.SIGUSR2, signal_ipython)
-    mylog.debug("SIGUSR2 registered for IPython Insertion")
-except ValueError:  # Not in main thread
-    pass
-
 def paste_traceback(exc_type, exc, tb):
     """
     This is a traceback handler that knows how to paste to the pastebin.
@@ -450,29 +428,6 @@ def _rdbeta(key):
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
     print dec_s
 
-# If we recognize one of the arguments on the command line as indicating a
-# different mechanism for handling tracebacks, we attach one of those handlers
-# and remove the argument from sys.argv.
-#
-# This fallback is for Paraview:
-if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
-# Now, we check.
-if "--paste" in sys.argv:
-    sys.excepthook = paste_traceback
-    del sys.argv[sys.argv.index("--paste")]
-elif "--paste-detailed" in sys.argv:
-    sys.excepthook = paste_traceback_detailed
-    del sys.argv[sys.argv.index("--paste-detailed")]
-elif "--detailed" in sys.argv:
-    import cgitb; cgitb.enable(format="text")
-    del sys.argv[sys.argv.index("--detailed")]
-elif "--rpdb" in sys.argv:
-    sys.excepthook = rpdb.rpdb_excepthook
-    del sys.argv[sys.argv.index("--rpdb")]
-elif "--detailed" in sys.argv:
-    import cgitb; cgitb.enable(format="text")
-    del sys.argv[sys.argv.index("--detailed")]
-
 #
 # Some exceptions
 #
@@ -482,3 +437,141 @@ class NoCUDAException(Exception):
 
 class YTEmptyClass(object):
     pass
+
+def update_hg(path, skip_rebuild = False):
+    from mercurial import hg, ui, commands
+    f = open(os.path.join(path, "yt_updater.log"), "a")
+    u = ui.ui()
+    u.pushbuffer()
+    config_fn = os.path.join(path, ".hg", "hgrc")
+    print "Reading configuration from ", config_fn
+    u.readconfig(config_fn)
+    repo = hg.repository(u, path)
+    commands.pull(u, repo)
+    f.write(u.popbuffer())
+    f.write("\n\n")
+    u.pushbuffer()
+    commands.identify(u, repo)
+    if "+" in u.popbuffer():
+        print "Can't rebuild modules by myself."
+        print "You will have to do this yourself.  Here's a sample commands:"
+        print
+        print "    $ cd %s" % (path)
+        print "    $ hg up"
+        print "    $ %s setup.py develop" % (sys.executable)
+        return 1
+    print "Updating the repository"
+    f.write("Updating the repository\n\n")
+    commands.update(u, repo, check=True)
+    if skip_rebuild: return
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
+                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Successful!\n")
+    print "Updated successfully."
+
+def get_hg_version(path):
+    from mercurial import hg, ui, commands
+    u = ui.ui()
+    u.pushbuffer()
+    repo = hg.repository(u, path)
+    commands.identify(u, repo)
+    return u.popbuffer()
+
+def get_yt_version():
+    import pkg_resources
+    yt_provider = pkg_resources.get_provider("yt")
+    path = os.path.dirname(yt_provider.module_path)
+    version = get_hg_version(path)[:12]
+    return version
+
+def get_version_stack():
+    import numpy, matplotlib, h5py
+    version_info = {}
+    version_info['yt'] = get_yt_version()
+    version_info['numpy'] = numpy.version.version
+    version_info['matplotlib'] = matplotlib.__version__
+    version_info['h5py'] = h5py.version.version
+    return version_info
+
+def get_script_contents():
+    stack = inspect.stack()
+    top_frame = inspect.stack()[-1]
+    finfo = inspect.getframeinfo(top_frame[0])
+    if finfo[2] != "<module>": return None
+    if not os.path.exists(finfo[0]): return None
+    try:
+        contents = open(finfo[0]).read()
+    except:
+        contents = None
+    return contents
+
+# This code snippet is modified from Georg Brandl
+def bb_apicall(endpoint, data, use_pass = True):
+    import urllib, urllib2
+    uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
+    # since bitbucket doesn't return the required WWW-Authenticate header when
+    # making a request without Authorization, we cannot use the standard urllib2
+    # auth handlers; we have to add the requisite header from the start
+    if data is not None:
+        data = urllib.urlencode(data)
+    req = urllib2.Request(uri, data)
+    if use_pass:
+        username = raw_input("Bitbucket Username? ")
+        password = getpass.getpass()
+        upw = '%s:%s' % (username, password)
+        req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+    return urllib2.urlopen(req).read()
+
+def get_yt_supp():
+    supp_path = os.path.join(os.environ["YT_DEST"], "src",
+                             "yt-supplemental")
+    # Now we check that the supplemental repository is checked out.
+    if not os.path.isdir(supp_path):
+        print
+        print "*** The yt-supplemental repository is not checked ***"
+        print "*** out.  I can do this for you, but because this ***"
+        print "*** is a delicate act, I require you to respond   ***"
+        print "*** to the prompt with the word 'yes'.            ***"
+        print
+        response = raw_input("Do you want me to try to check it out? ")
+        if response != "yes":
+            print
+            print "Okay, I understand.  You can check it out yourself."
+            print "This command will do it:"
+            print
+            print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
+            print "%s" % (supp_path)
+            print
+            sys.exit(1)
+        rv = commands.clone(uu,
+                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+        if rv:
+            print "Something has gone wrong.  Quitting."
+            sys.exit(1)
+    # Now we think we have our supplemental repository.
+    return supp_path
+
+def fix_length(length, pf):
+    if isinstance(length, (list, tuple)) and len(length) == 2 and \
+       isinstance(length[1], types.StringTypes):
+       length = length[0]/pf[length[1]]
+    return length
+
+@contextlib.contextmanager
+def parallel_profile(prefix):
+    import cProfile
+    from yt.config import ytcfg
+    fn = "%s_%04i.cprof" % (prefix,
+                ytcfg.getint("yt", "__topcomm_parallel_rank"))
+    p = cProfile.Profile()
+    p.enable()
+    yield
+    p.disable()
+    p.dump_stats(fn)

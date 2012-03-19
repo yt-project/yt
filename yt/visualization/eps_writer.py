@@ -251,7 +251,8 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def axis_box_yt(self, plot, units=None, bare_axes=False, **kwargs):
+    def axis_box_yt(self, plot, units=None, bare_axes=False,
+                    tickcolor=None, **kwargs):
         r"""Wrapper around DualEPS.axis_box to automatically fill in the
         axis ranges and labels from a yt plot.
 
@@ -293,9 +294,11 @@ class DualEPS(object):
                 _xlabel = ""
                 _ylabel = ""
             else:
+                units = units.replace('mpc', 'Mpc')
                 _xlabel = '%s (%s)' % (x_names[plot.data.axis], units)
                 _ylabel = '%s (%s)' % (y_names[plot.data.axis], units)
-            _tickcolor = pyx.color.cmyk.white
+            if tickcolor == None:
+                _tickcolor = pyx.color.cmyk.white
         else:
             _xrange = plot._axes.get_xlim()
             _yrange = plot._axes.get_ylim()
@@ -307,7 +310,10 @@ class DualEPS(object):
             else:
                 _xlabel = plot._x_label
                 _ylabel = plot._y_label
-            _tickcolor = None
+            if tickcolor == None:
+                _tickcolor = None
+        if tickcolor != None:
+            _tickcolor = tickcolor
         self.axis_box(xrange=_xrange, yrange=_yrange, xlabel=_xlabel,
                       ylabel=_ylabel, tickcolor=_tickcolor, xlog=_xlog,
                       ylog=_ylog, bare_axes=bare_axes, **kwargs)
@@ -349,7 +355,7 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def insert_image_yt(self, plot, pos=(0,0)):
+    def insert_image_yt(self, plot, pos=(0,0), scale=1.0):
         r"""Inserts a bitmap taken from a yt plot.
 
         Parameters
@@ -397,8 +403,8 @@ class DualEPS(object):
                                  figure_canvas.tostring_rgb())
         #figure_canvas.print_png('test.png')
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             width=self.figsize[0],
-                                             height=self.figsize[1]))
+                                             width=scale*self.figsize[0],
+                                             height=scale*self.figsize[1]))
 
 #=============================================================================
 
@@ -870,44 +876,43 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
                 if cb_flags != None:
                     if cb_flags[index] == False:
                         continue
-                if _yt or colorbars[index] != None:
-                    if ncol == 1:
-                        orientation = "right"
-                        xpos = bbox[1]
-                        ypos = ypos0
-                    elif i == 0:
-                        orientation = "left"
-                        xpos = bbox[0]
-                        ypos = ypos0
-                    elif i+1 == ncol:
-                        orientation = "right"
-                        xpos = bbox[1]
-                        ypos = ypos0
-                    elif j == 0:
-                        orientation = "bottom"
-                        ypos = bbox[2]
-                        xpos = xpos0
-                    elif j+1 == nrow:
-                        orientation = "top"
-                        ypos = bbox[3]
-                        xpos = xpos0
-                    else:
-                        orientation = None  # Marker for interior plot
+                if ncol == 1:
+                    orientation = "right"
+                    xpos = bbox[1]
+                    ypos = ypos0
+                elif j == 0:
+                    orientation = "bottom"
+                    ypos = bbox[2]
+                    xpos = xpos0
+                elif i == 0:
+                    orientation = "left"
+                    xpos = bbox[0]
+                    ypos = ypos0
+                elif i+1 == ncol:
+                    orientation = "right"
+                    xpos = bbox[1]
+                    ypos = ypos0
+                elif j+1 == nrow:
+                    orientation = "top"
+                    ypos = bbox[3]
+                    xpos = xpos0
+                else:
+                    orientation = None  # Marker for interior plot
 
-                    if orientation != None:
-                        if _yt:
-                            d.colorbar_yt(yt_plots[index],
-                                          pos=[xpos,ypos],
-                                          shrink=shrink_cb,
-                                          orientation=orientation)
-                        else:
-                            d.colorbar(colorbars[index]["cmap"],
-                                       zrange=colorbars[index]["range"],
-                                       label=colorbars[index]["name"],
-                                       log=colorbars[index]["log"],
-                                       orientation=orientation,
-                                       pos=[xpos,ypos],
-                                       shrink=shrink_cb)
+                if orientation != None:
+                    if _yt:
+                        d.colorbar_yt(yt_plots[index],
+                                      pos=[xpos,ypos],
+                                      shrink=shrink_cb,
+                                      orientation=orientation)
+                    else:
+                        d.colorbar(colorbars[index]["cmap"],
+                                   zrange=colorbars[index]["range"],
+                                   label=colorbars[index]["name"],
+                                   log=colorbars[index]["log"],
+                                   orientation=orientation,
+                                   pos=[xpos,ypos],
+                                   shrink=shrink_cb)
 
     if savefig != None:
         d.save_fig(savefig, format=format)
@@ -957,7 +962,7 @@ def multiplot_yt(ncol, nrow, plot_col, **kwargs):
 #=============================================================================
 
 def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
-                savefig=None, file_format='eps'):
+                savefig=None, colorbar=True, file_format='eps', **kwargs):
     r"""Wrapper for DualEPS routines to create a figure directy from a yt
     plot.  Calls insert_image_yt, axis_box_yt, and colorbar_yt.
 
@@ -974,6 +979,8 @@ def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
         Set to true to have no annotations or tick marks on all of the axes.
     savefig : string
         Name of the saved file without the extension.
+    colorbar : boolean
+        Set to true to include a colorbar
     file_format : string
         Format type.  Can be "eps" or "pdf"
 
@@ -985,8 +992,9 @@ def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
     """
     d = DualEPS(figsize=figsize)
     d.insert_image_yt(plot)
-    d.axis_box_yt(plot, bare_axes=bare_axes)
-    d.colorbar_yt(plot, orientation=cb_orient)
+    d.axis_box_yt(plot, bare_axes=bare_axes, **kwargs)
+    if colorbar:
+        d.colorbar_yt(plot, orientation=cb_orient)
     if savefig != None:
         d.save_fig(savefig, format=file_format)
     return d

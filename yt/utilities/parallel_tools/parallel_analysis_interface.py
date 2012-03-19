@@ -39,49 +39,23 @@ import yt.utilities.logger
 from yt.utilities.amr_utils import \
     QuadTree, merge_quadtrees
 
-exe_name = os.path.basename(sys.executable)
-# At import time, we determined whether or not we're being run in parallel.
-if exe_name in \
-        ["mpi4py", "embed_enzo",
-         "python"+sys.version[:3]+"-mpi"] \
-    or "--parallel" in sys.argv or '_parallel' in dir(sys) \
-    or any(["ipengine" in arg for arg in sys.argv]):
+parallel_capable = ytcfg.getboolean("yt", "__parallel")
+
+# Set up translation table and import things
+if parallel_capable:
     from mpi4py import MPI
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
-    if parallel_capable:
-        mylog.info("Global parallel computation enabled: %s / %s",
-                   MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-        ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
-        ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel"] = "True"
-        if exe_name == "embed_enzo" or \
-            ("_parallel" in dir(sys) and sys._parallel == True):
-            ytcfg["yt","inline"] = "True"
-        # I believe we do not need to turn this off manually
-        #ytcfg["yt","StoreParameterFiles"] = "False"
-        # Now let's make sure we have the right options set.
-        if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("yt","LogFile"):
-                ytcfg["yt","LogFile"] = "False"
-                yt.utilities.logger.disable_file_logging()
-        yt.utilities.logger.uncolorize_logging()
-        # Even though the uncolorize function already resets the format string,
-        # we reset it again so that it includes the processor.
-        f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
-                                            yt.utilities.logger.ufstring))
-        if len(yt.utilities.logger.rootLogger.handlers) > 0:
-            yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
-        if ytcfg.getboolean("yt", "parallel_traceback"):
-            sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
+    yt.utilities.logger.uncolorize_logging()
+    # Even though the uncolorize function already resets the format string,
+    # we reset it again so that it includes the processor.
+    f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
+                                        yt.utilities.logger.ufstring))
+    if len(yt.utilities.logger.rootLogger.handlers) > 0:
+        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+    if ytcfg.getboolean("yt", "parallel_traceback"):
+        sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
-
-else:
-    parallel_capable = False
-
-# Set up translation table
-if parallel_capable:
     dtype_names = dict(
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
@@ -180,6 +154,9 @@ def parallel_simple_proxy(func):
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
+        if hasattr(self, "dont_wrap"):
+            if func.func_name in self.dont_wrap:
+                return func(self, *args, **kwargs)
         if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         comm = _get_comm((self,))
@@ -374,7 +351,8 @@ def parallel_objects(objects, njobs, storage = None):
             to_share[rstore.result_id] = rstore.result
         else:
             yield obj
-    communication_system.communicators.pop()
+    if parallel_capable:
+        communication_system.pop()
     if storage is not None:
         # Now we have to broadcast it
         new_storage = my_communicator.par_combine_object(
@@ -665,7 +643,7 @@ class Communicator(object):
         return buf
 
     @parallel_passthrough
-    def merge_quadtree_buffers(self, qt):
+    def merge_quadtree_buffers(self, qt, merge_style):
         # This is a modified version of pairwise reduction from Lisandro Dalcin,
         # in the reductions demo of mpi4py
         size = self.comm.size
@@ -690,8 +668,8 @@ class Communicator(object):
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2])
-                    qto.frombuffer(*buf)
-                    merge_quadtrees(qt, qto)
+                    qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
+                    merge_quadtrees(qt, qto, style = merge_style)
                     del qto
                     #self.send_quadtree(target, qt, tgd, args)
             mask <<= 1
@@ -710,7 +688,7 @@ class Communicator(object):
         self.refined = buf[0]
         if rank != 0:
             qt = QuadTree(tgd, args[2])
-            qt.frombuffer(*buf)
+            qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 
 

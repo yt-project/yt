@@ -1,7 +1,7 @@
 from yt.utilities.answer_testing.output_tests import \
     SingleOutputTest, create_test
 from yt.utilities.answer_testing.halo_tests import \
-    TestHaloCountHOP, TestHaloCountFOF, TestHaloCountPHOP 
+    TestHaloCountHOP, TestHaloCountFOF, TestHaloCountPHOP
 
 create_test(TestHaloCountHOP, "halo_count_HOP", threshold=80.0)
 

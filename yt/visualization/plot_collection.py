@@ -211,9 +211,9 @@ class PlotCollection(object):
         Only ONE of the following options can be specified. If all 3 are
         specified, they will be used in the following precedence order:
 
-        * `ticks` - a list of floating point numbers at which to put ticks
-        * `minmaxtick` - display DEFAULT ticks with min & max also displayed
-        * `nticks` - if ticks not specified, can automatically determine a
+        * ``ticks`` - a list of floating point numbers at which to put ticks
+        * ``minmaxtick`` - display DEFAULT ticks with min & max also displayed
+        * ``nticks`` - if ticks not specified, can automatically determine a
           number of ticks to be evenly spaced in log space
         """
         for plot in self.plots:
@@ -940,7 +940,7 @@ class PlotCollection(object):
                                   x_bins, fields[0], x_min, x_max, x_log,
                                   lazy_reader)
         if len(fields) > 1:
-            profile.add_fields(fields[1], weight=weight, accumulation=accumulation)
+            profile.add_fields(fields[1:], weight=weight, accumulation=accumulation)
         if id is None: id = self._get_new_id()
         p = self._add_plot(Profile1DPlot(profile, fields, id,
                                                    axes=axes, figure=figure))
@@ -1148,13 +1148,15 @@ class PlotCollection(object):
                                   x_bins, fields[0], x_min, x_max, x_log,
                                   y_bins, fields[1], y_min, y_max, y_log,
                                   lazy_reader)
+        # This will add all the fields to the profile object
+        if len(fields)>2:
+            profile.add_fields(fields[2:], weight=weight,
+                    accumulation=accumulation, fractional=fractional)
+
         if id is None: id = self._get_new_id()
         p = self._add_plot(PhasePlot(profile, fields, 
                                                id, cmap=cmap,
                                                figure=figure, axes=axes))
-        if len(fields) > 2:
-            # This will add all the fields to the profile object
-            p.switch_z(fields[2], weight=weight, accumulation=accumulation, fractional=fractional)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, center = None, cmap=None,
@@ -1713,9 +1715,9 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     r"""Construct a multiple axes plot object, with or without a colorbar, into
     which multiple plots may be inserted.
 
-    This will create a set of `matplotlib.axes.Axes`, all lined up into a grid,
-    which are then returned to the user and which can be used to plot multiple
-    plots on a single figure.
+    This will create a set of :class:`matplotlib.axes.Axes`, all lined up into
+    a grid, which are then returned to the user and which can be used to plot
+    multiple plots on a single figure.
 
     Parameters
     ----------
@@ -1733,12 +1735,12 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
 
     Returns
     -------
-    fig : `matplotlib.figure.Figure
+    fig : :class:`matplotlib.figure.Figure`
         The figure created inside which the axes reside
-    tr : list of list of `matplotlib.axes.Axes` objects
+    tr : list of list of :class:`matplotlib.axes.Axes` objects
         This is a list, where the inner list is along the x-axis and the outer
         is along the y-axis
-    cbars : list of `matplotlib.axes.Axes` objects
+    cbars : list of :class:`matplotlib.axes.Axes` objects
         Each of these is an axes onto which a colorbar can be placed.
 
     Notes

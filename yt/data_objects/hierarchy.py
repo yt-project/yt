@@ -162,7 +162,21 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             else:
                 mylog.debug("Adding known field %s to list of fields", field)
                 self.parameter_file.field_info[field] = known_fields[field]
-            
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+        for field in self.parameter_file.field_info:
+            try:
+                fd = self.parameter_file.field_info[field].get_dependencies(
+                            pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
+
     # Now all the object related stuff
 
     def all_data(self, find_max=False):

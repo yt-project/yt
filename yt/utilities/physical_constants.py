@@ -3,23 +3,24 @@
 #
 
 # Masses
-mass_hydrogen_cgs = 1.67e-24 # g
-mass_electron_cgs = 9.11e-28 # g
-amu_cgs           = 1.66053886e-24 # g
+mass_hydrogen_cgs = 1.67e-24  # g
+mass_electron_cgs = 9.11e-28  # g
+amu_cgs           = 1.66053886e-24  # g
+mass_sun_cgs = 1.9891e33  # g
 # Velocities
-speed_of_light_cgs = 2.99792458e10 # cm/s, exact
+speed_of_light_cgs = 2.99792458e10  # cm/s, exact
 
 # Cross Sections
-cross_section_thompson_cgs = 6.65e-25 # cm^2
+cross_section_thompson_cgs = 6.65e-25  # cm^2
 
 # Charge
-charge_proton_cgs = 4.803e-10 # esu = 1.602e-19  Coulombs
+charge_proton_cgs = 4.803e-10  # esu = 1.602e-19  Coulombs
 
 # Physical Constants
-boltzmann_constant_cgs = 1.3806504e-16 # erg K^-1
-gravitational_constant_cgs  = 6.67428e-8 # cm^3 g^-1 s^-2
-planck_constant_cgs   = 6.62606896e-27 # erg s
-rho_crit_now = 1.8788e-29 # g times h^2 (critical mass for closure, Cosmology)
+boltzmann_constant_cgs = 1.3806504e-16  # erg K^-1
+gravitational_constant_cgs  = 6.67428e-8  # cm^3 g^-1 s^-2
+planck_constant_cgs   = 6.62606896e-27  # erg s
+rho_crit_now = 1.8788e-29  # g times h^2 (critical mass for closure, Cosmology)
 
 # Misc. Approximations
 mass_mean_atomic_cosmology = 1.22

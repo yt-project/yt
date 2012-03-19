@@ -36,7 +36,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
     def _field_dict(self,fhandle):
         ncomp = int(fhandle['/'].attrs['num_components'])
-        temp =  fhandle['/'].attrs.listitems()[-ncomp:]
+        temp =  fhandle['/'].attrs.items()[-ncomp:]
         val, keys = zip(*temp)
         val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
         return dict(zip(keys,val))
@@ -45,7 +45,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fhandle = h5py.File(grid.filename,'r')
         ncomp = int(fhandle['/'].attrs['num_components'])
 
-        fns = [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
+        fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
         fhandle.close()
     
     def _read_data_set(self,grid,field):
@@ -64,7 +64,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
         fhandle.close()
         return data.reshape(dims, order='F')
-                                          
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

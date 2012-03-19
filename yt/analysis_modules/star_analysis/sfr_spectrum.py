@@ -66,8 +66,8 @@ class StarFormationRate(object):
         """
         self._pf = pf
         self._data_source = data_source
-        self.star_mass = star_mass
-        self.star_creation_time = star_creation_time
+        self.star_mass = na.array(star_mass)
+        self.star_creation_time = na.array(star_creation_time)
         self.volume = volume
         self.bin_count = bins
         # Check to make sure we have the right set of informations.
@@ -96,6 +96,8 @@ class StarFormationRate(object):
             self._pf.current_redshift) # seconds
         # Build the distribution.
         self.build_dist()
+        # Attach some convenience arrays.
+        self.attach_arrays()
 
     def build_dist(self):
         """
@@ -127,6 +129,47 @@ class StarFormationRate(object):
         # We will want the time taken between bins.
         self.time_bins_dt = self.time_bins[1:] - self.time_bins[:-1]
     
+    def attach_arrays(self):
+        """
+        Attach convenience arrays to the class for easy access.
+        """
+        if self.mode == 'data_source':
+            try:
+                vol = self._data_source.volume('mpc')
+            except AttributeError:
+                # If we're here, this is probably a HOPHalo object, and we
+                # can get the volume this way.
+                ds = self._data_source.get_sphere()
+                vol = ds.volume('mpc')
+        elif self.mode == 'provided':
+            vol = self.volume
+        tc = self._pf["Time"]
+        self.time = []
+        self.lookback_time = []
+        self.redshift = []
+        self.Msol_yr = []
+        self.Msol_yr_vol = []
+        self.Msol = []
+        self.Msol_cumulative = []
+        # Use the center of the time_bin, not the left edge.
+        for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
+            self.time.append(time * tc / YEAR)
+            self.lookback_time.append((self.time_now - time * tc)/YEAR)
+            self.redshift.append(self.cosm.ComputeRedshiftFromTime(time * tc))
+            self.Msol_yr.append(self.mass_bins[i] / \
+                (self.time_bins_dt[i] * tc / YEAR))
+            self.Msol_yr_vol.append(self.mass_bins[i] / \
+                (self.time_bins_dt[i] * tc / YEAR) / vol)
+            self.Msol.append(self.mass_bins[i])
+            self.Msol_cumulative.append(self.cum_mass_bins[i])
+        self.time = na.array(self.time)
+        self.lookback_time = na.array(self.lookback_time)
+        self.redshift = na.array(self.redshift)
+        self.Msol_yr = na.array(self.Msol_yr)
+        self.Msol_yr_vol = na.array(self.Msol_yr_vol)
+        self.Msol = na.array(self.Msol)
+        self.Msol_cumulative = na.array(self.Msol_cumulative)
+    
     def write_out(self, name="StarFormationRate.out"):
         r"""Write out the star analysis to a text file *name*. The columns are in
         order.
@@ -150,30 +193,20 @@ class StarFormationRate(object):
         >>> sfr.write_out("stars-SFR.out")
         """
         fp = open(name, "w")
-        if self.mode == 'data_source':
-            try:
-                vol = self._data_source.volume('mpc')
-            except AttributeError:
-                # If we're here, this is probably a HOPHalo object, and we
-                # can get the volume this way.
-                ds = self._data_source.get_sphere()
-                vol = ds.volume('mpc')
-        elif self.mode == 'provided':
-            vol = self.volume
-        tc = self._pf["Time"]
-        # Use the center of the time_bin, not the left edge.
         fp.write("#time\tlookback\tredshift\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
-        for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
+        for i, time in enumerate(self.time):
             line = "%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n" % \
-            (time * tc / YEAR, # Time
-            (self.time_now - time * tc)/YEAR, # Lookback time
-            self.cosm.ComputeRedshiftFromTime(time * tc), # Redshift
-            self.mass_bins[i] / (self.time_bins_dt[i] * tc / YEAR), # Msol/yr
-            self.mass_bins[i] / (self.time_bins_dt[i] * tc / YEAR) / vol, # Msol/yr/vol
-            self.mass_bins[i], # Msol in bin
-            self.cum_mass_bins[i]) # cumulative
+            (time, # Time
+            self.lookback_time[i], # Lookback time
+            self.redshift[i], # Redshift
+            self.Msol_yr[i], # Msol/yr
+            self.Msol_yr_vol[i], # Msol/yr/vol
+            self.Msol[i], # Msol in bin
+            self.Msol_cumulative[i]) # cumulative
             fp.write(line)
         fp.close()
+
+### Begin Synthetic Spectrum Stuff. ####
 
 CHABRIER = {
 "Z0001" : "bc2003_hr_m22_chab_ssp.ised.h5", #/* 0.5% */

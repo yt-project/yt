@@ -21,6 +21,9 @@ Contributors:                   Matthew Turk (matthewturk@gmail.com)
                                 JC Passy (jcpassy@gmail.com)
                                 Eve Lee (elee@cita.utoronto.ca)
                                 Elizabeth Tasker (tasker@astro1.sci.hokudai.ac.jp)
+                                Kacper Kowalik (xarthisius.kk@gmail.com)
+                                Nathan Goldbaum (goldbaum@ucolick.org)
+                                Anna Rosen (rosen@ucolick.org)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
