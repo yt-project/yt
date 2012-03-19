@@ -54,7 +54,7 @@ from yt.utilities.linear_interpolators import \
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from yt.utilities.minimal_representation import \
-    MinimalProjectionData
+    MinimalProjectionData, MinimalSliceData
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -1139,6 +1139,10 @@ class AMRSliceBase(AMR2DData):
         return self.__quantities
     __quantities = None
     quantities = property(__get_quantities)
+
+    @property
+    def _mrep(self):
+        return MinimalSliceData(self)
 
 class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
@@ -3351,7 +3355,7 @@ class AMRCoveringGridBase(AMR3DData):
         """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
-        self.left_edge = na.array(left_edge)
+        self.left_edge = na.array(left_edge, dtype="int32")
         self.level = level
         self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
         self.ActiveDimensions = na.array(dims,dtype='int32')

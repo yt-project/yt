@@ -153,7 +153,8 @@ class MinimalStaticOutput(MinimalRepresentation):
 class MinimalMappableData(MinimalRepresentation):
 
     weight = "None"
-    _attr_list = ("field_data", "field", "weight", "axis", "output_hash")
+    _attr_list = ("field_data", "field", "weight", "axis", "output_hash",
+                  "vm_type")
 
     def _generate_post(self):
         nobj = self._return_filtered_object(("field_data",))
@@ -163,3 +164,20 @@ class MinimalMappableData(MinimalRepresentation):
 
 class MinimalProjectionData(MinimalMappableData):
     type = 'proj'
+    vm_type = "Projection"
+
+class MinimalSliceData(MinimalMappableData):
+    type = 'slice'
+    vm_type = "Slice"
+
+class MinimalImageCollectionData(MinimalRepresentation):
+    type = "image_collection"
+    _attr_list = ("name", "output_hash", "images")
+
+    def _generate_post(self):
+        nobj = self._return_filtered_object(("images",))
+        metadata = nobj._attrs
+        chunks = [(md, d) for md, d in self.images]
+        return (metadata, ('images', chunks))
+
+
