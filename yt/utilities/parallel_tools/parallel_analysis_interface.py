@@ -507,6 +507,19 @@ class Communicator(object):
         data = self.comm.bcast(data, root=0)
         return data
 
+    @parallel_passthrough
+    def mpi_Bcast_array(self, data):
+        if self.comm.rank == 0:
+            info = (data.shape, data.dtype)
+        else:
+            info = ()
+        info = self.comm.bcast(info, root=0)
+        if self.comm.rank != 0:
+            data = na.empty(info[0], dtype=info[1])
+        mpi_type = get_mpi_type(info[1])
+        self.comm.Bcast([data, mpi_type], root=0)
+        return data
+
     def preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.

@@ -109,7 +109,7 @@ class DatabaseFunctions(object):
 class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
-            FOF_link_length=0.2, dm_only=False, refresh=False, sleep=1,
+            FOF_link_length=0.2, dm_only=False, refresh=False,
             index=True):
         r"""Build a merger tree of halos over a time-ordered set of snapshots.
         This will run a halo finder to find the halos first if it hasn't already
@@ -140,12 +140,6 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         refresh : Boolean
             True forces the halo finder to run even if the halo data has been
             detected on disk. Default = False.
-        sleep : Float
-            Due to the nature of the SQLite database and network file systems,
-            it is crucial that all tasks see the database in the same state at
-            all times. This parameter specifies how long in seconds the merger
-            tree waits between checks to ensure the database is synched across
-            all tasks. Default = 1.
         index : Boolean
             SQLite databases can have added to them an index which greatly
             speeds up future queries of the database,
@@ -168,9 +162,6 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         self.FOF_link_length= FOF_link_length # For FOF
         self.dm_only = dm_only
         self.refresh = refresh
-        self.sleep = sleep # How long to wait between db sync checks.
-        if self.sleep <= 0.:
-            self.sleep = 5
         # MPI stuff
         self.mine = self.comm.rank
         if self.mine is None:
@@ -184,7 +175,6 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 os.unlink(self.database)
             except:
                 pass
-        self.comm.barrier()
         self._open_create_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
@@ -247,12 +237,17 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 del halos
             # Now add halo data to the db if it isn't already there by
             # checking the first halo.
-            currt = pf.unique_identifier
-            line = "SELECT GlobalHaloID from Halos where SnapHaloID=0\
-            and SnapCurrentTimeIdentifier=%d;" % currt
-            self.cursor.execute(line)
-            result = self.cursor.fetchone()
-            if result != None:
+            continue_check = False
+            if self.mine == 0:
+                currt = pf.unique_identifier
+                line = "SELECT GlobalHaloID from Halos where SnapHaloID=0\
+                and SnapCurrentTimeIdentifier=%d;" % currt
+                self.cursor.execute(line)
+                result = self.cursor.fetchone()
+                if result != None:
+                    continue_check = True
+            continue_check = self.comm.mpi_bcast_pickled(continue_check)
+            if continue_check:
                 continue
             red = pf.current_redshift
             # Read the halos off the disk using the Halo Profiler tools.
@@ -261,6 +256,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             if len(hp.all_halos) == 0:
                 mylog.info("Dataset %s has no halos." % file)
                 self.with_halos[cycle] = False
+                del hp
                 continue
             mylog.info("Entering halos into database for z=%f" % red)
             if self.mine == 0:
@@ -284,43 +280,10 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     
     def _open_create_database(self):
         # open the database. This creates the database file on disk if it
-        # doesn't already exist. Open it first on root, and then on the others.
+        # doesn't already exist. Open it on root only.
         if self.mine == 0:
             self.conn = sql.connect(self.database)
-        self.comm.barrier()
-        self._ensure_db_sync()
-        if self.mine != 0:
-            self.conn = sql.connect(self.database)
-        self.cursor = self.conn.cursor()
-
-    def _ensure_db_sync(self):
-        # If the database becomes out of sync for each task, ostensibly due to
-        # parallel file system funniness, things will go bad very quickly.
-        # Therefore, just to be very, very careful, we will ensure that the
-        # md5 hash of the file is identical across all tasks before proceeding.
-        self.comm.barrier()
-        for i in range(5):
-            try:
-                file = open(self.database)
-            except IOError:
-                # This is to give a little bit of time for the database creation
-                # to replicate across the file system.
-                time.sleep(self.sleep)
-                file = open(self.database)
-            hash = md5.md5(file.read()).hexdigest()
-            file.close()
-            ignore, hashes = self.comm.mpi_info_dict(hash)
-            hashes = set(hashes.values())
-            if len(hashes) == 1:
-                break
-            else:
-                # Wait a little bit for the file system to (hopefully) sync up.
-                time.sleep(self.sleep)
-        if len(hashes) == 1:
-            return
-        else:
-            mylog.error("The file system is not properly synchronizing the database.")
-            raise RunTimeError("Fatal error. Exiting.")
+            self.cursor = self.conn.cursor()
 
     def _create_halo_table(self):
         if self.mine == 0:
@@ -342,69 +305,74 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 self.conn.commit()
             except sql.OperationalError:
                 pass
-        self.comm.barrier()
     
     def _find_likely_children(self, parentfile, childfile):
         # For each halo in the parent list, identify likely children in the 
         # list of children.
-        
+
         # First, read in the locations of the child halos.
         child_pf = load(childfile)
         child_t = child_pf.unique_identifier
-        line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
-        Halos WHERE SnapCurrentTimeIdentifier = %d" % child_t
-        self.cursor.execute(line)
-        
-        mylog.info("Finding likely parents for z=%1.5f child halos." % \
-            child_pf.current_redshift)
-        
-        # Build the kdtree for the children by looping over the fetched rows.
-        # Normalize the points for use only within the kdtree.
-        child_points = []
-        for row in self.cursor:
-            child_points.append([row[1] / self.period[0],
-            row[2] / self.period[1],
-            row[3] / self.period[2]])
-        # Turn it into fortran.
-        child_points = na.array(child_points)
-        fKD.pos = na.asfortranarray(child_points.T)
-        fKD.qv = na.empty(3, dtype='float64')
-        fKD.dist = na.empty(NumNeighbors, dtype='float64')
-        fKD.tags = na.empty(NumNeighbors, dtype='int64')
-        fKD.nn = NumNeighbors
-        fKD.sort = True
-        fKD.rearrange = True
-        create_tree(0)
-
+        if self.mine == 0:
+            line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
+            Halos WHERE SnapCurrentTimeIdentifier = %d" % child_t
+            self.cursor.execute(line)
+            
+            mylog.info("Finding likely parents for z=%1.5f child halos." % \
+                child_pf.current_redshift)
+            
+            # Build the kdtree for the children by looping over the fetched rows.
+            # Normalize the points for use only within the kdtree.
+            child_points = []
+            for row in self.cursor:
+                child_points.append([row[1] / self.period[0],
+                row[2] / self.period[1],
+                row[3] / self.period[2]])
+            # Turn it into fortran.
+            child_points = na.array(child_points)
+            fKD.pos = na.asfortranarray(child_points.T)
+            fKD.qv = na.empty(3, dtype='float64')
+            fKD.dist = na.empty(NumNeighbors, dtype='float64')
+            fKD.tags = na.empty(NumNeighbors, dtype='int64')
+            fKD.nn = NumNeighbors
+            fKD.sort = True
+            fKD.rearrange = True
+            create_tree(0)
+    
         # Find the parent points from the database.
         parent_pf = load(parentfile)
         parent_t = parent_pf.unique_identifier
-        line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
-        Halos WHERE SnapCurrentTimeIdentifier = %d" % parent_t
-        self.cursor.execute(line)
+        if self.mine == 0:
+            line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
+            Halos WHERE SnapCurrentTimeIdentifier = %d" % parent_t
+            self.cursor.execute(line)
+    
+            # Loop over the returned rows, and find the likely neighbors for the
+            # parents.
+            candidates = {}
+            for row in self.cursor:
+                # Normalize positions for use within the kdtree.
+                fKD.qv = na.array([row[1] / self.period[0],
+                row[2] / self.period[1],
+                row[3] / self.period[2]])
+                find_nn_nearest_neighbors()
+                NNtags = fKD.tags[:] - 1
+                nIDs = []
+                for n in NNtags:
+                    nIDs.append(n)
+                # We need to fill in fake halos if there aren't enough halos,
+                # which can happen at high redshifts.
+                while len(nIDs) < NumNeighbors:
+                    nIDs.append(-1)
+                candidates[row[0]] = nIDs
+            
+            del fKD.pos, fKD.tags, fKD.dist
+            free_tree(0) # Frees the kdtree object.
+        else:
+            candidates = None
 
-        # Loop over the returned rows, and find the likely neighbors for the
-        # parents.
-        candidates = {}
-        for row in self.cursor:
-            # Normalize positions for use within the kdtree.
-            fKD.qv = na.array([row[1] / self.period[0],
-            row[2] / self.period[1],
-            row[3] / self.period[2]])
-            find_nn_nearest_neighbors()
-            NNtags = fKD.tags[:] - 1
-            nIDs = []
-            for n in NNtags:
-                nIDs.append(n)
-            # We need to fill in fake halos if there aren't enough halos,
-            # which can happen at high redshifts.
-            while len(nIDs) < NumNeighbors:
-                nIDs.append(-1)
-            candidates[row[0]] = nIDs
-        
-        del fKD.pos, fKD.tags, fKD.dist
-        free_tree(0) # Frees the kdtree object.
-        
+        # Sync across tasks.
+        candidates = self.comm.mpi_bcast_pickled(candidates)
         self.candidates = candidates
         
         # This stores the masses contributed to each child candidate.
@@ -613,24 +581,31 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # Now we sum up the contributions globally.
         self.child_mass_arr = self.comm.mpi_allreduce(self.child_mass_arr)
         
-        # Turn these Msol masses into percentages of the parent.
-        line = "SELECT HaloMass FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
-        ORDER BY SnapHaloID ASC;" % parent_currt
-        self.cursor.execute(line)
-        mark = 0
-        result = self.cursor.fetchone()
-        while result:
-            mass = result[0]
-            self.child_mass_arr[mark:mark+NumNeighbors] /= mass
-            mark += NumNeighbors
+        if self.mine == 0:
+            # Turn these Msol masses into percentages of the parent.
+            line = "SELECT HaloMass FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
+            ORDER BY SnapHaloID ASC;" % parent_currt
+            self.cursor.execute(line)
+            mark = 0
             result = self.cursor.fetchone()
+            while result:
+                mass = result[0]
+                self.child_mass_arr[mark:mark+NumNeighbors] /= mass
+                mark += NumNeighbors
+                result = self.cursor.fetchone()
+            
+            # Get the global ID for the SnapHaloID=0 from the child, this will
+            # be used to prevent unnecessary SQL reads.
+            line = "SELECT GlobalHaloID FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
+            AND SnapHaloID=0;" % child_currt
+            self.cursor.execute(line)
+            baseChildID = self.cursor.fetchone()[0]
+        else:
+            baseChildID = None
         
-        # Get the global ID for the SnapHaloID=0 from the child, this will
-        # be used to prevent unnecessary SQL reads.
-        line = "SELECT GlobalHaloID FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
-        AND SnapHaloID=0;" % child_currt
-        self.cursor.execute(line)
-        baseChildID = self.cursor.fetchone()[0]
+        # Sync up data on all tasks.
+        self.child_mass_arr = self.comm.mpi_Bcast_array(self.child_mass_arr)
+        baseChildID = self.comm.mpi_bcast_pickled(baseChildID)
         
         # Now we prepare a big list of writes to put in the database.
         for i,parent_halo in enumerate(sorted(self.candidates)):
@@ -663,6 +638,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         del parent_IDs, parent_masses, parent_halos
         del parent_IDs_tosend, parent_masses_tosend
         del parent_halos_tosend, child_IDs_tosend, child_halos_tosend
+        gc.collect()
         
         return (child_IDs, child_masses, child_halos)
 
@@ -729,7 +705,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             temp_cursor.execute(line)
             temp_cursor.close()
             temp_conn.close()
-        self._close_database()
+        if self.mine == 0:
+            self._close_database()
         self.comm.barrier()
         if self.mine == 0:
             os.rename(temp_name, self.database)
