@@ -152,6 +152,10 @@ _common_options = dict(
                    dest="center", default=None,
                    nargs=3,
                    help="Center, space separated (-1 -1 -1 for max)"),
+    max     = dict(short="-m", long="--max",
+                   action="store_true",
+                   dest="max",default=False,
+                   help="Center the plot on the density maximum"),
     bn      = dict(short="-b", long="--basename",
                    action="store", type=str,
                    dest="basename", default=None,
@@ -1105,7 +1109,9 @@ class YTPastebinGrabCmd(YTCommand):
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center",
             "zlim", "axis", "field", "weight", "skip",
-            "cmap", "output", "grids", "time", "pf")
+            "cmap", "output", "grids", "time", "pf",
+            "max")
+    
     name = "plot"
     
     description = \
@@ -1119,6 +1125,8 @@ class YTPlotCmd(YTCommand):
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        if args.max:
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
