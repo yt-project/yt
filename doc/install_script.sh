@@ -339,7 +339,7 @@ echo '6d65dcbb77978d4f4a9711062f11ae9d61133ca086f9207a8c1ecea8807dc9612cc8c3b242
 echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d6f69042b4c87c58c881ee2aaa279561ea0f0f48d5842155f4de9de  freetype-2.4.4.tar.gz' > freetype-2.4.4.tar.gz.sha512
 echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72a7dbd496a5590828131c5f046ddead695e5cba79343b8c205148d1  h5py-2.0.1.tar.gz' > h5py-2.0.1.tar.gz.sha512
 echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
-echo '2c883d64886e5d595775dde497f101ff2ecec0786eabcdc69861c20e7d081e67b5e97551194236933b78f1ff7b119fcba0a9ce3aa4851440fc58f84d2094177b  ipython-0.10.tar.gz' > ipython-0.10.tar.gz.sha512
+echo 'ffc5c9e0c8c8ea66479abd467e442419bd1c867e6dbd180be6a032869467955dc570cfdf1388452871303a440738f302d3227ab7728878c4a114cfc45d29d23c  ipython-0.12.tar.gz' > ipython-0.12.tar.gz.sha512
 echo 'e748b66a379ee1e7963b045c3737670acf6aeeff1ebed679f427e74b642faa77404c2d5bbddb922339f009c229d0af1ae77cc43eab290e50af6157a6406d833f  libpng-1.2.43.tar.gz' > libpng-1.2.43.tar.gz.sha512
 echo 'f5ab95c29ef6958096970265a6079f0eb8c43a500924346c4a6c6eb89d9110eeeb6c34a53715e71240e82ded2b76a7b8d5a9b05a07baa000b2926718264ad8ff  matplotlib-1.1.0.tar.gz' > matplotlib-1.1.0.tar.gz.sha512
 echo '78715bb2bd7ed3291089948530a59d5eff146a64179eae87904a2c328716f26749abb0c5417d6001cadfeebabb4e24985d5a59ceaae4d98c4762163970f83975  mercurial-2.0.tar.gz' > mercurial-2.0.tar.gz.sha512
@@ -364,7 +364,7 @@ get_enzotools Python-2.7.2.tgz
 get_enzotools numpy-1.6.1.tar.gz
 get_enzotools matplotlib-1.1.0.tar.gz
 get_enzotools mercurial-2.0.tar.gz
-get_enzotools ipython-0.10.tar.gz
+get_enzotools ipython-0.12.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.1.tar.gz
 get_enzotools ext-3.3.2.zip
@@ -585,7 +585,7 @@ fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
-do_setup_py ipython-0.10
+do_setup_py ipython-0.12
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
