@@ -259,7 +259,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        all_clear = comm.mpi_bcast_pickled(all_clear)
+        all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
     return func
@@ -503,22 +503,25 @@ class Communicator(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def mpi_bcast_pickled(self, data):
-        data = self.comm.bcast(data, root=0)
-        return data
-
-    @parallel_passthrough
-    def mpi_Bcast_array(self, data):
-        if self.comm.rank == 0:
-            info = (data.shape, data.dtype)
+    def mpi_bcast(self, data):
+        # The second check below makes sure that we know how to communicate
+        # this type of array. Otherwise, we'll pickle it.
+        if isinstance(data, na.ndarray) and \
+                get_mpi_type(data.dtype) is not None:
+            if self.comm.rank == 0:
+                info = (data.shape, data.dtype)
+            else:
+                info = ()
+            info = self.comm.bcast(info, root=0)
+            if self.comm.rank != 0:
+                data = na.empty(info[0], dtype=info[1])
+            mpi_type = get_mpi_type(info[1])
+            self.comm.Bcast([data, mpi_type], root = 0)
+            return data
         else:
-            info = ()
-        info = self.comm.bcast(info, root=0)
-        if self.comm.rank != 0:
-            data = na.empty(info[0], dtype=info[1])
-        mpi_type = get_mpi_type(info[1])
-        self.comm.Bcast([data, mpi_type], root=0)
-        return data
+            # Use pickled methods.
+            data = self.comm.bcast(data, root = 0)
+            return data
 
     def preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and

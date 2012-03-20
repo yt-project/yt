@@ -403,7 +403,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             status = 0
         # Broadcast the status from root - we stop only if root thinks we should
         # stop.
-        status = self.comm.mpi_bcast_pickled(status)
+        status = self.comm.mpi_bcast(status)
         if status == 0: return True
         if self.comm_cycle_count < status:
             return True
