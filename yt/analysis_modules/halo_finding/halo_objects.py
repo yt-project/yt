@@ -458,6 +458,13 @@ class Halo(object):
         
     def _get_ellipsoid_parameters_basic(self):
         na.seterr(all='ignore')
+        # check if there are 4 particles to form an ellipsoid
+        # neglecting to check if 4 particles in the same plane,
+        # that is almost certainly never to occur,
+        # will deal with it later if it ever comes up
+        if na.size(self["particle_position_x"]) < 4:
+            print "not enough particles to form ellipsoid returning zeros"
+            return (0, 0, 0, 0, 0, 0, 0)
         # Calculate the parameters that describe the ellipsoid of
         # the particles that constitute the halo. This function returns
         # all the parameters except for the center of mass.
