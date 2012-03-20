@@ -399,10 +399,10 @@ class ARTHierarchy(AMRHierarchy):
                 a=b
             pbar.finish()
             
-            self.pf.particle_star_index = lspecies[-2]
+            self.pf.particle_star_index = i
             
             if self.pf.file_star_data:
-                nstars, mass, imass, tbirth, metals1, metals2 \
+                nstars, mass, imass, tbirth, metallicity1, metallicity2 \
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
                 nstars = nstars[0] 
                 if nstars > 0 :
@@ -412,9 +412,10 @@ class ARTHierarchy(AMRHierarchy):
                         b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
                     self.pf.particle_star_ages *= 1.0e9
                     self.pf.particle_star_ages *= 365*24*3600 #to seconds
+                    self.pf.particle_star_ages = self.pf.current_time-self.pf.particle_star_ages
                     pbar.finish()
-                    self.pf.particle_star_metallicity1 = metals1/mass
-                    self.pf.particle_star_metallicity2 = metals2/mass
+                    self.pf.particle_star_metallicity1 = metallicity1
+                    self.pf.particle_star_metallicity2 = metallicity2
                     self.pf.particle_star_mass_initial = imass*self.pf.parameters['aM0']
                     self.pf.particle_mass[-nstars:] = mass*self.pf.parameters['aM0']
             
@@ -467,35 +468,47 @@ class ARTHierarchy(AMRHierarchy):
         return self.grids[mask]
 
     def _populate_grid_objects(self):
-        mask = na.empty(self.grids.size, dtype='int32')
-        pb = get_pbar("Populating grids", len(self.grids))
         for gi,g in enumerate(self.grids):
-            pb.update(gi)
-            amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
-                                self.grid_right_edge[gi,:],
-                                g.Level - 1,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask)
-            parents = self.grids[mask.astype("bool")]
+            parents = self._get_grid_parents(g,
+                            self.grid_left_edge[gi,:],
+                            self.grid_right_edge[gi,:])
             if len(parents) > 0:
-                g.Parent.extend((p for p in parents.tolist()
-                        if p.locations[0,0] == g.locations[0,0]))
+                g.Parent.extend(parents.tolist())
                 for p in parents: p.Children.append(g)
-            # Now we do overlapping siblings; note that one has to "win" with
-            # siblings, so we assume the lower ID one will "win"
-            amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
-                                self.grid_right_edge[gi,:],
-                                g.Level,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask, gi)
-            mask[gi] = False
-            siblings = self.grids[mask.astype("bool")]
-            if len(siblings) > 0:
-                g.OverlappingSiblings = siblings.tolist()
             g._prepare_grid()
             g._setup_dx()
-        pb.finish()
         self.max_level = self.grid_levels.max()
+
+    # def _populate_grid_objects(self):
+    #     mask = na.empty(self.grids.size, dtype='int32')
+    #     pb = get_pbar("Populating grids", len(self.grids))
+    #     for gi,g in enumerate(self.grids):
+    #         pb.update(gi)
+    #         amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
+    #                             self.grid_right_edge[gi,:],
+    #                             g.Level - 1,
+    #                             self.grid_left_edge, self.grid_right_edge,
+    #                             self.grid_levels, mask)
+    #         parents = self.grids[mask.astype("bool")]
+    #         if len(parents) > 0:
+    #             g.Parent.extend((p for p in parents.tolist()
+    #                     if p.locations[0,0] == g.locations[0,0]))
+    #             for p in parents: p.Children.append(g)
+    #         # Now we do overlapping siblings; note that one has to "win" with
+    #         # siblings, so we assume the lower ID one will "win"
+    #         amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
+    #                             self.grid_right_edge[gi,:],
+    #                             g.Level,
+    #                             self.grid_left_edge, self.grid_right_edge,
+    #                             self.grid_levels, mask, gi)
+    #         mask[gi] = False
+    #         siblings = self.grids[mask.astype("bool")]
+    #         if len(siblings) > 0:
+    #             g.OverlappingSiblings = siblings.tolist()
+    #         g._prepare_grid()
+    #         g._setup_dx()
+    #     pb.finish()
+    #     self.max_level = self.grid_levels.max()
 
     def _setup_field_list(self):
         if self.parameter_file.use_particles:
@@ -652,10 +665,11 @@ class ARTStaticOutput(StaticOutput):
             # Add on the 1e5 to get to cm/s
             self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
         seconds = self.t0
-        self.time_units['gyr']   = 1.0/(1.0e9*365*3600*24.0)
-        self.time_units['myr']   = 1.0/(1.0e6*365*3600*24.0)
+        self.time_units['Gyr']   = 1.0/(1.0e9*365*3600*24.0)
+        self.time_units['Myr']   = 1.0/(1.0e6*365*3600*24.0)
         self.time_units['years'] = 1.0/(365*3600*24.0)
         self.time_units['days']  = 1.0 / (3600*24.0)
+
 
         #we were already in seconds, go back in to code units
         #self.current_time /= self.t0 

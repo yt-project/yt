@@ -37,8 +37,13 @@ from yt.funcs import *
 import yt.utilities.amr_utils as amr_utils
 from yt.data_objects.universal_fields import add_field
 
+from os import environ
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface, ProcessorPool, Communicator
+
 def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
-    particle_mass=None, particle_pos=None, particle_age=None, particle_metal=None):
+    particle_mass=None, particle_pos=None, particle_age=None, particle_metal=None,
+    parallel=False):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -149,7 +154,8 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
 
     output, refined = generate_flat_octree(pf,
             ["CellMassMsun","TemperatureTimesCellMassMsun", "MetalMass",
-             "CellVolumeCode"], subregion_bounds = subregion_bounds)
+             "CellVolumeCode"], subregion_bounds = subregion_bounds,
+            parallel=parallel)
     cvcgs = output["CellVolumeCode"].astype('float64') * pf['cm']**3.0
 
     # First the structure
@@ -234,31 +240,75 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     hdus = pyfits.HDUList(hls)
     hdus.writeto(fn, clobber=True)
 
-def initialize_octree_list(pf, fields):
+def initialize_octree_list_task(g,fields, grids = [], 
+        levels_finest = defaultdict(lambda: 0), 
+        levels_all = defaultdict(lambda: 0)):
+    ff = na.array([g[f] for f in fields])
+    grids.append(amr_utils.OctreeGrid(
+                    g.child_index_mask.astype('int32'),
+                    ff.astype("float64"),
+                    g.LeftEdge.astype('float64'),
+                    g.ActiveDimensions.astype('int32'),
+                    na.ones(1,dtype='float64') * g.dds[0], g.Level,
+                    g._id_offset))
+    levels_all[g.Level] += g.ActiveDimensions.prod()
+    levels_finest[g.Level] += g.child_mask.ravel().sum()
+    g.clear_data()
+    return grids,levels_finest,levels_all
+
+def initialize_octree_list(pf, fields,parallel=False):
     #import pdb; pdb.set_trace()
     i=0
     o_length = r_length = 0
     grids = []
-    levels_finest, levels_all = defaultdict(lambda: 0), defaultdict(lambda: 0)
     pbar = get_pbar("Initializing octs ",len(pf.h.grids))
-    for g in pf.h.grids:
-        ff = na.array([g[f] for f in fields])
-        grids.append(amr_utils.OctreeGrid(
-                        g.child_index_mask.astype('int32'),
-                        ff.astype("float64"),
-                        g.LeftEdge.astype('float64'),
-                        g.ActiveDimensions.astype('int32'),
-                        na.ones(1,dtype='float64') * g.dds[0], g.Level,
-                        g._id_offset))
-        levels_all[g.Level] += g.ActiveDimensions.prod()
-        levels_finest[g.Level] += g.child_mask.ravel().sum()
-        g.clear_data()
-        i+=1
-        pbar.update(i)
+    
+    grids = []
+    levels_finest, levels_all = defaultdict(lambda: 0), defaultdict(lambda: 0)
+ 
+    import pdb; pdb.set_trace()
+    if not parallel:
+        for g in pf.h.grids:
+            i+=1
+            tgrids,tlevels_finest,tlevels_all = \
+                initialize_octree_list_task(g,fields,grids=grids,
+                        levels_finest=levels_finest,
+                        levels_all=levels_all)
+            pbar.update(i)
+    else:
+        import multiprocessing
+        nbr_chunks = multiprocessing.cpu_count()
+        chunk_size = len(pf.h.grids) / nbr_chunks
+        if chunk_size % nbr_chunks != 0:
+            # make sure we get the last few items of data when we have
+            # an odd size to chunks (e.g. len(q) == 100 and nbr_chunks == 3
+            nbr_chunks += 1
+        chunks = [(pf.h.grids[x*chunk_size:(x+1)*chunk_size],fields) \
+            for x in xrange(nbr_chunks)]
+
+        p = multiprocessing.Pool()
+        # send out the work chunks to the Pool
+        # po is a multiprocessing.pool.MapResult
+        po = p.map_async(initialize_octree_list_task,chunks)
+        # we get a list of lists back, one per chunk, so we have to
+        # flatten them back together
+        # po.get() will block until results are ready and then
+        # return a list of lists of results
+        results = po.get()
+
+        for tgrids,tlevels_finest,tlevels_all in results:
+            grids += tgrids
+            for k,v in tlevels_finest.iteritems():
+                levels_finest[k] += v
+            for k,v in  tlevels_all.iteritems():
+                levels_all[k] += v
+
+
+    pbar.finish()
     ogl = amr_utils.OctreeGridList(grids)
     return ogl, levels_finest, levels_all
 
-def generate_flat_octree(pf, fields, subregion_bounds = None):
+def generate_flat_octree(pf, fields, subregion_bounds = None,parallel=False):
     """
     Generates two arrays, one of the actual values in a depth-first flat
     octree array, and the other of the values describing the refinement.
@@ -266,7 +316,7 @@ def generate_flat_octree(pf, fields, subregion_bounds = None):
     field used in the data array.
     """
     fields = ensure_list(fields)
-    ogl, levels_finest, levels_all = initialize_octree_list(pf, fields)
+    ogl, levels_finest, levels_all = initialize_octree_list(pf, fields,parallel=parallel)
     o_length = na.sum(levels_finest.values())
     r_length = na.sum(levels_all.values())
     output = na.zeros((o_length,len(fields)), dtype='float64')

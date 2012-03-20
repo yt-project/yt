@@ -66,6 +66,7 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                             np.ndarray[np.float64_t, ndim=2] output,
                             np.ndarray[np.int32_t, ndim=1] refined,
                             OctreeGridList grids):
+    #cdef int s = curpos
     cdef int i, i_off, j, j_off, k, k_off, ci, fi
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
@@ -103,9 +104,9 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                     child_i = int((cx - child_leftedges[0])/child_dx)
                     child_j = int((cy - child_leftedges[1])/child_dx)
                     child_k = int((cz - child_leftedges[2])/child_dx)
-                    s = RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
+                    # s = Recurs.....
+                    RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
                                         curpos, ci - grid.offset, output, refined, grids)
-    return s
 
 @cython.boundscheck(False)
 def RecurseOctreeByLevels(int i_i, int j_i, int k_i,

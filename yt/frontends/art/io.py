@@ -291,7 +291,9 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #just make sure they appear in the right order, skipping
     #the empty space in between
     idx = na.argsort(iocts)
-
+    
+    import pdb; pdb.set_trace()
+    
     #now rearrange le & fl in order of the ioct
     le = le[idx]
     fl = fl[idx]
@@ -299,8 +301,11 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #left edges are expressed as if they were on 
     #level 15, so no matter what level max(le)=2**15 
     #correct to the yt convention
-    le = le/2**(root_level-1-level)-1
-    
+    #le = le/2**(root_level-1-level)-1
+
+    #try without the -1
+    le = le/2**(root_level-2-level)
+
     #now read the hvars and vars arrays
     #we are looking for iOctCh
     #we record if iOctCh is >0, in which it is subdivided
@@ -333,10 +338,11 @@ def read_stars(file,nstars,Nrow):
     imass   = _read_frecord(fh,'>f') 
     tbirth  = _read_frecord(fh,'>f') 
     if fh.tell() < os.path.getsize(file):
-        metals1 = _read_frecord(fh,'>f') 
+        metallicity1 = _read_frecord(fh,'>f') 
     if fh.tell() < os.path.getsize(file):
-        metals2 = _read_frecord(fh,'>f')     
-    return nstars, mass, imass, tbirth, metals1,metals2
+        metallicity2 = _read_frecord(fh,'>f')     
+    assert fh.tell() == os.path.getsize(file)
+    return nstars, mass, imass, tbirth, metallicity1, metallicity2
 
 def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     f.seek(level_child_offsets[level])
