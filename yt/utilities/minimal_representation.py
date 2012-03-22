@@ -172,12 +172,11 @@ class MinimalSliceData(MinimalMappableData):
 
 class MinimalImageCollectionData(MinimalRepresentation):
     type = "image_collection"
-    _attr_list = ("name", "output_hash", "images")
+    _attr_list = ("name", "output_hash", "images", "image_metadata")
 
     def _generate_post(self):
         nobj = self._return_filtered_object(("images",))
         metadata = nobj._attrs
-        chunks = [(md, d) for md, d in self.images]
+        chunks = [(fn, d) for fn, d in self.images]
         return (metadata, ('images', chunks))
-
 
