@@ -3355,7 +3355,7 @@ class AMRCoveringGridBase(AMR3DData):
         """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
-        self.left_edge = na.array(left_edge, dtype="int32")
+        self.left_edge = na.array(left_edge)
         self.level = level
         self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
         self.ActiveDimensions = na.array(dims,dtype='int32')
