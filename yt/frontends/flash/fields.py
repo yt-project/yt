@@ -65,6 +65,7 @@ translation_dict = {"x-velocity": "velx",
                     "TotalEnergy": "ener",
                     "GasEnergy": "eint",
                     "Temperature": "temp",
+                    "Pressure" : "pres", 
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",
                     "particle_position_z" : "particle_posz",
@@ -213,3 +214,16 @@ add_field("ParticleMassMsun",
           function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun,
           particle_convert_function=_ParticleMassMsun)
+
+def _ThermalEnergy(fields,data):
+    te = data["TotalEnergy"] - 0.5 * data["Density"] * (
+        data["x-velocity"]**2.0 + 
+        data["y-velocity"]**2.0 +
+        data["z-velocity"]**2.0 )
+    try:
+        te -= (data['magx']**2 + data['magx']**2 - data['magz']**2)/(8*3.1415927)
+    except: 
+        pass
+    return te
+add_field("ThermalEnergy", function=_ThermalEnergy,
+                units=r"\rm{ergs}/\rm{cm^3}")
