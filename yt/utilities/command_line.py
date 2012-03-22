@@ -1011,11 +1011,7 @@ class YTLoadCmd(YTCommand):
         else:
             from IPython.config.loader import Config
             cfg = Config()
-            cfg.InteractiveShellEmbed.local_ns = local_ns
-            IPython.embed(config=cfg)
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-            ipshell = InteractiveShellEmbed(config=cfg)
-
+            IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
