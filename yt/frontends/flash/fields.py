@@ -193,17 +193,16 @@ for f,v in translation_dict.items():
         add_flash_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)],
                   particle_type = pfield)
-    else:
-        if f.endswith("_Fraction") :
-            dname = "%s\/Fraction" % f.split("_")[0]
-        else :
-            dname = f                    
-        ff = KnownFLASHFields[v]
-        pfield = f.startswith("particle")
-        add_field(f, TranslationFunc(v),
-                  take_log=KnownFLASHFields[v].take_log,
-                  units = ff._units, display_name=dname,
-                  particle_type = pfield)
+    if f.endswith("_Fraction") :
+        dname = "%s\/Fraction" % f.split("_")[0]
+    else :
+        dname = f                    
+    ff = KnownFLASHFields[v]
+    pfield = f.startswith("particle")
+    add_field(f, TranslationFunc(v),
+              take_log=KnownFLASHFields[v].take_log,
+              units = ff._units, display_name=dname,
+              particle_type = pfield)
 
 def _convertParticleMassMsun(data):
     return 1.0/1.989e33
