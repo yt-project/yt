@@ -52,7 +52,7 @@ ytcfgDefaults = dict(
     pasteboard_repo = '',
     test_storage_dir = '/does/not/exist',
     enzo_db = '',
-    hub_url = 'https://127.0.0.1:5000/',
+    hub_url = 'https://data.yt-project.org/upload',
     hub_api_key = '',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
