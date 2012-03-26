@@ -259,7 +259,8 @@ def insert_ipython(num_up=1):
     import IPython
     if IPython.__version__.startswith("0.10"):
        api_version = '0.10'
-    elif IPython.__version__.startswith("0.11"):
+    elif IPython.__version__.startswith("0.11") or \
+         IPython.__version__.startswith("0.12"):
        api_version = '0.11'
 
     stack = inspect.stack()

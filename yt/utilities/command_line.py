@@ -471,7 +471,8 @@ class YTCommands(cmdln.Cmdln):
         import IPython
         if IPython.__version__.startswith("0.10"):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11"):
+        elif IPython.__version__.startswith("0.11") or \
+             IPython.__version__.startswith("0.12"):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
