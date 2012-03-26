@@ -162,6 +162,7 @@ def configuration(parent_package='', top_path=None):
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
     # support for setjmp.
     config.add_subpackage("amr_kdtree")
+    config.add_subpackage("poster")
     config.add_subpackage("answer_testing")
     config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
