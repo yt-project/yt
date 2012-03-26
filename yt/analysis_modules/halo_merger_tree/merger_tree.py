@@ -86,6 +86,22 @@ columns = ["GlobalHaloID", "SnapCurrentTimeIdentifier", "SnapZ",
 "ChildHaloID3", "ChildHaloFrac3",
 "ChildHaloID4", "ChildHaloFrac4"]
 
+# Below we make the SQL command that creates the table "Halos" in the
+# database. This table is where all the data is stored.
+# Each column of data is named and its datatype is specified.
+# The GlobalHaloID is given the PRIMARY KEY property, which means that
+# the SQLite machinery assigns a consecutive and unique integer value
+# to that field automatically as each new entry is entered (that is,
+# if GlobalHaloID isn't specified already).
+create_db_line = "CREATE TABLE Halos ("
+for i, col in enumerate(columns):
+    if i == 0:
+        create_db_line += "%s %s PRIMARY KEY," % (col, column_types[col])
+    else:
+        create_db_line += " %s %s," % (col, column_types[col])
+# Clean of trailing comma, and closing stuff.
+create_db_line = create_db_line[:-1] + ");"
+
 NumNeighbors = 15
 NumDB = 5
 
@@ -301,21 +317,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         self.cursor = self.conn.cursor()
 
     def _create_halo_table(self):
-        # Handle the error if it already exists.
+        # Handle the error if the table already exists by doing nothing.
         try:
-            # Create the table that will store the halo data.
-            line = "CREATE TABLE Halos (GlobalHaloID INTEGER PRIMARY KEY,\
-                SnapCurrentTimeIdentifier INTEGER, SnapZ FLOAT, SnapHaloID INTEGER, \
-                HaloMass FLOAT,\
-                NumPart INTEGER, CenMassX FLOAT, CenMassY FLOAT,\
-                CenMassZ FLOAT, BulkVelX FLOAT, BulkVelY FLOAT, BulkVelZ FLOAT,\
-                MaxRad FLOAT,\
-                ChildHaloID0 INTEGER, ChildHaloFrac0 FLOAT, \
-                ChildHaloID1 INTEGER, ChildHaloFrac1 FLOAT, \
-                ChildHaloID2 INTEGER, ChildHaloFrac2 FLOAT, \
-                ChildHaloID3 INTEGER, ChildHaloFrac3 FLOAT, \
-                ChildHaloID4 INTEGER, ChildHaloFrac4 FLOAT);"
-            self.cursor.execute(line)
+            self.cursor.execute(create_db_line)
             self.conn.commit()
         except sql.OperationalError:
             pass
