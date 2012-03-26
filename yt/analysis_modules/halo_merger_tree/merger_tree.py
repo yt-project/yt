@@ -105,6 +105,9 @@ create_db_line = create_db_line[:-1] + ");"
 NumNeighbors = 15
 NumDB = 5
 
+def minus_one():
+    return -1
+
 class DatabaseFunctions(object):
     # Common database functions so it doesn't have to be repeated.
     def _open_database(self):
@@ -394,10 +397,18 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         self.candidates = candidates
         
         # This stores the masses contributed to each child candidate.
-        self.child_mass_arr = na.zeros(len(candidates)*NumNeighbors, dtype='float64')
+        # The +1 is an extra element in the array that collects garbage
+        # values. This is allowing us to eliminate a try/except later.
+        # This extra array element will be cut off eventually.
+        self.child_mass_arr = na.zeros(len(candidates)*NumNeighbors + 1,
+            dtype='float64')
         # Records where to put the entries in the above array.
         self.child_mass_loc = defaultdict(dict)
+        # Fill it out with sub-nested default dicts that point to the
+        # garbage slot, and then fill it will correct values for (possibly)
+        # related parent/child halo pairs.
         for i,halo in enumerate(sorted(candidates)):
+            self.child_mass_loc[halo] = defaultdict(minus_one)
             for j, child in enumerate(candidates[halo]):
                 self.child_mass_loc[halo][child] = i*NumNeighbors + j
 
@@ -498,7 +509,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         
         # Match particles in halos.
         self._match(parent_IDs, child_IDs, parent_halos, child_halos,
-        parent_masses, parent_send, child_send)
+            parent_masses, parent_send, child_send)
 
         # Now we send all the un-matched particles to the root task for one more
         # pass. This depends on the assumption that most of the particles do
@@ -539,6 +550,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
 
         # Now we sum up the contributions globally.
         self.child_mass_arr = self.comm.mpi_allreduce(self.child_mass_arr)
+        
+        # Trim off the garbage collection.
+        self.child_mass_arr = self.child_mass_arr[:-1]
         
         if self.comm.rank == 0:
             # Turn these Msol masses into percentages of the parent.
@@ -603,45 +617,28 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
 
     def _match(self, parent_IDs, child_IDs, parent_halos, child_halos,
             parent_masses, parent_send = None, child_send = None):
-        # Parent IDs on the left, child IDs on the right. We skip down both
-        # columns matching IDs. If they are out of synch, the index(es) is/are
-        # advanced until they match up again.
-        matched = 0
-        left = 0
-        right = 0
-        while left < parent_IDs.size and right < child_IDs.size:
-            if parent_IDs[left] == child_IDs[right]:
-                # They match up, add this relationship.
-                try:
-                    loc = self.child_mass_loc[parent_halos[left]][child_halos[right]]
-                except KeyError:
-                    # This happens when a child halo contains a particle from
-                    # a parent halo, but the child is not identified as a 
-                    # candidate child halo. So we do nothing and move on with
-                    # our lives.
-                    left += 1
-                    right += 1
-                    continue
-                self.child_mass_arr[loc] += parent_masses[left]
-                # If needed, mark this pair so we don't send them later.
-                if parent_send is not None:
-                    parent_send[left] = False
-                    child_send[right] = False
-                matched += 1
-                left += 1
-                right += 1
-                continue
-            if parent_IDs[left] < child_IDs[right]:
-                # The left is too small, so we need to increase it.
-                left += 1
-                continue
-            if parent_IDs[left] > child_IDs[right]:
-                # Right too small.
-                right += 1
-                continue
+        # Pick out IDs that are in both arrays.
+        parent_in_child = na.in1d(parent_IDs, child_IDs, assume_unique = True)
+        child_in_parent = na.in1d(child_IDs, parent_IDs, assume_unique = True)
+        # Pare down the arrays to just matched particle IDs.
+        parent_halos_cut = parent_halos[parent_in_child]
+        child_halos_cut = child_halos[child_in_parent]
+        parent_masses_cut = parent_masses[parent_in_child]
+        # Mark the IDs that have matches so they're not sent later.
+        if parent_send is not None:
+            parent_send[parent_in_child] = False
+            child_send[child_in_parent] = False
+        # For matching pairs of particles, add the contribution of the mass.
+        # Occasionally, there are matches of particle IDs where the parent
+        # and child halos have not been identified as likely relations,
+        # and in that case loc will be returned as -1, which is the 'garbage'
+        # position in child_mass_arr. This will be trimmed off later.
+        for i,pair in enumerate(zip(parent_halos_cut, child_halos_cut)):
+            loc = self.child_mass_loc[pair[0]][pair[1]]
+            self.child_mass_arr[loc] += parent_masses_cut[i]
         if parent_send is None:
             mylog.info("Clean-up round matched %d of %d parents and %d children." % \
-            (matched, parent_IDs.size, child_IDs.size))
+            (parent_in_child.sum(), parent_IDs.size, child_IDs.size))
 
     def _copy_and_update_db(self):
         """
