@@ -481,7 +481,7 @@ class EnzoHierarchy(AMRHierarchy):
                 mylog.debug("Added additional grid %s", first_grid)
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
-            random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
+            random_sample = na.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):

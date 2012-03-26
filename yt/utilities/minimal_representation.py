@@ -31,18 +31,18 @@ from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
 
-try:
-    from poster.streaminghttp import register_openers
-    from poster.encode import multipart_encode
-    register_openers()
-except ImportError:
-    pass
+from .poster.streaminghttp import register_openers
+from .poster.encode import multipart_encode
+register_openers()
 
 class UploaderBar(object):
     pbar = None
+    def __init__(self, my_name = ""):
+        self.my_name = my_name
+
     def __call__(self, name, prog, total):
         if self.pbar is None:
-            self.pbar = get_pbar("Uploading %s" % name, total)
+            self.pbar = get_pbar("Uploading %s " % self.my_name, total)
         self.pbar.update(prog)
         if prog == total:
             self.pbar.finish()
@@ -113,12 +113,12 @@ class MinimalRepresentation(object):
         rv = urllib2.urlopen(request).read()
         uploader_info = json.loads(rv)
         new_url = url + "/handler/%s" % uploader_info['handler_uuid']
-        for cn, cv in chunks:
+        for i, (cn, cv) in enumerate(chunks):
             remaining = cv.size * cv.itemsize
             f = TemporaryFile()
             na.save(f, cv)
             f.seek(0)
-            pbar = UploaderBar()
+            pbar = UploaderBar("%s, % 2i/% 2i" % (self.type, i+1, len(chunks)))
             datagen, headers = multipart_encode({'chunk_data' : f}, cb = pbar)
             request = urllib2.Request(new_url, datagen, headers)
             rv = urllib2.urlopen(request).read()
@@ -152,8 +152,7 @@ class MinimalStaticOutput(MinimalRepresentation):
 
 class MinimalMappableData(MinimalRepresentation):
 
-    weight = "None"
-    _attr_list = ("field_data", "field", "weight", "axis", "output_hash",
+    _attr_list = ("field_data", "field", "weight_field", "axis", "output_hash",
                   "vm_type")
 
     def _generate_post(self):
@@ -169,6 +168,7 @@ class MinimalProjectionData(MinimalMappableData):
 class MinimalSliceData(MinimalMappableData):
     type = 'slice'
     vm_type = "Slice"
+    weight_field = "None"
 
 class MinimalImageCollectionData(MinimalRepresentation):
     type = "image_collection"
