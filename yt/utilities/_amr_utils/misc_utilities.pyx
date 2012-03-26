@@ -42,8 +42,7 @@ def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=1] mresult,
                   np.ndarray[np.float64_t, ndim=1] qresult,
                   np.ndarray[np.float64_t, ndim=1] used):
-    cdef int n
-    cdef np.int64_t bin
+    cdef int n, bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
         bin = bins_x[n]
@@ -55,6 +54,7 @@ def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
         bresult[bin] += wval*bval
         mresult[bin] += wval * (bval - mresult[bin]) / wresult[bin]
         used[bin] = 1
+    return
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -68,7 +68,7 @@ def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=2] mresult,
                   np.ndarray[np.float64_t, ndim=2] qresult,
                   np.ndarray[np.float64_t, ndim=2] used):
-    cdef int n
+    cdef int n, bini, binj
     cdef np.int64_t bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
@@ -82,6 +82,7 @@ def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
         bresult[bini, binj] += wval*bval
         mresult[bini, binj] += wval * (bval - mresult[bini, binj]) / wresult[bini, binj]
         used[bini, binj] = 1
+    return
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -96,7 +97,7 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=3] mresult,
                   np.ndarray[np.float64_t, ndim=3] qresult,
                   np.ndarray[np.float64_t, ndim=3] used):
-    cdef int n
+    cdef int n, bini, binj, bink
     cdef np.int64_t bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
@@ -111,6 +112,7 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
         bresult[bini, binj, bink] += wval*bval
         mresult[bini, binj, bink] += wval * (bval - mresult[bini, binj, bink]) / wresult[bini, binj, bink]
         used[bini, binj, bink] = 1
+    return
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
