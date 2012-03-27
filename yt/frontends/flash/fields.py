@@ -221,7 +221,7 @@ def _ThermalEnergy(fields,data):
         data["y-velocity"]**2.0 +
         data["z-velocity"]**2.0 )
     try:
-        te -= (data['magx']**2 + data['magx']**2 - data['magz']**2)/(8*3.1415927)
+        te -= data['magp']
     except: 
         pass
     return te
