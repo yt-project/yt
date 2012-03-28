@@ -79,13 +79,6 @@ class FLASHHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s for s in self._handle["/unknown names"][:].flat]
-        facevars = [s for s in self._handle
-                    if s.startswith(("fcx","fcy","fcz")) and s[-1].isdigit()]
-        nfacevars = len(facevars)
-        if (nfacevars > 0) :
-            ncomp += nfacevars
-            for facevar in facevars :
-                self.field_list.append(facevar)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -232,7 +225,7 @@ class FLASHStaticOutput(StaticOutput):
             self._setup_comoving_units()
         if "pc_unitsbase" in self.parameters:
             if self.parameters["pc_unitsbase"] == "CGS":
-                self.setup_cgs_units()
+                self._setup_cgs_units()
         else:
             self._setup_nounits_units()
         self.time_units['1'] = 1
@@ -337,11 +330,16 @@ class FLASHStaticOutput(StaticOutput):
         for hn in hns:
             if hn not in self._handle:
                 continue
-            for varname, val in self._handle[hn]:
+            for varname, val in zip(self._handle[hn][:,'name'],
+                                    self._handle[hn][:,'value']):
                 vn = varname.strip()
-                if vn in self.parameters and self.parameters[vn] != val:
+                if hn.startswith("string") :
+                    pval = val.strip()
+                else :
+                    pval = val
+                if vn in self.parameters and self.parameters[vn] != pval:
                     mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
-                self.parameters[vn] = val
+                self.parameters[vn] = pval
         self.domain_left_edge = na.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
