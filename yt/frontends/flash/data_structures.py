@@ -102,7 +102,7 @@ class FLASHHierarchy(AMRHierarchy):
         # Initialize to the domain left / domain right
         ND = self.parameter_file.dimensionality
         DLE = self.parameter_file.domain_left_edge
-        DRE = self.parameter_file.domain_left_edge
+        DRE = self.parameter_file.domain_right_edge
         for i in range(3):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
