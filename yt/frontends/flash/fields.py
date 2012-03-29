@@ -34,7 +34,8 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-
+from yt.utilities.physical_constants import \
+    kboltz
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -62,8 +63,6 @@ translation_dict = {"x-velocity": "velx",
                     "y-velocity": "vely",
                     "z-velocity": "velz",
                     "Density": "dens",
-                    "TotalEnergy": "ener",
-                    "GasEnergy": "eint",
                     "Temperature": "temp",
                     "Pressure" : "pres", 
                     "particle_position_x" : "particle_posx",
@@ -214,15 +213,43 @@ add_field("ParticleMassMsun",
           particle_type=True, convert_function=_convertParticleMassMsun,
           particle_convert_function=_ParticleMassMsun)
 
-def _ThermalEnergy(fields,data):
-    te = data["TotalEnergy"] - 0.5 * data["Density"] * (
-        data["x-velocity"]**2.0 + 
-        data["y-velocity"]**2.0 +
-        data["z-velocity"]**2.0 )
+def _ThermalEnergy(fields, data) :
     try:
-        te -= data['magp']
-    except: 
+        return data["eint"]
+    except:
         pass
-    return te
+    try:
+        return data["Pressure"] / (data.pf["Gamma"] - 1.0) / data["Density"]
+    except:
+        pass
+    if data.has_field_parameter("mu") :
+        mu = data.get_field_parameter("mu")
+    else:
+        mu = 0.6
+    return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf["Gamma"] - 1.0)
+    
 add_field("ThermalEnergy", function=_ThermalEnergy,
-                units=r"\rm{ergs}/\rm{cm^3}")
+          units=r"\rm{ergs}/\rm{g}")
+
+def _TotalEnergy(fields, data) :
+    try:
+        etot = data["ener"]
+    except:
+        etot = data["ThermalEnergy"] + 0.5 * (
+            data["x-velocity"]**2.0 +
+            data["y-velocity"]**2.0 +
+            data["z-velocity"]**2.0)
+    try:
+        etot += data['magp']/data["Density"]
+    except:
+        pass
+    return etot
+
+add_field("TotalEnergy", function=_TotalEnergy,
+          units=r"\rm{ergs}/\rm{g}")
+
+def _GasEnergy(fields, data) :
+    return data["ThermalEnergy"]
+
+add_field("GasEnergy", function=_GasEnergy, 
+          units=r"\rm{ergs}/\rm{g}")
