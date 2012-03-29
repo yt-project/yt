@@ -99,14 +99,22 @@ class FLASHHierarchy(AMRHierarchy):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
         
-        self.grid_left_edge[:] = f["/bounding box"][:,:,0]
-        self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        # Initialize to the domain left / domain right
+        ND = self.parameter_file.dimensionality
+        DLE = self.parameter_file.domain_left_edge
+        DRE = self.parameter_file.domain_left_edge
+        for i in range(3):
+            self.grid_left_edge[:,i] = DLE[i]
+            self.grid_right_edge[:,i] = DRE[i]
+        # We only go up to ND for 2D datasets
+        self.grid_left_edge[:,:ND] = f["/bounding box"][:,:,0]
+        self.grid_right_edge[:,:ND] = f["/bounding box"][:,:,1]
         
         # Move this to the parameter file
         try:
-            nxb = pf._find_parameter("integer", "nxb", True)
-            nyb = pf._find_parameter("integer", "nyb", True)
-            nzb = pf._find_parameter("integer", "nzb", True)
+            nxb = pf.parameters['nxb']
+            nyb = pf.parameters['nyb']
+            nzb = pf.parameters['nzb']
         except KeyError:
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
@@ -325,21 +333,39 @@ class FLASHStaticOutput(StaticOutput):
         # note the ordering here is important: runtime parameters should
         # ovewrite scalars with the same name.
         for ptype in ['scalars', 'runtime parameters']:
-            for vtype in ['integer', 'real', 'logical','string']:
+            for vtype in ['integer', 'real', 'logical', 'string']:
                 hns.append("%s %s" % (vtype, ptype))
-        for hn in hns:
-            if hn not in self._handle:
-                continue
-            for varname, val in zip(self._handle[hn][:,'name'],
-                                    self._handle[hn][:,'value']):
-                vn = varname.strip()
-                if hn.startswith("string") :
-                    pval = val.strip()
-                else :
-                    pval = val
-                if vn in self.parameters and self.parameters[vn] != pval:
-                    mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
-                self.parameters[vn] = pval
+        if self._flash_version > 7:
+            for hn in hns:
+                if hn not in self._handle:
+                    continue
+                for varname, val in zip(self._handle[hn][:,'name'],
+                                        self._handle[hn][:,'value']):
+                    vn = varname.strip()
+                    if hn.startswith("string") :
+                        pval = val.strip()
+                    else :
+                        pval = val
+                    if vn in self.parameters and self.parameters[vn] != pval:
+                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
+                        self.parameters[vn] = pval
+        if self._flash_version == 7:
+            for hn in hns:
+                if hn not in self._handle:
+                    continue
+                if hn is 'simulation parameters':
+                    zipover = zip(self._handle[hn].dtype.names,self._handle[hn][0])
+                else:
+                    zipover = zip(self._handle[hn][:,'name'],self._handle[hn][:,'value'])
+                for varname, val in zipover:
+                    vn = varname.strip()
+                    if hn.startswith("string") :
+                        pval = val.strip()
+                    else :
+                        pval = val
+                    if vn in self.parameters and self.parameters[vn] != pval:
+                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
+                    self.parameters[vn] = pval
         self.domain_left_edge = na.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
