@@ -29,8 +29,6 @@ License:
 """
 
 from .data_structures import \
-      RAMSESGrid, \
-      RAMSESHierarchy, \
       RAMSESStaticOutput
 
 from .fields import \

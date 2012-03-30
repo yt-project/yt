@@ -30,7 +30,7 @@ import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
-from yt.geometry.octree_geometry_handler import \
+from yt.geometry.oct_geometry_handler import \
       OctreeGeometryHandler
 from yt.data_objects.static_output import \
       StaticOutput
