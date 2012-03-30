@@ -28,8 +28,10 @@ for field in field_list:
                 field=field, axis=axis, weight_field="Density")
 
 for field in field_list:
-    create_test(TestGasDistribution, "density_%s" % field,
-                field_x="Density", field_y=field)
-    create_test(Test2DGasDistribution, "density_x-vel_%s" % field,
-                field_x="Density", field_y="x-velocity", field_z=field,
-                weight="CellMassMsun")
+    if field != "Density":
+        create_test(TestGasDistribution, "density_%s" % field,
+                    field_x="Density", field_y=field)
+    if field not in ("x-velocity", "Density"):
+        create_test(Test2DGasDistribution, "density_x-vel_%s" % field,
+                    field_x="Density", field_y="x-velocity", field_z=field,
+                    weight="CellMassMsun")

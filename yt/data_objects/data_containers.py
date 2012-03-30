@@ -746,7 +746,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        sample_values = None):
         mask = self._get_cut_mask(grid) * grid.child_mask
-        vals = grid.get_vertex_centered_data(field)
+        vals = grid.get_vertex_centered_data(field, no_ghost = False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
@@ -1147,7 +1147,8 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
-        for region in self._all_regions:
+        pbar = get_pbar("Building boolean", len(self._all_regions))
+        for i, region in enumerate(self._all_regions):
             try:
                 region._get_list_of_grids()
                 alias = region
@@ -1174,6 +1175,8 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                     # Some of local is in overall
                     self._some_overlap.append(grid)
                     continue
+            pbar.update(i)
+        pbar.finish()
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on

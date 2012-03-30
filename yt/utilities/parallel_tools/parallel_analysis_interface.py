@@ -154,6 +154,9 @@ def parallel_simple_proxy(func):
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
+        if hasattr(self, "dont_wrap"):
+            if func.func_name in self.dont_wrap:
+                return func(self, *args, **kwargs)
         if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         comm = _get_comm((self,))
@@ -256,7 +259,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        all_clear = comm.mpi_bcast_pickled(all_clear)
+        all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
     return func
@@ -349,7 +352,7 @@ def parallel_objects(objects, njobs, storage = None):
         else:
             yield obj
     if parallel_capable:
-        communication_system.communicators.pop()
+        communication_system.pop()
     if storage is not None:
         # Now we have to broadcast it
         new_storage = my_communicator.par_combine_object(
@@ -500,9 +503,25 @@ class Communicator(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def mpi_bcast_pickled(self, data):
-        data = self.comm.bcast(data, root=0)
-        return data
+    def mpi_bcast(self, data):
+        # The second check below makes sure that we know how to communicate
+        # this type of array. Otherwise, we'll pickle it.
+        if isinstance(data, na.ndarray) and \
+                get_mpi_type(data.dtype) is not None:
+            if self.comm.rank == 0:
+                info = (data.shape, data.dtype)
+            else:
+                info = ()
+            info = self.comm.bcast(info, root=0)
+            if self.comm.rank != 0:
+                data = na.empty(info[0], dtype=info[1])
+            mpi_type = get_mpi_type(info[1])
+            self.comm.Bcast([data, mpi_type], root = 0)
+            return data
+        else:
+            # Use pickled methods.
+            data = self.comm.bcast(data, root = 0)
+            return data
 
     def preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
@@ -640,7 +659,7 @@ class Communicator(object):
         return buf
 
     @parallel_passthrough
-    def merge_quadtree_buffers(self, qt):
+    def merge_quadtree_buffers(self, qt, merge_style):
         # This is a modified version of pairwise reduction from Lisandro Dalcin,
         # in the reductions demo of mpi4py
         size = self.comm.size
@@ -665,8 +684,8 @@ class Communicator(object):
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2])
-                    qto.frombuffer(*buf)
-                    merge_quadtrees(qt, qto)
+                    qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
+                    merge_quadtrees(qt, qto, style = merge_style)
                     del qto
                     #self.send_quadtree(target, qt, tgd, args)
             mask <<= 1
@@ -685,7 +704,7 @@ class Communicator(object):
         self.refined = buf[0]
         if rank != 0:
             qt = QuadTree(tgd, args[2])
-            qt.frombuffer(*buf)
+            qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 
 

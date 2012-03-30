@@ -15,7 +15,7 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_SUFFIX="yt-`uname -p`"
+DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
 
@@ -40,7 +40,6 @@ INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
-INST_FORTHON=1  # Install Forthon?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 
@@ -160,6 +159,18 @@ function host_specific
     then
         echo "Looks like you're running on Mac OSX."
         echo
+        echo "NOTE: you must have the Xcode command line tools installed."
+        echo
+        echo "OS X 10.5: download Xcode 3.0 from the mac developer tools"
+        echo "website"
+        echo
+        echo "OS X 10.6: download Xcode 3.2 from the mac developer tools"
+        echo "website"
+        echo
+        echo "OS X 10.7: download Xcode 4.0 from the mac app store or"
+        echo "alternatively download the Xcode command line tools from"
+        echo "the mac developer tools website"
+        echo
         echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
         echo "Leopard) or newer.  If you do, please set the following"
         echo "environment variables, remove any broken installation tree, and"
@@ -203,10 +214,6 @@ echo "be installing freetype2"
 printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
 get_willwont ${INST_SQLITE3}
 echo "be installing SQLite3"
-
-printf "%-15s = %s so I " "INST_FORTHON" "${INST_FORTHON}"
-get_willwont ${INST_FORTHON}
-echo "be installing Forthon (for Halo Finding, etc)"
 
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
@@ -323,7 +330,6 @@ cd ${DEST_DIR}/src
 # Now we dump all our SHA512 files out.
 
 echo '8da1b0af98203254a1cf776d73d09433f15b5090871f9fd6d712cea32bcd44446b7323ae1069b28907d2728e77944a642825c61bc3b54ceb46c91897cc4f6051  Cython-0.15.1.tar.gz' > Cython-0.15.1.tar.gz.sha512
-echo '2564011f64cd7ea24d49c6103603ced857bcb79a3837032b959005b64f9da226a08c95d920ae59034ca2c5957a45c99949811649de9e5e73cdbb23396e11f756  Forthon-0.8.5.tar.gz' > Forthon-0.8.5.tar.gz.sha512
 echo 'b8a12bf05b3aafa71135e47da81440fd0f16a4bd91954bc5615ad3d3b7f9df7d5a7d5620dc61088dc6b04952c5c66ebda947a4cfa33ed1be614c8ca8c0f11dff  PhiloGL-1.4.2.zip' > PhiloGL-1.4.2.zip.sha512
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
 echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
@@ -333,7 +339,7 @@ echo '6d65dcbb77978d4f4a9711062f11ae9d61133ca086f9207a8c1ecea8807dc9612cc8c3b242
 echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d6f69042b4c87c58c881ee2aaa279561ea0f0f48d5842155f4de9de  freetype-2.4.4.tar.gz' > freetype-2.4.4.tar.gz.sha512
 echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72a7dbd496a5590828131c5f046ddead695e5cba79343b8c205148d1  h5py-2.0.1.tar.gz' > h5py-2.0.1.tar.gz.sha512
 echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
-echo '2c883d64886e5d595775dde497f101ff2ecec0786eabcdc69861c20e7d081e67b5e97551194236933b78f1ff7b119fcba0a9ce3aa4851440fc58f84d2094177b  ipython-0.10.tar.gz' > ipython-0.10.tar.gz.sha512
+echo 'ffc5c9e0c8c8ea66479abd467e442419bd1c867e6dbd180be6a032869467955dc570cfdf1388452871303a440738f302d3227ab7728878c4a114cfc45d29d23c  ipython-0.12.tar.gz' > ipython-0.12.tar.gz.sha512
 echo 'e748b66a379ee1e7963b045c3737670acf6aeeff1ebed679f427e74b642faa77404c2d5bbddb922339f009c229d0af1ae77cc43eab290e50af6157a6406d833f  libpng-1.2.43.tar.gz' > libpng-1.2.43.tar.gz.sha512
 echo 'f5ab95c29ef6958096970265a6079f0eb8c43a500924346c4a6c6eb89d9110eeeb6c34a53715e71240e82ded2b76a7b8d5a9b05a07baa000b2926718264ad8ff  matplotlib-1.1.0.tar.gz' > matplotlib-1.1.0.tar.gz.sha512
 echo '78715bb2bd7ed3291089948530a59d5eff146a64179eae87904a2c328716f26749abb0c5417d6001cadfeebabb4e24985d5a59ceaae4d98c4762163970f83975  mercurial-2.0.tar.gz' > mercurial-2.0.tar.gz.sha512
@@ -358,10 +364,9 @@ get_enzotools Python-2.7.2.tgz
 get_enzotools numpy-1.6.1.tar.gz
 get_enzotools matplotlib-1.1.0.tar.gz
 get_enzotools mercurial-2.0.tar.gz
-get_enzotools ipython-0.10.tar.gz
+get_enzotools ipython-0.12.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.1.tar.gz
-get_enzotools Forthon-0.8.5.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
 get_enzotools PhiloGL-1.4.2.zip
@@ -402,6 +407,7 @@ then
         cd zlib-1.2.3
         ( ./configure --shared --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -419,6 +425,7 @@ then
         cd libpng-1.2.43
         ( ./configure CPPFLAGS=-I${DEST_DIR}/include CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -436,6 +443,7 @@ then
         cd freetype-2.4.4
         ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -453,6 +461,7 @@ then
         cd hdf5-1.8.7
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -471,6 +480,7 @@ then
         cd sqlite-autoconf-3070500
         ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
@@ -486,6 +496,7 @@ then
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+    ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 fi
@@ -574,10 +585,9 @@ fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
-do_setup_py ipython-0.10
+do_setup_py ipython-0.12
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
-[ $INST_FORTHON -eq 1 ] && do_setup_py Forthon-0.8.5
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
@@ -589,7 +599,6 @@ echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 [ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
-[ $INST_FORTHON -eq 1 ] && ( ( cd yt/utilities/kdtree && FORTHON_EXE=${DEST_DIR}/bin/Forthon make 2>&1 ) 1>> ${LOG_FILE} )
 ( ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD

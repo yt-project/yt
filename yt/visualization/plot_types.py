@@ -36,6 +36,7 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 from .color_maps import yt_colormaps, is_colormap
+from yt.utilities.exceptions import YTNoDataInObjectError
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -379,6 +380,8 @@ class VMPlot(RavenPlot):
 
     def _redraw_image(self, *args):
         buff = self._get_buff()
+        if self[self.axis_names["Z"]].size == 0:
+            raise YTNoDataInObjectError(self.data)
         mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
                     na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),

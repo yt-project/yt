@@ -31,8 +31,7 @@ import numpy as na
 from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.utilities.data_point_utilities import \
-    Bin1DProfile, Bin2DProfile, Bin3DProfile
+from yt.utilities.amr_utils import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
@@ -88,9 +87,11 @@ class BinnedProfile(ParallelAnalysisInterface):
         fields = ensure_list(fields)
         data = {}         # final results will go here
         weight_data = {}  # we need to track the weights as we go
+        std_data = {}
         for field in fields:
             data[field] = self._get_empty_field()
             weight_data[field] = self._get_empty_field()
+            std_data[field] = self._get_empty_field()
         used = self._get_empty_field().astype('bool')
         chunk_fields = fields[:]
         if weight is not None: chunk_fields += [weight]
@@ -103,11 +104,14 @@ class BinnedProfile(ParallelAnalysisInterface):
                 continue
             for field in fields:
                 # We get back field values, weight values, used bins
-                f, w, u = self._bin_field(ds, field, weight, accumulation,
+                f, w, q, u = self._bin_field(ds, field, weight, accumulation,
                                           args=args, check_cut=True)
                 data[field] += f        # running total
                 weight_data[field] += w # running total
                 used |= u       # running 'or'
+                std_data[field][u] += w[u] * (q[u]/w[u] + \
+                    (f[u]/w[u] -
+                     data[field][u]/weight_data[field][u])**2) # running total
         for key in data:
             data[key] = self.comm.mpi_allreduce(data[key], op='sum')
         for key in weight_data:
@@ -119,7 +123,9 @@ class BinnedProfile(ParallelAnalysisInterface):
         for field in fields:
             if weight: # Now, at the end, we divide out.
                 data[field][ub] /= weight_data[field][ub]
+                std_data[field][ub] /= weight_data[field][ub]
             self[field] = data[field]
+            #self["%s_std" % field] = na.sqrt(std_data[field])
         self["UsedBins"] = used
 
         if fractional:
@@ -207,20 +213,24 @@ class BinnedProfile1D(BinnedProfile):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        Bin1DProfile(bin_indices_x, weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        bin_profile1d(bin_indices_x, weight_data, source_data,
+                      weight_field, binned_field,
+                      m_field, q_field, used_field)
         # Fix for laziness, because at the *end* we will be
         # summing up all of the histograms and dividing by the
         # weights.  Accumulation likely doesn't work with weighted
         # average fields.
         if accumulation: 
             binned_field = na.add.accumulate(binned_field)
-        return binned_field, weight_field, used_field.astype("bool")
+        return binned_field, weight_field, q_field, \
+            used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
@@ -374,6 +384,8 @@ class BinnedProfile2D(BinnedProfile):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1].ravel().astype('int64')
@@ -382,8 +394,8 @@ class BinnedProfile2D(BinnedProfile):
         weight_data = weight_data[mi]
         nx = bin_indices_x.size
         #mylog.debug("Binning %s / %s times", source_data.size, nx)
-        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        bin_profile2d(bin_indices_x, bin_indices_y, weight_data, source_data,
+                      weight_field, binned_field, m_field, q_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
@@ -391,7 +403,8 @@ class BinnedProfile2D(BinnedProfile):
                 binned_field = na.add.accumulate(binned_field, axis=0)
             if accumulation[1]:
                 binned_field = na.add.accumulate(binned_field, axis=1)
-        return binned_field, weight_field, used_field.astype('bool')
+        return binned_field, weight_field, q_field, \
+            used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
@@ -623,6 +636,8 @@ class BinnedProfile3D(BinnedProfile):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1].ravel().astype('int64')
@@ -630,10 +645,9 @@ class BinnedProfile3D(BinnedProfile):
         bin_indices_z = args[3].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        Bin3DProfile(
-            bin_indices_x, bin_indices_y, bin_indices_z,
-            weight_data, source_data,
-            weight_field, binned_field, used_field)
+        bin_profile3d(bin_indices_x, bin_indices_y, bin_indices_z,
+                      weight_data, source_data, weight_field, binned_field,
+                      m_field, q_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
@@ -643,7 +657,8 @@ class BinnedProfile3D(BinnedProfile):
                 binned_field = na.add.accumulate(binned_field, axis=1)
             if accumulation[2]:
                 binned_field = na.add.accumulate(binned_field, axis=2)
-        return binned_field, weight_field, used_field.astype('bool')
+        return binned_field, weight_field, q_field, \
+            used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):

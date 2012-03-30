@@ -155,7 +155,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,**kwargs):
+                 preload_style='level', serialize=True,
+                 style = "integrate", **kwargs):
         """
         This is a data object corresponding to a line integral through the
         simulation domain.
@@ -219,6 +220,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         >>> print qproj["Density"]
         """
         YTSelectionContainer2D.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        self.proj_style = style
+        if style == "mip":
+            self.func = na.max
+        elif style == "integrate":
+            self.func = na.sum # for the future
+        else:
+            raise NotImplementedError(style)
         self.weight_field = weight_field
         self._field_cuts = field_cuts
         self.serialize = serialize
@@ -226,7 +234,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
-        self.func = na.sum # for the future
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.max_level
@@ -269,7 +276,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
-        return QuadTree(na.array([xd,yd], dtype='int64'), nvals)
+        return QuadTree(na.array([xd,yd], dtype='int64'), nvals,
+                        style = self.proj_style)
 
     def _get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -280,7 +288,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             if field is None: continue
             dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
             convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
-        return na.array(dls), na.array(convs)
+        dls = na.array(dls)
+        convs = na.array(convs)
+        if self.proj_style == "mip":
+            dls[:] = 1.0
+            convs[:] = 1.0
+        return dls, convs
 
     def get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
@@ -314,7 +327,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             mylog.debug("End of projecting level level %s, memory usage %0.3e",
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
-        tree = self.comm.merge_quadtree_buffers(tree)
+        if self.proj_style == "mip":
+            merge_style = -1
+        elif self.proj_style == "integrate":
+            merge_style = 1
+        else:
+            raise NotImplementedError
+        tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -978,16 +997,62 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
                self.pf.domain_dimensions.astype("float64"))
+        self.global_endindex = None
         YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
-                 / self.pf.domain_dimensions).max()
-        YTCoveringGridBase._get_list_of_grids(self, buffer)
-        # We reverse the order to ensure that coarse grids are first
-        self._grids = self._grids[::-1]
+        # Check for ill-behaved AMR schemes (Enzo) where we may have
+        # root-tile-boundary issues.  This is specific to the root tiles not
+        # allowing grids to cross them and also allowing > 1 level of
+        # difference between neighboring areas.
+        nz = 0
+        buf = 0.0
+        self.min_level = 0
+        dl = ((self.global_startindex.astype("float64") + 1)
+           / (self.pf.refine_by**self.level))
+        dr = ((self.global_startindex.astype("float64")
+              + self.ActiveDimensions - 1)
+           / (self.pf.refine_by**self.level))
+        if na.any(dl == na.rint(dl)) or na.any(dr == na.rint(dr)):
+            nz = 2 * self.pf.refine_by**self.level
+            buf = self._base_dx
+        if nz <= self.pf.refine_by**3: # delta level of 3
+            last_buf = [None,None,None]
+            count = 0
+            # Repeat until no more grids are covered (up to a delta level of 3)
+            while na.any(buf != last_buf) or count == 3:
+                cg = self.pf.h.covering_grid(self.level,
+                     self.left_edge - buf, self.ActiveDimensions + nz)
+                cg._use_pbar = False
+                count = cg.ActiveDimensions.prod()
+                for g in cg._grids:
+                    count -= cg._get_data_from_grid(g, [])
+                    if count <= 0:
+                        self.min_level = g.Level
+                        break
+                last_buf = buf
+                # Increase box by 2 cell widths at the min covering level
+                buf = 2*self._base_dx / self.pf.refine_by**self.min_level
+                nz += 4 * self.pf.refine_by**(self.level-self.min_level)
+                count += 1
+        else:
+            nz = buf = 0
+            self.min_level = 0
+        # This should not cost substantial additional time.
+        BLE = self.left_edge - buf
+        BRE = self.right_edge + buf
+        if na.any(BLE < self.pf.domain_left_edge) or \
+           na.any(BRE > self.pf.domain_right_edge):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
+                            BLE, BRE, self.level, self.min_level)
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids_below_level(
+                BLE, BRE, self.level,
+                min(self.level, self.min_level))
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
+        self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)]
 
     def get_data(self, field=None):
         self._get_list_of_grids()
@@ -1003,11 +1068,11 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         # We jump-start our task here
         mylog.debug("Getting fields %s from %s possible grids",
                    fields_to_get, len(self._grids))
-        self._update_level_state(0, fields_to_get)
+        self._update_level_state(self.min_level, fields_to_get, initialize=True)
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
         # The grids are assumed to be pre-sorted
-        last_level = 0
+        last_level = self.min_level
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
@@ -1025,27 +1090,30 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
                     raise KeyError(n_bad)
         if self._use_pbar: pbar.finish()
 
-    def _update_level_state(self, level, fields = None):
+    def _update_level_state(self, level, fields = None, initialize=False):
         dx = self._base_dx / self.pf.refine_by**level
         self.field_data['cdx'] = dx[0]
         self.field_data['cdy'] = dx[1]
         self.field_data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
+        RL = self.right_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
-        self.global_startindex = na.rint(LL / dx).astype('int64') - 1
+        self._old_global_endindex = self.global_endindex
+        # We use one grid cell at LEAST, plus one buffer on all sides
+        self.global_startindex = na.floor(LL / dx).astype('int64') - 1
+        self.global_endindex = na.ceil(RL / dx).astype('int64') + 1
         self.domain_width = na.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/dx).astype('int64')
-        if level == 0 and self.level > 0:
-            # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+        if (level == 0 or initialize) and self.level > 0:
+            idims = self.global_endindex - self.global_startindex
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
-        elif level == 0 and self.level == 0:
+        elif (level == 0 or initialize) and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
+            #idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -1055,14 +1123,15 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         rf = float(self.pf.refine_by**dlevel)
 
         input_left = (self._old_global_startindex + 0.5) * rf
-        dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int32') + 2
+        input_right = (self._old_global_endindex - 0.5) * rf
+        output_left = self.global_startindex + 0.5
+        output_right = self.global_endindex - 0.5
+        output_dims = (output_right - output_left + 1).astype('int32')
 
         self._cur_dims = output_dims
 
         for field in fields:
             output_field = na.zeros(output_dims, dtype="float64")
-            output_left = self.global_startindex + 0.5
             ghost_zone_interpolate(rf, self[field], input_left,
                                    output_field, output_left)
             self.field_data[field] = output_field

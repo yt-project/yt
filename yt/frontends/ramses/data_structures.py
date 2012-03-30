@@ -75,7 +75,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.num_octs = sum(self.level_info)
 
     def _initialize_octree(self):
-        octree = self._create_octree_structure(
+        #octree = self._create_octree_structure(
         self.tree_proxy.fill_hierarchy_arrays(
             self.pf.domain_dimensions,
             self.oct_levels, self.oct_file_locations, 

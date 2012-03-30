@@ -49,6 +49,7 @@ def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('utilities',parent_package,top_path)
     config.add_subpackage("amr_kdtree")
+    config.add_subpackage("poster")
     config.add_subpackage("answer_testing")
     config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")

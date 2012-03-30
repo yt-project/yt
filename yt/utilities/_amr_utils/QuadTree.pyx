@@ -29,6 +29,7 @@ cimport numpy as np
 # Double up here for def'd functions
 cimport numpy as cnp
 cimport cython
+from fp_utils cimport fmax
 
 from stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
@@ -43,6 +44,10 @@ cdef struct QuadTreeNode:
     np.int64_t pos[2]
     QuadTreeNode *children[2][2]
 
+ctypedef void QTN_combine(QuadTreeNode *self,
+        np.float64_t *val, np.float64_t weight_val,
+        int nvals)
+
 cdef void QTN_add_value(QuadTreeNode *self,
         np.float64_t *val, np.float64_t weight_val,
         int nvals):
@@ -50,6 +55,14 @@ cdef void QTN_add_value(QuadTreeNode *self,
     for i in range(nvals):
         self.val[i] += val[i]
     self.weight_val += weight_val
+
+cdef void QTN_max_value(QuadTreeNode *self,
+        np.float64_t *val, np.float64_t weight_val,
+        int nvals):
+    cdef int i
+    for i in range(nvals):
+        self.val[i] = fmax(val[i], self.val[i])
+    self.weight_val = 1.0
 
 cdef void QTN_refine(QuadTreeNode *self, int nvals):
     cdef int i, j, i1, j1
@@ -101,9 +114,16 @@ cdef class QuadTree:
     cdef np.int64_t top_grid_dims[2]
     cdef int merged
     cdef int num_cells
+    cdef QTN_combine *combine
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
-                  int nvals):
+                  int nvals, style = "integrate"):
+        if style == "integrate":
+            self.combine = QTN_add_value
+        elif style == "mip":
+            self.combine = QTN_max_value
+        else:
+            raise NotImplementedError
         self.merged = 1
         cdef int i, j
         cdef QuadTreeNode *node
@@ -190,8 +210,12 @@ cdef class QuadTree:
     @cython.wraparound(False)
     def frombuffer(self, np.ndarray[np.int32_t, ndim=1] refined,
                          np.ndarray[np.float64_t, ndim=2] values,
-                         np.ndarray[np.float64_t, ndim=1] wval):
-        self.merged = 1 # Just on the safe side
+                         np.ndarray[np.float64_t, ndim=1] wval,
+                         style):
+        if style == "mip" or style == -1:
+            self.merged = -1
+        elif style == "integrate" or style == 1:
+            self.merged = 1
         cdef int curpos = 0
         cdef QuadTreeNode *root
         self.num_cells = wval.shape[0]
@@ -241,7 +265,7 @@ cdef class QuadTree:
             i = (pos[0] >= fac*(2*node.pos[0]+1))
             j = (pos[1] >= fac*(2*node.pos[1]+1))
             node = node.children[i][j]
-        QTN_add_value(node, val, weight_val, self.nvals)
+        self.combine(node, val, weight_val, self.nvals)
             
     @cython.cdivision(True)
     cdef QuadTreeNode *find_on_root_level(self, np.int64_t pos[2], int level):
@@ -355,12 +379,17 @@ cdef class QuadTree:
                               np.float64_t *vtoadd,
                               np.float64_t wtoadd,
                               int cur_level):
-        cdef int i, j
+        cdef int i, j, n
         if cur_level == level:
             if node.children[0][0] != NULL: return 0
-            for i in range(self.nvals):
-                vdata[self.nvals * curpos + i] = node.val[i] + vtoadd[i]
-            wdata[curpos] = node.weight_val + wtoadd
+            if self.merged == -1:
+                for i in range(self.nvals):
+                    vdata[self.nvals * curpos + i] = fmax(node.val[i], vtoadd[i])
+                wdata[curpos] = 1.0
+            else:
+                for i in range(self.nvals):
+                    vdata[self.nvals * curpos + i] = node.val[i] + vtoadd[i]
+                wdata[curpos] = node.weight_val + wtoadd
             pdata[curpos * 2] = node.pos[0]
             pdata[curpos * 2 + 1] = node.pos[1]
             return 1
@@ -370,8 +399,14 @@ cdef class QuadTree:
             for i in range(self.nvals):
                 vtoadd[i] += node.val[i]
             wtoadd += node.weight_val
+        elif self.merged == -1:
+            for i in range(self.nvals):
+                vtoadd[i] = node.val[i]
         for i in range(2):
             for j in range(2):
+                if self.merged == -1:
+                    for n in range(self.nvals):
+                        vtoadd[n] = node.val[n]
                 added += self.fill_from_level(node.children[i][j],
                         level, curpos + added, pdata, vdata, wdata,
                         vtoadd, wtoadd, cur_level + 1)
@@ -389,7 +424,8 @@ cdef class QuadTree:
             free(self.root_nodes[i])
         free(self.root_nodes)
 
-cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2, int nvals):
+cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2, int nvals,
+                          QTN_combine *func):
     # We have four choices when merging nodes.
     # 1. If both nodes have no refinement, then we add values of n2 to n1.
     # 2. If both have refinement, we call QTN_merge_nodes on all four children.
@@ -398,13 +434,13 @@ cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2, int nvals):
     # 4. If n1 has refinement and n2 does not, we add the value of n2 to n1.
     cdef int i, j
 
-    QTN_add_value(n1, n2.val, n2.weight_val, nvals)
+    func(n1, n2.val, n2.weight_val, nvals)
     if n1.children[0][0] == n2.children[0][0] == NULL:
         pass
     elif n1.children[0][0] != NULL and n2.children[0][0] != NULL:
         for i in range(2):
             for j in range(2):
-                QTN_merge_nodes(n1.children[i][j], n2.children[i][j], nvals)
+                QTN_merge_nodes(n1.children[i][j], n2.children[i][j], nvals, func)
     elif n1.children[0][0] == NULL and n2.children[0][0] != NULL:
         for i in range(2):
             for j in range(2):
@@ -415,14 +451,24 @@ cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2, int nvals):
     else:
         raise RuntimeError
 
-def merge_quadtrees(QuadTree qt1, QuadTree qt2):
+def merge_quadtrees(QuadTree qt1, QuadTree qt2, style = 1):
     cdef int i, j
     qt1.num_cells = 0
+    cdef QTN_combine *func
+    if style == 1:
+        qt1.merged = 1
+        func = QTN_add_value
+    elif style == -1:
+        qt1.merged = -1
+        func = QTN_max_value
+    else:
+        raise NotImplementedError
+    if qt1.merged != 0 or qt2.merged != 0:
+        assert(qt1.merged == qt2.merged)
     for i in range(qt1.top_grid_dims[0]):
         for j in range(qt1.top_grid_dims[1]):
             QTN_merge_nodes(qt1.root_nodes[i][j],
                             qt2.root_nodes[i][j],
-                            qt1.nvals)
+                            qt1.nvals, func)
             qt1.num_cells += qt1.count_total_cells(
                                 qt1.root_nodes[i][j])
-    qt1.merged = 1

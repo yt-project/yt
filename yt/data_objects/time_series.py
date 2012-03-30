@@ -29,7 +29,7 @@ from yt.funcs import *
 from yt.convenience import load
 from .data_containers import data_object_registry
 from .analyzer_objects import create_quantity_proxy, \
-    analysis_task_registry
+    analysis_task_registry, AnalysisTask
 from .derived_quantities import quantity_info
 from yt.utilities.exceptions import YTException
 
@@ -51,11 +51,34 @@ class AnalysisTaskProxy(object):
     def __contains__(self, key):
         return key in analysis_task_registry
 
+def get_pf_prop(propname):
+    def _eval(params, pf):
+        return getattr(pf, propname)
+    cls = type(propname, (AnalysisTask,),
+                dict(eval = _eval, _params = tuple()))
+    return cls
+
+attrs = ("refine_by", "dimensionality", "current_time",
+         "domain_dimensions", "domain_left_edge",
+         "domain_right_edge", "unique_identifier",
+         "current_redshift", "cosmological_simulation",
+         "omega_matter", "omega_lambda", "hubble_constant")
+
+class TimeSeriesParametersContainer(object):
+    def __init__(self, data_object):
+        self.data_object = data_object
+
+    def __getattr__(self, attr):
+        if attr in attrs:
+            return self.data_object.eval(get_pf_prop(attr)())
+        raise AttributeError(attr)
+
 class TimeSeriesData(object):
     def __init__(self, outputs = None):
         if outputs is None: outputs = []
         self.outputs = outputs
         self.tasks = AnalysisTaskProxy(self)
+        self.params = TimeSeriesParametersContainer(self)
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
@@ -77,7 +100,6 @@ class TimeSeriesData(object):
         self.outputs.append(pf)
         
     def eval(self, tasks, obj=None):
-        if obj == None: obj = TimeSeriesDataObject(self, "all_data")
         tasks = ensure_list(tasks)
         return_values = []
         for pf in self:
@@ -88,6 +110,8 @@ class TimeSeriesData(object):
                     if style == 'pf':
                         arg = pf
                     elif style == 'data_object':
+                        if obj == None:
+                            obj = TimeSeriesDataObject(self, "all_data")
                         arg = obj.get(pf)
                     rv = task.eval(arg)
                 # We catch and store YT-originating exceptions

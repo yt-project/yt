@@ -79,3 +79,6 @@ from field_info_container import \
     ValidateGridType, \
     add_field, \
     derived_field
+
+from particle_trajectories import \
+    ParticleTrajectoryCollection

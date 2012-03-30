@@ -710,7 +710,7 @@ class HEALpixCamera(Camera):
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
-    def snapshot(self, fn = None):
+    def snapshot(self, fn = None, clim = None):
         nv = 12*self.nside**2
         image = na.zeros((nv,1,3), dtype='float64', order='C')
         vs = arr_pix2vec_nest(self.nside, na.arange(nv))
@@ -748,6 +748,7 @@ class HEALpixCamera(Camera):
             implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
             cb.set_label(r"$\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+            if clim is not None: cb.set_clim(*clim)
             ax.xaxis.set_ticks(())
             ax.yaxis.set_ticks(())
             canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)

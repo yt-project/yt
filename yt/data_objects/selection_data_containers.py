@@ -41,6 +41,8 @@ from yt.utilities.definitions import \
     x_dict, y_dict, axis_names
 from yt.utilities.exceptions import YTSphereTooSmall
 from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
+from yt.utilities.minimal_representation import \
+    MinimalSliceData
 
 class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
@@ -253,6 +255,10 @@ class YTSliceBase(YTSelectionContainer2D):
     def _gen_node_name(self):
         return "%s/%s_%s" % \
             (self._top_node, self.axis, self.coord)
+
+    @property
+    def _mrep(self):
+        return MinimalSliceData(self)
 
 class YTCuttingPlaneBase(YTSelectionContainer2D):
     _plane = None

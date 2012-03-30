@@ -49,6 +49,16 @@ class YTAxesNotOrthogonalError(YTException):
     def __str__(self):
         return "The supplied axes are not orthogonal.  %s" % (self.axes)
 
+class YTNoDataInObjectError(YTException):
+    def __init__(self, obj):
+        self.obj_type = getattr(obj, "_type_name", "")
+
+    def __str__(self):
+        s = "The object requested has no data included in it."
+        if self.obj_type == "slice":
+            s += "  It may lie on a grid face.  Try offsetting slightly."
+        return s
+
 class YTFieldTypeNotFound(YTException):
     def __init__(self, fname):
         self.fname = fname
