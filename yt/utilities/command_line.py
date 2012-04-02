@@ -1344,7 +1344,7 @@ class YTStatsCmd(YTCommand):
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
-        if args.minfield in pf.h.field_list or args.maxfield in pf.h.field_list:
+        if args.minfield in pf.h.derived_field_list or args.maxfield in pf.h.derived_field_list:
             if args.maxfield != False:
                 v, c = pf.h.find_max(args.maxfield)
                 print "Maximum %s: %0.5e at %s" % (args.maxfield, v, c)
