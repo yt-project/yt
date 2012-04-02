@@ -1327,17 +1327,15 @@ class YTGUICmd(YTCommand):
 
 class YTStatsCmd(YTCommand):
     args = ('outputfn','bn','skip','pf', 'field',
-            dict(long="--max", action='store', const='Density', nargs='?', default=False,
+            dict(long="--max", action='store', default=False,
                  dest='maxfield', help="Display maximum of requested field."),
-            dict(long="--min", action='store', const='Density', nargs='?', default=False,
+            dict(long="--min", action='store', default=False,
                  dest='minfield', help="Display minimum of requested field."))
     name = "stats"
     description = \
         """
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
-
-        (default field is density)
 
         """
 
