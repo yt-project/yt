@@ -342,13 +342,15 @@ class FLASHStaticOutput(StaticOutput):
                 for varname, val in zip(self._handle[hn][:,'name'],
                                         self._handle[hn][:,'value']):
                     vn = varname.strip()
+                    if vn == 'xmin':
+                        pdb.set_trace()
                     if hn.startswith("string") :
                         pval = val.strip()
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
-                        self.parameters[vn] = pval
+                    self.parameters[vn] = pval
         if self._flash_version == 7:
             for hn in hns:
                 if hn not in self._handle:
