@@ -342,8 +342,6 @@ class FLASHStaticOutput(StaticOutput):
                 for varname, val in zip(self._handle[hn][:,'name'],
                                         self._handle[hn][:,'value']):
                     vn = varname.strip()
-                    if vn == 'xmin':
-                        pdb.set_trace()
                     if hn.startswith("string") :
                         pval = val.strip()
                     else :
