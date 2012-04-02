@@ -1328,9 +1328,9 @@ class YTGUICmd(YTCommand):
 class YTStatsCmd(YTCommand):
     args = ('outputfn','bn','skip','pf','field',
             dict(long="--max", action='store_true', default=False,
-                 dest='max', help="Display maximum of requested field."),
+                 dest='max', help="Display maximum of field requested through -f option."),
             dict(long="--min", action='store_true', default=False,
-                 dest='min', help="Display minimum of requested field."))
+                 dest='min', help="Display minimum of field requested through -f option."))
     name = "stats"
     description = \
         """
