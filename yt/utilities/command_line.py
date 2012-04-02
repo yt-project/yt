@@ -1326,29 +1326,31 @@ class YTGUICmd(YTCommand):
                     port=int(args.port), repl=hr)
 
 class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf', 'field',
-            dict(long="--max", action='store', default=False,
-                 dest='maxfield', help="Display maximum of requested field."),
-            dict(long="--min", action='store', default=False,
-                 dest='minfield', help="Display minimum of requested field."))
+    args = ('outputfn','bn','skip','pf','field',
+            dict(long="--max", action='store_true', default=False,
+                 dest='max', help="Display maximum of requested field."),
+            dict(long="--min", action='store_true', default=False,
+                 dest='min', help="Display minimum of requested field."))
     name = "stats"
     description = \
         """
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
 
+        (default field is Density)
+
         """
 
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
-        if args.minfield in pf.h.derived_field_list or args.maxfield in pf.h.derived_field_list:
-            if args.maxfield != False:
-                v, c = pf.h.find_max(args.maxfield)
-                print "Maximum %s: %0.5e at %s" % (args.maxfield, v, c)
-            if args.minfield != False:
-                v, c = pf.h.find_min(args.minfield)
-                print "Minimum %s: %0.5e at %s" % (args.minfield, v, c)
+        if args.field in pf.h.derived_field_list:
+            if args.max == True:
+                v, c = pf.h.find_max(args.field)
+                print "Maximum %s: %0.5e at %s" % (args.field, v, c)
+            if args.min == True:
+                v, c = pf.h.find_min(args.field)
+                print "Minimum %s: %0.5e at %s" % (args.field, v, c)
         if args.output is not None:
             t = pf.current_time * pf['years']
             open(args.output, "a").write(
