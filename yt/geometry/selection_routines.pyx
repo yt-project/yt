@@ -162,10 +162,11 @@ cdef class SelectorObject:
         cdef np.float64_t pos[3], dds[3]
         for i in range(3):
             dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
-        for i in range(3):
-            pos[i] = dds[i]
+        pos[0] = octree.DLE[0] + dds[0]/2.0
         for i in range(octree.nn[0]):
+            pos[1] = octree.DLE[1] + dds[1]/2.0
             for j in range(octree.nn[1]):
+                pos[2] = octree.DLE[2] + dds[2]/2.0
                 for k in range(octree.nn[2]):
                     self.recursively_select_octs(
                         octree.root_mesh[i][j][k],
@@ -177,7 +178,8 @@ cdef class SelectorObject:
 
     cdef void recursively_select_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
-                        np.ndarray[np.uint8_t, ndim=1] mask):
+                        np.ndarray[np.uint8_t, ndim=1] mask,
+                        int level = 0):
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res
         cdef Oct *ch
@@ -185,25 +187,28 @@ cdef class SelectorObject:
         # So, let's check each corner
         for i in range(3):
             sdds[i] = dds[i]/2.0
-            spos[i] = pos[i] - sdds[i]
-            LE[i] = pos[i] - dds[i]
-            RE[i] = pos[i] + dds[i]
+            LE[i] = pos[i] - dds[i]/2.0
+            RE[i] = pos[i] + dds[i]/2.0
+        #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
         res = self.select_grid(LE, RE)
         if res == 0:
             mask[root.local_ind] = 0
             return
         mask[root.local_ind] = 1
         # Now we visit all our children
+        spos[0] = pos[0] - sdds[0]/2.0
         for i in range(2):
+            spos[1] = pos[1] - sdds[1]/2.0
             for j in range(2):
+                spos[2] = pos[2] - sdds[2]/2.0
                 for k in range(2):
                     ch = root.children[i][j][k]
                     if ch != NULL:
                         self.recursively_select_octs(
-                            ch, spos, sdds, mask)
-                    spos[2] += dds[2]
-                spos[1] += dds[1]
-            spos[0] += dds[0]
+                            ch, spos, sdds, mask, level + 1)
+                    spos[2] += sdds[2]
+                spos[1] += sdds[1]
+            spos[0] += sdds[0]
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:

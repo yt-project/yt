@@ -74,7 +74,7 @@ cdef class OctreeContainer:
         self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
         cdef int i, j, k, p
         p = 0
-        self.nocts = self.nn[0] * self.nn[1] * self.nn[2]
+        self.nocts = 0 # Increment when initialized
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
         self.cont = allocate_octs(self.nn[0]*self.nn[1]*self.nn[2], NULL)
         for i in range(3):
