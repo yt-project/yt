@@ -31,7 +31,7 @@ from .data_structures import \
       StreamHandler
 
 from .fields import \
-      StreamFieldContainer, \
+      KnownStreamFields, \
       StreamFieldInfo, \
       add_stream_field
 

@@ -57,4 +57,3 @@ from .boolean_region_tests import \
     TestBooleanANDParticleQuantity, \
     TestBooleanORParticleQuantity, \
     TestBooleanNOTParticleQuantity
-

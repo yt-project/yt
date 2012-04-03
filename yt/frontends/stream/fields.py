@@ -23,28 +23,21 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
-
 from yt.data_objects.field_info_container import \
-    CodeFieldInfoContainer, \
+    FieldInfoContainer, \
+    NullFunc, \
+    TranslationFunc, \
+    FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-from yt.utilities.physical_constants import \
-    mh
-import yt.utilities.amr_utils as amr_utils
 
-class StreamFieldContainer(CodeFieldInfoContainer):
-    """
-    This is a container for Streaming-specific fields.
-    """
-    _shared_state = {}
-    _field_list = {}
-StreamFieldInfo = StreamFieldContainer()
-add_stream_field = StreamFieldInfo.add_field
+KnownStreamFields = FieldInfoContainer()
+add_stream_field = KnownStreamFields.add_field
 
-add_field = add_stream_field
+StreamFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_field = StreamFieldInfo.add_field
 

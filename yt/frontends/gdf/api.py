@@ -40,5 +40,3 @@ from .fields import \
 
 from .io import \
       IOHandlerGDFHDF5
-
-

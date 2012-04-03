@@ -2,6 +2,7 @@ import setuptools
 from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration
 
+
 def configuration(parent_package='', top_path=None):
 
     config = Configuration('delaunay', parent_package, top_path)

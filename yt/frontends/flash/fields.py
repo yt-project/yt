@@ -25,6 +25,8 @@ License:
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
+    NullFunc, \
+    TranslationFunc, \
     FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
@@ -32,8 +34,8 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-
-
+from yt.utilities.physical_constants import \
+    kboltz
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -61,9 +63,8 @@ translation_dict = {"x-velocity": "velx",
                     "y-velocity": "vely",
                     "z-velocity": "velz",
                     "Density": "dens",
-                    "TotalEnergy": "ener",
-                    "GasEnergy": "eint",
                     "Temperature": "temp",
+                    "Pressure" : "pres", 
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",
                     "particle_position_z" : "particle_posz",
@@ -83,7 +84,8 @@ translation_dict = {"x-velocity": "velx",
                     "H2II_Fraction": "htwp",
                     "DI_Fraction": "deut",
                     "DII_Fraction": "dplu",
-                    "ParticleMass": "particle_mass"}
+                    "ParticleMass": "particle_mass",
+                    "Flame_Fraction": "flam"}
 
 def _get_density(fname):
     def _dens(field, data):
@@ -93,107 +95,114 @@ def _get_density(fname):
 for fn1, fn2 in translation_dict.items():
     if fn1.endswith("_Fraction"):
         add_field(fn1.split("_")[0] + "_Density",
-                  function=_get_density(fn1), take_log=True)
-
-def _get_alias(alias):
-    def _alias(field, data):
-        return data[alias]
-    return _alias
-
-def _generate_translation(mine, theirs):
-    pfield = theirs.startswith("particle")
-    add_field(theirs, function=_get_alias(mine), take_log=True,
-              particle_type = pfield)
+                  function=_get_density(fn1), take_log=True,
+                  display_name="%s\/Density" % fn1.split("_")[0])
 
 def _get_convert(fname):
     def _conv(data):
         return data.convert(fname)
     return _conv
 
-add_field("dens", function=lambda a,b: None, take_log=True,
-          convert_function=_get_convert("dens"),
-          units=r"\rm{g}/\rm{cm}^3")
-add_field("xvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("xvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("yvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("yvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("zvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("zvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("particle_xvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("particle_xvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("particle_yvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("particle_yvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("particle_zvel", function=lambda a,b: None, take_log=False,
-          convert_function=_get_convert("particle_zvel"),
-          units=r"\rm{cm}/\rm{s}")
-add_field("temp", function=lambda a,b: None, take_log=True,
-          convert_function=_get_convert("temp"),
-          units=r"\rm{K}")
-add_field("pres", function=lambda a,b: None, take_log=True,
-          convert_function=_get_convert("pres"),
-          units=r"\rm{unknown}")
+add_flash_field("dens", function=NullFunc, take_log=True,
+                convert_function=_get_convert("dens"),
+                units=r"\rm{g}/\rm{cm}^3")
+add_flash_field("velx", function=NullFunc, take_log=False,
+                convert_function=_get_convert("velx"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("vely", function=NullFunc, take_log=False,
+                convert_function=_get_convert("vely"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("velz", function=NullFunc, take_log=False,
+                convert_function=_get_convert("velz"),
+                units=r"\rm{cm}/\rm{s}")
+add_flash_field("ener", function=NullFunc, take_log=True,
+                convert_function=_get_convert("ener"),
+                units=r"\rm{erg}/\rm{g}")
+add_flash_field("eint", function=NullFunc, take_log=True,
+                convert_function=_get_convert("eint"),
+                units=r"\rm{erg}/\rm{g}")
+add_flash_field("particle_posx", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_posx"),
+                units=r"\rm{cm}", particle_type=True)
+add_flash_field("particle_posy", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_posy"),
+                units=r"\rm{cm}", particle_type=True)
+add_flash_field("particle_posz", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_posz"),
+                units=r"\rm{cm}", particle_type=True)
+add_flash_field("particle_velx", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_velx"),
+                units=r"\rm{cm}/\rm{s}", particle_type=True)
+add_flash_field("particle_vely", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_vely"),
+                units=r"\rm{cm}/\rm{s}", particle_type=True)
+add_flash_field("particle_velz", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_velz"),
+                units=r"\rm{cm}/\rm{s}", particle_type=True)
+add_flash_field("particle_tag", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_tag"),
+                particle_type=True)
+add_flash_field("particle_mass", function=NullFunc, take_log=False,
+                convert_function=_get_convert("particle_mass"),
+                units=r"\rm{g}", particle_type=True)
+add_flash_field("temp", function=NullFunc, take_log=True,
+                convert_function=_get_convert("temp"),
+                units=r"\rm{K}")
+add_flash_field("tele", function=NullFunc, take_log=True,
+                convert_function=_get_convert("tele"),
+                units = r"\rm{K}")
+add_flash_field("pres", function=NullFunc, take_log=True,
+                convert_function=_get_convert("pres"),
+                units=r"\rm{erg}\//\/\rm{cm}^{3}")
+add_flash_field("pden", function=NullFunc, take_log=True,
+                convert_function=_get_convert("pden"),
+                units=r"\rm{g}/\rm{cm}^3")
+add_flash_field("magx", function=NullFunc, take_log=False,
+                convert_function=_get_convert("magx"),
+                units = r"\mathrm{Gau\ss}")
+add_flash_field("magy", function=NullFunc, take_log=False,
+                convert_function=_get_convert("magy"),
+                units = r"\mathrm{Gau\ss}")
+add_flash_field("magz", function=NullFunc, take_log=False,
+                convert_function=_get_convert("magz"),
+                units = r"\mathrm{Gau\ss}")
+add_flash_field("magp", function=NullFunc, take_log=True,
+                convert_function=_get_convert("magp"),
+                units = r"\rm{erg}\//\/\rm{cm}^{3}")
+add_flash_field("divb", function=NullFunc, take_log=False,
+                convert_function=_get_convert("divb"),
+                units = r"\mathrm{Gau\ss}\/\rm{cm}")
+add_flash_field("game", function=NullFunc, take_log=False,
+                convert_function=_get_convert("game"),
+                units=r"\rm{ratio\/of\/specific\/heats}")
+add_flash_field("gamc", function=NullFunc, take_log=False,
+                convert_function=_get_convert("gamc"),
+                units=r"\rm{ratio\/of\/specific\/heats}")
+add_flash_field("gpot", function=NullFunc, take_log=False,
+                convert_function=_get_convert("gpot"),
+                units=r"\rm{ergs\//\/g}")
+add_flash_field("gpol", function=NullFunc, take_log=False,
+                convert_function=_get_convert("gpol"),
+                units = r"\rm{ergs\//\/g}")
+add_flash_field("flam", function=NullFunc, take_log=False,
+                convert_function=_get_convert("flam"))
 
 for f,v in translation_dict.items():
-    if v not in FLASHFieldInfo:
+    if v not in KnownFLASHFields:
         pfield = v.startswith("particle")
-        add_field(v, function=lambda a,b: None, take_log=False,
+        add_flash_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)],
                   particle_type = pfield)
-    #print "Setting up translator from %s to %s" % (v, f)
-    _generate_translation(v, f)
-
-add_field("gamc", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gamc")],
-          units = r"\rm{ratio\/of\/specific\/heats}")
-
-add_field("game", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("game")],
-          units = r"\rm{ratio\/of\/specific\/heats}")
-
-add_field("gpot", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gpot")],
-          units = r"\rm{ergs\//\/g}")
-
-add_field("gpol", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gpol")],
-          units = r"\rm{ergs\//\/g}")
-
-add_field("grac", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("grac")],
-          units = r"\rm{cm\/s^{-2}}")
-
-add_field("pden", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("pden")],
-          units = r"\rm{g}\//\/\rm{cm}^{3}")
-
-add_field("pres", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("pres")],
-          units = r"\rm{erg}\//\/\rm{cm}^{3}")
-
-add_field("magx", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("magx")],
-          units = r"\rm{G}")
-
-add_field("magy", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("magy")],
-          units = r"\rm{G}")
-
-add_field("magz", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("magz")],
-          units = r"\rm{G}")
-
-add_field("magp", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("magp")],
-          units = r"\rm{erg}\//\/\rm{cm}^{3}")
-
-add_field("divb", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("divb")],
-          units = r"\rm{G}\/\rm{cm}")
+    if f.endswith("_Fraction") :
+        dname = "%s\/Fraction" % f.split("_")[0]
+    else :
+        dname = f                    
+    ff = KnownFLASHFields[v]
+    pfield = f.startswith("particle")
+    add_field(f, TranslationFunc(v),
+              take_log=KnownFLASHFields[v].take_log,
+              units = ff._units, display_name=dname,
+              particle_type = pfield)
 
 def _convertParticleMassMsun(data):
     return 1.0/1.989e33
@@ -203,3 +212,44 @@ add_field("ParticleMassMsun",
           function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun,
           particle_convert_function=_ParticleMassMsun)
+
+def _ThermalEnergy(fields, data) :
+    try:
+        return data["eint"]
+    except:
+        pass
+    try:
+        return data["Pressure"] / (data.pf["Gamma"] - 1.0) / data["Density"]
+    except:
+        pass
+    if data.has_field_parameter("mu") :
+        mu = data.get_field_parameter("mu")
+    else:
+        mu = 0.6
+    return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf["Gamma"] - 1.0)
+    
+add_field("ThermalEnergy", function=_ThermalEnergy,
+          units=r"\rm{ergs}/\rm{g}")
+
+def _TotalEnergy(fields, data) :
+    try:
+        etot = data["ener"]
+    except:
+        etot = data["ThermalEnergy"] + 0.5 * (
+            data["x-velocity"]**2.0 +
+            data["y-velocity"]**2.0 +
+            data["z-velocity"]**2.0)
+    try:
+        etot += data['magp']/data["Density"]
+    except:
+        pass
+    return etot
+
+add_field("TotalEnergy", function=_TotalEnergy,
+          units=r"\rm{ergs}/\rm{g}")
+
+def _GasEnergy(fields, data) :
+    return data["ThermalEnergy"]
+
+add_field("GasEnergy", function=_GasEnergy, 
+          units=r"\rm{ergs}/\rm{g}")

@@ -24,6 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, os
+import contextlib
 import warnings, struct, subprocess
 from math import floor, ceil
 
@@ -93,6 +94,22 @@ try:
 except ImportError:
     pass
 
+def __memory_fallback(pid):
+    """
+    Get process memory from a system call.
+    """
+    value = os.popen('ps -o rss= -p %d' % pid).read().strip().split('\n')
+    if len(value) == 1: return float(value[0])
+    value.pop(0)
+    for line in value:
+        online = line.split()
+        if online[0] != pid: continue
+        try:
+            return float(online[2])
+        except:
+            return 0.0
+    return 0.0
+
 def get_memory_usage():
     """
     Returning resident size in megabytes
@@ -101,10 +118,10 @@ def get_memory_usage():
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
+        return __memory_fallback(pid) / 1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return float(os.popen('ps -o rss= -p %d' % pid).read()) / 1024
+        return __memory_fallback(pid) / 1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
@@ -471,8 +488,29 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = _get_hg_version(path)[:12]
+    version = get_hg_version(path)[:12]
     return version
+
+def get_version_stack():
+    import numpy, matplotlib, h5py
+    version_info = {}
+    version_info['yt'] = get_yt_version()
+    version_info['numpy'] = numpy.version.version
+    version_info['matplotlib'] = matplotlib.__version__
+    version_info['h5py'] = h5py.version.version
+    return version_info
+
+def get_script_contents():
+    stack = inspect.stack()
+    top_frame = inspect.stack()[-1]
+    finfo = inspect.getframeinfo(top_frame[0])
+    if finfo[2] != "<module>": return None
+    if not os.path.exists(finfo[0]): return None
+    try:
+        contents = open(finfo[0]).read()
+    except:
+        contents = None
+    return contents
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
@@ -520,3 +558,20 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
+def fix_length(length, pf):
+    if isinstance(length, (list, tuple)) and len(length) == 2 and \
+       isinstance(length[1], types.StringTypes):
+       length = length[0]/pf[length[1]]
+    return length
+
+@contextlib.contextmanager
+def parallel_profile(prefix):
+    import cProfile
+    from yt.config import ytcfg
+    fn = "%s_%04i.cprof" % (prefix,
+                ytcfg.getint("yt", "__topcomm_parallel_rank"))
+    p = cProfile.Profile()
+    p.enable()
+    yield
+    p.disable()
+    p.dump_stats(fn)

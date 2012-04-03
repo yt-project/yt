@@ -290,21 +290,21 @@ def generate_flat_octree(pf, fields, subregion_bounds = None):
 
 def generate_levels_octree(pf, fields):
     fields = ensure_list(fields) + ["Ones", "Ones"]
-    ogl, levels_finest, levels_all = initialize_octree_list(fields)
+    ogl, levels_finest, levels_all = initialize_octree_list(pf, fields)
     o_length = na.sum(levels_finest.values())
     r_length = na.sum(levels_all.values())
     output = na.zeros((r_length,len(fields)), dtype='float64')
-    genealogy = na.zeros((r_length, 3), dtype='int32') - 1 # init to -1
+    genealogy = na.zeros((r_length, 3), dtype='int64') - 1 # init to -1
     corners = na.zeros((r_length, 3), dtype='float64')
     position = na.add.accumulate(
                 na.array([0] + [levels_all[v] for v in
-                    sorted(levels_all)[:-1]], dtype='int32'))
+                    sorted(levels_all)[:-1]], dtype='int64'), dtype="int64")
     pp = position.copy()
     amr_utils.RecurseOctreeByLevels(0, 0, 0,
                ogl[0].dimensions[0],
                ogl[0].dimensions[1],
                ogl[0].dimensions[2],
-               position.astype('int32'), 1,
+               position.astype('int64'), 1,
                output, genealogy, corners, ogl)
     return output, genealogy, levels_all, levels_finest, pp, corners
 

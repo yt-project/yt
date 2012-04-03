@@ -134,6 +134,9 @@ class AMRGridPatch(object):
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
+                if f_gz is None:
+                    f_gz = self.pf.field_info[field].get_dependencies(
+                            pf = self.pf).requested
                 gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
                 temp_array = self.pf.field_info[field](gz_grid)
                 sl = [slice(n_gz, -n_gz)] * 3
@@ -364,7 +367,10 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        rf = self.pf.refine_by
+        try:
+            rf = self.pf.refine_by[child.Level-1]
+        except TypeError:
+            rf = self.pf.refine_by
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = na.maximum(0, cgi / rf - gi)
         endIndex = na.minimum((cgi + child.ActiveDimensions) / rf - gi,

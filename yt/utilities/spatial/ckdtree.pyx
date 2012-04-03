@@ -2,15 +2,18 @@
 # Released under the scipy license
 import numpy as np
 cimport numpy as np
-cimport stdlib
+cimport libc.stdlib as stdlib
 cimport cython
 
 import kdtree
 
-cdef double infinity = np.inf
+cdef extern from "stdlib.h":
+    # NOTE that size_t might not be int
+    void *alloca(int)
+
+cdef np.float64_t infinity = np.inf
 
 __all__ = ['cKDTree']
-
 
 # priority queue
 cdef union heapcontents:
@@ -18,7 +21,7 @@ cdef union heapcontents:
     char* ptrdata
 
 cdef struct heapitem:
-    double priority
+    np.float64_t priority
     heapcontents contents
 
 cdef struct heap:
@@ -97,23 +100,23 @@ cdef heapitem heappop(heap* self):
 
 
 # utility functions
-cdef inline double dmax(double x, double y):
+cdef inline np.float64_t dmax(np.float64_t x, np.float64_t y):
     if x>y:
         return x
     else:
         return y
-cdef inline double dabs(double x):
+cdef inline np.float64_t dabs(np.float64_t x):
     if x>0:
         return x
     else:
         return -x
-cdef inline double dmin(double x, double y):
+cdef inline np.float64_t dmin(np.float64_t x, np.float64_t y):
     if x<y:
         return x
     else:
         return y
-cdef inline double _distance_p(double*x,double*y,double p,int k,double upperbound,
-    double*period):
+cdef inline np.float64_t _distance_p(np.float64_t*x,np.float64_t*y,np.float64_t p,int k,np.float64_t upperbound,
+    np.float64_t*period):
     """Compute the distance between x and y
 
     Computes the Minkowski p-distance to the power p between two points.
@@ -123,7 +126,7 @@ cdef inline double _distance_p(double*x,double*y,double p,int k,double upperboun
     Periodicity added by S. Skory.
     """
     cdef int i
-    cdef double r, m
+    cdef np.float64_t r, m
     r = 0
     if p==infinity:
         for i in range(k):
@@ -135,6 +138,12 @@ cdef inline double _distance_p(double*x,double*y,double p,int k,double upperboun
         for i in range(k):
             m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
             r += m
+            if r>upperbound:
+                return r
+    elif p==2:
+        for i in range(k):
+            m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
+            r += m*m
             if r>upperbound:
                 return r
     else:
@@ -151,9 +160,9 @@ cdef inline double _distance_p(double*x,double*y,double p,int k,double upperboun
 cdef struct innernode:
     int split_dim
     int n_points
-    double split
-    double* maxes
-    double* mins
+    np.float64_t split
+    np.float64_t* maxes
+    np.float64_t* mins
     innernode* less
     innernode* greater
 cdef struct leafnode:
@@ -161,14 +170,14 @@ cdef struct leafnode:
     int n_points
     int start_idx
     int end_idx
-    double* maxes
-    double* mins
+    np.float64_t* maxes
+    np.float64_t* mins
 
 # this is the standard trick for variable-size arrays:
-# malloc sizeof(nodeinfo)+self.m*sizeof(double) bytes.
+# malloc sizeof(nodeinfo)+self.m*sizeof(np.float64_t) bytes.
 cdef struct nodeinfo:
     innernode* node
-    double side_distances[0]
+    np.float64_t side_distances[0]
 
 cdef class cKDTree:
     """kd-tree for quick nearest-neighbor lookup
@@ -201,7 +210,7 @@ cdef class cKDTree:
     data : array-like, shape (n,m)
         The n data points of dimension m to be indexed. This array is 
         not copied unless this is necessary to produce a contiguous 
-        array of doubles, and so modifying this data will result in 
+        array of np.float64_ts, and so modifying this data will result in 
         bogus results.
     leafsize : positive integer
         The number of points at which the algorithm switches over to
@@ -211,21 +220,21 @@ cdef class cKDTree:
 
     cdef innernode* tree 
     cdef readonly object data
-    cdef double* raw_data
+    cdef np.float64_t* raw_data
     cdef readonly int n, m
     cdef readonly int leafsize
     cdef readonly object maxes
-    cdef double* raw_maxes
+    cdef np.float64_t* raw_maxes
     cdef readonly object mins
-    cdef double* raw_mins
+    cdef np.float64_t* raw_mins
     cdef object indices
     cdef np.int64_t* raw_indices
     def __init__(cKDTree self, data, int leafsize=10):
-        cdef np.ndarray[double, ndim=2] inner_data
-        cdef np.ndarray[double, ndim=1] inner_maxes
-        cdef np.ndarray[double, ndim=1] inner_mins
+        cdef np.ndarray[np.float64_t, ndim=2] inner_data
+        cdef np.ndarray[np.float64_t, ndim=1] inner_maxes
+        cdef np.ndarray[np.float64_t, ndim=1] inner_mins
         cdef np.ndarray[np.int64_t, ndim=1] inner_indices
-        self.data = np.ascontiguousarray(data,dtype=np.double)
+        self.data = np.ascontiguousarray(data,dtype="float64")
         self.n, self.m = np.shape(self.data)
         self.leafsize = leafsize
         if self.leafsize<1:
@@ -235,27 +244,27 @@ cdef class cKDTree:
         self.indices = np.ascontiguousarray(np.arange(self.n,dtype=np.int64))
 
         inner_data = self.data
-        self.raw_data = <double*>inner_data.data
+        self.raw_data = <np.float64_t*>inner_data.data
         inner_maxes = self.maxes
-        self.raw_maxes = <double*>inner_maxes.data
+        self.raw_maxes = <np.float64_t*>inner_maxes.data
         inner_mins = self.mins
-        self.raw_mins = <double*>inner_mins.data
+        self.raw_mins = <np.float64_t*>inner_mins.data
         inner_indices = self.indices
         self.raw_indices = <np.int64_t*>inner_indices.data
 
         self.tree = self.__build(0, self.n, self.raw_maxes, self.raw_mins)
 
-    cdef innernode* __build(cKDTree self, int start_idx, int end_idx, double* maxes, double* mins):
+    cdef innernode* __build(cKDTree self, int start_idx, int end_idx, np.float64_t* maxes, np.float64_t* mins):
         cdef leafnode* n
         cdef innernode* ni
         cdef int i, j, t, p, q, d
-        cdef double size, split, minval, maxval
-        cdef double*mids
+        cdef np.float64_t size, split, minval, maxval
+        cdef np.float64_t*mids
         if end_idx-start_idx<=self.leafsize:
             n = <leafnode*>stdlib.malloc(sizeof(leafnode))
             # Skory
-            n.maxes = <double*>stdlib.malloc(sizeof(double)*self.m)
-            n.mins = <double*>stdlib.malloc(sizeof(double)*self.m)
+            n.maxes = <np.float64_t*>stdlib.malloc(sizeof(np.float64_t)*self.m)
+            n.mins = <np.float64_t*>stdlib.malloc(sizeof(np.float64_t)*self.m)
             for i in range(self.m):
                 n.maxes[i] = maxes[i]
                 n.mins[i] = mins[i]
@@ -327,7 +336,7 @@ cdef class cKDTree:
             # construct new node representation
             ni = <innernode*>stdlib.malloc(sizeof(innernode))
 
-            mids = <double*>stdlib.malloc(sizeof(double)*self.m)
+            mids = <np.float64_t*>stdlib.malloc(sizeof(np.float64_t)*self.m)
             for i in range(self.m):
                 mids[i] = maxes[i]
             mids[d] = split
@@ -343,8 +352,8 @@ cdef class cKDTree:
             ni.split_dim = d
             ni.split = split
             # Skory
-            ni.maxes = <double*>stdlib.malloc(sizeof(double)*self.m)
-            ni.mins = <double*>stdlib.malloc(sizeof(double)*self.m)
+            ni.maxes = <np.float64_t*>stdlib.malloc(sizeof(np.float64_t)*self.m)
+            ni.mins = <np.float64_t*>stdlib.malloc(sizeof(np.float64_t)*self.m)
             for i in range(self.m):
                 ni.maxes[i] = maxes[i]
                 ni.mins[i] = mins[i]
@@ -366,32 +375,35 @@ cdef class cKDTree:
         self.__free_tree(self.tree)
 
     cdef void __query(cKDTree self, 
-            double*result_distances, 
-            long*result_indices, 
-            double*x, 
+            np.float64_t*result_distances, 
+            np.int64_t*result_indices, 
+            np.float64_t*x, 
             int k, 
-            double eps, 
-            double p, 
-            double distance_upper_bound,
-            double*period):
+            np.float64_t eps, 
+            np.float64_t p, 
+            np.float64_t distance_upper_bound,
+            np.float64_t*period):
+        assert(p == 2)
+        assert(eps == 0.0)
+        assert(distance_upper_bound == infinity)
         cdef heap q
         cdef heap neighbors
 
-        cdef int i, j
-        cdef double t
+        cdef int i, j, i2, j2
+        cdef np.float64_t t, y
         cdef nodeinfo* inf
         cdef nodeinfo* inf2
-        cdef double d
-        cdef double m_left, m_right, m
-        cdef double epsfac
-        cdef double min_distance
-        cdef double far_min_distance
+        cdef np.float64_t d, di
+        cdef np.float64_t m_left, m_right, m
+        cdef np.float64_t epsfac
+        cdef np.float64_t min_distance
+        cdef np.float64_t far_min_distance
         cdef heapitem it, it2, neighbor
         cdef leafnode* node
         cdef innernode* inode
         cdef innernode* near
         cdef innernode* far
-        cdef double* side_distances
+        cdef np.float64_t* side_distances
 
         # priority queue for chasing nodes
         # entries are:
@@ -406,7 +418,7 @@ cdef class cKDTree:
         heapcreate(&neighbors,k)
 
         # set up first nodeinfo
-        inf = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(double)) 
+        inf = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(np.float64_t)) 
         inf.node = self.tree
         for i in range(self.m):
             inf.side_distances[i] = 0
@@ -417,28 +429,15 @@ cdef class cKDTree:
                 t = self.raw_mins[i]-x[i]
                 if t>inf.side_distances[i]:
                     inf.side_distances[i] = t
-            if p!=1 and p!=infinity:
-                inf.side_distances[i]=inf.side_distances[i]**p
+            inf.side_distances[i]=inf.side_distances[i]*inf.side_distances[i]
 
         # compute first distance
         min_distance = 0.
         for i in range(self.m):
-            if p==infinity:
-                min_distance = dmax(min_distance,inf.side_distances[i])
-            else:
-                min_distance += inf.side_distances[i]
+            min_distance += inf.side_distances[i]
 
         # fiddle approximation factor
-        if eps==0:
-            epsfac=1
-        elif p==infinity:
-            epsfac = 1/(1+eps)
-        else:
-            epsfac = 1/(1+eps)**p
-
-        # internally we represent all distances as distance**p
-        if p!=infinity and distance_upper_bound!=infinity:
-            distance_upper_bound = distance_upper_bound**p
+        epsfac=1
 
         while True:
             if inf.node.split_dim==-1:
@@ -446,10 +445,11 @@ cdef class cKDTree:
 
                 # brute-force
                 for i in range(node.start_idx,node.end_idx):
-                    d = _distance_p(
-                            self.raw_data+self.raw_indices[i]*self.m,
-                            x,p,self.m,distance_upper_bound,period)
-                        
+                    d = 0.0
+                    for i2 in range(self.m):
+                        y = self.raw_data[self.raw_indices[i]*self.m + i2]
+                        di = dmin(dabs(x[i2] - y), period[i2] - dabs(x[i2] - y))
+                        d += di*di
                     if d<distance_upper_bound:
                         # replace furthest neighbor
                         if neighbors.n==k:
@@ -500,7 +500,7 @@ cdef class cKDTree:
                 # far child is further by an amount depending only
                 # on the split value; compute its distance and side_distances
                 # and push it on the queue if it's near enough
-                inf2 = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(double)) 
+                inf2 = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(np.float64_t)) 
                 it2.contents.ptrdata = <char*> inf2
                 inf2.node = far
 
@@ -517,17 +517,9 @@ cdef class cKDTree:
 
                 # one side distance changes
                 # we can adjust the minimum distance without recomputing
-                if p == infinity:
-                    # we never use side_distances in the l_infinity case
-                    # inf2.side_distances[inode.split_dim] = dabs(inode.split-x[inode.split_dim])
-                    far_min_distance = dmax(min_distance, m)
-                elif p == 1:
-                    inf2.side_distances[inode.split_dim] = m
-                    far_min_distance = dmax(min_distance, m)
-                else:
-                    inf2.side_distances[inode.split_dim] = m**p
-                    #far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
-                    far_min_distance = m**p
+                inf2.side_distances[inode.split_dim] = m*m
+                #far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
+                far_min_distance = m*m
 
                 it2.priority = far_min_distance
 
@@ -544,16 +536,13 @@ cdef class cKDTree:
         for i in range(neighbors.n-1,-1,-1):
             neighbor = heappop(&neighbors) # FIXME: neighbors may be realloced
             result_indices[i] = neighbor.contents.intdata
-            if p==1 or p==infinity:
-                result_distances[i] = -neighbor.priority
-            else:
-                result_distances[i] = (-neighbor.priority) #**(1./p) S. Skory
+            result_distances[i] = (-neighbor.priority) #**(1./p) S. Skory
 
         heapdestroy(&q)
         heapdestroy(&neighbors)
 
-    def query(cKDTree self, object x, int k=1, double eps=0, double p=2, 
-            double distance_upper_bound=infinity, object period=None):
+    def query(cKDTree self, object x, int k=1, np.float64_t eps=0, np.float64_t p=2, 
+            np.float64_t distance_upper_bound=infinity, object period=None):
         """query(self, x, k=1, eps=0, p=2, distance_upper_bound=np.inf,
            period=None)
         
@@ -592,16 +581,16 @@ cdef class cKDTree:
             Missing neighbors are indicated with self.n.
 
         """
-        cdef np.ndarray[long, ndim=2] ii
-        cdef np.ndarray[double, ndim=2] dd
-        cdef np.ndarray[double, ndim=2] xx
-        cdef np.ndarray[double, ndim=1] cperiod
+        cdef np.ndarray[np.int64_t, ndim=2] ii
+        cdef np.ndarray[np.float64_t, ndim=2] dd
+        cdef np.ndarray[np.float64_t, ndim=2] xx
+        cdef np.ndarray[np.float64_t, ndim=1] cperiod
         cdef int c
-        x = np.asarray(x).astype(np.double)
+        x = np.asarray(x).astype("float64")
         if period is None:
             period = np.array([np.inf]*self.m)
         else:
-            period = np.asarray(period).astype(np.double)
+            period = np.asarray(period).astype("float64")
         cperiod = np.ascontiguousarray(period)
         if np.shape(x)[-1] != self.m:
             raise ValueError("x must consist of vectors of length %d but has shape %s" % (self.m, np.shape(x)))
@@ -616,20 +605,20 @@ cdef class cKDTree:
         n = np.prod(retshape)
         xx = np.reshape(x,(n,self.m))
         xx = np.ascontiguousarray(xx)
-        dd = np.empty((n,k),dtype=np.double)
+        dd = np.empty((n,k),dtype="float64")
         dd.fill(infinity)
-        ii = np.empty((n,k),dtype=np.long)
+        ii = np.empty((n,k),dtype="int64")
         ii.fill(self.n)
         for c in range(n):
             self.__query(
-                    (<double*>dd.data)+c*k,
-                    (<long*>ii.data)+c*k,
-                    (<double*>xx.data)+c*self.m, 
+                    (<np.float64_t*>dd.data)+c*k,
+                    (<np.int64_t*>ii.data)+c*k,
+                    (<np.float64_t*>xx.data)+c*self.m, 
                     k, 
                     eps,
                     p, 
                     distance_upper_bound,
-                    <double*>cperiod.data)
+                    <np.float64_t*>cperiod.data)
         if single:
             if k==1:
                 return dd[0,0], ii[0,0]
@@ -641,7 +630,10 @@ cdef class cKDTree:
             else:
                 return np.reshape(dd,retshape+(k,)), np.reshape(ii,retshape+(k,))
 
-    def chainHOP_get_dens(cKDTree self, object mass, int num_neighbors=65, \
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def chainHOP_get_dens(cKDTree self, object omass, int num_neighbors=65, \
             int nMerge=6):
         """ query the tree for the nearest neighbors, to get the density
             of particles for chainHOP.
@@ -669,38 +661,46 @@ cdef class cKDTree:
         
         """
         
-        # We're no longer returning all the tags in this step.
+        # We're no np.int64_ter returning all the tags in this step.
         # We do it chunked, in find_chunk_nearest_neighbors.
-        #cdef np.ndarray[long, ndim=2] tags
-        cdef np.ndarray[double, ndim=1] dens
-        cdef np.ndarray[double, ndim=1] query
-        cdef np.ndarray[long, ndim=1] tags_temp
-        cdef np.ndarray[double, ndim=1] dist_temp
+        #cdef np.ndarray[np.int64_t, ndim=2] tags
+        cdef np.ndarray[np.float64_t, ndim=1] dens
         cdef int i, pj, j
-        cdef double ih2, fNorm, r2, rs
+        cdef np.float64_t ih2, fNorm, r2, rs
         
-        #tags = np.empty((self.n, nMerge), dtype=np.long)
-        dens = np.empty(self.n, dtype=np.double)
-        query = np.empty(self.m, dtype=np.double)
-        tags_temp = np.empty(num_neighbors, dtype=np.long)
-        dist_temp = np.empty(num_neighbors, dtype=np.double)
-        # Need to start out with zeros before we start adding to it.
-        dens.fill(0.0)
+        #tags = np.empty((self.n, nMerge), dtype="int64")
+        dens = np.zeros(self.n, dtype="float64")
+        cdef np.ndarray[np.float64_t, ndim=2] local_data = self.data
 
-        mass = np.array(mass).astype(np.double)
-        mass = np.ascontiguousarray(mass)
+        cdef np.ndarray[np.float64_t, ndim=1] mass = np.array(omass).astype("float64")
+        cdef np.float64_t ipi = 1.0/np.pi
         
+        cdef np.float64_t *query = <np.float64_t *> alloca(
+                    sizeof(np.float64_t) * self.m)
+        cdef np.float64_t *dist_temp = <np.float64_t *> alloca(
+                    sizeof(np.float64_t) * num_neighbors)
+        cdef np.int64_t *tags_temp = <np.int64_t *> alloca(
+                    sizeof(np.int64_t) * num_neighbors)
+        cdef np.float64_t period[3]
+        for i in range(3): period[i] = 1.0
+
         for i in range(self.n):
-            query = self.data[i]
-            (dist_temp, tags_temp) = self.query(query, k=num_neighbors, period=[1.]*3)
+            for j in range(self.m):
+                query[j] = local_data[i,j]
+            self.__query(dist_temp, tags_temp,
+                         query, num_neighbors, 0.0, 
+                         2, infinity, period)
             
             #calculate the density for this particle
-            ih2 = 4.0/np.max(dist_temp)
-            fNorm = 0.5*np.sqrt(ih2)*ih2/np.pi
+            ih2 = -1
+            for j in range(num_neighbors):
+                ih2 = dmax(ih2, dist_temp[j])
+            ih2 = 4.0/ih2
+            fNorm = 0.5*(ih2**1.5)*ipi
             for j in range(num_neighbors):
                 pj = tags_temp[j]
                 r2 = dist_temp[j] * ih2
-                rs = 2.0 - np.sqrt(r2)
+                rs = 2.0 - (r2**0.5)
                 if (r2 < 1.0):
                     rs = (1.0 - 0.75*rs*r2)
                 else:
@@ -715,6 +715,8 @@ cdef class cKDTree:
         #return (dens, tags)
         return dens
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def find_chunk_nearest_neighbors(cKDTree self, int start, int finish, \
         int num_neighbors=65):
         """ query the tree in chunks, between start and finish, recording the
@@ -738,21 +740,99 @@ cdef class cKDTree:
         
         """
         
-        cdef np.ndarray[long, ndim=2] chunk_tags
-        cdef np.ndarray[double, ndim=1] query
-        cdef np.ndarray[long, ndim=1] tags_temp
-        cdef np.ndarray[double, ndim=1] dist_temp
-        cdef int i
+        cdef np.ndarray[np.int64_t, ndim=2] chunk_tags
+        cdef np.ndarray[np.float64_t, ndim=2] local_data = self.data
+        cdef int i, j
         
-        chunk_tags = np.empty((finish-start, num_neighbors), dtype=np.long)
-        query = np.empty(self.m, dtype=np.double)
-        tags_temp = np.empty(num_neighbors, dtype=np.long)
-        dist_temp = np.empty(num_neighbors, dtype=np.double)
-        
+        chunk_tags = np.empty((finish-start, num_neighbors), dtype="int64")
+        cdef np.float64_t *query = <np.float64_t *> alloca(
+                    sizeof(np.float64_t) * self.m)
+        cdef np.float64_t *dist_temp = <np.float64_t *> alloca(
+                    sizeof(np.float64_t) * num_neighbors)
+        cdef np.int64_t *tags_temp = <np.int64_t *> alloca(
+                    sizeof(np.int64_t) * num_neighbors)
+        cdef np.float64_t period[3]
+        for i in range(3): period[i] = 1.0
+
         for i in range(finish-start):
-            query = self.data[i+start]
-            (dist_temp, tags_temp) = self.query(query, k=num_neighbors, period=[1.]*3)
-            chunk_tags[i,:] = tags_temp[:]
+            for j in range(self.m):
+                query[j] = local_data[i+start,j]
+            self.__query(dist_temp, tags_temp,
+                         query, num_neighbors, 0.0, 
+                         2, infinity, period)
+            for j in range(num_neighbors):
+                chunk_tags[i,j] = tags_temp[j]
         
         return chunk_tags
 
+    def chainHOP_preconnect(self, np.ndarray[np.int64_t, ndim=1] chainID,
+                                  np.ndarray[np.float64_t, ndim=1] density,
+                                  np.ndarray[np.float64_t, ndim=1] densest_in_chain,
+                                  np.ndarray bis_inside,
+                                  np.ndarray bsearch_again,
+                                  np.float64_t peakthresh,
+                                  np.float64_t saddlethresh,
+                                  int nn, int nMerge,
+                                  object chain_map):
+        cdef np.ndarray[np.int32_t, ndim=1] is_inside
+        cdef np.ndarray[np.int32_t, ndim=1] search_again
+        cdef np.ndarray[np.float64_t, ndim=2] pos 
+        cdef np.int64_t thisNN, thisNN_chainID, same_count
+        cdef np.float64_t *query = <np.float64_t *> alloca(
+                    sizeof(np.float64_t) * self.m)
+        cdef np.float64_t *dist_temp = <np.float64_t *> alloca(
+                    sizeof(np.float64_t) * nn)
+        cdef np.int64_t *tags_temp = <np.int64_t *> alloca(
+                    sizeof(np.int64_t) * nn)
+        cdef np.float64_t period[3], thisNN_max_dens, boundary_density
+        cdef int i, j, npart, chainID_i, part_mas_dens
+        is_inside = bis_inside.astype("int32")
+        search_again = bsearch_again.astype("int32")
+        pos = self.data
+        npart = pos.shape[0]
+        for i in range(3): period[i] = 1.0
+        for i in xrange(npart):
+            # Don't consider this particle if it's not part of a chain.
+            if chainID[i] < 0: continue
+            chainID_i = chainID[i]
+            # If this particle is in the padding, don't make a connection.
+            if not is_inside[i]: continue
+            # Find this particle's chain max_dens.
+            part_max_dens = densest_in_chain[chainID_i]
+            # We're only connecting >= peakthresh chains now.
+            if part_max_dens < peakthresh: continue
+            # Loop over nMerge closest nearest neighbors.
+            for j in range(self.m):
+                query[j] = pos[i,j]
+            self.__query(dist_temp, tags_temp,
+                         query, nn, 0.0, 
+                         2, infinity, period)
+            same_count = 0
+            for j in xrange(int(nMerge+1)):
+                thisNN = tags_temp[j+1] # Don't consider ourselves at tags_temp[0]
+                thisNN_chainID = chainID[thisNN]
+                # If our neighbor is in the same chain, move on.
+                # Move on if these chains are already connected:
+                if chainID_i == thisNN_chainID or \
+                        thisNN_chainID in chain_map[chainID_i]:
+                    same_count += 1
+                    continue
+                # Everything immediately below is for
+                # neighboring particles with a chainID. 
+                if thisNN_chainID >= 0:
+                    # Find thisNN's chain's max_dens.
+                    thisNN_max_dens = densest_in_chain[thisNN_chainID]
+                    # We're only linking peakthresh chains
+                    if thisNN_max_dens < peakthresh: continue
+                    # Calculate the two groups boundary density.
+                    boundary_density = (density[thisNN] + density[i]) / 2.
+                    # Don't connect if the boundary is too low.
+                    if boundary_density < saddlethresh: continue
+                    # Mark these chains as related.
+                    chain_map[thisNN_chainID].add(chainID_i)
+                    chain_map[chainID_i].add(thisNN_chainID)
+            if same_count == nMerge + 1:
+                # All our neighbors are in the same chain already, so 
+                # we don't need to search again.
+                search_again[i] = 0
+        return search_again

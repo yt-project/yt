@@ -25,4 +25,3 @@ License:
 """
 
 from .radial_column_density import RadialColumnDensity
-
