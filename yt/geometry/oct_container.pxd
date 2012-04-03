@@ -44,4 +44,4 @@ cdef class OctreeContainer:
     cdef Oct ****root_mesh
     cdef int nn[3]
     cdef np.float64_t DLE[3], DRE[3]
-    cdef int nocts
+    cdef public int nocts

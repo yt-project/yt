@@ -30,7 +30,6 @@ from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 
 cdef OctAllocationContainer *allocate_octs(
         int n_octs, OctAllocationContainer *prev):
-    print "ALLOCATING", n_octs
     cdef OctAllocationContainer *n_cont
     cdef Oct *oct
     cdef int n, i, j, k
@@ -75,6 +74,7 @@ cdef class OctreeContainer:
         self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
         cdef int i, j, k, p
         p = 0
+        self.nocts = self.nn[0] * self.nn[1] * self.nn[2]
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
         self.cont = allocate_octs(self.nn[0]*self.nn[1]*self.nn[2], NULL)
         for i in range(3):
@@ -123,10 +123,11 @@ cdef class OctreeContainer:
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <int> (pp[i]/dds[i])
+                cp[i] = (ind[i] + 0.5) * dds[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             # Now we find the location we want
             # Note that RAMSES I think 1-indexes levels, but we don't.
-            for level in range(curlevel-1):
+            for level in range(curlevel):
                 for i in range(3):
                     dds[i] = dds[i] / 2.0
                     if cp[i] > pp[i]: 
@@ -141,9 +142,9 @@ cdef class OctreeContainer:
                     cur.children[ind[0]][ind[1]][ind[2]] = &oa.my_octs[oi]
                     oi += 1
                     next = cur.children[ind[0]][ind[1]][ind[2]]
-                    next.local_ind = self.nocts
-                    self.nocts += 1
                     next.parent = cur
                 cur = next
             cur.domain = curdom
             cur.ind = index[p]
+            cur.local_ind = self.nocts
+            self.nocts += 1
