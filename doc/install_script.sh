@@ -180,6 +180,17 @@ function host_specific
         echo "$ export CXX=g++-4.2"
         echo
     fi
+    if [ ! -z "${CFLAGS}" ]
+    then
+        echo "******************************************"
+        echo "******************************************"
+        echo "**                                      **"
+        echo "**    Your CFLAGS is not empty.         **"
+        echo "**    This can beak h5py compilation.   **"
+        echo "**                                      **"
+        echo "******************************************"
+        echo "******************************************"
+    fi
 }
 
 
