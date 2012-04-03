@@ -142,7 +142,7 @@ cdef class OctreeContainer:
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             # Now we find the location we want
             # Note that RAMSES I think 1-indexes levels, but we don't.
-            for level in range(curlevel):
+            for level in range(curlevel-1):
                 for i in range(3):
                     dds[i] = dds[i] / 2.0
                     if cp[i] > pp[i]: 
@@ -151,6 +151,7 @@ cdef class OctreeContainer:
                     else:
                         ind[i] = 1
                         cp[i] += dds[i]/2.0
+                # Check if it has not been allocated
                 next = cur.children[ind[0]][ind[1]][ind[2]]
                 if next == NULL:
                     cur.children[ind[0]][ind[1]][ind[2]] = &oa.my_octs[oi]
