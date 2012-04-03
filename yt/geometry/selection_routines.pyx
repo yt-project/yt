@@ -29,6 +29,7 @@ cimport cython
 from stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
 from cython.parallel import prange, parallel, threadid
+from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 #from geometry_utils cimport point_to_hilbert
 
 cdef extern from "math.h":
@@ -155,18 +156,54 @@ cdef class SelectorObject:
                 gridi[n] = self.select_grid(LE, RE)
         return gridi.astype("bool")
 
-    def select_octs(self, int max_level,
-                    np.ndarray[np.float64_t, ndim=1] domain_left_edge,
-                    np.ndarray[np.float64_t, ndim=1] domain_right_edge,
-                    np.ndarray[np.uint64_t, ndim=1] hilbert_indices):
-        cdef int i, n
-        cdef int no = hilbert_indices.shape[0]
-        cdef np.ndarray[np.uint8_t, ndim=1] oct_mask = np.zeros(no, dtype='uint8')
-        cdef np.float64_t LE[3], RE[3]
-        with nogil:
-            pass
-        #return gridi.astype("bool")
+    def select_octs(self, OctreeContainer octree):
+        cdef int i, j, k, n
+        cdef np.ndarray[np.uint8_t, ndim=1] mask = np.zeros(octree.nocts, dtype='uint8')
+        cdef np.float64_t pos[3], dds[3]
+        for i in range(3):
+            dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
+        for i in range(3):
+            pos[i] = dds[i]
+        for i in range(octree.nn[0]):
+            for j in range(octree.nn[1]):
+                for k in range(octree.nn[2]):
+                    self.recursively_select_octs(
+                        octree.root_mesh[i][j][k],
+                        pos, dds, mask)
+                    pos[2] += dds[2]
+                pos[2] += dds[2]
+            pos[2] += dds[2]
+        return mask.astype("bool")
 
+    cdef void recursively_select_octs(self, Oct *root,
+                        np.float64_t pos[3], np.float64_t dds[3],
+                        np.ndarray[np.uint8_t, ndim=1] mask):
+        cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
+        cdef int i, j, k, res
+        cdef Oct *ch
+        # Remember that pos is the *center* of the oct!
+        # So, let's check each corner
+        for i in range(3):
+            sdds[i] = dds[i]/2.0
+            spos[i] = pos[i] - sdds[i]
+            LE[i] = pos[i] - dds[i]
+            RE[i] = pos[i] + dds[i]
+        res = self.select_grid(LE, RE)
+        if res == 0:
+            mask[root.local_ind] = 0
+            return
+        mask[root.local_ind] = 1
+        # Now we visit all our children
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    ch = root.children[i][j][k]
+                    if ch != NULL:
+                        self.recursively_select_octs(
+                            ch, spos, sdds, mask)
+                    spos[2] += dds[2]
+                spos[1] += dds[1]
+            spos[0] += dds[0]
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:

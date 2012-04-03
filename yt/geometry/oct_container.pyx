@@ -26,19 +26,7 @@ License:
 from libc.stdlib cimport malloc, free
 cimport numpy as np
 import numpy as np
-
-cdef struct Oct
-cdef struct Oct:
-    np.int64_t ind          # index
-    np.int64_t domain       # (opt) addl int index
-    Oct *children[2][2][2]
-    Oct *parent
-
-cdef struct OctAllocationContainer
-cdef struct OctAllocationContainer:
-    int n
-    OctAllocationContainer *next
-    Oct *my_octs
+from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 
 cdef OctAllocationContainer *allocate_octs(
         int n_octs, OctAllocationContainer *prev):
@@ -82,10 +70,6 @@ cdef void free_octs(
 #     those octs that live inside a given allocator.
 
 cdef class OctreeContainer:
-    cdef OctAllocationContainer *cont
-    cdef Oct ****root_mesh
-    cdef int nn[3]
-    cdef np.float64_t DLE[3], DRE[3]
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
         self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
@@ -157,6 +141,8 @@ cdef class OctreeContainer:
                     cur.children[ind[0]][ind[1]][ind[2]] = &oa.my_octs[oi]
                     oi += 1
                     next = cur.children[ind[0]][ind[1]][ind[2]]
+                    next.local_ind = self.nocts
+                    self.nocts += 1
                     next.parent = cur
                 cur = next
             cur.domain = curdom
