@@ -33,11 +33,12 @@ from .transfer_functions import ProjectionTransferFunction
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
     arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
     arr_ang2pix_nest, arr_fisheye_vectors, rotate_vectors
-from yt.visualization.image_writer import write_bitmap
+from yt.visualization.image_writer import write_bitmap, apply_colormap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from .blenders import line, enhance
 from numpy import pi
 
 class Camera(ParallelAnalysisInterface):
@@ -251,6 +252,109 @@ class Camera(ParallelAnalysisInterface):
         self.back_center = self.center - 0.5*self.width[0]*self.unit_vectors[2]
         self.front_center = self.center + 0.5*self.width[0]*self.unit_vectors[2]
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
+
+    def project_to_plane(self, pos):
+        dx = na.dot(pos - self.origin, self.unit_vectors[1])
+        dy = na.dot(pos - self.origin, self.unit_vectors[0])
+        # Transpose into image coords.
+        py = (self.resolution[0]*(dx/self.width[0])).astype('int')
+        px = (self.resolution[1]*(dy/self.width[1])).astype('int')
+        return px, py
+
+    def draw_line(self, im, x0, x1, color=na.array([1.0,1.0,1.0,1.0])):
+        #print ' '
+        #print self.origin
+        #print self.unit_vectors
+        #print x0, x1, na.abs(x1-x0).sum()
+        dx0 = ((x0-self.origin)*self.unit_vectors[1]).sum()
+        dx1 = ((x1-self.origin)*self.unit_vectors[1]).sum()
+        dy0 = ((x0-self.origin)*self.unit_vectors[0]).sum()
+        dy1 = ((x1-self.origin)*self.unit_vectors[0]).sum()
+        #print dx0, dx1, dy0, dy1
+        py0 = int(self.resolution[0]*(dx0/self.width[0]))
+        py1 = int(self.resolution[0]*(dx1/self.width[0]))
+        px0 = int(self.resolution[1]*(dy0/self.width[1]))
+        px1 = int(self.resolution[1]*(dy1/self.width[1]))
+        #print 'Drawing line from', px0, px1, py0, py1 
+        line(im, px0, py0, px1, py1, color=color)
+
+    def add_grids(self, im, alpha=0.2, cmap='algae'):
+        levels = self.pf.h.grid_levels[:,0]
+        colors = apply_colormap(levels*1.0,
+                                color_bounds=[0,self.pf.h.max_level],
+                                cmap_name=cmap)*1.0/255.
+        colors = colors[0,:,:]
+        colors[:,3] = alpha
+        print 'c shapes:', colors.shape
+        #balls
+        for color, le, re in zip(colors, self.pf.h.grid_left_edge,
+                self.pf.h.grid_right_edge):
+            self.draw_box(im, le, re, color=color)
+
+    def draw_grids(self,im, alpha=0.3):
+        enhance(im)
+        #alpha = im.max()*alpha
+        print 'Setting alpha to %e' % alpha
+        self.add_grids(im, alpha=alpha, cmap='idl16')
+        #enhance(im)
+
+    def draw_domain(self,im,alpha=0.5):
+        alpha = im.max()*alpha
+        self.draw_box(im, self.pf.domain_left_edge, self.pf.domain_right_edge,
+                        color=na.array([1.0,1.0,1.0,alpha]))
+        
+
+    def draw_box(self, im, le, re, color=na.array([1.0,1.0,1.0,1.0])):
+        self.draw_line(im, 
+                na.array((le[0], le[1], le[2])),
+                na.array((re[0], le[1], le[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((re[0], le[1], le[2])),
+                na.array((re[0], le[1], re[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((re[0], le[1], re[2])),
+                na.array((le[0], le[1], re[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((le[0], le[1], re[2])),
+                na.array((le[0], le[1], le[2])),
+                color=color)
+                    
+        self.draw_line(im, 
+                na.array((le[0], re[1], le[2])),
+                na.array((re[0], re[1], le[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((re[0], re[1], le[2])),
+                na.array((re[0], re[1], re[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((re[0], re[1], re[2])),
+                na.array((le[0], re[1], re[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((le[0], re[1], re[2])),
+                na.array((le[0], re[1], le[2])),
+                color=color)
+
+        self.draw_line(im, 
+                na.array((le[0], le[1], le[2])),
+                na.array((le[0], re[1], le[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((re[0], le[1], le[2])),
+                na.array((re[0], re[1], le[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((le[0], le[1], re[2])),
+                na.array((le[0], re[1], re[2])),
+                color=color)
+        self.draw_line(im, 
+                na.array((re[0], le[1], re[2])),
+                na.array((re[0], re[1], re[2])),
+                color=color)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
