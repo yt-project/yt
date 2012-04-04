@@ -304,6 +304,9 @@ cdef class ImageSampler:
                 free(v_pos)
         return hit
 
+    cdef void setup(self, PartitionedGrid pg):
+        return
+
 cdef void projection_sampler(
                  VolumeContainer *vc, 
                  np.float64_t v_pos[3],
@@ -320,7 +323,7 @@ cdef void projection_sampler(
         im.rgba[i] += vc.data[i][di] * dl
 
 cdef class ProjectionSampler(ImageSampler):
-    def setup(self, PartitionedGrid pg):
+    cdef void setup(self, PartitionedGrid pg):
         self.sampler = projection_sampler
 
 cdef struct VolumeRenderAccumulator:
@@ -553,7 +556,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                 skdc = star_list[i]
                 self.trees[i] = skdc.tree
 
-    def setup(self, PartitionedGrid pg):
+    cdef void setup(self, PartitionedGrid pg):
         if self.trees == NULL:
             self.sampler = volume_render_sampler
         else:
@@ -616,7 +619,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
             self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
         self.supp_data = <void *> self.vra
 
-    def setup(self, PartitionedGrid pg):
+    cdef void setup(self, PartitionedGrid pg):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):

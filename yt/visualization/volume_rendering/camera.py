@@ -1305,7 +1305,7 @@ class MosaicFisheyeCamera(Camera):
 
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None):
+                        field, weight = None, num_threads = 0):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -1596,7 +1596,7 @@ class ProjectionCamera(Camera):
                 grid.id, data,
                 grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
             grid.clear_data()
-            sampler(pg)
+            sampler(pg, num_threads = num_threads)
             pb.update(i)
         pb.finish()
         image = sampler.aimage
