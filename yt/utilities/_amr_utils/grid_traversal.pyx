@@ -262,7 +262,7 @@ cdef class ImageSampler:
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
-            with nogil, parallel():
+            with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))

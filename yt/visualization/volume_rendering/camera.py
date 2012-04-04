@@ -333,7 +333,8 @@ class Camera(ParallelAnalysisInterface):
                 self.unit_vectors[0],
                 self.unit_vectors[1])
 
-    def snapshot(self, fn = None, clip_ratio = None, double_check = False):
+    def snapshot(self, fn = None, clip_ratio = None, double_check = False,
+                 num_threads = 0):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -386,7 +387,7 @@ class Camera(ParallelAnalysisInterface):
                     if na.any(na.isnan(data)):
                         raise RuntimeError
         for brick in self.volume.traverse(self.back_center, self.front_center, image):
-            sampler(brick)
+            sampler(brick, num_threads = num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
