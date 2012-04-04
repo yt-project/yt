@@ -42,6 +42,7 @@ INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
+INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -238,6 +239,10 @@ printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
 echo "be installing PyX"
 
+printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
+get_willwont ${INST_0MQ}
+echo "be installing ZeroMQ"
+
 echo
 
 if [ -z "$HDF5_DIR" ]
@@ -268,7 +273,15 @@ echo
 
 function do_exit
 {
-    echo "Failure.  Check ${LOG_FILE}."
+    echo "********************************************"
+    echo "        FAILURE REPORT:"
+    echo "********************************************"
+    echo
+    tail -n 10 ${LOG_FILE}
+    echo
+    echo "********************************************"
+    echo "********************************************"
+    echo "Failure.  Check ${LOG_FILE}.  The last 10 lines are above."
     exit 1
 }
 
@@ -357,6 +370,9 @@ echo '78715bb2bd7ed3291089948530a59d5eff146a64179eae87904a2c328716f26749abb0c541
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
 echo '5ad681f99e75849a5ca6f439c7a19bb51abc73d121b50f4f8e4c0da42891950f30407f761a53f0fe51b370b1dbd4c4f5a480557cb2444c8c7c7d5412b328a474  sqlite-autoconf-3070500.tar.gz' > sqlite-autoconf-3070500.tar.gz.sha512
 echo 'edae735960279d92acf58e1f4095c6392a7c2059b8f1d2c46648fc608a0fb06b392db2d073f4973f5762c034ea66596e769b95b3d26ad963a086b9b2d09825f2  zlib-1.2.3.tar.bz2' > zlib-1.2.3.tar.bz2.sha512
+echo 'fb3cf421b2dc48c31956b3e3ee4ab6ebc743deec3bf626c2238a1996c8c51be87260bd6aa662793a1f0c34dcda9b3146763777bb162dfad6fec4ca7acc403b2e  zeromq-2.2.0.tar.gz' > zeromq-2.2.0.tar.gz.sha512
+echo 'd761b492352841cdc125d9f0c99ee6d6c435812472ea234728b7f0fb4ad1048e1eec9b399df2081fbc926566f333f7780fedd0ce23255a6633fe5c60ed15a6af  pyzmq-2.1.11.tar.gz' > pyzmq-2.1.11.tar.gz.sha512
+echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254bc76b9b3b14b4aab7c3e1135858f68abc5636daedf2f01f9b8a3cf  tornado-2.2.tar.gz' > tornado-2.2.tar.gz.sha512
 
 # Individual processes
 if [ -z "$HDF5_DIR" ]
@@ -596,6 +612,28 @@ fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
+
+# Now we do our IPython installation, which has two optional dependencies.
+if [ $INST_0MQ -eq 1 ]
+then
+    get_enzotools zeromq-2.2.0.tar.gz
+    get_enzotools pyzmq-2.1.11.tar.gz
+    get_enzotools tornado-2.2.tar.gz
+    if [ ! -e zeromq-2.2.0/done ]
+    then
+        [ ! -e zeromq-2.2.0 ] && tar xfz zeromq-2.2.0.tar.gz
+        echo "Installing ZeroMQ"
+        cd zeromq-2.2.0
+        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+    do_setup_py pyzmq-2.1.11 --zmq=${DEST_DIR}
+    do_setup_py tornado-2.2
+fi
+
 do_setup_py ipython-0.12
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
