@@ -375,18 +375,16 @@ echo 'd761b492352841cdc125d9f0c99ee6d6c435812472ea234728b7f0fb4ad1048e1eec9b399d
 echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254bc76b9b3b14b4aab7c3e1135858f68abc5636daedf2f01f9b8a3cf  tornado-2.2.tar.gz' > tornado-2.2.tar.gz.sha512
 
 # Individual processes
-if [ -z "$HDF5_DIR" ]
-then
-    echo "Downloading HDF5"
-    get_enzotools hdf5-1.8.7.tar.gz
-fi
-
+[ -z "$HDF5_DIR" ] && get_enzotools hdf5-1.8.7.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
 [ $INST_PYX -eq 1 ] && get_enzotools PyX-0.11.1.tar.gz
+[ $INST_0MQ -eq 1 ] && get_enzotools zeromq-2.2.0.tar.gz
+[ $INST_0MQ -eq 1 ] && get_enzotools pyzmq-2.1.11.tar.gz
+[ $INST_0MQ -eq 1 ] && get_enzotools tornado-2.2.tar.gz
 get_enzotools Python-2.7.2.tgz
 get_enzotools numpy-1.6.1.tar.gz
 get_enzotools matplotlib-1.1.0.tar.gz
@@ -616,9 +614,6 @@ fi
 # Now we do our IPython installation, which has two optional dependencies.
 if [ $INST_0MQ -eq 1 ]
 then
-    get_enzotools zeromq-2.2.0.tar.gz
-    get_enzotools pyzmq-2.1.11.tar.gz
-    get_enzotools tornado-2.2.tar.gz
     if [ ! -e zeromq-2.2.0/done ]
     then
         [ ! -e zeromq-2.2.0 ] && tar xfz zeromq-2.2.0.tar.gz
