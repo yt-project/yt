@@ -337,18 +337,6 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             del self._data_file
             self._data_file = None
 
-    def _deserialize_hierarchy(self, harray):
-        # THIS IS BROKEN AND NEEDS TO BE FIXED
-        mylog.debug("Cached entry found.")
-        self.gridDimensions[:] = harray[:,0:3]
-        self.gridStartIndices[:] = harray[:,3:6]
-        self.gridEndIndices[:] = harray[:,6:9]
-        self.gridLeftEdge[:] = harray[:,9:12]
-        self.gridRightEdge[:] = harray[:,12:15]
-        self.gridLevels[:] = harray[:,15:16]
-        self.gridTimes[:] = harray[:,16:17]
-        self.gridNumberOfParticles[:] = harray[:,17:18]
-
     def get_smallest_dx(self):
         """
         Returns (in code units) the smallest cell size in the simulation.
