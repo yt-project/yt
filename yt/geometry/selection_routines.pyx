@@ -191,6 +191,8 @@ cdef class SelectorObject:
             RE[i] = pos[i] + dds[i]/2.0
         #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
         res = self.select_grid(LE, RE)
+        if root.local_ind < 0:
+            raise RuntimeError
         if res == 0:
             mask[root.local_ind] = 0
             return

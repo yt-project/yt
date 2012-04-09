@@ -40,6 +40,7 @@ cdef OctAllocationContainer *allocate_octs(
         oct = &n_cont.my_octs[n]
         oct.parent = NULL
         oct.ind = oct.domain = -1
+        oct.local_ind = -1
         for i in range(2):
             for j in range(2):
                 for k in range(2):
@@ -70,13 +71,17 @@ cdef void free_octs(
 
 cdef class OctreeContainer:
 
-    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
+    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
+                 int initial_allocation = 0):
         self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
         cdef int i, j, k, p
         p = 0
         self.nocts = 0 # Increment when initialized
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
-        self.cont = allocate_octs(self.nn[0]*self.nn[1]*self.nn[2], NULL)
+        if initial_allocation == 0:
+            self.cont = allocate_octs(self.nn[0]*self.nn[1]*self.nn[2], NULL)
+        else:
+            self.cont = allocate_octs(initial_allocation, NULL)
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
         for i in range(self.nn[0]):
@@ -84,8 +89,9 @@ cdef class OctreeContainer:
             for j in range(self.nn[1]):
                 self.root_mesh[i][j] = <Oct **> malloc(sizeof(void*) * self.nn[2])
                 for k in range(self.nn[2]):
-                    self.root_mesh[i][j][k] = &self.cont.my_octs[p]
-                    p += 1
+                    self.root_mesh[i][j][k] = &self.cont.my_octs[self.nocts]
+                    self.root_mesh[i][j][k].local_ind = self.nocts
+                    self.nocts += 1
         # We don't initialize the octs yet
         for i in range(3):
             self.DLE[i] = domain_left_edge[i]
@@ -99,30 +105,31 @@ cdef class OctreeContainer:
             free(self.root_mesh[i])
         free(self.root_mesh)
 
+    def __iter__(self):
+        cdef OctAllocationContainer *cur = self.cont
+        cdef Oct *this
+        cdef int i
+        while cur != NULL:
+            for i in range(cur.n):
+                this = &cur.my_octs[i]
+                yield (this.ind, this.local_ind, this.domain)
+            cur = cur.next
+
     def add_ramses(self, int curdom, int curlevel, int ng,
                    np.ndarray[np.float64_t, ndim=2] pos,
                    np.ndarray[np.int64_t, ndim=1] index,
                    np.ndarray[np.int64_t, ndim=2] cpumap):
-        cdef int level, no, p, i, j, k, oi, ind[3]
+        cdef int level, no, p, i, j, k, ind[3]
         cdef Oct* cur = self.root_mesh[0][0][0]
-        cdef OctAllocationContainer *oa, *nextoa
         cdef np.float64_t pp[3], cp[3], dds[3]
-        cdef int to_allocate = 0
         no = pos.shape[0]
-        nextoa = self.cont
-        while nextoa != NULL:
-            oa = nextoa
-            nextoa = oa.next
-        to_allocate = ng
-        if level > 0:
-            oa = allocate_octs(to_allocate, oa)
-        oi = 0
+        cdef OctAllocationContainer *cont = self.cont
         # How do we bootstrap ourselves?
         for p in range(no):
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <int> (pp[i]/dds[i])
+                ind[i] = <np.int64_t> (pp[i]/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             # Now we find the location we want
@@ -137,14 +144,15 @@ cdef class OctreeContainer:
                         ind[i] = 1
                         cp[i] += dds[i]/2.0
                 # Check if it has not been allocated
+                #print ind[0], ind[1], ind[2]
                 next = cur.children[ind[0]][ind[1]][ind[2]]
                 if next == NULL:
-                    cur.children[ind[0]][ind[1]][ind[2]] = &oa.my_octs[oi]
-                    oi += 1
+                    cur.children[ind[0]][ind[1]][ind[2]] = \
+                        &cont.my_octs[self.nocts]
                     next = cur.children[ind[0]][ind[1]][ind[2]]
+                    next.local_ind = self.nocts
                     next.parent = cur
+                    self.nocts += 1
                 cur = next
             cur.domain = curdom
             cur.ind = index[p]
-            cur.local_ind = self.nocts
-            self.nocts += 1

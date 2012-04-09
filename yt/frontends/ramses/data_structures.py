@@ -67,11 +67,25 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         fn = self.parameter_file.parameter_filename
         output_id = os.path.basename(fn).split(".")[0].split("_")[1]
         self.oct_handler = None
+        self.num_grids = 0
+        self.amr_header = {}
+        total_octs = 0
         for i in range(self.parameter_file['ncpu']):
             fn = os.path.join(base, "amr_%s.out%05i" % (output_id, i + 1))
-            self._read_domain(i + 1, fn)
+            total_octs += self._read_domain_header(i + 1, fn)
+        mylog.debug("Allocating %s octs", total_octs)
+        self.oct_handler = OctreeContainer(self.amr_header[1]['nx'],
+            self.parameter_file.domain_left_edge,
+            self.parameter_file.domain_right_edge,
+            total_octs)
+        for i in range(self.parameter_file['ncpu']):
+            fn = os.path.join(base, "amr_%s.out%05i" % (output_id, i + 1))
+            self._read_domain_amr(i + 1, fn)
+        #assert(total_octs == self.oct_handler.nocts)
+        print "TOTAL", total_octs, self.oct_handler.nocts
+        print "TOTAL", total_octs / float(self.oct_handler.nocts)
 
-    def _read_domain(self, domain, domain_fn):
+    def _read_domain_header(self, domain, domain_fn):
         hvals = {}
         f = open(domain_fn, "rb")
         for header in ramses_header(hvals):
@@ -87,12 +101,17 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         ordering = fpu.read_vector(f, 'c')
         fpu.skip(f, 4)
         # Now we're at the tree itself
-        if self.oct_handler is None:
-            self.oct_handler = OctreeContainer(hvals['nx'],
-                self.parameter_file.domain_left_edge,
-                self.parameter_file.domain_right_edge)
         # Now we iterate over each level and each CPU.
-        mylog.debug("Inspecting domain % 4i", domain)
+        self.amr_header[domain] = hvals
+        self.amr_header[domain]['offset'] = f.tell()
+        return hvals['numbl'][:, domain - 1].sum()
+
+    def _read_domain_amr(self, domain, domain_fn):
+        hvals = self.amr_header[domain]
+        f = open(domain_fn, "rb")
+        f.seek(hvals['offset'])
+        mylog.debug("Reading domain AMR % 4i (%0.3e)", domain,
+            hvals['numbl'][:, domain - 1].sum())
         for level in range(hvals['nlevelmax']):
             # Easier if do this 1-indexed
             for cpu in range(hvals['nboundary'] + hvals['ncpu']):
@@ -102,14 +121,15 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                     ng = ngridbound[cpu - hvals['ncpu'] + hvals['nboundary']*level]
                 if ng == 0: continue
                 ind = fpu.read_vector(f, "I").astype("int64")
+                #print level, cpu, ind.min(), ind.max(), ind.size
                 fpu.skip(f, 2)
                 pos = na.empty((ng, 3), dtype='float64')
-                v1 = fpu.read_vector(f, "d")
-                v2 = fpu.read_vector(f, "d")
-                v3 = fpu.read_vector(f, "d")
-                pos[:,0] = v1
-                pos[:,1] = v2
-                pos[:,2] = v3
+                pos[:,0] = fpu.read_vector(f, "d")
+                pos[:,1] = fpu.read_vector(f, "d")
+                pos[:,2] = fpu.read_vector(f, "d")
+                pos *= self.parameter_file.domain_width
+                #pos += self.parameter_file.domain_left_edge
+                #print pos.min(), pos.max()
                 parents = fpu.read_vector(f, "I")
                 fpu.skip(f, 6)
                 children = na.empty((ng, 8), dtype='int64')
@@ -121,8 +141,15 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                 rmap = na.empty((ng, 8), dtype="int64")
                 for i in range(8):
                     rmap[:,i] = fpu.read_vector(f, "I")
-                if cpu + 1 == domain:
+                # We don't want duplicate grids.
+                if cpu + 1 == domain: 
+                    assert(pos.shape[0] == ng)
+                    self.num_grids += ng
                     self.oct_handler.add_ramses(domain, level, ng, pos, ind, cpu_map)
+        cur = f.tell()
+        f.seek(0, os.SEEK_END)
+        end = f.tell()
+        assert(cur == end)
 
     def _detect_fields(self):
         # TODO: Add additional fields
