@@ -27,6 +27,7 @@ from libc.stdlib cimport malloc, free
 cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+cimport cython
 
 cdef OctAllocationContainer *allocate_octs(
         int n_octs, OctAllocationContainer *prev):
@@ -75,6 +76,7 @@ cdef class OctreeContainer:
                  int initial_allocation = 0):
         self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
         cdef int i, j, k, p
+        self.max_domain = -1
         p = 0
         self.nocts = 0 # Increment when initialized
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
@@ -82,6 +84,8 @@ cdef class OctreeContainer:
             self.cont = allocate_octs(self.nn[0]*self.nn[1]*self.nn[2], NULL)
         else:
             self.cont = allocate_octs(initial_allocation, NULL)
+            for i in range(initial_allocation):
+                self.cont.my_octs[i].local_ind = i
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
         for i in range(self.nn[0]):
@@ -90,7 +94,6 @@ cdef class OctreeContainer:
                 self.root_mesh[i][j] = <Oct **> malloc(sizeof(void*) * self.nn[2])
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = &self.cont.my_octs[self.nocts]
-                    self.root_mesh[i][j][k].local_ind = self.nocts
                     self.nocts += 1
         # We don't initialize the octs yet
         for i in range(3):
@@ -115,16 +118,49 @@ cdef class OctreeContainer:
                 yield (this.ind, this.local_ind, this.domain)
             cur = cur.next
 
-    def add_ramses(self, int curdom, int curlevel, int ng,
-                   np.ndarray[np.float64_t, ndim=2] pos,
-                   np.ndarray[np.int64_t, ndim=1] index,
-                   np.ndarray[np.int64_t, ndim=2] cpumap):
+cdef class RAMSESOctreeContainer(OctreeContainer):
+
+    def domain_count(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask):
+        cdef int n = mask.shape[0]
+        cdef int i
+        cdef OctAllocationContainer *cur = self.cont
+        assert(cur.next == NULL) # Not ready for multiple yet
+        cdef np.ndarray[np.int64_t, ndim=1] count
+        count = np.zeros(self.max_domain, 'int64')
+        for i in range(n):
+            if mask[i] == 1:
+                count[cur.my_octs[i].domain - 1] += 1
+        return count
+
+    def indices(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask, int domain):
+        cdef int n = mask.shape[0]
+        cdef int i, p
+        p = 0
+        cdef OctAllocationContainer *cur = self.cont
+        assert(cur.next == NULL) # Not ready for multiple yet
+        cdef np.ndarray[np.int64_t, ndim=2] inds
+        inds = np.empty((mask.sum(), 2), 'int64')
+        for i in range(n):
+            if mask[i] == 1:
+                inds[p, 0] = cur.my_octs[i].domain
+                inds[p, 1] = cur.my_octs[i].ind
+                p += 1
+        return inds
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def add(self, int curdom, int curlevel, int ng,
+            np.ndarray[np.float64_t, ndim=2] pos,
+            np.ndarray[np.int64_t, ndim=1] index,
+            np.ndarray[np.int64_t, ndim=2] cpumap):
         cdef int level, no, p, i, j, k, ind[3]
         cdef Oct* cur = self.root_mesh[0][0][0]
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0]
         cdef OctAllocationContainer *cont = self.cont
         # How do we bootstrap ourselves?
+        if curdom > self.max_domain: self.max_domain = curdom
         for p in range(no):
             for i in range(3):
                 pp[i] = pos[p, i]
@@ -150,9 +186,9 @@ cdef class OctreeContainer:
                     cur.children[ind[0]][ind[1]][ind[2]] = \
                         &cont.my_octs[self.nocts]
                     next = cur.children[ind[0]][ind[1]][ind[2]]
-                    next.local_ind = self.nocts
                     next.parent = cur
                     self.nocts += 1
                 cur = next
             cur.domain = curdom
             cur.ind = index[p]
+

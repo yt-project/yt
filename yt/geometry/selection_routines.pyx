@@ -156,6 +156,9 @@ cdef class SelectorObject:
                 gridi[n] = self.select_grid(LE, RE)
         return gridi.astype("bool")
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
         cdef int i, j, k, n
         cdef np.ndarray[np.uint8_t, ndim=1] mask = np.zeros(octree.nocts, dtype='uint8')
@@ -176,6 +179,9 @@ cdef class SelectorObject:
             pos[2] += dds[2]
         return mask.astype("bool")
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void recursively_select_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
                         np.ndarray[np.uint8_t, ndim=1] mask,
@@ -191,8 +197,6 @@ cdef class SelectorObject:
             RE[i] = pos[i] + dds[i]/2.0
         #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
         res = self.select_grid(LE, RE)
-        if root.local_ind < 0:
-            raise RuntimeError
         if res == 0:
             mask[root.local_ind] = 0
             return

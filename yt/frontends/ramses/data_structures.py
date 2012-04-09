@@ -47,7 +47,7 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
-    OctreeContainer
+    RAMSESOctreeContainer
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):
 
@@ -74,7 +74,8 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             fn = os.path.join(base, "amr_%s.out%05i" % (output_id, i + 1))
             total_octs += self._read_domain_header(i + 1, fn)
         mylog.debug("Allocating %s octs", total_octs)
-        self.oct_handler = OctreeContainer(self.amr_header[1]['nx'],
+        self.oct_handler = RAMSESOctreeContainer(
+            self.amr_header[1]['nx'],
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge,
             total_octs)
@@ -145,7 +146,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                 if cpu + 1 == domain: 
                     assert(pos.shape[0] == ng)
                     self.num_grids += ng
-                    self.oct_handler.add_ramses(domain, level, ng, pos, ind, cpu_map)
+                    self.oct_handler.add(domain, level, ng, pos, ind, cpu_map)
         cur = f.tell()
         f.seek(0, os.SEEK_END)
         end = f.tell()
