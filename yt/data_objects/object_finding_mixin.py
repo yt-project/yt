@@ -211,7 +211,7 @@ class ObjectFindingMixin(object):
         get_box_grids_below_level(left_edge, right_edge,
                             level,
                             self.grid_left_edge, self.grid_right_edge,
-                            self.grid_levels, mask)
+                            self.grid_levels.astype("int32"), mask)
         mask = mask.astype("bool")
         return self.grids[mask], na.where(mask)
 
