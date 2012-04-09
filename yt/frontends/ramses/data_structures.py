@@ -35,11 +35,8 @@ from yt.geometry.oct_geometry_handler import \
 from yt.data_objects.static_output import \
       StaticOutput
 
-try:
-    import _ramses_reader
-except ImportError:
-    _ramses_reader = None
 from .fields import RAMSESFieldInfo, KnownRAMSESFields
+from .definitions import ramses_header
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.amr_utils import \
@@ -48,6 +45,9 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+import yt.utilities.fortran_utils as fpu
+from yt.geometry.oct_container import \
+    OctreeContainer
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):
 
@@ -57,31 +57,82 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self.tree_proxy = pf.ramses_tree
 
         self.float_type = na.float64
         super(RAMSESGeometryHandler, self).__init__(pf, data_style)
 
+    def _initialize_oct_handler(self):
+        # We have a standard filename 
+        base = os.path.dirname(self.parameter_file.parameter_filename)
+        fn = self.parameter_file.parameter_filename
+        output_id = os.path.basename(fn).split(".")[0].split("_")[1]
+        self.oct_handler = None
+        for i in range(self.parameter_file['ncpu']):
+            fn = os.path.join(base, "amr_%s.out%05i" % (output_id, i + 1))
+            self._read_domain(i + 1, fn)
+
+    def _read_domain(self, domain, domain_fn):
+        hvals = {}
+        f = open(domain_fn, "rb")
+        for header in ramses_header(hvals):
+            hvals.update(fpu.read_attrs(f, header))
+        # That's the header, now we skip a few.
+        hvals['numbl'] = na.array(hvals['numbl']).reshape(
+            (hvals['nlevelmax'], hvals['ncpu']))
+        fpu.skip(f)
+        if hvals['nboundary'] > 0:
+            fpu.skip(f, 2)
+            ngridbound = fpu.read_vector(f, 'i')
+        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
+        ordering = fpu.read_vector(f, 'c')
+        fpu.skip(f, 4)
+        # Now we're at the tree itself
+        if self.oct_handler is None:
+            self.oct_handler = OctreeContainer(hvals['nx'],
+                self.parameter_file.domain_left_edge,
+                self.parameter_file.domain_right_edge)
+        # Now we iterate over each level and each CPU.
+        mylog.debug("Inspecting domain % 4i", domain)
+        for level in range(hvals['nlevelmax']):
+            # Easier if do this 1-indexed
+            for cpu in range(hvals['nboundary'] + hvals['ncpu']):
+                if cpu < hvals['ncpu']:
+                    ng = hvals['numbl'][level, cpu]
+                else:
+                    ng = ngridbound[cpu - hvals['ncpu'] + hvals['nboundary']*level]
+                if ng == 0: continue
+                ind = fpu.read_vector(f, "I").astype("int64")
+                fpu.skip(f, 2)
+                pos = na.empty((ng, 3), dtype='float64')
+                v1 = fpu.read_vector(f, "d")
+                v2 = fpu.read_vector(f, "d")
+                v3 = fpu.read_vector(f, "d")
+                pos[:,0] = v1
+                pos[:,1] = v2
+                pos[:,2] = v3
+                parents = fpu.read_vector(f, "I")
+                fpu.skip(f, 6)
+                children = na.empty((ng, 8), dtype='int64')
+                for i in range(8):
+                    children[:,i] = fpu.read_vector(f, "I")
+                cpu_map = na.empty((ng, 8), dtype="int64")
+                for i in range(8):
+                    cpu_map[:,i] = fpu.read_vector(f, "I")
+                rmap = na.empty((ng, 8), dtype="int64")
+                for i in range(8):
+                    rmap[:,i] = fpu.read_vector(f, "I")
+                if cpu + 1 == domain:
+                    self.oct_handler.add_ramses(domain, level, ng, pos, ind, cpu_map)
+
     def _detect_fields(self):
-        self.field_list = self.tree_proxy.field_names[:]
+        # TODO: Add additional fields
+        self.field_list = [ "Density", "x-velocity", "y-velocity",
+	                        "z-velocity", "Pressure", "Metallicity"]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        super(RAMSESGeometryHandler, self)._setup_classes(dd)
         self.object_types.sort()
-
-    def _count_octs(self):
-        self.level_info = self.tree_proxy.count_zones()
-        self.num_octs = sum(self.level_info)
-
-    def _initialize_octree(self):
-        #octree = self._create_octree_structure(
-        self.tree_proxy.fill_hierarchy_arrays(
-            self.pf.domain_dimensions,
-            self.oct_levels, self.oct_file_locations, 
-            self.oct_hilbert_indices, self.oct_refined,
-            self.pf.domain_left_edge, self.pf.domain_right_edge)
-        self.max_level = self.oct_levels.max()
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESGeometryHandler
@@ -91,7 +142,6 @@ class RAMSESStaticOutput(StaticOutput):
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
-        import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
@@ -138,8 +188,25 @@ class RAMSESStaticOutput(StaticOutput):
 
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        self.ramses_tree = _ramses_reader.RAMSES_tree_proxy(self.parameter_filename)
-        rheader = self.ramses_tree.get_file_info()
+        # We now execute the same logic Oliver's code does
+        rheader = {}
+        f = open(self.parameter_filename)
+        def read_rhs(cast):
+            line = f.readline()
+            p, v = line.split("=")
+            rheader[p.strip()] = cast(v)
+        for i in range(6): read_rhs(int)
+        f.readline()
+        for i in range(11): read_rhs(float)
+        f.readline()
+        read_rhs(str)
+        # Now we read the hilber indices
+        self.hilbert_indices = {}
+        if rheader['ordering type'] == "hilbert":
+            f.readline() # header
+            for n in range(rheader['ncpu']):
+                dom, mi, ma = f.readline().split()
+                self.hilbert_indices[int(dom)] = (float(mi), float(ma))
         self.parameters.update(rheader)
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_right_edge = na.ones(3, dtype='float64') \

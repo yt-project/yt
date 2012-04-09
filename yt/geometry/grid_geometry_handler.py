@@ -40,11 +40,10 @@ from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
-from object_finding_mixin import ObjectFindingMixin
 
 from yt.data_objects.data_containers import data_object_registry
 
-class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
+class GridGeometryHandler(GeometryHandler):
     float_type = 'float64'
 
     def _setup_geometry(self):
@@ -92,18 +91,6 @@ class GridGeometryHandler(ObjectFindingMixin, GeometryHandler):
         """
         for g in self.grids: g.clear_data()
         self.io.queue.clear()
-
-    def _deserialize_hierarchy(self, harray):
-        # THIS IS BROKEN AND NEEDS TO BE FIXED
-        mylog.debug("Cached entry found.")
-        self.gridDimensions[:] = harray[:,0:3]
-        self.gridStartIndices[:] = harray[:,3:6]
-        self.gridEndIndices[:] = harray[:,6:9]
-        self.gridLeftEdge[:] = harray[:,9:12]
-        self.gridRightEdge[:] = harray[:,12:15]
-        self.gridLevels[:] = harray[:,15:16]
-        self.gridTimes[:] = harray[:,16:17]
-        self.gridNumberOfParticles[:] = harray[:,17:18]
 
     def get_smallest_dx(self):
         """

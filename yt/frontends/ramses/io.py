@@ -33,10 +33,6 @@ from yt.utilities.logger import ytLogger as mylog
 class IOHandlerRAMSES(BaseIOHandler):
     _data_style = "ramses"
 
-    def __init__(self, ramses_tree, *args, **kwargs):
-        self.ramses_tree = ramses_tree
-        BaseIOHandler.__init__(self, *args, **kwargs)
-
     def _read_data_set(self, grid, field):
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
         filled = na.zeros(grid.ActiveDimensions, dtype='int32')

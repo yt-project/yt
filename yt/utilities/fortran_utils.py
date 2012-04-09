@@ -25,6 +25,7 @@ License:
 
 import struct
 import numpy as na
+import os
 
 def read_attrs(f, attrs):
     r"""This function accepts a file pointer and reads from that file pointer
@@ -72,7 +73,6 @@ def read_attrs(f, attrs):
                     s1, s2, a, b, n, size)
             raise RuntimeError
         assert(s1 == s2)
-        print s1, s2, a, b, n
         if b == 1: v = v[0]
         vv[a] = v
     return vv
