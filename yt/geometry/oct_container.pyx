@@ -27,7 +27,12 @@ from libc.stdlib cimport malloc, free
 cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from selection_routines cimport SelectorObject
 cimport cython
+
+cdef extern from "stdlib.h":
+    # NOTE that size_t might not be int
+    void *alloca(int)
 
 cdef OctAllocationContainer *allocate_octs(
         int n_octs, OctAllocationContainer *prev):
@@ -94,6 +99,9 @@ cdef class OctreeContainer:
                 self.root_mesh[i][j] = <Oct **> malloc(sizeof(void*) * self.nn[2])
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = &self.cont.my_octs[self.nocts]
+                    self.root_mesh[i][j][k].pos[0] = i
+                    self.root_mesh[i][j][k].pos[1] = j
+                    self.root_mesh[i][j][k].pos[2] = k
                     self.nocts += 1
         # We don't initialize the octs yet
         for i in range(3):
@@ -120,19 +128,78 @@ cdef class OctreeContainer:
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
 
-    def domain_count(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
+                     split = False):
         cdef int n = mask.shape[0]
-        cdef int i
+        cdef int i, dom
         cdef OctAllocationContainer *cur = self.cont
+        cdef np.ndarray[np.int64_t, ndim=1] tind
         assert(cur.next == NULL) # Not ready for multiple yet
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain, 'int64')
         for i in range(n):
             if mask[i] == 1:
                 count[cur.my_octs[i].domain - 1] += 1
+        if split == False:
+            return count
+        # Now we split them up.
+        cdef np.int64_t **arrs = <np.int64_t **> malloc(sizeof(np.int64_t *)
+                * self.max_domain)
+        cdef np.int64_t *aind = <np.int64_t *> malloc(sizeof(np.int64_t) 
+                * self.max_domain)
+        tr = []
+        for i in range(self.max_domain):
+            tind = np.empty(count[i], 'int64')
+            tr.append(tind)
+            arrs[i] = <np.int64_t *> tind.data
+            aind[i] = 0
+        for i in range(n):
+            if mask[i] == 1:
+                dom = cur.my_octs[i].domain - 1
+                arrs[dom][aind[dom]] = i
+                aind[dom] += 1
+        free(arrs)
+        free(aind)
+        return tr
+
+    def count_cells(self, SelectorObject selector,
+              np.ndarray[np.uint8_t, ndim=1, cast=True] mask):
+        cdef int i, j, k, oi
+        cdef np.int64_t count = 0
+        # pos here is CELL center, not OCT center.
+        cdef np.float64_t pos[3]
+        cdef int n = mask.shape[0]
+        cdef np.float64_t base_dx[3], dx[3]
+        cdef int eterm[3]
+        assert(self.cont.next == NULL)
+        for i in range(3):
+            # This is the base_dx, but not the base distance from the center
+            # position.  Note that the positions will also all be offset by
+            # dx/2.0.
+            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+        for oi in range(n):
+            if mask[oi] == 0: continue
+            o = self.cont.my_octs[oi]
+            for i in range(3):
+                # This gives the *grid* width for this level
+                dx[i] = base_dx[i] / (2 << o.level)
+                pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
+                dx[i] = dx[i] / 2.0 # This is now the *offset* between cells
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if o.children[i][j][k] != NULL: continue # child mask
+                        count += selector.select_cell(pos, dx, eterm)
+                        pos[2] += dx[2]
+                    pos[1] += dx[1]
+                pos[0] += dx[0]
         return count
 
-    def indices(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask, int domain):
+    def domain_indices(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
+                       int domain):
         cdef int n = mask.shape[0]
         cdef int i, p
         p = 0
@@ -187,8 +254,11 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         &cont.my_octs[self.nocts]
                     next = cur.children[ind[0]][ind[1]][ind[2]]
                     next.parent = cur
+                    for i in range(3):
+                        next.pos[i] = ind[i] + cur.pos[i] * 2
+                    next.level = level + 1
                     self.nocts += 1
                 cur = next
             cur.domain = curdom
             cur.ind = index[p]
-
+            cur.level = curlevel

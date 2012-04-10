@@ -30,6 +30,7 @@ import h5py
 from exceptions import IOError, TypeError
 from types import ClassType
 import numpy as na
+import abc
 
 from yt.funcs import *
 from yt.config import ytcfg
@@ -388,7 +389,6 @@ class YTDataChunk(object):
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
         return self._fcoords
-
 
     _icoords = None
     @property

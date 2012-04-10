@@ -1,11 +1,11 @@
 """
-Oct definitions file
+Geometry selection routine imports.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -26,25 +26,16 @@ License:
 cimport numpy as np
 
 cdef struct Oct
-cdef struct Oct:
-    np.int64_t ind          # index
-    np.int64_t local_ind
-    np.int64_t domain       # (opt) addl int index
-    np.int64_t pos[3]       # position in ints
-    np.uint8_t level
-    Oct *children[2][2][2]
-    Oct *parent
 
-cdef struct OctAllocationContainer
-cdef struct OctAllocationContainer:
-    int n
-    OctAllocationContainer *next
-    Oct *my_octs
-
-cdef class OctreeContainer:
-    cdef OctAllocationContainer *cont
-    cdef Oct ****root_mesh
-    cdef int nn[3]
-    cdef np.float64_t DLE[3], DRE[3]
-    cdef public int nocts
-    cdef int max_domain
+cdef class SelectorObject:
+    cdef void recursively_select_octs(self, Oct *root,
+                        np.float64_t pos[3], np.float64_t dds[3],
+                        np.ndarray[np.uint8_t, ndim=1] mask,
+                        int level = ?)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check)

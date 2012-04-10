@@ -31,9 +31,11 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
 from yt.geometry.oct_geometry_handler import \
-      OctreeGeometryHandler
+    OctreeGeometryHandler
+from yt.geometry.geometry_handler import \
+    GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
-      StaticOutput
+    StaticOutput
 
 from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from .definitions import ramses_header
@@ -49,46 +51,22 @@ import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 
-class RAMSESGeometryHandler(OctreeGeometryHandler):
+class RAMSESDomainFile(object):
+    def __init__(self, pf, domain_id):
+        self.pf = pf
+        self.domain_id = domain_id
+        num = os.path.basename(pf.parameter_filename).split("."
+                )[0].split("_")[1]
+        basename = "%s/%%s_%s.out%05i" % (
+            os.path.dirname(pf.parameter_filename),
+            num, domain_id)
+        for t in ['grav', 'hydro', 'part', 'amr']:
+            setattr(self, "%s_fn" % t, basename % t)
+        self._read_amr_header()
 
-    def __init__(self, pf, data_style='ramses'):
-        self.data_style = data_style
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
-
-        self.float_type = na.float64
-        super(RAMSESGeometryHandler, self).__init__(pf, data_style)
-
-    def _initialize_oct_handler(self):
-        # We have a standard filename 
-        base = os.path.dirname(self.parameter_file.parameter_filename)
-        fn = self.parameter_file.parameter_filename
-        output_id = os.path.basename(fn).split(".")[0].split("_")[1]
-        self.oct_handler = None
-        self.num_grids = 0
-        self.amr_header = {}
-        total_octs = 0
-        for i in range(self.parameter_file['ncpu']):
-            fn = os.path.join(base, "amr_%s.out%05i" % (output_id, i + 1))
-            total_octs += self._read_domain_header(i + 1, fn)
-        mylog.debug("Allocating %s octs", total_octs)
-        self.oct_handler = RAMSESOctreeContainer(
-            self.amr_header[1]['nx'],
-            self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge,
-            total_octs)
-        for i in range(self.parameter_file['ncpu']):
-            fn = os.path.join(base, "amr_%s.out%05i" % (output_id, i + 1))
-            self._read_domain_amr(i + 1, fn)
-        #assert(total_octs == self.oct_handler.nocts)
-        print "TOTAL", total_octs, self.oct_handler.nocts
-        print "TOTAL", total_octs / float(self.oct_handler.nocts)
-
-    def _read_domain_header(self, domain, domain_fn):
+    def _read_amr_header(self):
         hvals = {}
-        f = open(domain_fn, "rb")
+        f = open(self.amr_fn, "rb")
         for header in ramses_header(hvals):
             hvals.update(fpu.read_attrs(f, header))
         # That's the header, now we skip a few.
@@ -103,23 +81,26 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         fpu.skip(f, 4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
-        self.amr_header[domain] = hvals
-        self.amr_header[domain]['offset'] = f.tell()
-        return hvals['numbl'][:, domain - 1].sum()
+        self.amr_header = hvals
+        self.amr_offset = f.tell()
+        self.local_oct_count = hvals['numbl'][:, self.domain_id - 1].sum()
 
-    def _read_domain_amr(self, domain, domain_fn):
-        hvals = self.amr_header[domain]
-        f = open(domain_fn, "rb")
-        f.seek(hvals['offset'])
-        mylog.debug("Reading domain AMR % 4i (%0.3e)", domain,
-            hvals['numbl'][:, domain - 1].sum())
-        for level in range(hvals['nlevelmax']):
+    def _read_amr(self, oct_handler):
+        f = open(self.amr_fn, "rb")
+        f.seek(self.amr_offset)
+        mylog.debug("Reading domain AMR % 4i (%0.3e)",
+            self.domain_id, self.local_oct_count)
+        def _ng(c, l):
+            if c < self.amr_header['ncpu']:
+                ng = self.amr_header['numbl'][l, c]
+            else:
+                ng = ngridbound[c - self.amr_header['ncpu'] +
+                                self.amr_header['nboundary']*l]
+            return ng
+        for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
-            for cpu in range(hvals['nboundary'] + hvals['ncpu']):
-                if cpu < hvals['ncpu']:
-                    ng = hvals['numbl'][level, cpu]
-                else:
-                    ng = ngridbound[cpu - hvals['ncpu'] + hvals['nboundary']*level]
+            for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
+                ng = _ng(cpu, level)
                 if ng == 0: continue
                 ind = fpu.read_vector(f, "I").astype("int64")
                 #print level, cpu, ind.min(), ind.max(), ind.size
@@ -128,7 +109,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                 pos[:,0] = fpu.read_vector(f, "d")
                 pos[:,1] = fpu.read_vector(f, "d")
                 pos[:,2] = fpu.read_vector(f, "d")
-                pos *= self.parameter_file.domain_width
+                pos *= self.pf.domain_width
                 #pos += self.parameter_file.domain_left_edge
                 #print pos.min(), pos.max()
                 parents = fpu.read_vector(f, "I")
@@ -143,14 +124,43 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                 for i in range(8):
                     rmap[:,i] = fpu.read_vector(f, "I")
                 # We don't want duplicate grids.
-                if cpu + 1 == domain: 
+                if cpu + 1 == self.domain_id: 
                     assert(pos.shape[0] == ng)
-                    self.num_grids += ng
-                    self.oct_handler.add(domain, level, ng, pos, ind, cpu_map)
+                    oct_handler.add(self.domain_id, level, ng, pos, ind,
+                                    cpu_map)
         cur = f.tell()
         f.seek(0, os.SEEK_END)
         end = f.tell()
         assert(cur == end)
+
+class RAMSESGeometryHandler(OctreeGeometryHandler):
+
+    def __init__(self, pf, data_style='ramses'):
+        self.data_style = data_style
+        self.parameter_file = weakref.proxy(pf)
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+
+        self.float_type = na.float64
+        super(RAMSESGeometryHandler, self).__init__(pf, data_style)
+
+    def _initialize_oct_handler(self):
+        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
+                        for i in range(self.parameter_file['ncpu'])]
+        total_octs = sum(dom.local_oct_count for dom in self.domains)
+        self.num_grids = total_octs
+        mylog.debug("Allocating %s octs", total_octs)
+        self.oct_handler = RAMSESOctreeContainer(
+            self.domains[0].amr_header['nx'],
+            self.parameter_file.domain_left_edge,
+            self.parameter_file.domain_right_edge,
+            total_octs)
+        for dom in self.domains:
+            dom._read_amr(self.oct_handler)
+        #assert(total_octs == self.oct_handler.nocts)
+        print "TOTAL", total_octs, self.oct_handler.nocts
+        print "TOTAL", total_octs / float(self.oct_handler.nocts)
 
     def _detect_fields(self):
         # TODO: Add additional fields
@@ -161,6 +171,43 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         dd = self._get_data_reader_dict()
         super(RAMSESGeometryHandler, self)._setup_classes(dd)
         self.object_types.sort()
+
+    def _count_selection(self, dobj, mask = None, oct_indices = None):
+        if mask is None:
+            mask = dobj.selector.select_octs(self.oct_handler)
+        if oct_indices is None:
+            oct_indices = self.oct_handler.count(mask, split = True) 
+        domains = getattr(dobj, "_domains", None)
+        if domains is None:
+            count = [i.size for i in oct_indices]
+            nocts = sum(count)
+            domains = [dom for dom in self.domains
+                       if count[dom.domain_id - 1] > 0]
+        count = self.oct_handler.count_cells(dobj.selector, mask)
+        return count
+
+    def _identify_base_chunk(self, dobj):
+        if getattr(dobj, "_domains", None) is None:
+            mask = dobj.selector.select_octs(self.oct_handler)
+            indices = self.oct_handler.count(mask, split = True) 
+            count = [i.size for i in indices]
+            nocts = sum(count)
+            domains = [dom for dom in self.domains
+                       if count[dom.domain_id - 1] > 0]
+            dobj._grids = na.array(domains, dtype='object')
+            dobj.size = self._count_selection(dobj, mask, indices)
+            dobj.shape = (dobj.size,)
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+
+    def _chunk_all(self, dobj):
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._domains)
+        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+
+    def _chunk_spatial(self, dobj, ngz):
+        raise NotImplementedError
+
+    def _chunk_io(self, dobj):
+        pass
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESGeometryHandler
