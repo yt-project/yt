@@ -124,10 +124,9 @@ class RAMSESDomainFile(object):
                 for i in range(8):
                     rmap[:,i] = fpu.read_vector(f, "I")
                 # We don't want duplicate grids.
-                if cpu + 1 == self.domain_id: 
+                if cpu + 1 >= self.domain_id: 
                     assert(pos.shape[0] == ng)
-                    oct_handler.add(self.domain_id, level, ng, pos, ind,
-                                    cpu_map)
+                    oct_handler.add(cpu + 1, level, ng, pos, ind, cpu_map)
         cur = f.tell()
         f.seek(0, os.SEEK_END)
         end = f.tell()
@@ -150,12 +149,13 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                         for i in range(self.parameter_file['ncpu'])]
         total_octs = sum(dom.local_oct_count for dom in self.domains)
         self.num_grids = total_octs
-        mylog.debug("Allocating %s octs", total_octs)
         self.oct_handler = RAMSESOctreeContainer(
             self.domains[0].amr_header['nx'],
             self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge,
-            total_octs)
+            self.parameter_file.domain_right_edge)
+        mylog.debug("Allocating %s octs", total_octs)
+        self.oct_handler.allocate_domains(
+            [dom.local_oct_count for dom in self.domains])
         for dom in self.domains:
             dom._read_amr(self.oct_handler)
         #assert(total_octs == self.oct_handler.nocts)
