@@ -126,6 +126,42 @@ cdef class OctreeContainer:
                 yield (this.ind, this.local_ind, this.domain)
             cur = cur.next
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, SelectorObject selector,
+              np.ndarray[np.uint8_t, ndim=1, cast=True] mask):
+        cdef int i, j, k, oi
+        cdef np.int64_t count = 0
+        # pos here is CELL center, not OCT center.
+        cdef np.float64_t pos[3]
+        cdef int n = mask.shape[0]
+        cdef np.float64_t base_dx[3], dx[3]
+        cdef int eterm[3]
+        assert(self.cont.next == NULL)
+        for i in range(3):
+            # This is the base_dx, but not the base distance from the center
+            # position.  Note that the positions will also all be offset by
+            # dx/2.0.
+            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+        for oi in range(n):
+            if mask[oi] == 0: continue
+            o = self.cont.my_octs[oi]
+            for i in range(3):
+                # This gives the *grid* width for this level
+                dx[i] = base_dx[i] / (2 << o.level)
+                pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
+                dx[i] = dx[i] / 2.0 # This is now the *offset* between cells
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if o.children[i][j][k] != NULL: continue # child mask
+                        count += selector.select_cell(pos, dx, eterm)
+                        pos[2] += dx[2]
+                    pos[1] += dx[1]
+                pos[0] += dx[0]
+        return count
+
 cdef class RAMSESOctreeContainer(OctreeContainer):
 
     @cython.boundscheck(False)
@@ -164,39 +200,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         free(arrs)
         free(aind)
         return tr
-
-    def count_cells(self, SelectorObject selector,
-              np.ndarray[np.uint8_t, ndim=1, cast=True] mask):
-        cdef int i, j, k, oi
-        cdef np.int64_t count = 0
-        # pos here is CELL center, not OCT center.
-        cdef np.float64_t pos[3]
-        cdef int n = mask.shape[0]
-        cdef np.float64_t base_dx[3], dx[3]
-        cdef int eterm[3]
-        assert(self.cont.next == NULL)
-        for i in range(3):
-            # This is the base_dx, but not the base distance from the center
-            # position.  Note that the positions will also all be offset by
-            # dx/2.0.
-            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-        for oi in range(n):
-            if mask[oi] == 0: continue
-            o = self.cont.my_octs[oi]
-            for i in range(3):
-                # This gives the *grid* width for this level
-                dx[i] = base_dx[i] / (2 << o.level)
-                pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
-                dx[i] = dx[i] / 2.0 # This is now the *offset* between cells
-            for i in range(2):
-                for j in range(2):
-                    for k in range(2):
-                        if o.children[i][j][k] != NULL: continue # child mask
-                        count += selector.select_cell(pos, dx, eterm)
-                        pos[2] += dx[2]
-                    pos[1] += dx[1]
-                pos[0] += dx[0]
-        return count
 
     def domain_indices(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
                        int domain):
