@@ -150,13 +150,15 @@ class RAMSESDomainFile(object):
         return self.count(selector)
 
 class RAMSESDomainSubset(object):
-    def __init__(self, domain, indices):
-        self.indices = indices
+    def __init__(self, domain, mask, cell_count):
+        self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
+        self.cell_count = cell_count
 
     def icoords(self, dobj):
-        return self.oct_handler.icoords(self.domain.domain_id, self.indices)
+        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
+                                        self.cell_count)
 
     def fcoords(self, dobj):
         pass
@@ -165,7 +167,9 @@ class RAMSESDomainSubset(object):
         pass
 
     def ires(self, dobj):
-        pass
+        return self.oct_handler.ires(self.domain.domain_id, self.mask,
+                                     self.cell_count)
+
 
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):
@@ -176,6 +180,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
+        self.max_level = pf.max_level
 
         self.float_type = na.float64
         super(RAMSESGeometryHandler, self).__init__(pf, data_style)
@@ -194,9 +199,6 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             [dom.local_oct_count for dom in self.domains])
         for dom in self.domains:
             dom._read_amr(self.oct_handler)
-        #assert(total_octs == self.oct_handler.nocts)
-        print "TOTAL", total_octs, self.oct_handler.nocts
-        print "TOTAL", total_octs / float(self.oct_handler.nocts)
 
     def _detect_fields(self):
         # TODO: Add additional fields
@@ -208,30 +210,14 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         super(RAMSESGeometryHandler, self)._setup_classes(dd)
         self.object_types.sort()
 
-    def _count_selection(self, dobj, mask = None, oct_indices = None):
-        if mask is None:
-            mask = dobj.selector.select_octs(self.oct_handler)
-        if oct_indices is None:
-            oct_indices = self.oct_handler.count(mask, split = True) 
-        domains = getattr(dobj, "_domains", None)
-        if domains is None:
-            count = [i.size for i in oct_indices]
-            nocts = sum(count)
-            domains = [RAMSESDomainSubset(dom, oct_indices[dom.domain_id - 1])
-                       for dom in self.domains if count[dom.domain_id - 1] > 0]
-        count = self.oct_handler.count_cells(dobj.selector, mask)
-        return count
-
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
-            indices = self.oct_handler.count(mask, split = True) 
-            count = [i.size for i in indices]
-            nocts = sum(count)
-            domains = [RAMSESDomainSubset(dom, indices[dom.domain_id - 1])
-                       for dom in self.domains if count[dom.domain_id - 1] > 0]
-            dobj._chunk_info = domains
-            dobj.size = self._count_selection(dobj, mask, indices)
+            counts = self.oct_handler.count_cells(dobj.selector, mask)
+            subsets = [RAMSESDomainSubset(d, mask, c)
+                       for d, c in zip(self.domains, counts) if c > 0]
+            dobj._chunk_info = subsets
+            dobj.size = sum(counts)
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -243,7 +229,9 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         raise NotImplementedError
 
     def _chunk_io(self, dobj):
-        pass
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in oobjs:
+            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESGeometryHandler
@@ -332,6 +320,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"]
+        self.max_level = rheader['levelmax']
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
