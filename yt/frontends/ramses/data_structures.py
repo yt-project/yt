@@ -161,7 +161,8 @@ class RAMSESDomainSubset(object):
                                         self.cell_count)
 
     def fcoords(self, dobj):
-        pass
+        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
+                                        self.cell_count)
 
     def fwidth(self, dobj):
         pass

@@ -154,7 +154,9 @@ cdef class OctreeContainer:
                 pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
                 dx[i] = dx[i] / 2.0 # This is now the *offset* 
             for i in range(2):
+                pos[1] = self.DLE[1] + o.pos[1]*dx[1] + dx[1]/4.0
                 for j in range(2):
+                    pos[2] = self.DLE[2] + o.pos[2]*dx[2] + dx[2]/4.0
                     for k in range(2):
                         if o.children[i][j][k] == NULL: 
                             count[o.domain - 1] += \
@@ -314,3 +316,42 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         levels[ci] = o.level
                         ci += 1
         return levels
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fcoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
+                np.int64_t cell_count):
+        # Wham, bam, it's a scam
+        cdef np.int64_t i, j, k, oi, ci, n
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        cdef np.float64_t pos[3]
+        cdef np.float64_t base_dx[3], dx[3]
+        n = mask.shape[0]
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        coords = np.empty((cell_count, 3), dtype="float64")
+        for i in range(3):
+            # This is the base_dx, but not the base distance from the center
+            # position.  Note that the positions will also all be offset by
+            # dx/2.0.
+            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+        ci = 0
+        for oi in range(cur.n):
+            if mask[oi + cur.offset] == 0: continue
+            o = &cur.my_octs[oi]
+            for i in range(3):
+                # This gives the *grid* width for this level
+                dx[i] = base_dx[i] / (2 << o.level)
+                pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
+                dx[i] = dx[i] / 2.0 # This is now the *offset* 
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if o.children[i][j][k] != NULL: continue
+                        coords[ci, 0] = pos[0] + dx[0] * i
+                        coords[ci, 1] = pos[1] + dx[1] * j
+                        coords[ci, 2] = pos[2] + dx[2] * k
+                        ci += 1
+        return coords
