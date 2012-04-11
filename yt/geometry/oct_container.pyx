@@ -243,7 +243,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for i in range(n):
             if mask[i] == 1:
                 inds[p, 0] = cur.my_octs[li].domain
-                inds[p, 1] = cur.my_octs[li].ind
+                inds[p, 1] = cur.my_octs[li].local_ind
                 p += 1
             li += 1
             if li >= cur.n:
@@ -311,3 +311,33 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             cur.domain = curdom
             cur.ind = index[p]
             cur.level = curlevel
+
+    def icoords(self, int domain_id, np.ndarray[np.int64_t, ndim=1] indices,
+                int count = -1):
+        cdef np.int64_t i, j, k, oi, ci, n
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        n = indices.shape[0]
+
+        if count == -1:
+            count = 0
+            for oi in range(n):
+                o = &cur.my_octs[indices[i]]
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            if o.children[i][j][k] == NULL: count += 1
+        cdef np.ndarray[np.int64_t, ndim=3] coords
+        coords = np.empty((count, 3), dtype="int64")
+        ci = 0
+        for oi in range(n):
+            o = &cur.my_octs[indices[i]]
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if o.children[i][j][k] != NULL: continue
+                        coords[ci, 0] = (o.pos[0] << 1) + i
+                        coords[ci, 1] = (o.pos[1] << 1) + j
+                        coords[ci, 2] = (o.pos[2] << 1) + k
+                        ci += 1
+        return coords

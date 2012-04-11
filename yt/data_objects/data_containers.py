@@ -73,7 +73,7 @@ class YTDataContainer(object):
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
     """
-    _grids = _domains = None
+    _chunk_info = None
     _num_ghost_zones = 0
     _con_args = ()
     _skip_add = False

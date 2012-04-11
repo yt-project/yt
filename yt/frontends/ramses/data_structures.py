@@ -52,6 +52,9 @@ from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 
 class RAMSESDomainFile(object):
+    _last_mask = None
+    _last_selector_id = None
+
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
@@ -132,6 +135,39 @@ class RAMSESDomainFile(object):
         end = f.tell()
         assert(cur == end)
 
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
+
+class RAMSESDomainSubset(object):
+    def __init__(self, domain, indices):
+        self.indices = indices
+        self.domain = domain
+        self.oct_handler = domain.pf.h.oct_handler
+
+    def icoords(self, dobj):
+        return self.oct_handler.icoords(self.domain.domain_id, self.indices)
+
+    def fcoords(self, dobj):
+        pass
+
+    def fwidth(self, dobj):
+        pass
+
+    def ires(self, dobj):
+        pass
+
+
 class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def __init__(self, pf, data_style='ramses'):
@@ -181,26 +217,26 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         if domains is None:
             count = [i.size for i in oct_indices]
             nocts = sum(count)
-            domains = [dom for dom in self.domains
-                       if count[dom.domain_id - 1] > 0]
+            domains = [RAMSESDomainSubset(dom, oct_indices[dom.domain_id - 1])
+                       for dom in self.domains if count[dom.domain_id - 1] > 0]
         count = self.oct_handler.count_cells(dobj.selector, mask)
         return count
 
     def _identify_base_chunk(self, dobj):
-        if getattr(dobj, "_domains", None) is None:
+        if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
             indices = self.oct_handler.count(mask, split = True) 
             count = [i.size for i in indices]
             nocts = sum(count)
-            domains = [dom for dom in self.domains
-                       if count[dom.domain_id - 1] > 0]
-            dobj._grids = na.array(domains, dtype='object')
+            domains = [RAMSESDomainSubset(dom, indices[dom.domain_id - 1])
+                       for dom in self.domains if count[dom.domain_id - 1] > 0]
+            dobj._chunk_info = domains
             dobj.size = self._count_selection(dobj, mask, indices)
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
-        oobjs = getattr(dobj._current_chunk, "objs", dobj._domains)
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, dobj.size)
 
     def _chunk_spatial(self, dobj, ngz):

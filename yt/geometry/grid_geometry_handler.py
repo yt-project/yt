@@ -168,23 +168,23 @@ class GridGeometryHandler(GeometryHandler):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
             grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
-            dobj._grids = na.array(grids, dtype='object')
+            dobj._chunk_info = na.array(grids, dtype='object')
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _count_selection(self, dobj, grids = None):
-        if grids is None: grids = dobj._grids
+        if grids is None: grids = dobj._chunk_info
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
     def _chunk_all(self, dobj):
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size)
         
     def _chunk_spatial(self, dobj, ngz):
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for i,og in enumerate(gobjs):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
@@ -196,7 +196,7 @@ class GridGeometryHandler(GeometryHandler):
 
     def _chunk_io(self, dobj):
         gfiles = defaultdict(list)
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._grids)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for g in gobjs:
             gfiles[g.filename].append(g)
         for fn in sorted(gfiles):
