@@ -86,6 +86,12 @@ class RAMSESDomainFile(object):
         self.local_oct_count = hvals['numbl'][:, self.domain_id - 1].sum()
 
     def _read_amr(self, oct_handler):
+        """Open the oct file, read in octs level-by-level.
+           For each oct, only the position, index, level and domain 
+           are needed - it's position in the octree is found automatically.
+           The most important is finding all the information to feed
+           oct_handler.add
+        """
         f = open(self.amr_fn, "rb")
         f.seek(self.amr_offset)
         mylog.debug("Reading domain AMR % 4i (%0.3e)",
@@ -100,7 +106,8 @@ class RAMSESDomainFile(object):
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
             for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
-                ng = _ng(cpu, level)
+                #ng is the number of octs on this level on this domain
+                ng = _ng(cpu, level) 
                 if ng == 0: continue
                 ind = fpu.read_vector(f, "I").astype("int64")
                 #print level, cpu, ind.min(), ind.max(), ind.size
@@ -151,11 +158,14 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         total_octs = sum(dom.local_oct_count for dom in self.domains)
         self.num_grids = total_octs
         mylog.debug("Allocating %s octs", total_octs)
+        #this merely allocates space for the oct tree
+        #and nothing else
         self.oct_handler = RAMSESOctreeContainer(
             self.domains[0].amr_header['nx'],
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge,
             total_octs)
+        #this actually reads every oct and loads it into the octree
         for dom in self.domains:
             dom._read_amr(self.oct_handler)
         #assert(total_octs == self.oct_handler.nocts)

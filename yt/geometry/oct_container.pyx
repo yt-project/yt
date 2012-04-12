@@ -79,6 +79,9 @@ cdef class OctreeContainer:
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
                  int initial_allocation = 0):
+        #Allocate octs and the root mesh
+        #domain dimensions opening grid dims, not necessarily an octree
+        #initial_allocation is the number of total octs to instantiate
         self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
         cdef int i, j, k, p
         self.max_domain = -1
@@ -224,21 +227,29 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int level, no, p, i, j, k, ind[3]
         cdef Oct* cur = self.root_mesh[0][0][0]
         cdef np.float64_t pp[3], cp[3], dds[3]
-        no = pos.shape[0]
+        no = pos.shape[0] #number of octs
         cdef OctAllocationContainer *cont = self.cont
         # How do we bootstrap ourselves?
         if curdom > self.max_domain: self.max_domain = curdom
-        for p in range(no):
+        for p in range(no): 
+            #for every oct we're trying to add find the 
+            #floating point unitary position on this level
             for i in range(3):
-                pp[i] = pos[p, i]
+                pp[i] = pos[p, i] #floating point position
+                #dds is in size of a cell in unitary units
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+                #LE position in integer indices?
                 ind[i] = <np.int64_t> (pp[i]/dds[i])
+                #position of the center of the cell?
                 cp[i] = (ind[i] + 0.5) * dds[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             # Now we find the location we want
             # Note that RAMSES I think 1-indexes levels, but we don't.
             for level in range(curlevel):
+                # At every level, find the cell this oct
+                # lives inside
                 for i in range(3):
+                    #as we get deeper, oct size halves
                     dds[i] = dds[i] / 2.0
                     if cp[i] > pp[i]: 
                         ind[i] = 0
