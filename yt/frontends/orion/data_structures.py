@@ -151,7 +151,7 @@ class OrionHierarchy(AMRHierarchy):
         if not os.path.exists(fn): return
         with open(fn, 'r') as f:
             lines = f.readlines()
-            self.num_stars = int(lines[0].strip())
+            self.num_stars = int(lines[0].strip()[0])
             for line in lines[1:]:
                 particle_position_x = float(line.split(' ')[1])
                 particle_position_y = float(line.split(' ')[2])
