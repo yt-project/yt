@@ -1270,7 +1270,8 @@ class MosaicFisheyeCamera(Camera):
         return R
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None, no_ghost = True):
+                        field, weight = None, volume = None, no_ghost = True,
+                        north_vector = None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -1337,7 +1338,8 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     cam = pf.h.camera(center, normal_vector, width, resolution, tf,
                       fields = fields,
                       log_fields = [False] * len(fields),
-                      volume = volume, no_ghost = no_ghost)
+                      volume = volume, no_ghost = no_ghost,
+                      north_vector = north_vector)
     vals = cam.snapshot()
     image = vals[:,:,0]
     if weight is None:
