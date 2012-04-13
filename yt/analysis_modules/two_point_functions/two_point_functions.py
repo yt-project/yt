@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
 from yt.mods import *
 #from yt.utilities.math_utils import *
 from yt.utilities.performance_counters import yt_counters, time_function

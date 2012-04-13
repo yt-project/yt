@@ -849,7 +849,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for field in temp_data.keys():
             self[field] = temp_data[field]
 
-    def to_frb(self, width, resolution, center = None):
+    def to_frb(self, width, resolution, center=None, height=None):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -864,6 +864,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             This can either be a floating point value, in the native domain
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
+        height : height specifier
+            This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
         center : array-like of floats, optional
@@ -890,13 +892,18 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         if iterable(width):
             w, u = width
             width = w/self.pf[u]
+        if height is None:
+            height = width
+        elif iterable(height):
+            h, u = height
+            height = h/self.pf[u]
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
         xax = x_dict[self.axis]
         yax = y_dict[self.axis]
-        bounds = (center[xax] - width/2.0, center[xax] + width/2.0,
-                  center[yax] - width/2.0, center[yax] + width/2.0)
+        bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
+                  center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
 
@@ -1311,7 +1318,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
 
-    def to_frb(self, width, resolution):
+    def to_frb(self, width, resolution, height=None):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
 
@@ -1329,6 +1336,8 @@ class AMRCuttingPlaneBase(AMR2DData):
             This can either be a floating point value, in the native domain
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
+        height : height specifier
+            This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
 
@@ -1350,10 +1359,15 @@ class AMRCuttingPlaneBase(AMR2DData):
         if iterable(width):
             w, u = width
             width = w/self.pf[u]
+        if height is None:
+            height = width
+        elif iterable(height):
+            h, u = height
+            height = h/self.pf[u]
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
+        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
         frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
         return frb
 
