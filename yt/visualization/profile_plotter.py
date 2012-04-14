@@ -340,6 +340,8 @@ class PhasePlotterExtWidget(PhasePlotter):
             func = na.log10
         else:
             func = lambda a: a
+        raw_data = na.repeat(raw_data, 3, axis=0)
+        raw_data = na.repeat(raw_data, 3, axis=1)
         to_plot = apply_colormap(raw_data, self.plot.cbar.bounds,
                                  self.plot.cbar.cmap, func)
         if self.plot.cbar.scale == 'log':

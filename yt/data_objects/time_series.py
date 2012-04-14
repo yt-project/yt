@@ -29,9 +29,11 @@ from yt.funcs import *
 from yt.convenience import load
 from .data_containers import data_object_registry
 from .analyzer_objects import create_quantity_proxy, \
-    analysis_task_registry
+    analysis_task_registry, AnalysisTask
 from .derived_quantities import quantity_info
 from yt.utilities.exceptions import YTException
+from yt.utilities.parallel_tools.parallel_analysis_interface \
+    import parallel_objects
 
 class AnalysisTaskProxy(object):
     def __init__(self, time_series):
@@ -51,14 +53,38 @@ class AnalysisTaskProxy(object):
     def __contains__(self, key):
         return key in analysis_task_registry
 
+def get_pf_prop(propname):
+    def _eval(params, pf):
+        return getattr(pf, propname)
+    cls = type(propname, (AnalysisTask,),
+                dict(eval = _eval, _params = tuple()))
+    return cls
+
+attrs = ("refine_by", "dimensionality", "current_time",
+         "domain_dimensions", "domain_left_edge",
+         "domain_right_edge", "unique_identifier",
+         "current_redshift", "cosmological_simulation",
+         "omega_matter", "omega_lambda", "hubble_constant")
+
+class TimeSeriesParametersContainer(object):
+    def __init__(self, data_object):
+        self.data_object = data_object
+
+    def __getattr__(self, attr):
+        if attr in attrs:
+            return self.data_object.eval(get_pf_prop(attr)())
+        raise AttributeError(attr)
+
 class TimeSeriesData(object):
-    def __init__(self, outputs = None):
+    def __init__(self, outputs = None, parallel = True):
         if outputs is None: outputs = []
         self.outputs = outputs
         self.tasks = AnalysisTaskProxy(self)
+        self.params = TimeSeriesParametersContainer(self)
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
+        self.parallel = parallel
 
     def __iter__(self):
         # We can make this fancier, but this works
@@ -77,17 +103,23 @@ class TimeSeriesData(object):
         self.outputs.append(pf)
         
     def eval(self, tasks, obj=None):
-        if obj == None: obj = TimeSeriesDataObject(self, "all_data")
         tasks = ensure_list(tasks)
-        return_values = []
-        for pf in self:
-            return_values.append([])
+        return_values = {}
+        if self.parallel == False:
+            njobs = 1
+        else:
+            if self.parallel == True: njobs = -1
+            else: njobs = self.parallel
+        for store, pf in parallel_objects(self.outputs, njobs, return_values):
+            store.result = []
             for task in tasks:
                 try:
                     style = inspect.getargspec(task.eval)[0][1]
                     if style == 'pf':
                         arg = pf
                     elif style == 'data_object':
+                        if obj == None:
+                            obj = TimeSeriesDataObject(self, "all_data")
                         arg = obj.get(pf)
                     rv = task.eval(arg)
                 # We catch and store YT-originating exceptions
@@ -95,27 +127,28 @@ class TimeSeriesData(object):
                 # small.
                 except YTException as rv:
                     pass
-                return_values[-1].append(rv)
-        return return_values
+                store.result.append(rv)
+        return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filename_list):
+    def from_filenames(cls, filename_list, parallel = True):
         outputs = []
         for fn in filename_list:
             outputs.append(load(fn))
-        obj = cls(outputs)
+        obj = cls(outputs, parallel = parallel)
         return obj
 
     @classmethod
     def from_output_log(cls, output_log,
-                        line_prefix = "DATASET WRITTEN"):
+                        line_prefix = "DATASET WRITTEN",
+                        parallel = True):
         outputs = []
         for line in open(output_log):
             if not line.startswith(line_prefix): continue
             cut_line = line[len(line_prefix):].strip()
             fn = cut_line.split()[0]
             outputs.append(load(fn))
-        obj = cls(outputs)
+        obj = cls(outputs, parallel = parallel)
         return obj
 
 class TimeSeriesQuantitiesContainer(object):

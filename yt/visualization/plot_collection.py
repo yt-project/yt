@@ -940,7 +940,7 @@ class PlotCollection(object):
                                   x_bins, fields[0], x_min, x_max, x_log,
                                   lazy_reader)
         if len(fields) > 1:
-            profile.add_fields(fields[1], weight=weight, accumulation=accumulation)
+            profile.add_fields(fields[1:], weight=weight, accumulation=accumulation)
         if id is None: id = self._get_new_id()
         p = self._add_plot(Profile1DPlot(profile, fields, id,
                                                    axes=axes, figure=figure))
@@ -1148,13 +1148,15 @@ class PlotCollection(object):
                                   x_bins, fields[0], x_min, x_max, x_log,
                                   y_bins, fields[1], y_min, y_max, y_log,
                                   lazy_reader)
+        # This will add all the fields to the profile object
+        if len(fields)>2:
+            profile.add_fields(fields[2:], weight=weight,
+                    accumulation=accumulation, fractional=fractional)
+
         if id is None: id = self._get_new_id()
         p = self._add_plot(PhasePlot(profile, fields, 
                                                id, cmap=cmap,
                                                figure=figure, axes=axes))
-        if len(fields) > 2:
-            # This will add all the fields to the profile object
-            p.switch_z(fields[2], weight=weight, accumulation=accumulation, fractional=fractional)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, center = None, cmap=None,

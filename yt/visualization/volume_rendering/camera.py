@@ -680,7 +680,7 @@ class HEALpixCamera(Camera):
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
-    def snapshot(self, fn = None):
+    def snapshot(self, fn = None, clim = None):
         nv = 12*self.nside**2
         image = na.zeros((nv,1,3), dtype='float64', order='C')
         vs = arr_pix2vec_nest(self.nside, na.arange(nv))
@@ -718,6 +718,7 @@ class HEALpixCamera(Camera):
             implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
             cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+            if clim is not None: cb.set_clim(*clim)
             ax.xaxis.set_ticks(())
             ax.yaxis.set_ticks(())
             canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
@@ -1269,7 +1270,8 @@ class MosaicFisheyeCamera(Camera):
         return R
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, volume = None, no_ghost = True):
+                        field, weight = None, volume = None, no_ghost = True,
+                        north_vector = None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -1336,7 +1338,8 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     cam = pf.h.camera(center, normal_vector, width, resolution, tf,
                       fields = fields,
                       log_fields = [False] * len(fields),
-                      volume = volume, no_ghost = no_ghost)
+                      volume = volume, no_ghost = no_ghost,
+                      north_vector = north_vector)
     vals = cam.snapshot()
     image = vals[:,:,0]
     if weight is None:

@@ -50,7 +50,8 @@ from image_writer import \
     annotate_image, \
     apply_colormap, \
     scale_image, \
-    write_projection
+    write_projection, \
+    write_fits
 
 from plot_modifications import \
     PlotCallback, \

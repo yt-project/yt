@@ -58,7 +58,7 @@ class IOHandlerStream(BaseIOHandler):
         return self.fields[grid.id].keys()
 
     def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(0,-0), slice(0,-0), slice(0,-0)]
+        sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
         sl = tuple(reversed(sl))
         tr = self.fields[grid.id][field][sl].swapaxes(0,2)

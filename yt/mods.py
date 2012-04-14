@@ -60,7 +60,8 @@ from yt.data_objects.api import \
     derived_field, add_field, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
-    TimeSeriesData, AnalysisTask, analysis_task
+    TimeSeriesData, AnalysisTask, analysis_task, \
+    ParticleTrajectoryCollection
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -115,7 +116,7 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image, write_projection
+    apply_colormap, scale_image, write_projection, write_fits
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

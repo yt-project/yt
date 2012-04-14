@@ -66,8 +66,8 @@ class StarFormationRate(object):
         """
         self._pf = pf
         self._data_source = data_source
-        self.star_mass = star_mass
-        self.star_creation_time = star_creation_time
+        self.star_mass = na.array(star_mass)
+        self.star_creation_time = na.array(star_creation_time)
         self.volume = volume
         self.bin_count = bins
         # Check to make sure we have the right set of informations.
