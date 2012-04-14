@@ -314,7 +314,7 @@ cdef class RockstarInterface:
             PARALLEL_IO_SERVER_PORT = server_port
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
-        OUTPUT_FORMAT = "ASCII"
+        OUTPUT_FORMAT = "BOTH"
         NUM_SNAPS = 1
         NUM_READERS = num_readers
         NUM_BLOCKS = num_readers * block_ratio
