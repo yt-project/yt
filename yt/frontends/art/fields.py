@@ -78,6 +78,7 @@ for f in known_art_fields:
 #xyzvelocity
 
 #Individual definitions for native fields
+
 def _convertDensity(data):
     return data.convert("Density")
 ARTFieldInfo["Density"]._units = r"\rm{g}/\rm{cm}^3"

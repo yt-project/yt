@@ -423,7 +423,8 @@ class ARTHierarchy(AMRHierarchy):
                 left = self.pf.particle_position.shape[0]
                 pbar = get_pbar("Gridding  Particles ",left)
                 pos = self.pf.particle_position.copy()
-                pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T
+                #particle indices travel with the particle positions
+                pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
                 for level in range(self.pf.max_level,self.pf.min_level-1,-1):
                     lidx = self.grid_levels[:,0] == level
                     for gi,gidx in enumerate(na.where(lidx)[0]): 
@@ -525,7 +526,7 @@ class ARTHierarchy(AMRHierarchy):
                 # 2D and 3D fields.
                 self.pf.field_info.add_field(field, NullFunc,
                                              convert_function=cf,
-                                             take_log=False, particle_type=True)
+                                             take_log=True, particle_type=True)
 
     def _setup_derived_fields(self):
         self.derived_field_list = []

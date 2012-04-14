@@ -292,8 +292,6 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #the empty space in between
     idx = na.argsort(iocts)
     
-    import pdb; pdb.set_trace()
-    
     #now rearrange le & fl in order of the ioct
     le = le[idx]
     fl = fl[idx]
@@ -304,7 +302,7 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #le = le/2**(root_level-1-level)-1
 
     #try without the -1
-    le = le/2**(root_level-2-level)
+    le = le/2**(root_level-2-level)-1
 
     #now read the hvars and vars arrays
     #we are looking for iOctCh
