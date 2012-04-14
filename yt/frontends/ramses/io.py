@@ -29,6 +29,7 @@ import numpy as na
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+import cStringIO
 
 class IOHandlerRAMSES(BaseIOHandler):
     _data_style = "ramses"
@@ -37,15 +38,15 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
+        fields = [f for ft, f in fields]
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.hydro_fn, "rb")
-                content = f.read()
+                f = open(subset.domain.hydro_fn, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                field = subset.fill(content)
-
+                content = cStringIO.StringIO(f.read())
+                field = subset.fill(content, fields)
 
     def _read_data_set(self, grid, field):
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')

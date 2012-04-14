@@ -360,3 +360,31 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         coords[ci, 2] = pos[2] + dx[2] * k
                         ci += 1
         return coords
+
+    def fill_level(self, int domain, int level, dest_fields, source_fields,
+                   np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
+                   np.int64_t filled, np.int64_t pos):
+        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef OctAllocationContainer *dom = self.domains[domain - 1]
+        cdef Oct *o
+        cdef int n
+        cdef int i, j, k
+        cdef int local_pos, local_filled
+        for key in dest_fields:
+            local_filled = filled
+            dest = dest_fields[key]
+            source = source_fields[key]
+            for n in range(pos, dom.n_assigned):
+                o = &dom.my_octs[n]
+                if o.level > level:
+                    local_pos = n
+                    break
+                if mask[n + dom.offset] == 0: continue
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            if o.children[i][j][k] != NULL: continue
+                            dest[local_filled] = source[n - pos, i*4+j*2+k]
+                            local_filled += 1
+        return local_filled, local_pos

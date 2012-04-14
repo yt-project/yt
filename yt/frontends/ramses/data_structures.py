@@ -79,6 +79,7 @@ class RAMSESDomainFile(object):
         fpu.skip(f, 6)
         # It goes: level, CPU, 8-variable
         hydro_offset = na.zeros(self.amr_header['nlevelmax'], dtype='int64')
+        hydro_offset -= 1
         for level in range(self.amr_header['nlevelmax']):
             for cpu in range(self.amr_header['nboundary'] +
                              self.amr_header['ncpu']):
@@ -201,7 +202,31 @@ class RAMSESDomainSubset(object):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
                                      self.cell_count)
 
-
+    def fill(self, content, fields):
+        # Here we get a copy of the file, which we skip through and read the
+        # bits we want.
+        oct_handler = self.oct_handler
+        all_fields = self.domain.pf.h.field_list
+        tr = {}
+        filled = pos = 0
+        for field in fields:
+            tr[field] = na.empty(self.cell_count, 'float64')
+        for level, offset in enumerate(self.domain.hydro_offset):
+            content.seek(offset)
+            temp = {}
+            for field in all_fields:
+                if field not in fields:
+                    fpu.skip(content)
+                    continue
+                else:
+                    tt = fpu.read_vector(content, 'd') # cell 1
+                    temp[field] = na.empty((tt.shape[0], 8), dtype="float64")
+                    temp[field][:,0] = tt
+                    for i in range(7):
+                        temp[field][:,i+1] = fpu.read_vector(f, 'd')
+            filled, pos = oct_handler.fill_level(self.domain.domain_id, level,
+                                            tr, temp, self.mask, filled, pos)
+        return tr
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):
 
