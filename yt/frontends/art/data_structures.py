@@ -383,7 +383,7 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_mass       = na.zeros(np,dtype='float64')
             
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
-            self.pf.conversion_factors['particle_mass'] = um #solar mass in g
+            self.pf.conversion_factors['particle_mass'] = 1.0 #solar mass in g
             self.pf.conversion_factors['particle_species'] = 1.0
             for ax in 'xyz':
                 self.pf.conversion_factors['particle_velocity_%s'%ax] = 1.0
@@ -393,11 +393,12 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.conversion_factors['particle_metallicity_fraction']=1.0
             self.pf.conversion_factors['particle_index']=1.0
             
-            
+            #import pdb; pdb.set_trace()
+
             a,b=0,0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
                 self.pf.particle_species[a:b] = i #particle type
-                self.pf.particle_mass[a:b]    = m #mass in solar masses
+                self.pf.particle_mass[a:b]    = m*um #mass in solar masses
                 a=b
             pbar.finish()
             
@@ -418,8 +419,8 @@ class ARTHierarchy(AMRHierarchy):
                     pbar.finish()
                     self.pf.particle_star_metallicity1 = metallicity1
                     self.pf.particle_star_metallicity2 = metallicity2
-                    self.pf.particle_star_mass_initial = imass*self.pf.parameters['aM0']
-                    self.pf.particle_mass[-nstars:] = mass*self.pf.parameters['aM0']
+                    self.pf.particle_star_mass_initial = imass*um
+                    self.pf.particle_mass[-nstars:] = mass*um
             left = self.pf.particle_position.shape[0]
             pbar = get_pbar("Gridding  Particles ",left)
             pos = self.pf.particle_position.copy()

@@ -296,12 +296,13 @@ cdef class RockstarInterface:
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
-                       int writing_port = -1, int block_ratio = 1):
+                       int writing_port = -1, int block_ratio = 1,
+                       int periodic = 1):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
-        global rh
+        global rh, SCALE_NOW
         if parallel:
             PARALLEL_IO = 1
             PARALLEL_IO_SERVER_ADDRESS = server_address
@@ -324,12 +325,13 @@ cdef class RockstarInterface:
         h0 = self.pf.hubble_constant
         Ol = self.pf.omega_lambda
         Om = self.pf.omega_matter
+        SCALE_NOW = 1.0/self.pf.current_redshift-1.0
 
         if particle_mass < 0:
             print "Assuming single-mass particle."
             particle_mass = self.pf.h.grids[0]["ParticleMassMsun"][0] / h0
         PARTICLE_MASS = particle_mass
-        PERIODIC = 1
+        PERIODIC = periodic
         BOX_SIZE = (self.pf.domain_right_edge[0] -
                     self.pf.domain_left_edge[0]) * self.pf['mpchcm']
         setup_config()
