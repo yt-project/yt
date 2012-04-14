@@ -371,7 +371,6 @@ class ARTHierarchy(AMRHierarchy):
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
             np = lspecies[-1]
-            import pdb; pdb.set_trace()
             self.pf.particle_position   = self.pf.particle_position[:np]
             self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
