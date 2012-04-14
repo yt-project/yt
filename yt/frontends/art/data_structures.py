@@ -371,6 +371,7 @@ class ARTHierarchy(AMRHierarchy):
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
             np = lspecies[-1]
+            import pdb; pdb.set_trace()
             self.pf.particle_position   = self.pf.particle_position[:np]
             self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
@@ -387,7 +388,8 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.conversion_factors['particle_species'] = 1.0
             for ax in 'xyz':
                 self.pf.conversion_factors['particle_velocity_%s'%ax] = 1.0
-                self.pf.conversion_factors['particle_position_%s'%ax] = dist
+                #already in unitary units
+                self.pf.conversion_factors['particle_position_%s'%ax] = 1.0 
             self.pf.conversion_factors['particle_creation_time'] =  31556926.0
             self.pf.conversion_factors['particle_metallicity_fraction']=1.0
             self.pf.conversion_factors['particle_index']=1.0
