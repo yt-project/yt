@@ -33,6 +33,20 @@ from yt.utilities.logger import ytLogger as mylog
 class IOHandlerRAMSES(BaseIOHandler):
     _data_style = "ramses"
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        # Chunks in this case will have affiliated domain subset objects
+        # Each domain subset will contain a hydro_offset array, which gives
+        # pointers to level-by-level hydro information
+        for chunk in chunks:
+            for subset in chunk.objs:
+                # Now we read the entire thing
+                f = open(subset.hydro_fn, "rb")
+                content = f.read()
+                # This contains the boundary information, so we skim through
+                # and pick off the right vectors
+                field = subset.fill(content)
+
+
     def _read_data_set(self, grid, field):
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
         filled = na.zeros(grid.ActiveDimensions, dtype='int32')

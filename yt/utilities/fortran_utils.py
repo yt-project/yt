@@ -100,13 +100,13 @@ def read_vector(f, d):
     >>> rv = read_vector(f, 'd')
     """
     fmt = "=I"
-    ss = struct.unpack(fmt, f .read(struct.calcsize(fmt)))[0]
+    ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
     ds = struct.calcsize("=%s" % d)
     if ss % ds != 0:
         print "fmt = '%s' ; ss = %s ; ds = %s" % (fmt, ss, ds)
         raise RuntimeError
     count = ss / ds
-    tr = na.fromfile(f, d, count)
+    tr = na.fromstring(f.read(na.dtype(d).itemsize*count), d, count)
     vec = struct.unpack(fmt, f.read(struct.calcsize(fmt)))
     assert(vec[-1] == ss)
     return tr

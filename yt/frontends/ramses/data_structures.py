@@ -26,6 +26,7 @@ License:
 import numpy as na
 import stat
 import weakref
+import cStringIO
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -54,6 +55,7 @@ from yt.geometry.oct_container import \
 class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
+    nvar = 6
 
     def __init__(self, pf, domain_id):
         self.pf = pf
@@ -66,6 +68,28 @@ class RAMSESDomainFile(object):
         for t in ['grav', 'hydro', 'part', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._read_amr_header()
+
+    _hydro_offset = None
+
+    @property
+    def hydro_offset(self):
+        if self._hydro_offset is not None: return self._hydro_offset
+        # We now have to open the file and calculate it
+        f = open(self.hydro_fn, "rb")
+        fpu.skip(f, 6)
+        # It goes: level, CPU, 8-variable
+        hydro_offset = na.zeros(self.amr_header['nlevelmax'], dtype='int64')
+        for level in range(self.amr_header['nlevelmax']):
+            for cpu in range(self.amr_header['nboundary'] +
+                             self.amr_header['ncpu']):
+                header = ( ('file_ilevel', 1, 'I'),
+                           ('file_ncache', 1, 'I') )
+                hvals = fpu.read_attrs(f, header)
+                if hvals['file_ncache'] == 0: continue
+                if cpu + 1 == self.domain_id: hydro_offset[level] = f.tell()
+                fpu.skip(f, 8 * self.nvar)
+        self._hydro_offset = hydro_offset
+        return self._hydro_offset
 
     def _read_amr_header(self):
         hvals = {}
@@ -89,8 +113,11 @@ class RAMSESDomainFile(object):
         self.local_oct_count = hvals['numbl'][:, self.domain_id - 1].sum()
 
     def _read_amr(self, oct_handler):
-        f = open(self.amr_fn, "rb")
-        f.seek(self.amr_offset)
+        fb = open(self.amr_fn, "rb")
+        fb.seek(self.amr_offset)
+        f = cStringIO.StringIO()
+        f.write(fb.read())
+        f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e)",
             self.domain_id, self.local_oct_count)
         def _ng(c, l):
@@ -130,10 +157,6 @@ class RAMSESDomainFile(object):
                 if cpu + 1 >= self.domain_id: 
                     assert(pos.shape[0] == ng)
                     oct_handler.add(cpu + 1, level, ng, pos, ind, cpu_map)
-        cur = f.tell()
-        f.seek(0, os.SEEK_END)
-        end = f.tell()
-        assert(cur == end)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
