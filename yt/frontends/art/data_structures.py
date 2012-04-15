@@ -155,7 +155,7 @@ class ARTHierarchy(AMRHierarchy):
              'Pressure','Gamma','GasEnergy',
              'MetalDensitySNII', 'MetalDensitySNIa',
              'PotentialNew','PotentialOld']
-        # self.field_list += art_particle_field_names
+        self.field_list += art_particle_field_names
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -385,19 +385,22 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_mass       = na.zeros(np,dtype='float64')
             
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
-            self.pf.conversion_factors['particle_mass'] = um #solar mass in g
+            self.pf.conversion_factors['particle_mass'] = 1.0 #solar mass in g
             self.pf.conversion_factors['particle_species'] = 1.0
             for ax in 'xyz':
                 self.pf.conversion_factors['particle_velocity_%s'%ax] = 1.0
-                self.pf.conversion_factors['particle_position_%s'%ax] = dist
+                #already in unitary units
+                self.pf.conversion_factors['particle_position_%s'%ax] = 1.0 
             self.pf.conversion_factors['particle_creation_time'] =  31556926.0
             self.pf.conversion_factors['particle_metallicity_fraction']=1.0
+            self.pf.conversion_factors['particle_index']=1.0
             
-            
+            #import pdb; pdb.set_trace()
+
             a,b=0,0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
                 self.pf.particle_species[a:b] = i #particle type
-                self.pf.particle_mass[a:b]    = m #mass in solar masses
+                self.pf.particle_mass[a:b]    = m*um #mass in solar masses
                 a=b
             pbar.finish()
             
@@ -418,42 +421,40 @@ class ARTHierarchy(AMRHierarchy):
                     pbar.finish()
                     self.pf.particle_star_metallicity1 = metallicity1
                     self.pf.particle_star_metallicity2 = metallicity2
-                    self.pf.particle_star_mass_initial = imass*self.pf.parameters['aM0']
-                    self.pf.particle_mass[-nstars:] = mass*self.pf.parameters['aM0']
+                    self.pf.particle_star_mass_initial = imass*um
+                    self.pf.particle_mass[-nstars:] = mass*um
+            left = self.pf.particle_position.shape[0]
+            pbar = get_pbar("Gridding  Particles ",left)
+            pos = self.pf.particle_position.copy()
+            #particle indices travel with the particle positions
+            pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
+            max_level = min(self.pf.max_level,self.pf.limit_level)
+            grid_particle_count = na.zeros((len(grids),1),dtype='int64')
             
-            if False:
-                left = self.pf.particle_position.shape[0]
-                pbar = get_pbar("Gridding  Particles ",left)
-                pos = self.pf.particle_position.copy()
-                #particle indices travel with the particle positions
-                pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
-                for level in range(self.pf.max_level,self.pf.min_level-1,-1):
-                    lidx = self.grid_levels[:,0] == level
-                    for gi,gidx in enumerate(na.where(lidx)[0]): 
-                        g = grids[gidx]
-                        assert g is not None
-                        le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
-                        idx = na.logical_and(na.all(le < pos[:,1:],axis=1),
-                                             na.all(re > pos[:,1:],axis=1))
-                        np = na.sum(idx)                     
-                        g.NumberOfParticles = np
-                        if np==0: 
-                            g.particle_indices = []
-                            #we have no particles in this grid
-                        else:
-                            fidx = pos[:,0][idx]
-                            g.particle_indices = fidx
-                            pos = pos[~idx] #throw out gridded particles from future gridding
-                        self.grids[gidx] = g
-                        left -= np
-                        pbar.update(left)
-                pbar.finish()
-            else:
-                pbar = get_pbar("Finalizing grids ",len(grids))
-                for gi, g in enumerate(grids): 
-                    self.grids[gi] = g
-                pbar.finish()
-                
+            #grid particles at the finest level, removing them once gridded
+            for level in range(max_level,self.pf.min_level-1,-1):
+                lidx = self.grid_levels[:,0] == level
+                for gi,gidx in enumerate(na.where(lidx)[0]): 
+                    g = grids[gidx]
+                    assert g is not None
+                    le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
+                    idx = na.logical_and(na.all(le < pos[:,1:],axis=1),
+                                         na.all(re > pos[:,1:],axis=1))
+                    np = na.sum(idx)                     
+                    g.NumberOfParticles = np
+                    grid_particle_count[gidx,0]=np
+                    g.hierarchy.grid_particle_count = grid_particle_count
+                    if np==0: 
+                        g.particle_indices = []
+                        #we have no particles in this grid
+                    else:
+                        fidx = pos[:,0][idx]
+                        g.particle_indices = fidx.astype('int64')
+                        pos = pos[~idx] #throw out gridded particles from future gridding
+                    self.grids[gidx] = g
+                    left -= np
+                    pbar.update(left)
+            pbar.finish()
             
         else:
             

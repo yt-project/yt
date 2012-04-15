@@ -123,6 +123,8 @@ class IOHandlerART(BaseIOHandler):
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
         idx = grid.particle_indices
+        if field == 'particle_index':
+            return idx
         if field == 'particle_position_x':
             return grid.pf.particle_position[idx][:,0]
         if field == 'particle_position_y':

@@ -80,7 +80,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             (server_address, port))
         self.port = str(self.port)
 
-    def run(self, block_ratio = 1):
+    def run(self, block_ratio = 1,**kwargs):
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
@@ -89,7 +89,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
                     writing_port = -1,
-                    block_ratio = block_ratio)
+                    block_ratio = block_ratio,
+                    **kwargs)
         if self.comm.size == 1:
             self.handler.call_rockstar()
         else:

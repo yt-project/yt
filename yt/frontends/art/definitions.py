@@ -26,6 +26,7 @@ License:
 """
 
 art_particle_field_names = [
+'particle_index',
 'particle_mass',
 'particle_creation_time',
 'particle_metallicity_fraction',
