@@ -125,6 +125,8 @@ class IOHandlerART(BaseIOHandler):
         idx = grid.particle_indices
         if field == 'particle_index':
             return idx
+        if field == 'particle_type':
+            return grid.pf.particle_type[idx]
         if field == 'particle_position_x':
             return grid.pf.particle_position[idx][:,0]
         if field == 'particle_position_y':
@@ -144,7 +146,7 @@ class IOHandlerART(BaseIOHandler):
         sidx  = grid.particle_indices[tridx] - grid.pf.particle_star_index
         n = grid.particle_indices
         if field == 'particle_creation_time':
-            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-0.0
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
             if sidx.shape[0]>0:
                 tr[tridx] = grid.pf.particle_star_ages[sidx]
             return tr

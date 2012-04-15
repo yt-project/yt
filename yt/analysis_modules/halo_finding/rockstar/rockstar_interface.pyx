@@ -278,8 +278,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             fi += 1
         pi += npart
     num_p[0] = tnpart
-    print "Block #%i | Particles %i | Particles %i| Grids %i  "%\
-            ( block, pi, tnpart, len(grids))
+    print "Block #%i | Particles %i | Grids %i"%\
+            ( block, pi, len(grids))
 
 cdef class RockstarInterface:
 
@@ -327,7 +327,7 @@ cdef class RockstarInterface:
         h0 = self.pf.hubble_constant
         Ol = self.pf.omega_lambda
         Om = self.pf.omega_matter
-        SCALE_NOW = 1.0/self.pf.current_redshift-1.0
+        SCALE_NOW = 1.0/(self.pf.current_redshift+1.0)
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
             #workaround is to make a new directory

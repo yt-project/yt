@@ -35,4 +35,5 @@ art_particle_field_names = [
 'particle_position_z',
 'particle_velocity_x',
 'particle_velocity_y',
-'particle_velocity_z']
+'particle_velocity_z',
+'particle_type']

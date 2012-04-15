@@ -371,7 +371,7 @@ class ARTHierarchy(AMRHierarchy):
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
             np = lspecies[-1]
-            if dm_only:
+            if self.pf.dm_only:
                 np = lspecies[0]
             self.pf.particle_position   = self.pf.particle_position[:np]
             self.pf.particle_position  -= 1.0 #fortran indices start with 0
@@ -381,7 +381,7 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_velocity   = self.pf.particle_velocity[:np]
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
-            self.pf.particle_species    = na.zeros(np,dtype='uint8')
+            self.pf.particle_type       = na.zeros(np,dtype='uint8')
             self.pf.particle_mass       = na.zeros(np,dtype='float64')
             
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
@@ -399,7 +399,7 @@ class ARTHierarchy(AMRHierarchy):
 
             a,b=0,0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
-                self.pf.particle_species[a:b] = i #particle type
+                self.pf.particle_type[a:b] = i #particle type
                 self.pf.particle_mass[a:b]    = m*um #mass in solar masses
                 a=b
             pbar.finish()
@@ -423,38 +423,51 @@ class ARTHierarchy(AMRHierarchy):
                     self.pf.particle_star_metallicity2 = metallicity2
                     self.pf.particle_star_mass_initial = imass*um
                     self.pf.particle_mass[-nstars:] = mass*um
+
             left = self.pf.particle_position.shape[0]
-            pbar = get_pbar("Gridding  Particles ",left)
+            init = self.pf.particle_position.shape[0]
+            pbar = get_pbar("Gridding Particles ",init)
             pos = self.pf.particle_position.copy()
+            pid = na.arange(pos.shape[0]).astype('int64')
             #particle indices travel with the particle positions
-            pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
+            #pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
             max_level = min(self.pf.max_level,self.pf.limit_level)
             grid_particle_count = na.zeros((len(grids),1),dtype='int64')
             
             #grid particles at the finest level, removing them once gridded
-            for level in range(max_level,self.pf.min_level-1,-1):
-                lidx = self.grid_levels[:,0] == level
-                for gi,gidx in enumerate(na.where(lidx)[0]): 
-                    g = grids[gidx]
-                    assert g is not None
-                    le,re = self.grid_left_edge[g._id_offset],self.grid_right_edge[g._id_offset]
-                    idx = na.logical_and(na.all(le < pos[:,1:],axis=1),
-                                         na.all(re > pos[:,1:],axis=1))
-                    np = na.sum(idx)                     
-                    g.NumberOfParticles = np
-                    grid_particle_count[gidx,0]=np
-                    g.hierarchy.grid_particle_count = grid_particle_count
-                    if np==0: 
-                        g.particle_indices = []
-                        #we have no particles in this grid
-                    else:
-                        fidx = pos[:,0][idx]
-                        g.particle_indices = fidx.astype('int64')
-                        pos = pos[~idx] #throw out gridded particles from future gridding
-                    self.grids[gidx] = g
-                    left -= np
-                    pbar.update(left)
-            pbar.finish()
+            if self.pf.grid_particles:
+                for level in range(max_level,self.pf.min_level-1,-1):
+                    lidx = self.grid_levels[:,0] == level
+                    for gi,gidx in enumerate(na.where(lidx)[0]): 
+                        g = grids[gidx]
+                        assert g is not None
+                        le,re = self.grid_left_edge[gidx],self.grid_right_edge[gidx]
+                        idx = na.logical_and(na.all(le < pos,axis=1),
+                                             na.all(re > pos,axis=1))
+                        fidx = pid[idx]
+                        np = na.sum(idx)                     
+                        g.NumberOfParticles = np
+                        grid_particle_count[gidx,0]=np
+                        g.hierarchy.grid_particle_count = grid_particle_count
+                        if np==0: 
+                            g.particle_indices = []
+                            #we have no particles in this grid
+                        else:
+                            g.particle_indices = fidx.astype('int64')
+                            pos = pos[~idx] #throw out gridded particles from future gridding
+                            pid = pid[~idx]
+                        self.grids[gidx] = g
+                        left -= np
+                        pbar.update(init-left)
+                pbar.finish()
+            else:
+                g = grids[0]
+                g.NumberOfParticles = pos.shape[0]
+                grid_particle_count[0,0]=pos.shape[0]
+                g.hierarchy.grid_particle_count = grid_particle_count
+                g.particle_indices = pid
+                grids[0] = g
+                for gi,g in enumerate(grids): self.grids[gi]=g
             
         else:
             
@@ -555,7 +568,8 @@ class ARTStaticOutput(StaticOutput):
                  discover_particles=False,
                  use_particles=True,
                  limit_level=None,
-                 dm_only=False):
+                 dm_only=False,
+                 grid_particles=False):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
         
         
@@ -567,6 +581,7 @@ class ARTStaticOutput(StaticOutput):
         self.file_particle_data = file_particle_data
         self.file_star_data = file_star_data
         self.dm_only = dm_only
+        self.grid_particles = grid_particles
         
         if limit_level is None:
             self.limit_level = na.inf
