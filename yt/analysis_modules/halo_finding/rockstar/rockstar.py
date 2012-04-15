@@ -25,9 +25,11 @@ License:
 
 from yt.mods import *
 from os import environ
+from os import mkdir
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 
+from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
 import rockstar_interface
 import socket
 import time
@@ -45,7 +47,7 @@ class DomainDecomposer(ParallelAnalysisInterface):
         return data_source
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
-    def __init__(self, pf, num_readers = 0, num_writers = 0):
+    def __init__(self, pf, num_readers = 0, num_writers = 0, outbase=None):
         ParallelAnalysisInterface.__init__(self)
         # No subvolume support
         self.pf = pf
@@ -64,6 +66,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             for wg in self.pool.workgroups:
                 if self.comm.rank in wg.ranks: self.workgroup = wg
         data_source = self.pf.h.all_data()
+        if outbase is None:
+            outbase = str(self.pf)+'_rockstar'
+        self.outbase = outbase        
         self.handler = rockstar_interface.RockstarInterface(
                 self.pf, data_source)
 
@@ -84,12 +89,20 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
+        #because rockstar *always* write to exactly the same
+        #out_0.list filename we make a directory for it
+        #to sit inside so it doesn't get accidentally
+        #overwritten
+        
+        if self.workgroup.name == "server":
+            os.mkdir(self.outbase)
         self.handler.setup_rockstar(self.server_address, self.port,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
                     writing_port = -1,
                     block_ratio = block_ratio,
+                    outbase = self.outbase,
                     **kwargs)
         if self.comm.size == 1:
             self.handler.call_rockstar()
@@ -104,3 +117,11 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 #time.sleep(1.0 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
         self.comm.barrier()
+        #quickly rename the out_0.list 
+    
+    def halo_list(self):
+        """
+        Reads in the out_0.list file and generates RockstarHaloList
+        and RockstarHalo objects.
+        """
+        return RockstarHaloList(self.pf,self.outbase+'/out_0.list')

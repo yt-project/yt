@@ -278,7 +278,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             fi += 1
         pi += npart
     num_p[0] = tnpart
-    print "TOTAL", block, pi, tnpart, len(grids)
+    print "Block #%i | Particles %i | Particles %i| Grids %i  "%\
+            ( block, pi, tnpart, len(grids))
 
 cdef class RockstarInterface:
 
@@ -297,12 +298,13 @@ cdef class RockstarInterface:
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
-                       int periodic = 1):
+                       int periodic = 1, 
+                       char *outbase = 'None'):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
-        global rh, SCALE_NOW
+        global rh, SCALE_NOW, OUTBASE
         if parallel:
             PARALLEL_IO = 1
             PARALLEL_IO_SERVER_ADDRESS = server_address
@@ -315,7 +317,7 @@ cdef class RockstarInterface:
             PARALLEL_IO_SERVER_PORT = server_port
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
-        OUTPUT_FORMAT = "BOTH"
+        OUTPUT_FORMAT = "ASCII"
         NUM_SNAPS = 1
         NUM_READERS = num_readers
         NUM_BLOCKS = num_readers * block_ratio
@@ -326,6 +328,11 @@ cdef class RockstarInterface:
         Ol = self.pf.omega_lambda
         Om = self.pf.omega_matter
         SCALE_NOW = 1.0/self.pf.current_redshift-1.0
+        if not outbase =='None'.decode('UTF-8'):
+            #output directory. since we can't change the output filenames
+            #workaround is to make a new directory
+            print 'using %s as outbase'%outbase
+            OUTBASE = outbase 
 
         if particle_mass < 0:
             print "Assuming single-mass particle."

@@ -371,6 +371,8 @@ class ARTHierarchy(AMRHierarchy):
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
             np = lspecies[-1]
+            if dm_only:
+                np = lspecies[0]
             self.pf.particle_position   = self.pf.particle_position[:np]
             self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
@@ -404,7 +406,7 @@ class ARTHierarchy(AMRHierarchy):
             
             self.pf.particle_star_index = i
             
-            if self.pf.file_star_data:
+            if self.pf.file_star_data and (not self.pf.dm_only):
                 nstars, mass, imass, tbirth, metallicity1, metallicity2 \
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
                 nstars = nstars[0] 
@@ -552,7 +554,8 @@ class ARTStaticOutput(StaticOutput):
                  file_star_data=None,
                  discover_particles=False,
                  use_particles=True,
-                 limit_level=None):
+                 limit_level=None,
+                 dm_only=False):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
         
         
@@ -563,6 +566,7 @@ class ARTStaticOutput(StaticOutput):
         self.file_particle_header = file_particle_header
         self.file_particle_data = file_particle_data
         self.file_star_data = file_star_data
+        self.dm_only = dm_only
         
         if limit_level is None:
             self.limit_level = na.inf
