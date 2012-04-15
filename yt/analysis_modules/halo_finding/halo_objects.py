@@ -250,7 +250,7 @@ class Halo(object):
         else:
             return self.data[key][self.indices]
 
-    def get_sphere(self, center_of_mass=True):
+    def get_sphere(self, center_of_mass=True, radius = None):
         r"""Returns a sphere source.
 
         This will generate a new, empty sphere source centered on this halo,
@@ -279,7 +279,8 @@ class Halo(object):
             center = self.center_of_mass()
         else:
             center = self.maximum_density_location()
-        radius = self.maximum_radius()
+        if radius is None:
+            radius = self.maximum_radius()
         # A bit of a long-reach here...
         sphere = self.data.hierarchy.sphere(
                         center, radius=radius)
@@ -437,6 +438,72 @@ class Halo(object):
         self.overdensity = self.mass_bins * Msun2g / \
         (4. / 3. * math.pi * rho_crit * \
         (self.radial_bins * cm) ** 3.0)
+
+class RockstarHalo(Halo):
+    """Implement the properties reported by Rockstar: ID, Descendant ID,
+       Mvir, Vmax, Vrms, Rvir, Rs, Np, XYZ, VXYZ, JXYZ, and spin.
+       Most defaults are removed since we don't read in which halos
+       particles belong to.
+    """
+    def __init__(ID, DescID, Mvir, Vmax, Vrms, Rvir, Rs, Np, 
+                  X, Y, Z, VX, VY, VZ, JX, JY, JZ, Spin):
+        self.ID = ID
+        self.DescID = DescID
+        self.Mvir = Mvir
+        self.Vmax = Vmax
+        self.Vrms = Vrms
+        self.Rvir = Rvir
+        self.Rs   = Rs
+        self.Np   = Np
+        self.X    = X
+        self.Y    = Y
+        self.Z    = Z
+        self.VX   = VX
+        self.VY   = VY
+        self.VZ   = VZ
+        self.JX   = JX
+        self.JY   = JY
+        self.JZ   = JZ
+        self.Spin = Spin
+
+        self.size = Np
+        self.CoM = na.array([X,Y,Z])
+        self.max_dens_point = -1 #not implemented
+        self.group_total_mass = -1 #not implemented
+        self.max_radius = Rvir #not accurate, but good for plotting
+        self.bulk_vel  = na.array([VX,VY,VZ])
+        self.bulk_vel  *= 1e5 #km/s-> cm/s
+        self.rms_vel = -1 #not implemented
+    
+    def maximum_density(self):
+        r"""Not implemented."""
+        return -1
+
+    def maximum_density_location(self):
+        r"""Not implemented."""
+        return self.center_of_mass()
+
+    def total_mass(self):
+        r"""Not implemented."""
+        return -1
+
+    def write_particle_list(self,handle):
+        r"""Not implemented."""
+        pass
+
+    def get_size(self):
+        r"""Return the number of particles belonging to the halo."""
+        return self.Np
+
+    def virial_mass(self):
+        r"""Virial mass in Msun/h"""
+        return self.Mvir
+
+    def virial_density(self):
+        r"""Virial radius of the halo in comoving Mpc/h """
+        return self.Rvir
+
+
 
 
 class HOPHalo(Halo):

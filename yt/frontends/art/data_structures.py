@@ -284,8 +284,10 @@ class ARTHierarchy(AMRHierarchy):
                 if idims.prod() > vol_max or psg.efficiency < min_eff:
                     psg_split = _ramses_reader.recursive_patch_splitting(
                         psg, idims, initial_left, 
-                        dleft_index, dfl,min_eff=min_eff,use_center=True,
-                        split_on_vol=vol_max)
+                        dleft_index, dfl)
+                        #,min_eff=min_eff
+                        #,use_center=True
+                        #split_on_vol=vol_max)
                     
                     psgs.extend(psg_split)
                     psg_eff += [x.efficiency for x in psg_split] 
