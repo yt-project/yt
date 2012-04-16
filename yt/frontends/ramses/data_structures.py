@@ -207,23 +207,29 @@ class RAMSESDomainSubset(object):
         # bits we want.
         oct_handler = self.oct_handler
         all_fields = self.domain.pf.h.field_list
+        fields = [f for ft, f in fields]
         tr = {}
         filled = pos = 0
         for field in fields:
             tr[field] = na.empty(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.hydro_offset):
+            if offset == -1: continue
             content.seek(offset)
             temp = {}
             for field in all_fields:
                 if field not in fields:
+                    #print "Skipping %s in %s : %s" % (field, level,
+                    #        self.domain.domain_id)
                     fpu.skip(content)
                     continue
                 else:
+                    #print "Reading %s in %s : %s" % (field, level,
+                    #        self.domain.domain_id)
                     tt = fpu.read_vector(content, 'd') # cell 1
                     temp[field] = na.empty((tt.shape[0], 8), dtype="float64")
                     temp[field][:,0] = tt
                     for i in range(7):
-                        temp[field][:,i+1] = fpu.read_vector(f, 'd')
+                        temp[field][:,i+1] = fpu.read_vector(content, 'd')
             filled, pos = oct_handler.fill_level(self.domain.domain_id, level,
                                             tr, temp, self.mask, filled, pos)
         return tr

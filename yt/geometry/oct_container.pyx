@@ -375,11 +375,16 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             local_filled = filled
             dest = dest_fields[key]
             source = source_fields[key]
+            # n ranges from the start of the octs in this domain to the end
+            # when we first iterate, it will be at pos = 0.
             for n in range(pos, dom.n_assigned):
                 o = &dom.my_octs[n]
                 if o.level > level:
                     local_pos = n
                     break
+                if o.level < level:
+                    pos = n
+                    continue
                 if mask[n + dom.offset] == 0: continue
                 for i in range(2):
                     for j in range(2):
