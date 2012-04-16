@@ -217,20 +217,20 @@ class RAMSESDomainSubset(object):
             if offset == -1: continue
             content.seek(offset)
             temp = {}
-            for field in all_fields:
-                if field not in fields:
-                    #print "Skipping %s in %s : %s" % (field, level,
-                    #        self.domain.domain_id)
-                    fpu.skip(content)
-                    continue
-                else:
-                    #print "Reading %s in %s : %s" % (field, level,
-                    #        self.domain.domain_id)
-                    tt = fpu.read_vector(content, 'd') # cell 1
-                    temp[field] = na.empty((tt.shape[0], 8), dtype="float64")
-                    temp[field][:,0] = tt
-                    for i in range(7):
-                        temp[field][:,i+1] = fpu.read_vector(content, 'd')
+            for i in range(8):
+                for field in all_fields:
+                    if field not in fields:
+                        #print "Skipping %s in %s : %s" % (field, level,
+                        #        self.domain.domain_id)
+                        fpu.skip(content)
+                        continue
+                    else:
+                        #print "Reading %s in %s : %s" % (field, level,
+                        #        self.domain.domain_id)
+                        tt = fpu.read_vector(content, 'd') # cell 1
+                        if i == 0:
+                            temp[field] = na.empty((tt.shape[0], 8), dtype="float64")
+                        temp[field][:,i] = tt
             filled, pos = oct_handler.fill_level(self.domain.domain_id, level,
                                             tr, temp, self.mask, filled, pos)
             #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
