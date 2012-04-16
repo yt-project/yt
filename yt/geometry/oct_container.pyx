@@ -209,7 +209,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     def add(self, int curdom, int curlevel, int ng,
             np.ndarray[np.float64_t, ndim=2] pos,
             np.ndarray[np.int64_t, ndim=1] findices,
-            np.ndarray[np.int64_t, ndim=2] cpumap):
+            np.ndarray[np.int64_t, ndim=2] cpumap,
+            int local):
         cdef int level, no, p, i, j, k, ind[3]
         cdef Oct* cur = self.root_mesh[0][0][0]
         cdef np.float64_t pp[3], cp[3], dds[3]
@@ -266,7 +267,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     self.nocts += 1
                 cur = next
             cur.domain = curdom
-            cur.ind = findices[p]
+            if local == 1: cur.ind = p
             cur.level = curlevel
 
     @cython.boundscheck(False)
@@ -377,19 +378,16 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             source = source_fields[key]
             # n ranges from the start of the octs in this domain to the end
             # when we first iterate, it will be at pos = 0.
-            for n in range(pos, dom.n_assigned):
+            for n in range(dom.n_assigned):
                 o = &dom.my_octs[n]
-                if o.level > level:
-                    local_pos = n
-                    break
-                if o.level < level:
-                    pos = n
-                    continue
+                if o.level != level: continue
                 if mask[n + dom.offset] == 0: continue
                 for i in range(2):
                     for j in range(2):
                         for k in range(2):
                             if o.children[i][j][k] != NULL: continue
-                            dest[local_filled] = source[n - pos, i*4+j*2+k]
+                            #print dom.n_assigned, local_filled, dest.shape[0], n, pos, n-pos, source.shape[0], o.level, level
+                            pos = o.ind
+                            dest[local_filled] = source[pos, i*4+j*2+k]
                             local_filled += 1
         return local_filled, local_pos

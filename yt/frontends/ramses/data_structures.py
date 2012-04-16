@@ -164,7 +164,8 @@ class RAMSESDomainFile(object):
                 # We don't want duplicate grids.
                 if cpu + 1 >= self.domain_id: 
                     assert(pos.shape[0] == ng)
-                    oct_handler.add(cpu + 1, level, ng, pos, ind, cpu_map)
+                    oct_handler.add(cpu + 1, level, ng, pos, ind, cpu_map,
+                                    int(cpu + 1 == self.domain_id))
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -211,7 +212,7 @@ class RAMSESDomainSubset(object):
         tr = {}
         filled = pos = 0
         for field in fields:
-            tr[field] = na.empty(self.cell_count, 'float64')
+            tr[field] = na.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.hydro_offset):
             if offset == -1: continue
             content.seek(offset)
@@ -232,6 +233,9 @@ class RAMSESDomainSubset(object):
                         temp[field][:,i+1] = fpu.read_vector(content, 'd')
             filled, pos = oct_handler.fill_level(self.domain.domain_id, level,
                                             tr, temp, self.mask, filled, pos)
+            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
+        #print "DONE (%s) %s of %s" % (self.domain.domain_id, filled,
+        #self.cell_count)
         return tr
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):
