@@ -27,6 +27,21 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef extern from "math.h":
+    double exp(double x)
+    float expf(float x)
+    long double expl(long double x)
+    double floor(double x)
+    double ceil(double x)
+    double fmod(double x, double y)
+    double log2(double x)
+    long int lrint(double x)
+    double fabs(double x)
+    double cos(double x)
+    double sin(double x)
+    double asin(double x)
+    double acos(double x)
+
 cdef class position:
     cdef public int output_pos, refined_pos
     def __cinit__(self):
@@ -107,16 +122,15 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                                         curpos, ci - grid.offset, output, refined, grids)
     return s
 
-@cython.boundscheck(False)
 def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                           int i_f, int j_f, int k_f,
-                          np.ndarray[np.int32_t, ndim=1] curpos,
+                          np.ndarray[np.int64_t, ndim=1] curpos,
                           int gi, 
                           np.ndarray[np.float64_t, ndim=2] output,
-                          np.ndarray[np.int32_t, ndim=2] genealogy,
+                          np.ndarray[np.int64_t, ndim=2] genealogy,
                           np.ndarray[np.float64_t, ndim=2] corners,
                           OctreeGridList grids):
-    cdef np.int32_t i, i_off, j, j_off, k, k_off, ci, fi
+    cdef np.int64_t i, i_off, j, j_off, k, k_off, ci, fi
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[gi-1]
@@ -129,7 +143,7 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef np.float64_t child_dx
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
-    cdef int cp
+    cdef np.int64_t cp
     cdef int s = 0
     for i_off in range(i_f):
         i = i_off + i_i
@@ -153,9 +167,9 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                     child_grid = grids[ci-1]
                     child_dx = child_grid.dx[0]
                     child_leftedges = child_grid.left_edges
-                    child_i = int((cx-child_leftedges[0])/child_dx)
-                    child_j = int((cy-child_leftedges[1])/child_dx)
-                    child_k = int((cz-child_leftedges[2])/child_dx)
+                    child_i = lrint((cx-child_leftedges[0])/child_dx)
+                    child_j = lrint((cy-child_leftedges[1])/child_dx)
+                    child_k = lrint((cz-child_leftedges[2])/child_dx)
                     # set current child id to id of next cell to examine
                     genealogy[cp, 0] = curpos[level+1] 
                     # set next parent id to id of current cell

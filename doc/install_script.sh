@@ -42,6 +42,7 @@ INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
+INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -180,6 +181,17 @@ function host_specific
         echo "$ export CXX=g++-4.2"
         echo
     fi
+    if [ ! -z "${CFLAGS}" ]
+    then
+        echo "******************************************"
+        echo "******************************************"
+        echo "**                                      **"
+        echo "**    Your CFLAGS is not empty.         **"
+        echo "**    This can beak h5py compilation.   **"
+        echo "**                                      **"
+        echo "******************************************"
+        echo "******************************************"
+    fi
 }
 
 
@@ -227,6 +239,10 @@ printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
 echo "be installing PyX"
 
+printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
+get_willwont ${INST_0MQ}
+echo "be installing ZeroMQ"
+
 echo
 
 if [ -z "$HDF5_DIR" ]
@@ -257,7 +273,15 @@ echo
 
 function do_exit
 {
-    echo "Failure.  Check ${LOG_FILE}."
+    echo "********************************************"
+    echo "        FAILURE REPORT:"
+    echo "********************************************"
+    echo
+    tail -n 10 ${LOG_FILE}
+    echo
+    echo "********************************************"
+    echo "********************************************"
+    echo "Failure.  Check ${LOG_FILE}.  The last 10 lines are above."
     exit 1
 }
 
@@ -339,32 +363,33 @@ echo '6d65dcbb77978d4f4a9711062f11ae9d61133ca086f9207a8c1ecea8807dc9612cc8c3b242
 echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d6f69042b4c87c58c881ee2aaa279561ea0f0f48d5842155f4de9de  freetype-2.4.4.tar.gz' > freetype-2.4.4.tar.gz.sha512
 echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72a7dbd496a5590828131c5f046ddead695e5cba79343b8c205148d1  h5py-2.0.1.tar.gz' > h5py-2.0.1.tar.gz.sha512
 echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
-echo '2c883d64886e5d595775dde497f101ff2ecec0786eabcdc69861c20e7d081e67b5e97551194236933b78f1ff7b119fcba0a9ce3aa4851440fc58f84d2094177b  ipython-0.10.tar.gz' > ipython-0.10.tar.gz.sha512
+echo 'ffc5c9e0c8c8ea66479abd467e442419bd1c867e6dbd180be6a032869467955dc570cfdf1388452871303a440738f302d3227ab7728878c4a114cfc45d29d23c  ipython-0.12.tar.gz' > ipython-0.12.tar.gz.sha512
 echo 'e748b66a379ee1e7963b045c3737670acf6aeeff1ebed679f427e74b642faa77404c2d5bbddb922339f009c229d0af1ae77cc43eab290e50af6157a6406d833f  libpng-1.2.43.tar.gz' > libpng-1.2.43.tar.gz.sha512
 echo 'f5ab95c29ef6958096970265a6079f0eb8c43a500924346c4a6c6eb89d9110eeeb6c34a53715e71240e82ded2b76a7b8d5a9b05a07baa000b2926718264ad8ff  matplotlib-1.1.0.tar.gz' > matplotlib-1.1.0.tar.gz.sha512
 echo '78715bb2bd7ed3291089948530a59d5eff146a64179eae87904a2c328716f26749abb0c5417d6001cadfeebabb4e24985d5a59ceaae4d98c4762163970f83975  mercurial-2.0.tar.gz' > mercurial-2.0.tar.gz.sha512
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
 echo '5ad681f99e75849a5ca6f439c7a19bb51abc73d121b50f4f8e4c0da42891950f30407f761a53f0fe51b370b1dbd4c4f5a480557cb2444c8c7c7d5412b328a474  sqlite-autoconf-3070500.tar.gz' > sqlite-autoconf-3070500.tar.gz.sha512
 echo 'edae735960279d92acf58e1f4095c6392a7c2059b8f1d2c46648fc608a0fb06b392db2d073f4973f5762c034ea66596e769b95b3d26ad963a086b9b2d09825f2  zlib-1.2.3.tar.bz2' > zlib-1.2.3.tar.bz2.sha512
+echo 'fb3cf421b2dc48c31956b3e3ee4ab6ebc743deec3bf626c2238a1996c8c51be87260bd6aa662793a1f0c34dcda9b3146763777bb162dfad6fec4ca7acc403b2e  zeromq-2.2.0.tar.gz' > zeromq-2.2.0.tar.gz.sha512
+echo 'd761b492352841cdc125d9f0c99ee6d6c435812472ea234728b7f0fb4ad1048e1eec9b399df2081fbc926566f333f7780fedd0ce23255a6633fe5c60ed15a6af  pyzmq-2.1.11.tar.gz' > pyzmq-2.1.11.tar.gz.sha512
+echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254bc76b9b3b14b4aab7c3e1135858f68abc5636daedf2f01f9b8a3cf  tornado-2.2.tar.gz' > tornado-2.2.tar.gz.sha512
 
 # Individual processes
-if [ -z "$HDF5_DIR" ]
-then
-    echo "Downloading HDF5"
-    get_enzotools hdf5-1.8.7.tar.gz
-fi
-
+[ -z "$HDF5_DIR" ] && get_enzotools hdf5-1.8.7.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
 [ $INST_PYX -eq 1 ] && get_enzotools PyX-0.11.1.tar.gz
+[ $INST_0MQ -eq 1 ] && get_enzotools zeromq-2.2.0.tar.gz
+[ $INST_0MQ -eq 1 ] && get_enzotools pyzmq-2.1.11.tar.gz
+[ $INST_0MQ -eq 1 ] && get_enzotools tornado-2.2.tar.gz
 get_enzotools Python-2.7.2.tgz
 get_enzotools numpy-1.6.1.tar.gz
 get_enzotools matplotlib-1.1.0.tar.gz
 get_enzotools mercurial-2.0.tar.gz
-get_enzotools ipython-0.10.tar.gz
+get_enzotools ipython-0.12.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
 get_enzotools Cython-0.15.1.tar.gz
 get_enzotools ext-3.3.2.zip
@@ -585,7 +610,26 @@ fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
-do_setup_py ipython-0.10
+
+# Now we do our IPython installation, which has two optional dependencies.
+if [ $INST_0MQ -eq 1 ]
+then
+    if [ ! -e zeromq-2.2.0/done ]
+    then
+        [ ! -e zeromq-2.2.0 ] && tar xfz zeromq-2.2.0.tar.gz
+        echo "Installing ZeroMQ"
+        cd zeromq-2.2.0
+        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+    do_setup_py pyzmq-2.1.11 --zmq=${DEST_DIR}
+    do_setup_py tornado-2.2
+fi
+
+do_setup_py ipython-0.12
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.15.1
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1

@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
 from yt.mods import *
 #from yt.utilities.math_utils import *
 from yt.utilities.performance_counters import yt_counters, time_function
@@ -403,7 +404,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             status = 0
         # Broadcast the status from root - we stop only if root thinks we should
         # stop.
-        status = self.comm.mpi_bcast_pickled(status)
+        status = self.comm.mpi_bcast(status)
         if status == 0: return True
         if self.comm_cycle_count < status:
             return True

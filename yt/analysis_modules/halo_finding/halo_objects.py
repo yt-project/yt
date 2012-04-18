@@ -1901,7 +1901,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             if self.comm.rank == 0:
                 self._recursive_divide(root_points, topbounds, 0, cut_list)
             self.bucket_bounds = \
-                self.comm.mpi_bcast_pickled(self.bucket_bounds)
+                self.comm.mpi_bcast(self.bucket_bounds)
             my_bounds = self.bucket_bounds[self.comm.rank]
             LE, RE = my_bounds[0], my_bounds[1]
             self._data_source = self.hierarchy.region_strict([0.] * 3, LE, RE)

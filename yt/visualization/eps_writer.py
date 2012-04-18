@@ -475,7 +475,7 @@ class DualEPS(object):
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
-            imorigin = (imorigin[0] - shift[0], imorigin[1] - shift[1])
+            imorigin = (imorigin[0] - shift[0], imorigin[1] + shift[1])
             self.canvas.insert(pyx.bitmap.bitmap(imorigin[0], imorigin[1], cmap_im,
                                                  width=-size[0], height=size[1]))
         else:

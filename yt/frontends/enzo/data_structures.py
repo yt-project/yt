@@ -354,6 +354,11 @@ class EnzoHierarchy(AMRHierarchy):
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
         except:
             return False
+        hash = f["/"].attrs.get("hash", None)
+        if hash != self.parameter_file._hash():
+            mylog.info("Binary hierarchy does not match: recreating")
+            f.close()
+            return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
         self.grid_right_edge[:] = f["/RightEdges"][:]
@@ -390,6 +395,7 @@ class EnzoHierarchy(AMRHierarchy):
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
         except IOError:
             return
+        f["/"].attrs["hash"] = self.parameter_file._hash()
         f.create_dataset("/LeftEdges", data=self.grid_left_edge)
         f.create_dataset("/RightEdges", data=self.grid_right_edge)
         parents, procs, levels = [], [], []
@@ -462,7 +468,7 @@ class EnzoHierarchy(AMRHierarchy):
                     field_list = field_list.union(gf)
         else:
             field_list = None
-        field_list = self.comm.mpi_bcast_pickled(field_list)
+        field_list = self.comm.mpi_bcast(field_list)
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
@@ -481,7 +487,7 @@ class EnzoHierarchy(AMRHierarchy):
                 mylog.debug("Added additional grid %s", first_grid)
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
-            random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
+            random_sample = na.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):

@@ -26,7 +26,6 @@ import h5py
 try: import pyfits
 except: pass
 import numpy as na
-import matplotlib; from matplotlib import pylab
 
 from yt.funcs import *
 
@@ -82,6 +81,8 @@ def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0
     elements.  Optionally, *label*, *label_color* and *label_size* may be
     specified.
     """
+    import matplotlib
+    import pylab
     Nvec = image.shape[0]
     image[na.isnan(image)] = 0.0
     ma = image[image>0.0].max()
@@ -110,6 +111,7 @@ def plot_rgb(image, name, label=None, label_color='w', label_size='large'):
     with "_rgb.png."  *label*, *label_color* and *label_size* may also be
     specified.
     """
+    import pylab
     Nvec = image.shape[0]
     image[na.isnan(image)] = 0.0
     if image.shape[2] >= 4:

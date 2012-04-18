@@ -76,7 +76,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             del sock
         else:
             server_address, port = None, None
-        self.server_address, self.port = self.comm.mpi_bcast_pickled(
+        self.server_address, self.port = self.comm.mpi_bcast(
             (server_address, port))
         self.port = str(self.port)
 

@@ -995,7 +995,8 @@ class YTLoadCmd(YTCommand):
         import IPython
         if IPython.__version__.startswith("0.10"):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11"):
+        elif IPython.__version__.startswith("0.11") or \
+             IPython.__version__.startswith("0.12"):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
@@ -1010,11 +1011,7 @@ class YTLoadCmd(YTCommand):
         else:
             from IPython.config.loader import Config
             cfg = Config()
-            cfg.InteractiveShellEmbed.local_ns = local_ns
-            IPython.embed(config=cfg)
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-            ipshell = InteractiveShellEmbed(config=cfg)
-
+            IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -1329,25 +1326,25 @@ class YTGUICmd(YTCommand):
                     port=int(args.port), repl=hr)
 
 class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf', 'field',
-            dict(long="--max", action="store_true", default=False,
-                 dest='max', help="Display maximum of requested field."),
-            dict(long="--min", action="store_true", default=False,
-                 dest='min', help="Display minimum of requested field."))
+    args = ('outputfn','bn','skip','pf','field',
+            dict(long="--max", action='store_true', default=False,
+                 dest='max', help="Display maximum of field requested through -f option."),
+            dict(long="--min", action='store_true', default=False,
+                 dest='min', help="Display minimum of field requested through -f option."))
     name = "stats"
     description = \
         """
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
 
-        (default field is density)
+        (default field is Density)
 
         """
 
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
-        if args.field in pf.h.field_list:
+        if args.field in pf.h.derived_field_list:
             if args.max == True:
                 v, c = pf.h.find_max(args.field)
                 print "Maximum %s: %0.5e at %s" % (args.field, v, c)
