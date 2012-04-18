@@ -169,6 +169,7 @@ cdef class OctreeContainer:
 cdef class RAMSESOctreeContainer(OctreeContainer):
 
     def allocate_domains(self, domain_counts):
+        print "I AM ALLOCATING", domain_counts
         cdef int count, i
         cdef OctAllocationContainer *cur = self.cont
         assert(cur == NULL)
@@ -176,6 +177,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         self.domains = <OctAllocationContainer **> malloc(
             sizeof(OctAllocationContainer *) * len(domain_counts))
         for i,count in enumerate(domain_counts):
+            print "ALLOCATE", i, count
             cur = allocate_octs(count, cur)
             if self.cont == NULL: self.cont = cur
             self.domains[i] = cur
@@ -208,13 +210,13 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     @cython.cdivision(True)
     def add(self, int curdom, int curlevel, int ng,
             np.ndarray[np.float64_t, ndim=2] pos,
-            np.ndarray[np.int64_t, ndim=1] findices,
-            np.ndarray[np.int64_t, ndim=2] cpumap,
-            int local):
+            int local_domain):
         cdef int level, no, p, i, j, k, ind[3]
+        cdef int local = (local_domain == curdom)
         cdef Oct* cur = self.root_mesh[0][0][0]
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0] #number of octs
+        if curdom >= self.max_domain: curdom = local_domain
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         # How do we bootstrap ourselves?
         for p in range(no):
@@ -225,6 +227,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> (pp[i]/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
+            print ind[0], ind[1], ind[2]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 if curlevel != 0: raise RuntimeError
@@ -267,7 +270,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     self.nocts += 1
                 cur = next
             cur.domain = curdom
-            if local == 1: cur.ind = p
+            if local == 1:
+                #print cur.local_ind - p
+                cur.ind = p
             cur.level = curlevel
 
     @cython.boundscheck(False)
@@ -363,8 +368,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return coords
 
     def fill_level(self, int domain, int level, dest_fields, source_fields,
-                   np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
-                   np.int64_t filled, np.int64_t pos):
+                   np.ndarray[np.uint8_t, ndim=1, cast=True] mask, int offset):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
@@ -373,21 +377,18 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int i, j, k
         cdef int local_pos, local_filled
         for key in dest_fields:
-            local_filled = filled
+            local_filled = 0
             dest = dest_fields[key]
             source = source_fields[key]
-            # n ranges from the start of the octs in this domain to the end
-            # when we first iterate, it will be at pos = 0.
-            for n in range(dom.n_assigned):
-                o = &dom.my_octs[n]
-                if o.level != level: continue
+            for n in range(dom.n):
                 if mask[n + dom.offset] == 0: continue
+                o = &dom.my_octs[n]
                 for i in range(2):
                     for j in range(2):
                         for k in range(2):
                             if o.children[i][j][k] != NULL: continue
                             #print dom.n_assigned, local_filled, dest.shape[0], n, pos, n-pos, source.shape[0], o.level, level
-                            pos = o.ind
-                            dest[local_filled] = source[pos, i*4+j*2+k]
+                            if o.level == level:
+                                #print level, o.ind, offset, o.ind-offset, source.shape[0]
+                                dest[local_filled] = source[o.ind,((k*2)+j)*2+i]
                             local_filled += 1
-        return local_filled, local_pos

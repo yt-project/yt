@@ -70,6 +70,13 @@ class RAMSESDomainFile(object):
         self._read_amr_header()
 
     _hydro_offset = None
+    _level_count = None
+
+    @property
+    def level_count(self):
+        if self._level_count is not None: return self._level_count
+        self.hydro_offset
+        return self._level_count
 
     @property
     def hydro_offset(self):
@@ -80,6 +87,7 @@ class RAMSESDomainFile(object):
         # It goes: level, CPU, 8-variable
         hydro_offset = na.zeros(self.amr_header['nlevelmax'], dtype='int64')
         hydro_offset -= 1
+        level_count = na.zeros(self.amr_header['nlevelmax'], dtype='int64')
         for level in range(self.amr_header['nlevelmax']):
             for cpu in range(self.amr_header['nboundary'] +
                              self.amr_header['ncpu']):
@@ -87,9 +95,13 @@ class RAMSESDomainFile(object):
                            ('file_ncache', 1, 'I') )
                 hvals = fpu.read_attrs(f, header)
                 if hvals['file_ncache'] == 0: continue
-                if cpu + 1 == self.domain_id: hydro_offset[level] = f.tell()
+                assert(hvals['file_ilevel'] == level+1)
+                if cpu + 1 == self.domain_id:
+                    hydro_offset[level] = f.tell()
+                    level_count[level] = hvals['file_ncache']
                 fpu.skip(f, 8 * self.nvar)
         self._hydro_offset = hydro_offset
+        self._level_count = level_count
         return self._hydro_offset
 
     def _read_amr_header(self):
@@ -103,7 +115,9 @@ class RAMSESDomainFile(object):
         fpu.skip(f)
         if hvals['nboundary'] > 0:
             fpu.skip(f, 2)
-            ngridbound = fpu.read_vector(f, 'i')
+            self.ngridbound = fpu.read_vector(f, 'i')
+        else:
+            self.ngridbound = 0
         free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
         ordering = fpu.read_vector(f, 'c')
         fpu.skip(f, 4)
@@ -131,7 +145,7 @@ class RAMSESDomainFile(object):
             if c < self.amr_header['ncpu']:
                 ng = self.amr_header['numbl'][l, c]
             else:
-                ng = ngridbound[c - self.amr_header['ncpu'] +
+                ng = self.ngridbound[c - self.amr_header['ncpu'] +
                                 self.amr_header['nboundary']*l]
             return ng
         for level in range(self.amr_header['nlevelmax']):
@@ -147,25 +161,27 @@ class RAMSESDomainFile(object):
                 pos[:,0] = fpu.read_vector(f, "d")
                 pos[:,1] = fpu.read_vector(f, "d")
                 pos[:,2] = fpu.read_vector(f, "d")
-                pos *= self.pf.domain_width
+                #pos *= self.pf.domain_width
+                print pos.min(), pos.max()
                 #pos += self.parameter_file.domain_left_edge
                 #print pos.min(), pos.max()
-                parents = fpu.read_vector(f, "I")
-                fpu.skip(f, 6)
-                children = na.empty((ng, 8), dtype='int64')
-                for i in range(8):
-                    children[:,i] = fpu.read_vector(f, "I")
-                cpu_map = na.empty((ng, 8), dtype="int64")
-                for i in range(8):
-                    cpu_map[:,i] = fpu.read_vector(f, "I")
-                rmap = na.empty((ng, 8), dtype="int64")
-                for i in range(8):
-                    rmap[:,i] = fpu.read_vector(f, "I")
+                fpu.skip(f, 31)
+                #parents = fpu.read_vector(f, "I")
+                #fpu.skip(f, 6)
+                #children = na.empty((ng, 8), dtype='int64')
+                #for i in range(8):
+                #    children[:,i] = fpu.read_vector(f, "I")
+                #cpu_map = na.empty((ng, 8), dtype="int64")
+                #for i in range(8):
+                #    cpu_map[:,i] = fpu.read_vector(f, "I")
+                #rmap = na.empty((ng, 8), dtype="int64")
+                #for i in range(8):
+                #    rmap[:,i] = fpu.read_vector(f, "I")
                 # We don't want duplicate grids.
                 if cpu + 1 >= self.domain_id: 
                     assert(pos.shape[0] == ng)
-                    oct_handler.add(cpu + 1, level, ng, pos, ind, cpu_map,
-                                    int(cpu + 1 == self.domain_id))
+                    oct_handler.add(cpu + 1, level, ng, pos, 
+                                    self.domain_id)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -216,23 +232,23 @@ class RAMSESDomainSubset(object):
         for level, offset in enumerate(self.domain.hydro_offset):
             if offset == -1: continue
             content.seek(offset)
+            nc = self.domain.level_count[level]
+            level_offset = 0
             temp = {}
+            for field in all_fields:
+                temp[field] = na.empty((nc, 8), dtype="float64")
             for i in range(8):
                 for field in all_fields:
                     if field not in fields:
                         #print "Skipping %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
                         fpu.skip(content)
-                        continue
                     else:
                         #print "Reading %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
-                        tt = fpu.read_vector(content, 'd') # cell 1
-                        if i == 0:
-                            temp[field] = na.empty((tt.shape[0], 8), dtype="float64")
-                        temp[field][:,i] = tt
-            filled, pos = oct_handler.fill_level(self.domain.domain_id, level,
-                                            tr, temp, self.mask, filled, pos)
+                        temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
+            oct_handler.fill_level(self.domain.domain_id, level,
+                                   tr, temp, self.mask, level_offset)
             #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
         #print "DONE (%s) %s of %s" % (self.domain.domain_id, filled,
         #self.cell_count)
@@ -264,15 +280,16 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_right_edge)
         mylog.debug("Allocating %s octs", total_octs)
         self.oct_handler.allocate_domains(
-            [dom.local_oct_count for dom in self.domains])
+            [dom.local_oct_count + dom.ngridbound
+             for dom in self.domains])
         #this actually reads every oct and loads it into the octree
         for dom in self.domains:
             dom._read_amr(self.oct_handler)
 
     def _detect_fields(self):
         # TODO: Add additional fields
-        self.field_list = [ "Density", "x-velocity", "y-velocity",
-	                        "z-velocity", "Pressure", "Metallicity"]
+        self.field_list = ( "Density", "x-velocity", "y-velocity",
+	                        "z-velocity", "Pressure", "Metallicity" )
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -377,10 +394,9 @@ class RAMSESStaticOutput(StaticOutput):
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
         self.parameters.update(rheader)
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
-        self.domain_right_edge = na.ones(3, dtype='float64') \
-                                           * rheader['boxlen']
         self.domain_left_edge = na.zeros(3, dtype='float64')
-        self.domain_dimensions = na.ones(3, dtype='int32') * 2
+        self.domain_dimensions = na.ones(3, dtype='int32') * 3
+        self.domain_right_edge = na.ones(3, dtype='float64') * self.domain_dimensions
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
         mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")

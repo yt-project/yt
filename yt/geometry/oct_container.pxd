@@ -49,7 +49,7 @@ cdef class OctreeContainer:
     cdef int nn[3]
     cdef np.float64_t DLE[3], DRE[3]
     cdef public int nocts
-    cdef int max_domain
+    cdef public int max_domain
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
