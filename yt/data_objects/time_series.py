@@ -76,11 +76,10 @@ class TimeSeriesParametersContainer(object):
         raise AttributeError(attr)
 
 class TimeSeriesData(object):
-    def __init__(self, outputs = None, parallel = True):
-        if outputs is None: outputs = []
-        self.outputs = outputs
+    def __init__(self, outputs, parallel = True):
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
+        self._pre_outputs = outputs[:]
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
@@ -88,19 +87,25 @@ class TimeSeriesData(object):
 
     def __iter__(self):
         # We can make this fancier, but this works
-        return self.outputs.__iter__()
+        for o in self._pre_outputs:
+            if isinstance(o, types.StringTypes):
+                yield load(o)
+            else:
+                yield o
 
     def __getitem__(self, key):
         if isinstance(key, types.SliceType):
             if isinstance(key.start, types.FloatType):
                 return self.get_range(key.start, key.stop)
-        return self.outputs[key]
+            # This will return a sliced up object!
+            return TimeSeriesData(self._pre_outputs[key], self.parallel)
+        o = self._pre_outputs[key]
+        if isinstance(o, types.StringTypes):
+            o = load(o)
+        return o
         
-    def _insert(self, pf):
-        # We get handed an instantiated parameter file
-        # Here we'll figure out a couple things about it, and then stick it
-        # inside our list.
-        self.outputs.append(pf)
+    def __len__(self):
+        return len(self._pre_outputs)
         
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
@@ -110,7 +115,7 @@ class TimeSeriesData(object):
         else:
             if self.parallel == True: njobs = -1
             else: njobs = self.parallel
-        for store, pf in parallel_objects(self.outputs, njobs, return_values):
+        for store, pf in parallel_objects(self, njobs, return_values):
             store.result = []
             for task in tasks:
                 try:
@@ -132,23 +137,20 @@ class TimeSeriesData(object):
 
     @classmethod
     def from_filenames(cls, filename_list, parallel = True):
-        outputs = []
-        for fn in filename_list:
-            outputs.append(load(fn))
-        obj = cls(outputs, parallel = parallel)
+        obj = cls(filename_list[:], parallel = parallel)
         return obj
 
     @classmethod
     def from_output_log(cls, output_log,
                         line_prefix = "DATASET WRITTEN",
                         parallel = True):
-        outputs = []
+        filenames = []
         for line in open(output_log):
             if not line.startswith(line_prefix): continue
             cut_line = line[len(line_prefix):].strip()
             fn = cut_line.split()[0]
-            outputs.append(load(fn))
-        obj = cls(outputs, parallel = parallel)
+            filenames.append(fn)
+        obj = cls(filenames, parallel = parallel)
         return obj
 
 class TimeSeriesQuantitiesContainer(object):

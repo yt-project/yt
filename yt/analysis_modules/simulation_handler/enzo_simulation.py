@@ -128,8 +128,7 @@ class EnzoSimulation(TimeSeriesData):
         self._get_all_outputs(brute_force=get_data_by_force)
 
         # Instantiate a TimeSeriesData object.
-        time_series_outputs = [load(output['filename']) \
-                                   for output in self.allOutputs]
+        time_series_outputs = [output['filename'] for output in self.allOutputs]
         TimeSeriesData.__init__(self, outputs=time_series_outputs)
 
     def _calculate_redshift_dump_times(self):
