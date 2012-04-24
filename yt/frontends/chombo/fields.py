@@ -76,12 +76,12 @@ add_chombo_field("Z-magnfield", function=NullFunc, take_log=False,
                   units=r"",display_name=r"B_z")
 KnownChomboFields["Z-magnfield"]._projected_units=r""
 
-add_chombo_field("energy-density", function=lambda a,b: None, take_log=True,
+add_chombo_field("energy-density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("energy-density")],
                  units=r"\rm{erg}/\rm{cm}^3")
 KnownChomboFields["energy-density"]._projected_units =r""
 
-add_chombo_field("radiation-energy-density", function=lambda a,b: None, take_log=True,
+add_chombo_field("radiation-energy-density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("radiation-energy-density")],
                  units=r"\rm{erg}/\rm{cm}^3")
 KnownChomboFields["radiation-energy-density"]._projected_units =r""
