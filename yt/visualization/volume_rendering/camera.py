@@ -64,7 +64,7 @@ class Camera(ParallelAnalysisInterface):
             The vector between the camera position and the center.
         width : float or list of floats
             The current width of the image.  If a single float, the volume is
-            cubical, but if not, it is front/back, left/right, top/bottom.
+            cubical, but if not, it is left/right, top/bottom, front/back.
         resolution : int or list of ints
             The number of pixels in each direction.
         north_vector : array_like, optional
@@ -187,7 +187,7 @@ class Camera(ParallelAnalysisInterface):
         self.resolution = resolution
         self.sub_samples = sub_samples
         if not iterable(width):
-            width = (width, width, width) # front/back, left/right, top/bottom
+            width = (width, width, width) # left/right, top/bottom, front/back 
         self.width = width
         self.center = center
         self.steady_north = steady_north
@@ -240,7 +240,7 @@ class Camera(ParallelAnalysisInterface):
         east_vector = -na.cross(north_vector, normal_vector).ravel()
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
-        self.unit_vectors = [north_vector, east_vector, normal_vector]
+        self.unit_vectors = [east_vector, north_vector, normal_vector]
         self.box_vectors = na.array([self.unit_vectors[0]*self.width[0],
                                      self.unit_vectors[1]*self.width[1],
                                      self.unit_vectors[2]*self.width[2]])
@@ -248,8 +248,8 @@ class Camera(ParallelAnalysisInterface):
         self.origin = self.center - 0.5*self.width[0]*self.unit_vectors[0] \
                                   - 0.5*self.width[1]*self.unit_vectors[1] \
                                   - 0.5*self.width[2]*self.unit_vectors[2]
-        self.back_center = self.center - 0.5*self.width[0]*self.unit_vectors[2]
-        self.front_center = self.center + 0.5*self.width[0]*self.unit_vectors[2]
+        self.back_center = self.center - 0.5*self.width[2]*self.unit_vectors[2]
+        self.front_center = self.center + 0.5*self.width[2]*self.unit_vectors[2]
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
 
     def look_at(self, new_center, north_vector = None):
@@ -282,7 +282,7 @@ class Camera(ParallelAnalysisInterface):
             The new looking vector.
         width: float or array of floats, optional
             The new width.  Can be a single value W -> [W,W,W] or an
-            array [W1, W2, W3]
+            array [W1, W2, W3] (left/right, top/bottom, front/back)
         center: array_like, optional
             Specifies the new center.
         north_vector : array_like, optional
@@ -292,7 +292,7 @@ class Camera(ParallelAnalysisInterface):
         if width is None:
             width = self.width
         if not iterable(width):
-            width = (width, width, width) # front/back, left/right, top/bottom
+            width = (width, width, width) # left/right, tom/bottom, front/back 
         self.width = width
         if center is not None:
             self.center = center
@@ -394,7 +394,7 @@ class Camera(ParallelAnalysisInterface):
         """
         self.width = [w / factor for w in self.width]
         self._setup_normalized_vectors(
-                self.unit_vectors[2], self.unit_vectors[0])
+                self.unit_vectors[2], self.unit_vectors[1])
 
     def zoomin(self, final, n_steps, clip_ratio = None):
         r"""Loop over a zoomin and return snapshots along the way.
@@ -459,7 +459,7 @@ class Camera(ParallelAnalysisInterface):
             if final_width is not None:
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
-                    # front/back, left/right, top/bottom
+                    # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
                     self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
@@ -472,7 +472,7 @@ class Camera(ParallelAnalysisInterface):
             if final_width is not None:
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
-                    # front/back, left/right, top/bottom
+                    # left/right, top/bottom, front/back
                 dW = (1.0*final_width-na.array(self.width))/n_steps
             else:
                 dW = 1.0
@@ -1291,7 +1291,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         The vector between the camera position and the center.
     width : float or list of floats
         The current width of the image.  If a single float, the volume is
-        cubical, but if not, it is front/back, left/right, top/bottom.
+        cubical, but if not, it is left/right, top/bottom, front/back
     resolution : int or list of ints
         The number of pixels in each direction.
     field : string
@@ -1342,8 +1342,12 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
                       north_vector = north_vector)
     vals = cam.snapshot()
     image = vals[:,:,0]
+    if iterable(width):
+        depth = width[2]
+    else:
+        depth = width
     if weight is None:
-        dl = width * pf.units[pf.field_info[field].projection_conversion]
+        dl = depth * pf.units[pf.field_info[field].projection_conversion]
         image *= dl
     else:
         image /= vals[:,:,1]
