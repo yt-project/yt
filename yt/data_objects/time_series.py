@@ -106,16 +106,19 @@ class TimeSeriesData(object):
         
     def __len__(self):
         return len(self._pre_outputs)
-        
-    def eval(self, tasks, obj=None):
-        tasks = ensure_list(tasks)
-        return_values = {}
+
+    def piter(self, storage = None):
         if self.parallel == False:
             njobs = 1
         else:
             if self.parallel == True: njobs = -1
             else: njobs = self.parallel
-        for store, pf in parallel_objects(self, njobs, return_values):
+        return parallel_objects(self, njobs, storage)
+        
+    def eval(self, tasks, obj=None):
+        tasks = ensure_list(tasks)
+        return_values = {}
+        for store, pf in self.piter(return_values):
             store.result = []
             for task in tasks:
                 try:
