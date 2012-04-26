@@ -614,6 +614,9 @@ for ax in 'XYZ':
     add_field(n, function=eval("_%s" % n), particle_type=True,
               convert_function=_convertSpecificAngularMomentum,
               units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+    add_field(n + "KMSMPC", function=eval("_%s" % n), particle_type=True,
+              convert_function=_convertSpecificAngularMomentumKMSMPC,
+              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]

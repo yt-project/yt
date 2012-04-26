@@ -343,7 +343,11 @@ def parallel_objects(objects, njobs, storage = None):
     obj_ids = na.arange(len(objects))
 
     to_share = {}
-    for result_id, obj in zip(obj_ids, objects)[my_new_id::njobs]:
+    # If our objects object is slice-aware, like time series data objects are,
+    # this will prevent intermediate objects from being created.
+    oiter = itertools.izip(obj_ids[my_new_id::njobs],
+                           objects[my_new_id::njobs])
+    for result_id, obj in oiter:
         if storage is not None:
             rstore = ResultsStorage()
             rstore.result_id = result_id

@@ -679,6 +679,7 @@ class SphereCallback(PlotCallback):
         self.circle_args = circle_args
         self.text = text
         self.text_args = text_args
+        if self.text_args is None: self.text_args = {}
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -696,7 +697,7 @@ class SphereCallback(PlotCallback):
         cir = Circle((center_x, center_y), radius, **self.circle_args)
         plot._axes.add_patch(cir)
         if self.text is not None:
-            plot._axes.text(center_x, center_y, "%s" % halo.id,
+            plot._axes.text(center_x, center_y, self.text,
                             **self.text_args)
 
 class HopCircleCallback(PlotCallback):
