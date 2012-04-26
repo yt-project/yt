@@ -560,6 +560,20 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha)))
 
+    def map_to_colormap(self, mi, ma, scale=1.0, colormap="gist_stern"):
+        rel0 = int(self.nbins*(mi - self.x_bounds[0])/(self.x_bounds[1] -
+            self.x_bounds[0]))
+        rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
+            self.x_bounds[0]))
+        tomap = na.linspace(0.,1.,num=rel1-rel0)
+        cmap = get_cmap(colormap)
+        cc = cmap(tomap)*scale
+        
+        self.red.y[rel0:rel1]  = cc[:,0]
+        self.green.y[rel0:rel1]= cc[:,1]
+        self.blue.y[rel0:rel1] = cc[:,2]
+        self.alpha.y[rel0:rel1]= cc[:,3]
+
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
         r"""Add a set of Gaussians based on an existing colormap.

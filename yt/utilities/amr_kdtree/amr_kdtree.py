@@ -1131,7 +1131,7 @@ class AMRKDTree(HomogenizedVolume):
             return
         self.image = image
 
-        viewpoint = front_center 
+        viewpoint = front_center - back_center 
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
