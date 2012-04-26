@@ -426,8 +426,7 @@ class Camera(ParallelAnalysisInterface):
             yield self.snapshot(clip_ratio = clip_ratio)
 
     def move_to(self, final, n_steps, final_width=None, exponential=False, clip_ratio = None):
-        r"""Loop over a look_at
-
+        r"""
         This will yield `n_steps` snapshots until the current view has been
         moved to a final center of `final` with a final width of final_width.
 
@@ -465,7 +464,7 @@ class Camera(ParallelAnalysisInterface):
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
             else:
-                dW = 1.0
+                dW = na.array([1.0,1.0,1.0])
             position_diff = (na.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
@@ -475,7 +474,7 @@ class Camera(ParallelAnalysisInterface):
                     # left/right, top/bottom, front/back
                 dW = (1.0*final_width-na.array(self.width))/n_steps
             else:
-                dW = 1.0
+                dW = na.array([0.0,0.0,0.0])
             dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
