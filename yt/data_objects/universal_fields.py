@@ -483,20 +483,8 @@ def obtain_velocities(data):
     zv = data["z-velocity"] - bv[2]
     return xv, yv, zv
 
-def _SpecificAngularMomentum(field, data):
-    """
-    Calculate the angular velocity.  Returns a vector for each cell.
-    """
-    r_vec = obtain_rvec(data)
-    xv, yv, zv = obtain_velocities(data)
-    v_vec = na.array([xv,yv,zv], dtype='float64')
-    return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
-add_field("SpecificAngularMomentum",
-          function=_SpecificAngularMomentum,
-          convert_function=_convertSpecificAngularMomentum, vector_field=True,
-          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
     return data.convert("mpc")/1e5
 
@@ -517,21 +505,6 @@ for ax in 'XYZ':
     add_field(n, function=eval("_%s" % n),
               convert_function=_convertSpecificAngularMomentum,
               units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
-
-add_field("SpecificAngularMomentumKMSMPC",
-          function=_SpecificAngularMomentum,
-          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
-          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
-def _AngularMomentum(field, data):
-    return data["CellMass"] * data["SpecificAngularMomentum"]
-add_field("AngularMomentum", function=_AngularMomentum,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
-         validators=[ValidateParameter('center')])
-def _AngularMomentumMSUNKMSMPC(field, data):
-    return data["CellMassMsun"] * data["SpecificAngularMomentumKMSMPC"]
-add_field("AngularMomentumMSUNKMSMPC", function=_AngularMomentum,
-          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}", vector_field=True,
-         validators=[ValidateParameter('center')])
 
 def _AngularMomentumX(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumX"]
