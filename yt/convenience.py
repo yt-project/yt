@@ -62,7 +62,7 @@ def load(*args ,**kwargs):
     if not any(valid_file):
         mylog.error("None of the arguments provided to load() is a valid file")
         mylog.error("Please check that you have used a correct path")
-        return None
+        raise YTOutputNotIdentified(args, kwargs)
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
@@ -83,7 +83,7 @@ def load(*args ,**kwargs):
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
         mylog.error("    Possible: %s", c)
-    return None
+    raise YTOutputNotIdentified(args, kwargs)
 
 def projload(pf, axis, weight_field = None):
     # This is something of a hack, so that we can just get back a projection
