@@ -150,6 +150,8 @@ def write_bitmap(bitmap_array, filename, max_val = None):
         s1, s2 = bitmap_array.shape[:2]
         alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
         bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
+    for channel in range(bitmap_array.shape[2]):
+        bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
     au.write_png(bitmap_array.copy(), filename)
     return bitmap_array
 
