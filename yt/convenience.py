@@ -35,35 +35,6 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     EnzoRunDatabase
 
-def all_pfs(basedir='.', skip=None, max_depth=1, name_spec="*.hierarchy", **kwargs):
-    """
-    This function searchs a directory and its sub-directories, up to a
-    depth of *max_depth*, for parameter files.  It looks for the
-    *name_spec* and then instantiates an EnzoStaticOutput from
-    each. You can skip every *skip* parameter files, if *skip* is not
-    None; otherwise it will return all files.  All subsequent *kwargs*
-    are passed on to the EnzoStaticOutput constructor.
-    """
-    list_of_names = []
-    basedir = os.path.expanduser(basedir)
-    for i in range(max_depth):
-        bb = list('*' * i) + [name_spec]
-        list_of_names += glob.glob(os.path.join(basedir,*bb))
-    list_of_names.sort(key=lambda b: os.path.basename(b))
-    for fn in list_of_names[::skip]:
-        yield load(fn[:-10], **kwargs)
-
-def max_spheres(width, unit, **kwargs):
-    """
-    This calls :func:`~yt.convenience.all_pfs` and then for each parameter file
-    creates a :class:`~yt.data_objects.api.AMRSphereBase` for each one,
-    centered on the point of highest density, with radius *width* in units of
-    *unit*.
-    """
-    for pf in all_pfs(**kwargs):
-        v, c = pf.h.find_max("Density")
-        yield pf.h.sphere(c, width/pf[unit])
-
 def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
@@ -138,79 +109,5 @@ def projload(pf, axis, weight_field = None):
     proj.axis = axis
     proj.pf = pf
     f.close()
-    return proj
-
-def _chunk(arrlike, chunksize = 800000):
-    total_size = arrlike.shape[0]
-    pbar = get_pbar("Transferring %s " % (arrlike.name), total_size)
-    start = 0; end = 0
-    bits = []
-    while start < total_size:
-        bits.append(arrlike[start:start+chunksize])
-        pbar.update(start)
-        start += chunksize
-    pbar.finish()
-    return na.concatenate(bits)
-
-def dapload(p, axis, weight_field = None):
-    r"""Load a projection dataset from a DAP server.
-
-    If you have projections stored externally on a DAP server, this function
-    can load them (transferring in chunks to avoid overloading) locally and
-    display them.
-
-    Parameters
-    ----------
-    p : string
-        URL for the dataset on the DAP server
-    axis : int
-        The axis of projection to load (0, 1, 2)
-    weight_field : string
-        The weight_field used in the projection
-
-    Returns
-    -------
-    projmock : ProjMock
-        This is a mockup of a projection that mostly fills the API.  It can be
-        used with `yt.visualization.image_panner.api.VariableMeshPanner`
-        objects.
-
-    See Also
-    --------
-    http://www.opendap.org/ and http://pydap.org/2.x/ . (Note that HDF5 is not
-    supported on PyDAP 3.x servers.)
-
-    Examples
-    --------
-
-    >>> p = "http://datasets-r-us.org/output_0013.h5"
-    >>> proj = dapload(p, 0, "Density")
-    >>> vmp = VariableMeshPanner(proj, (512, 512), "Density", ImageSaver(0))
-    >>> vmp.zoom(1.0)
-    """
-    class PFMock(dict):
-        domain_left_edge = na.zeros(3, dtype='float64')
-        domain_right_edge = na.ones(3, dtype='float64')
-    pf = PFMock()
-    class ProjMock(dict):
-        pass
-    import dap.client
-    f = dap.client.open(p)
-    b = f["Projections"]["%s" % (axis)]
-    wf = "weight_field_%s" % weight_field
-    if wf not in b: raise KeyError(wf)
-    fields = []
-    for k in b:
-        if k.name.startswith("weight_field"): continue
-        if k.name.endswith("_%s" % weight_field):
-            fields.append(k.name)
-    proj = ProjMock()
-    for f in ["px","py","pdx","pdy"]:
-        proj[f] = _chunk(b[f])
-    for f in fields:
-        new_name = f[:-(len(str(weight_field)) + 1)]
-        proj[new_name] = _chunk(b[f])
-    proj.axis = axis
-    proj.pf = pf
     return proj
 
