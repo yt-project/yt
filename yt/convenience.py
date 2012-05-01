@@ -86,7 +86,7 @@ def load(*args ,**kwargs):
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
             else arg for arg in args]
-    valid_file = [os.path.isfile(arg) if isinstance(arg, types.StringTypes) 
+    valid_file = [os.path.exists(arg) if isinstance(arg, types.StringTypes) 
             else False for arg in args]
     if not any(valid_file):
         mylog.error("None of the arguments provided to load() is a valid file")
