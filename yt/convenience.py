@@ -47,13 +47,13 @@ def load(*args ,**kwargs):
         try:
             import Tkinter, tkFileDialog
         except ImportError:
-            return None
+            raise YTOutputNotIdentified(args, kwargs)
         root = Tkinter.Tk()
         filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
         if filename != None:
             return load(filename)
         else:
-            return None
+            raise YTOutputNotIdentified(args, kwargs)
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
             else arg for arg in args]
@@ -79,7 +79,7 @@ def load(*args ,**kwargs):
                and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
-        return None
+        raise YTOutputNotIdentified(args, kwargs)
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
         mylog.error("    Possible: %s", c)
