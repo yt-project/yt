@@ -58,10 +58,11 @@ for f in known_art_fields:
         add_field(f, function=lambda a,b: None, take_log=True,
                   validators = [ValidateDataField(f)])
 
-#Fields that are verified to be OK unit-wise:
+#Hydro Fields that are verified to be OK unit-wise:
 #Density
+#Temperature
 
-#Fields that need to be tested:
+#Hydro Fields that need to be tested:
 #TotalEnergy
 #XYZMomentum
 #Pressure
@@ -70,14 +71,23 @@ for f in known_art_fields:
 #MetalDensity SNII + SNia
 #Potentials
 
-#Derived fields that are OK
-#Temperature
-
-#Derived fields that are untested:
+#Hydro Derived fields that are untested:
 #metallicities
 #xyzvelocity
 
-#Individual definitions for native fields
+#Particle fields that are tested:
+#particle_position_xyz
+#particle_type
+#particle_index
+#particle_mass
+#particle_mass_initial
+#particle_age
+#particle_velocity
+#particle_metallicity12
+
+#Particle fields that are untested:
+#NONE
+
 
 def _convertDensity(data):
     return data.convert("Density")

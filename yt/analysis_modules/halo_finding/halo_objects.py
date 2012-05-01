@@ -477,9 +477,7 @@ class RockstarHalo(Halo):
         self.max_radius=Rvir
         self.bulk_vel=na.array([VX,VY,VZ])*1e5
         self.rms_vel=-1
-        self.group_total_mass = -1 #not implemented
-        
-        
+        self.group_total_mass = -1 #not implemented 
     
     def maximum_density(self):
         r"""Not implemented."""
@@ -1049,12 +1047,12 @@ class RockstarHaloList(HaloList):
         Jc = 1.0
         conv = dict(X=1.0/pf['mpchcm'],
                     Y=1.0/pf['mpchcm'],
-                    Z=1.0/pf['mpchcm'],
-                    VX=1e0,VY=1e0,VZ=1e0,
-                    Mvir=1.0,
+                    Z=1.0/pf['mpchcm'], #to unitary
+                    VX=1e0,VY=1e0,VZ=1e0, #to km/s
+                    Mvir=1.0, #Msun/h
                     Vmax=1e0,Vrms=1e0,
-                    Rvir=1.0/pf['mpchcm'],
-                    Rs=1.0/pf['mpchcm'],
+                    Rvir=1.0/pf['kpchcm'],
+                    Rs=1.0/pf['kpchcm'],
                     JX=Jc,JY=Jc,JZ=Jc)
         dtype = {'names':names,'formats':formats}
         halo_table = na.loadtxt(out_list,skiprows=j-1,dtype=dtype,comments='#')            

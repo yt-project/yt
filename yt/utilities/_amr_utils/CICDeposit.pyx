@@ -1,8 +1,10 @@
 """
-Simle integrators for the radiative transfer equation
+Simple integrators for the radiative transfer equation
 
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: CASA/University of Colorado
+Author: Christopher Moody <juxtaposicion@gmail.com>
+Affiliation: cemoody@ucsc.edu
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
@@ -107,3 +109,73 @@ def sample_field_at_positions(np.ndarray[np.float64_t, ndim=3] arr,
         ind[2] = <int> ((pos_z[i] - left_edge[2]) * idds[2])
         sample[i] = arr[ind[0], ind[1], ind[2]]
     return sample
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def assign_particles_to_cells(np.ndarray[np.int32_t, ndim=1] levels, #for cells
+                              np.ndarray[np.float32_t, ndim=2] left_edges, #many cells
+                              np.ndarray[np.float32_t, ndim=2] right_edges,
+                              np.ndarray[np.float32_t, ndim=1] pos_x, #particle
+                              np.ndarray[np.float32_t, ndim=1] pos_y,
+                              np.ndarray[np.float32_t, ndim=1] pos_z):
+    #for every cell, assign the particles belonging to it,
+    #skipping previously assigned particles
+    cdef long level_max = np.max(levels)
+    cdef long i,j,level
+    cdef long npart = pos_x.shape[0]
+    cdef long ncells = left_edges.shape[0] 
+    cdef np.ndarray[np.int32_t, ndim=1] assign = np.zeros(npart,dtype='int32')-1
+    for level in range(level_max,0,-1):
+        #start with the finest level
+        for i in range(ncells):
+            #go through every cell on the finest level first
+            if not levels[i] == level: continue
+            for j in range(npart):
+                #iterate over all particles, skip if assigned
+                if assign[j]>-1: continue
+                if (left_edges[i,0] <= pos_x[j] <= right_edges[i,0]):
+                    if (left_edges[i,1] <= pos_y[j] <= right_edges[i,1]):
+                        if (left_edges[i,2] <= pos_z[j] <= right_edges[i,2]):
+                            assign[j]=i
+    return assign
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def assign_particles_to_cell_lists(np.ndarray[np.int32_t, ndim=1] levels, #for cells
+                              np.int64_t level_max, 
+                              np.ndarray[np.float32_t, ndim=2] left_edges, #many cells
+                              np.ndarray[np.float32_t, ndim=2] right_edges,
+                              np.ndarray[np.float32_t, ndim=1] pos_x, #particle
+                              np.ndarray[np.float32_t, ndim=1] pos_y,
+                              np.ndarray[np.float32_t, ndim=1] pos_z):
+    #for every cell, assign the particles belonging to it,
+    #skipping previously assigned particles
+    #Todo: instead of iterating every particles, could use kdtree 
+    cdef long i,j,level
+    cdef long npart = pos_x.shape[0]
+    cdef long ncells = left_edges.shape[0] 
+    cdef np.ndarray[np.int32_t, ndim=1] assign = np.zeros(npart,dtype='int32')-1
+    index_lists = []
+    for level in range(level_max,0,-1):
+        #start with the finest level
+        for i in range(ncells):
+            #go through every cell on the finest level first
+            if not levels[i] == level: continue
+            index_list = []
+            for j in range(npart):
+                #iterate over all particles, skip if assigned
+                if assign[j]>-1: continue
+                if (left_edges[i,0] <= pos_x[j] <= right_edges[i,0]):
+                    if (left_edges[i,1] <= pos_y[j] <= right_edges[i,1]):
+                        if (left_edges[i,2] <= pos_z[j] <= right_edges[i,2]):
+                            assign[j]=i
+                            index_list += j,
+            index_lists += index_list,
+    return assign,index_lists
+
+    
+    
