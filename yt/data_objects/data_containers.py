@@ -1646,7 +1646,6 @@ class AMRQuadTreeProjBase(AMR2DData):
         >>> qproj = pf.h.quad_proj(0, "Density")
         >>> print qproj["Density"]
         """
-        self._ngrids = 0
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.proj_style = style
         if style == "mip":
@@ -1761,7 +1760,6 @@ class AMRQuadTreeProjBase(AMR2DData):
             merge_style = 1
         else:
             raise NotImplementedError
-        print self._ngrids
         #tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
         buf = list(tree.tobuffer())
         del tree
@@ -1812,7 +1810,6 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
         # We build up the fields to add
-        self._ngrids += 1
         if fields is None:
             field_list = ["Ones"]
         else:
@@ -1855,9 +1852,9 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = [g for g in self._get_grid_objs()
                             if g.Level == level]
+        gids = set(g.id for g in grids_to_project)
         grids_to_initialize = [g for g in self._grids
-                                if (g.Level == level)
-                                and (g not in grids_to_project)]
+                                if (g.Level == level) and (g.id not in gids)]
         zero_out = (level != self._max_level)
         if len(grids_to_project) > 0:
             dls, convs = self._get_dls(grids_to_project[0], fields)
