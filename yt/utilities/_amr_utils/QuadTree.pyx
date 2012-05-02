@@ -250,7 +250,7 @@ cdef class QuadTree:
     cdef void add_to_position(self,
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
-                 np.float64_t weight_val):
+                 np.float64_t weight_val, skip = 0):
         cdef int i, j, L
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
@@ -264,6 +264,7 @@ cdef class QuadTree:
             i = (pos[0] >= fac*(2*node.pos[0]+1))
             j = (pos[1] >= fac*(2*node.pos[1]+1))
             node = node.children[i][j]
+        if skip == 1: return
         self.combine(node, val, weight_val, self.nvals)
             
     @cython.cdivision(True)
@@ -275,14 +276,14 @@ cdef class QuadTree:
         j = <np.int64_t> (pos[1] / self.po2[level])
         return self.root_nodes[i][j]
         
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def add_array_to_tree(self, int level,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.float64_t, ndim=2] pvals,
-            np.ndarray[np.float64_t, ndim=1] pweight_vals):
+            np.ndarray[np.float64_t, ndim=1] pweight_vals,
+            int skip = 0):
         cdef int np = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
@@ -292,7 +293,7 @@ cdef class QuadTree:
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
-            self.add_to_position(level, pos, vals, pweight_vals[p])
+            self.add_to_position(level, pos, vals, pweight_vals[p], skip)
         return
 
     def add_grid_to_tree(self, int level,
