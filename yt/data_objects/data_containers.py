@@ -1810,24 +1810,20 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
         # We build up the fields to add
-        if fields is None:
-            field_list = ["Ones"]
-        else:
-            field_list = fields
         if self._weight is None or fields is None:
             weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data = [fd.astype('float64') * weight_data
-                           for fd in self._get_data_from_grid(grid, field_list)]
+                           for fd in self._get_data_from_grid(grid, fields)]
             wdl = 1.0
         else:
-            fields_to_get = list(set(field_list + [self._weight]))
+            fields_to_get = list(set(fields + [self._weight]))
             field_data = dict(zip(
                 fields_to_get, self._get_data_from_grid(grid, fields_to_get)))
             weight_data = field_data[self._weight].copy().astype('float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data  = [field_data[field].copy().astype('float64') * weight_data
-                                for field in field_list]
+                                for field in fields]
             del field_data
             wdl = dls[-1]
         full_proj = [self.func(field, axis=self.axis) * dl
@@ -1835,7 +1831,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+            used_points = na.logical_or.reduce(used_data, self.axis)
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
@@ -1846,30 +1842,35 @@ class AMRQuadTreeProjBase(AMR2DData):
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
         to_add = na.array([d[used_points].ravel() for d in full_proj], order='F')
         tree.add_array_to_tree(grid.Level, xpoints, ypoints, 
-                    to_add, weight_proj[used_points].ravel(),
-                    skip = int(fields is None))
+                    to_add, weight_proj[used_points].ravel())
 
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = [g for g in self._get_grid_objs()
                             if g.Level == level]
-        gids = set(g.id for g in grids_to_project)
-        grids_to_initialize = [g for g in self._grids
-                                if (g.Level == level) and (g.id not in gids)]
+        grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
+        if len(grids_to_initialize) == 0: return
+        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+                          % (level, self._max_level), len(grids_to_initialize))
+        start_index = na.empty(2, dtype="int64")
+        dims = na.empty(2, dtype="int64")
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        for pi, grid in enumerate(grids_to_initialize):
+            dims[0] = grid.ActiveDimensions[xax]
+            dims[1] = grid.ActiveDimensions[yax]
+            ind = grid.get_global_startindex()
+            start_index[0] = ind[xax]
+            start_index[1] = ind[yax]
+            tree.initialize_grid(level, start_index, dims)
+            pbar.update(pi)
+        pbar.finish()
         if len(grids_to_project) > 0:
             dls, convs = self._get_dls(grids_to_project[0], fields)
             pbar = get_pbar('Projecting  level % 2i / % 2i ' \
                               % (level, self._max_level), len(grids_to_project))
             for pi, grid in enumerate(grids_to_project):
                 self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
-                pbar.update(pi)
-                grid.clear_data()
-            pbar.finish()
-        if len(grids_to_initialize) > 0:
-            pbar = get_pbar('Extending tree % 2i / % 2i' \
-                              % (level, self._max_level), len(grids_to_initialize))
-            for pi, grid in enumerate(grids_to_initialize):
-                self._add_grid_to_tree(tree, grid, None, zero_out, [1.0])
                 pbar.update(pi)
                 grid.clear_data()
             pbar.finish()
