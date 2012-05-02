@@ -1763,9 +1763,9 @@ class AMRQuadTreeProjBase(AMR2DData):
         #tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
         buf = list(tree.tobuffer())
         del tree
-        new_buf = []
-        for i in range(3):
-            new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op='sum'))
+        new_buf = [buf.pop(0)]
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op='sum'))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op='sum'))
         tree = self._get_tree(len(fields))
         tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
