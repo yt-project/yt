@@ -177,6 +177,19 @@ def prepare_octree(pf,ile,start_level=0):
     levels = levels[:pos.refined_pos] 
     return output,refined
 
+def print_row(level,ple,pre,pw,pc,hs):
+    print level, 
+    print '%1.5f %1.5f %1.5f '%tuple(ple*pw-pc),
+    print '%1.5f %1.5f %1.5f '%tuple(pre*pw-pc),
+    print hs.dim, hs.sgn
+
+def print_child(level,grid,i,j,k,pw,pc):
+    ple = (grid.left_edges+na.array([i,j,k])*grid.dx)*pw-pc #parent LE 
+    pre = (grid.left_edges+na.array([i+1,j+1,k+1])*grid.dx)*pw-pc #parent RE 
+    print level, 
+    print '%1.5f %1.5f %1.5f '%tuple(ple),
+    print '%1.5f %1.5f %1.5f '%tuple(pre)
+
 def RecurseOctreeDepthFirstHilbert(xi,yi,zi,
                             curpos, gi, 
                             hs,
@@ -186,21 +199,21 @@ def RecurseOctreeDepthFirstHilbert(xi,yi,zi,
                             grids,
                             level,
                             physical_center=None,
-                            physical_width=None):
+                            physical_width=None,
+                            printr=False):
     grid = grids[gi]
     m = 2**(-level-1) if level < 0 else 1
     ple = grid.left_edges+na.array([xi,yi,zi])*grid.dx #parent LE
     pre = ple+grid.dx*m
-    print level,ple*physical_width-physical_center,
-    print pre*physical_width-physical_center, hs.parent_octant
-
+    if printr:
+        print_row(level,ple,pre,physical_width,physical_center,hs)
 
     #here we go over the 8 octants
     #in general however, a mesh cell on this level
     #may have more than 8 children on the next level
     #so we find the int float center (cxyz) of each child cell
     # and from that find the child cell indices
-    for iv, vertex in enumerate(hs):
+    for iv, (vertex,hs_child) in enumerate(hs):
         #print ' '*(level+3), level,iv, vertex,curpos.refined_pos,curpos.output_pos,
         #negative level indicates that we need to build a super-octree
         if level < 0: 
@@ -211,11 +224,7 @@ def RecurseOctreeDepthFirstHilbert(xi,yi,zi,
             #as the root grid (hence the -level-1)
             dx = 2**(-level-1) #this is the child width 
             i,j,k = xi+vertex[0]*dx,yi+vertex[1]*dx,zi+vertex[2]*dx
-            #print level,iv,vertex,
-            #print na.array([cx,cy,cz])/128.0*physical_width-physical_center,
-            #print na.array([cx+dx,cy+dx,cz+dx])/128.0*physical_width-physical_center
             #we always refine the negative levels
-            hs_child = hilbert_state(vertex.copy())
             refined[curpos.refined_pos] = 1
             levels[curpos.refined_pos] = level
             curpos.refined_pos += 1
@@ -234,18 +243,12 @@ def RecurseOctreeDepthFirstHilbert(xi,yi,zi,
                 levels[curpos.refined_pos] = level
                 curpos.output_pos += 1 #position updated after write
                 curpos.refined_pos += 1
-                print level+1, #these child cells are a level deeper
-                print (grid.left_edges+na.array([i,j,k])*grid.dx)*physical_width-physical_center, #parent LE 
-                print (grid.left_edges+na.array([i+1,j+1,k+1])*grid.dx)*physical_width-physical_center, #parent LE 
-                print iv,vertex
+                if printr:
+                    print_child(level+1,grid,i,j,k,physical_width,physical_center)
             else:
                 cx = (grid.left_edges[0] + i*grid.dx[0]) #floating le of the child
                 cy = (grid.left_edges[1] + j*grid.dx[0])
                 cz = (grid.left_edges[2] + k*grid.dx[0])
-                #print level,iv,vertex,
-                #print na.array([cx,cy,cz])*physical_width -physical_center,
-                #print na.array([cx+grid.dx[0],cy+grid.dx[0],cz+grid.dx[0]])*physical_width - physical_center
-                hs_child = hilbert_state(vertex.copy())
                 refined[curpos.refined_pos] = 1
                 levels[curpos.refined_pos] = level
                 curpos.refined_pos += 1 #position updated after write
@@ -457,116 +460,90 @@ class position:
         self.output_pos = 0
         self.refined_pos = 0
 
-
-def vertex_to_octant(v):
-    if v[0]==0 and v[1]==0 and v[2]==0: return 1
-    if v[0]==0 and v[1]==1 and v[2]==0: return 2
-    if v[0]==1 and v[1]==1 and v[2]==0: return 3
-    if v[0]==1 and v[1]==0 and v[2]==0: return 4
-    if v[0]==1 and v[1]==0 and v[2]==1: return 5
-    if v[0]==1 and v[1]==1 and v[2]==1: return 6
-    if v[0]==0 and v[1]==1 and v[2]==1: return 7
-    if v[0]==0 and v[1]==0 and v[2]==1: return 8
-    raise IOError
-
-
-class hilbert_state:
-    vertex = na.zeros(3,dtype='int64')
-    nvertex = na.zeros(3,dtype='int64')
-    signa,signb,signc = 0,0,0
-    dima,dimb,dimc= -1,-1,-2
-    parent_octant = -1
-
-    def __init__(self, vertex=None):
-        if vertex is None:
-            vertex = na.array([1,0,0],dtype='int64')
-        self.vertex= vertex
-        self.parent_octant = vertex_to_octant(self.vertex)
-        self.swap_by_octant(self.parent_octant)
-        self.signc = self.signa*self.signb
-        self.dimc = 3-self.dima-self.dimb
-
-    def swap_by_octant(self, octant): 
-        if octant==1: 
-            self.dima = 2
-            self.dimb = 0
-            self.signa = 1
-            self.signb = 1
-        elif octant==2: 
-            self.dima = 1
-            self.dimb = 2
-            self.signa = 1
-            self.signb = 1
-        elif octant==3:
-            self.dima = 1
-            self.dimb = 0
-            self.signa = 1
-            self.signb = 1
-        elif octant==4: 
-            self.dima = 2
-            self.dimb = 1
-            self.signa = -1
-            self.signb = -1
-        elif octant==5: 
-            self.dima = 2
-            self.dimb = 1
-            self.signa = 1
-            self.signb = -1
-        elif octant==6: 
-            self.dima = 1
-            self.dimb = 0
-            self.signa = 1
-            self.signb = 1
-        elif octant==7: 
-            self.dima = 1
-            self.dimb = 2
-            self.signa = 1
-            self.signb = -1
-        elif octant==8: 
-            self.dima = 2
-            self.dimb = 0
-            self.signa = -1
-            self.signb = 1
-        assert octant < 9
-
+class hilbert_state():
+    def __init__(self,dim=None,sgn=None,octant=None):
+        if dim is None: dim = [0,1,2]
+        if sgn is None: sgn = [1,1,1]
+        if octant is None: octant = 5
+        self.dim = dim
+        self.sgn = sgn
+        self.octant = octant
+    def flip(self,i):
+        self.sgn[i]*=-1
+    def swap(self,i,j):
+        temp = self.dim[i]
+        self.dim[i]=self.dim[j]
+        self.dim[j]=temp
+        axis = self.sgn[i]
+        self.sgn[i] = self.sgn[j]
+        self.sgn[j] = axis
+    def reorder(self,i,j,k):
+        ndim = [self.dim[i],self.dim[j],self.dim[k]] 
+        nsgn = [self.sgn[i],self.sgn[j],self.sgn[k]]
+        self.dim = ndim
+        self.sgn = nsgn
+    def copy(self):
+        return hilbert_state([self.dim[0],self.dim[1],self.dim[2]],
+                             [self.sgn[0],self.sgn[1],self.sgn[2]],
+                             self.octant)
+    def descend(self,o):
+        child = self.copy()
+        child.octant = o
+        if o==0:
+            child.swap(0,2)
+        elif o==1:
+            child.swap(1,2)
+        elif o==2:
+            pass
+        elif o==3:
+            child.flip(0)
+            child.flip(2)
+            child.reorder(2,0,1)
+        elif o==4:
+            child.flip(0)
+            child.flip(1)
+            child.reorder(2,0,1)
+        elif o==5:
+            pass
+        elif o==6:
+            child.flip(1)
+            child.flip(2)
+            child.swap(1,2)
+        elif o==7:
+            child.flip(0)
+            child.flip(2)
+            child.swap(0,2)
+        return child
 
     def __iter__(self):
-        return self.next()
-
-    def next(self):
-        #yield the next cell in this oct
-        
-        #as/descend the first dimension
-        # the second dim
-        #reverse the first
-        #climb the third
-        self.vertex[self.dima] = 0 if self.signa>0 else 1
-        self.vertex[self.dimb] = 0 if self.signb>0 else 1
-        self.vertex[self.dimc] = 0 if self.signc>0 else 1
-        yield self.vertex.copy()
-        self.vertex[self.dima] = self.vertex[self.dima] + self.signa; 
-        yield self.vertex.copy()
-        self.vertex[self.dimb] = self.vertex[self.dimb] + self.signb; 
-        yield self.vertex.copy()
-        self.vertex[self.dima] = self.vertex[self.dima] - self.signa; 
-        yield self.vertex.copy()
-        self.vertex[self.dimc] = self.vertex[self.dimc] + self.signc; 
-        yield self.vertex.copy()
-        self.vertex[self.dima] = self.vertex[self.dima] + self.signa; 
-        yield self.vertex.copy()
-        self.vertex[self.dimb] = self.vertex[self.dimb] - self.signb; 
-        yield self.vertex.copy()
-        self.vertex[self.dima] = self.vertex[self.dima] - self.signa; 
-        yield self.vertex.copy()
-
-    def next_hilbert(self):
-        nvertex = self.next()
-        return nvertex, hilbert_state(nvertex)
+        vertex = [0,0,0]
+        j=0
+        for i in range(3):
+            vertex[self.dim[i]] = 0 if self.sgn[i]>0 else 1
+        yield vertex, self.descend(j)
+        vertex[self.dim[0]] += self.sgn[0]
+        j+=1
+        yield vertex, self.descend(j)
+        vertex[self.dim[1]] += self.sgn[1] 
+        j+=1
+        yield vertex, self.descend(j)
+        vertex[self.dim[0]] -= self.sgn[0] 
+        j+=1
+        yield vertex, self.descend(j)
+        vertex[self.dim[2]] += self.sgn[2] 
+        j+=1
+        yield vertex, self.descend(j)
+        vertex[self.dim[0]] += self.sgn[0] 
+        j+=1
+        yield vertex, self.descend(j)
+        vertex[self.dim[1]] -= self.sgn[1] 
+        j+=1
+        yield vertex, self.descend(j)
+        vertex[self.dim[0]] -= self.sgn[0] 
+        j+=1
+        yield vertex, self.descend(j)
 
 
 
 
-if not debug:
-    from amr_utils import hilbert_state
-    from amr_utils import RecurseOctreeDepthFirstHilbert
-    from amr_utils import position
+

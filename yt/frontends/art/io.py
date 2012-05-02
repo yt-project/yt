@@ -122,9 +122,9 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
-        idx = na.array(grid.particle_indices)
+        idx = grid.particle_indices
         if field == 'particle_index':
-            return na.array(idx)
+            return idx
         if field == 'particle_type':
             return grid.pf.particle_type[idx]
         if field == 'particle_position_x':
@@ -142,19 +142,35 @@ class IOHandlerART(BaseIOHandler):
         if field == 'particle_velocity_z':
             return grid.pf.particle_velocity[idx][:,2]
         
-        #stellar fields
-        if field == 'particle_age':
-            return grid.pf.particle_age[idx]
-        if field == 'particle_metallicity':
-            return grid.pf.particle_metallicity1[idx] +\
-                   grid.pf.particle_metallicity2[idx]
+        tridx = grid.particle_indices >= grid.pf.particle_star_index
+        sidx  = grid.particle_indices[tridx] - grid.pf.particle_star_index
+        n = grid.particle_indices
+        if field == 'particle_creation_time':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_ages[sidx]
+            return tr
+        if field == 'particle_metallicity_fraction':
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            if sidx.shape[0]>0:
+                tr[tridx]  = grid.pf.particle_star_metallicity1[sidx]
+                tr[tridx] += grid.pf.particle_star_metallicity2[sidx]
+            return tr
         if field == 'particle_metallicity1':
-            return grid.pf.particle_metallicity1[idx]
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_metallicity1[sidx]
+            return tr
         if field == 'particle_metallicity2':
-            return grid.pf.particle_metallicity2[idx]
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_metallicity2[sidx]
+            return tr
         if field == 'particle_mass_initial':
-            return grid.pf.particle_mass_initial[idx]
-        
+            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
+            if sidx.shape[0]>0:
+                tr[tridx] = grid.pf.particle_star_mass_initial[sidx]
+            return tr
         raise 'Should have matched one of the particle fields...'
 
         
