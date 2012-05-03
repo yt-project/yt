@@ -1245,7 +1245,7 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
         while index < self.group_count:
             self._groups[index] = self._halo_class(self, index, \
                 size=self.group_sizes[index], CoM=self.CoM[index], \
-                max_dens_point=self.max_dens_point[i], \
+                max_dens_point=self.max_dens_point[index], \
                 group_total_mass=self.Tot_M[index],
                 max_radius=self.max_radius[index],
                 bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
