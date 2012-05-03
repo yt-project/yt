@@ -41,8 +41,6 @@ class Orientation:
             t = na.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
-            if self.rotation_vector is None:
-                self.rotation_vector=north_vector
         else:
             if self.steady_north:
                 north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
