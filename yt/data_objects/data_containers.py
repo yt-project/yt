@@ -1158,7 +1158,7 @@ class AMRCuttingPlaneBase(AMR2DData):
     _type_name = "cutting"
     _con_args = ('normal', 'center')
     def __init__(self, normal, center, fields = None, node_name = None,
-                 **kwargs):
+                 north_vector = None, **kwargs):
         """
         This is a data object corresponding to an oblique slice through the
         simulation domain.
