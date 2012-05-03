@@ -411,7 +411,7 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.conversion_factors['particle_index']=1.0
             self.pf.conversion_factors['particle_type']=1
             self.pf.conversion_factors['particle_age']=1
-            #self.pf.conversion_factors['Msun'] = 5.027e-34 #conversion to solar mass units
+            self.pf.conversion_factors['Msun'] = 5.027e-34 #conversion to solar mass units
             
 
             a,b=0,0
