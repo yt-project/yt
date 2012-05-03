@@ -1332,7 +1332,7 @@ class AMRCuttingPlaneBase(AMR2DData):
             This can either be a floating point value, in the native domain
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
-        height : height specifier
+        height : height specifier, optional
             This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.

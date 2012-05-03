@@ -40,18 +40,19 @@ class Orientation:
             vecs = na.identity(3)
             t = na.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
-            north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+            east_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+            north_vector = na.cross(normal_vector, east_vector).ravel()
         else:
             if self.steady_north:
                 north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
+            east_vector = na.cross(north_vector, normal_vector).ravel()
         north_vector /= na.sqrt(na.dot(north_vector, north_vector))
-        east_vector = -na.cross(north_vector, normal_vector).ravel()
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
         self.north_vector = north_vector
         self.unit_vectors = [east_vector, north_vector, normal_vector]
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
-
+        
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
 
