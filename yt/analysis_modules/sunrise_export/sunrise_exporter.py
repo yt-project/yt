@@ -273,12 +273,11 @@ def create_fits_file(pf,fn, refined,output,particle_data,fre,fle):
     st_table.name = "GRIDSTRUCTURE"
     st_table.header.update("hierarch lengthunit", "kpc", comment="Length unit for grid")
     fdx = fre-fle
-    print 'WARNING: debug limits set on minxyz maxxyz'
     for i,a in enumerate('xyz'):
-        #st_table.header.update("min%s" % a, fle[i] * pf['kpc'])
-        #st_table.header.update("max%s" % a, fre[i] * pf['kpc'])
-        st_table.header.update("min%s" % a, 0) #WARNING: this is for debugging
-        st_table.header.update("max%s" % a, 2) #
+        st_table.header.update("min%s" % a, fle[i] * pf['kpc'])
+        st_table.header.update("max%s" % a, fre[i] * pf['kpc'])
+        #st_table.header.update("min%s" % a, 0) #WARNING: this is for debugging
+        #st_table.header.update("max%s" % a, 2) #
         st_table.header.update("n%s" % a, fdx[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "OCTREE", "Type of grid subdivision")

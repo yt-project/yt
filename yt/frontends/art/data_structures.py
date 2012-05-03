@@ -138,7 +138,7 @@ class ARTHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style='art'):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
+        #for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.float_type = na.float64
@@ -356,6 +356,7 @@ class ARTHierarchy(AMRHierarchy):
         
 
         if self.pf.file_particle_data:
+            #import pdb; pdb.set_trace()
             lspecies = self.pf.parameters['lspecies']
             wspecies = self.pf.parameters['wspecies']
             Nrow     = self.pf.parameters['Nrow']
@@ -370,97 +371,141 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_position,self.pf.particle_velocity = \
                 read_particles(self.pf.file_particle_data,nstars,Nrow)
             pbar.update(1)
-            np = lspecies[-1]
-            if self.pf.dm_only:
-                np = lspecies[0]
-            self.pf.particle_position   = self.pf.particle_position[:np]
+            npa,npb=0,0
+            npb = lspecies[-1]
+            clspecies = na.concatenate(([0,],lspecies))
+            if self.pf.only_particle_type is not None:
+                npb = lspecies[0]
+                if type(self.pf.only_particle_type)==type(5):
+                    npa = clspecies[self.pf.only_particle_type]
+                    npb = clspecies[self.pf.only_particle_type+1]
+            np = npb-npa
+            self.pf.particle_position   = self.pf.particle_position[npa:npb]
             #self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
             self.pf.particle_position  /= self.pf.domain_dimensions #to unitary units (comoving)
             pbar.update(3)
-            self.pf.particle_velocity   = self.pf.particle_velocity[:np]
+            self.pf.particle_velocity   = self.pf.particle_velocity[npa:npb]
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
-            self.pf.particle_type       = na.zeros(np,dtype='uint8')
-            self.pf.particle_mass       = na.zeros(np,dtype='float64')
+            self.pf.particle_type         = na.zeros(np,dtype='uint8')
+            self.pf.particle_mass         = na.zeros(np,dtype='float64')
+            self.pf.particle_mass_initial = na.zeros(np,dtype='float64')-1
+            self.pf.particle_creation_time= na.zeros(np,dtype='float64')-1
+            self.pf.particle_metallicity1 = na.zeros(np,dtype='float64')-1
+            self.pf.particle_metallicity2 = na.zeros(np,dtype='float64')-1
+            self.pf.particle_age          = na.zeros(np,dtype='float64')-1
             
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
             self.pf.conversion_factors['particle_mass'] = 1.0 #solar mass in g
+            self.pf.conversion_factors['particle_mass_initial'] = 1.0 #solar mass in g
             self.pf.conversion_factors['particle_species'] = 1.0
             for ax in 'xyz':
                 self.pf.conversion_factors['particle_velocity_%s'%ax] = 1.0
                 #already in unitary units
                 self.pf.conversion_factors['particle_position_%s'%ax] = 1.0 
             self.pf.conversion_factors['particle_creation_time'] =  31556926.0
-            self.pf.conversion_factors['particle_metallicity_fraction']=1.0
+            self.pf.conversion_factors['particle_metallicity']=1.0
+            self.pf.conversion_factors['particle_metallicity1']=1.0
+            self.pf.conversion_factors['particle_metallicity2']=1.0
             self.pf.conversion_factors['particle_index']=1.0
+            self.pf.conversion_factors['particle_type']=1
+            self.pf.conversion_factors['particle_age']=1
+            #self.pf.conversion_factors['Msun'] = 5.027e-34 #conversion to solar mass units
             
-            #import pdb; pdb.set_trace()
 
             a,b=0,0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
-                self.pf.particle_type[a:b] = i #particle type
-                self.pf.particle_mass[a:b]    = m*um #mass in solar masses
+                if type(self.pf.only_particle_type)==type(5):
+                    if not i==self.pf.only_particle_type:
+                        continue
+                    self.pf.particle_type += i
+                    self.pf.particle_mass += m*um
+
+                else:
+                    self.pf.particle_type[a:b] = i #particle type
+                    self.pf.particle_mass[a:b] = m*um #mass in solar masses
                 a=b
             pbar.finish()
+
+            nparticles = [0,]+list(lspecies)
+            for j,np in enumerate(nparticles):
+                mylog.debug('found %i of particle type %i'%(j,np))
+            
+            if self.pf.single_particle_mass:
+                #cast all particle masses to the same mass
+                cast_type = self.pf.single_particle_type
+                
+
             
             self.pf.particle_star_index = i
             
-            if self.pf.file_star_data and (not self.pf.dm_only):
+            do_stars = (self.pf.only_particle_type is None) or \
+                       (self.pf.only_particle_type == -1) or \
+                       (self.pf.only_particle_type == len(lspecies))
+            if self.pf.file_star_data and do_stars: 
                 nstars, mass, imass, tbirth, metallicity1, metallicity2 \
                      = read_stars(self.pf.file_star_data,nstars,Nrow)
                 nstars = nstars[0] 
                 if nstars > 0 :
                     n=min(1e2,len(tbirth))
                     pbar = get_pbar("Stellar Ages        ",n)
-                    self.pf.particle_star_ages  = \
+                    sages  = \
                         b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
-                    self.pf.particle_star_ages *= 1.0e9
-                    self.pf.particle_star_ages *= 365*24*3600 #to seconds
-                    self.pf.particle_star_ages = self.pf.current_time-self.pf.particle_star_ages
+                    sages *= 1.0e9
+                    sages *= 365*24*3600 #to seconds
+                    sages = self.pf.current_time-sages
+                    self.pf.particle_age[-nstars:] = sages
                     pbar.finish()
-                    self.pf.particle_star_metallicity1 = metallicity1
-                    self.pf.particle_star_metallicity2 = metallicity2
-                    self.pf.particle_star_mass_initial = imass*um
+                    self.pf.particle_metallicity1[-nstars:] = metallicity1
+                    self.pf.particle_metallicity2[-nstars:] = metallicity2
+                    self.pf.particle_mass_initial[-nstars:] = imass*um
                     self.pf.particle_mass[-nstars:] = mass*um
 
-            left = self.pf.particle_position.shape[0]
+            done = 0
             init = self.pf.particle_position.shape[0]
-            pbar = get_pbar("Gridding Particles ",init)
-            pos = self.pf.particle_position.copy()
-            pid = na.arange(pos.shape[0]).astype('int64')
+            pos = self.pf.particle_position
             #particle indices travel with the particle positions
             #pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
-            max_level = min(self.pf.max_level,self.pf.limit_level)
             #if type(self.pf.grid_particles) == type(5):
             #    max_level = min(max_level,self.pf.grid_particles)
             grid_particle_count = na.zeros((len(grids),1),dtype='int64')
             
             #grid particles at the finest level, removing them once gridded
-            for level in range(max_level,self.pf.min_level-1,-1):
-                lidx = self.grid_levels[:,0] == level
-                for gi,gidx in enumerate(na.where(lidx)[0]): 
-                    g = grids[gidx]
-                    assert g is not None
-                    le,re = self.grid_left_edge[gidx],self.grid_right_edge[gidx]
-                    idx = na.logical_and(na.all(le < pos,axis=1),
-                                         na.all(re > pos,axis=1))
-                    fidx = pid[idx]
-                    np = na.sum(idx)                     
-                    g.NumberOfParticles = np
-                    grid_particle_count[gidx,0]=np
-                    g.hierarchy.grid_particle_count = grid_particle_count
-                    if np==0: 
-                        g.particle_indices = []
-                        #we have no particles in this grid
-                    else:
-                        g.particle_indices = fidx.astype('int64')
-                        pos = pos[~idx] #throw out gridded particles from future gridding
-                        pid = pid[~idx]
-                    grids[gidx] = g
-                    left -= np
-                    pbar.update(init-left)
+            #pbar = get_pbar("Gridding Particles ",init)
+            #assignment = amr_utils.assign_particles_to_cells(
+            #        self.grid_levels.ravel().astype('int32'),
+            #        self.grid_left_edge.astype('float32'),
+            #        self.grid_right_edge.astype('float32'),
+            #        pos[:,0].astype('float32'),
+            #        pos[:,1].astype('float32'),
+            #        pos[:,2].astype('float32'))
+            #pbar.finish()
+
+            pbar = get_pbar("Gridding Particles ",init)
+            assignment,ilists = amr_utils.assign_particles_to_cell_lists(
+                    self.grid_levels.ravel().astype('int32'),
+                    2, #only bother gridding particles to level 2
+                    self.grid_left_edge.astype('float32'),
+                    self.grid_right_edge.astype('float32'),
+                    pos[:,0].astype('float32'),
+                    pos[:,1].astype('float32'),
+                    pos[:,2].astype('float32'))
             pbar.finish()
+            
+            
+            pbar = get_pbar("Filling grids ",init)
+            for gidx,(g,ilist) in enumerate(zip(grids,ilists)):
+                np = len(ilist)
+                grid_particle_count[gidx,0]=np
+                g.hierarchy.grid_particle_count = grid_particle_count
+                g.particle_indices = ilist
+                grids[gidx] = g
+                done += np
+                pbar.update(done)
+            pbar.finish()
+
+            #assert init-done== 0 #we have gridded every particle
             
         pbar = get_pbar("Finalizing grids ",len(grids))
         for gi, g in enumerate(grids): 
@@ -559,8 +604,10 @@ class ARTStaticOutput(StaticOutput):
                  discover_particles=False,
                  use_particles=True,
                  limit_level=None,
-                 dm_only=False,
-                 grid_particles=False):
+                 only_particle_type = None,
+                 grid_particles=False,
+                 single_particle_mass=False,
+                 single_particle_type=0):
         import yt.frontends.ramses._ramses_reader as _ramses_reader
         
         
@@ -571,8 +618,9 @@ class ARTStaticOutput(StaticOutput):
         self.file_particle_header = file_particle_header
         self.file_particle_data = file_particle_data
         self.file_star_data = file_star_data
-        self.dm_only = dm_only
+        self.only_particle_type = only_particle_type
         self.grid_particles = grid_particles
+        self.single_particle_mass = single_particle_mass
         
         if limit_level is None:
             self.limit_level = na.inf

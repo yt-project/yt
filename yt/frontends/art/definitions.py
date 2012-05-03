@@ -26,10 +26,14 @@ License:
 """
 
 art_particle_field_names = [
+'particle_age',
 'particle_index',
 'particle_mass',
+'particle_mass_initial',
 'particle_creation_time',
-'particle_metallicity_fraction',
+'particle_metallicity1',
+'particle_metallicity2',
+'particle_metallicity',
 'particle_position_x',
 'particle_position_y',
 'particle_position_z',
