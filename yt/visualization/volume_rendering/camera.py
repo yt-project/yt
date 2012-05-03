@@ -183,7 +183,7 @@ class Camera(ParallelAnalysisInterface):
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
-        self._setup_box_properties(width, center, orienter.unit_vectors)
+        self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
         if transfer_function is None:
@@ -266,7 +266,7 @@ class Camera(ParallelAnalysisInterface):
             normal_vector = self.front_cemter - self.center
         self.orienter.switch_orientation(normal_vector = normal_vector, center = center,
                                          north_vector = north_vector)
-        self._setup_box_properties(width, center, orienter.unit_vectors)
+        self._setup_box_properties(width, center, self.orienter.unit_vectors)
 
     def get_vector_plane(self, image):
         # We should move away from pre-generation of vectors like this and into
@@ -276,7 +276,7 @@ class Camera(ParallelAnalysisInterface):
                          self.resolution[0])[:,None]
         py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
                          self.resolution[1])[None,:]
-        inv_mat = self.inv_mat
+        inv_mat = self.orienter.inv_mat
         positions = na.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
