@@ -55,6 +55,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
+from yt.utilities.orientation import Orientation
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
