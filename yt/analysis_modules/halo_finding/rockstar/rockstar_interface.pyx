@@ -241,7 +241,7 @@ cdef class RockstarInterface
 cdef RockstarInterface rh
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     cdef int i, fi, npart, tnpart
-    cdef np.float64_t conv[6], left_edge[6]
+    cdef np.float64_t conv[6], left_edge[6], right_edge[3]
     dd = rh.data_source
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
@@ -257,9 +257,12 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     #print "Loading indices: size = ", tnpart
     conv[0] = conv[1] = conv[2] = rh.pf["mpchcm"]
     conv[3] = conv[4] = conv[5] = 1e-5
-    left_edge[0] = rh.pf.domain_left_edge[0]
-    left_edge[1] = rh.pf.domain_left_edge[1]
-    left_edge[2] = rh.pf.domain_left_edge[2]
+    left_edge[0] = rh.le[0]
+    left_edge[1] = rh.le[1]
+    left_edge[2] = rh.le[2]
+    right_edge[0] = rh.re[0]
+    right_edge[1] = rh.re[1]
+    right_edge[2] = rh.re[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     for g in grids:
@@ -274,11 +277,15 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                       "particle_velocity_z"]:
             arr = dd._get_data_from_grid(g, field).astype("float64")
             for i in range(npart):
+                if fi<3: 
+                    if  left_edge[i] > arr[i]: continue
+                    if right_edge[i] < arr[i]: continue
                 p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
             fi += 1
         pi += npart
     num_p[0] = tnpart
-    print "TOTAL", block, pi, tnpart, len(grids)
+    print "Block #%i | Particles %i | Grids %i"%\
+            ( block, pi, len(grids))
 
 cdef class RockstarInterface:
 
@@ -296,12 +303,14 @@ cdef class RockstarInterface:
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
-                       int writing_port = -1, int block_ratio = 1):
+                       int writing_port = -1, int block_ratio = 1,
+                       int periodic = 1, int min_halo_size = 20,
+                       char *outbase = 'None'):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
-        global rh
+        global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE
         if parallel:
             PARALLEL_IO = 1
             PARALLEL_IO_SERVER_ADDRESS = server_address
@@ -324,12 +333,18 @@ cdef class RockstarInterface:
         h0 = self.pf.hubble_constant
         Ol = self.pf.omega_lambda
         Om = self.pf.omega_matter
+        SCALE_NOW = 1.0/(self.pf.current_redshift+1.0)
+        if not outbase =='None'.decode('UTF-8'):
+            #output directory. since we can't change the output filenames
+            #workaround is to make a new directory
+            print 'using %s as outbase'%outbase
+            OUTBASE = outbase 
 
         if particle_mass < 0:
             print "Assuming single-mass particle."
             particle_mass = self.pf.h.grids[0]["ParticleMassMsun"][0] / h0
         PARTICLE_MASS = particle_mass
-        PERIODIC = 1
+        PERIODIC = periodic
         BOX_SIZE = (self.pf.domain_right_edge[0] -
                     self.pf.domain_left_edge[0]) * self.pf['mpchcm']
         setup_config()
