@@ -395,6 +395,9 @@ class CommunicationSystem(object):
         self.communicators.pop()
         self._update_parallel_state(self.communicators[-1])
 
+def _reconstruct_communicator():
+    return Communicator()
+
 class Communicator(object):
     comm = None
     _grids = None
@@ -408,6 +411,11 @@ class Communicator(object):
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
     """
+
+    def __reduce__(self):
+        # We don't try to reconstruct any of the properties of the communicator
+        # or the processors.  In general, we don't want to.
+        return (_reconstruct_communicator, ())
 
     def barrier(self):
         if not self._distributed: return
