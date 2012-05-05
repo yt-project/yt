@@ -1,5 +1,6 @@
 """
-Commonly used mathematical functions.
+A class that manages the coordinate system for orientable data
+containers and cameras.
 
 Author: Nathan Goldbaum <goldbaum@ucolick.org>
 Affiliation: UCSC Astronomy
