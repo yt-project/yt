@@ -53,40 +53,16 @@ class Orientation:
         self.unit_vectors = [east_vector, north_vector, normal_vector]
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
         
-    def look_at(self, new_center, north_vector = None):
-        r"""Change the view direction based on a new focal point.
-
-        This will recalculate all the necessary vectors and vector planes to orient
-        the image plane so that it points at a new location.
-
-        Parameters
-        ----------
-        new_center : array_like
-            The new "center" of the view port -- the focal point for the
-            camera.
-        north_vector : array_like, optional
-            The "up" direction for the plane of rays.  If not specific,
-            calculated automatically.
-        """
-        normal_vector = self.front_center - new_center
-        self._setup_normalized_vectors(normal_vector, north_vector)
-
-
-    def switch_orientation(self, normal_vector=None, center=None, north_vector=None):
+    def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""Change the view direction based on any of the orientation parameters.
 
         This will recalculate all the necessary vectors and vector planes related
-        to a camera with new normal vectors, widths, centers, or north vectors.
+        to a an orientable object.
 
         Parameters
         ----------
         normal_vector: array_like, optional
             The new looking vector.
-        width: float or array of floats, optional
-            The new width.  Can be a single value W -> [W,W,W] or an
-            array [W1, W2, W3] (left/right, top/bottom, front/back)
-        center: array_like, optional
-            Specifies the new center.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -94,7 +70,7 @@ class Orientation:
         if north_vector is None:
             north_vector = self.north_vector
         if normal_vector is None:
-            normal_vector = self.front_center-center
+            normal_vector = self.normal_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
 
         

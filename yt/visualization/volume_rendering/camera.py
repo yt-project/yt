@@ -232,7 +232,9 @@ class Camera(ParallelAnalysisInterface):
             The "up" direction for the plane of rays.  If not specific,
             calculated automatically.
         """
-        self.orienter.look_at(new_center, north_vector = north_vector)
+        normal_vector = self.front_center - new_center
+        self.orienter.switch_orientation(normal_vector=normal_vector,
+                                         north_vector = north_vector)
 
     def switch_view(self, normal_vector=None, width=None, center=None, north_vector=None):
         r"""Change the view based on any of the view parameters.
@@ -264,7 +266,7 @@ class Camera(ParallelAnalysisInterface):
             north_vector = self.orienter.north_vector
         if normal_vector is None:
             normal_vector = self.front_cemter - self.center
-        self.orienter.switch_orientation(normal_vector = normal_vector, center = center,
+        self.orienter.switch_orientation(normal_vector = normal_vector,
                                          north_vector = north_vector)
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
 
