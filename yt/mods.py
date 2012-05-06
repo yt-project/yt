@@ -120,7 +120,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
+    HomogenizedVolume, Camera, off_axis_projection#, MosaicFisheyeCamera
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
