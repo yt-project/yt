@@ -320,7 +320,7 @@ class ResultsStorage(object):
     result = None
     result_id = None
 
-def parallel_objects(objects, njobs, storage = None):
+def parallel_objects(objects, njobs = 0, storage = None, barrier = True):
     if not parallel_capable:
         njobs = 1
         mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
@@ -362,6 +362,8 @@ def parallel_objects(objects, njobs, storage = None):
         new_storage = my_communicator.par_combine_object(
                 to_share, datatype = 'dict', op = 'join')
         storage.update(new_storage)
+    if barrier:
+        my_communicator.barrier()
 
 class CommunicationSystem(object):
     communicators = []
