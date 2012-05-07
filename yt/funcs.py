@@ -568,10 +568,11 @@ def fix_length(length, pf):
 def parallel_profile(prefix):
     import cProfile
     from yt.config import ytcfg
-    fn = "%s_%04i.cprof" % (prefix,
+    fn = "%s_%04i_%04i.cprof" % (prefix,
+                ytcfg.getint("yt", "__topcomm_parallel_size"),
                 ytcfg.getint("yt", "__topcomm_parallel_rank"))
     p = cProfile.Profile()
     p.enable()
-    yield
+    yield fn
     p.disable()
     p.dump_stats(fn)
