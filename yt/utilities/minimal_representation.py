@@ -180,3 +180,14 @@ class MinimalImageCollectionData(MinimalRepresentation):
         chunks = [(fn, d) for fn, d in self.images]
         return (metadata, ('images', chunks))
 
+class MinimalProjectDescription(MinimalRepresentation):
+    type = "project"
+    _attr_list = ("title", "url", "description", "category", "image_url")
+
+    def __init__(self, title, url, description,
+                 category = "General Purpose Scripts", image_url = ""):
+        self.title = title
+        self.url = url
+        self.description = description
+        self.category = category
+        self.image_url = image_url
