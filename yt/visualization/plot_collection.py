@@ -27,6 +27,7 @@ from matplotlib import figure
 import shutil
 import tempfile
 import numpy as na
+import os
 
 from yt.funcs import *
 
@@ -74,7 +75,7 @@ class ImageCollection(object):
 
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
-        self.images.append((fn, na.fromfile(fn, dtype='c')))
+        self.images.append((os.path.basename(fn), na.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
     __id_counter = 0
