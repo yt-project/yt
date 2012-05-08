@@ -1292,7 +1292,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
         pf.field_info.add_field("temp_weightfield",
-            function=lambda a,b:b[field]*b[weight])
+            function=lambda a,b:b[field]*b[weight].astype("float64"))
         fields = ["temp_weightfield", weight]
         tf = ProjectionTransferFunction(n_fields = 2)
     tf = ProjectionTransferFunction(n_fields = len(fields))
