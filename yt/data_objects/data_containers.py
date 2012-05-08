@@ -1756,16 +1756,18 @@ class AMRQuadTreeProjBase(AMR2DData):
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
+            op = "max"
         elif self.proj_style == "integrate":
             merge_style = 1
+            op = "sum"
         else:
             raise NotImplementedError
         #tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
         buf = list(tree.tobuffer())
         del tree
         new_buf = [buf.pop(0)]
-        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op='sum'))
-        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op='sum'))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
         tree = self._get_tree(len(fields))
         tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
