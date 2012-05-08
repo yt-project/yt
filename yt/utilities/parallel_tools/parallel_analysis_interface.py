@@ -396,7 +396,7 @@ class CommunicationSystem(object):
         self._update_parallel_state(self.communicators[-1])
 
 def _reconstruct_communicator():
-    return Communicator()
+    return communication_system.communicators[-1]
 
 class Communicator(object):
     comm = None
