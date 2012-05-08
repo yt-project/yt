@@ -58,6 +58,7 @@ class MinimalRepresentation(object):
             setattr(self, attr, getattr(obj, attr, None))
         if hasattr(obj, "pf"):
             self.output_hash = obj.pf._hash()
+            self._pf_mrep = obj.pf._mrep
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
@@ -93,6 +94,8 @@ class MinimalRepresentation(object):
         api_key = ytcfg.get("yt","hub_api_key")
         url = ytcfg.get("yt","hub_url")
         metadata, (final_name, chunks) = self._generate_post()
+        if hasattr(self, "_pf_mrep"):
+            self._pf_mrep.upload()
         for i in metadata:
             if isinstance(metadata[i], na.ndarray):
                 metadata[i] = metadata[i].tolist()
