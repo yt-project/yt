@@ -183,14 +183,25 @@ class MinimalImageCollectionData(MinimalRepresentation):
         chunks = [(fn, d) for fn, d in self.images]
         return (metadata, ('images', chunks))
 
+_hub_categories = ("News", "Documents", "Simulation Management",
+                   "Data Management", "Analysis and Visualization",
+                   "Paper Repositories", "Astrophysical Utilities",
+                   "yt Scripts")
+
 class MinimalProjectDescription(MinimalRepresentation):
     type = "project"
     _attr_list = ("title", "url", "description", "category", "image_url")
 
     def __init__(self, title, url, description,
-                 category = "General Purpose Scripts", image_url = ""):
+                 category, image_url = ""):
+        assert(category in _hub_categories)
         self.title = title
         self.url = url
         self.description = description
         self.category = category
         self.image_url = image_url
+
+    def _generate_post(self):
+        metadata = self._attrs
+        chunks = []
+        return (metadata, ("chunks", []))

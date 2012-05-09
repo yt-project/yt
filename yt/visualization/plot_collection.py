@@ -144,6 +144,9 @@ class PlotCollection(object):
         shutil.rmtree(dd)
         return MinimalImageCollectionData(ic)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
     def save(self, basename=None, format="png", override=False, force_save=False):
         r"""Save out all the plots hanging off this plot collection, using
         generated names.

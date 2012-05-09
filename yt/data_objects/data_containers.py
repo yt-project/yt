@@ -1152,6 +1152,9 @@ class AMRSliceBase(AMR2DData):
     def _mrep(self):
         return MinimalSliceData(self)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
 class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -1672,6 +1675,9 @@ class AMRQuadTreeProjBase(AMR2DData):
     @property
     def _mrep(self):
         return MinimalProjectionData(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
