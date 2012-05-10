@@ -113,7 +113,15 @@ class MinimalRepresentation(object):
                                              'api_key' : api_key})
         request = urllib2.Request(url, datagen, headers)
         # Actually do the request, and get the response
-        rv = urllib2.urlopen(request).read()
+        try:
+            rv = urllib2.urlopen(request).read()
+        except urllib2.HTTPError as ex:
+            if ex.code == 401:
+                mylog.error("You must create an API key before uploading.")
+                mylog.error("https://data.yt-project.org/getting_started.html")
+                return
+            else:
+                raise ex
         uploader_info = json.loads(rv)
         new_url = url + "/handler/%s" % uploader_info['handler_uuid']
         for i, (cn, cv) in enumerate(chunks):
@@ -128,8 +136,9 @@ class MinimalRepresentation(object):
 
         datagen, headers = multipart_encode({'status' : 'FINAL'})
         request = urllib2.Request(new_url, datagen, headers)
-        rv = urllib2.urlopen(request).read()
-        return json.loads(rv)
+        rv = json.loads(urllib2.urlopen(request).read())
+        mylog.info("Upload succeeded!  View here: %s", rv['url'])
+        return rv
 
 class FilteredRepresentation(MinimalRepresentation):
     def _generate_post(self):
