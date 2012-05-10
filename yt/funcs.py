@@ -94,22 +94,6 @@ try:
 except ImportError:
     pass
 
-def __memory_fallback(pid):
-    """
-    Get process memory from a system call.
-    """
-    value = os.popen('ps -o rss= -p %d' % pid).read().strip().split('\n')
-    if len(value) == 1: return float(value[0])
-    value.pop(0)
-    for line in value:
-        online = line.split()
-        if online[0] != pid: continue
-        try:
-            return float(online[2])
-        except:
-            return 0.0
-    return 0.0
-
 def get_memory_usage():
     """
     Returning resident size in megabytes
@@ -118,10 +102,10 @@ def get_memory_usage():
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return __memory_fallback(pid) / 1024
+        return -1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return __memory_fallback(pid) / 1024
+        return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
