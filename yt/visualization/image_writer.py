@@ -116,7 +116,7 @@ def multi_image_composite(fn, red_channel, blue_channel,
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
 
-def write_bitmap(bitmap_array, filename, max_val = None):
+def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
@@ -150,6 +150,9 @@ def write_bitmap(bitmap_array, filename, max_val = None):
         s1, s2 = bitmap_array.shape[:2]
         alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
         bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
+    if transpose:
+        for channel in range(bitmap_array.shape[2]):
+            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
     au.write_png(bitmap_array.copy(), filename)
     return bitmap_array
 

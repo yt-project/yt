@@ -92,8 +92,9 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
     ttot = trgba[0] + trgba[1] + trgba[2]
-    ta = expf(-dt*fmax(ttot, 0.0))
+    ta = expf(-fmax(dt*ttot, 0.0))
     for i in range(3):
+        #ta = expf(-dt*fmax(trgba[i], 0.0))
         rgba[i] = (1.0-ta)*trgba[i] + ta*rgba[i]
 
 @cython.boundscheck(False)

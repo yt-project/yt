@@ -28,11 +28,13 @@ License:
 import numpy as na
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
+from yt.visualization.image_writer import write_image, write_bitmap
 from yt.utilities.amr_utils import kdtree_get_choices
 from yt.utilities._amr_utils.grid_traversal import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
+import matplotlib.pylab as pl
 from copy import deepcopy
 from yt.config import ytcfg
 from time import time
@@ -923,6 +925,7 @@ class AMRKDTree(HomogenizedVolume):
                     current = current.parent
             else:
                 current = current.parent
+        
         return current, previous
                 
     def count_volume(self):
@@ -994,7 +997,13 @@ class AMRKDTree(HomogenizedVolume):
         current_node.id = 0
         par_tree_depth = int(na.log2(self.comm.size))
         anprocs = 2**par_tree_depth
+
+        volume_partitioned = 0.0
+        pbar = get_pbar("Building kd-Tree", 1.0)
+
         while current_node is not None:
+            pbar.update(volume_partitioned)
+
             # If we don't have any grids, that means we are revisiting
             # a dividing node, and there is nothing to be done.
             try: ngrids = current_node.grids
@@ -1038,6 +1047,7 @@ class AMRKDTree(HomogenizedVolume):
 
                     # Else make a leaf node (brick container)
                     set_leaf(current_node, thisgrid, current_node.l_corner, current_node.r_corner)
+                    volume_partitioned += na.prod(current_node.r_corner-current_node.l_corner)
                     # print 'My single grid covers the rest of the volume, and I have no children'
                     current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
@@ -1054,6 +1064,9 @@ class AMRKDTree(HomogenizedVolume):
 
             # Step to the nest node in a depth-first traversal.
             current_node, previous_node = self.step_depth(current_node, previous_node)
+        
+        pbar.finish()
+
 
     def _get_choices(self, current_node):
         '''
@@ -1116,31 +1129,38 @@ class AMRKDTree(HomogenizedVolume):
             Position of the front center to which the traversal progresses.
         image: na.array
             Image plane to contain resulting ray cast.
-            
+
         Returns
         ----------
         None, but modifies the image array.
-        
+
         See Also
         ----------
         yt.visualization.volume_rendering.camera
-        
+
         """
         if self.tree is None: 
             print 'No KD Tree Exists'
             return
         self.image = image
 
-        viewpoint = front_center - back_center 
+        viewpoint = front_center - back_center
+        viewpoint = front_center 
+        print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
                 if node.brick is not None:
+                    distl = (front_center - node.l_corner).min()
+                    distr = (front_center - node.r_corner).min()
+                    #print distl, distr
                     yield node.brick
-         
+
+        mylog.debug('About to enter reduce, my image has a max of %e' %
+                self.image.max())
         self.reduce_tree_images(self.tree, viewpoint)
         self.comm.barrier()
-        
+
     def reduce_tree_images(self, tree, viewpoint, image=None):
         if image is not None:
             self.image = image
@@ -1154,7 +1174,7 @@ class AMRKDTree(HomogenizedVolume):
             try:
                 my_node.left_child.owner = my_node.owner
                 my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))
-                if path[i+1] == '0': 
+                if path[i+1] == '0':
                     my_node = my_node.left_child
                     my_node_id = my_node.id
                 else:
@@ -1163,7 +1183,6 @@ class AMRKDTree(HomogenizedVolume):
             except:
                 rounds = i-1
         for thisround in range(rounds,0,-1):
-            self.image[self.image>1.0]=1.0
             #print self.comm.rank, 'my node', my_node_id
             parent = my_node.parent
             #print parent['split_ax'], parent['split_pos']
@@ -1172,10 +1191,12 @@ class AMRKDTree(HomogenizedVolume):
                 back = parent.left_child
             else:
                 front = parent.left_child
-                back = parent.right_child 
+                back = parent.right_child
+            print 'Combining', viewpoint, parent.split_ax, parent.split_pos
+            print front.l_corner, front.r_corner
+            print back.l_corner, back.r_corner
 
             # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
-                
             # Send the images around
             if front.owner == self.comm.rank:
                 if front.owner == parent.owner:
@@ -1183,32 +1204,45 @@ class AMRKDTree(HomogenizedVolume):
                     arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     ta = na.exp(-na.sum(self.image,axis=2))
+                    mylog.debug('I am here!-----------!')
+                    write_bitmap(self.image, 'int_image.png')
+                    write_bitmap(arr2, 'int_arr2.png')
+                    write_image(ta.T, 'int_ta.png',cmap_name='gist_stern')
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        self.image[:,:,i  ] = self.image[:,:,i  ] + (ta)*arr2[:,:,i  ]
+                        #ta = na.exp(-self.image[:,:,i])
+                        self.image[:,:,i  ] = (1.0-ta)*self.image[:,:,i  ] + ta*arr2[:,:,i]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank,back.owner))
+                    mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank,back.owner, self.image.max()))
                     self.comm.send_array(self.image.ravel(), back.owner, tag=self.comm.rank)
-                
+
             if back.owner == self.comm.rank:
                 if front.owner == parent.owner:
-                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank, front.owner))
+                    mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank, front.owner,
+                                self.image.max()))
                     self.comm.send_array(self.image.ravel(), front.owner, tag=self.comm.rank)
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i receiving image from %04i'%(self.comm.rank,front.owner))
                     arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-                    ta = na.exp(-na.sum(arr2,axis=2))
+                    ta = na.exp(-na.sum(self.image,axis=2))
+                    write_bitmap(self.image, 'int_image.png')
+                    write_bitmap(arr2, 'int_arr2.png')
+                    write_image(ta.T, 'int_ta.png',cmap_name='gist_stern')
+
+                    mylog.debug('Reducing, ta shape = ' + str(ta.shape))
+                    mylog.debug('im max: %e arr2 max: %e, tamax: %e tamin: %e' %
+                            (self.image.max(), arr2.max(),ta.max(), ta.min()))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
                         # print arr2.shape
-                        self.image[:,:,i  ] = arr2[:,:,i  ] + ta * self.image[:,:,i  ]
+                        self.image[:,:,i  ] = (1.0-ta)*self.image[:,:,i  ] + ta*arr2[:,:,i]
 
             # Set parent owner to back owner
             # my_node = (my_node-1)>>1
