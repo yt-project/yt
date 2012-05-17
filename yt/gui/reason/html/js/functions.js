@@ -87,9 +87,7 @@ function cell_finished(result) {
 	        input_line.setValue(payload['value']);
             repl_input.locked = true;
         } else if (payload['type'] == 'log_entry') {
-	        var record = new logging_store.recordType(
-		        {record: payload['log_entry'] });
-	        logging_store.add(record, number_log_records++);
+            reason.log(payload['log_entry']);
             new_log = true;
         } else if (payload['type'] == 'widget') {
             var widget_type = payload['widget_type'];
@@ -110,7 +108,7 @@ function cell_finished(result) {
         }
     });
     if (new_log == true){
-        viewport.get("status-region").getView().focusRow(number_log_records-1);
+        reason.log_scroll()
     }
     if (cell_resulted == true) {
         enable_input();

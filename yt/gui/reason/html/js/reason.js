@@ -29,29 +29,124 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+function Reason() {
+    if (typeof(console) != "undefined") {
+        console.log('Mitchell!\nPardon me! Mitchell!')
+    }
+    this.setup_viewport();
+    // Go ahead and create the TreePanel now so that we can use it below
+    // get a reference to the HTML element with id "hideit" and add a click listener to it 
+    Ext.get("hideit").on('click', function(){
+        // get a reference to the Panel that was created with id = 'west-panel' 
+	    var w = Ext.getCmp('west-panel');
+        // expand or collapse that Panel based on its collapsed property state
+        // need to make room for six sour cream burritos
+        w.collapsed ? w.expand() : w.collapse();
+    });
 
-var viewport;
-var widget_types = {}
-var widget_list = {}
+    /* Now we create our record store. */
+    this.logging_store = new Ext.data.Store({
+        fields: [{name:'record'}],
+        reader: new Ext.data.ArrayReader({}, [{name: 'record'}]),
+    });
 
+    this.number_log_records = 0;
+    this.number_images = 0;
+    this.cell_count = 0;
+    this.notebook = viewport.get("center-panel").get("notebook");
+    this.status_region = viewport.get("status-region");
+    
+}
+
+Reason.prototype.setup_viewport = function() {
+  this.viewport = new Ext.Viewport({
+        layout: 'border',
+        items: [
+		// lazily created panel (xtype:'panel' is default)
+            {
+                xtype: 'grid',
+                store: logging_store,
+                defaults: { width: 800 },
+                columns: [ {id:'record', 
+                    sortable: false,
+                    width:800} ],
+                autofill: true,
+                region: 'south',
+                id: "status-region",
+                cls: "status-logger",
+                split: true,
+                height: 100,
+                maxSize: 200,
+                collapsible: true,
+                title: 'Status',
+                margins: '0 0 0 0',
+            }, {
+                region: 'west',
+                id: 'west-panel', // see Ext.getCmp() below
+                title: 'Data Objects',
+                split: true,
+                width: 200,
+                minSize: 175,
+                maxSize: 400,
+                collapsible: true,
+                margins: '0 0 0 5',
+                layout: {
+                    type: 'anchor',
+                },
+                items: [{
+                        xtype: 'toolbar',
+                        items: [ main_menu ],
+                    },
+                    treePanel,
+                ]
+		  // in this instance the TabPanel is not wrapped by another panel
+		  // since no title is needed, this Panel is added directly
+		  // as a Container
+            },{
+                xtype: 'tabpanel',
+                region: 'center', 
+                id: 'center-panel',
+                deferredRender: false,
+                activeTab: 0,     
+                items: [{
+                        title: 'YT',
+                        id: 'notebook',
+                        layout: 'vbox',
+                        layoutConfig: {align:'stretch'},
+                        closable: false,
+                        autoScroll: false,
+                        iconCls: 'console',
+                        items: [CellInputContainer, OutputContainer]
+                    }, 
+                ]
+            }
+        ]
+    });
+}
+
+Reason.prototype.log = function(text) {
+    this.logging_store.add({record:text}, this.number_log_records++);
+}
+
+Reason.prototype.log_scroll = function() {
+    this.status_region.getView().focusRow(number_log_records-1);
+}
+
+var reason;
 var examine;
-var number_log_records = 0;
-var number_images = 0;
 
-var res;
-var cell_count = 0;
+/* This goes to the prototype so that it's shared across theoretical instances
+ * of the Reason class. */
+Reason.prototype.widget_types = {}
+Reason.prototype.widget_list = {}
 
-var handle_result = function(f, a) {
+Reason.prototype.handle_result = function(f, a) {
     if(a.status == false){
         Ext.Msg.alert("Error", "Something has gone wrong.");
         examine = {f: f, a: a};
         return;
     }
-    cell_finished(a.result);
-}
-
-var handle_payload = function(pp) {
-    cell_finished(pp);
+    this.cell_finished(a.result);
 }
 
 var repl_input = new Ext.FormPanel({
@@ -139,9 +234,6 @@ var OutputContainer = new Ext.Panel({
     items: []
 });
 
-var examine;
-var notebook;
-
 var treePanel = new Ext.tree.TreePanel({
     iconCls: 'nav',
     id: 'tree-panel',
@@ -217,12 +309,6 @@ var treePanel = new Ext.tree.TreePanel({
     }
 });
 
-var status_panel;
-var logging_store = new Ext.data.Store({
-    fields: [{name:'record'}],
-    reader: new Ext.data.ArrayReader({}, [{name: 'record'}]),
-});
-
 var heartbeat_request = false;
 var task_runner = new Ext.util.TaskRunner();
 var heartbeat;
@@ -237,98 +323,10 @@ Ext.onReady(function(){
     // should ensure that stable state ids are set for stateful components in real apps.
     // it's a cold day for pontooning.
     Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
-
-    // Go ahead and create the TreePanel now so that we can use it below
-    viewport = new Ext.Viewport({
-        layout: 'border',
-        items: [
-		// lazily created panel (xtype:'panel' is default)
-            {
-                xtype: 'grid',
-                store: logging_store,
-                defaults: { width: 800 },
-                columns: [ {id:'record', 
-                    sortable: false,
-                    width:800} ],
-                autofill: true,
-                region: 'south',
-                id: "status-region",
-                cls: "status-logger",
-                split: true,
-                height: 100,
-                maxSize: 200,
-                collapsible: true,
-                title: 'Status',
-                margins: '0 0 0 0',
-            }, {
-                region: 'west',
-                id: 'west-panel', // see Ext.getCmp() below
-                title: 'Data Objects',
-                split: true,
-                width: 200,
-                minSize: 175,
-                maxSize: 400,
-                collapsible: true,
-                margins: '0 0 0 5',
-                layout: {
-                    type: 'anchor',
-                },
-                items: [{
-                        xtype: 'toolbar',
-                        items: [ main_menu ],
-                    },
-                    treePanel,
-                ]
-		  // in this instance the TabPanel is not wrapped by another panel
-		  // since no title is needed, this Panel is added directly
-		  // as a Container
-            },{
-                xtype: 'tabpanel',
-                region: 'center', 
-                id: 'center-panel',
-                deferredRender: false,
-                activeTab: 0,     
-                items: [{
-                        title: 'YT',
-                        id: 'notebook',
-                        layout: 'vbox',
-                        layoutConfig: {align:'stretch'},
-                        closable: false,
-                        autoScroll: false,
-                        iconCls: 'console',
-                        items: [CellInputContainer, OutputContainer]
-                    }, 
-                ]
-            }
-        ]
-    });
-
-// get a reference to the HTML element with id "hideit" and add a click listener to it 
-    if (typeof(console) != "undefined") {
-        console.log('Mitchell!\nPardon me! Mitchell!')
-    }
-    Ext.get("hideit").on('click', function(){
-// get a reference to the Panel that was created with id = 'west-panel' 
-	    var w = Ext.getCmp('west-panel');
-// expand or collapse that Panel based on its collapsed property state
-// need to make room for six sour cream burritos
-        w.collapsed ? w.expand() : w.collapse();
-    });
-    
-    notebook = viewport.get("center-panel").get("notebook");
-    status_panel = viewport.get("status-region").get("status-div");
-    
-    var record = new logging_store.recordType(
-        {record: 'Welcome to yt.'});
-    logging_store.add(record, number_log_records++);
-
-    var record = new logging_store.recordType(
-        {record: 'After entering a line of code in the YT Input field, press shift-enter to evaluate.' });
-    logging_store.add(record, number_log_records++);
-
-    var record = new logging_store.recordType(
-        {record: '4d3d3d3 engaged.' });
-    logging_store.add(record, number_log_records++);
+    reason = Reason()
+    reason.log('Welcome to yt.');
+    reason.log('After entering a line of code in the YT Input field, press shift-enter to evaluate.');
+    reason.log('4d3d3d3 engaged.');
 
     if (!Ext.state.Manager.get("reason_welcomed", false)) {
         Ext.MessageBox.alert("Reason v0.5",
