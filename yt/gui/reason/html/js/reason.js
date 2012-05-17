@@ -29,7 +29,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-function Reason() {
+Ext.app.Module = function(config){
+    Ext.apply(this, config);
+    Ext.app.Module.superclass.constructor.call(this);
+    this.init();
+}
+
+Ext.extend(Ext.app.Module, Ext.util.Observable, {
+    init : Ext.emptyFn
+});
+
+Reason = new Ext.app.App({
+  init: function() {
     if (typeof(console) != "undefined") {
         console.log('Mitchell!\nPardon me! Mitchell!')
     }
@@ -50,16 +61,17 @@ function Reason() {
         reader: new Ext.data.ArrayReader({}, [{name: 'record'}]),
     });
 
+    this.widget_types = {}
+    this.widget_list = {}
     this.number_log_records = 0;
     this.number_images = 0;
     this.cell_count = 0;
     this.notebook = viewport.get("center-panel").get("notebook");
     this.status_region = viewport.get("status-region");
-    
-}
+  },
 
-Reason.prototype.setup_viewport = function() {
-  this.viewport = new Ext.Viewport({
+  setup_viewport: function() {
+    this.viewport = new Ext.Viewport({
         layout: 'border',
         items: [
 		// lazily created panel (xtype:'panel' is default)
@@ -116,37 +128,32 @@ Reason.prototype.setup_viewport = function() {
                         closable: false,
                         autoScroll: false,
                         iconCls: 'console',
-                        items: [CellInputContainer, OutputContainer]
+                        items: [InputContainer, OutputContainer]
                     }, 
                 ]
             }
         ]
     });
-}
+  },
 
-Reason.prototype.log = function(text) {
+  log : function(text) {
     this.logging_store.add({record:text}, this.number_log_records++);
-}
+  },
 
-Reason.prototype.log_scroll = function() {
+  log_scroll : function() {
     this.status_region.getView().focusRow(number_log_records-1);
-}
+  },
 
-/* This goes to the prototype so that it's shared across theoretical instances
- * of the Reason class. */
-Reason.prototype.widget_types = {}
-Reason.prototype.widget_list = {}
-
-Reason.prototype.handle_result = function(f, a) {
+  handle_result : function(f, a) {
     if(a.status == false){
         Ext.Msg.alert("Error", "Something has gone wrong.");
         examine = {f: f, a: a};
         return;
     }
     this.cell_finished(a.result);
-}
+  },
 
-Reason.prototype.start_heartbeat = function() {
+  start_heartbeat : function() {
     this.task_runner = new Ext.util.TaskRunner();
     this.heartbeat_request = false;
     this.number_heartbeats = 0;
@@ -163,95 +170,102 @@ Reason.prototype.start_heartbeat = function() {
     interval: 250};
 
     this.task_runner.start(heartbeat);
-}
+  },
 
-Reason.prototype.enable_input() {
+  enable_input : function() {
     repl_input.body.removeClass("cell_waiting");
     repl_input.get('input_line').setReadOnly(false);
     repl_input.get("input_line").focus();
     yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
-}
+  },
 
-Reason.prototype.disable_input() {
-    repl_input.get('input_line').setReadOnly(true);
-    repl_input.body.addClass("cell_waiting");
-}
-                         
-var repl_input = new Ext.FormPanel({
-    title: 'YT Input',
-    url: 'push',
-    flex: 0.2,
-    layout: 'fit',
-    padding: 5,
-    height: '100%',
-    flex: 1.0,
-    items: [{
-        id: 'input_line',
-        xtype: 'textarea',
-        width: '100%',
-        autoScroll: true,
-        name: 'line',
-        allowBlank: 'True',
-        bodyStyle: 'font-family: "monospace";',
-        listeners: {
-            specialkey: function(f, e){
-                if (e.getKey() == e.ENTER) {
-                    disable_input();
-                    yt_rpc.ExtDirectREPL.execute({
-                        code:repl_input.get('input_line').getValue()},
-                    handle_result);
-                }
-            },
-            afterrender: function(f, e){
-                //var input_line_drop_target_el = repl_input.get("input_line").el.dom;
-                var input_line_drop_target_el = repl_input.body.dom;
+  disable_input : function() {
+    this.InputCell.get('input_line').setReadOnly(true);
+    this.InputCell.body.addClass("cell_waiting");
+  },
+});
 
-                var input_line_drop_target = new Ext.dd.DropTarget(input_line_drop_target_el, {
-                    ddGroup     : 'pfDDgroup',
-                    notifyEnter : function(ddSource, e, data) {
-                        repl_input.body.stopFx();
-                        repl_input.body.highlight();
-                    },
-                    notifyDrop  : function(ddSource, e, data){
-
-                        var varname = data.node.attributes.objdata.varname;
-                        /* There is possibly a better way to do this, where it's also inserted correctly. */
-                        var line = repl_input.get("input_line");
-                        line.setValue(line.getValue() + varname);
-                        line.focus();
-                        return(true);
+Reason.Interpreter = function() { 
+    var interpreter = this;
+    this.execute = function() {
+        this.disable_input();
+        yt_rpc.ExtDirectREPL.execute({
+            code:this.InputForm.get('input_line').getValue()},
+        this.handle_result);
+    };
+    this.get_contents() {
+        return this.InputForm.get('input_line').getValue();
+    }
+    this.set_contents(contents, focus) {
+        this.InputForm.get('input_line').setValue(contents);
+        if (focus == true) {
+            this.InputForm.get('input_line').focus();
+        }
+    }
+    this.InputForm = new Ext.FormPanel({
+        title: 'YT Input',
+        url: 'push',
+        flex: 0.2,
+        layout: 'fit',
+        padding: 5,
+        height: '100%',
+        flex: 1.0,
+        items: [{
+            id: 'input_line',
+            xtype: 'textarea',
+            width: '100%',
+            autoScroll: true,
+            name: 'line',
+            allowBlank: 'True',
+            bodyStyle: 'font-family: "monospace";',
+            listeners: {
+                specialkey: function(f, e){
+                    if (e.getKey() == e.ENTER) {
+                        Reason.Interpreter.execute();
                     }
-                });
+                },
+                afterrender: function(f, e){
+                    //var input_line_drop_target_el = repl_input.get("input_line").el.dom;
+                    var input_line_drop_target_el = repl_input.body.dom;
+
+                    var input_line_drop_target = new Ext.dd.DropTarget(input_line_drop_target_el, {
+                        ddGroup     : 'pfDDgroup',
+                        notifyEnter : function(ddSource, e, data) {
+                            repl_input.body.stopFx();
+                            repl_input.body.highlight();
+                        },
+                        notifyDrop  : function(ddSource, e, data){
+
+                            var varname = data.node.attributes.objdata.varname;
+                            /* There is possibly a better way to do this, where it's also inserted correctly. */
+                            var line = Reason.Interpreter.get_contents();
+                            Reason.interpreter.set_contents(line + varname, true);
+                            return(true);
+                        }
+                    });
+                },
             },
-        },
-    },],
-});
-
-
-var CellInputContainer = new Ext.Panel({
-    title: 'YT Input',
-    flex: 0.3,
-    layout: {type: 'hbox',
-             pack: 'start',
-             align: 'stretch',
-             },
-    items: [ repl_input,
-            { xtype: 'button',
-              width: 24,
-              height: 24,
-              iconCls: 'doubledownarrow',
-              tooltip: 'Execute Cell',
-              listeners: {
-                  click: function(f, e) {
-                    disable_input();
-                    yt_rpc.ExtDirectREPL.execute({
-                        code:repl_input.get('input_line').getValue()},
-                    handle_result);
-                  }
-              },
-            }
-           ]
-});
+        },],
+    });
+    this.InputContainer = new Ext.Panel({
+        title: 'YT Input',
+        flex: 0.3,
+        layout: {type: 'hbox',
+                 pack: 'start',
+                 align: 'stretch',
+                 },
+        items: [ interpreter.InputForm,
+                { xtype: 'button',
+                  width: 24,
+                  height: 24,
+                  iconCls: 'doubledownarrow',
+                  tooltip: 'Execute Cell',
+                  listeners: {
+                      click: function(f, e) { interpreter.execute(); }
+                  },
+                }
+               ]
+    });
 
 
 var OutputContainer = new Ext.Panel({
@@ -262,7 +276,8 @@ var OutputContainer = new Ext.Panel({
     items: []
 });
 
-var treePanel = new Ext.tree.TreePanel({
+TreePanel = function(
+new Ext.tree.TreePanel({
     iconCls: 'nav',
     id: 'tree-panel',
     layout: 'anchor',
