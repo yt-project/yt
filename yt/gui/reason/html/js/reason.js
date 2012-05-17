@@ -132,9 +132,6 @@ Reason.prototype.log_scroll = function() {
     this.status_region.getView().focusRow(number_log_records-1);
 }
 
-var reason;
-var examine;
-
 /* This goes to the prototype so that it's shared across theoretical instances
  * of the Reason class. */
 Reason.prototype.widget_types = {}
@@ -149,6 +146,37 @@ Reason.prototype.handle_result = function(f, a) {
     this.cell_finished(a.result);
 }
 
+Reason.prototype.start_heartbeat = function() {
+    this.task_runner = new Ext.util.TaskRunner();
+    this.heartbeat_request = false;
+    this.number_heartbeats = 0;
+    this.heartbeat = {
+    run:
+      function(){ if (this.heartbeat_request == true) return; 
+        this.heartbeat_request = true;
+        yt_rpc.ExtDirectREPL.heartbeat(
+            {}, function(f, a) {
+            this.heartbeat_request = false;
+            if (f != null) {
+                handle_result(f, a);
+            }})},
+    interval: 250};
+
+    this.task_runner.start(heartbeat);
+}
+
+Reason.prototype.enable_input() {
+    repl_input.body.removeClass("cell_waiting");
+    repl_input.get('input_line').setReadOnly(false);
+    repl_input.get("input_line").focus();
+    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
+}
+
+Reason.prototype.disable_input() {
+    repl_input.get('input_line').setReadOnly(true);
+    repl_input.body.addClass("cell_waiting");
+}
+                         
 var repl_input = new Ext.FormPanel({
     title: 'YT Input',
     url: 'push',
@@ -309,10 +337,8 @@ var treePanel = new Ext.tree.TreePanel({
     }
 });
 
-var heartbeat_request = false;
-var task_runner = new Ext.util.TaskRunner();
-var heartbeat;
-
+var reason;
+var examine;
 
 Ext.onReady(function(){
     Ext.BLANK_IMAGE_URL = 'resources/resources/images/default/s.gif';
@@ -338,19 +364,5 @@ Ext.onReady(function(){
     }
 
     /* Set up the heartbeat */
-    var num = 0;
-    heartbeat = {
-    run:
-      function(){ if (heartbeat_request == true) return; 
-        heartbeat_request = true;
-        yt_rpc.ExtDirectREPL.heartbeat(
-            {}, function(f, a) {
-            heartbeat_request = false;
-            if (f != null) {
-                handle_result(f, a);
-            }})},
-    interval: 250};
-
-    task_runner.start(heartbeat);
-                         
+    reason.start_heartbeat();
 });

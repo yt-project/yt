@@ -29,18 +29,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-function enable_input() {
-    repl_input.body.removeClass("cell_waiting");
-    repl_input.get('input_line').setReadOnly(false);
-    repl_input.get("input_line").focus();
-    yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, fill_tree);
-}
-
-function disable_input() {
-    repl_input.get('input_line').setReadOnly(true);
-    repl_input.body.addClass("cell_waiting");
-}
-
 function cell_finished(result) {
     var new_log = false;
     var cell_resulted = false;
@@ -48,8 +36,8 @@ function cell_finished(result) {
     Ext.each(result, 
     function(payload, index) {
         if (payload['type'] == 'shutdown') {
-            task_runner.stop(heartbeat);
-            heartbeat_request = true;
+            reason.task_runner.stop(heartbeat);
+            reason.heartbeat_request = true;
             return;
         } else if (payload['type'] == 'cell_results') {
             text = "<pre>"+payload['output']+"</pre>";
