@@ -353,7 +353,7 @@ cd ${DEST_DIR}/src
 
 # Now we dump all our SHA512 files out.
 
-echo '8da1b0af98203254a1cf776d73d09433f15b5090871f9fd6d712cea32bcd44446b7323ae1069b28907d2728e77944a642825c61bc3b54ceb46c91897cc4f6051  Cython-0.15.1.tar.gz' > Cython-0.15.1.tar.gz.sha512
+echo '2c1933ab31246b4f4eba049d3288156e0a72f1730604e3ed7357849967cdd329e4647cf236c9442ecfb06d0aff03e6fc892a7ba2a5c1cf5c011b7ab9c619acec  Cython-0.16.tar.gz ' > Cython-0.16.tar.gz.sha512
 echo 'b8a12bf05b3aafa71135e47da81440fd0f16a4bd91954bc5615ad3d3b7f9df7d5a7d5620dc61088dc6b04952c5c66ebda947a4cfa33ed1be614c8ca8c0f11dff  PhiloGL-1.4.2.zip' > PhiloGL-1.4.2.zip.sha512
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
 echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
@@ -391,7 +391,7 @@ get_enzotools matplotlib-1.1.0.tar.gz
 get_enzotools mercurial-2.2.tar.gz
 get_enzotools ipython-0.12.tar.gz
 get_enzotools h5py-2.0.1.tar.gz
-get_enzotools Cython-0.15.1.tar.gz
+get_enzotools Cython-0.16.tar.gz
 get_enzotools ext-3.3.2.zip
 get_enzotools ext-slate-110328.zip
 get_enzotools PhiloGL-1.4.2.zip
@@ -631,7 +631,7 @@ fi
 
 do_setup_py ipython-0.12
 do_setup_py h5py-2.0.1
-do_setup_py Cython-0.15.1
+do_setup_py Cython-0.16
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
