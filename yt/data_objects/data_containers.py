@@ -240,6 +240,8 @@ class AMRData(object):
             pass
         elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
+        elif center in ("c", "center"):
+            center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
             center = self.pf.h.find_max("Density")[1]
         elif center.startswith("max_"):
