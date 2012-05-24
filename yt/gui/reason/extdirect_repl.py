@@ -460,6 +460,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return command
 
     @lockit
+    def load(self, base_dir, filename):
+        pp = os.path.join(base_dir, filename)
+        funccall = "pfs.append(load('%s'))" % pp
+        self.execute(funccall)
+        return []
+
     def file_listing(self, base_dir, sub_dir):
         if base_dir == "":
             cur_dir = os.getcwd()
@@ -467,9 +473,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             cur_dir = base_dir
         else:
             cur_dir = os.path.join(base_dir, sub_dir)
+            cur_dir = os.path.abspath(cur_dir)
         fns = os.listdir(cur_dir)
-        results = []
-        for fn in sorted(fns):
+        results = [("..", 0, "directory")]
+        for fn in sorted((os.path.join(cur_dir, f) for f in fns)):
             if not os.access(fn, os.R_OK): continue
             if os.path.isfile(fn):
                 size = os.path.getsize(fn)
@@ -477,7 +484,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             else:
                 size = 0
                 t = "directory"
-            results.append((fn, size, t))
+            results.append((os.path.basename(fn), size, t))
         return dict(objs = results, cur_dir=cur_dir)
 
     @lockit

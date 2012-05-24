@@ -30,36 +30,46 @@ function open_file() {
                'type'
       ]
     });
-
+    var cur_dir;
     function fillStore(f, a){
         if(a.status == false){
           Ext.Msg.alert("Error", "Something has gone wrong.");
-          examine = {f: f, a: a};
           return;
         }
-        examine = a;
         filestore.removeAll();
         var rec = [];
         filestore.loadData(a.result['objs']);
+        cur_dir = a.result['cur_dir'];
+        win.get("current_file").setValue(cur_dir);
     }
 
     var win = new Ext.Window({
-        layout:'fit',
-        width:480,
-        height:320,
+        layout:'vbox',
+        layoutConfig: {
+            align: 'stretch',
+            pack: 'start',
+            defaultMargins: "5px 5px 5px 5px",
+        },
+        width:540,
+        height:480,
         modal:true,
         resizable:true,
         draggable:true,
-        border:false,
         title:'Open File',
         items: [
-            { xtype:'listview',
+            { xtype: 'textfield',
+              id: 'current_file',
+            }, {
+              xtype:'listview',
               store: filestore ,
+              singleSelect:true,
               emptyText: 'No images to display',
+              flex: 1.0,
               columns: [
               {
                   header: 'Type',
                   width: 0.1,
+                  tpl: '<img src="images/file_dialog_{type}.png" width=16 height=16>',
                   dataIndex: 'type'
               },{
                   header: 'Filename',
@@ -71,9 +81,39 @@ function open_file() {
                   tpl: '{size:fileSize}',
                   align: 'right',
                   cls: 'listview-filesize'
-              }]
+              }],
+              listeners: {
+                dblclick: function(view, index, node, e) {
+                    var fileRecord = filestore.getAt(index).data;
+                    if (fileRecord.type == 'directory') {
+                      yt_rpc.ExtDirectREPL.file_listing(
+                            {base_dir:cur_dir, sub_dir:fileRecord.filename},
+                            fillStore);
+                    } else {
+                      yt_rpc.ExtDirectREPL.load(
+                            {base_dir:cur_dir, filename:fileRecord.filename},
+                            handle_result);
+                      win.destroy();
+                    }
+                },
+                selectionchange: function(view, index, node, e) {
+                },
+              },
+            }, {
+              xtype: 'panel',
+              height: 40,
+              layout: 'hbox',
+              layoutConfig: {
+                  align: 'stretch',
+                  pack: 'start',
+                  defaultMargins: "5px 5px 5px 5px",
+              },
+              items: [
+                { flex: 1.0, xtype: 'button', text: 'Cancel' },
+                { flex: 1.0, xtype: 'button', text: 'Load' },
+              ],
             },
-        ]
+        ],
     });
     yt_rpc.ExtDirectREPL.file_listing(
           {base_dir:"", sub_dir:""}, fillStore);
