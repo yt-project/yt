@@ -82,11 +82,15 @@ class YTCommand(object):
         if cls.npfs > 1:
             self(args)
         else:
-            if len(getattr(args, "pf", [])) > 1:
+            pf_args = getattr(args, "pf", [])
+            if len(pf_args) > 1:
                 pfs = args.pf
                 for pf in pfs:
                     args.pf = pf
                     self(args)
+            elif len(pf_args) == 0:
+                pfs = []
+                self(args)
             else:
                 args.pf = getattr(args, 'pf', [None])[0]
                 self(args)
@@ -105,6 +109,8 @@ class GetParameterFiles(argparse.Action):
 _common_options = dict(
     pf      = dict(short="pf", action=GetParameterFiles,
                    nargs="+", help="Parameter files to run on"),
+    opf     = dict(action=GetParameterFiles, dest="pf",
+                   nargs="*", help="(Optional) Parameter files to run on"),
     axis    = dict(short="-a", long="--axis",
                    action="store", type=int,
                    dest="axis", default=4,
@@ -1269,7 +1275,8 @@ class YTGUICmd(YTCommand):
                  help="At startup, find all *.hierarchy files in the CWD"),
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
-                 help="Add a debugging mode for cell execution")
+                 help="Add a debugging mode for cell execution"),
+            "opf"
             )
     description = \
         """
