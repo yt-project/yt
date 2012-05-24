@@ -26,6 +26,7 @@ License:
 
 import json
 import os
+import stat
 import cStringIO
 import logging
 import uuid
@@ -457,6 +458,27 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             payload['data'] = self.locals[widget_data_name]
         self.payload_handler.add_payload(payload)
         return command
+
+    @lockit
+    def file_listing(self, base_dir, sub_dir):
+        if base_dir == "":
+            cur_dir = os.getcwd()
+        elif sub_dir == "":
+            cur_dir = base_dir
+        else:
+            cur_dir = os.path.join(base_dir, sub_dir)
+        fns = os.listdir(cur_dir)
+        results = []
+        for fn in sorted(fns):
+            if not os.access(fn, os.R_OK): continue
+            if os.path.isfile(fn):
+                size = os.path.getsize(fn)
+                t = "file"
+            else:
+                size = 0
+                t = "directory"
+            results.append((fn, size, t))
+        return dict(objs = results, cur_dir=cur_dir)
 
     @lockit
     def create_phase(self, objname, field_x, field_y, field_z, weight):
