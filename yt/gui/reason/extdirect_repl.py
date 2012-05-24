@@ -474,6 +474,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         else:
             cur_dir = os.path.join(base_dir, sub_dir)
             cur_dir = os.path.abspath(cur_dir)
+        if not os.path.isdir(cur_dir):
+            return {'change':False}
         fns = os.listdir(cur_dir)
         results = [("..", 0, "directory")]
         for fn in sorted((os.path.join(cur_dir, f) for f in fns)):

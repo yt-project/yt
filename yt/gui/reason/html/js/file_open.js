@@ -36,6 +36,10 @@ function open_file() {
           Ext.Msg.alert("Error", "Something has gone wrong.");
           return;
         }
+        if(a.result['change'] == false) {
+          win.get("current_file").setValue(cur_dir);
+          return;
+        }
         filestore.removeAll();
         var rec = [];
         filestore.loadData(a.result['objs']);
@@ -59,8 +63,16 @@ function open_file() {
         items: [
             { xtype: 'textfield',
               id: 'current_file',
+              listeners: {
+                specialkey: function(f, e) {
+                  if (e.getKey() != e.ENTER) { return; }
+                  yt_rpc.ExtDirectREPL.file_listing(
+                        {base_dir:f.getValue(), sub_dir:''}, fillStore);
+                }
+              }
             }, {
               xtype:'listview',
+              id: 'file_listing',
               store: filestore ,
               singleSelect:true,
               emptyText: 'No images to display',
@@ -109,8 +121,21 @@ function open_file() {
                   defaultMargins: "5px 5px 5px 5px",
               },
               items: [
-                { flex: 1.0, xtype: 'button', text: 'Cancel' },
-                { flex: 1.0, xtype: 'button', text: 'Load' },
+                { flex: 1.0, xtype: 'button', text: 'Cancel',
+                    handler: function(b, e) { win.destroy(); } },
+                { flex: 1.0, xtype: 'button', text: 'Load',
+                    handler: function(b, e) {
+                      filename = "";
+                      var fl = win.get("file_listing");
+                      if (fl.getSelectionCount() == 1) {
+                        filename = fl.getSelectedRecords()[0].data.filename;
+                      }
+                      yt_rpc.ExtDirectREPL.load(
+                            {base_dir:cur_dir, filename:filename},
+                            handle_result);
+                      win.destroy();
+                    }
+                },
               ],
             },
         ],
