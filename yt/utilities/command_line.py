@@ -1322,12 +1322,12 @@ class YTGUICmd(YTCommand):
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(base_extjs_path)
         hr.debug = PayloadHandler.debug = args.debug
+        command_line = ["pfs = []"]
         if args.find:
             # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
             for fn in sorted(glob.glob("*/*.hierarchy")):
                 command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
+        hr.execute("\n".join(command_line))
         bottle.debug()
         uuid_serve_functions(open_browser=args.open_browser,
                     port=int(args.port), repl=hr)
