@@ -48,12 +48,12 @@ Ext.define('Reason.view.CellInput', {
                 items: [
                     {
                       xtype: 'textarea',
-                      id: 'inputLine',
+                      id: 'input_line',
                       autoScroll: true,
                       name: 'line',
                       width:'100%',
                       allowBlank: 'True',
-                      bodyStyle: 'font-family: "monospace";',
+                      fieldCls: 'inputLine',
                     },
                 ],
             }, {
@@ -62,5 +62,6 @@ Ext.define('Reason.view.CellInput', {
                 tooltip: 'Execute Cell',
                 id: 'executecellbutton',
                 width: 24,
+                height: '100%',
             }],
 });

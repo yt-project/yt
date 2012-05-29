@@ -54,9 +54,10 @@ Ext.application({
                     collapsible: true,
                     title: 'Status',
                     margins: '0 0 0 0',
-               }, /*{
+               }, {
                     xtype: 'panel',
                     id: 'west-panel',
+                    region: 'west',
                     title: 'Data Objects',
                     split: true,
                     width: 200,
@@ -66,12 +67,7 @@ Ext.application({
                     layout: {
                         type: 'anchor',
                     },
-                    items: [{
-                        xtype: 'reasontoolbar',
-                    }, {
-                        xtype: 'treepanel',
-                    }],
-              }, */ {
+              }, {
                 xtype: 'tabpanel',
                 region: 'center',
                 id: 'center-panel',

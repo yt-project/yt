@@ -34,5 +34,5 @@ Ext.define('Reason.view.LoggingGrid', {
     alias: 'widget.logginggrid',
     title: 'Logging Output',
     store: 'LogEntries',
-    columns: [ {header: 'Message', id:'record'} ],
+    columns: [ {header: 'Message', id:'record', width:'100%'} ],
 });
