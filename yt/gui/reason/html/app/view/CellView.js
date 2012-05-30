@@ -29,6 +29,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+var cellDisplay = new Ext.XTemplate(
+    '<pre>{input}</pre>',
+    '<hr>',
+    '<pre>{output}</pre>'
+);
+
+
 Ext.define('Reason.view.CellView', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.notebookcells',
@@ -36,16 +43,18 @@ Ext.define('Reason.view.CellView', {
     store: 'CellValues',
     autoscroll: true,
     flex: 0.7,
-    columns: [{header:'Execution Time', id: 'executiontime', width:'100%'}],
+    columns: [{header:'Execution Time', dataIndex: 'executiontime', width:'100%'}],
     features: [{
         ftype: 'rowbody',
         getAdditionalData: function(data, rowIndex, record, orig) {
             return {
-                rowBody: 'body',
-                rowBodyCls: 'something',
+                rowBody: cellDisplay.apply(data),
+                rowBodyCls: this.rowBodyCls,
                 rowBodyColspan: this.view.headerCt.getColumnCount(),
             };
         }
-    }]
+      }, {
+        ftype: 'rowwrap'
+      }],
 });
 

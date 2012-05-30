@@ -31,6 +31,8 @@ License:
 
 Ext.Loader.setConfig({enabled:true});
 
+var reason, examine;
+
 Ext.application({
     requires: ['Ext.container.Viewport',
                'Reason.view.LoggingGrid'],
@@ -39,6 +41,7 @@ Ext.application({
     appFolder: 'app',
 
     launch: function() {
+        reason = this;
         Ext.create('Ext.container.Viewport', {
             layout: 'border',
             items: [

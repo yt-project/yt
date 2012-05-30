@@ -33,17 +33,21 @@ Ext.define('Reason.controller.Notebook', {
     extend: 'Ext.app.Controller',
     stores: [ 'CellValues' ],
     views: ['Notebook'],
+    refs: [
+        { ref: 'inputLine',
+          selector: '#input_line'
+        }
+    ],
 
     init: function() {
-        /*
         this.application.addListener({
-            'newcell': this.addCell,
-            'executecell': this.executeCell,
+            newcell: {fn: this.addCell, scope: this},
+            executecell: {fn: this.executeCell, scope: this},
         })
         this.control({
             '#executecellbutton': {
                 click: function(f, e) {
-                    this.executeCell(Ext.get('#input_line').getValue());
+                    this.executeCell(this.getInputLine().getValue());
                 }
             },
             '#inputline': {
@@ -54,16 +58,16 @@ Ext.define('Reason.controller.Notebook', {
                 },
             },
         });
-        */
         this.callParent(arguments);
     },
 
     addCell: function(cell) {
-        this.store.add({
+        examine = this;
+        this.getCellValuesStore().add({
             input: cell['input'],
             output: cell['output'],
             raw_input: cell['raw_input'],
-            executiontime: 0
+            executiontime: cell['executiontime'],
         });
     },
     executeCell: function(line) {

@@ -33,7 +33,6 @@ Ext.define('Reason.store.CellValues', {
     extend: 'Ext.data.Store',
     id: 'cellvalues',
     fields: ['input', 'output', 'raw_input', 'executiontime'],
-    data: [{input: 'empty', output: 'alsoempty', raw_input:'moreempty',
-    executiontime:0}],
+    data: [],
 });
 

@@ -46,6 +46,7 @@ Ext.define('Reason.view.Notebook', {
     iconCls: 'console',
     items: [
         { xtype: 'notebookinput', },
+        { xtype: 'splitter' },
         { xtype: 'notebookcells', },
     ],
 });
