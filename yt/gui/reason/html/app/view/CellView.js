@@ -30,9 +30,12 @@ License:
 ***********************************************************************/
 
 var cellDisplay = new Ext.XTemplate(
-    '<pre>{input}</pre>',
+    '<b>Input:</b><br/><br/>',
+    '{input}',
+    '<br/><br/>',
     '<hr>',
-    '<pre>{output}</pre>'
+    '<b>Output:</b><br/><br/>',
+    '<pre>{output}</pre><br/><br/>'
 );
 
 Ext.define('Reason.view.CellView', {
@@ -40,19 +43,21 @@ Ext.define('Reason.view.CellView', {
     alias: 'widget.notebookcells',
     title: 'Cells',
     store: 'CellValues',
+    itemId: 'cells',
     autoscroll: true,
     flex: 0.7,
     columns: [{header:'Execution Time', dataIndex: 'executiontime', flex:1}],
     viewConfig: {
         stripeRows: false,
         disableSelection: true,
+        trackOver: false,
     },
     features: [{
         ftype: 'rowbody',
         getAdditionalData: function(data, rowIndex, record, orig) {
             return {
                 rowBody: cellDisplay.apply(data),
-                rowBodyCls: this.rowBodyCls,
+                rowBodyCls: 'codeview',
                 rowBodyColspan: this.view.headerCt.getColumnCount(),
             };
         }

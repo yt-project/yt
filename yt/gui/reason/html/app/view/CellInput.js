@@ -48,7 +48,7 @@ Ext.define('Reason.view.CellInput', {
                 items: [
                     {
                       xtype: 'textarea',
-                      id: 'input_line',
+                      id: 'inputline',
                       autoScroll: true,
                       name: 'line',
                       width:'100%',

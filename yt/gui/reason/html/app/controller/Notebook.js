@@ -32,17 +32,27 @@ License:
 Ext.define('Reason.controller.Notebook', {
     extend: 'Ext.app.Controller',
     stores: [ 'CellValues' ],
-    views: ['Notebook'],
+    views: ['Notebook', 'CellView'],
     refs: [
         { ref: 'inputLine',
-          selector: '#input_line'
-        }
+          selector: '#inputline'
+        },
+        { ref: 'cellDisplay',
+          selector: 'notebookcells#cells',
+          xtype: 'notebookcells',
+          autoCreate: true,
+          itemId: 'cells',
+        },
     ],
 
     init: function() {
         this.application.addListener({
             payloadcell: {fn: this.addCell, scope: this},
             executecell: {fn: this.executeCell, scope: this},
+            wipeinput:   {fn: this.wipeInputLine, scope: this},
+            blockinput:  {fn: this.blockInput, scope: this},
+            allowinput:  {fn: this.allowInput, scope: this},
+            scrolltobottom: {fn: this.scrollToBottom, scope: this},
         })
         this.control({
             '#executecellbutton': {
@@ -51,8 +61,8 @@ Ext.define('Reason.controller.Notebook', {
                 }
             },
             '#inputline': {
-                specialkey: function(ed, field, e, opts){
-                    if (e.getKey() == e.ENTER) {
+                specialkey: function(field, e, opts){
+                    if (e.shiftKey && e.getKey() == e.ENTER) {
                         this.executeCell(field.getValue());
                     }
                 },
@@ -62,19 +72,50 @@ Ext.define('Reason.controller.Notebook', {
     },
 
     addCell: function(cell) {
+        this.application.fireEvent("wipeinput");
+        this.application.fireEvent("allowinput");
         this.getCellValuesStore().add({
             input: cell['input'],
             output: cell['output'],
             raw_input: cell['raw_input'],
             executiontime: cell['executiontime'],
         });
+        this.application.fireEvent("scrolltobottom");
     },
     executeCell: function(line) {
+        this.application.fireEvent("blockinput");
         console.log("Asked to execute " + line);
         yt_rpc.ExtDirectREPL.execute({code:line}, this.cellExecuted);
     },
+
+    scrollToBottom: function() {
+        var i = this.getCellValuesStore().getCount();
+        console.log("Scrolling to bottom: " + i);
+        this.getCellDisplay().getView().focusRow(i-1);
+        examine = this.getCellDisplay();
+    },
+    
+    wipeInputLine: function() {
+        this.getInputLine().setValue("");
+    },
+
+    blockInput: function() {
+        this.getInputLine().addClass("cell_waiting");
+        this.getInputLine().setReadOnly(true);
+    },
+
+    allowInput: function() {
+        this.getInputLine().removeCls("cell_waiting");
+        this.getInputLine().setReadOnly(false);
+        /*yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
+            function(f, a) {
+                if (f == null) { alert("Error!"); return; }
+                this.application.fireEvent("newparameterfiles", f);
+        });*/
+    },
+
     cellExecuted: function(result) {
         console.log("Cell Executed!");
-    }
+    },
 });
 

@@ -1,13 +1,4 @@
 
-html, body {
-    font:normal 12px verdana;
-    margin:0;
-    padding:0;
-    border:0 none;
-    overflow:hidden;
-    height:100%;
-}
-
 p {
     margin:5px;
 }
@@ -56,10 +47,12 @@ p {
     font-size: 120%;
 }
 
-td.code {
+tr.codeview td, tr.codeview pre {
     padding-left: 20px;
     font-family: monospace;
+    font-size: 12px;
 }
+
 .cell_waiting {
     background-color: #FF0000;
 }

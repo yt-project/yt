@@ -75,9 +75,14 @@ Ext.application({
                 region: 'center',
                 id: 'center-panel',
                 activeTab: 0,
-                items: [{
-                    xtype: 'ytnotebook'
-                }]
+                items: [
+                { xtype: 'panel',
+                  title: 'Welcome!',
+                  closeable: true,
+                  autoLoad: 'help.html',
+                },
+                { xtype: 'ytnotebook' },
+                ]
               }
             ]
         });
