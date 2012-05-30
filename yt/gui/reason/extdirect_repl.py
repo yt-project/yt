@@ -40,6 +40,7 @@ import base64
 import imp
 import threading
 import Queue
+import zipfile
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
@@ -209,9 +210,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def __init__(self, base_extjs_path, locals=None):
         # First we do the standard initialization
-        self.extjs_path = os.path.join(base_extjs_path, "ext-resources")
-        self.extjs_theme_path = os.path.join(base_extjs_path, "ext-theme")
-        self.philogl_path = os.path.join(base_extjs_path, "PhiloGL")
+        self.extjs_file = zipfile.ZipFile(os.path.join(
+            base_extjs_path, "ext-4.1.0-gpl.zip"), 'r')
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
         # since they have different arguments, and most of all because we only
@@ -223,6 +223,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               _myapi = ("/ext-repl-api.js", "GET"),
                               _session_py = ("/session.py", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
+                              _extjs = ("/resources/extjs-4.1.0/:path#.+#", "GET"),
                               _app = ("/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
@@ -308,26 +309,14 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     _help_html = static_file("html/help.html")
 
-    def _resources(self, path):
-        pp = os.path.join(self.extjs_path, path)
-        if not os.path.exists(pp):
+    def _extjs(self, path):
+        pp = os.path.join("extjs-4.1.0", path)
+        try:
+            f = self.extjs_file.open(pp)
+        except KeyError:
             response.status = 404
             return
-        return open(pp).read()
-
-    def _philogl(self, path):
-        pp = os.path.join(self.philogl_path, path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _theme(self, path):
-        pp = os.path.join(self.extjs_theme_path, path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
+        return f.read()
 
     def _app(self, path):
         pp = os.path.join(local_dir, "html", path)

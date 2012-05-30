@@ -43,6 +43,10 @@ Ext.define('Reason.view.CellView', {
     autoscroll: true,
     flex: 0.7,
     columns: [{header:'Execution Time', dataIndex: 'executiontime', flex:1}],
+    viewConfig: {
+        stripeRows: false,
+        disableSelection: true,
+    },
     features: [{
         ftype: 'rowbody',
         getAdditionalData: function(data, rowIndex, record, orig) {
