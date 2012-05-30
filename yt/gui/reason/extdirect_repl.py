@@ -743,8 +743,10 @@ class ExtDirectParameterFileList(BottleDirectRouter):
                     except ReferenceError:
                         continue
                     objs.append(dict(name=name, type=obj._type_name,
+                                     filename = '', field_list = [],
                                      varname = "%s.h.objects[%s]" % (pf_varname, i)))
-            rv.append( dict(name = str(pf), objects = objs, filename=fn,
+            rv.append( dict(name = str(pf), children = objs, filename=fn,
+                            type = "parameter_file",
                             varname = pf_varname, field_list = fields) )
         return rv
 

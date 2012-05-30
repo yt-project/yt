@@ -92,7 +92,6 @@ Ext.define('Reason.controller.Notebook', {
         var i = this.getCellValuesStore().getCount();
         console.log("Scrolling to bottom: " + i);
         this.getCellDisplay().getView().focusRow(i-1);
-        examine = this.getCellDisplay();
     },
     
     wipeInputLine: function() {
@@ -107,11 +106,13 @@ Ext.define('Reason.controller.Notebook', {
     allowInput: function() {
         this.getInputLine().removeCls("cell_waiting");
         this.getInputLine().setReadOnly(false);
-        /*yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
+        console.log("Calling FileList");
+        var application = this.application;
+        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
             function(f, a) {
                 if (f == null) { alert("Error!"); return; }
-                this.application.fireEvent("newparameterfiles", f);
-        });*/
+                application.fireEvent("newdataobjects", f);
+        });
     },
 
     cellExecuted: function(result) {

@@ -35,7 +35,8 @@ var reason, examine;
 
 Ext.application({
     requires: ['Ext.container.Viewport',
-               'Reason.view.LoggingGrid'],
+               'Reason.view.LoggingGrid',
+               'Reason.view.DataObjectTree'],
     name: 'Reason',
 
     appFolder: 'app',
@@ -58,7 +59,7 @@ Ext.application({
                     title: 'Status',
                     margins: '0 0 0 0',
                }, {
-                    xtype: 'panel',
+                    xtype: 'dataobjecttree',
                     id: 'west-panel',
                     region: 'west',
                     title: 'Data Objects',
@@ -89,7 +90,7 @@ Ext.application({
     },
     controllers : [
         'Logging',
-        /*'DataObjects',*/
+        'DataObjects',
         'Notebook',
         'PayloadDirector',
     ],
