@@ -35,7 +35,6 @@ var cellDisplay = new Ext.XTemplate(
     '<pre>{output}</pre>'
 );
 
-
 Ext.define('Reason.view.CellView', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.notebookcells',

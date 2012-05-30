@@ -72,6 +72,11 @@ Ext.define('Reason.controller.Notebook', {
     },
     executeCell: function(line) {
         console.log("Asked to execute " + line);
+        yt_rpc.ExtDirectREPL.execute({code:line}, this.cellExecuted);
+    },
+    cellExecuted: function(result) {
+        console.log("Cell Executed!");
+        examine = result;
     }
 });
 

@@ -193,6 +193,11 @@ def reason_pylab():
     matplotlib.rcParams["backend"] = "module://reason_agg"
     pylab.switch_backend("module://reason_agg")
 
+def static_file(fn):
+    def _static(self):
+        return open(os.path.join(local_dir, fn)).read()
+    return _static
+
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
@@ -215,15 +220,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
                               _help_html = ("/help.html", "GET"),
-                              _myapi = ("/resources/ext-repl-api.js", "GET"),
-                              _resources = ("/resources/:path#.+#", "GET"),
-                              _philogl = ("/philogl/:path#.+#", "GET"),
-                              _js = ("/js/:path#.+#", "GET"),
-                              _leaflet = ("/leaflet/:path#.+#", "GET"),
-                              _images = ("/images/:path#.+#", "GET"),
-                              _theme = ("/theme/:path#.+#", "GET"),
+                              _myapi = ("/ext-repl-api.js", "GET"),
                               _session_py = ("/session.py", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
+                              _app = ("/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
@@ -262,13 +262,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         handler.setFormatter(formatter)
         ytLogger.addHandler(handler)
 
-
-    def index(self):
-        """Return an HTTP-based Read-Eval-Print-Loop terminal."""
-        # For now this doesn't work!  We will need to move to a better method
-        # for this.  It should use the package data command.
-        vals = open(os.path.join(local_dir, "html/index.html")).read()
-        return vals
+    index = static_file("html/index.html")
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
@@ -308,9 +302,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         for t in threading.enumerate():
             print "Found a living thread:", t
 
-    def _help_html(self):
-        vals = open(os.path.join(local_dir, "html/help.html")).read()
-        return vals
+    _help_html = static_file("html/help.html")
 
     def _resources(self, path):
         pp = os.path.join(self.extjs_path, path)
@@ -333,22 +325,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             return
         return open(pp).read()
 
-    def _js(self, path):
-        pp = os.path.join(local_dir, "html", "js", path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _leaflet(self, path):
-        pp = os.path.join(local_dir, "html", "leaflet", path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _images(self, path):
-        pp = os.path.join(local_dir, "html", "images", path)
+    def _app(self, path):
+        pp = os.path.join(local_dir, "html", path)
+        mylog.warning("LOOKING FOR %s", pp)
         if not os.path.exists(pp):
             response.status = 404
             return
@@ -362,6 +341,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                     'code': code,
                     'hide': hide}
             self.execution_thread.queue.put(task)
+            return dict(status = True)
 
     def get_history(self):
         return self.executed_cell_texts[:]
