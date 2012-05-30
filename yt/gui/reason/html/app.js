@@ -86,5 +86,6 @@ Ext.application({
         'Logging',
         /*'DataObjects',*/
         'Notebook',
+        'PayloadDirector',
     ],
 });

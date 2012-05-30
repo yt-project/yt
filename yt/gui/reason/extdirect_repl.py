@@ -139,7 +139,7 @@ class ExecutionThread(threading.Thread):
             print "========================================================"
         if not hide:
             self.repl.payload_handler.add_payload(
-                {'type': 'cell_results',
+                {'type': 'cell',
                  'output': result,
                  'input': highlighter(code),
                  'raw_input': code},
@@ -251,7 +251,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execution_thread.start()
 
     def exception_handler(self, exc):
-        result = {'type': 'cell_results',
+        result = {'type': 'cell',
                   'input': 'ERROR HANDLING IN REASON',
                   'output': traceback.format_exc()}
         return result
@@ -269,9 +269,13 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         if self.debug: print "### Heartbeat ... started: %s" % (time.ctime())
         for i in range(30):
             # Check for stop
+            if self.debug: print "    ###"
             if self.stopped: return {'type':'shutdown'} # No race condition
             if self.payload_handler.event.wait(1): # One second timeout
-                return self.payload_handler.deliver_payloads()
+                if self.debug: print "    ### Delivering payloads"
+                rv = self.payload_handler.deliver_payloads()
+                if self.debug: print "    ### Got back, returning"
+                return rv
         if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
         return []
 
@@ -327,7 +331,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def _app(self, path):
         pp = os.path.join(local_dir, "html", path)
-        mylog.warning("LOOKING FOR %s", pp)
         if not os.path.exists(pp):
             response.status = 404
             return
@@ -773,7 +776,7 @@ class PayloadLoggingHandler(logging.StreamHandler):
     def emit(self, record):
         msg = self.format(record)
         self.payload_handler.add_payload(
-            {'type':'log_entry',
+            {'type':'logentry',
              'log_entry':msg})
 
 if os.path.exists(os.path.expanduser("~/.yt/favicon.ico")):

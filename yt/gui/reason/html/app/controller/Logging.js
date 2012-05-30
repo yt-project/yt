@@ -33,4 +33,17 @@ Ext.define('Reason.controller.Logging', {
     extend: 'Ext.app.Controller',
     stores: [ 'LogEntries' ],
     view: ['LoggingGrid'],
+
+    init: function() {
+        this.application.addListener({
+            payloadlogentry: {fn: this.addLogEntry, scope: this},
+        });
+    },
+
+    addLogEntry: function(payload) {
+        examine = payload;
+        this.getLogEntriesStore().add(
+            {record: payload['log_entry']}
+        );
+    },
 });

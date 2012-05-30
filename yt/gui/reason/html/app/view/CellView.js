@@ -42,7 +42,7 @@ Ext.define('Reason.view.CellView', {
     store: 'CellValues',
     autoscroll: true,
     flex: 0.7,
-    columns: [{header:'Execution Time', dataIndex: 'executiontime', width:'100%'}],
+    columns: [{header:'Execution Time', dataIndex: 'executiontime', flex:1}],
     features: [{
         ftype: 'rowbody',
         getAdditionalData: function(data, rowIndex, record, orig) {

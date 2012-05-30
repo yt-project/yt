@@ -41,7 +41,7 @@ Ext.define('Reason.controller.Notebook', {
 
     init: function() {
         this.application.addListener({
-            newcell: {fn: this.addCell, scope: this},
+            payloadcell: {fn: this.addCell, scope: this},
             executecell: {fn: this.executeCell, scope: this},
         })
         this.control({
@@ -62,7 +62,6 @@ Ext.define('Reason.controller.Notebook', {
     },
 
     addCell: function(cell) {
-        examine = this;
         this.getCellValuesStore().add({
             input: cell['input'],
             output: cell['output'],
@@ -76,7 +75,6 @@ Ext.define('Reason.controller.Notebook', {
     },
     cellExecuted: function(result) {
         console.log("Cell Executed!");
-        examine = result;
     }
 });
 
