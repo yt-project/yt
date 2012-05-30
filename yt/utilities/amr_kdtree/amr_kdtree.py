@@ -1145,7 +1145,7 @@ class AMRKDTree(HomogenizedVolume):
         self.image = image
 
         viewpoint = front_center - back_center
-        viewpoint = front_center 
+        viewpoint = back_center 
         print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
@@ -1204,16 +1204,11 @@ class AMRKDTree(HomogenizedVolume):
                     arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     ta = na.exp(-na.sum(self.image,axis=2))
-                    mylog.debug('I am here!-----------!')
-                    write_bitmap(self.image, 'int_image.png')
-                    write_bitmap(arr2, 'int_arr2.png')
-                    write_image(ta.T, 'int_ta.png',cmap_name='gist_stern')
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        #ta = na.exp(-self.image[:,:,i])
-                        self.image[:,:,i  ] = (1.0-ta)*self.image[:,:,i  ] + ta*arr2[:,:,i]
+                        self.image[:,:,i  ] = self.image[:,:,i  ] + ta*arr2[:,:,i]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank,back.owner, self.image.max()))
@@ -1229,20 +1224,12 @@ class AMRKDTree(HomogenizedVolume):
                     mylog.debug('%04i receiving image from %04i'%(self.comm.rank,front.owner))
                     arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-                    ta = na.exp(-na.sum(self.image,axis=2))
-                    write_bitmap(self.image, 'int_image.png')
-                    write_bitmap(arr2, 'int_arr2.png')
-                    write_image(ta.T, 'int_ta.png',cmap_name='gist_stern')
-
-                    mylog.debug('Reducing, ta shape = ' + str(ta.shape))
-                    mylog.debug('im max: %e arr2 max: %e, tamax: %e tamin: %e' %
-                            (self.image.max(), arr2.max(),ta.max(), ta.min()))
+                    ta = na.exp(-na.sum(arr2,axis=2))
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        # print arr2.shape
-                        self.image[:,:,i  ] = (1.0-ta)*self.image[:,:,i  ] + ta*arr2[:,:,i]
+                        self.image[:,:,i  ] = ta*self.image[:,:,i  ] + arr2[:,:,i]
 
             # Set parent owner to back owner
             # my_node = (my_node-1)>>1

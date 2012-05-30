@@ -386,7 +386,8 @@ class Camera(ParallelAnalysisInterface):
                 for data in brick.my_data:
                     if na.any(na.isnan(data)):
                         raise RuntimeError
-        for brick in self.volume.traverse(self.back_center, self.front_center, image):
+        view_pos = self.front_center + self.unit_vectors[2] * 1.0e6 * self.width[2]
+        for brick in self.volume.traverse(view_pos, self.front_center, image):
             sampler(brick, num_threads = num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
