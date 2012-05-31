@@ -41,35 +41,51 @@ Ext.define('Reason.controller.WidgetDirector', {
     },
 
     registerWidget: function(w) {
-        if (w.prototype.widgetName == null) {return;}
-        console.log("Registering " + w.prototype.widgetName);
+        if (w.widgetName == null) {return;}
+        console.log("Registering " + w.widgetName);
         this.getWidgetTypesStore().add({
-                   widgetname: w.prototype.widgetName,
+                   widgetname: w.widgetName,
                    widgetclass: w,
-                   displayname: w.prototype.displayName,
-                   pfs: w.prototype.supportsParameterFiles,
-                   objs: w.prototype.supportsDataObjects,
+                   displayname: w.displayName,
+                   pfs: w.supportsParameterFiles,
+                   objs: w.supportsDataObjects,
         });
     },
 
     createWidget: function(b, e) {
         var w = b.widget;
         console.log("Asked to create " + b.widget.widgetName);
-        b.widget.createWidget(b.dataObj);
+        var wi = b.widget.factory(b.dataObj);
+        examine = this;
+        this.getWidgetInstancesStore().add({
+              widgetid: wi.varname,
+              widgettype: w.widgetName,
+              widget: wi
+        });
+        examine = this;
     },
 
     showWidgetMenu: function(treerecord, e) {
         var contextMenu = Ext.create('Ext.menu.Menu', {plain: true,});
-        
+        var data = treerecord.data;
         var w;
-        examine = treerecord;
         this.getWidgetTypesStore().each(function(record, idx) {
             w = record.data;
+            examine = w;
+            if (((data.type == 'parameter_file') && (w.pfs  == false)) 
+             || ((data.type != 'parameter_file') && (w.objs == false))) {
+              return;
+            }
             contextMenu.add({xtype:'menuitem',
                              text: w.displayname,
-                             handler: this.createWidget,
+                             listeners: {
+                                click: {
+                                    fn : this.createWidget,
+                                    scope: this
+                                },
+                             },
                              widget: w.widgetclass,
-                             dataObj: treerecord.data,
+                             dataObj: data
             });
         }, this);
         contextMenu.showAt(e.getXY());

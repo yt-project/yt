@@ -25,14 +25,19 @@ License:
 
 Ext.define('Reason.controller.widgets.SampleWidget', {
     extend: 'Reason.controller.widgets.BaseWidget',
-    widgetName: 'sample_widget',
-    supportsDataObjects: true,
-    supportsParameterFiles: true,
-    displayName: 'Sample Widget',
 
     statics: {
-        createWidget: function(obj) {
-            alert("Hey, being created!");
+        widgetName: 'sample_widget',
+        supportsDataObjects: true,
+        supportsParameterFiles: true,
+        displayName: 'Sample Widget',
+        factory: function(obj) {
+            return new this({varname:obj.varname});
         },
     },
+
+    config: {
+        varname: null,
+    },
+
 });

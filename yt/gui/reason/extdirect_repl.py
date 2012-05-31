@@ -596,7 +596,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                                          sample_values = _tsample_values)
         from yt.funcs import YTEmptyClass
         _tpw = YTEmptyClass()
-        print "GOT TPW"
         _tpw._widget_name = 'isocontour_viewer'
         _tpw._ext_widget_id = None
         _tverts = _tiso[0].ravel().tolist()

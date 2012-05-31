@@ -29,6 +29,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+Ext.define("Reason.controller.widgets.PlotWindow", {
+    extend: 'Reason.controller.widgets.BaseWidget',
+    supportsDataObjects: false,
+    supportsParameterFiles: true,
+    displayName: 'Do not use',
+
+    statics: {
+        createWidget: function(obj) {
+            examine = this;
+        },
+    },
+});
 
 
 var WidgetPlotWindow = function(python_varname, widget_data) {
