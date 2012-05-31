@@ -91,6 +91,7 @@ Ext.application({
               }
             ]
         });
+        this.fireEvent("allowinput");
     },
     controllers : [
         'Logging',

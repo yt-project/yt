@@ -25,7 +25,9 @@ License:
 
 Ext.define('Reason.controller.WidgetDirector', {
     extend: 'Ext.app.Controller',
-    requires: ["Reason.controller.widgets.SampleWidget"],
+    requires: ["Reason.controller.widgets.SampleWidget",
+               "Reason.controller.widgets.PlotWindow",
+    ],
     stores: ['WidgetTypes', 'WidgetInstances'],
 
     init: function() {
@@ -55,14 +57,8 @@ Ext.define('Reason.controller.WidgetDirector', {
     createWidget: function(b, e) {
         var w = b.widget;
         console.log("Asked to create " + b.widget.widgetName);
-        var wi = b.widget.factory(b.dataObj);
-        examine = this;
-        this.getWidgetInstancesStore().add({
-              widgetid: wi.varname,
-              widgettype: w.widgetName,
-              widget: wi
-        });
-        examine = this;
+        var store = this.getWidgetInstancesStore();
+        b.widget.preCreation(b.dataObj);
     },
 
     showWidgetMenu: function(treerecord, e) {

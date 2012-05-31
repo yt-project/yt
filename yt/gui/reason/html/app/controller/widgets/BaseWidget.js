@@ -43,4 +43,13 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
     execute: function(tpl) {
         tpl.apply(this);
     },
+
+    prepHandler: function(fn, en, scope) {
+        var conf = {};
+        if (en == null) { en = 'click'; }
+        if (scope == null) { scope = this; }
+        examine = {en:en, scope: scope};
+        conf[en] = { fn: fn, scope: scope };
+        return conf
+    },
 });

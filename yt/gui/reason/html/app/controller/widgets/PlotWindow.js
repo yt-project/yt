@@ -31,19 +31,39 @@ License:
 
 Ext.define("Reason.controller.widgets.PlotWindow", {
     extend: 'Reason.controller.widgets.BaseWidget',
-    supportsDataObjects: false,
-    supportsParameterFiles: true,
-    displayName: 'Do not use',
-
-    statics: {
-        createWidget: function(obj) {
-            examine = this;
-        },
+    templates: {
+        pwt: 'Projection Details for {name}',
+        swt: 'Slice Details for {name}',
     },
-});
 
+    acceptResults: function(payload) {
+        this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
+        this.zoom_scroll.setValue(0, payload['zoom'], true);
+        this.metadata_panel.update(payload['metadata_string']);
+        metadata_string = payload['metadata_string'];
+        ticks.removeAll();
+        Ext.each(payload['ticks'], function(tick, index) {
+            ticks.add({xtype:'panel',
+                       width: 10, height:1,
+                       style: 'background-color: #000000;',
+                       html:'&nbsp;',
+                       x:0, y: 10 + tick[0]});
+            ticks.add({xtype:'panel',
+                       width: 90, height:15,
+                       border: false,
+                       style: 'font-family: "Inconsolata", monospace;' +
+                              'font-size: 12px;',
+                       html: '' + tick[2] + '',
+                       x:12, y: 4 + tick[0]});
+        });
+        if (payload['colorbar_image'] != null) {
+            colorbar.el.dom.src = "data:image/png;base64," +
+                payload['colorbar_image'];
+        }
+        ticks.doLayout();
+    },
 
-var WidgetPlotWindow = function(python_varname, widget_data) {
+    createWindow: function() {
     this.id = python_varname;
     this.widget_data = widget_data;
     this.print_python = function(b, e) {
@@ -738,7 +758,90 @@ var WidgetPlotWindow = function(python_varname, widget_data) {
 
     yt_rpc.ExtDirectREPL.execute(
         {code:python_varname + '.zoom(1.0)', hide:true},
-        cell_finished);
-}
+        CELl_finished);
+    },
 
-widget_types['plot_window'] = WidgetPlotWindow;
+    statics: {
+        widgetName: 'plotwindow',
+        supportsDataObjects: false,
+        supportsParameterFiles: true,
+        displayName: 'Do not use',
+        preCreation: function(obj) {
+            var widget = Ext.create(this.getName())
+            var ts = widget.templateManager.applyObject(obj);
+            var win;
+            function makeProj(b, e) {
+                var axis = Ext.get("axis").getValue();
+                var field = Ext.get("field").getValue();
+                var weight = Ext.get("weightField").getValue();
+                var onmax = Ext.get("max_dens").getValue();
+                reason.fireEvent("disableinput");
+                yt_rpc.ExtDirectREPL.create_proj({
+                        pfname: obj.varname,
+                        axis: axis, field: field, weight: weight,
+                        onmax: onmax},
+                      Ext.emptyFn);
+                Ext.WindowManager.getActive().close();
+            }
+            win = new Ext.Window({
+                layout: 'fit',
+                width: 370,
+                height: 220,
+                modal: true,
+                resizable: false,
+                draggable: false,
+                border: false,
+                title: ts.pwt,
+                items: [{
+                    xtype: 'form',
+                    labelWidth:80,
+                    frame:true,
+                    items: [{
+                        xtype:'combo',
+                        fieldLabel: 'Axis',
+                        id: 'axis',
+                        store:['X','Y','Z'],
+                        width: 230,
+                        allowBlank:false,
+                        triggerAction: 'all',
+                        value: 'X',
+                    },{
+                        xtype:'checkbox',
+                        fieldLabel: 'Center on Max',
+                        id: 'max_dens',
+                        width: 90,
+                        allowBlank:false,
+                    },{
+                        xtype:'combo',
+                        fieldLabel: 'Field',
+                        id: 'field',
+                        store:obj.field_list,
+                        width: 230,
+                        allowBlank:false,
+                        triggerAction: 'all',
+                        value: 'Density'
+                    },{
+                        xtype:'combo',
+                        fieldLabel: 'Weight Field',
+                        id: 'weightField',
+                        store:['None'].concat(obj.field_list),
+                        width: 230,
+                        allowBlank:false,
+                        triggerAction: 'all',
+                        value: 'None'
+                    }],
+                    buttons: [
+                        {
+                            text: 'Project',
+                            listeners: widget.prepHandler(makeProj),
+                        },{
+                            text: 'Cancel',
+                            handler: function(){win.close();},
+                        }
+                    ]
+                }]
+            });
+            win.show();
+        },
+    },
+});
