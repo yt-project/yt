@@ -999,7 +999,8 @@ class AMRKDTree(HomogenizedVolume):
         anprocs = 2**par_tree_depth
 
         volume_partitioned = 0.0
-        pbar = get_pbar("Building kd-Tree", 1.0)
+        pbar = get_pbar("Building kd-Tree",
+                na.prod(self.domain_right_edge-self.domain_left_edge))
 
         while current_node is not None:
             pbar.update(volume_partitioned)
