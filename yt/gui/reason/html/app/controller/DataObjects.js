@@ -43,35 +43,44 @@ Ext.define('Reason.controller.DataObjects', {
         },
     ],
 
-
     init: function() {
         this.application.addListener({
            newdataobjects : {fn: this.refreshDataObjects, scope: this},
         });
+        this.control({
+            "#dataobjects": { itemcontextmenu:
+                function(view, rec, node, index, e) {
+                    e.preventDefault();
+                    this.application.fireEvent("showwidgets", rec, e);
+            }
+        }});
         this.callParent(arguments);
     },
 
     refreshDataObjects: function(objs) {
         console.log("Refreshing data objects");
-        var view = this.getDataObjectTree();
-        var store = this.getDataObjectsStore();
-        store.removeAll();
-        store.setRootNode({text: '', leaf: false, expanded: true});
-        var root = store.getRootNode();
+        var root = this.getDataObjectsStore().getRootNode();
+        root.removeAll();
         var pf;
         Ext.each(objs, function(o, i, os) {
             console.log("Appending " + o['name']);
             pf = root.appendChild({
-                text: o['name'],
-                objdata: o,
+                name: o.name,
+                type: o.type,
+                filename: o.filename,
+                field_list: o.field_list,
+                varname: o.varname,
                 leaf: false,
                 expanded: true,
                 iconCls: 'pf_icon'
             });
             Ext.each(o['children'], function(c, ci, cs) {
                 console.log("    Appending " + c['name']);
-                pf.appendChild({text: c['name'],
-                                objdata: c,
+                pf.appendChild({name: o.name,
+                                type: o.type,
+                                filename: o.filename,
+                                field_list: o.field_list,
+                                varname: o.varname,
                                 leaf: true,
                                 iconcls: 'data_obj'});
 

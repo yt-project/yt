@@ -25,13 +25,6 @@ License:
 
 Ext.define('Reason.controller.widgets.BaseWidget', {
     extend: 'Ext.app.Controller',
-
-    statics: {
-        widgetTypes: [],
-        register: function(widgetName, widgetClass) {
-            alert(widgetName);
-            examine = widgetClass;
-        },
-    },
-
+    supportsParameterFiles: false,
+    supportsDataObjects: false,
 });

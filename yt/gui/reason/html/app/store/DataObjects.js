@@ -31,7 +31,14 @@ License:
 
 Ext.define('Reason.store.DataObjects', {
     extend: 'Ext.data.TreeStore',
+    requires: ['Reason.model.DataObject'],
     model: 'Reason.model.DataObject',
-    data: [],
+    autoLoad: false,
+    proxy: {
+        type: 'memory',
+        reader: {
+            type: 'array',
+        }
+    },
 });
 

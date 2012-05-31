@@ -35,6 +35,7 @@ Ext.define('Reason.view.MainMenu', {
     items: [
       {
         text: 'Reason Menu',
+        plain: true,
         menu: [
                {xtype: 'menuitem', text: 'Open File', id: 'openfile'},
                {xtype: 'menuitem', text: 'Open Directory', disabled: true},

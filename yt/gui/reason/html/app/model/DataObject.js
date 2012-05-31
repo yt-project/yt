@@ -24,6 +24,6 @@ License:
 ***********************************************************************/
 
 Ext.define('Reason.model.DataObject', {
-    extent: 'Ext.data.Model',
+    extend: 'Ext.data.Model',
     fields: ['name', 'type', 'filename', 'field_list', 'varname'],
 });

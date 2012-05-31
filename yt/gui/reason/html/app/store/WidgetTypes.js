@@ -32,6 +32,6 @@ License:
 Ext.define('Reason.store.WidgetTypes', {
     extend: 'Ext.data.Store',
     id: 'widgettypes',
-    fields: ['widgetname', 'widgetclass'],
+    fields: ['widgetname', 'displayname', 'widgetclass', 'pfs', 'objs'],
     data: [],
 });

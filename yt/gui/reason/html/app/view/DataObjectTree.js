@@ -36,18 +36,22 @@ Ext.define('Reason.view.DataObjectTree', {
     itemId: 'dataobjects',
     rootVisible: false,
     iconCls: 'nav',
+    displayField: 'name',
     header: false,
     root: {
         expanded: true,
         text: '',
         leaf: false,
     },
-    columns: [{
-        xtype: 'treecolumn',
-        text: 'Object',
-        sortable: false,
-        dataIndex: 'text',
-        flex: 1.0,
-    }],
+    columns: {
+        items: [ 
+            { xtype: 'treecolumn',
+              text: 'Object',
+              sortable: false,
+              dataIndex: 'name',
+              flex: 1.0,
+            },
+        ]
+    },
 });
 

@@ -29,21 +29,50 @@ Ext.define('Reason.controller.WidgetDirector', {
     stores: ['WidgetTypes', 'WidgetInstances'],
 
     init: function() {
-        var store = this.getWidgetTypesStore();
         Ext.iterate(Reason.controller.widgets, function(i, w, ws) {
-            if (w.prototype.widgetName == null) {return;}
-            console.log("Registering " + w.prototype.widgetName);
-            store.add({widgetname: w.prototype.widgetName,
-                       widgetclass: w});
-        });
+            Ext.require(w.getName());
+            this.registerWidget(w);
+        }, this);
         this.application.addListener({
             createwidget: {fn: this.createWidget, scope: this},
+            showwidgets: {fn: this.showWidgetMenu, scope: this},
         });
         this.callParent(arguments);
     },
 
-    createWidget: function(widgetType, dataObject) {
-        console.log("Asked to create " + widgetType);
+    registerWidget: function(w) {
+        if (w.prototype.widgetName == null) {return;}
+        console.log("Registering " + w.prototype.widgetName);
+        this.getWidgetTypesStore().add({
+                   widgetname: w.prototype.widgetName,
+                   widgetclass: w,
+                   displayname: w.prototype.displayName,
+                   pfs: w.prototype.supportsParameterFiles,
+                   objs: w.prototype.supportsDataObjects,
+        });
+    },
+
+    createWidget: function(b, e) {
+        var w = b.widget;
+        console.log("Asked to create " + b.widget.widgetName);
+        b.widget.createWidget(b.dataObj);
+    },
+
+    showWidgetMenu: function(treerecord, e) {
+        var contextMenu = Ext.create('Ext.menu.Menu', {plain: true,});
+        
+        var w;
+        examine = treerecord;
+        this.getWidgetTypesStore().each(function(record, idx) {
+            w = record.data;
+            contextMenu.add({xtype:'menuitem',
+                             text: w.displayname,
+                             handler: this.createWidget,
+                             widget: w.widgetclass,
+                             dataObj: treerecord.data,
+            });
+        }, this);
+        contextMenu.showAt(e.getXY());
     },
 
 });
