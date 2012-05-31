@@ -42,5 +42,11 @@ Ext.define('Reason.view.DataObjectTree', {
         text: '',
         leaf: false,
     },
+    columns: [{
+        xtype: 'treecolumn',
+        text: 'Name',
+        sortable: false,
+        dataIndex: 'text',
+    }],
 });
 
