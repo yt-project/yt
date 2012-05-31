@@ -3365,9 +3365,18 @@ class AMRCoveringGridBase(AMR3DData):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        right_edge : array_like, optional
             The right edge of the region to be extracted
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
         """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
@@ -3503,7 +3512,8 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
-        single, specified resolution.
+        single, specified resolution. (Identical to covering_grid,
+        except that it interpolates.)
 
         Smoothed covering grids start at level 0, interpolating to
         fill the region to level 1, replacing any cells actually
@@ -3516,9 +3526,18 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        right_edge : array_like, optional
             The right edge of the region to be extracted
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
         """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
