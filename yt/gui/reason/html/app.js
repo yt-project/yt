@@ -38,6 +38,7 @@ Ext.application({
                'Reason.view.LoggingGrid',
                'Reason.view.DataObjectTree',
                'Reason.controller.widgets.SampleWidget',
+               'Reason.view.MainMenu',
                ],
     name: 'Reason',
 
@@ -61,10 +62,8 @@ Ext.application({
                     title: 'Status',
                     margins: '0 0 0 0',
                }, {
-                    xtype: 'dataobjecttree',
                     id: 'west-panel',
                     region: 'west',
-                    title: 'Data Objects',
                     split: true,
                     width: 200,
                     minSize: 175,
@@ -73,6 +72,10 @@ Ext.application({
                     layout: {
                         type: 'anchor',
                     },
+                    items: [
+                        { xtype: 'mainmenu' },
+                        { xtype: 'dataobjecttree', },
+                    ],
               }, {
                 xtype: 'tabpanel',
                 region: 'center',
@@ -96,6 +99,7 @@ Ext.application({
         'Notebook',
         'PayloadDirector',
         'WidgetDirector',
+        'MenuActions',
     ],
 
 });

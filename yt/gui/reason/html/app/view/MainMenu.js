@@ -1,5 +1,5 @@
 /**********************************************************************
-Data Object Tree for Reason
+Main Menu in Reason
 
 Author: Cameron Hummels <chummels@gmail.com>
 Affiliation: Columbia
@@ -29,25 +29,25 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.view.DataObjectTree', {
-    extend: 'Ext.tree.Panel',
-    alias: 'widget.dataobjecttree',
-    store: 'DataObjects',
-    itemId: 'dataobjects',
-    rootVisible: false,
-    iconCls: 'nav',
-    header: false,
-    root: {
-        expanded: true,
-        text: '',
-        leaf: false,
-    },
-    columns: [{
-        xtype: 'treecolumn',
-        text: 'Object',
-        sortable: false,
-        dataIndex: 'text',
-        flex: 1.0,
-    }],
+Ext.define('Reason.view.MainMenu', {
+    extend: 'Ext.toolbar.Toolbar',
+    alias: 'widget.mainmenu',
+    items: [
+      {
+        text: 'Reason Menu',
+        menu: [
+               {xtype: 'menuitem', text: 'Open File'},
+               {xtype: 'menuitem', text: 'Open Directory', disabled: true},
+               {xtype: 'menuseparator'},
+               {xtype: 'menuitem', text: 'Save Script'},
+               {xtype: 'menuitem', text: 'Download Script'},
+               {xtype: 'menuitem', text: 'Pastebin Script'},
+               {xtype: 'menuseparator'},
+               {xtype:'menuitem', text: 'yt Chat'},
+               {xtype: 'menuseparator'},
+               {xtype:'menuitem', text: 'Quit'},
+            ],
+      },
+    ],
 });
 
