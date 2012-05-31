@@ -37,6 +37,7 @@ Ext.define('Reason.controller.PayloadDirector', {
     init: function() {
         this.application.addListener({
             payloadreceived: {fn: this.handlePayload, scope: this},
+            stopheartbeat: {fn: this.stopHeartbeat, scope: this},
         })
         /* We also use this as our heartbeat */
         this.taskRunner = new Ext.util.TaskRunner();
@@ -63,6 +64,10 @@ Ext.define('Reason.controller.PayloadDirector', {
                 return true;
             }
         );
-    }
+    },
+
+    stopHeartbeat: function() {
+        this.taskRunner.stopAll();
+    },
 });
 

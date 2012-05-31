@@ -32,50 +32,52 @@ License:
 
 Ext.define('Reason.controller.MenuActions', {
     extend: 'Ext.app.Controller',
-    view: ['MainMenu'],
+    views: ['MainMenu'],
 
     init: function() {
+        this.control({
+            '#openfile': { click: this.openFile },
+            '#savescript': { click: this.saveScript},
+            '#downloadscript': { click: this.downloadScript },
+            '#pastebinscript': { click: this.pastebinScript },
+            '#ytchat': {click: this.openIRCChannel },
+            '#quit': {click: this.quitReason },
+        });
         this.callParent(arguments);
     },
 
-    addLogEntry: function(payload) {
-        examine = payload;
-        this.getLogEntriesStore().add(
-            {record: payload['log_entry']}
+    saveScript: function (b,e) { 
+        /* This function gets called on success */
+        var controller = this;
+        function handleResponse(f, a) {
+            if (a.result['status'] == 'SUCCESS') {
+                var alert_text = 'Saved session to ' + a.result['filename'];
+                Ext.Msg.alert('Success!', alert_text);
+                controller.application.fireEvent("logentry", alert_text);
+            } else {
+                Ext.Msg.alert('Always naysaying!',
+                  'Failed to save to ' + a.result['filename'] + '<br>Error: ' +
+                  a.result['error']);
+           }
+        };
+        /* Now we prompt */
+        Ext.Msg.prompt("We have important work to do.", "Enter filename.", 
+            function(btn, text) {
+                if (btn == 'ok') {
+                    yt_rpc.ExtDirectREPL.save_session(
+                        {filename:text}, handleResponse);
+                }
+            }
         );
     },
 
-    saveScript: function (b,e) { 
-        Ext.Msg.prompt("We have important work to do.", 
-        "Enter filename.", 
-        function(btn, text) {
-            if (btn == 'ok'){
-                yt_rpc.ExtDirectREPL.save_session({filename:text}, 
-                function(f, a) {
-                    if (a.result['status'] == 'SUCCESS') {
-                        var alert_text = 'Saved session to ' + 
-                        a.result['filename']
-                        Ext.Msg.alert('Success!', alert_text);
-                        var record = new logging_store.recordType(
-                            {record: alert_text });
-                        logging_store.add(record, number_log_records++);
-                    } else {
-                        Ext.Msg.alert('Always naysaying!',
-                            'Failed to save to ' + 
-                            a.result['filename'] + 
-                            '<br>Error: ' + 
-                            a.result['error']);
-                    }
-                });
-            }
-        });
+    openFile: function(b, e) {
+        alert("Not yet implemented.");
     },
 
     downloadScript: function(b, e) {
         window.open("session.py", "_top"); 
-        var record = new logging_store.recordType({
-            record: 'Saved session locally.'});
-        logging_store.add(record, number_log_records++);
+        this.application.fireEvent("logentry", 'Saved session locally.')
     },
 
     pastebinScript: function(b, e) {
@@ -86,9 +88,7 @@ Ext.define('Reason.controller.MenuActions', {
                 var alert_text_rec = 'Pasted session to: ' + 
                 a.result['site']
                 Ext.Msg.alert('Pastebin', alert_text);
-                var record = new logging_store.recordType(
-                    {record: alert_text_rec });
-                logging_store.add(record, number_log_records++);
+                this.application.fireEvent("logentry", alert_text_rec);
             }
         }); 
     },
@@ -98,7 +98,7 @@ Ext.define('Reason.controller.MenuActions', {
     },
 
     quitReason: function(b, e) {
-        task_runner.stop(heartbeat)
+        this.application.fireEvent("stopheartbeat");
         yt_rpc.ExtDirectREPL.shutdown({}, function(f,a) { 
         Ext.Msg.alert("Goodbye!", "Goodbye from Reason!", function() {
         window.open("http://www.google.com/", "_top");});});

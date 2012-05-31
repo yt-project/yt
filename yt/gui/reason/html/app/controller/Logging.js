@@ -36,14 +36,16 @@ Ext.define('Reason.controller.Logging', {
 
     init: function() {
         this.application.addListener({
-            payloadlogentry: {fn: this.addLogEntry, scope: this},
+            payloadlogentry: {fn: this.addLogPayload, scope: this},
+            logentry: {fn: this.addLogEntry, scope: this},
         });
     },
 
-    addLogEntry: function(payload) {
-        examine = payload;
-        this.getLogEntriesStore().add(
-            {record: payload['log_entry']}
-        );
+    addLogPayload: function(payload) {
+        this.addLogEntry(payload['log_entry']);
+    },
+
+    addLogEntry: function(text) {
+        this.getLogEntriesStore().add({record: text});
     },
 });

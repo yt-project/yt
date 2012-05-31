@@ -38,7 +38,6 @@ Ext.application({
                'Reason.view.LoggingGrid',
                'Reason.view.DataObjectTree',
                'Reason.controller.widgets.SampleWidget',
-               'Reason.view.MainMenu',
                ],
     name: 'Reason',
 
