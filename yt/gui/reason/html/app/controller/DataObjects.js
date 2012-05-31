@@ -32,6 +32,7 @@ License:
 Ext.define('Reason.controller.DataObjects', {
     extend: 'Ext.app.Controller',
     stores: [ 'DataObjects' ],
+    models: ['DataObject'],
     view: ['DataObjectTree'],
     refs: [
         { ref: 'dataObjectTree',

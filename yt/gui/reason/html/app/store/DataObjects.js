@@ -31,7 +31,7 @@ License:
 
 Ext.define('Reason.store.DataObjects', {
     extend: 'Ext.data.TreeStore',
-    fields: ['name', 'type', 'filename', 'field_list', 'varname'],
+    model: 'Reason.model.DataObject',
     data: [],
 });
 

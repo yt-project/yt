@@ -26,13 +26,24 @@ License:
 Ext.define('Reason.controller.WidgetDirector', {
     extend: 'Ext.app.Controller',
     requires: ["Reason.controller.widgets.SampleWidget"],
+    stores: ['WidgetTypes', 'WidgetInstances'],
 
     init: function() {
+        var store = this.getWidgetTypesStore();
         Ext.iterate(Reason.controller.widgets, function(i, w, ws) {
             if (w.prototype.widgetName == null) {return;}
             console.log("Registering " + w.prototype.widgetName);
+            store.add({widgetname: w.prototype.widgetName,
+                       widgetclass: w});
+        });
+        this.application.addListener({
+            createwidget: {fn: this.createWidget, scope: this},
         });
         this.callParent(arguments);
+    },
+
+    createWidget: function(widgetType, dataObject) {
+        console.log("Asked to create " + widgetType);
     },
 
 });

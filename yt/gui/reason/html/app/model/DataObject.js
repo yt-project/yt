@@ -1,12 +1,6 @@
 /**********************************************************************
-Data Object Tree for Reason
+Data object model
 
-Author: Cameron Hummels <chummels@gmail.com>
-Affiliation: Columbia
-Author: Jeffrey S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
 Homepage: http://yt-project.org/
@@ -29,25 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.view.DataObjectTree', {
-    extend: 'Ext.tree.Panel',
-    alias: 'widget.dataobjecttree',
-    title: 'Data Objects',
-    store: 'DataObjects',
-    itemId: 'dataobjects',
-    rootVisible: false,
-    iconCls: 'nav',
-    root: {
-        expanded: true,
-        text: '',
-        leaf: false,
-    },
-    columns: [{
-        xtype: 'treecolumn',
-        text: 'Name',
-        sortable: false,
-        dataIndex: 'text',
-        flex: 1.0,
-    }],
+Ext.define('Reason.model.DataObject', {
+    extent: 'Ext.data.Model',
+    fields: ['name', 'type', 'filename', 'field_list', 'varname'],
 });
-

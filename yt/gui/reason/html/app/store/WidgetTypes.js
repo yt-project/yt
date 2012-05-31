@@ -1,5 +1,5 @@
 /**********************************************************************
-Data Object Tree for Reason
+Widget class store for Reason
 
 Author: Cameron Hummels <chummels@gmail.com>
 Affiliation: Columbia
@@ -29,25 +29,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.view.DataObjectTree', {
-    extend: 'Ext.tree.Panel',
-    alias: 'widget.dataobjecttree',
-    title: 'Data Objects',
-    store: 'DataObjects',
-    itemId: 'dataobjects',
-    rootVisible: false,
-    iconCls: 'nav',
-    root: {
-        expanded: true,
-        text: '',
-        leaf: false,
-    },
-    columns: [{
-        xtype: 'treecolumn',
-        text: 'Name',
-        sortable: false,
-        dataIndex: 'text',
-        flex: 1.0,
-    }],
+Ext.define('Reason.store.WidgetTypes', {
+    extend: 'Ext.data.Store',
+    id: 'widgettypes',
+    fields: ['widgetname', 'widgetclass'],
+    data: [],
 });
-
