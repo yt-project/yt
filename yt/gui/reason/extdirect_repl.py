@@ -50,7 +50,7 @@ from yt.visualization.api import Streamlines
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler
-from yt.utilities.bottle import response, request, route
+from yt.utilities.bottle import response, request, route, static_file
 from .basic_repl import ProgrammaticREPL
 
 try:
@@ -194,11 +194,6 @@ def reason_pylab():
     matplotlib.rcParams["backend"] = "module://reason_agg"
     pylab.switch_backend("module://reason_agg")
 
-def static_file(fn):
-    def _static(self):
-        return open(os.path.join(local_dir, fn)).read()
-    return _static
-
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
@@ -263,7 +258,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         handler.setFormatter(formatter)
         ytLogger.addHandler(handler)
 
-    index = static_file("html/index.html")
+    def index(self):
+        root = os.path.join(local_dir, "html")
+        return static_file("index.html", root)
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
@@ -307,7 +304,9 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         for t in threading.enumerate():
             print "Found a living thread:", t
 
-    _help_html = static_file("html/help.html")
+    def _help_html(self):
+        root = os.path.join(local_dir, "html")
+        return static_file("help.html", root)
 
     def _extjs(self, path):
         pp = os.path.join("extjs-4.1.0", path)
@@ -316,16 +315,20 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         except KeyError:
             response.status = 404
             return
+        if path[-4:].lower() in (".png", ".gif", ".jpg"):
+            response.headers['Content-Type'] = "image/%s" % (path[-3:].lower())
+        elif path[-4:].lower() == ".css":
+            response.headers['Content-Type'] = "text/css"
+        elif path[-3:].lower() == ".js":
+            response.headers['Content-Type'] = "text/javascript"
         return f.read()
 
     def _app(self, path):
-        pp = os.path.join(local_dir, "html", path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
+        root = os.path.join(local_dir, "html")
+        return static_file(path, root)
 
     def _highlighter_css(self):
+        response.headers['Content-Type'] = "text/css"
         return highlighter_css
 
     def execute(self, code, hide = False):

@@ -36,7 +36,9 @@ var reason, examine;
 Ext.application({
     requires: ['Ext.container.Viewport',
                'Reason.view.LoggingGrid',
-               'Reason.view.DataObjectTree'],
+               'Reason.view.DataObjectTree',
+               'Reason.controller.widgets.SampleWidget',
+               ],
     name: 'Reason',
 
     appFolder: 'app',
@@ -93,5 +95,7 @@ Ext.application({
         'DataObjects',
         'Notebook',
         'PayloadDirector',
+        'WidgetDirector',
     ],
+
 });

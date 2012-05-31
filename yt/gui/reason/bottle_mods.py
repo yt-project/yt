@@ -25,7 +25,7 @@ License:
 """
 
 from yt.utilities.bottle import \
-    server_names, debug, route, run, request, ServerAdapter
+    server_names, debug, route, run, request, ServerAdapter, response
 import uuid
 from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
@@ -121,6 +121,7 @@ class BottleDirectRouter(DirectRouter):
     def _myapi(self):
         dpd = DirectProviderDefinition(self, self.api_url, ns="yt_rpc")
         source = "Ext.Direct.addProvider(%s);" % json.dumps(dpd._config())
+        response.headers['Content-Type'] = "text/javascript"
         return source
 
     def __call__(self):
