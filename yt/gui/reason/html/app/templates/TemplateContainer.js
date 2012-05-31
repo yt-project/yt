@@ -1,6 +1,12 @@
 /**********************************************************************
-Base widget class
+The Plot Window Widget
 
+Author: Cameron Hummels <chummels@gmail.com>
+Affiliation: Columbia
+Author: Jeffrey S. Oishi <jsoishi@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Author: Britton Smith <brittonsmith@gmail.com>
+Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
 Homepage: http://yt-project.org/
@@ -23,24 +29,24 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.require("Reason.templates.TemplateContainer");
-
-Ext.define('Reason.controller.widgets.BaseWidget', {
-    extend: 'Ext.app.Controller',
-    supportsParameterFiles: false,
-    supportsDataObjects: false,
-    templateManager: null,
-    templates: {},
-
-    constructor: function() {
-        this.templateManager = Ext.create(
-            "Reason.templates.TemplateContainer",
-            { templates: this.templates }
-        );
+Ext.define("Reason.templates.TemplateContainer", {
+    constructor: function(config) {
+        this.initConfig(config);
         this.callParent(arguments);
     },
 
-    execute: function(tpl) {
-        tpl.apply(this);
+    config: {
+        templates : {},
     },
+
+    applyObject: function(obj) {
+        var applied = {};
+        var tpl;
+        Ext.iterate(this.getTemplates(), function(k, v, o){
+            tpl = new Ext.XTemplate(v);
+            examine = {tpl: tpl, v:v, k:k};
+            applied[k] = tpl.apply(obj);
+        });
+        return applied;
+    }
 });
