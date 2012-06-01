@@ -44,7 +44,6 @@ Ext.define("Reason.templates.TemplateContainer", {
         var tpl;
         Ext.iterate(this.getTemplates(), function(k, v, o){
             tpl = new Ext.XTemplate(v);
-            examine = {tpl: tpl, v:v, k:k};
             applied[k] = tpl.apply(obj);
         });
         return applied;

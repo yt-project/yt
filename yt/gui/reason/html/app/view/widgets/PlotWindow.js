@@ -39,6 +39,23 @@ Ext.define("Reason.view.widgets.PlotWindow", {
     width: '100%',
     height: '100%',
     closable: true,
+    refs: [
+        { ref: 'field',
+          selector: '#field'
+        }, {
+          ref: 'ncont',
+          selector: '#ncont',
+        }, {
+          ref: 'logit',
+          selector: '#logit'
+        }, {
+          ref: 'vectorSkip',
+          selector: '#skip'
+        }, {
+          ref: 'contourField',
+          selector: '#contourfield',
+        },
+    ],
 
     items: [ 
         { xtype:'image',
@@ -57,8 +74,8 @@ Ext.define("Reason.view.widgets.PlotWindow", {
             style: 'border: 1px solid #000000;',
             x: 510,
             y: 10,
-            width: 28,
-            height: 398,
+            width: 30,
+            height: 400,
         }, {
             xtype: 'panel',
             id: 'ticks',
@@ -79,6 +96,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
         },{
             xtype: 'combo',
             text: 'Field',
+            id: 'fieldSelector',
             x: 100,
             y: 435,
             width: 400,
@@ -151,14 +169,14 @@ Ext.define("Reason.view.widgets.PlotWindow", {
         {
             xtype: 'button',
             text: 'Zoom In 10x',
-            id: "zoom10x",
+            id: "zoomin10x",
             x: 10,
             y: 160,
             width: 80,
         },{
             xtype: 'button',
             text: 'Zoom In 2x',
-            id: "zoom2x",
+            id: "zoomin2x",
             x: 10,
             y: 185,
             width: 80,
@@ -179,6 +197,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
         },{
             xtype: 'button',
             text: 'Upload Image',
+            id: 'uploadimage',
             x: 10,
             y: 285,
             width: 80,
@@ -187,6 +206,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
         },{
             xtype: 'button',
             text: 'Pannable Map',
+            id: 'pannablemap',
             x: 10,
             y: 335,
             width: 80,
@@ -236,6 +256,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                        y: 20,
                        width : 80,
                        xtype: 'combo',
+                       id: 'transform',
                        editable: false,
                        triggerAction: 'all',
                        validateOnBlur: false,
@@ -254,6 +275,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                        y: 60,
                        width : 140,
                        xtype: 'combo',
+                       id: 'colormap',
                        editable: false,
                        triggerAction: 'all',
                        validateOnBlur: false,
@@ -297,7 +319,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                        width : 160,
                        xtype: 'combo',
                        editable: false,
-                       id: 'field',
+                       id: 'contourfield',
                        triggerAction: 'all',
                        validateOnBlur: false,
                        value: '',
@@ -337,6 +359,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                        y: 180,
                        width: 80,
                        xtype: 'button',
+                       id: 'contourapply',
                        text: 'Apply',
                      }
                   ]
@@ -370,6 +393,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                        y: 180,
                        width: 80,
                        xtype: 'button',
+                       id: 'vectorsapply',
                        text: 'Apply',
                      }
                   ]

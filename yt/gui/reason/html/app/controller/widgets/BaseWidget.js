@@ -31,6 +31,7 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
     supportsDataObjects: false,
     templateManager: null,
     templates: {},
+    executionTriggers: [],
 
     constructor: function() {
         this.templateManager = Ext.create(
@@ -40,16 +41,33 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         this.callParent(arguments);
     },
 
-    execute: function(tpl) {
-        tpl.apply(this);
+    getExecuteFunction: function(ww, templateName) {
+        var tpl = new Ext.XTemplate(
+            this.templateManager.getTemplates()[templateName]);
+        var args = {};
+        function ev() {
+            Ext.each(arguments, function(v, i) {
+                args["a" + i] = arguments[i];
+            });
+            args['widget'] = ww;
+            yt_rpc.ExtDirectREPL.execute({
+                code: tpl.apply(args),
+                hide: true}, Ext.emptyFn);
+        };
+        return ev;
     },
 
-    prepHandler: function(fn, en, scope) {
-        var conf = {};
-        if (en == null) { en = 'click'; }
-        if (scope == null) { scope = this; }
-        examine = {en:en, scope: scope};
-        conf[en] = { fn: fn, scope: scope };
-        return conf
+    applyExecuteHandlers: function(ww) {
+        var conf;
+        function ef(id, ename, tpl) {
+            conf = {}
+            conf[ename] = this.getExecuteFunction(ww, tpl);
+            console.log("Adding " + ename + " " + id);
+            ww.query(id)[0].on(conf);
+        };
+        Ext.each(this.executionTriggers, function(trigger) {
+            ef.call(this, trigger[0], trigger[1], trigger[2]);
+        }, this);
     },
+
 });
