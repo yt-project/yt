@@ -40,21 +40,11 @@ Ext.define("Reason.view.widgets.PlotWindow", {
     height: '100%',
     closable: true,
     refs: [
-        { ref: 'field',
-          selector: '#field'
-        }, {
-          ref: 'ncont',
-          selector: '#ncont',
-        }, {
-          ref: 'logit',
-          selector: '#logit'
-        }, {
-          ref: 'vectorSkip',
-          selector: '#skip'
-        }, {
-          ref: 'contourField',
-          selector: '#contourfield',
-        },
+        { ref: 'field', selector: '#field' },
+        { ref: 'ncont', selector: '#ncont' },
+        { ref: 'logit', selector: '#logit' },
+        { ref: 'vectorSkip', selector: '#skip' },
+        { ref: 'contourField', selector: '#contourfield' },
     ],
 
     items: [ 

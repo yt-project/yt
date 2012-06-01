@@ -128,27 +128,30 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             var widget = Ext.create(this.getName())
             var ts = widget.templateManager.applyObject(obj);
             function makeProj(b, e) {
-                var axis = Ext.get("axis").getValue();
-                var field = Ext.get("field").getValue();
-                var weight = Ext.get("weightField").getValue();
-                var onmax = Ext.get("max_dens").getValue();
                 reason.fireEvent("disableinput");
+                examine = win;
                 yt_rpc.ExtDirectREPL.create_proj({
                         pfname: obj.varname,
-                        axis: axis, field: field, weight: weight,
-                        onmax: onmax},
-                      Ext.emptyFn);
-                Ext.WindowManager.getActive().close();
+                        axis: win.query("#axis")[0].getValue(),
+                        field: win.query("#field")[0].getValue(),
+                        weight: win.query("#weightField")[0].getValue(),
+                        onmax: win.query("#maxDens")[0].getValue(),
+                }, function() { examine = arguments; });
+                win.destroy();
             }
             win = Ext.widget("plotwindowcreator", {title:ts.pwt, obj:obj});
             win.query("#weightField")[0].store = 
                 ['None'].concat(obj.field_list);
             win.query("#field")[0].store = obj.field_list;
-            /*win.show();*/
+            win.query("#create")[0].on('click', makeProj);
+            win.query("#cancel")[0].on('click', function(){win.destroy;});
+            win.show();
+            /*
             var ww = Ext.widget("plotwindow");
             examine = ww;
             widget.applyExecuteHandlers(ww);
             Ext.ComponentQuery.query("viewport > #center-panel")[0].add(ww);
+            */
         }
     },
 });

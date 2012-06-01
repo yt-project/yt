@@ -40,7 +40,7 @@ Ext.define("Reason.view.widgets.PlotWindowCreator", {
     draggable: false,
     border: false,
     title: "You shouldn't see this.",
-    
+
     items: [{ xtype: 'form',
               labelWidth:80,
               frame:true,
@@ -56,7 +56,7 @@ Ext.define("Reason.view.widgets.PlotWindowCreator", {
               },{
                   xtype:'checkbox',
                   fieldLabel: 'Center on Max',
-                  id: 'max_dens',
+                  id: 'maxDens',
                   width: 90,
                   allowBlank:false,
               },{
