@@ -495,7 +495,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         self._sorted = {}
 
     def get_data(self, fields=None, in_grids=False):
-        if self._grids == None:
+        if self._grids is None:
             self._get_list_of_grids()
         points = []
         if not fields:
@@ -3291,6 +3291,40 @@ class AMRGridCollectionBase(AMR3DData):
             k[grid.child_indices] = False
         pointI = na.where(k == True)
         return pointI
+
+class AMRMaxLevelCollection(AMR3DData):
+    _type_name = "grid_collection_max_level"
+    _con_args = ("center", "max_level")
+    def __init__(self, center, max_level, fields = None,
+                 pf = None, **kwargs):
+        """
+        By selecting an arbitrary *max_level*, we can act on those grids.
+        Child cells are masked when the level of the grid is below the max
+        level.
+        """
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        self.max_level = max_level
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        if self._grids is not None: return
+        gi = (self.pf.h.grid_levels <= self.max_level)[:,0]
+        self._grids = self.pf.h.grids[gi]
+
+    def _is_fully_enclosed(self, grid):
+        return True
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
+
+    def _get_point_indices(self, grid, use_child_mask=True):
+        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        if use_child_mask and grid.Level < self.max_level:
+            k[grid.child_indices] = False
+        pointI = na.where(k == True)
+        return pointI
+
 
 class AMRSphereBase(AMR3DData):
     """
