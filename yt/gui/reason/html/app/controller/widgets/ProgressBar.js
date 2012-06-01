@@ -23,29 +23,39 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+Ext.define("Reason.controller.widgets.ProgressBar", {
+    extend: 'Reason.controller.widgets.BaseWidget',
+    requires: [],
 
+    templates: {
 
-var WidgetProgressBar = function(python_varname, widget_data) {
-    this.id = 'pbar_top';
+    },
 
-    Ext.MessageBox.show({
-        title: 'yt is working ...',
-        msg: widget_data.title,
-        progressText: 'Progress',
-        width: 300,
-        progress: true,
-        closable: false,
-    });
+    createView: function() {
+        Ext.MessageBox.show({
+            title: 'yt is working ...',
+            msg: this.payload['data'].title,
+            progressText: 'Progress',
+            width: 300,
+            progress: true,
+            closable: false,
+        });
+    },
 
-    this.accept_results = function(payload) {
+    applyPayload: function(payload) {
         var i = payload['value'];
         if (i == -1) {
             Ext.MessageBox.hide();
         } else {
             Ext.MessageBox.updateProgress(i, Math.round(100*i)+'% completed');
         }
-    }
+    },
 
-}
+    statics: {
+        widgetName: "progressbar",
+        supportsDataObjects: false,
+        supportsParameterFiles: false,
+        displayName: 'Do not use',
+    },
 
-widget_types['progressbar'] = WidgetProgressBar;
+});

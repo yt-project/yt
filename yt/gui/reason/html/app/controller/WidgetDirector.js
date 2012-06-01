@@ -27,6 +27,7 @@ Ext.define('Reason.controller.WidgetDirector', {
     extend: 'Ext.app.Controller',
     requires: ["Reason.controller.widgets.SampleWidget",
                "Reason.controller.widgets.PlotWindow",
+               "Reason.controller.widgets.ProgressBar",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
 
