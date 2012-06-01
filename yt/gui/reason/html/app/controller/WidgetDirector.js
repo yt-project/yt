@@ -38,6 +38,8 @@ Ext.define('Reason.controller.WidgetDirector', {
         this.application.addListener({
             createwidget: {fn: this.createWidget, scope: this},
             showwidgets: {fn: this.showWidgetMenu, scope: this},
+            payloadwidget: {fn: this.newWidgetCreated, scope: this},
+            payloadwidget_payload: {fn: this.sendPayload, scope: this},
         });
         this.callParent(arguments);
     },
@@ -57,7 +59,6 @@ Ext.define('Reason.controller.WidgetDirector', {
     createWidget: function(b, e) {
         var w = b.widget;
         console.log("Asked to create " + b.widget.widgetName);
-        var store = this.getWidgetInstancesStore();
         b.widget.preCreation(b.dataObj);
     },
 
@@ -85,6 +86,46 @@ Ext.define('Reason.controller.WidgetDirector', {
             });
         }, this);
         contextMenu.showAt(e.getXY());
+    },
+
+    newWidgetCreated: function(payload) {
+        /* We have the following fields:
+                type             ('widget')
+                widget_type
+                varname
+                data             (has subfields)
+
+           We now obtain our class, create that with the factory, and we add
+           the resultant class to our store.
+        */
+        var resultId = this.getWidgetTypesStore().find(
+            'widgetname', payload['widget_type']);
+        if (resultId == -1) {
+            Ext.Error.raise('Did not recognize widget type "' +
+                            payload['widget_type'] + '".');
+        }
+        var widgetInfo = this.getWidgetTypesStore().getAt(resultId).data;
+        /* The widget adds its view to the viewport. */
+        var newWidget = Ext.create(widgetInfo['widgetclass'].getName(),
+                            {payload: payload});
+        this.getWidgetInstancesStore().add({
+            widgetid: payload['varname'],
+            widgettype: widgetInfo.widgetname,
+            widget: newWidget
+        });
+        newWidget.createView();
+    },
+
+    sendPayload: function(payload) {
+        var resultId = this.getWidgetInstancesStore().find(
+            'widgetid', payload['widget_id']);
+        examine = payload;
+        if (resultId == -1) {
+            Ext.Error.raise('Could not find widget "' +
+                            payload['widget_id'] + '".');
+        }
+        var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
+        widgetInfo['widget'].applyPayload(payload);
     },
 
 });

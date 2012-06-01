@@ -39,13 +39,6 @@ Ext.define("Reason.view.widgets.PlotWindow", {
     width: '100%',
     height: '100%',
     closable: true,
-    refs: [
-        { ref: 'field', selector: '#field' },
-        { ref: 'ncont', selector: '#ncont' },
-        { ref: 'logit', selector: '#logit' },
-        { ref: 'vectorSkip', selector: '#skip' },
-        { ref: 'contourField', selector: '#contourfield' },
-    ],
 
     items: [ 
         { xtype:'image',
@@ -77,7 +70,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
             items : [],
             border: false,
         }, {   xtype: 'multislider',
-            id: 'slider',
+            id: 'zoomSlider',
             minValue: 0,
             maxValue: 100,
             increment: 0.1,
@@ -216,7 +209,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                 {
                   xtype: 'panel',
                   title: 'Plot MetaData',
-                  id: 'metadata',
+                  id: 'metadataString',
                   style: {fontFamily: '"Inconsolata", monospace'},
                   html: 'Welcome to the Plot Window.',
                   height: 200,

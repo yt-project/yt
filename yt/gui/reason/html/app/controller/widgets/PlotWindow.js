@@ -71,7 +71,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     ],
 
     executionTriggers: [
-        ['#slider', 'changecomplete', 'scrollZoom'],
+        ['#zoomSlider', 'changecomplete', 'scrollZoom'],
         ['#fieldSelector', 'select', 'fieldChange'],
         ['#singleuparrow', 'click', 'singleUpArrow'],
         ['#singlerightarrow', 'click', 'singleRightArrow'],
@@ -91,11 +91,24 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         ['#vectorsapply', 'click', 'adjustVectors'],
     ],
 
-    applyPayload: function(payload, instance) {
-        this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
-        this.zoom_scroll.setValue(0, payload['zoom'], true);
-        this.metadata_panel.update(payload['metadata_string']);
-        metadata_string = payload['metadata_string'];
+    refs: [
+        { ref: 'colorbar', selector: '#colorbar'},
+        { ref: 'image', selector: '#image_panel'},
+        { ref: 'fieldSelector', selector: '#fieldSelector'},
+        { ref: 'transform', selector: '#transform'},
+        { ref: 'contourField', selector: '#contourfield'},
+        { ref: 'zoomSlider', selector: '#zoomSlider'},
+        { ref: 'metadataString', selector: '#metadataString'},
+        { ref: 'ticks', selector: '#ticks'},
+    ],
+
+    applyPayload: function(payload) {
+        examine = {tt:this, pp:payload};
+        this.getImage().getEl("img").dom.src = 
+            "data:image/png;base64," + payload['image_data'];
+        this.getZoomSlider().setValue(0, payload['zoom'], true);
+        this.getMetadataString().update(payload['metadata_string']);
+        var ticks = this.getTicks();
         ticks.removeAll();
         Ext.each(payload['ticks'], function(tick, index) {
             ticks.add({xtype:'panel',
@@ -112,14 +125,31 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                        x:12, y: 4 + tick[0]});
         });
         if (payload['colorbar_image'] != null) {
-            colorbar.el.dom.src = "data:image/png;base64," +
-                payload['colorbar_image'];
+            this.getColorbar().getEl("img").dom.src =
+                "data:image/png;base64," + payload['colorbar_image'];
         }
         ticks.doLayout();
     },
 
+    createView: function() {
+        var wd = this.payload['data'];
+        this.plotWindowView = Ext.widget("plotwindow",{
+            varname : this.payload['varname'],
+            title: wd['title'],
+        });
+        this.getColorbar().src = "data:image/png;base64," + wd['colorbar'];
+        this.getFieldSelector().store = wd['fields'];
+        this.getFieldSelector().value = wd['initial_field'];
+        this.getTransform().value = wd['initial_transform'];
+        this.getContourField().store = wd['fields'];
+        this.getContourField().value = wd['initial_field'];
+        this.applyExecuteHandlers(this.plotWindowView);
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            this.plotWindowView);
+    },
+
     statics: {
-        widgetName: 'plotwindow',
+        widgetName: 'plot_window',
         supportsDataObjects: false,
         supportsParameterFiles: true,
         displayName: 'Do not use',
@@ -129,7 +159,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             var ts = widget.templateManager.applyObject(obj);
             function makeProj(b, e) {
                 reason.fireEvent("disableinput");
-                examine = win;
                 yt_rpc.ExtDirectREPL.create_proj({
                         pfname: obj.varname,
                         axis: win.query("#axis")[0].getValue(),
@@ -146,12 +175,10 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             win.query("#create")[0].on('click', makeProj);
             win.query("#cancel")[0].on('click', function(){win.destroy;});
             win.show();
-            /*
-            var ww = Ext.widget("plotwindow");
-            examine = ww;
-            widget.applyExecuteHandlers(ww);
-            Ext.ComponentQuery.query("viewport > #center-panel")[0].add(ww);
-            */
-        }
+            /* Note that in this case, our instance of 'widget', which is this
+               class, is not long-lived.  It dies after the window is
+               destroyed. */
+        },
+
     },
 });

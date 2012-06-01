@@ -66,6 +66,7 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             ww.query(id)[0].on(conf);
         };
         Ext.each(this.executionTriggers, function(trigger) {
+            /*console.log(trigger[0] + " " + trigger[1] + " " + trigger[2]);*/
             ef.call(this, trigger[0], trigger[1], trigger[2]);
         }, this);
     },

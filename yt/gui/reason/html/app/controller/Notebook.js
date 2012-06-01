@@ -108,11 +108,6 @@ Ext.define('Reason.controller.Notebook', {
         this.getInputLine().setReadOnly(false);
         console.log("Calling FileList");
         var application = this.application;
-        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
-            function(f, a) {
-                if (f == null) { alert("Error!"); return; }
-                application.fireEvent("newdataobjects", f);
-        });
     },
 
     cellExecuted: function(result) {

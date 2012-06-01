@@ -45,11 +45,23 @@ Ext.define('Reason.controller.PayloadDirector', {
         this.heartbeat = this.taskRunner.start(
             {run: this.heartbeatCall,
              interval: 250});
+        this.heartbeat = this.taskRunner.start(
+            {run: this.dataObjectsCall,
+             interval: 5000});
         this.callParent(arguments);
     },
     handlePayload: function(payload) {
         this.application.fireEvent('payload' + payload['type'], payload);
     },
+
+    dataObjectsCall: function() {
+        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
+            function(f, a) {
+                if (f == null) { alert("Error!"); return; }
+                reason.fireEvent("newdataobjects", f);
+        });
+    },
+
     heartbeatCall: function() {
         if (heartbeatRequest == true) return;
         heartbeatRequest = true;
