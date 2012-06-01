@@ -822,7 +822,7 @@ class ExtProgressBar(object):
         self.payload_handler.add_payload(
             {'type': 'widget',
              'widget_type': 'progressbar',
-             'varname': None,
+             'varname': 'pbar_top',
              'data': {'title':title}
             })
 
