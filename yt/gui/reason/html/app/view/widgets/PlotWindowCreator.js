@@ -47,7 +47,7 @@ Ext.define("Reason.view.widgets.PlotWindowCreator", {
               items: [{
                   xtype:'combo',
                   fieldLabel: 'Axis',
-                  id: 'axis',
+                  itemId: 'axis',
                   store:['X','Y','Z'],
                   width: 230,
                   allowBlank:false,
@@ -56,13 +56,13 @@ Ext.define("Reason.view.widgets.PlotWindowCreator", {
               },{
                   xtype:'checkbox',
                   fieldLabel: 'Center on Max',
-                  id: 'maxDens',
+                  itemId: 'maxDens',
                   width: 90,
                   allowBlank:false,
               },{
                   xtype:'combo',
                   fieldLabel: 'Field',
-                  id: 'field',
+                  itemId: 'field',
                   store: [],
                   width: 230,
                   allowBlank:false,
@@ -80,9 +80,9 @@ Ext.define("Reason.view.widgets.PlotWindowCreator", {
               }],
               buttons: [
                   {
-                      text: 'Project', id: 'create',
+                      text: 'Project', itemId: 'create',
                   },{
-                      text: 'Cancel', id: 'cancel',
+                      text: 'Cancel', itemId: 'cancel',
                   }
               ]
     }],

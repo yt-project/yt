@@ -91,7 +91,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         ['#vectorsapply', 'click', 'adjustVectors'],
     ],
 
-    refs: [
+    viewRefs: [
         { ref: 'colorbar', selector: '#colorbar'},
         { ref: 'image', selector: '#image_panel'},
         { ref: 'fieldSelector', selector: '#fieldSelector'},
@@ -103,7 +103,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     ],
 
     applyPayload: function(payload) {
-        examine = {tt:this, pp:payload};
         this.getImage().getEl("img").dom.src = 
             "data:image/png;base64," + payload['image_data'];
         this.getZoomSlider().setValue(0, payload['zoom'], true);
@@ -137,6 +136,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             varname : this.payload['varname'],
             title: wd['title'],
         });
+        var newRefs = this.createMyRefs(this.plotWindowView.id);
         this.getColorbar().src = "data:image/png;base64," + wd['colorbar'];
         this.getFieldSelector().store = wd['fields'];
         this.getFieldSelector().value = wd['initial_field'];
@@ -154,7 +154,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         supportsParameterFiles: true,
         displayName: 'Do not use',
         preCreation: function(obj) {
-            examine = this;
             var widget = Ext.create(this.getName())
             var ts = widget.templateManager.applyObject(obj);
             function makeProj(b, e) {

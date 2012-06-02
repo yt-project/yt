@@ -54,7 +54,7 @@ Ext.define('Reason.controller.PayloadDirector', {
         this.callParent(arguments);
     },
     handlePayload: function(payload) {
-        if (this.payloadGrid) {
+        if ((this.payloadGrid) && (payload['type'] != 'logentry')) {
             var wv = payload['varname'];
             if (payload['type'] == 'widget_payload') {
                 wv = payload['widget_id'];
@@ -71,7 +71,7 @@ Ext.define('Reason.controller.PayloadDirector', {
     dataObjectsCall: function() {
         yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
             function(f, a) {
-                if (f == null) { alert("Error!"); return; }
+                if (f == null) { return; }
                 reason.fireEvent("newdataobjects", f);
         });
     },

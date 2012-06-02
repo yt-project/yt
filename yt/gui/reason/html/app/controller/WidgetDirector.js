@@ -128,7 +128,10 @@ Ext.define('Reason.controller.WidgetDirector', {
             Ext.Error.raise('Could not find widget "' +
                             payload['widget_id'] + '".');
         }
+        console.log("Directing payload for " + payload['widget_id'] +
+                    " to resultId " + resultId);
         var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
+        examine = widgetInfo;
         widgetInfo['widget'].applyPayload(payload);
     },
 

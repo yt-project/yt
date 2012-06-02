@@ -71,4 +71,17 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         }, this);
     },
 
+    createMyRefs: function(varname) {
+        var refs = Array(this.viewRefs.length);
+        var tpl = new Ext.XTemplate("#{varname} {selector}");
+        Ext.each(this.viewRefs, function(v, i, a) {
+            refs[i] = {ref: v['ref'],
+                       selector: tpl.apply({varname:varname,
+                                            selector: v['selector']})
+                      };
+        });
+        this.ref(refs);
+        return refs;
+    },
+
 });
