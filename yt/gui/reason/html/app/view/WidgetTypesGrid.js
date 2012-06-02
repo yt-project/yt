@@ -1,5 +1,5 @@
 /**********************************************************************
-Main Menu in Reason
+Widget Types Grid for Reason
 
 Author: Cameron Hummels <chummels@gmail.com>
 Affiliation: Columbia
@@ -29,31 +29,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.view.MainMenu', {
-    extend: 'Ext.toolbar.Toolbar',
-    alias: 'widget.mainmenu',
-    items: [
-      {
-        text: 'Reason Menu',
-        plain: true,
-        menu: [
-               {xtype: 'menuitem', text: 'Open File', id: 'openfile'},
-               {xtype: 'menuitem', text: 'Open Directory', disabled: true},
-               {xtype: 'menuseparator'},
-               {xtype: 'menuitem', text: 'Save Script',
-                id: 'savescript'},
-               {xtype: 'menuitem', text: 'Download Script',
-                id: 'downloadscript'},
-               {xtype: 'menuitem', text: 'Pastebin Script',
-                id: 'pastebinscript'},
-               {xtype: 'menuseparator'},
-               {xtype: 'menuitem', text: 'Enable Debug', id: 'enabledebug'},
-               {xtype: 'menuseparator'},
-               {xtype:'menuitem', text: 'yt Chat', id: 'ytchat'},
-               {xtype: 'menuseparator'},
-               {xtype:'menuitem', text: 'Quit', id: 'quit'},
-            ],
-      },
+Ext.define('Reason.view.WidgetTypesGrid', {
+    extend: 'Ext.grid.Panel',
+    alias: 'widget.widgettypesgrid',
+    title: 'Known Widget Types',
+    store: 'WidgetTypes',
+    columns: [ {header: 'Short Name', dataIndex:'widgetname'},
+               {header: 'Display Name', dataIndex: 'displayname'},
+               {header: 'PFs', dataIndex: 'pfs'},
+               {header: 'DOs', dataIndex: 'objs'}
     ],
 });
 

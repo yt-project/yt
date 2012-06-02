@@ -42,6 +42,7 @@ Ext.define('Reason.controller.MenuActions', {
             '#pastebinscript': { click: this.pastebinScript },
             '#ytchat': {click: this.openIRCChannel },
             '#quit': {click: this.quitReason },
+            '#enabledebug': {click: this.enableDebug },
         });
         this.callParent(arguments);
     },
@@ -102,6 +103,10 @@ Ext.define('Reason.controller.MenuActions', {
         yt_rpc.ExtDirectREPL.shutdown({}, function(f,a) { 
         Ext.Msg.alert("Goodbye!", "Goodbye from Reason!", function() {
         window.open("http://www.google.com/", "_top");});});
+    },
+
+    enableDebug: function() {
+        this.application.fireEvent("enabledebug");
     },
 });
 

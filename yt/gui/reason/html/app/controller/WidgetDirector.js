@@ -111,6 +111,7 @@ Ext.define('Reason.controller.WidgetDirector', {
         /* The widget adds its view to the viewport. */
         var newWidget = Ext.create(widgetInfo['widgetclass'].getName(),
                             {payload: payload});
+        console.log("Adding widget payload with varname " + payload['varname']);
         this.getWidgetInstancesStore().add({
             widgetid: payload['varname'],
             widgettype: widgetInfo.widgetname,
@@ -132,6 +133,7 @@ Ext.define('Reason.controller.WidgetDirector', {
     },
 
     enableDebug: function() {
+        if(this.instanceView) {return;}
         this.instanceView = Ext.widget('widgetinstancesgrid');
         this.typeView = Ext.widget('widgettypesgrid');
         Ext.ComponentQuery.query("viewport > #center-panel")[0].add(

@@ -58,12 +58,12 @@ Ext.define('Reason.controller.DataObjects', {
     },
 
     refreshDataObjects: function(objs) {
-        console.log("Refreshing data objects");
+        /*console.log("Refreshing data objects");*/
         var root = this.getDataObjectsStore().getRootNode();
         root.removeAll();
         var pf;
         Ext.each(objs, function(o, i, os) {
-            console.log("Appending " + o['name']);
+            /*console.log("Appending " + o['name']);*/
             pf = root.appendChild({
                 name: o.name,
                 type: o.type,
@@ -75,7 +75,7 @@ Ext.define('Reason.controller.DataObjects', {
                 iconCls: 'pf_icon'
             });
             Ext.each(o['children'], function(c, ci, cs) {
-                console.log("    Appending " + c['name']);
+                /*console.log("    Appending " + c['name']);*/
                 pf.appendChild({name: o.name,
                                 type: o.type,
                                 filename: o.filename,

@@ -33,11 +33,14 @@ var heartbeatRequest = false;
 
 Ext.define('Reason.controller.PayloadDirector', {
     extend: 'Ext.app.Controller',
+    stores: ['Payloads'],
+    views: ['PayloadGrid'],
 
     init: function() {
         this.application.addListener({
             payloadreceived: {fn: this.handlePayload, scope: this},
             stopheartbeat: {fn: this.stopHeartbeat, scope: this},
+            enabledebug: {fn: this.enableDebug, scope: this},
         })
         /* We also use this as our heartbeat */
         this.taskRunner = new Ext.util.TaskRunner();
@@ -51,6 +54,17 @@ Ext.define('Reason.controller.PayloadDirector', {
         this.callParent(arguments);
     },
     handlePayload: function(payload) {
+        if (this.payloadGrid) {
+            var wv = payload['varname'];
+            if (payload['type'] == 'widget_payload') {
+                wv = payload['widget_id'];
+            }
+            this.getPayloadsStore().add({
+                payloadtype: payload['type'],
+                widgettype: payload['widget_type'],
+                varname: wv,
+            });
+        }
         this.application.fireEvent('payload' + payload['type'], payload);
     },
 
@@ -81,5 +95,11 @@ Ext.define('Reason.controller.PayloadDirector', {
     stopHeartbeat: function() {
         this.taskRunner.stopAll();
     },
+
+    enableDebug: function() {
+        this.payloadGrid = Ext.widget("payloadgrid");
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            this.payloadGrid);
+    }
 });
 
