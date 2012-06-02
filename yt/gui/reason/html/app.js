@@ -31,7 +31,7 @@ License:
 
 Ext.Loader.setConfig({enabled:true});
 
-var reason, examine;
+var reason, rdebug, examine;
 
 Ext.application({
     requires: ['Ext.container.Viewport',
@@ -45,6 +45,7 @@ Ext.application({
 
     launch: function() {
         reason = this;
+        rdebug = this.getController("Debugger");
         Ext.create('Ext.container.Viewport', {
             layout: 'border',
             items: [
@@ -100,6 +101,7 @@ Ext.application({
         'PayloadDirector',
         'WidgetDirector',
         'MenuActions',
+        'Debugger',
     ],
 
 });

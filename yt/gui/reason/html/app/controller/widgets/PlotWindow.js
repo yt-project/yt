@@ -62,12 +62,15 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                          ' {widget.getLogit().getValue():capitalize})',
         adjustVectors:   '{widget.varname}.set_vector_info(' +
                          '{widget.getVectorSkip()})',
+        recenterImage:   '{widget.varname}.image_recenter(' +
+                         '{x}, {y}, {w}, {h})',
     },
 
     widgetTriggers: [
-        ['upload_image'],
-        ['pannable_map'],
-        ['clickanddrag'],
+        ['uploadimage', 'click', 'uploadImage'],
+        ['pannablemap', 'click', 'createPannableMap'],
+        ['imagepanel', 'click', 'recenterImage'],
+        ['imagepanel', 'afterrender', 'setupDragImage'],
     ],
 
     executionTriggers: [
@@ -178,6 +181,44 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                class, is not long-lived.  It dies after the window is
                destroyed. */
         },
+
+    },
+
+    uploadImage: function() {
+        var imageData = this.getImage().dom.src;
+        var mds = this.getMetadataString();
+        yt_rpc.ExtDirectREPL.upload_image(
+            {image_data:imageData, caption:metadata_string},
+            function(rv) {
+                var alert_text;
+                if(rv['uploaded'] == false) {
+                    alert_text = "Failure uploading image!";
+                } else {
+                    alert_text = "Uploaded to " +
+                            rv['upload']['links']['imgur_page'];
+                }
+                Ext.Msg.alert('imgur.com', alert_text);
+                reason.fireEvent("logentry", alert_text);
+            });
+    },
+
+    createPannableMap: function() {
+        alert("Not implemented!");
+    },
+
+    recenterImage: function(e) {
+        if (e.ctrlKey == false) return;
+        tpl = this.templateManager.getTemplates()["recenter"]
+        var args = {widget: this.plotWindowView,
+                    x: xy[0], y: xy[1],
+                    w: this.getImage().dom.width,
+                    w: this.getImage().dom.height};
+        yt_rpc.ExtDirectREPL.execute(
+            {code:tpl.apply(args), hide:true},
+            Ext.emptyFn);
+    },
+
+    setupDragImage: function() {
 
     },
 });

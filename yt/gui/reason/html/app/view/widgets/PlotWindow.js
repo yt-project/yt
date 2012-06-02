@@ -196,14 +196,14 @@ Ext.define("Reason.view.widgets.PlotWindow", {
             tooltip: "Open a pannable map in a new tab",
         },{
             xtype: 'panel',
-            layout: 'vbox',
             itemId: 'rhs_panel',
-            width: 250,
+            width: 300,
             height: 460,
-            x: 690, y: 10,
-            layoutConfig: {
-                align: 'stretch',
-                pack: 'start',
+            x: 590, y: 10,
+            layout: {
+                type: 'vbox',
+                align:'stretch',
+                pack:'start',
             },
             items: [
                 {
@@ -216,7 +216,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
                 }, {
                   xtype: 'tabpanel',
                   itemId: 'editor_panel',
-                  flex: 1,
+                  flex: 1.0,
                   activeTab: 0,
                   items: [
                 {
