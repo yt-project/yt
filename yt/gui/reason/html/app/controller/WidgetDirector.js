@@ -30,6 +30,7 @@ Ext.define('Reason.controller.WidgetDirector', {
                "Reason.controller.widgets.ProgressBar",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
+    views: ['WidgetTypesGrid', 'WidgetInstancesGrid'],
 
     init: function() {
         Ext.iterate(Reason.controller.widgets, function(i, w, ws) {
@@ -41,6 +42,7 @@ Ext.define('Reason.controller.WidgetDirector', {
             showwidgets: {fn: this.showWidgetMenu, scope: this},
             payloadwidget: {fn: this.newWidgetCreated, scope: this},
             payloadwidget_payload: {fn: this.sendPayload, scope: this},
+            enabledebug: {fn: this.enableDebug, scope: this},
         });
         this.callParent(arguments);
     },
@@ -127,6 +129,15 @@ Ext.define('Reason.controller.WidgetDirector', {
         }
         var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
         widgetInfo['widget'].applyPayload(payload);
+    },
+
+    enableDebug: function() {
+        this.instanceView = Ext.widget('widgetinstancesgrid');
+        this.typeView = Ext.widget('widgettypesgrid');
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            this.instanceView);
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            this.typeView);
     },
 
 });
