@@ -2543,7 +2543,18 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.
+        fly with a set of field_cuts.  It is very useful for applying 
+        conditions to the fields in your data object.
+        
+        Examples
+        --------
+        To find the total mass of gas above 10^6 K in your volume:
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ad = pf.h.all_data()
+        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
+
         """
         return InLineExtractedRegionBase(self, field_cuts)
 
