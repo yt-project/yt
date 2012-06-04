@@ -31,7 +31,7 @@ License:
 
 var heartbeatRequest = false;
 
-Ext.define('Reason.controller.PayloadDirector', {
+Ext.define('Reason.controller.ServerCommunication', {
     extend: 'Ext.app.Controller',
     stores: ['Payloads'],
     views: ['PayloadGrid'],
@@ -53,6 +53,7 @@ Ext.define('Reason.controller.PayloadDirector', {
              interval: 5000});
         this.callParent(arguments);
     },
+
     handlePayload: function(payload) {
         if ((this.payloadGrid) && (payload['type'] != 'logentry')) {
             var wv = payload['varname'];
@@ -100,6 +101,50 @@ Ext.define('Reason.controller.PayloadDirector', {
         this.payloadGrid = Ext.widget("payloadgrid");
         Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
             this.payloadGrid);
-    }
+    },
+
+    execute: function(code, hide, callback) {
+        var fn;
+        if (callback) { fn = callback; }
+        else { fn = this.returnFromRPC; }
+        if (hide == null) { hide = false; }
+        reason.fireEvent("disableinput");
+        yt_rpc.ExtDirectREPL.execute({code: code, hide:hide}, fn);
+    },
+
+    returnFromRPC: function(result, e) {
+        if(!e.status) {
+            var tpl = new Ext.XTemplate(
+                'RPC Error: {message}; {action}, {method}');
+            var trans = e.getTransaction();
+            tpl = tpl.apply({message: e.message,
+                             action: trans.action,
+                             method: trans.method});
+            Ext.Msg.alert("Error", tpl);
+            examine = {result: result, e: e};
+            Ext.Error.raise(tpl);
+        }
+        reason.fireEvent("allowinput");
+    },
+
+    method: function(methodName, args, callback) {
+        var m = yt_rpc.ExtDirectREPL[methodName];
+        if (!m) {
+            var t = "Could not identify method " + methodName;
+            Ext.Msg.alert("Error", t);
+            examine = {result: result, e: e};
+            Ext.Error.raise(t);
+        }
+        var fn;
+        if (callback) { fn = callback; }
+        else {
+            this.application.fireEvent("disableinput");
+            fn = this.returnFromRPC;
+        }
+        m(args, fn);
+    },
+
+    m: function() { return this.method(arguments); }
+
 });
 

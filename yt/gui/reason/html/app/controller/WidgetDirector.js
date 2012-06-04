@@ -28,6 +28,7 @@ Ext.define('Reason.controller.WidgetDirector', {
     requires: ["Reason.controller.widgets.SampleWidget",
                "Reason.controller.widgets.PlotWindow",
                "Reason.controller.widgets.ProgressBar",
+               "Reason.controller.widgets.GridDataViewer",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
     views: ['WidgetTypesGrid', 'WidgetInstancesGrid'],
@@ -126,8 +127,8 @@ Ext.define('Reason.controller.WidgetDirector', {
             Ext.Error.raise('Could not find widget "' +
                             payload['widget_id'] + '".');
         }
-        console.log("Directing payload for " + payload['widget_id'] +
-                    " to resultId " + resultId);
+        /*console.log("Directing payload for " + payload['widget_id'] +
+                    " to resultId " + resultId);*/
         var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
         widgetInfo['widget'].applyPayload(payload);
     },

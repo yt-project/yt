@@ -24,123 +24,53 @@ License:
 ***********************************************************************/
 
 // shim layer with setTimeout fallback
-var WidgetGridDataViewer = function(python_varname, widget_data) {
-    this.id = python_varname;
-    this.widget_data = widget_data;
-    store = new Ext.data.ArrayStore({
-        fields: [
-           {name: 'grid_id', type:'int'},
-           {name: 'level', type:'int'},
-           {name: 'left_edge_x', type: 'float'},
-           {name: 'left_edge_y', type: 'float'},
-           {name: 'left_edge_z', type: 'float'},
-           {name: 'right_edge_x', type: 'float'},
-           {name: 'right_edge_y', type: 'float'},
-           {name: 'right_edge_z', type: 'float'},
-           {name: 'dim_x', type: 'int'},
-           {name: 'dim_y', type: 'int'},
-           {name: 'dim_z', type: 'int'},
-           {name: 'cells', type: 'int'},
-        ]
-    });
-    store.loadData(widget_data['gridvals']);
-    examine = widget_data;
+Ext.define("Reason.controller.widgets.GridDataViewer", {
+    extend: 'Reason.controller.widgets.BaseWidget',
+    requires: ['Reason.view.widgets.GridDataViewer'],
 
-    viewport.get("center-panel").add(
-        {
-            xtype: 'panel',
-            id: "gg_" + python_varname,
-            title: "Grid Data Viewer",
-            iconCls: 'graph',
-            autoScroll: true,
-            layout:'vbox',
-            layoutConfig: {align: 'stretch', pack: 'start'},
-            closable: true,
-            items: [ {
-                       xtype: 'grid',
-                       store: store,
-                       columns: [
-                            {
-                                id: 'grid_id',
-                                header: 'Grid ID',
-                                width: 100,
-                                dataIndex: 'grid_id',
-                                sortable: true,
-                            }, {
-                                id: 'left_edge_x',
-                                header: 'Left Edge x',
-                                width: 100,
-                                dataIndex: 'left_edge_x',
-                                sortable: true,
-                            }, {
-                                id: 'left_edge_y',
-                                header: 'Left Edge y',
-                                width: 100,
-                                dataIndex: 'left_edge_y',
-                                sortable: true,
-                            }, {
-                                id: 'left_edge_z',
-                                header: 'Left Edge z',
-                                width: 100,
-                                dataIndex: 'left_edge_z',
-                                sortable: true,
-                            }, {
-                                id: 'right_edge_x',
-                                header: 'Right Edge x',
-                                width: 100,
-                                dataIndex: 'right_edge_x',
-                                sortable: true,
-                            }, {
-                                id: 'right_edge_y',
-                                header: 'Right Edge y',
-                                width: 100,
-                                dataIndex: 'right_edge_y',
-                                sortable: true,
-                            }, {
-                                id: 'right_edge_z',
-                                header: 'Right Edge z',
-                                width: 100,
-                                dataIndex: 'right_edge_z',
-                                sortable: true,
-                            }, {
-                                id: 'dim_x',
-                                header: 'DimX',
-                                width: 100,
-                                dataIndex: 'dim_x',
-                                sortable: true,
-                            }, {
-                                id: 'dim_y',
-                                header: 'DimY',
-                                width: 100,
-                                dataIndex: 'dim_y',
-                                sortable: true,
-                            }, {
-                                id: 'dim_z',
-                                header: 'DimZ',
-                                width: 100,
-                                dataIndex: 'dim_z',
-                                sortable: true,
-                            }, {
-                                id: 'cells',
-                                header: 'Cells',
-                                width: 100,
-                                dataIndex: 'cells',
-                                sortable: true,
-                            },
-                       ],
-                      flex: 1,
-                      }
-                   ],
+    templates: {
+        title: "Grid Data for {widget.varname}",
+    },
 
-        }
-    );
+    widgetTriggers: [
 
-    viewport.get("center-panel").activate("gg_" + this.id);
-    viewport.doLayout();
-    this.panel = viewport.get("center-panel").get("gg_" + python_varname);
-    this.panel.doLayout();
+    ],
 
-    this.accept_results = function(payload) { }
-}
+    executionTriggers: [
 
-widget_types['grid_data'] = WidgetGridDataViewer;
+    ],
+
+    viewRefs: [
+
+    ],
+
+    applyPayload: function(payload) {
+        return;
+    },
+
+    createView: function() {
+        var wd = this.payload['data'];
+        this.dataStore = Ext.create("Reason.store.widgets.GridData");
+        this.dataStore.loadData(wd['gridvals']);
+        this.gridDataView = Ext.widget("griddataviewer", {
+             store: this.dataStore,
+             title: 'Grid Data for ' + this.payload['varname'],
+        });
+
+        examine = {wd:wd, tt:this};
+
+        this.createMyRefs(this.gridDataView.id);
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            this.gridDataView);
+    },
+
+    statics: {
+        widgetName: "grid_data",
+        displayName: "Grid Data Viewer",
+        supportsDataObjects: false,
+        supportsParameterFiles: true,
+        preCreation: function(obj) {
+            reason.server.method("create_grid_dataview", {pfname:obj.varname});
+        },
+    },
+});

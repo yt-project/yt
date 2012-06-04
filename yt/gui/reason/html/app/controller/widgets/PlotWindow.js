@@ -159,14 +159,14 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         preCreation: function(obj) {
             var widget = Ext.create(this.getName())
             function makeProj(b, e) {
-                reason.fireEvent("disableinput");
-                yt_rpc.ExtDirectREPL.create_proj({
+                reason.server.method('create_proj',
+                    {
                         pfname: obj.varname,
                         axis: win.query("#axis")[0].getValue(),
                         field: win.query("#field")[0].getValue(),
                         weight: win.query("#weightField")[0].getValue(),
                         onmax: win.query("#maxDens")[0].getValue(),
-                }, function() { examine = arguments; });
+                    });
                 win.destroy();
             }
             var title = widget.templateManager.applyObject(obj, 'pwt');

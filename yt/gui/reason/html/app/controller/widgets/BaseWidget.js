@@ -55,9 +55,7 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             args['control'] = control;
             args['widget'] = ww;
             if((isValidFn != null) && (isValidFn(arguments) == false)) {return;}
-            yt_rpc.ExtDirectREPL.execute({
-                code: tpl.apply(args),
-                hide: true}, Ext.emptyFn);
+            reason.server.execute(tpl.apply(args), true);
         };
         return ev;
     },

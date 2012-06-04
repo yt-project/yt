@@ -46,6 +46,7 @@ Ext.application({
     launch: function() {
         reason = this;
         rdebug = this.getController("Debugger");
+        this.server = this.getController("ServerCommunication");
         Ext.create('Ext.container.Viewport', {
             layout: 'border',
             items: [
@@ -101,7 +102,7 @@ Ext.application({
         'Logging',
         'DataObjects',
         'Notebook',
-        'PayloadDirector',
+        'ServerCommunication',
         'WidgetDirector',
         'MenuActions',
         'Debugger',

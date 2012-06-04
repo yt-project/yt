@@ -1,6 +1,12 @@
 /**********************************************************************
-Sample widget class
+Grid data store for Reason
 
+Author: Cameron Hummels <chummels@gmail.com>
+Affiliation: Columbia
+Author: Jeffrey S. Oishi <jsoishi@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Author: Britton Smith <brittonsmith@gmail.com>
+Affiliation: MSU
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
 Homepage: http://yt-project.org/
@@ -23,21 +29,23 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.controller.widgets.SampleWidget', {
-    extend: 'Reason.controller.widgets.BaseWidget',
-
-    statics: {
-        widgetName: 'sample_widget',
-        supportsDataObjects: false,
-        supportsParameterFiles: false,
-        displayName: 'Sample Widget',
-        preCreation: function(obj) {
-            return new this({varname:obj.varname});
-        },
-    },
-
-    applyPayload: function(payload) {
-        return;
-    }
-
+Ext.define('Reason.store.widgets.GridData', {
+    extend: 'Ext.data.Store',
+    id: 'griddata',
+    fields: [
+       {name: 'grid_id', type:'int'},
+       {name: 'level', type:'int'},
+       {name: 'left_edge_x', type: 'float'},
+       {name: 'left_edge_y', type: 'float'},
+       {name: 'left_edge_z', type: 'float'},
+       {name: 'right_edge_x', type: 'float'},
+       {name: 'right_edge_y', type: 'float'},
+       {name: 'right_edge_z', type: 'float'},
+       {name: 'dim_x', type: 'int'},
+       {name: 'dim_y', type: 'int'},
+       {name: 'dim_z', type: 'int'},
+       {name: 'cells', type: 'int'},
+    ],
+    data: [],
 });
+

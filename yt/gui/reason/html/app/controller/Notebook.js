@@ -85,7 +85,7 @@ Ext.define('Reason.controller.Notebook', {
     executeCell: function(line) {
         this.application.fireEvent("blockinput");
         console.log("Asked to execute " + line);
-        yt_rpc.ExtDirectREPL.execute({code:line}, this.cellExecuted);
+        reason.server.execute(line, false);
     },
 
     scrollToBottom: function() {
@@ -110,8 +110,5 @@ Ext.define('Reason.controller.Notebook', {
         var application = this.application;
     },
 
-    cellExecuted: function(result) {
-        console.log("Cell Executed!");
-    },
 });
 

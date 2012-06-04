@@ -65,7 +65,7 @@ Ext.define('Reason.controller.MenuActions', {
         Ext.Msg.prompt("We have important work to do.", "Enter filename.", 
             function(btn, text) {
                 if (btn == 'ok') {
-                    yt_rpc.ExtDirectREPL.save_session(
+                    reason.server.method('save_session',
                         {filename:text}, handleResponse);
                 }
             }
@@ -82,7 +82,7 @@ Ext.define('Reason.controller.MenuActions', {
     },
 
     pastebinScript: function(b, e) {
-        yt_rpc.ExtDirectREPL.paste_session({}, function(f, a) {
+        reason.server('paste_session', {}, function(f, a) {
             if (a.result['status'] == 'SUCCESS') {
                 var alert_text = 'Pasted session to:<br>' + 
                 a.result['site']
@@ -100,7 +100,7 @@ Ext.define('Reason.controller.MenuActions', {
 
     quitReason: function(b, e) {
         this.application.fireEvent("stopheartbeat");
-        yt_rpc.ExtDirectREPL.shutdown({}, function(f,a) { 
+        reason.server('shutdown', {}, function(f, a) {
         Ext.Msg.alert("Goodbye!", "Goodbye from Reason!", function() {
         window.open("http://www.google.com/", "_top");});});
     },
