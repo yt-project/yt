@@ -39,9 +39,13 @@ Ext.define("Reason.templates.TemplateContainer", {
         templates : {},
     },
 
-    applyObject: function(obj) {
+    applyObject: function(obj, tname) {
         var applied = {};
         var tpl;
+        if (tname != null){
+            tpl = new Ext.XTemplate(this.getTemplates()[tname]);
+            return tpl.apply(obj);
+        }
         Ext.iterate(this.getTemplates(), function(k, v, o){
             tpl = new Ext.XTemplate(v);
             applied[k] = tpl.apply(obj);

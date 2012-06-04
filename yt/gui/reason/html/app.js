@@ -73,7 +73,6 @@ Ext.application({
                         type: 'anchor',
                     },
                     items: [
-                        { xtype: 'mainmenu' },
                         { xtype: 'dataobjecttree', },
                     ],
               }, {
@@ -81,6 +80,10 @@ Ext.application({
                 region: 'center',
                 id: 'center-panel',
                 activeTab: 0,
+                dockedItems: [ {
+                    dock: 'top',
+                    xtype: 'mainmenu',
+                } ],
                 items: [
                 { xtype: 'panel',
                   title: 'Welcome!',

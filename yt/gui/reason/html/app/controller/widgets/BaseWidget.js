@@ -46,13 +46,16 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         var tpl = new Ext.XTemplate(
             this.templateManager.getTemplates()[templateName]);
         var args = {};
+        var control = this;
         function ev() {
             console.log("Inside ... " + templateName);
             Ext.each(arguments, function(v, i) {
                 args["a" + i] = arguments[i];
             });
+            args['control'] = control;
             args['widget'] = ww;
             if((isValidFn != null) && (isValidFn(arguments) == false)) {return;}
+            examine = {args: args, code: tpl.apply(args)};
             yt_rpc.ExtDirectREPL.execute({
                 code: tpl.apply(args),
                 hide: true}, Ext.emptyFn);
@@ -70,6 +73,11 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         Ext.each(this.executionTriggers, function(trigger) {
             /*console.log(trigger[0] + " " + trigger[1] + " " + trigger[2], trigger[3]);*/
             ef.call(this, trigger[0], trigger[1], trigger[2], trigger[3]);
+        }, this);
+        Ext.each(this.widgetTriggers, function(trigger) {
+            conf = {}
+            conf[trigger[1]] = this[trigger[2]];
+            ww.query(trigger[0])[0].on(conf);
         }, this);
     },
 

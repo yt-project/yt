@@ -57,19 +57,19 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                          '{widget.varname}._current_field, ' +
                          '"{a1.data[\'field1\']}")',
         adjustContours:  '{widget.varname}.set_contour_info(' +
-                         '"{widget.getContourField().getValue()}",' +
-                         ' {widget.getNcont().getValue()},' +
-                         ' {widget.getLogit().getValue():capitalize})',
+                         '"{[control.getContourField().getValue()]}",' +
+                         ' {[control.getNcont().getValue()]},' +
+                         ' {[control.getLogit().getValue()]:capitalize})',
         adjustVectors:   '{widget.varname}.set_vector_info(' +
-                         '{widget.getVectorSkip()})',
+                         '{[control.getVectorSkip()]})',
         recenterImage:   '{widget.varname}.image_recenter(' +
                          '{x}, {y}, {w}, {h})',
+        dragImage:       '{widget.varname}.pan_rel(({rel_x}, {rel_y}))',
     },
 
     widgetTriggers: [
         ['uploadimage', 'click', 'uploadImage'],
         ['pannablemap', 'click', 'createPannableMap'],
-        ['imagepanel', 'click', 'recenterImage'],
         ['imagepanel', 'afterrender', 'setupDragImage'],
     ],
 
@@ -158,7 +158,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         displayName: 'Do not use',
         preCreation: function(obj) {
             var widget = Ext.create(this.getName())
-            var ts = widget.templateManager.applyObject(obj);
             function makeProj(b, e) {
                 reason.fireEvent("disableinput");
                 yt_rpc.ExtDirectREPL.create_proj({
@@ -170,7 +169,8 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                 }, function() { examine = arguments; });
                 win.destroy();
             }
-            win = Ext.widget("plotwindowcreator", {title:ts.pwt, obj:obj});
+            var title = widget.templateManager.applyObject(obj, 'pwt');
+            win = Ext.widget("plotwindowcreator", {title:title, obj:obj});
             win.query("#weightField")[0].store = 
                 ['None'].concat(obj.field_list);
             win.query("#field")[0].store = obj.field_list;
@@ -206,19 +206,37 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         alert("Not implemented!");
     },
 
-    recenterImage: function(e) {
-        if (e.ctrlKey == false) return;
-        tpl = this.templateManager.getTemplates()["recenter"]
-        var args = {widget: this.plotWindowView,
-                    x: xy[0], y: xy[1],
-                    w: this.getImage().dom.width,
-                    w: this.getImage().dom.height};
-        yt_rpc.ExtDirectREPL.execute(
-            {code:tpl.apply(args), hide:true},
-            Ext.emptyFn);
-    },
-
-    setupDragImage: function() {
-
+    setupDragImage: function(c) {
+        var control = this;
+        var dragStartPos, dragStopPos;
+        c.el.on('click',  function(e) {
+            if (e.ctrlKey == false) return;
+            tpl = control.templateManager.getTemplates()["recenter"]
+            var args = {widget: control.plotWindowView,
+                        x: xy[0], y: xy[1],
+                        w: control.getImage().dom.width,
+                        w: control.getImage().dom.height};
+            yt_rpc.ExtDirectREPL.execute(
+                {code:tpl.apply(args), hide:true},
+                Ext.emptyFn);
+        });
+        c.el.on('mousedown', function(e){
+            dragStartPos = e.getXY();
+        });
+        c.el.on('mouseup', function(e){
+            dragStopPos = e.getXY();
+            deltaX = dragStopPos[0] - c.dragStartPos[0];
+            deltaY = dragStopPos[1] - c.dragStartPos[1];
+            if (((deltaX < -10) || (deltaX > 10)) ||
+                ((deltaY < -10) || (deltaY > 10))) {
+                rel_x = -deltaX / 400;
+                rel_y = -deltaY / 400;
+                tpl = control.templateManager.getTemplates()["recenter"]
+                var args = {widget: control.plotWindowView,
+                            rel_x: rel_x, rel_y: rel_y};
+                yt_rpc.ExtDirectREPL.execute(
+                    {code:tpl.apply(args), hide:true}, Ext.emptyFn()); 
+            }
+        });
     },
 });
