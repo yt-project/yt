@@ -1204,12 +1204,13 @@ class AMRKDTree(HomogenizedVolume):
                     mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
                     arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-                    ta = na.exp(-na.sum(self.image,axis=2))
+                    ta = 1.0 - na.sum(self.image,axis=2)
+                    ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        self.image[:,:,i  ] = self.image[:,:,i  ] + ta*arr2[:,:,i]
+                        self.image[:,:,i  ] = self.image[:,:,i] + ta*arr2[:,:,i]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank,back.owner, self.image.max()))
@@ -1225,7 +1226,9 @@ class AMRKDTree(HomogenizedVolume):
                     mylog.debug('%04i receiving image from %04i'%(self.comm.rank,front.owner))
                     arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-                    ta = na.exp(-na.sum(arr2,axis=2))
+                    #ta = na.exp(-na.sum(arr2,axis=2))
+                    ta = 1.0 - na.sum(arr2, axis=2)
+                    ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
