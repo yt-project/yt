@@ -1019,3 +1019,38 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
             healpix_interface.vec2pix_nest(nside, v0, &ipix)
             #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
             image[j, i] = pix_image[ipix]
+
+def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
+        nimy=1, int nimi=0, int nimj=0, np.float64_t off_theta=0.0, np.float64_t
+        off_phi=0.0):
+    # We now follow figures 4-7 of:
+    # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
+    # ...but all in Cython.
+    cdef np.ndarray[np.float64_t, ndim=3] vp
+    cdef int i, j, k
+    cdef np.float64_t r, phi, theta, px, py
+    cdef np.float64_t pi = 3.1415926
+    cdef np.float64_t fov_rad = fov * pi / 180.0
+    cdef int nx = resolution/nimx
+    cdef int ny = resolution/nimy
+    vp = np.zeros((nx,ny, 3), dtype="float64")
+    for i in range(nx):
+        px = 2.0 * (nimi*nx + i) / (resolution) - 1.0
+        for j in range(ny):
+            py = 2.0 * (nimj*ny + j) / (resolution) - 1.0
+            r = (px*px + py*py)**0.5
+            if r == 0.0:
+                phi = 0.0
+            elif px < 0:
+                phi = pi - asin(py / r)
+            else:
+                phi = asin(py / r)
+            theta = r * fov_rad / 2.0
+            theta += off_theta
+            phi += off_phi
+            vp[i,j,0] = sin(theta) * cos(phi)
+            vp[i,j,1] = sin(theta) * sin(phi)
+            vp[i,j,2] = cos(theta)
+    return vp
+
+

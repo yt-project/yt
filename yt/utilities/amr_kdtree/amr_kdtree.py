@@ -1145,16 +1145,12 @@ class AMRKDTree(HomogenizedVolume):
             return
         self.image = image
 
-        viewpoint = front_center - back_center
         viewpoint = back_center 
         print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
                 if node.brick is not None:
-                    distl = (front_center - node.l_corner).min()
-                    distr = (front_center - node.r_corner).min()
-                    #print distl, distr
                     yield node.brick
 
         mylog.debug('About to enter reduce, my image has a max of %e' %

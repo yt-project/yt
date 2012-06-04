@@ -45,7 +45,7 @@ from yt.utilities.amr_utils import \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, \
     arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
-    pixelize_healpix
+    pixelize_healpix, arr_fisheye_vectors
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -311,27 +311,62 @@ class Camera(ParallelAnalysisInterface):
         if normal_vector is None:
             normal_vector = self.front_center-self.center
         self._setup_normalized_vectors(normal_vector, north_vector)
+
+    def new_image(self):
+        image = na.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        return image
         
-    def get_vector_plane(self, image):
-        # We should move away from pre-generation of vectors like this and into
-        # the usage of on-the-fly generation in the VolumeIntegrator module
-        # We might have a different width and back_center
-        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
-                         self.resolution[0])[:,None]
-        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
-                         self.resolution[1])[None,:]
-        inv_mat = self.inv_mat
-        bc = self.back_center
-        positions = na.zeros((self.resolution[0], self.resolution[1], 3),
-                          dtype='float64', order='C')
-        positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
-        positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
-        positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
-        bounds = (px.min(), px.max(), py.min(), py.max())
-        return (positions, self.box_vectors[2],
-                self.back_center, bounds, image,
-                self.unit_vectors[0],
-                self.unit_vectors[1])
+    def get_sampler_args(self, image):
+        rotp = na.concatenate([self.inv_mat.ravel('F'), self.back_center.ravel()])
+        args = (rotp, self.box_vectors[2], self.back_center,
+                (-self.width[0]/2.0, self.width[0]/2.0,
+                 -self.width[1]/2.0, self.width[1]/2.0),
+                image, self.unit_vectors[0], self.unit_vectors[1],
+                na.array(self.width),
+                self.transfer_function, self.sub_samples)
+        return args
+
+    def get_sampler(self, args):
+        if self.use_light:
+            if self.light_dir is None:
+                self.set_default_light_dir()
+            temp_dir = na.empty(3,dtype='float64')
+            temp_dir = self.light_dir[0] * self.unit_vectors[1] + \
+                    self.light_dir[1] * self.unit_vectors[2] + \
+                    self.light_dir[2] * self.unit_vectors[0]
+            if self.light_rgba is None:
+                self.set_default_light_rgba()
+            sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
+                    light_rgba=self.light_rgba)
+        else:
+            sampler = VolumeRenderSampler(*args)
+        return sampler
+
+    def _render(self, double_check, num_threads, image, na, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if na.any(na.isnan(data)):
+                        raise RuntimeError
+        
+        view_pos = self.front_center + self.unit_vectors[2] * 1.0e6 * self.width[2]
+        for brick in self.volume.traverse(view_pos, self.front_center, image):
+            sampler(brick, num_threads=num_threads)
+            total_cells += na.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        
+        pbar.finish()
+        image = sampler.aimage
+        return image
+
+    def save_image(self, fn, clip_ratio, image):
+        if self.comm.rank is 0 and fn is not None:
+            if clip_ratio is not None:
+                write_bitmap(image, fn, clip_ratio * image.std())
+            else:
+                write_bitmap(image, fn)
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0):
@@ -354,51 +389,17 @@ class Camera(ParallelAnalysisInterface):
         image : array
             An (N,M,3) array of the final returned values, in float64 form.
         """
-        image = na.zeros((self.resolution[0], self.resolution[1], 3),
-                         dtype='float64', order='C')
-        rotp = na.concatenate([self.inv_mat.ravel('F'), self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
-                (-self.width[0]/2.0, self.width[0]/2.0,
-                 -self.width[1]/2.0, self.width[1]/2.0),
-                image, self.unit_vectors[0], self.unit_vectors[1],
-                na.array(self.width),
-                self.transfer_function, self.sub_samples)
-        if self.use_light:
-            if self.light_dir is None:
-                self.set_default_light_dir()
-            temp_dir = na.empty(3,dtype='float64')
-            temp_dir = self.light_dir[0] * self.unit_vectors[1] + \
-                    self.light_dir[1] * self.unit_vectors[2] + \
-                    self.light_dir[2] * self.unit_vectors[0]
-            if self.light_rgba is None:
-                self.set_default_light_rgba()
-            sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
-                    light_rgba=self.light_rgba)
-        else:
-            sampler = VolumeRenderSampler(*args)
+        image = self.new_image()
+
+        args = self.get_sampler_args(image)
+
+        sampler = self.get_sampler(args)
+
         self.volume.initialize_source()
 
-        pbar = get_pbar("Ray casting",
-                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-        total_cells = 0
-        if double_check:
-            for brick in self.volume.bricks:
-                for data in brick.my_data:
-                    if na.any(na.isnan(data)):
-                        raise RuntimeError
-        view_pos = self.front_center + self.unit_vectors[2] * 1.0e6 * self.width[2]
-        for brick in self.volume.traverse(view_pos, self.front_center, image):
-            sampler(brick, num_threads = num_threads)
-            total_cells += na.prod(brick.my_data[0].shape)
-            pbar.update(total_cells)
-        pbar.finish()
-        image = sampler.aimage
+        image = self._render(double_check, num_threads, image, na, sampler)
 
-        if self.comm.rank is 0 and fn is not None:
-            if clip_ratio is not None:
-                write_bitmap(image, fn, clip_ratio*image.std())
-            else:
-                write_bitmap(image, fn)
+        self.save_image(fn, clip_ratio, image)
 
         return image
 
@@ -847,8 +848,11 @@ class FisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, no_ghost=False, rotation = None):
+                 pf = None, no_ghost=False, rotation = None, use_light=False):
         ParallelAnalysisInterface.__init__(self)
+        self.use_light = use_light
+        self.light_dir = None
+        self.light_rgba = None
         if rotation is None: rotation = na.eye(3)
         self.rotation_matrix = rotation
         if pf is not None: self.pf = pf
@@ -870,11 +874,11 @@ class FisheyeCamera(Camera):
                                log_fields=log_fields)
         self.volume = volume
 
-    def snapshot(self):
+    def new_image(self):
         image = na.zeros((self.resolution**2,1,3), dtype='float64', order='C')
-        # We now follow figures 4-7 of:
-        # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
-        # ...but all in Cython.
+        return image
+        
+    def get_sampler_args(self, image):
         vp = arr_fisheye_vectors(self.resolution, self.fov)
         vp.shape = (self.resolution**2,1,3)
         vp2 = vp.copy()
@@ -884,21 +888,31 @@ class FisheyeCamera(Camera):
         vp *= self.radius
         uv = na.ones(3, dtype='float64')
         positions = na.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
-        vector_plane = VectorPlane(positions, vp, self.center,
-                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
-        tfp = TransferFunctionProxy(self.transfer_function)
-        tfp.ns = self.sub_samples
-        self.volume.initialize_source()
-        mylog.info("Rendering fisheye of %s^2", self.resolution)
-        pbar = get_pbar("Ray casting",
-                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
 
+        args = (positions, vp, self.center,
+                (0.0, 1.0, 0.0, 1.0),
+                image, uv, uv,
+                na.zeros(3, dtype='float64'),
+                self.transfer_function, self.sub_samples)
+        return args
+
+    def _render(self, double_check, num_threads, image, na, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
-        for brick in self.volume.traverse(None, self.center, image):
-            brick.cast_plane(tfp, vector_plane)
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if na.any(na.isnan(data)):
+                        raise RuntimeError
+        
+        view_pos = self.center
+        for brick in self.volume.traverse(view_pos, None, image):
+            sampler(brick, num_threads=num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
+        
         pbar.finish()
+        image = sampler.aimage
         image.shape = (self.resolution, self.resolution, 3)
         return image
 
