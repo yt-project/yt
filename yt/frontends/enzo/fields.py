@@ -259,7 +259,7 @@ for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
     f.take_log=True
 
 def _convertRadiationAccel(data):
-    return data.convert("cm") / data.convert("Time")
+    return data.convert("cm") / data.convert("Time")**2
 for dim in range(1,4):
     f = KnownEnzoFields["RadAccel%d" % dim]
     f._convert_function = _convertRadiationAccel
