@@ -42,9 +42,8 @@ Ext.define("Reason.view.widgets.PlotWindow", {
 
     items: [ 
         { xtype:'image',
-          itemId: 'image_panel',
+          itemId: 'imagepanel',
           src: 'nothing.png',
-          draggable: false,
           x: 100,
           y: 10,
           width: 400,

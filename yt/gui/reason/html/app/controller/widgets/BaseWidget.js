@@ -55,7 +55,6 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             args['control'] = control;
             args['widget'] = ww;
             if((isValidFn != null) && (isValidFn(arguments) == false)) {return;}
-            examine = {args: args, code: tpl.apply(args)};
             yt_rpc.ExtDirectREPL.execute({
                 code: tpl.apply(args),
                 hide: true}, Ext.emptyFn);
@@ -75,7 +74,8 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             ef.call(this, trigger[0], trigger[1], trigger[2], trigger[3]);
         }, this);
         Ext.each(this.widgetTriggers, function(trigger) {
-            conf = {}
+            console.log(trigger[0], trigger[1], trigger[2]);
+            conf = {scope:this}
             conf[trigger[1]] = this[trigger[2]];
             ww.query(trigger[0])[0].on(conf);
         }, this);

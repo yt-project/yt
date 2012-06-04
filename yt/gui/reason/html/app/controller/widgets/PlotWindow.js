@@ -68,9 +68,9 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     },
 
     widgetTriggers: [
-        ['uploadimage', 'click', 'uploadImage'],
-        ['pannablemap', 'click', 'createPannableMap'],
-        ['imagepanel', 'afterrender', 'setupDragImage'],
+        ['#uploadimage', 'click', 'uploadImage'],
+        ['#pannablemap', 'click', 'createPannableMap'],
+        ['#imagepanel', 'afterrender', 'setupClickImage'],
     ],
 
     executionTriggers: [
@@ -96,7 +96,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
 
     viewRefs: [
         { ref: 'colorbar', selector: '#colorbar'},
-        { ref: 'image', selector: '#image_panel'},
+        { ref: 'image', selector: '#imagepanel'},
         { ref: 'fieldSelector', selector: '#fieldSelector'},
         { ref: 'transform', selector: '#transform'},
         { ref: 'contourField', selector: '#contourfield'},
@@ -206,37 +206,22 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         alert("Not implemented!");
     },
 
-    setupDragImage: function(c) {
-        var control = this;
-        var dragStartPos, dragStopPos;
+    setupClickImage: function(c) {
+        var controller = this;
+        var dragStartPos = {x:-1, y:-1};
         c.el.on('click',  function(e) {
             if (e.ctrlKey == false) return;
-            tpl = control.templateManager.getTemplates()["recenter"]
-            var args = {widget: control.plotWindowView,
-                        x: xy[0], y: xy[1],
-                        w: control.getImage().dom.width,
-                        w: control.getImage().dom.height};
+            var xy = e.getXY();
+            var args = {widget: controller.plotWindowView,
+                        x: xy[0] - controller.getImage().getEl().dom.x,
+                        y: xy[1] - controller.getImage().getEl().dom.y,
+                        w: controller.getImage().width,
+                        h: controller.getImage().height};
+            var code = controller.templateManager.applyObject(
+                        args, "recenterImage");
             yt_rpc.ExtDirectREPL.execute(
-                {code:tpl.apply(args), hide:true},
+                {code:code, hide:true},
                 Ext.emptyFn);
-        });
-        c.el.on('mousedown', function(e){
-            dragStartPos = e.getXY();
-        });
-        c.el.on('mouseup', function(e){
-            dragStopPos = e.getXY();
-            deltaX = dragStopPos[0] - c.dragStartPos[0];
-            deltaY = dragStopPos[1] - c.dragStartPos[1];
-            if (((deltaX < -10) || (deltaX > 10)) ||
-                ((deltaY < -10) || (deltaY > 10))) {
-                rel_x = -deltaX / 400;
-                rel_y = -deltaY / 400;
-                tpl = control.templateManager.getTemplates()["recenter"]
-                var args = {widget: control.plotWindowView,
-                            rel_x: rel_x, rel_y: rel_y};
-                yt_rpc.ExtDirectREPL.execute(
-                    {code:tpl.apply(args), hide:true}, Ext.emptyFn()); 
-            }
         });
     },
 });

@@ -71,7 +71,6 @@ Ext.define('Reason.controller.WidgetDirector', {
         var w;
         this.getWidgetTypesStore().each(function(record, idx) {
             w = record.data;
-            examine = w;
             if (((data.type == 'parameter_file') && (w.pfs  == false)) 
              || ((data.type != 'parameter_file') && (w.objs == false))) {
               return;
@@ -123,7 +122,6 @@ Ext.define('Reason.controller.WidgetDirector', {
     sendPayload: function(payload) {
         var resultId = this.getWidgetInstancesStore().find(
             'widgetid', payload['widget_id']);
-        examine = payload;
         if (resultId == -1) {
             Ext.Error.raise('Could not find widget "' +
                             payload['widget_id'] + '".');
@@ -131,7 +129,6 @@ Ext.define('Reason.controller.WidgetDirector', {
         console.log("Directing payload for " + payload['widget_id'] +
                     " to resultId " + resultId);
         var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
-        examine = widgetInfo;
         widgetInfo['widget'].applyPayload(payload);
     },
 
