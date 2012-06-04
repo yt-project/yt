@@ -342,6 +342,9 @@ class Camera(ParallelAnalysisInterface):
             sampler = VolumeRenderSampler(*args)
         return sampler
 
+    def finalize_image(self, image):
+        pass
+
     def _render(self, double_check, num_threads, image, na, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
@@ -359,6 +362,7 @@ class Camera(ParallelAnalysisInterface):
         
         pbar.finish()
         image = sampler.aimage
+        self.finalize_image(image)
         return image
 
     def save_image(self, fn, clip_ratio, image):
@@ -649,19 +653,20 @@ class InteractiveCamera(Camera):
 data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
-    def get_vector_plane(self, image):
+    
+    def get_sampler_args(self, image):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
         # We might have a different width and back_center
         dl = (self.back_center - self.front_center)
-        self.front_center += dl
+        self.front_center += self.expand_factor*dl
         self.back_center -= dl
-        px = self.expand_factor*na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
+        
+        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
                          self.resolution[0])[:,None]
-        py = self.expand_factor*na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
+        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
                          self.resolution[1])[None,:]
         inv_mat = self.inv_mat
-        bc = self.back_center
         positions = na.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
@@ -671,14 +676,22 @@ class PerspectiveCamera(Camera):
         
         # We are likely adding on an odd cutting condition here
         vectors = self.front_center - positions
-        positions = self.front_center - 2.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
+        positions = self.front_center - 1.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
         vectors = (self.front_center - positions)
+        
+        uv = na.ones(3, dtype='float64')
+        image.shape = (self.resolution[0]**2,1,3)
+        vectors.shape = (self.resolution[0]**2,1,3)
+        positions.shape = (self.resolution[0]**2,1,3)
+        args = (positions, vectors, self.back_center, 
+                (0.0,1.0,0.0,1.0),
+                image, uv, uv,
+                na.zeros(3, dtype='float64'), 
+                self.transfer_function, self.sub_samples)
+        return args
 
-        vector_plane = VectorPlane(positions, vectors,
-                                      self.back_center, bounds, image,
-                                      self.unit_vectors[0],
-                                      self.unit_vectors[1])
-        return vector_plane
+    def finalize_image(self, image):
+        image.shape = self.resolution[0], self.resolution[0], 3
 
 def corners(left_edge, right_edge):
     return na.array([
@@ -896,6 +909,10 @@ class FisheyeCamera(Camera):
                 self.transfer_function, self.sub_samples)
         return args
 
+
+    def finalize_image(self, image):
+        image.shape = self.resolution, self.resolution, 3
+
     def _render(self, double_check, num_threads, image, na, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
@@ -913,7 +930,9 @@ class FisheyeCamera(Camera):
         
         pbar.finish()
         image = sampler.aimage
-        image.shape = (self.resolution, self.resolution, 3)
+
+        self.finalize_image(image)
+
         return image
 
 class MosaicFisheyeCamera(Camera):
