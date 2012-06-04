@@ -467,7 +467,7 @@ add_field("AbsDivV", function=_AbsDivV,
           units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
-    return na.ones(data["Density"].shape)*-1
+    return -na.ones_like(data["Ones"])
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_Contours)
 add_field("tempContours", function=_Contours,

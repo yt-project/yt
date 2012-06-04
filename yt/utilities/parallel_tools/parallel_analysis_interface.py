@@ -288,7 +288,7 @@ class ProcessorPool(object):
         if size is None:
             size = len(self.available_ranks)
         if len(self.available_ranks) < size:
-            print 'Not enough resources available'
+            print 'Not enough resources available', size, self.available_ranks
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
@@ -315,12 +315,32 @@ class ProcessorPool(object):
         for wg in self.workgroups:
             self.free_workgroup(wg)
 
+    @classmethod
+    def from_sizes(cls, sizes):
+        sizes = ensure_list(sizes)
+        pool = cls()
+        rank = pool.comm.rank
+        for i,size in enumerate(sizes):
+            if iterable(size):
+                size, name = size
+            else:
+                name = "workgroup_%02i" % i
+            pool.add_workgroup(size, name = name)
+        for wg in pool.workgroups:
+            if rank in wg.ranks: workgroup = wg
+        return pool, workgroup
+
+    def __getitem__(self, key):
+        for wg in self.workgroups:
+            if wg.name == key: return wg
+        raise KeyError(key)
+
 class ResultsStorage(object):
     slots = ['result', 'result_id']
     result = None
     result_id = None
 
-def parallel_objects(objects, njobs, storage = None):
+def parallel_objects(objects, njobs = 0, storage = None, barrier = True):
     if not parallel_capable:
         njobs = 1
         mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
@@ -362,6 +382,8 @@ def parallel_objects(objects, njobs, storage = None):
         new_storage = my_communicator.par_combine_object(
                 to_share, datatype = 'dict', op = 'join')
         storage.update(new_storage)
+    if barrier:
+        my_communicator.barrier()
 
 class CommunicationSystem(object):
     communicators = []
@@ -395,6 +417,9 @@ class CommunicationSystem(object):
         self.communicators.pop()
         self._update_parallel_state(self.communicators[-1])
 
+def _reconstruct_communicator():
+    return communication_system.communicators[-1]
+
 class Communicator(object):
     comm = None
     _grids = None
@@ -408,6 +433,11 @@ class Communicator(object):
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
     """
+
+    def __reduce__(self):
+        # We don't try to reconstruct any of the properties of the communicator
+        # or the processors.  In general, we don't want to.
+        return (_reconstruct_communicator, ())
 
     def barrier(self):
         if not self._distributed: return
@@ -507,24 +537,24 @@ class Communicator(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def mpi_bcast(self, data):
+    def mpi_bcast(self, data, root = 0):
         # The second check below makes sure that we know how to communicate
         # this type of array. Otherwise, we'll pickle it.
         if isinstance(data, na.ndarray) and \
                 get_mpi_type(data.dtype) is not None:
-            if self.comm.rank == 0:
+            if self.comm.rank == root:
                 info = (data.shape, data.dtype)
             else:
                 info = ()
-            info = self.comm.bcast(info, root=0)
-            if self.comm.rank != 0:
+            info = self.comm.bcast(info, root=root)
+            if self.comm.rank != root:
                 data = na.empty(info[0], dtype=info[1])
             mpi_type = get_mpi_type(info[1])
-            self.comm.Bcast([data, mpi_type], root = 0)
+            self.comm.Bcast([data, mpi_type], root = root)
             return data
         else:
             # Use pickled methods.
-            data = self.comm.bcast(data, root = 0)
+            data = self.comm.bcast(data, root = root)
             return data
 
     def preload(self, grids, fields, io_handler):

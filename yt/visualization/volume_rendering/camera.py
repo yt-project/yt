@@ -1291,8 +1291,13 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     fields = [field]
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        def _wf(f1, w1):
+            def WeightField(field, data):
+                return data[f1].astype("float64") * \
+                       data[w1].astype("float64")
+            return WeightField
         pf.field_info.add_field("temp_weightfield",
-            function=lambda a,b:b[field]*b[weight])
+                    function=_wf(field, weight))
         fields = ["temp_weightfield", weight]
         tf = ProjectionTransferFunction(n_fields = 2)
     tf = ProjectionTransferFunction(n_fields = len(fields))
@@ -1313,4 +1318,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     else:
         image /= vals[:,:,1]
         pf.field_info.pop("temp_weightfield")
+        for g in pf.h.grids:
+            if "temp_weightfield" in g.keys():
+                del g["temp_weightfield"]
     return image
