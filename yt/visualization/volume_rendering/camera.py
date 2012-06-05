@@ -31,9 +31,9 @@ from yt.utilities.math_utils import *
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
-    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
-    arr_ang2pix_nest, arr_fisheye_vectors, rotate_vectors
+from yt.utilities.amr_utils import \
+    arr_vec2pix_nest, arr_pix2vec_nest, \
+    arr_ang2pix_nest, arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
 from yt.visualization.image_writer import write_bitmap, write_image
@@ -285,11 +285,11 @@ class Camera(ParallelAnalysisInterface):
         return image
 
     def get_sampler_args(self, image):
-        rotp = na.concatenate([self.inv_mat.ravel('F'), self.back_center.ravel()])
+        rotp = na.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
         args = (rotp, self.box_vectors[2], self.back_center,
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
-                image, self.unit_vectors[0], self.unit_vectors[1],
+                image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
                 na.array(self.width),
                 self.transfer_function, self.sub_samples)
         return args
@@ -299,9 +299,9 @@ class Camera(ParallelAnalysisInterface):
             if self.light_dir is None:
                 self.set_default_light_dir()
             temp_dir = na.empty(3,dtype='float64')
-            temp_dir = self.light_dir[0] * self.unit_vectors[1] + \
-                    self.light_dir[1] * self.unit_vectors[2] + \
-                    self.light_dir[2] * self.unit_vectors[0]
+            temp_dir = self.light_dir[0] * self.orienter.unit_vectors[1] + \
+                    self.light_dir[1] * self.orienter.unit_vectors[2] + \
+                    self.light_dir[2] * self.orienter.unit_vectors[0]
             if self.light_rgba is None:
                 self.set_default_light_rgba()
             sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
@@ -322,7 +322,7 @@ class Camera(ParallelAnalysisInterface):
                     if na.any(na.isnan(data)):
                         raise RuntimeError
 
-        view_pos = self.front_center + self.unit_vectors[2] * 1.0e6 * self.width[2]
+        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         for brick in self.volume.traverse(view_pos, self.front_center, image):
             sampler(brick, num_threads=num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
@@ -855,7 +855,7 @@ class StereoPairCamera(Camera):
 
     def split(self):
         oc = self.original_camera
-        uv = oc.unit_vectors
+        uv = oc.orienter.unit_vectors
         c = oc.center
         fc = oc.front_center
         wx, wy, wz = oc.width
@@ -1587,12 +1587,12 @@ class ProjectionCamera(Camera):
 
     def get_sampler_args(self, image):
         width = self.width[2]
-        north_vector = self.unit_vectors[0]
-        east_vector = self.unit_vectors[1]
-        normal_vector = self.unit_vectors[2]
+        north_vector = self.orienter.unit_vectors[0]
+        east_vector = self.orienter.unit_vectors[1]
+        normal_vector = self.orienter.unit_vectors[2]
 
         back_center= self.center - 0.5*width * normal_vector
-        rotp = na.concatenate([na.linalg.pinv(self.unit_vectors).ravel('F'),
+        rotp = na.concatenate([na.linalg.pinv(self.orienter.unit_vectors).ravel('F'),
                                back_center])
 
         args = (rotp, normal_vector * width, back_center,
@@ -1617,9 +1617,9 @@ class ProjectionCamera(Camera):
         # Back corners ...
         pf = self.pf
         width = self.width[2]
-        north_vector = self.unit_vectors[0]
-        east_vector = self.unit_vectors[1]
-        normal_vector = self.unit_vectors[2]
+        north_vector = self.orienter.unit_vectors[0]
+        east_vector = self.orienter.unit_vectors[1]
+        normal_vector = self.orienter.unit_vectors[2]
         fields = self.fields
 
         mi = pf.domain_right_edge.copy()
