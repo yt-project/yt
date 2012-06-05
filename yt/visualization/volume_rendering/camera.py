@@ -902,13 +902,13 @@ class StereoPairCamera(Camera):
         left_normal = fc + uv[1] * 0.5*self.relative_separation * wx - c
         right_normal = fc - uv[1] * 0.5*self.relative_separation * wx - c
         left_camera = Camera(c, left_normal, oc.width,
-                             oc.resolution, oc.transfer_function, uv[0],
-                             oc.volume, oc.fields, oc.log_fields,
-                             oc.sub_samples, oc.pf)
+                             oc.resolution, oc.transfer_function, north_vector=uv[0],
+                             volume=oc.volume, fields=oc.fields, log_fields=oc.log_fields,
+                             sub_samples=oc.sub_samples, pf=oc.pf)
         right_camera = Camera(c, right_normal, oc.width,
-                             oc.resolution, oc.transfer_function, uv[0],
-                             oc.volume, oc.fields, oc.log_fields,
-                             oc.sub_samples, oc.pf)
+                             oc.resolution, oc.transfer_function, north_vector=uv[0],
+                             volume=oc.volume, fields=oc.fields, log_fields=oc.log_fields,
+                             sub_samples=oc.sub_samples, pf=oc.pf)
         return (left_camera, right_camera)
 
 class FisheyeCamera(Camera):
