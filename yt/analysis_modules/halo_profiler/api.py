@@ -34,5 +34,4 @@ from .halo_filters import \
 from .multi_halo_profiler import \
     HaloProfiler, \
     FakeProfile, \
-    get_halo_sphere, \
     standard_fields

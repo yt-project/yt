@@ -142,8 +142,6 @@ def read_art_tree(char *fn, long offset,
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
     #   iOctPr, iOctLv
-    print min_level, max_level 
-    
     cdef int nchild = 8
     cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1
     cdef np.int64_t next_record
@@ -170,7 +168,7 @@ def read_art_tree(char *fn, long offset,
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
         iOct = iHOLL[Level] - 1
         nLevel = iNOLL[Level]
-        print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
+        #print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
         #print ftell(f)
         for ic1 in range(nLevel):
             iOctMax = max(iOctMax, iOct)
@@ -218,7 +216,7 @@ def read_art_tree(char *fn, long offset,
         
         #find the length of all of the children section
         child_record = ftell(f) +  (next_record+2*sizeof(int))*nLevel*nchild
-        print 'Skipping over hydro vars', ftell(f), child_record
+        #print 'Skipping over hydro vars', ftell(f), child_record
         fseek(f, child_record, SEEK_SET)
         
         # for ic1 in range(nLevel * nchild):
@@ -288,9 +286,9 @@ cdef void read_art_vars(FILE *f,
 def read_art_grid(int varindex, 
               np.ndarray[np.int64_t, ndim=1] start_index,
               np.ndarray[np.int32_t, ndim=1] grid_dims,
-              np.ndarray[np.float64_t, ndim=3] data,
-              np.ndarray[np.int32_t, ndim=3] filled,
-              np.ndarray[np.float64_t, ndim=2] level_data,
+              np.ndarray[np.float32_t, ndim=3] data,
+              np.ndarray[np.uint8_t, ndim=3] filled,
+              np.ndarray[np.float32_t, ndim=2] level_data,
               int level, int ref_factor,
               component_grid_info):
     cdef int gi, i, j, k, domain, offset, grid_id
@@ -312,7 +310,7 @@ def read_art_grid(int varindex,
         domain = ogrid_info[0]
         #print "Loading", domain, ogrid_info
         grid_id = ogrid_info[1]
-        og_start_index = ogrid_info[3:]
+        og_start_index = ogrid_info[3:6] #the oct left edge
         for i in range(2*ref_factor):
             di = i + og_start_index[0] * ref_factor
             if di < start_index[0] or di >= end_index[0]: continue
@@ -348,6 +346,30 @@ def read_art_grid(int varindex,
                     filled[offi, offj, offk] = 1
                     to_fill += 1
     return to_fill
+
+@cython.cdivision(True)
+@cython.boundscheck(True)
+@cython.wraparound(False)
+def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
+                    np.ndarray[np.int64_t, ndim=1] grid_le,
+                    np.ndarray[np.uint8_t, ndim=4] art_child_masks,
+                    np.ndarray[np.uint8_t, ndim=3] child_mask):
+
+    #loop over file_locations, for each row exracting the index & LE
+    #of the oct we will pull pull from art_child_masks
+    #then use the art_child_masks info to fill in child_mask
+    cdef int i,ioct,x,y,z
+    cdef int nocts = file_locations.shape[0]
+    cdef int lex,ley,lez
+    for i in range(nocts):
+        ioct = file_locations[i,1] #from fortran to python indexing?
+        lex = file_locations[i,3] - grid_le[0] #the oct left edge x
+        ley = file_locations[i,4] - grid_le[1]
+        lez = file_locations[i,5] - grid_le[2]
+        for x in range(2):
+            for y in range(2):
+                for z in range(2):
+                    child_mask[lex+x,ley+y,lez+z] = art_child_masks[ioct,x,y,z]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

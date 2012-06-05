@@ -41,7 +41,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 class HomogenizedVolume(ParallelAnalysisInterface):
     bricks = None
     def __init__(self, fields = "Density", source = None, pf = None,
-                 log_fields = None, no_ghost = False):
+                 log_fields = None, no_ghost = False,
+                 max_level = 48):
         # Typically, initialized as hanging off a hierarchy.  But, not always.
         ParallelAnalysisInterface.__init__(self)
         self.no_ghost = no_ghost
@@ -54,6 +55,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         else:
             log_fields = [self.pf.field_info[field].take_log
                          for field in self.fields]
+        self.max_level = max_level
         self.log_fields = log_fields
 
     def traverse(self, back_point, front_point, image):
@@ -84,8 +86,13 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         PP = ProtoPrism(grid.id, grid.LeftEdge, grid.RightEdge, GF)
 
         pgs = []
+        cm = grid.child_mask.copy()
+        if grid.Level > self.max_level:
+            return pgs
+        elif grid.Level == self.max_level:
+            cm[:] = 1
         for P in PP.sweep(0):
-            sl = P.get_brick(grid.LeftEdge, grid.dds, grid.child_mask)
+            sl = P.get_brick(grid.LeftEdge, grid.dds, cm)
             if len(sl) == 0: continue
             dd = [d[sl[0][0]:sl[0][1]+1,
                     sl[1][0]:sl[1][1]+1,

@@ -56,6 +56,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
+from yt.utilities.orientation import Orientation
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -240,6 +241,8 @@ class AMRData(object):
             pass
         elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
+        elif center in ("c", "center"):
+            center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
             center = self.pf.h.find_max("Density")[1]
         elif center.startswith("max_"):
@@ -493,7 +496,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         self._sorted = {}
 
     def get_data(self, fields=None, in_grids=False):
-        if self._grids == None:
+        if self._grids is None:
             self._get_list_of_grids()
         points = []
         if not fields:
@@ -1130,6 +1133,9 @@ class AMRSliceBase(AMR2DData):
     def _mrep(self):
         return MinimalSliceData(self)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
 class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -1137,7 +1143,7 @@ class AMRCuttingPlaneBase(AMR2DData):
     _type_name = "cutting"
     _con_args = ('normal', 'center')
     def __init__(self, normal, center, fields = None, node_name = None,
-                 **kwargs):
+                 north_vector = None, **kwargs):
         """
         This is a data object corresponding to an oblique slice through the
         simulation domain.
@@ -1186,16 +1192,11 @@ class AMRCuttingPlaneBase(AMR2DData):
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
-        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
+        self.orienter = Orientation(normal, north_vector = north_vector)
+        self._norm_vec = self.orienter.normal_vector
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
-        # First we try all three, see which has the best result:
-        vecs = na.identity(3)
-        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
-        ax = _t.argmax()
-        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
-        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
+        self._x_vec = self.orienter.unit_vectors[0]
+        self._y_vec = self.orienter.unit_vectors[1]
         self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = na.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
@@ -1299,7 +1300,7 @@ class AMRCuttingPlaneBase(AMR2DData):
             This can either be a floating point value, in the native domain
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
-        height : height specifier
+        height : height specifier, optional
             This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
@@ -1639,6 +1640,9 @@ class AMRQuadTreeProjBase(AMR2DData):
     @property
     def _mrep(self):
         return MinimalProjectionData(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -2502,7 +2506,18 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.
+        fly with a set of field_cuts.  It is very useful for applying 
+        conditions to the fields in your data object.
+        
+        Examples
+        --------
+        To find the total mass of gas above 10^6 K in your volume:
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ad = pf.h.all_data()
+        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
+
         """
         return InLineExtractedRegionBase(self, field_cuts)
 
@@ -3251,6 +3266,40 @@ class AMRGridCollectionBase(AMR3DData):
         pointI = na.where(k == True)
         return pointI
 
+class AMRMaxLevelCollection(AMR3DData):
+    _type_name = "grid_collection_max_level"
+    _con_args = ("center", "max_level")
+    def __init__(self, center, max_level, fields = None,
+                 pf = None, **kwargs):
+        """
+        By selecting an arbitrary *max_level*, we can act on those grids.
+        Child cells are masked when the level of the grid is below the max
+        level.
+        """
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        self.max_level = max_level
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        if self._grids is not None: return
+        gi = (self.pf.h.grid_levels <= self.max_level)[:,0]
+        self._grids = self.pf.h.grids[gi]
+
+    def _is_fully_enclosed(self, grid):
+        return True
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
+
+    def _get_point_indices(self, grid, use_child_mask=True):
+        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        if use_child_mask and grid.Level < self.max_level:
+            k[grid.child_indices] = False
+        pointI = na.where(k == True)
+        return pointI
+
+
 class AMRSphereBase(AMR3DData):
     """
     A sphere of points
@@ -3326,9 +3375,18 @@ class AMRCoveringGridBase(AMR3DData):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        right_edge : array_like, optional
             The right edge of the region to be extracted
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
         """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
@@ -3464,7 +3522,8 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
-        single, specified resolution.
+        single, specified resolution. (Identical to covering_grid,
+        except that it interpolates.)
 
         Smoothed covering grids start at level 0, interpolating to
         fill the region to level 1, replacing any cells actually
@@ -3477,9 +3536,18 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        right_edge : array_like, optional
             The right edge of the region to be extracted
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
         """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
