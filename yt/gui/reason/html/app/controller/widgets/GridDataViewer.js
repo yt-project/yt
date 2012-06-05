@@ -60,8 +60,7 @@ Ext.define("Reason.controller.widgets.GridDataViewer", {
         examine = {wd:wd, tt:this};
 
         this.createMyRefs(this.gridDataView.id);
-        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
-            this.gridDataView);
+        return this.gridDataView;
     },
 
     statics: {

@@ -117,7 +117,8 @@ Ext.define('Reason.controller.WidgetDirector', {
             widgettype: widgetInfo.widgetname,
             widget: newWidget
         });
-        newWidget.createView();
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            newWidget.createView());
     },
 
     sendPayload: function(payload) {

@@ -147,8 +147,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         this.getContourField().store = wd['fields'];
         this.getContourField().value = wd['initial_field'];
         this.applyExecuteHandlers(this.plotWindowView);
-        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
-            this.plotWindowView);
+        return this.plotWindowView;
     },
 
     statics: {
