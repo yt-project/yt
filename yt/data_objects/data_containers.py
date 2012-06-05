@@ -1582,7 +1582,7 @@ class AMRQuadTreeProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,
+                 preload_style=None, serialize=True,
                  style = "integrate", **kwargs):
         """
         This is a data object corresponding to a line integral through the
@@ -1630,9 +1630,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             region of a grid out.  They can be of the form "grid['Temperature']
             > 100" for instance.
         preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
+            Either 'level', 'all', or None (default).  Defines how grids are
+            loaded -- either level by level, or all at once.  Only applicable
+            during parallel runs.
         serialize : bool, optional
             Whether we should store this projection in the .yt file or not.
         kwargs : dict of items
