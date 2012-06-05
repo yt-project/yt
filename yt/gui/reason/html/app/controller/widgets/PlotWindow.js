@@ -218,9 +218,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                         h: controller.getImage().height};
             var code = controller.templateManager.applyObject(
                         args, "recenterImage");
-            yt_rpc.ExtDirectREPL.execute(
-                {code:code, hide:true},
-                Ext.emptyFn);
+            reason.server.execute(code, true);
         });
     },
 });

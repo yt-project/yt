@@ -82,7 +82,7 @@ Ext.define('Reason.controller.MenuActions', {
     },
 
     pastebinScript: function(b, e) {
-        reason.server('paste_session', {}, function(f, a) {
+        reason.server.method('paste_session', {}, function(f, a) {
             if (a.result['status'] == 'SUCCESS') {
                 var alert_text = 'Pasted session to:<br>' + 
                 a.result['site']
@@ -100,7 +100,7 @@ Ext.define('Reason.controller.MenuActions', {
 
     quitReason: function(b, e) {
         this.application.fireEvent("stopheartbeat");
-        reason.server('shutdown', {}, function(f, a) {
+        reason.server.method('shutdown', {}, function(f, a) {
         Ext.Msg.alert("Goodbye!", "Goodbye from Reason!", function() {
         window.open("http://www.google.com/", "_top");});});
     },
