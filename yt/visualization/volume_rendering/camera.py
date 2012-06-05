@@ -709,7 +709,7 @@ class HEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, use_kd=True, no_ghost=False):
+                 pf = None, use_kd=True, no_ghost=False, use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = na.array(center, dtype='float64')
@@ -723,36 +723,91 @@ class HEALpixCamera(Camera):
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
+        self.use_light = use_light
+        self.light_dir = None
+        self.light_rgba = None
         if volume is None:
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields)
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
-    def snapshot(self, fn = None, clim = None):
-        nv = 12*self.nside**2
-        image = na.zeros((nv,1,3), dtype='float64', order='C')
+    def new_image(self):
+        image = na.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
+        return image
+
+    def get_sampler_args(self, image):
+        nv = 12 * self.nside ** 2
         vs = arr_pix2vec_nest(self.nside, na.arange(nv))
         vs *= self.radius
-        vs.shape = (nv,1,3)
+        vs.shape = nv, 1, 3
         uv = na.ones(3, dtype='float64')
         positions = na.ones((nv, 1, 3), dtype='float64') * self.center
-        vector_plane = VectorPlane(positions, vs, self.center,
-                        (0.0, 1.0, 0.0, 1.0), image, uv, uv)
-        tfp = TransferFunctionProxy(self.transfer_function)
-        tfp.ns = self.sub_samples
-        self.volume.initialize_source()
-        mylog.info("Rendering equivalent of %0.2f^2 image", nv**0.5)
-        pbar = get_pbar("Ray casting",
-                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        args = (positions, vs, self.center,
+                (0.0, 1.0, 0.0, 1.0),
+                image, uv, uv,
+                na.zeros(3, dtype='float64'),
+                self.transfer_function, self.sub_samples)
+        return args
+ 
 
+    def _render(self, double_check, num_threads, image, na, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
-        for brick in self.volume.traverse(None, self.center, image):
-            brick.cast_plane(tfp, vector_plane)
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if na.any(na.isnan(data)):
+                        raise RuntimeError
+        
+        view_pos = self.center
+        for brick in self.volume.traverse(view_pos, None, image):
+            sampler(brick, num_threads=num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
+        
         pbar.finish()
+        image = sampler.aimage
 
+        self.finalize_image(image)
+
+        return image
+
+    def snapshot(self, fn = None, clip_ratio = None, double_check = False,
+                 num_threads = 0, clim = None):
+        r"""Ray-cast the camera.
+
+        This method instructs the camera to take a snapshot -- i.e., call the ray
+        caster -- based on its current settings.
+
+        Parameters
+        ----------
+        fn : string, optional
+            If supplied, the image will be saved out to this before being
+            returned.  Scaling will be to the maximum value.
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
+
+        Returns
+        -------
+        image : array
+            An (N,M,3) array of the final returned values, in float64 form.
+        """
+        image = self.new_image()
+
+        args = self.get_sampler_args(image)
+
+        sampler = self.get_sampler(args)
+
+        self.volume.initialize_source()
+
+        image = self._render(double_check, num_threads, image, na, sampler)
+
+        self.save_image(fn, clim, image)
+
+        return image
+    def save_image(self, fn, clim, image):
         if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
@@ -772,7 +827,6 @@ class HEALpixCamera(Camera):
             ax.yaxis.set_ticks(())
             canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
             canvas.print_figure(fn)
-        return image
 
 
 class AdaptiveHEALpixCamera(Camera):
