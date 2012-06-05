@@ -34,7 +34,7 @@ from .transfer_functions import ProjectionTransferFunction
 #from yt.utilities.amr_utils import \
 #    arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
 #    arr_ang2pix_nest
-from yt.visualization.image_writer import write_bitmap
+from yt.visualization.image_writer import write_bitmap, write_image
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
@@ -372,6 +372,10 @@ class Camera(ParallelAnalysisInterface):
             else:
                 write_bitmap(image, fn)
 
+
+    def initialize_source(self):
+        return self.volume.initialize_source()
+
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0):
         r"""Ray-cast the camera.
@@ -399,7 +403,7 @@ class Camera(ParallelAnalysisInterface):
 
         sampler = self.get_sampler(args)
 
-        self.volume.initialize_source()
+        self.initialize_source()
 
         image = self._render(double_check, num_threads, image, na, sampler)
 
@@ -1619,9 +1623,9 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     return img, count
 
 class ProjectionCamera(Camera):
-    def __init__(self, pf, center, normal_vector, width, resolution,
+    def __init__(self, center, normal_vector, width, resolution,
             field, weight=None, volume=None, le=None, re=None,
-            north_vector=None):
+            north_vector=None, pf=None):
         Camera.__init__(self, center, normal_vector, width, resolution, None,
                 fields = field, pf=pf, volume=1,
                 le=le, re=re, north_vector=north_vector)
@@ -1629,24 +1633,16 @@ class ProjectionCamera(Camera):
         self.weight = weight
         self.resolution = resolution
 
-    def snapshot(self):
-        fields = [self.field]
-        resolution = self.resolution
-        width = self.width[2]
-        pf = self.pf
-        if self.weight is not None:
-            # This is a temporary field, which we will remove at the end.
-            def _make_wf(f, w):
-                def temp_weightfield(a, b):
-                    tr = b[f].astype("float64") * b[w]
-                    return tr
-                return temp_weightfield
-            pf.field_info.add_field("temp_weightfield",
-                function=_make_wf(self.field, self.weight))
-            fields = ["temp_weightfield", self.weight]
-        image = na.zeros((resolution, resolution, 3), dtype='float64',
-                          order='C')
+    def get_sampler(self, args):
+        sampler = ProjectionSampler(*args)
+        return sampler
 
+    def initialize_source(self):
+        pass
+
+
+    def get_sampler_args(self, image):
+        width = self.width[2]
         north_vector = self.unit_vectors[0]
         east_vector = self.unit_vectors[1]
         normal_vector = self.unit_vectors[2]
@@ -1655,14 +1651,33 @@ class ProjectionCamera(Camera):
         rotp = na.concatenate([na.linalg.pinv(self.unit_vectors).ravel('F'),
                                back_center])
 
-        sampler = ProjectionSampler(
-            rotp, normal_vector * width, back_center,
+        args = (rotp, normal_vector * width, back_center,
             (-width/2, width/2, -width/2, width/2),
             image, north_vector, east_vector,
             na.array([width, width, width], dtype='float64'))
-        
+        return args
+
+    def finalize_image(self,image):
+        pf = self.pf
+        if self.weight is None:
+            dl = self.width[2] * pf.units[pf.field_info[self.field].projection_conversion]
+            image *= dl
+        else:
+            image[:,:,0] /= image[:,:,1]
+            pf.field_info.pop("temp_weightfield")
+        return image[:,:,0]
+
+
+    def _render(self, double_check, num_threads, image, na, sampler):
         # Calculate the eight corners of the box
         # Back corners ...
+        pf = self.pf
+        width = self.width[2]
+        north_vector = self.unit_vectors[0]
+        east_vector = self.unit_vectors[1]
+        normal_vector = self.unit_vectors[2]
+        fields = self.fields
+
         mi = pf.domain_right_edge.copy()
         ma = pf.domain_left_edge.copy()
         for off1 in [-1, 1]:
@@ -1687,14 +1702,44 @@ class ProjectionCamera(Camera):
             sampler(pg, num_threads = num_threads)
             pb.update(i)
         pb.finish()
+        
         image = sampler.aimage
-        if self.weight is None:
-            dl = width * pf.units[pf.field_info[self.field].projection_conversion]
-            image *= dl
+        self.finalize_image(image)
+        return image
+
+    def save_image(self, fn, clip_ratio, image):
+        print 'I am here!'
+        print fn 
+        if self.pf.field_info[self.field].take_log:
+            im = na.log10(image)
         else:
-            image[:,:,0] /= image[:,:,1]
-            pf.field_info.pop("temp_weightfield")
-        return image[:,:,0]
+            im = image
+        if self.comm.rank is 0 and fn is not None:
+            if clip_ratio is not None:
+                write_image(im, fn)
+            else:
+                write_image(im, fn)
+
+    def snapshot(self, fn = None, clip_ratio = None, double_check = False,
+                 num_threads = 0):
+
+        fields = [self.field]
+        resolution = self.resolution
+        pf = self.pf
+        if self.weight is not None:
+            # This is a temporary field, which we will remove at the end.
+            def _make_wf(f, w):
+                def temp_weightfield(a, b):
+                    tr = b[f].astype("float64") * b[w]
+                    return tr
+                return temp_weightfield
+            pf.field_info.add_field("temp_weightfield",
+                function=_make_wf(self.field, self.weight))
+            fields = ["temp_weightfield", self.weight]
+        self.fields = fields
+        return Camera.snapshot(self, fn = fn, clip_ratio = clip_ratio, double_check = double_check,
+                 num_threads = num_threads)
+
 
 data_object_registry["projection_camera"] = ProjectionCamera
 
