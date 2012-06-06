@@ -1011,6 +1011,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         lines = f.readlines()
         f.close()
 
+        if not lines:
+            return None
+
         # Get fields from header.
         header = lines.pop(0)
         header = header.strip()
