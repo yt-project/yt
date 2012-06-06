@@ -191,6 +191,7 @@ class Camera(ParallelAnalysisInterface):
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
+        self.rotation_vector = self.orienter.north_vector
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -279,7 +280,7 @@ class Camera(ParallelAnalysisInterface):
             normal_vector = self.front_cemter - self.center
         self.orienter.switch_orientation(normal_vector = normal_vector,
                                          north_vector = north_vector)
-        self._setup_box_properties(width, center, self.orienter.unit_vectors)
+        self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
     def new_image(self):
         image = na.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
         return image
@@ -517,7 +518,7 @@ class Camera(ParallelAnalysisInterface):
         """
         if rot_vector is None:
             rot_vector = self.rotation_vector
-            
+          
         R = get_rotation_matrix(self, theta, rot_vector)
 
         normal_vector = self.front_center-self.center

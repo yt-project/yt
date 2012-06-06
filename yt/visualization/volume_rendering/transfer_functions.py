@@ -222,6 +222,9 @@ class TransferFunction(object):
         pylab.xlim(*self.x_bounds)
         pylab.ylim(0.0, 1.0)
         pylab.draw()
+        
+    def clear(self):
+        self.y[:]=0.0
 
 class MultiVariateTransferFunction(object):
     def __init__(self):
@@ -395,7 +398,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         """
         alpha = height[3]
         for tf, v in zip(self.funcs, height):
-            tf.add_gaussian(location, width, alpha*v)
+            tf.add_gaussian(location, width, v)
 
     def add_step(self, start, stop, value):
         r"""Adds a step function to the transfer function.
@@ -557,7 +560,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
-        self.add_gaussian(v, w, [r,g,b,alpha])
+        r *= alpha
+        g *= alpha
+        b *= alpha    
+        self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha)))
 
@@ -645,6 +651,11 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             image[:,:,i] = (vals[:,None] * 255).astype('uint8')
         image = image[::-1,:,:]
         return image
+            
+    def clear(self):
+        for f in self.funcs:
+            f.clear()
+
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
     def __init__(self, x_bounds = (-1e60, 1e60), n_fields = 1):
