@@ -277,7 +277,7 @@ class Camera(ParallelAnalysisInterface):
         if north_vector is None:
             north_vector = self.orienter.north_vector
         if normal_vector is None:
-            normal_vector = self.front_cemter - self.center
+            normal_vector = self.orienter.normal_vector
         self.orienter.switch_orientation(normal_vector = normal_vector,
                                          north_vector = north_vector)
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
@@ -525,6 +525,25 @@ class Camera(ParallelAnalysisInterface):
 
         self.switch_view(normal_vector=na.dot(R,normal_vector))
 
+    def roll(self, theta):
+        r"""Roll by a given angle
+
+        Roll the view.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to roll the view.
+
+        Examples
+        --------
+
+        >>> cam.roll(na.pi/4)
+        """
+        rot_vector = self.orienter.normal_vector
+        R = get_rotation_matrix(self, theta, rot_vector)
+        north_vector = self.orienter.north_vector
+        self.switch_view(north_vector=na.dot(R, north_vector))
 
     def rotation(self, theta, n_steps, rot_vector=None, clip_ratio = None):
         r"""Loop over rotate, creating a rotation
@@ -561,23 +580,7 @@ class Camera(ParallelAnalysisInterface):
 data_object_registry["camera"] = Camera
 
 class InteractiveCamera(Camera):
-    def __init__(self, center, normal_vector, width,
-                 resolution, transfer_function,
-                 north_vector = None, steady_north=False,
-                 volume = None, fields = None,
-                 log_fields = None,
-                 sub_samples = 5, pf = None,
-                 use_kd=True, l_max=None, no_ghost=True,
-                 tree_type='domain',le=None, re=None):
-        self.frames = []
-        Camera.__init__(self, center, normal_vector, width,
-                 resolution, transfer_function,
-                 north_vector = north_vector, steady_north=steady_north,
-                 volume = volume, fields = fields,
-                 log_fields = log_fields,
-                 sub_samples = sub_samples, pf = pf,
-                 use_kd=use_kd, l_max=l_max, no_ghost=no_ghost,
-                 tree_type=tree_type,le=le, re=re)
+    frames = []
 
     def snapshot(self, fn = None, clip_ratio = None):
         import matplotlib
