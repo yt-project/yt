@@ -42,7 +42,7 @@ except ImportError:
 from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from yt.utilities.definitions import \
     mpc_conversion
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry

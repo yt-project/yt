@@ -27,7 +27,7 @@ import numpy as na
 
 from yt.funcs import *
 import _colormap_data as cmd
-import yt.utilities.amr_utils as au
+import yt.utilities.lib as au
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 

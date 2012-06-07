@@ -23,19 +23,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from ._amr_utils.CICDeposit import *
-from ._amr_utils.ContourFinding import *
-from ._amr_utils.DepthFirstOctree import *
-from ._amr_utils.fortran_reader import *
-from ._amr_utils.freetype_writer import *
-from ._amr_utils.geometry_utils import *
-from ._amr_utils.Interpolators import *
-from ._amr_utils.misc_utilities import *
-from ._amr_utils.Octree import *
-from ._amr_utils.png_writer import *
-from ._amr_utils.PointsInVolume import *
-from ._amr_utils.QuadTree import *
-from ._amr_utils.RayIntegrators import *
-from ._amr_utils.grid_traversal import *
-from ._amr_utils.marching_cubes import *
-#from ._amr_utils.VolumeIntegrator import *
+from .CICDeposit import *
+from .ContourFinding import *
+from .DepthFirstOctree import *
+from .fortran_reader import *
+from .freetype_writer import *
+from .geometry_utils import *
+from .Interpolators import *
+from .misc_utilities import *
+from .Octree import *
+from .png_writer import *
+from .PointsInVolume import *
+from .QuadTree import *
+from .RayIntegrators import *
+from .grid_traversal import *
+from .marching_cubes import *

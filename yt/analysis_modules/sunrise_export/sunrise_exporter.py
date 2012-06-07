@@ -35,7 +35,7 @@ import time
 import numpy as na
 
 from yt.funcs import *
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 from yt.data_objects.universal_fields import add_field
 from yt.mods import *
 

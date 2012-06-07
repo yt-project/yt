@@ -54,7 +54,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("spatial")
     config.add_subpackage("grid_data_format")
     config.add_subpackage("parallel_tools")
-    config.add_subpackage("_amr_utils")
+    config.add_subpackage("lib")
     config.add_extension("data_point_utilities",
                 "yt/utilities/data_point_utilities.c", libraries=["m"])
     hdf5_inc, hdf5_lib = check_for_hdf5()

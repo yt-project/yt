@@ -27,7 +27,7 @@ import numpy as na
 
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.utilities.amr_utils import write_png_to_string, get_color_bounds
+from yt.utilities.lib import write_png_to_string, get_color_bounds
 
 import yt.utilities.bottle as bottle
 

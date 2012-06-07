@@ -29,7 +29,7 @@ import numpy as na
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.visualization.image_writer import write_image, write_bitmap
-from yt.utilities.amr_utils import kdtree_get_choices
+from yt.utilities.lib import kdtree_get_choices
 from yt.utilities._amr_utils.grid_traversal import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface \

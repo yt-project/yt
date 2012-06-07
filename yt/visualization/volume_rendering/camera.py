@@ -31,7 +31,7 @@ from yt.utilities.math_utils import *
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     arr_vec2pix_nest, arr_pix2vec_nest, \
     arr_ang2pix_nest, arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
@@ -42,7 +42,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
 
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, \
     arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
