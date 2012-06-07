@@ -29,7 +29,7 @@ cimport cython
 cimport kdtree_utils
 cimport healpix_interface
 from stdlib cimport malloc, free, abs
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
@@ -186,7 +186,7 @@ cdef class ImageSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void get_start_stop(self, np.float64_t *ex, int *rv):
+    cdef void get_start_stop(self, np.float64_t *ex, np.int64_t *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
         cdef ImageContainer *im = self.image
@@ -233,22 +233,21 @@ cdef class ImageSampler:
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, j, ni, nj, nn
-        cdef np.int64_t offset
-        cdef int iter[4]
+        cdef np.int64_t offset, iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
         self.setup(pg)
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4]
         hit = 0
-        cdef int nx, ny, size
+        cdef np.int64_t nx, ny, size
         if im.vd_strides[0] == -1:
             self.calculate_extent(extrema, vc)
             self.get_start_stop(extrema, iter)
-            iter[0] = iclip(iter[0]-1, 0, im.nv[0])
-            iter[1] = iclip(iter[1]+1, 0, im.nv[0])
-            iter[2] = iclip(iter[2]-1, 0, im.nv[1])
-            iter[3] = iclip(iter[3]+1, 0, im.nv[1])
+            iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
+            iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
+            iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
+            iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
             nx = (iter[1] - iter[0])
             ny = (iter[3] - iter[2])
             size = nx * ny
