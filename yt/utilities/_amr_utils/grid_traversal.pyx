@@ -232,7 +232,8 @@ cdef class ImageSampler:
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, vj, hit, i, j, ni, nj, nn, offset
+        cdef int vi, vj, hit, i, j, ni, nj, nn
+        cdef np.int64_t offset
         cdef int iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
