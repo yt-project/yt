@@ -30,9 +30,10 @@ import numpy as na
 from exceptions import ValueError, SyntaxError
 
 from yt.funcs import *
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, \
     grid_points_in_volume
+from yt.utilities.orientation import Orientation
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
 from yt.data_objects.derived_quantities import \
@@ -892,7 +893,6 @@ class YTGridCollectionMaxLevelBase(YTSelectionContainer3D):
     def _is_fully_enclosed(self, grid):
         return True
 
-    @cache_mask
     def _get_cut_mask(self, grid):
         return na.ones(grid.ActiveDimensions, dtype='bool')
 

@@ -38,7 +38,7 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.definitions import  x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -59,6 +59,20 @@ def force_array(item, shape):
             return na.ones(shape, dtype='bool')
         else:
             return na.zeros(shape, dtype='bool')
+
+def restore_field_information_state(func):
+    """
+    A decorator that takes a function with the API of (self, grid, field)
+    and ensures that after the function is called, the field_parameters will
+    be returned to normal.
+    """
+    def save_state(self, grid, field=None, *args, **kwargs):
+        old_params = grid.field_parameters
+        grid.field_parameters = self.field_parameters
+        tr = func(self, grid, field, *args, **kwargs)
+        grid.field_parameters = old_params
+        return tr
+    return save_state
 
 class YTFieldData(dict):
     """

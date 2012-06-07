@@ -37,10 +37,11 @@ from functools import wraps
 from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
-    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
+    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
+    restore_field_information_state
 from .field_info_container import \
     NeedsOriginalGrid
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     QuadTree, ghost_zone_interpolate
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
