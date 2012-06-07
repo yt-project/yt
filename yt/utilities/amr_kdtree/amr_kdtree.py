@@ -34,7 +34,6 @@ from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
-import matplotlib.pylab as pl
 from copy import deepcopy
 from yt.config import ytcfg
 from time import time
