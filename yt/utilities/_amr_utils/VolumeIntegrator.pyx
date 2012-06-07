@@ -1635,7 +1635,7 @@ cdef class ProtoPrism:
     @cython.wraparound(False)
     def get_brick(self, np.ndarray[np.float64_t, ndim=1] grid_left_edge,
                         np.ndarray[np.float64_t, ndim=1] grid_dds,
-                        child_mask):
+                        np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask):
         # We get passed in the left edge, the dds (which gives dimensions) and
         # the data, which is already vertex-centered.
         cdef PartitionedGrid PG

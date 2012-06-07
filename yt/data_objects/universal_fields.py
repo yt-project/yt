@@ -60,19 +60,16 @@ from yt.utilities.physical_constants import \
 # I violate it here in order to keep the name/func_name relationship
 
 def _dx(field, data):
-    return data.dds[0]
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_field('dx', function=_dx, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
-    return data.dds[1]
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_field('dy', function=_dy, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
-    return data.dds[2]
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
@@ -120,13 +117,11 @@ add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
 def _Ones(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64')
+    return na.ones(data.shape, dtype='float64')
 add_field("Ones", function=_Ones,
-          validators=[ValidateSpatial(0)],
           projection_conversion="unitary",
           display_field = False)
-add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
-          display_field = False)
+add_field("CellsPerBin", function=_Ones, display_field = False)
 
 def _SoundSpeed(field, data):
     if data.pf["EOSType"] == 1:

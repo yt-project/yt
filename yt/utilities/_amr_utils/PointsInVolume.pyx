@@ -221,7 +221,7 @@ def calculate_fill_grids(int fill_level, int refratio, int last_level,
                          np.ndarray[np.int32_t, ndim=1] cg_dims,
                          np.ndarray[np.int64_t, ndim=1] g_start_index,
                          np.ndarray[np.int32_t, ndim=1] g_dims,
-                         np.ndarray[np.int32_t, ndim=3] g_child_mask):
+                         np.ndarray[np.uint8_t, ndim=3, cast=True] g_child_mask):
     cdef np.int64_t cgstart[3], gstart[3]
     cdef np.int64_t cgend[3], gend[3]
     cdef np.int64_t dw[3]

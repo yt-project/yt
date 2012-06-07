@@ -29,6 +29,7 @@ cimport numpy as np
 # Double up here for def'd functions
 cimport numpy as cnp
 cimport cython
+from fp_utils cimport fmax
 
 from stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
@@ -293,6 +294,26 @@ cdef class QuadTree:
             pos[0] = pxs[p]
             pos[1] = pys[p]
             self.add_to_position(level, pos, vals, pweight_vals[p])
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def add_chunk_to_tree(self, 
+            np.ndarray[np.int64_t, ndim=1] pxs,
+            np.ndarray[np.int64_t, ndim=1] pys,
+            np.ndarray[np.int64_t, ndim=1] level,
+            np.ndarray[np.float64_t, ndim=2] pvals,
+            np.ndarray[np.float64_t, ndim=1] pweight_vals):
+        cdef int np = pxs.shape[0]
+        cdef int p
+        cdef cnp.float64_t *vals
+        cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
+        cdef cnp.int64_t pos[2]
+        for p in range(np):
+            vals = data + self.nvals*p
+            pos[0] = pxs[p]
+            pos[1] = pys[p]
+            self.add_to_position(level[p], pos, vals, pweight_vals[p])
         return
 
     def add_grid_to_tree(self, int level,

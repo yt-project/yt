@@ -24,12 +24,12 @@ License:
 """
 
 import numpy as na
+from yt.data_objects.construction_data_containers import YTStreamlineBase
 from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from yt.data_objects.data_containers import AMRStreamlineBase
-        
+
 class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
 
@@ -183,17 +183,17 @@ class Streamlines(ParallelAnalysisInterface):
 
     def path(self, streamline_id):
         """
-        Returns an AMR1DData object defined by a streamline.
+        Returns an YTSelectionContainer1D object defined by a streamline.
 
         Parameters
         ----------
         streamline_id : int
             This defines which streamline from the Streamlines object
-            that will define the AMR1DData object.
+            that will define the YTSelectionContainer1D object.
 
         Returns
         -------
-        An AMRStreamlineBase AMR1DData object
+        An YTStreamlineBase YTSelectionContainer1D object
 
         Examples
         --------
@@ -205,5 +205,5 @@ class Streamlines(ParallelAnalysisInterface):
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
         
         """
-        return AMRStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
+        return YTStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
         

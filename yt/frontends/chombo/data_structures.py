@@ -46,8 +46,8 @@ from .definitions import \
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
      AMRGridPatch
-from yt.data_objects.hierarchy import \
-     AMRHierarchy
+from yt.geometry.grid_geometry_handler import \
+     GridGeometryHandler
 from yt.data_objects.static_output import \
      StaticOutput
 from yt.utilities.definitions import \
@@ -102,7 +102,7 @@ class ChomboGrid(AMRGridPatch):
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class ChomboHierarchy(AMRHierarchy):
+class ChomboHierarchy(GridGeometryHandler):
 
     grid = ChomboGrid
     
@@ -120,7 +120,8 @@ class ChomboHierarchy(AMRHierarchy):
 
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._fhandle.keys()[1:]
-        AMRHierarchy.__init__(self,pf,data_style)
+        GridGeometryHandler.__init__(self,pf,data_style)
+
         self._fhandle.close()
 
     def _initialize_data_storage(self):
@@ -132,7 +133,7 @@ class ChomboHierarchy(AMRHierarchy):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):
@@ -166,7 +167,6 @@ class ChomboHierarchy(AMRHierarchy):
                 i += 1
         self.grids = na.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
-#        self.grids = na.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
         for g in self.grids:

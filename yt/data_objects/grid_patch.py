@@ -40,6 +40,7 @@ from .field_info_container import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter
+from yt.geometry.selection_routines import convert_mask_to_indices
 
 class AMRGridPatch(object):
     _spatial = True
@@ -57,7 +58,8 @@ class AMRGridPatch(object):
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
                  '_child_mask', '_child_indices', '_child_index_mask',
-                 '_parent_id', '_children_ids']
+                 '_parent_id', '_children_ids',
+                 '_last_mask', '_last_selector_id']
 
     def __init__(self, id, filename=None, hierarchy=None):
         self.field_data = YTFieldData()
@@ -67,6 +69,8 @@ class AMRGridPatch(object):
         self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
+        self._last_mask = None
+        self._last_selector_id = None
 
     def get_global_startindex(self):
         """
@@ -227,6 +231,10 @@ class AMRGridPatch(object):
             [self.LeftEdge[0],  self.RightEdge[1], self.LeftEdge[2]],
             ], dtype='float64')
 
+    @property
+    def shape(self):
+        return tuple(self.ActiveDimensions)
+
     def _generate_overlap_masks(self, axis, LE, RE):
         """
         Generate a mask that shows which cells overlap with arbitrary arrays
@@ -386,7 +394,7 @@ class AMRGridPatch(object):
         thus, where higher resolution data is available).
 
         """
-        self._child_mask = na.ones(self.ActiveDimensions, 'int32')
+        self._child_mask = na.ones(self.ActiveDimensions, 'bool')
         for child in self.Children:
             self.__fill_child_mask(child, self._child_mask, 0)
         if self.OverlappingSiblings is not None:
@@ -503,3 +511,57 @@ class AMRGridPatch(object):
             na.multiply(new_field, 0.125, new_field)
 
         return new_field
+
+    def icoords(self, dobj):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty((0,3), dtype='int64')
+        coords = convert_mask_to_indices(mask, mask.sum())
+        coords += self.get_global_startindex()[None, :]
+        return coords
+
+    def fcoords(self, dobj):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty((0,3), dtype='float64')
+        coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
+        coords += 0.5
+        coords *= self.dds[None, :]
+        coords += self.LeftEdge[None, :]
+        return coords
+
+    def fwidth(self, dobj):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty((0,3), dtype='float64')
+        coords = na.empty((mask.sum(), 3), dtype='float64')
+        for axis in range(3):
+            coords[:,axis] = self.dds[axis]
+        return coords
+
+    def ires(self, dobj):
+        mask = self.select(dobj.selector)
+        if mask is None: return na.empty(0, dtype='int64')
+        coords = na.empty(mask.sum(), dtype='int64')
+        coords[:] = self.Level
+        return coords
+
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
+
+    def count_particles(self, selector, x, y, z):
+        # We don't cache the selector results
+        count = selector.count_points(x,y,z)
+        return count
+
+    def select_particles(self, selector, x, y, z):
+        mask = selector.select_points(x,y,z)
+        return mask

@@ -36,7 +36,7 @@ import numpy as na
 from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.data_objects.hierarchy import AMRHierarchy
+from yt.geometry.grid_geometry_handler import GridGeometryHandler
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.definitions import mpc_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -114,7 +114,7 @@ class OrionGrid(AMRGridPatch):
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
 
-class OrionHierarchy(AMRHierarchy):
+class OrionHierarchy(GridGeometryHandler):
     grid = OrionGrid
     def __init__(self, pf, data_style='orion_native'):
         self.field_indexes = {}
@@ -125,7 +125,7 @@ class OrionHierarchy(AMRHierarchy):
 
         self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
         self.__cache_endianness(self.levels[-1].grids[-1])
-        AMRHierarchy.__init__(self,pf, self.data_style)
+        GridGeometryHandler.__init__(self,pf, self.data_style)
         self._populate_hierarchy()
         self._read_particles()
 
@@ -393,7 +393,7 @@ class OrionHierarchy(AMRHierarchy):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         #self._add_object_class('grid', "OrionGrid", OrionGridBase, dd)
         self.object_types.sort()
 
@@ -428,7 +428,7 @@ class OrionHierarchy(AMRHierarchy):
         pass
 
     def _initialize_state_variables(self):
-        """override to not re-initialize num_grids in AMRHierarchy.__init__
+        """override to not re-initialize num_grids in GridGeometryHandler.__init__
 
         """
         self._parallel_locking = False

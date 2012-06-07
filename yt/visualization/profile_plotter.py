@@ -178,7 +178,7 @@ class PhasePlotter(object):
                  lazy_reader=True, fractional=False):
         r"""From an existing object, create a 2D, binned profile.
 
-        This function will accept an existing `AMRData` source and from that,
+        This function will accept an existing `YTDataContainer` source and from that,
         it will generate a `Binned2DProfile`, based on the specified options.
         This is useful if you have extracted a region, or if you wish to bin
         some set of massages data -- or even if you wish to bin anything other
@@ -188,8 +188,8 @@ class PhasePlotter(object):
 
         Parameters
         ----------
-        data_source : `yt.data_objects.api.AMRData`
-            This is a data source respecting the `AMRData` protocol (i.e., it
+        data_source : `yt.data_objects.api.YTDataContainer`
+            This is a data source respecting the `YTDataContainer` protocol (i.e., it
             has grids and so forth) that will be used as input to the profile
             generation.
         fields : list of strings

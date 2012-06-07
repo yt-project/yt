@@ -48,6 +48,11 @@ _cached_pfs = weakref.WeakValueDictionary()
 _pf_store = ParameterFileStore()
 
 class StaticOutput(object):
+
+    default_fluid_type = "gas"
+    fluid_types = ("gas",)
+    particle_types = ("all",)
+
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
@@ -213,6 +218,8 @@ class StaticOutput(object):
             # away the exising field_info.
             self.field_info = FieldInfoContainer.create_with_fallback(
                                 self._fieldinfo_fallback)
+        if getattr(self, "field_dependencies", None) is None:
+            self.field_dependencies = {}
 
         
 

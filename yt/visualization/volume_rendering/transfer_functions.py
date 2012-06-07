@@ -61,6 +61,8 @@ class TransferFunction(object):
         self.x_bounds = x_bounds
         self.x = na.linspace(x_bounds[0], x_bounds[1], nbins).astype('float64')
         self.y = na.zeros(nbins, dtype='float64')
+        self.grad_field = -1
+        self.light_source_v = self.light_source_c = na.zeros(3, 'float64')
 
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
@@ -239,6 +241,8 @@ class MultiVariateTransferFunction(object):
         self.weight_field_ids = [-1] * 6 # This correlates 
         self.field_table_ids = [0] * 6
         self.weight_table_ids = [-1] * 6
+        self.grad_field = -1
+        self.light_source_v = self.light_source_c = na.zeros(3, 'float64')
 
     def add_field_table(self, table, field_id, weight_field_id = -1,
                         weight_table_id = -1):

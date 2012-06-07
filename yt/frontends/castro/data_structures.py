@@ -36,7 +36,7 @@ import numpy as na
 from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.data_objects.hierarchy import AMRHierarchy
+from yt.geometry.grid_geometry_handler import GridGeometryHandler
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.definitions import mpc_conversion
 from yt.utilities.amr_utils import get_box_grids_level
@@ -117,7 +117,7 @@ class CastroGrid(AMRGridPatch):
     def __repr__(self):
         return "CastroGrid_%04i" % (self.id)
 
-class CastroHierarchy(AMRHierarchy):
+class CastroHierarchy(GridGeometryHandler):
     grid = CastroGrid
 
     def __init__(self, pf, data_style='castro_native'):
@@ -418,7 +418,7 @@ class CastroHierarchy(AMRHierarchy):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         #self._add_object_class('grid', "CastroGrid", CastroGridBase, dd)
         self.object_types.sort()
 
@@ -488,7 +488,7 @@ class CastroHierarchy(AMRHierarchy):
         pass
 
     def _initialize_state_variables(self):
-        """override to not re-initialize num_grids in AMRHierarchy.__init__
+        """override to not re-initialize num_grids in GridGeometryHandler.__init__
 
         """
         self._parallel_locking = False

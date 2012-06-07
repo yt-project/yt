@@ -23,10 +23,12 @@ License:
 
 import numpy as na
 import types, os
+from yt.data_objects.construction_data_containers import YTOverlapProjBase
+from yt.data_objects.selection_data_containers import YTSliceBase
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.data_objects.data_containers import \
-    data_object_registry, AMRProjBase, AMRSliceBase
+    data_object_registry
 from yt.utilities.definitions import \
     x_dict, y_dict
 from yt.funcs import *
@@ -47,7 +49,7 @@ class VariableMeshPanner(object):
         and *viewport_callback* is called with the new *xlim* and *ylim* values
         each time the viewport changes.
         """
-        #if not isinstance(source, (AMRProjBase, AMRSliceBase)):
+        #if not isinstance(source, (YTOverlapProjBase, YTSliceBase)):
         #    raise RuntimeError
         if callback is None:
             callback = lambda a: None

@@ -47,7 +47,7 @@ class AstrophysicalObject(object):
 
     def __init__(self, data_source):
         self.objects = {}
-        # We mandate that every object have a corresponding AMR3DData source
+        # We mandate that every object have a corresponding YTSelectionContainer3D source
         # affiliated with it.
         self.data_source = data_source
 

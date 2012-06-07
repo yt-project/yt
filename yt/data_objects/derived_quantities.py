@@ -34,32 +34,12 @@ from yt.data_objects.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, parallel_objects
 from yt.utilities.amr_utils import Octree
 
 __CUDA_BLOCK_SIZE = 256
 
 quantity_info = {}
-
-class GridChildMaskWrapper:
-    def __init__(self, grid, data_source):
-        self.grid = grid
-        self.data_source = data_source
-        # We have a local cache so that *within* a call to the DerivedQuantity
-        # function, we only read each field once.  Otherwise, when preloading
-        # the field will be popped and removed and lost if the underlying data
-        # source's _get_data_from_grid method is wrapped by restore_state.
-        # This is common.  So, if data[something] is accessed multiple times by
-        # a single quantity, the second time will re-read the data the slow
-        # way.
-        self.local_cache = {}
-    def __getattr__(self, attr):
-        return getattr(self.grid, attr)
-    def __getitem__(self, item):
-        if item not in self.local_cache:
-            data = self.data_source._get_data_from_grid(self.grid, item)
-            self.local_cache[item] = data
-        return self.local_cache[item]
 
 class DerivedQuantity(ParallelAnalysisInterface):
     def __init__(self, collection, name, function,
@@ -77,47 +57,28 @@ class DerivedQuantity(ParallelAnalysisInterface):
         self.force_unlazy = force_unlazy
 
     def __call__(self, *args, **kwargs):
-        lazy_reader = kwargs.pop('lazy_reader', True)
-        preload = kwargs.pop('preload', ytcfg.getboolean("yt","__parallel"))
-        if preload:
-            if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
-            lazy_reader = True
-            e = FieldDetector(flat = True)
-            e.NumberOfParticles = 1
-            self.func(e, *args, **kwargs)
-            mylog.debug("Preloading %s", e.requested)
-            self.comm.preload([g for g in self._get_grid_objs()], e.requested,
-                          self._data_source.pf.h.io)
-        if lazy_reader and not self.force_unlazy:
-            return self._call_func_lazy(args, kwargs)
-        else:
-            return self._call_func_unlazy(args, kwargs)
-
-    def _call_func_lazy(self, args, kwargs):
-        self.retvals = [ [] for i in range(self.n_ret)]
-        for gi,g in enumerate(self._get_grids()):
-            rv = self.func(GridChildMaskWrapper(g, self._data_source), *args, **kwargs)
-            for i in range(self.n_ret): self.retvals[i].append(rv[i])
-            g.clear_data()
-        self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]
-        return self.c_func(self._data_source, *self.retvals)
-
-    def _finalize_parallel(self):
+        e = FieldDetector(flat = True)
+        e.NumberOfParticles = 1
+        fields = e.requested
+        self.func(e, *args, **kwargs)
+        retvals = [ [] for i in range(self.n_ret)]
+        chunks = self._data_source.chunks([], chunking_style="io")
+        for ds in parallel_objects(chunks, -1):
+            rv = self.func(ds, *args, **kwargs)
+            for i in range(self.n_ret): retvals[i].append(rv[i])
+        retvals = [na.array(retvals[i]) for i in range(self.n_ret)]
         # Note that we do some fancy footwork here.
         # _par_combine_object and its affiliated alltoall function
         # assume that the *long* axis is the last one.  However,
         # our long axis is the first one!
         rv = []
-        for my_list in self.retvals:
+        for my_list in retvals:
             data = na.array(my_list).transpose()
             rv.append(self.comm.par_combine_object(data,
                         datatype="array", op="cat").transpose())
-        self.retvals = rv
+        retvals = rv
+        return self.c_func(self._data_source, *retvals)
         
-    def _call_func_unlazy(self, args, kwargs):
-        retval = self.func(self._data_source, *args, **kwargs)
-        return self.c_func(self._data_source, *retval)
-
 def add_quantity(name, **kwargs):
     if 'function' not in kwargs or 'combine_function' not in kwargs:
         mylog.error("Not adding field %s because both function and combine_function must be provided" % name)
@@ -641,38 +602,36 @@ def _MaxLocation(data, field):
     This function returns the location of the maximum of a set
     of fields.
     """
-    ma, maxi, mx, my, mz, mg = -1e90, -1, -1, -1, -1, -1
+    ma, maxi, mx, my, mz = -1e90, -1, -1, -1, -1
     if data[field].size > 0:
         maxi = na.argmax(data[field])
         ma = data[field][maxi]
         mx, my, mz = [data[ax][maxi] for ax in 'xyz']
-        mg = data["GridIndices"][maxi]
-    return (ma, maxi, mx, my, mz, mg)
+    return (ma, maxi, mx, my, mz)
 def _combMaxLocation(data, *args):
     args = [na.atleast_1d(arg) for arg in args]
     i = na.argmax(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
 add_quantity("MaxLocation", function=_MaxLocation,
-             combine_function=_combMaxLocation, n_ret = 6)
+             combine_function=_combMaxLocation, n_ret = 5)
 
 def _MinLocation(data, field):
     """
     This function returns the location of the minimum of a set
     of fields.
     """
-    ma, mini, mx, my, mz, mg = 1e90, -1, -1, -1, -1, -1
+    ma, mini, mx, my, mz = 1e90, -1, -1, -1, -1
     if data[field].size > 0:
         mini = na.argmin(data[field])
         ma = data[field][mini]
         mx, my, mz = [data[ax][mini] for ax in 'xyz']
-        mg = data["GridIndices"][mini]
-    return (ma, mini, mx, my, mz, mg)
+    return (ma, mini, mx, my, mz)
 def _combMinLocation(data, *args):
     args = [na.atleast_1d(arg) for arg in args]
     i = na.argmin(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
 add_quantity("MinLocation", function=_MinLocation,
-             combine_function=_combMinLocation, n_ret = 6)
+             combine_function=_combMinLocation, n_ret = 5)
 
 
 def _TotalQuantity(data, fields):

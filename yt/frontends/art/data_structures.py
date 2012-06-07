@@ -26,437 +26,304 @@ License:
 import numpy as na
 import stat
 import weakref
-import cPickle
-import os
 import struct
 
-import pdb
+import os
+import os.path
+
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
-from yt.data_objects.hierarchy import \
-      AMRHierarchy
+from yt.geometry.oct_geometry_handler import \
+    OctreeGeometryHandler
+from yt.geometry.geometry_handler import \
+    GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
-      StaticOutput
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
-from .fields import \
-    ARTFieldInfo, add_art_field, KnownARTFields
+    StaticOutput
+
+from .fields import ARTFieldInfo, KnownARTFields
+from .definitions import ART_header
 from yt.utilities.definitions import \
     mpc_conversion
+from yt.utilities.amr_utils import \
+    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
-import yt.utilities.amr_utils as amr_utils
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+import yt.utilities.fortran_utils as fpu
+from yt.geometry.oct_container import \
+    RAMSESOctreeContainer
 
-try:
-    import yt.frontends.ramses._ramses_reader as _ramses_reader
-except ImportError:
-    _ramses_reader = None
+from yt.frontends.art.definitions import * 
+from yt.frontends.art.io import _read_child_mask_level
+from yt.frontends.art.io import read_particles
+from yt.frontends.art.io import read_stars
+from yt.frontends.art.io import _count_art_octs
+from yt.frontends.art.io import _read_art_level_info
+from yt.frontends.art.io import _read_art_child
+from yt.frontends.art.io import _skip_record
+from yt.frontends.art.io import _read_record
+from yt.frontends.art.io import _read_frecord
+from yt.frontends.art.io import _read_record_size
+from yt.frontends.art.io import _read_struct
+from yt.frontends.art.io import b2t
 
-from yt.utilities.physical_constants import \
-    mass_hydrogen_cgs
+#Model these classes after the RAMSES data structures, 
+#but we don't have domains
 
-def num_deep_inc(f):
-    def wrap(self, *args, **kwargs):
-        self.num_deep += 1
-        rv = f(self, *args, **kwargs)
-        self.num_deep -= 1
-        return rv
-    return wrap
+class ARTFile(object):
+    def __init__(self,file_amr,discover_particles=True,
+                 file_amr_template="10MpcBox_csf512_%s.d",
+                 file_particle_header_template="PMcrd%s.DAT",
+                 file_particle_data_template="PMcrs0%s.DAT",
+                 file_star_data_template="stars_%s.dat",
+                 file_particle_header=None, 
+                 file_particle_data=None,
+                 file_star_data=None,
+                 limit_level = na.inf):
+        """Discover all of the necesary files. Using the supplied
+           file_amr the '%s' in file_amr_template is found and, 
+           when supplied template file names, particle files
+           are found.
+        
+        Arguments:
+        file_amr -- The file holding the hydro octree
 
-class ARTGrid(AMRGridPatch):
-    _id_offset = 0
+        Keyword arguments:
+        discover_particles   -- If True, tries to find particle files
+        file_amr_template    -- This glob is used to discover other files
+        file_*template       -- Particle filename conventions
+        file_particle_header -- Particle header file location
+        file_particle_data   -- Particle data file location
+        file_star_data       -- Star data file location
+        limit_level          -- Ignore AMR past this level,
+                                good for faster testing
 
-    def __init__(self, id, hierarchy, level, locations, start_index):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
-        self.Level = level
-        self.Parent = []
-        self.Children = []
-        self.locations = locations
-        self.start_index = start_index.copy()
-
-    def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
+        """ 
+        if limit_level is None:
+            self.limit_level = na.inf
         else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+            mylog.info("Using maximum level: %i",limit_level)
+            self.limit_level = limit_level
+        
+        amr_prefix  = file_amr_template[:file_amr_template.find('%s')]
+        amr_postfix = file_amr_template[file_amr_template.find('%s')+1:]
+        file_uid    = file_amr.replace(amr_prefix,'').replace(amr_postfix,'')
+        dirn = os.path.dirname(amr_filename)
+        base = os.path.basename(amr_filename)
+        
+        self.file_amr= file_amr
+        self.file_particle_header = file_particle_header
+        self.file_particle_data = file_particle_data
+        self.file_star_data = file_star_data
 
-    def get_global_startindex(self):
+        if discover_particles:
+            if file_particle_header is None:
+                loc = dirn+file_particle_header_template%file_uid
+                if os.path.exists(loc):
+                    self.file_particle_header = loc
+                    mylog.info("Discovered particle header: %s",
+                            os.path.basename(loc))
+            if file_particle_data is None:
+                loc = dirn+file_particle_data_template%file_uid
+                if os.path.exists(loc):
+                    self.file_particle_data = loc
+                    mylog.info("Discovered particle data:   %s",
+                                os.path.basename(loc))
+            if file_star_data is None:
+                loc = dirn+file_star_data_template%file_uid
+                if os.path.exists(loc):
+                    self.file_star_data = loc
+                    mylog.info("Discovered stellar data:    %s",
+                                os.path.basename(loc))
+
+    def _read_amr_header(self):
+        """Read the ART header into the self.parameters dictionary"""
+        f = open(self.file_amr,'rb')
+        self.parameters = {}
+        for format,name in  amr_header_struct.iteritems():
+            size = struct.calcsize(format)
+            output = struct.unpac(format,f.read(size))[0]
+            self.parameters[name] = output
+        for k,v in parameters:
+            self.parameters[k]=v
+        for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
+            _skip_record(f)
+        
+        #file info structural variables
+        self.ncell, = struct.unpack('>l', _read_record(f))
+        self.root_grid_mask_offset = f.tell()
+        self.domain_dimensions  = na.ones(3,dtype='int64')
+        self.domain_dimensions *= na.rint(self.ncell**(1./3.))
+        
+        root_cells = self.domain_dimensions.prod()
+        self.root_iOctCh = _read_frecord(f,'>i')[:root_cells]
+        self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
+                                                    order='F')
+        self.root_grid_offset = f.tell()
+        _skip_record(f) # hvar
+        _skip_record(f) # var
+        self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
+        self.child_grid_offset = f.tell()
+        
+        f.close()
+        self._update_parameters()
+        
+    def _read_amr(self, oct_handler):
+        """Open the oct file, read in octs level-by-level.
+           For each oct, only the position, index, level and domain 
+           are needed - it's position in the octree is found automatically.
+           The most important is finding all the information to feed
+           oct_handler.add
         """
-        Return the integer starting index for each dimension at the current
-        level.
-        """
-        if self.start_index != None:
-            return self.start_index
-        if len(self.Parent) == 0:
-            start_index = self.LeftEdge / self.dds
-            return na.rint(start_index).astype('int64').ravel()
-        pdx = self.Parent[0].dds
-        start_index = (self.Parent[0].get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
-        return self.start_index
+        f = open(self.file_amr, "rb")
+        mylog.debug("Reading AMR file %s"%self.file_amr)
+        
+        (self.nhydro_vars, self.level_info,
+        self.level_oct_offsets, 
+        self.level_offsets) = \
+                         _count_art_octs(f, 
+                          self.child_grid_offset,
+                          self.min_level, self.max_level)
+        self.level_info = na.array(self.level_info)        
+        self.level_info[0]=self.ncell
+        self.level_offsets = na.array(self.level_offsets, dtype='int64')
+        self.level_offsets[0] = self.root_grid_offset
 
-    def __repr__(self):
-        return "ARTGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        #iterate over all of the level, skip the root grid
+        for level in xrange(1,len(self.level_info)):
+            if self.level_info[level]==0:
+                continue
+            if level > self.limit_level: 
+                mylog.debug("Reached the level limit")
+                continue
 
-class ARTHierarchy(AMRHierarchy):
+            if level == 0:
+                #create the root grid a priori
+                nd = self.domain_dimensions[0]
+                nocts = nd.prod()
+                indices = na.arange(nocts,dtype='int64')
+                #put the indices in fortran order
+                #matching that of hydrovars read off disk
+                indices = na.reshape(indices,(nd**3,3),order='F') 
+                indices = na.ravel(indices)
+                left_index = na.mgrid[0:nd,0:nd,0:nd] 
+                left_index = na.reshape(left_index.T,(nd**3,3),order='F')
+            else: 
+                #find the LE for every oct
+                left_index, file_loc, nocts = \
+                        _read_art_level_info(f,self.level_oct_offsets,level)
 
-    grid = ARTGrid
-    _handle = None
-    
-    def __init__(self, pf, data_style='art'):
+            #the first arg is the domain ID, which for RAMSES is separated
+            #by CPU  boundaries. It's always zero for us.
+            cpu_map = na.empty((nocts,8),dtype="int64")
+            oct_handler.add(0,level,nocts,left_index,indices,cpu_map)
+        f.close()
+
+    def _update_parameters(self):
+        """Update the parameters, fill in the expected properties"""
+        self.parameters = update_parameters(self.parameters)
+
+        self.current_redshift = self.parameters['aexpn']**-1.0-1.0
+        self.current_time = self.parameters['t']
+        self.omega_lambda = self.parameters['Oml0']
+        self.omega_matter = self.parameters['Om0']
+        self.hubble_constant = header_vals['hubble']
+        self.min_level = header_vals['min_level']
+        self.max_level = header_vals['max_level']
+        self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
+        self.current_time = b2t(self.parameters['t'])        
+
+class ARTGeometryHandler(OctreeGeometryHandler):
+
+    def __init__(self,pf,data_style="art"):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.pf= weakref.proxy(pf)
+        self.hierarchy_filename = self.parameter_file.file_amr
+        self.directory = os.path.dirname(self.hiearchy_filename) 
 
-        self.float_type = na.float64
-        AMRHierarchy.__init__(self,pf,data_style)
+        #initializes octs, reads in tree
+        super(ARTGeometryHandler,self).__init__(pf,data_style)
 
-    def _initialize_data_storage(self):
-        pass
+        #read in particles & headers
+
+    def _initialize_oct_handler(self):
+        self.amr = ARTFile(self.pf) 
+        
+        self.amr._read_amr_header()
+        self.amr._update_parameters()
+        nocts = self.amr.level_info.sum()
+        
+        #allocate octs
+        mylog.debug("Allocating %s octs", nocts)
+        le = na.array([0.,0.,0.]) #left edge
+        re = self.amr.domain_dimensions #right edge
+        dx = self.amr.domain_dimensions[0] #number of cells on root side
+        self.oct_handler = RAMSESOctreeContainer(dx,le,re,nocts)
+        
+        #this actually reads every oct and loads it into the octree
+        self.amr._read_amr(self.oct_handler)
 
     def _detect_fields(self):
-        # This will need to be generalized to be used elsewhere.
-        self.field_list = [ 'Density','TotalEnergy',
-                            'x-momentum','y-momentum','z-momentum',
-                            'Pressure','Gamma','GasEnergy',
-                            'Metal_DensitySNII', 'Metal_DensitySNIa',
-                            'Potential_New','Potential_Old']
+        self.field_list = field_list #imported from definitions
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        super(ARTGeometryHandler, self)._setup_classes(dd)
         self.object_types.sort()
 
-    def _count_grids(self):
-        # We have to do all the patch-coalescing here.
-        #level_info is used by the IO so promoting it to the static
-        # output class
-        #self.pf.level_info = [self.pf.ncell] # skip root grid for now
-        #leve_info = []
-        # amr_utils.count_art_octs(
-        #         self.pf.parameter_filename, self.pf.child_grid_offset,
-        #         self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
-        #         self.pf.level_info)
-        
-        f = open(self.pf.parameter_filename,'rb')
-        self.pf.nhydro_vars, self.pf.level_info = _count_art_octs(f, 
-                          self.pf.child_grid_offset,
-                          self.pf.min_level, self.pf.max_level)
-        self.pf.level_info[0]=self.pf.ncell
-        f.close()
-        self.pf.level_info = na.array(self.pf.level_info)
-        num_ogrids = sum(self.pf.level_info) + self.pf.iOctFree
-        print 'found %i oct grids'%num_ogrids
-        num_ogrids *=7
-        print 'instantiating... %i grids'%num_ogrids
-        ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
-        ogrid_levels = na.zeros(num_ogrids, dtype='int64')
-        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        
-        #don't need parents?
-        #ogrid_parents = na.zeros(num_ogrids, dtype="int64")
-        
-        #don't need masks?
-        #ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
-        
-        self.pf.level_offsets = amr_utils.read_art_tree(
-                                self.pf.parameter_filename, 
-                                self.pf.child_grid_offset,
-                                self.pf.min_level, self.pf.max_level,
-                                ogrid_left_indices, ogrid_levels,
-                                ogrid_file_locations)
-                                #ochild_masks,
-                                #ogrid_parents, 
-                                
-        self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
-        self.pf.level_offsets[0] = self.pf.root_grid_offset
-        #ochild_masks.reshape((num_ogrids, 8), order="F")
-        ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
-        # This bit of code comes from Chris, and I'm still not sure I have a
-        # handle on what it does.
-        final_indices =  ogrid_left_indices[na.where(ogrid_levels==self.pf.max_level)[0]]
-        divisible=[na.all((final_indices%2**(level))==0) 
-            for level in xrange(self.pf.max_level*2)]
-        root_level = self.pf.max_level+na.where(na.logical_not(divisible))[0][0] 
-        ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
-        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 1) - 1
+    def _count_selection(self, dobj, mask = None, oct_indices = None):
+        if mask is None:
+            mask = dobj.selector.select_octs(self.oct_handler)
+        if oct_indices is None:
+            oct_indices = self.oct_handler.count(mask, split = True) 
+        domains = getattr(dobj, "_domains", None)
+        if domains is None:
+            count = [i.size for i in oct_indices]
+            nocts = sum(count)
+            domains = [dom for dom in self.domains
+                       if count[dom.domain_id - 1] > 0]
+        count = self.oct_handler.count_cells(dobj.selector, mask)
+        return count
 
-        # Now we can rescale
-        # root_psg = _ramses_reader.ProtoSubgrid(
-        #                 na.zeros(3, dtype='int64'), # left index of PSG
-        #                 self.pf.domain_dimensions, # dim of PSG
-        #                 na.zeros((1,3), dtype='int64'), # left edges of grids
-        #                 self.pf.domain_dimensions[None,:], # right edges of grids
-        #                 self.pf.domain_dimensions[None,:], # dims of grids
-        #                 na.zeros((1,6), dtype='int64') # empty
-        #                 )
-        
-        root_psg = _ramses_reader.ProtoSubgrid(
-                        na.zeros(3, dtype='int64'), # left index of PSG
-                        self.pf.domain_dimensions, # dim of PSG
-                        na.zeros((1,3), dtype='int64'), # left edges of grids
-                        na.zeros((1,6), dtype='int64') # empty
-                        )
-        
-        self.proto_grids = [[root_psg],]
-        for level in xrange(1, len(self.pf.level_info)):
-            if self.pf.level_info[level] == 0:
-                self.proto_grids.append([])
-                continue
-            ggi = (ogrid_levels == level).ravel()
-            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
-            nd = self.pf.domain_dimensions * 2**level
-            dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
-            fl = ogrid_file_locations[ggi,:]
-            # Now our initial protosubgrid
-            #if level == 6: raise RuntimeError
-            # We want grids that cover no more than MAX_EDGE cells in every direction
-            MAX_EDGE = 128
-            psgs = []
-            #refers to the left index for the art octgrid
-            left_index = ogrid_left_indices[ggi,:]
-            right_index = left_index + 2
-            #Since we are re-gridding these octs on larger meshes
-            #each sub grid has length MAX_EDGE, and so get the LE of
-            #grids fit inside the domain
-            # nd is the dimensions of the domain at this level
-            lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
-            #lefts = zip(*[l.ravel() for l in lefts])
-            pbar = get_pbar("Re-gridding ", lefts[0].size)
-            min_ind = na.min(left_index, axis=0)
-            max_ind = na.max(right_index, axis=0)
-            
-            #iterate over the ith dimension of the yt grids
-            for i,dli in enumerate(lefts[0]):
-                pbar.update(i)
-                
-                #skip this grid if there are no art grids inside
-                #of the zeroeth dimension
-                if min_ind[0] > dli + nd[0]: continue
-                if max_ind[0] < dli: continue
-                
-                # span of the current domain limited to max_edge
-                idim = min(nd[0] - dli, MAX_EDGE)
+    def _identify_base_chunk(self, dobj):
+        if getattr(dobj, "_domains", None) is None:
+            mask = dobj.selector.select_octs(self.oct_handler)
+            indices = self.oct_handler.count(mask, split = True) 
+            count = [i.size for i in indices]
+            nocts = sum(count)
+            domains = [dom for dom in self.domains
+                       if count[dom.domain_id - 1] > 0]
+            dobj._grids = na.array(domains, dtype='object')
+            dobj.size = self._count_selection(dobj, mask, indices)
+            dobj.shape = (dobj.size,)
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
-                #gdi finds all of the art octs grids inside the 
-                #ith dimension of our current grid
-                gdi = ((dli  <= right_index[:,0])
-                     & (dli + idim >= left_index[:,0]))
-                     
+    def _chunk_all(self, dobj):
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._domains)
+        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
 
-                #if none of our art octs fit inside, skip                    
-                if not na.any(gdi): continue
-                
-                #iterate over the jth dimension of the yt grids
-                for dlj in lefts[1]:
-                    
-                    #this is the same process as in the previous dimension
-                    #find art octs inside this grid's jth dimension, 
-                    #skip if there are none
-                    if min_ind[1] > dlj + nd[1]: continue
-                    if max_ind[1] < dlj: continue
-                    idim = min(nd[1] - dlj, MAX_EDGE)
-                    gdj = ((dlj  <= right_index[:,1])
-                         & (dlj + idim >= left_index[:,1])
-                         & (gdi))
-                    if not na.any(gdj): continue
-                    
-                    #Same story: iterate over kth dimension grids
-                    for dlk in lefts[2]:
-                        if min_ind[2] > dlk + nd[2]: continue
-                        if max_ind[2] < dlk: continue
-                        idim = min(nd[2] - dlk, MAX_EDGE)
-                        gdk = ((dlk  <= right_index[:,2])
-                             & (dlk + idim >= left_index[:,2])
-                             & (gdj))
-                        if not na.any(gdk): continue
-                        
-                        #these are coordinates for yt grid
-                        left = na.array([dli, dlj, dlk])
-                        
-                        #does this ravel really do anything?
-                        domain_left = left.ravel()
-                        
-                        #why are we adding this to zero?
-                        initial_left = na.zeros(3, dtype='int64') + domain_left
-                        
-                        #still not sure why multiplying against one 
-                        #just type casting?
-                        idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
-                        
-                        # We want to find how many grids are inside.
-                        
-                        #this gives us the LE and RE, domain dims,
-                        # and file locations
-                        # for art octs within this grid
-                        dleft_index = left_index[gdk,:]
-                        dright_index = right_index[gdk,:]
-                        ddims = dims[gdk,:]
-                        dfl = fl[gdk,:]
-                        
-                        #create a sub grid composed
-                        #of the new yt grid LE, span,
-                        #and a series of the contained art grid properties:
-                        # left edge, right edge, (not sure what dims is) and file locations
-                        psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
-                                        dleft_index, dfl)
-                        
-                        #print "Gridding from %s to %s + %s" % (
-                        #    initial_left, initial_left, idims)
-                        if psg.efficiency <= 0: continue
-                        self.num_deep = 0
-                        # psgs.extend(self._recursive_patch_splitting(
-                        #     psg, idims, initial_left, 
-                        #     dleft_index, dright_index, ddims, dfl))
-                        
-                        #I'm not sure how this patch splitting process
-                        #does, or how it works
-                        psgs.extend(_ramses_reader.recursive_patch_splitting(
-                            psg, idims, initial_left, dleft_index, dfl))
-                        
-                        # psgs.extend(self._recursive_patch_splitting(
-                        #     psg, idims, initial_left, 
-                        #     dleft_index, dright_index, ddims, dfl))
-                        psgs.extend([psg])
-            pbar.finish()
-            self.proto_grids.append(psgs)
-            sums = na.zeros(3, dtype='int64')
-            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
-            if len(self.proto_grids[level]) == 1: continue
-            # for g in self.proto_grids[level]:
-            #     sums += [s.sum() for s in g.sigs]
-            # assert(na.all(sums == dims.prod(axis=1).sum()))
-        self.num_grids = sum(len(l) for l in self.proto_grids)
+    def _chunk_spatial(self, dobj, ngz):
+        raise NotImplementedError
 
-    num_deep = 0
+    def _chunk_io(self, dobj):
+        pass
 
-    # @num_deep_inc
-    # def _recursive_patch_splitting(self, psg, dims, ind,
-    #         left_index, right_index, gdims, fl):
-    #     min_eff = 0.1 # This isn't always respected.
-    #     if self.num_deep > 40:
-    #         # If we've recursed more than 100 times, we give up.
-    #         psg.efficiency = min_eff
-    #         return [psg]
-    #     if psg.efficiency > min_eff or psg.efficiency < 0.0:
-    #         return [psg]
-    #     tt, ax, fp = psg.find_split()
-    #     if (fp % 2) != 0:
-    #         if dims[ax] != fp + 1:
-    #             fp += 1
-    #         else:
-    #             fp -= 1
-    #     #print " " * self.num_deep + "Got ax", ax, "fp", fp
-    #     dims_l = dims.copy()
-    #     dims_l[ax] = fp
-    #     li_l = ind.copy()
-    #     if na.any(dims_l <= 0): return [psg]
-    #     L = _ramses_reader.ProtoSubgrid(
-    #             li_l, dims_l, left_index, right_index, gdims, fl)
-    #     #print " " * self.num_deep + "L", tt, L.efficiency
-    #     #if L.efficiency > 1.0: raise RuntimeError
-    #     if L.efficiency <= 0.0: L = []
-    #     elif L.efficiency < min_eff:
-    #         L = self._recursive_patch_splitting(L, dims_l, li_l,
-    #                 left_index, right_index, gdims, fl)
-    #     else:
-    #         L = [L]
-    #     dims_r = dims.copy()
-    #     dims_r[ax] -= fp
-    #     li_r = ind.copy()
-    #     li_r[ax] += fp
-    #     if na.any(dims_r <= 0): return [psg]
-    #     R = _ramses_reader.ProtoSubgrid(
-    #             li_r, dims_r, left_index, right_index, gdims, fl)
-    #     #print " " * self.num_deep + "R", tt, R.efficiency
-    #     #if R.efficiency > 1.0: raise RuntimeError
-    #     if R.efficiency <= 0.0: R = []
-    #     elif R.efficiency < min_eff:
-    #         R = self._recursive_patch_splitting(R, dims_r, li_r,
-    #                 left_index, right_index, gdims, fl)
-    #     else:
-    #         R = [R]
-    #     return L + R
-        
-    def _parse_hierarchy(self):
-        # We have important work to do
-        grids = []
-        gi = 0
-        for level, grid_list in enumerate(self.proto_grids):
-            for g in grid_list:
-                fl = g.grid_file_locations
-                props = g.get_properties()
-                dds = ((2**level) * self.pf.domain_dimensions).astype("float64")
-                self.grid_left_edge[gi,:] = props[0,:] / dds
-                self.grid_right_edge[gi,:] = props[1,:] / dds
-                self.grid_dimensions[gi,:] = props[2,:]
-                self.grid_levels[gi,:] = level
-                grids.append(self.grid(gi, self, level, fl, props[0,:]))
-                gi += 1
-        self.grids = na.empty(len(grids), dtype='object')
-        for gi, g in enumerate(grids): self.grids[gi] = g
-
-    def _get_grid_parents(self, grid, LE, RE):
-        mask = na.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(LE, RE)
-        mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
-        return self.grids[mask]
-
-    def _populate_grid_objects(self):
-        for gi,g in enumerate(self.grids):
-            parents = self._get_grid_parents(g,
-                            self.grid_left_edge[gi,:],
-                            self.grid_right_edge[gi,:])
-            if len(parents) > 0:
-                g.Parent.extend(parents.tolist())
-                for p in parents: p.Children.append(g)
-            g._prepare_grid()
-            g._setup_dx()
-        self.max_level = self.grid_levels.max()
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](
-            self.pf.parameter_filename,
-            self.pf.nhydro_vars,
-            self.pf.level_info,
-            self.pf.level_offsets)
 
 class ARTStaticOutput(StaticOutput):
-    _hierarchy_class = ARTHierarchy
+    _hierarchy_class = ARTGeometryHandler
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
-    _handle = None
     
-    def __init__(self, filename, data_style='art',
+    def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
-        import yt.frontends.ramses._ramses_reader as _ramses_reader
+        # Here we want to initiate a traceback, if the reader is not built.
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-        
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = 'art'
-        self.parameters["Time"] = 1. # default unit is 1...
-        self.parameters["InitialTime"]=self.current_time
-        
+
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
         
@@ -468,227 +335,55 @@ class ARTStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
+        self._setup_nounits_units()
         self.conversion_factors = defaultdict(lambda: 1.0)
+        self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-
-        z = self.current_redshift
-        h = self.hubble_constant
-        boxcm_cal = self["boxh"]
-        boxcm_uncal = boxcm_cal / h
-        box_proper = boxcm_uncal/(1+z)
-        aexpn = self["aexpn"]
-        for unit in mpc_conversion:
-            self.units[unit] = mpc_conversion[unit] * box_proper
-            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
-            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
-            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
-        # Variable names have been chosen to reflect primary reference
-        #Om0 = self["Om0"]
-        #boxh = self["boxh"]
-        wmu = self["wmu"]
-        #ng = self.domain_dimensions[0]
-        #r0 = self["cmh"]/ng # comoving cm h^-1
-        #t0 = 6.17e17/(self.hubble_constant + na.sqrt(self.omega_matter))
-        #v0 = r0 / t0
-        #rho0 = 1.8791e-29 * self.hubble_constant**2.0 * self.omega_matter
-        #e0 = v0**2.0
-        
-        wmu = self["wmu"]
-        boxh = self["boxh"]
-        aexpn = self["aexpn"]
-        hubble = self.hubble_constant
-        ng = self.domain_dimensions[0]
-        self.r0 = boxh/ng
-        self.v0 =  self.r0 * 50.0*1.0e5 * na.sqrt(self.omega_matter)  #cm/s
-        self.t0 = self.r0/self.v0
-        # this is 3H0^2 / (8pi*G) *h*Omega0 with H0=100km/s. 
-        # ie, critical density 
-        self.rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
-        self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))      
-        self.conversion_factors["Density"] = \
-            self.rho0*(aexpn**-3.0)
-        self.conversion_factors["GasEnergy"] = \
-            self.rho0*self.v0**2*(aexpn**-5.0)
-        tr  = self.tr
-        self.conversion_factors["Temperature"] = tr
-        self.conversion_factors["Metal_Density"] = 1
-        
-        # Now our conversion factors
-        for ax in 'xyz':
-            # Add on the 1e5 to get to cm/s
-            self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
-        seconds = self.t0
+        seconds = self.parameters['unit_t']
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
         self.time_units['Myr'] = self.time_units['years'] / 1.0e6
         self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        self.conversion_factors["Density"] = self.parameters['unit_d']
+        vel_u = self.parameters['unit_l'] / self.parameters['unit_t']
+        self.conversion_factors["x-velocity"] = vel_u
+        self.conversion_factors["y-velocity"] = vel_u
+        self.conversion_factors["z-velocity"] = vel_u
 
-        #we were already in seconds, go back in to code units
-        self.current_time /= self.t0 
-        
-        
+    def _setup_nounits_units(self):
+        for unit in mpc_conversion.keys():
+            self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
+
     def _parse_parameter_file(self):
-        # We set our domain to run from 0 .. 1 since we are otherwise
-        # unconstrained.
-        self.domain_left_edge = na.zeros(3, dtype="float64")
-        self.domain_right_edge = na.ones(3, dtype="float64")
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = 'art'
+        self.parameters["Time"] = 1. # default unit is 1...
+
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        self.parameters = {}
-
-        header_struct = [
-            ('>i','pad byte'),
-            ('>256s','jname'),
-            ('>i','pad byte'),
-            
-            ('>i','pad byte'),
-            ('>i','istep'),
-            ('>d','t'),
-            ('>d','dt'),
-            ('>f','aexpn'),
-            ('>f','ainit'),
-            ('>i','pad byte'),
-            
-            ('>i','pad byte'),
-            ('>f','boxh'),
-            ('>f','Om0'),
-            ('>f','Oml0'),
-            ('>f','Omb0'),
-            ('>f','hubble'),
-            ('>i','pad byte'),
-            
-            ('>i','pad byte'),
-            ('>i','nextras'),
-            ('>i','pad byte'),
-
-            ('>i','pad byte'),
-            ('>f','extra1'),
-            ('>f','extra2'),
-            ('>i','pad byte'),
-
-            ('>i','pad byte'),
-            ('>256s','lextra'),
-            ('>256s','lextra'),
-            ('>i','pad byte'),
-            
-            ('>i', 'pad byte'),
-            ('>i', 'min_level'),
-            ('>i', 'max_level'),
-            ('>i', 'pad byte'),
-            ]
-        
-        f = open(self.parameter_filename, "rb")
-        header_vals = {}
-        for format, name in header_struct:
-            size = struct.calcsize(format)
-            # We parse single values at a time, so this will
-            # always need to be indexed with 0
-            output = struct.unpack(format, f.read(size))[0]
-            header_vals[name] = output
-        self.dimensionality = 3 # We only support three
-        self.refine_by = 2 # Octree
-        # Update our parameters with the header and with some compile-time
-        # constants we will set permanently.
-        self.parameters.update(header_vals)
-        self.parameters["Y_p"] = 0.245
-        self.parameters["wmu"] = 4.0/(8.0-5.0*self.parameters["Y_p"])
-        self.parameters["gamma"] = 5./3.
-        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
-        self.data_comment = header_vals['jname']
-        self.current_time = header_vals['t']
-        self.omega_lambda = header_vals['Oml0']
-        self.omega_matter = header_vals['Om0']
-        self.hubble_constant = header_vals['hubble']
-        self.min_level = header_vals['min_level']
-        self.max_level = header_vals['max_level']
-        self.nhydro_vars = 10 #this gets updated later, but we'll default to this
-        #nchem is nhydrovars-8, so we typically have 2 extra chem species 
-        self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
-        #self.hubble_time /= 3.168876e7 #Gyr in s 
-        def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
-            return 1./(x*na.sqrt(oml+omb*x**-3.0))
-        spacings = na.logspace(-5,na.log10(self.parameters['aexpn']),1e5)
-        integrand_arr = integrand(spacings)
-        self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
-        self.current_time *= self.hubble_time
-                
-        for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
-            _skip_record(f)
-
-        (self.ncell,) = struct.unpack('>l', _read_record(f))
-        # Try to figure out the root grid dimensions
-        est = na.log2(self.ncell) / 3
-        if int(est) != est: raise RuntimeError
-        # Note here: this is the number of *cells* on the root grid.
-        # This is not the same as the number of Octs.
-        self.domain_dimensions = na.ones(3, dtype='int64') * int(2**est)
-
-        self.root_grid_mask_offset = f.tell()
-        _skip_record(f) # iOctCh
-        self.root_grid_offset = f.tell()
-        _skip_record(f) # hvar
-        _skip_record(f) # var
-
-        self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
-        self.child_grid_offset = f.tell()
-
-        f.close()
+        self.current_time = self.parameters['time'] * self.parameters['unit_t']
+        self.domain_right_edge = na.ones(3, dtype='float64') \
+                                           * rheader['boxlen']
+        self.domain_left_edge = na.zeros(3, dtype='float64')
+        self.domain_dimensions = na.ones(3, dtype='int32') * 2
+        self.cosmological_simulation = 1
+        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
+        self.omega_lambda = rheader["omega_l"]
+        self.omega_matter = rheader["omega_m"]
+        self.hubble_constant = rheader["H0"]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        return False # We make no effort to auto-detect ART data
+        fn = args[0]
+        if not (fn.starts_with("10MpcBox") and fn.endswith(".d")):
+            return False
+        return os.path.exists(fn)
 
-def _skip_record(f):
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    f.seek(s[0], 1)
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
 
-def _read_record(f):
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
-    ss = f.read(s)
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    return ss
 
-def _read_record_size(f):
-    pos = f.tell()
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    f.seek(pos)
-    return s[0]
 
-def _count_art_octs(f, offset,
-                   MinLev, MaxLevelNow):
-    import gc
-    f.seek(offset)
-    nchild,ntot=8,0
-    Level = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    iNOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    iHOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    for Lev in xrange(MinLev + 1, MaxLevelNow+1):
-        #Get the info for this level, skip the rest
-        #print "Reading oct tree data for level", Lev
-        #print 'offset:',f.tell()
-        Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
-           '>iii', _read_record(f))
-        print 'Level %i : '%Lev, iNOLL
-        #print 'offset after level record:',f.tell()
-        iOct = iHOLL[Lev] - 1
-        nLevel = iNOLL[Lev]
-        nLevCells = nLevel * nchild
-        ntot = ntot + nLevel
-
-        #Skip all the oct hierarchy data
-        ns = _read_record_size(f)
-        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
-        f.seek(f.tell()+size * nLevel)
         
-        #Skip the child vars data
-        ns = _read_record_size(f)
-        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
-        f.seek(f.tell()+size * nLevel*nchild)
-        
-        #find nhydrovars
-        nhydrovars = 8+2
-    f.seek(offset)
-    return nhydrovars, iNOLL
+
 

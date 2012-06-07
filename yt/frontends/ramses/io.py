@@ -29,13 +29,32 @@ import numpy as na
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+import cStringIO
 
 class IOHandlerRAMSES(BaseIOHandler):
     _data_style = "ramses"
 
-    def __init__(self, ramses_tree, *args, **kwargs):
-        self.ramses_tree = ramses_tree
-        BaseIOHandler.__init__(self, *args, **kwargs)
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        # Chunks in this case will have affiliated domain subset objects
+        # Each domain subset will contain a hydro_offset array, which gives
+        # pointers to level-by-level hydro information
+        n = 0
+        tr = dict((f, na.empty(size, dtype='float64')) for f in fields)
+        cp = 0
+        for chunk in chunks:
+            for subset in chunk.objs:
+                # Now we read the entire thing
+                f = open(subset.domain.hydro_fn, "rb")
+                # This contains the boundary information, so we skim through
+                # and pick off the right vectors
+                content = cStringIO.StringIO(f.read())
+                rv = subset.fill(content, fields)
+                for ft, f in fields:
+                    print "Filling %s with %s (%0.3e %0.3e)" % (
+                        f, subset.cell_count, rv[f].min(), rv[f].max())
+                    tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
+                cp += subset.cell_count
+        return tr
 
     def _read_data_set(self, grid, field):
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')

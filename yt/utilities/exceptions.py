@@ -58,3 +58,10 @@ class YTNoDataInObjectError(YTException):
         if self.obj_type == "slice":
             s += "  It may lie on a grid face.  Try offsetting slightly."
         return s
+
+class YTFieldTypeNotFound(YTException):
+    def __init__(self, fname):
+        self.fname = fname
+
+    def __str__(self):
+        return "Could not find field '%s'." % (self.fname)

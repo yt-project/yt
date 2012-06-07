@@ -32,8 +32,6 @@ from transfer_functions import TransferFunction, ColorTransferFunction, \
                              PlanckTransferFunction, \
                              MultiVariateTransferFunction, \
                              ProjectionTransferFunction
-from yt.utilities.amr_utils import PartitionedGrid, VectorPlane, \
-    TransferFunctionProxy
 from grid_partitioner import HomogenizedVolume, \
                              export_partitioned_grids, \
                              import_partitioned_grids

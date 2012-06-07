@@ -133,7 +133,7 @@ def identify_contours(data_source, field, min_val, max_val,
     pbar.finish()
     data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
     del data_source.field_data["tempContours"] # Force a reload from the grids
-    data_source.get_data("tempContours", in_grids=True)
+    data_source.get_data("tempContours")
     contour_ind = {}
     i = 0
     for contour_id in na.unique(data_source["tempContours"]):

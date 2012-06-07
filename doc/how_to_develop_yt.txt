@@ -80,7 +80,7 @@ conceptual regime.
       yt/frontends/ there must exist the following files, even if empty:
 
       * data_structures.py, where subclasses of AMRGridPatch, StaticOutput and
-        AMRHierarchy are defined.
+        GridGeometryHandler are defined.
       * io.py, where a subclass of IOHandler is defined.
       * misc.py, where any miscellaneous functions or classes are defined.
       * definitions.py, where any definitions specific to the frontend are

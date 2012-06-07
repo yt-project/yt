@@ -47,9 +47,6 @@ from .fields import \
       add_enzo_2d_field
 
 from .io import \
-      IOHandlerEnzoHDF4, \
-      IOHandlerEnzoHDF4_2D, \
-      IOHandlerEnzoHDF5, \
       IOHandlerPackedHDF5, \
       IOHandlerInMemory, \
       IOHandlerPacked2D, \

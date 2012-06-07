@@ -31,8 +31,8 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.hierarchy import \
-    AMRHierarchy
+from yt.geometry.grid_geometry_handler import \
+    GridGeometryHandler
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.logger import ytLogger as mylog
@@ -114,7 +114,7 @@ class StreamHandler(object):
     def get_fields(self):
         return self.fields.all_fields
 
-class StreamHierarchy(AMRHierarchy):
+class StreamHierarchy(GridGeometryHandler):
 
     grid = StreamGrid
 
@@ -125,7 +125,7 @@ class StreamHierarchy(AMRHierarchy):
         self.stream_handler = pf.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        AMRHierarchy.__init__(self, pf, data_style)
+        GridGeometryHandler.__init__(self, pf, data_style)
 
     def _initialize_data_storage(self):
         pass
@@ -205,7 +205,7 @@ class StreamHierarchy(AMRHierarchy):
                 child._parent_id = i
 
     def _initialize_grid_arrays(self):
-        AMRHierarchy._initialize_grid_arrays(self)
+        GridGeometryHandler._initialize_grid_arrays(self)
         self.grid_procs = na.zeros((self.num_grids,1),'int32')
 
     def save_data(self, *args, **kwargs):
@@ -230,7 +230,7 @@ class StreamHierarchy(AMRHierarchy):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _populate_grid_objects(self):

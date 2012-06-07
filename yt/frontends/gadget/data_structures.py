@@ -32,8 +32,8 @@ from itertools import izip
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.hierarchy import \
-    AMRHierarchy
+from yt.geometry.grid_geometry_handler import \
+    GridGeometryHandler
 from yt.data_objects.static_output import \
     StaticOutput
 
@@ -67,7 +67,7 @@ class GadgetGrid(AMRGridPatch):
     def __repr__(self):
         return 'GadgetGrid_%05i'%self.id
         
-class GadgetHierarchy(AMRHierarchy):
+class GadgetHierarchy(GridGeometryHandler):
     grid = GadgetGrid
 
     def __init__(self, pf, data_style='gadget_hdf5'):
@@ -75,7 +75,7 @@ class GadgetHierarchy(AMRHierarchy):
         self.directory = os.path.dirname(pf.filename)
         self.data_style = data_style
         self._handle = h5py.File(pf.filename)
-        AMRHierarchy.__init__(self, pf, data_style)
+        GridGeometryHandler.__init__(self, pf, data_style)
         self._handle.close()
         self._handle = None
         
@@ -94,7 +94,7 @@ class GadgetHierarchy(AMRHierarchy):
         
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):

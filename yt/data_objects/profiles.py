@@ -62,13 +62,12 @@ def preserve_source_parameters(func):
 # Note we do not inherit from EnzoData.
 # We could, but I think we instead want to deal with the root datasource.
 class BinnedProfile(ParallelAnalysisInterface):
-    def __init__(self, data_source, lazy_reader):
+    def __init__(self, data_source):
         ParallelAnalysisInterface.__init__(self)
         self._data_source = data_source
         self.pf = data_source.pf
         self.field_data = YTFieldData()
         self._pdata = {}
-        self._lazy_reader = lazy_reader
 
     @property
     def hierarchy(self):
@@ -78,84 +77,6 @@ class BinnedProfile(ParallelAnalysisInterface):
         return ParallelAnalysisInterface._get_dependencies(
                     self, fields + self._get_bin_fields())
 
-    def _initialize_parallel(self, fields):
-        g_objs = [g for g in self._get_grid_objs()]
-        self.comm.preload(g_objs, self.get_dependencies(fields),
-                      self._data_source.hierarchy.io)
-
-    def _lazy_add_fields(self, fields, weight, accumulation):
-        self._ngrids = 0
-        self.__data = {}         # final results will go here
-        self.__weight_data = {}  # we need to track the weights as we go
-        self.__std_data = {}
-        for field in fields:
-            self.__data[field] = self._get_empty_field()
-            self.__weight_data[field] = self._get_empty_field()
-            self.__std_data[field] = self._get_empty_field()
-        self.__used = self._get_empty_field().astype('bool')
-        #pbar = get_pbar('Binning grids', len(self._data_source._grids))
-        for gi,grid in enumerate(self._get_grids(fields)):
-            self._ngrids += 1
-            #pbar.update(gi)
-            try:
-                args = self._get_bins(grid, check_cut=True)
-            except EmptyProfileData:
-                # No bins returned for this grid, so forget it!
-                continue
-            for field in fields:
-                # We get back field values, weight values, used bins
-                f, w, q, u = self._bin_field(grid, field, weight, accumulation,
-                                          args=args, check_cut=True)
-                self.__data[field] += f        # running total
-                self.__weight_data[field] += w # running total
-                self.__std_data[field][u] += w[u] * (q[u]/w[u] + \
-                    (f[u]/w[u] -
-                     self.__data[field][u]/self.__weight_data[field][u])**2) # running total
-                self.__used = (self.__used | u)       # running 'or'
-            grid.clear_data()
-        # When the loop completes the parallel finalizer gets called
-        #pbar.finish()
-        ub = na.where(self.__used)
-        for field in fields:
-            if weight: # Now, at the end, we divide out.
-                self.__data[field][ub] /= self.__weight_data[field][ub]
-                self.__std_data[field][ub] /= self.__weight_data[field][ub]
-            self[field] = self.__data[field]
-            self["%s_std" % field] = na.sqrt(self.__std_data[field])
-        self["UsedBins"] = self.__used
-        del self.__data, self.__std_data, self.__weight_data, self.__used
-
-    def _finalize_parallel(self):
-        my_mean = {}
-        my_weight = {}
-        for key in self.__data:
-            my_mean[key] = self._get_empty_field()
-            my_weight[key] = self._get_empty_field()
-        ub = na.where(self.__used)
-        for key in self.__data:
-            my_mean[key][ub] = self.__data[key][ub] / self.__weight_data[key][ub]
-            my_weight[key][ub] = self.__weight_data[key][ub]
-        for key in self.__data:
-            self.__data[key] = self.comm.mpi_allreduce(self.__data[key], op='sum')
-        for key in self.__weight_data:
-            self.__weight_data[key] = self.comm.mpi_allreduce(self.__weight_data[key], op='sum')
-        for key in self.__std_data:
-            self.__std_data[key][ub] = my_weight[key][ub] * (self.__std_data[key][ub] / my_weight[key][ub] + \
-                (my_mean[key][ub] - self.__data[key][ub]/self.__weight_data[key][ub])**2)
-            self.__std_data[key] = self.comm.mpi_allreduce(self.__std_data[key], op='sum')
-        self.__used = self.comm.mpi_allreduce(self.__used, op='sum')
-
-    def _unlazy_add_fields(self, fields, weight, accumulation):
-        for field in fields:
-            f, w, q, u = self._bin_field(self._data_source, field, weight,
-                                         accumulation, self._args, check_cut = False)
-            if weight:
-                f[u] /= w[u]
-                q[u] = na.sqrt(q[u] / w[u])
-            self[field] = f
-            self["%s_std" % field] = q
-        self["UsedBins"] = u
-
     def add_fields(self, fields, weight = "CellMassMsun", accumulation = False, fractional=False):
         """
         We accept a list of *fields* which will be binned if *weight* is not
@@ -164,10 +85,49 @@ class BinnedProfile(ParallelAnalysisInterface):
         """
         # Note that the specification has to be the same for all of these
         fields = ensure_list(fields)
-        if self._lazy_reader:
-            self._lazy_add_fields(fields, weight, accumulation)
-        else:
-            self._unlazy_add_fields(fields, weight, accumulation)
+        data = {}         # final results will go here
+        weight_data = {}  # we need to track the weights as we go
+        std_data = {}
+        for field in fields:
+            data[field] = self._get_empty_field()
+            weight_data[field] = self._get_empty_field()
+            std_data[field] = self._get_empty_field()
+        used = self._get_empty_field().astype('bool')
+        chunk_fields = fields[:]
+        if weight is not None: chunk_fields += [weight]
+        #pbar = get_pbar('Binning grids', len(self._data_source._grids))
+        for ds in self._data_source.chunks(chunk_fields, chunking_style = "grids"):
+            try:
+                args = self._get_bins(ds, check_cut=True)
+            except EmptyProfileData:
+                # No bins returned for this grid, so forget it!
+                continue
+            for field in fields:
+                # We get back field values, weight values, used bins
+                f, w, q, u = self._bin_field(ds, field, weight, accumulation,
+                                          args=args, check_cut=True)
+                data[field] += f        # running total
+                weight_data[field] += w # running total
+                used |= u       # running 'or'
+                std_data[field][u] += w[u] * (q[u]/w[u] + \
+                    (f[u]/w[u] -
+                     data[field][u]/weight_data[field][u])**2) # running total
+        for key in data:
+            data[key] = self.comm.mpi_allreduce(data[key], op='sum')
+        for key in weight_data:
+            weight_data[key] = self.comm.mpi_allreduce(weight_data[key], op='sum')
+        used = self.comm.mpi_allreduce(used, op='sum')
+        # When the loop completes the parallel finalizer gets called
+        #pbar.finish()
+        ub = na.where(used)
+        for field in fields:
+            if weight: # Now, at the end, we divide out.
+                data[field][ub] /= weight_data[field][ub]
+                std_data[field][ub] /= weight_data[field][ub]
+            self[field] = data[field]
+            #self["%s_std" % field] = na.sqrt(std_data[field])
+        self["UsedBins"] = used
+
         if fractional:
             for field in fields:
                 self.field_data[field] /= self.field_data[field].sum()
@@ -189,19 +149,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         # but...  we default to just the field.
         data = []
         for field in _field_mapping.get(this_field, (this_field,)):
-            pointI = None
-            if check_cut:
-                # This conditional is so that we can have variable-length
-                # particle fields.  Note that we can't apply the
-                # is_fully_enclosed to baryon fields, because child cells get
-                # in the way.
-                if field in self.pf.field_info \
-                    and self.pf.field_info[field].particle_type:
-                    if not self._data_source._is_fully_enclosed(source):
-                        pointI = self._data_source._get_particle_indices(source)
-                else:
-                    pointI = self._data_source._get_point_indices(source)
-            data.append(source[field][pointI].ravel().astype('float64'))
+            data.append(source[field].astype('float64'))
         return na.concatenate(data, axis=0)
 
     def _fix_pickle(self):
@@ -212,7 +160,7 @@ class BinnedProfile(ParallelAnalysisInterface):
 class BinnedProfile1D(BinnedProfile):
     def __init__(self, data_source, n_bins, bin_field,
                  lower_bound, upper_bound,
-                 log_space = True, lazy_reader=False,
+                 log_space = True, 
                  end_collect=False):
         """
         A 'Profile' produces either a weighted (or unweighted) average or a
@@ -227,7 +175,7 @@ class BinnedProfile1D(BinnedProfile):
         take all values outside the given bounds and store them in the
         0 and *n_bins*-1 values.
         """
-        BinnedProfile.__init__(self, data_source, lazy_reader)
+        BinnedProfile.__init__(self, data_source)
         self.bin_field = bin_field
         self._x_log = log_space
         self.end_collect = end_collect
@@ -249,8 +197,6 @@ class BinnedProfile1D(BinnedProfile):
 
         # If we are not being memory-conservative, grab all the bins
         # and the inverse indices right now.
-        if not lazy_reader:
-            self._args = self._get_bins(data_source)
 
     def _get_empty_field(self):
         return na.zeros(self[self.bin_field].size, dtype='float64')
@@ -382,7 +328,7 @@ class BinnedProfile2D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
-                 lazy_reader=False, end_collect=False):
+                 end_collect=False):
         """
         A 'Profile' produces either a weighted (or unweighted) average
         or a straight sum of a field in a bin defined by two other
@@ -400,7 +346,7 @@ class BinnedProfile2D(BinnedProfile):
         *end_collect* is True, take all values outside the given
         bounds and store them in the 0 and *n_bins*-1 values.
         """
-        BinnedProfile.__init__(self, data_source, lazy_reader)
+        BinnedProfile.__init__(self, data_source)
         self.x_bin_field = x_bin_field
         self.y_bin_field = y_bin_field
         self._x_log = x_log
@@ -424,8 +370,6 @@ class BinnedProfile2D(BinnedProfile):
             mylog.error("Your min/max values for x, y have given me a nan.")
             mylog.error("Usually this means you are asking for log, with a zero bound.")
             raise ValueError
-        if not lazy_reader:
-            self._args = self._get_bins(data_source)
 
     def _get_empty_field(self):
         return na.zeros((self[self.x_bin_field].size,
@@ -586,13 +530,12 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
-                 lazy_reader=False, end_collect=False):
-        lazy_reader = False
+                 end_collect=False):
         self.indices = data_source["Ones"].astype("bool")
         BinnedProfile2D.__init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
-                 lazy_reader, end_collect)
+                 end_collect)
 
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
@@ -643,8 +586,8 @@ class BinnedProfile3D(BinnedProfile):
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
                  z_n_bins, z_bin_field, z_lower_bound, z_upper_bound, z_log,
-                 lazy_reader=False, end_collect=False):
-        BinnedProfile.__init__(self, data_source, lazy_reader)
+                 end_collect=False):
+        BinnedProfile.__init__(self, data_source)
         self.x_bin_field = x_bin_field
         self.y_bin_field = y_bin_field
         self.z_bin_field = z_bin_field
@@ -677,8 +620,6 @@ class BinnedProfile3D(BinnedProfile):
             mylog.error("Your min/max values for x, y or z have given me a nan.")
             mylog.error("Usually this means you are asking for log, with a zero bound.")
             raise ValueError
-        if not lazy_reader:
-            self._args = self._get_bins(data_source)
 
     def _get_empty_field(self):
         return na.zeros((self[self.x_bin_field].size,
