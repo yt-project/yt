@@ -156,6 +156,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         uniquedims[i] = <np.float64_t *> \
                 alloca(2*n_grids * sizeof(np.float64_t))
     my_max = 0
+    best_dim = -1
     for dim in range(3):
         n_unique = 0
         uniques = uniquedims[dim]

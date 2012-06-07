@@ -38,6 +38,9 @@ from .data_structures import \
       EnzoStaticOutput, \
       EnzoStaticOutputInMemory
 
+from .simulation_handling import \
+    EnzoSimulation
+
 from .fields import \
       EnzoFieldInfo, \
       Enzo2DFieldInfo, \

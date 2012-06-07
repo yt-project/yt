@@ -354,6 +354,11 @@ class EnzoHierarchy(GridGeometryHandler):
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
         except:
             return False
+        hash = f["/"].attrs.get("hash", None)
+        if hash != self.parameter_file._hash():
+            mylog.info("Binary hierarchy does not match: recreating")
+            f.close()
+            return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
         self.grid_right_edge[:] = f["/RightEdges"][:]
@@ -390,6 +395,7 @@ class EnzoHierarchy(GridGeometryHandler):
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
         except IOError:
             return
+        f["/"].attrs["hash"] = self.parameter_file._hash()
         f.create_dataset("/LeftEdges", data=self.grid_left_edge)
         f.create_dataset("/RightEdges", data=self.grid_right_edge)
         parents, procs, levels = [], [], []

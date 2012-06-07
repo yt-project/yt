@@ -33,6 +33,7 @@ from fp_utils cimport fmax
 
 from stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
+from fp_utils cimport fmax
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int

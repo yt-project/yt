@@ -250,6 +250,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def _mrep(self):
         return MinimalProjectionData(self)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
         if field in self._key_fields: return field
@@ -839,8 +842,16 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
-            The right edge of the region to be extracted
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
+
+        Example
+        -------
+        cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
 
         """
         YTSelectionContainer3D.__init__(self, center=kwargs.pop("center", None),
@@ -977,7 +988,8 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
-        single, specified resolution.
+        single, specified resolution.  (Identical to covering_grid,
+        except that it interpolates.)
 
         Smoothed covering grids start at level 0, interpolating to
         fill the region to level 1, replacing any cells actually
@@ -990,9 +1002,16 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
-            The right edge of the region to be extracted
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
         """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
@@ -1003,56 +1022,11 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        # Check for ill-behaved AMR schemes (Enzo) where we may have
-        # root-tile-boundary issues.  This is specific to the root tiles not
-        # allowing grids to cross them and also allowing > 1 level of
-        # difference between neighboring areas.
-        nz = 0
-        buf = 0.0
-        self.min_level = 0
-        dl = ((self.global_startindex.astype("float64") + 1)
-           / (self.pf.refine_by**self.level))
-        dr = ((self.global_startindex.astype("float64")
-              + self.ActiveDimensions - 1)
-           / (self.pf.refine_by**self.level))
-        if na.any(dl == na.rint(dl)) or na.any(dr == na.rint(dr)):
-            nz = 2 * self.pf.refine_by**self.level
-            buf = self._base_dx
-        if nz <= self.pf.refine_by**3: # delta level of 3
-            last_buf = [None,None,None]
-            count = 0
-            # Repeat until no more grids are covered (up to a delta level of 3)
-            while na.any(buf != last_buf) or count == 3:
-                cg = self.pf.h.covering_grid(self.level,
-                     self.left_edge - buf, self.ActiveDimensions + nz)
-                cg._use_pbar = False
-                count = cg.ActiveDimensions.prod()
-                for g in cg._grids:
-                    count -= cg._get_data_from_grid(g, [])
-                    if count <= 0:
-                        self.min_level = g.Level
-                        break
-                last_buf = buf
-                # Increase box by 2 cell widths at the min covering level
-                buf = 2*self._base_dx / self.pf.refine_by**self.min_level
-                nz += 4 * self.pf.refine_by**(self.level-self.min_level)
-                count += 1
-        else:
-            nz = buf = 0
-            self.min_level = 0
-        # This should not cost substantial additional time.
-        BLE = self.left_edge - buf
-        BRE = self.right_edge + buf
-        if na.any(BLE < self.pf.domain_left_edge) or \
-           na.any(BRE > self.pf.domain_right_edge):
-            grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
-                            BLE, BRE, self.level, self.min_level)
-        else:
-            grids,ind = self.pf.hierarchy.get_box_grids_below_level(
-                BLE, BRE, self.level,
-                min(self.level, self.min_level))
-        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
-        self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)]
+        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
+                 / self.pf.domain_dimensions).max()
+        AMRCoveringGridBase._get_list_of_grids(self, buffer)
+        # We reverse the order to ensure that coarse grids are first
+        self._grids = self._grids[::-1]
 
     def get_data(self, field=None):
         self._get_list_of_grids()
@@ -1068,11 +1042,11 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         # We jump-start our task here
         mylog.debug("Getting fields %s from %s possible grids",
                    fields_to_get, len(self._grids))
-        self._update_level_state(self.min_level, fields_to_get, initialize=True)
+        self._update_level_state(0, fields_to_get)
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
         # The grids are assumed to be pre-sorted
-        last_level = self.min_level
+        last_level = 0
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
@@ -1090,30 +1064,27 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
                     raise KeyError(n_bad)
         if self._use_pbar: pbar.finish()
 
-    def _update_level_state(self, level, fields = None, initialize=False):
+    def _update_level_state(self, level, fields = None):
         dx = self._base_dx / self.pf.refine_by**level
         self.field_data['cdx'] = dx[0]
         self.field_data['cdy'] = dx[1]
         self.field_data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
-        RL = self.right_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
-        self._old_global_endindex = self.global_endindex
-        # We use one grid cell at LEAST, plus one buffer on all sides
-        self.global_startindex = na.floor(LL / dx).astype('int64') - 1
-        self.global_endindex = na.ceil(RL / dx).astype('int64') + 1
+        self.global_startindex = na.rint(LL / dx).astype('int64') - 1
         self.domain_width = na.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/dx).astype('int64')
-        if (level == 0 or initialize) and self.level > 0:
-            idims = self.global_endindex - self.global_startindex
+        if level == 0 and self.level > 0:
+            # We use one grid cell at LEAST, plus one buffer on all sides
+            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
-        elif (level == 0 or initialize) and self.level == 0:
+        elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            #idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
+            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -1122,35 +1093,33 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def _refine(self, dlevel, fields):
         rf = float(self.pf.refine_by**dlevel)
 
-        input_left = (self._old_global_startindex + 0.5) * rf
-        input_right = (self._old_global_endindex - 0.5) * rf
-        output_left = self.global_startindex + 0.5
-        output_right = self.global_endindex - 0.5
-        output_dims = (output_right - output_left + 1).astype('int32')
+        input_left = (self._old_global_startindex + 0.5) * rf 
+        dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
+        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
 
         self._cur_dims = output_dims
 
         for field in fields:
             output_field = na.zeros(output_dims, dtype="float64")
+            output_left = self.global_startindex + 0.5
             ghost_zone_interpolate(rf, self[field], input_left,
                                    output_field, output_left)
             self.field_data[field] = output_field
 
-    #@restore_field_information_state
+    @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
         g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields,
+            c_fields, g_fields, 
             self._cur_dims, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, 1, 0)
         return count
 
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")
-
 
 class YTFixedResProjectionBase(YTSelectionContainer2D):
     _top_node = "/Projections"

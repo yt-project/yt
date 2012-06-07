@@ -26,7 +26,7 @@ License:
 import numpy as na
 
 from yt.funcs import *
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     get_box_grids_level, \
     get_box_grids_below_level
 

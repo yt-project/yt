@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 import setuptools
-import os
-import sys
-import os.path
-import glob
+import os, sys, os.path, glob
 
 def check_for_hdf5():
     # First up: HDF5_DIR in environment
@@ -47,7 +44,7 @@ def check_for_hdf5():
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
-    config = Configuration('utilities',parent_package,top_path)
+    config = Configuration('utilities', parent_package, top_path)
     config.add_subpackage("amr_kdtree")
     config.add_subpackage("poster")
     config.add_subpackage("answer_testing")
@@ -55,8 +52,9 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("kdtree")
     config.add_data_files(('kdtree', ['kdtree/fKDpy.so']))
     config.add_subpackage("spatial")
+    config.add_subpackage("grid_data_format")
     config.add_subpackage("parallel_tools")
-    config.add_subpackage("_amr_utils")
+    config.add_subpackage("lib")
     config.add_extension("data_point_utilities",
                 "yt/utilities/data_point_utilities.c", libraries=["m"])
     hdf5_inc, hdf5_lib = check_for_hdf5()
@@ -67,7 +65,7 @@ def configuration(parent_package='', top_path=None):
                          define_macros=[("H5_USE_16_API", True)],
                          libraries=["m", "hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
-    config.add_extension("libconfig_wrapper", 
+    config.add_extension("libconfig_wrapper",
         ["yt/utilities/libconfig_wrapper.pyx"] +
          glob.glob("yt/utilities/_libconfig/*.c"),
         include_dirs=["yt/utilities/_libconfig/"],

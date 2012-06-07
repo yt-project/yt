@@ -51,6 +51,11 @@ cdef inline int iclip(int i, int a, int b) nogil:
     if i > b: return b
     return i
 
+cdef inline int i64clip(np.int64_t i, np.int64_t a, np.int64_t b) nogil:
+    if i < a: return a
+    if i > b: return b
+    return i
+
 cdef inline np.float64_t fclip(np.float64_t f,
                       np.float64_t a, np.float64_t b) nogil:
     return fmin(fmax(f, a), b)

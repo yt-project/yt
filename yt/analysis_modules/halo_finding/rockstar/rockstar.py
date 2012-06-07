@@ -25,9 +25,11 @@ License:
 
 from yt.mods import *
 from os import environ
+from os import mkdir
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 
+from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
 import rockstar_interface
 import socket
 import time
@@ -45,14 +47,28 @@ class DomainDecomposer(ParallelAnalysisInterface):
         return data_source
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
-    def __init__(self, pf, num_readers = 0, num_writers = 0):
+    def __init__(self, pf, num_readers = 1, num_writers = None, 
+            outbase=None,particle_mass=-1.0,overwrite=False,
+            left_edge = None, right_edge = None):
         ParallelAnalysisInterface.__init__(self)
         # No subvolume support
         self.pf = pf
         self.hierarchy = pf.h
+        if num_writers is None:
+            num_writers = self.comm.size - num_readers -1
         self.num_readers = num_readers
         self.num_writers = num_writers
+        self.particle_mass = particle_mass 
+        self.overwrite = overwrite
+        if left_edge is None:
+            left_edge = pf.domain_left_edge
+        if right_edge is None:
+            right_edge = pf.domain_right_edge
+        self.le = left_edge
+        self.re = right_edge
         if self.num_readers + self.num_writers + 1 != self.comm.size:
+            print '%i reader + %i writers != %i mpi'%\
+                    (self.num_reader,self.num_writers,self.comm.size)
             raise RuntimeError
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         data_source = None
@@ -64,6 +80,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             for wg in self.pool.workgroups:
                 if self.comm.rank in wg.ranks: self.workgroup = wg
         data_source = self.pf.h.all_data()
+        if outbase is None:
+            outbase = str(self.pf)+'_rockstar'
+        self.outbase = outbase        
         self.handler = rockstar_interface.RockstarInterface(
                 self.pf, data_source)
 
@@ -80,16 +99,29 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             (server_address, port))
         self.port = str(self.port)
 
-    def run(self, block_ratio = 1):
+    def run(self, block_ratio = 1,**kwargs):
+        """
+        
+        """
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
+        #because rockstar *always* write to exactly the same
+        #out_0.list filename we make a directory for it
+        #to sit inside so it doesn't get accidentally
+        #overwritten 
+        if self.workgroup.name == "server":
+            if not os.path.exists(self.outbase):
+                os.mkdir(self.outbase)
         self.handler.setup_rockstar(self.server_address, self.port,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
                     writing_port = -1,
-                    block_ratio = block_ratio)
+                    block_ratio = block_ratio,
+                    outbase = self.outbase,
+                    particle_mass = float(self.particle_mass),
+                    **kwargs)
         if self.comm.size == 1:
             self.handler.call_rockstar()
         else:
@@ -97,9 +129,17 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             if self.workgroup.name == "server":
                 self.handler.start_server()
             elif self.workgroup.name == "readers":
-                #time.sleep(0.5 + self.workgroup.comm.rank/10.0)
+                time.sleep(0.1 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
             elif self.workgroup.name == "writers":
-                #time.sleep(1.0 + self.workgroup.comm.rank/10.0)
+                time.sleep(0.2 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
         self.comm.barrier()
+        #quickly rename the out_0.list 
+    
+    def halo_list(self,file_name='out_0.list'):
+        """
+        Reads in the out_0.list file and generates RockstarHaloList
+        and RockstarHalo objects.
+        """
+        return RockstarHaloList(self.pf,self.outbase+'/%s'%file_name)

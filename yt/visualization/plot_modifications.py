@@ -679,6 +679,7 @@ class SphereCallback(PlotCallback):
         self.circle_args = circle_args
         self.text = text
         self.text_args = text_args
+        if self.text_args is None: self.text_args = {}
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -696,7 +697,7 @@ class SphereCallback(PlotCallback):
         cir = Circle((center_x, center_y), radius, **self.circle_args)
         plot._axes.add_patch(cir)
         if self.text is not None:
-            plot._axes.text(center_x, center_y, "%s" % halo.id,
+            plot._axes.text(center_x, center_y, self.text,
                             **self.text_args)
 
 class HopCircleCallback(PlotCallback):
@@ -934,14 +935,15 @@ class ParticleCallback(PlotCallback):
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
                  ptype=None, stars_only=False, dm_only=False,
-                 minimum_mass=None):
+                 minimum_mass=None, alpha=1.0):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
         pixels per particle, and *col* governs the color.  *ptype* will
         restrict plotted particles to only those that are of a given type.
         *minimum_mass* will require that the particles be of a given mass,
-        calculated via ParticleMassMsun, to be plotted.
+        calculated via ParticleMassMsun, to be plotted. *alpha* determines
+        each particle's opacity.
         """
         PlotCallback.__init__(self)
         self.width = width
@@ -953,6 +955,7 @@ class ParticleCallback(PlotCallback):
         self.stars_only = stars_only
         self.dm_only = dm_only
         self.minimum_mass = minimum_mass
+        self.alpha = alpha
 
     def __call__(self, plot):
         data = plot.data
@@ -983,7 +986,7 @@ class ParticleCallback(PlotCallback):
                     [reg[field_x][gg][::self.stride],
                      reg[field_y][gg][::self.stride]])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
-                           s=self.p_size, c=self.color)
+                           s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)

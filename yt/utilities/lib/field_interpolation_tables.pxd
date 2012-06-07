@@ -39,6 +39,9 @@ cdef struct FieldInterpolationTable:
     int weight_table_id
     int nbins
 
+cdef extern from "math.h": 
+    double expf(double x) nogil 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -79,7 +82,7 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
                             FieldInterpolationTable fits[6],
                             int field_table_ids[6]) nogil:
     cdef int i, fid, use
-    cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
+    cdef np.float64_t ta, tf, ttot, istorage[6], trgba[6], dot_prod
     for i in range(6): istorage[i] = 0.0
     for i in range(n_fits):
         istorage[i] = FIT_get_value(&fits[i], dvs)
@@ -88,9 +91,11 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
+    ttot = trgba[0] + trgba[1] + trgba[2]
+    ta = fmax(1.0 - dt*ttot, 0.0)
     for i in range(3):
-        ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
-        rgba[i] = dt*trgba[i] + ta * rgba[i]
+        #ta = 1.0-dt*fmax(trgba[i], 0.0))
+        rgba[i] = (1.0-ta)*trgba[i] + ta*rgba[i]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -114,7 +119,7 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
+    ta = expf(-fmax(dt*(trgba[0] + trgba[1] + trgba[2]), 0.0))
     for i in range(3):
-        ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
-        rgba[i] = dt*trgba[i] + ta * rgba[i] + dt*dot_prod*l_rgba[i]*trgba[i]*l_rgba[3] #(trgba[0]+trgba[1]+trgba[2])
+        rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
 

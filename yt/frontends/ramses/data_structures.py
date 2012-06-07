@@ -42,7 +42,7 @@ from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from .definitions import ramses_header
 from yt.utilities.definitions import \
     mpc_conversion
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
@@ -291,6 +291,23 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.field_list = ( "Density", "x-velocity", "y-velocity",
 	                        "z-velocity", "Pressure", "Metallicity" )
     
+    def _setup_field_list(self):
+        if self.parameter_file.use_particles:
+            # We know which particle fields will exist -- pending further
+            # changes in the future.
+            for field in art_particle_field_names:
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D,
+                # 2D and 3D fields.
+                self.pf.field_info.add_field(field, NullFunc,
+                                             convert_function=cf,
+                                             take_log=False, particle_type=True)
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         super(RAMSESGeometryHandler, self)._setup_classes(dd)

@@ -36,7 +36,7 @@ from .plot_modifications import get_smallest_appropriate_unit
 from .tick_locators import LogLocator, LinearLocator
 
 from yt.funcs import *
-from yt.utilities.amr_utils import write_png_to_string
+from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \

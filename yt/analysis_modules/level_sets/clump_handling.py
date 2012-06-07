@@ -190,7 +190,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             elif (child._isValid()):
                 these_children.append(child)
             else:
-                print "Eliminating invalid, childless clump with %d cells." % len(child.data["CellMassMsun"])
+                print "Eliminating invalid, childless clump with %d cells." % len(child.data["Ones"])
         if (len(these_children) > 1):
             print "%d of %d children survived." % (len(these_children),len(clump.children))            
             clump.children = these_children

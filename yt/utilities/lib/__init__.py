@@ -1,5 +1,5 @@
 """
-A base-class representing an astrophysical object
+Compatibility module
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
@@ -23,17 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .astrophysical_object import \
-    AstrophysicalObject, identification_method, correlation_method
-    
-class ClumpedRegion(AstrophysicalObject):
-    _type_name = "clumped_region"
-    def __init__(self, data_source):
-        AstrophysicalObject.__init__(self, data_source)
-
-@identification_method("clumped_region", "level_set")
-def clumps(obj, field, min_val):
-    ds = obj.data_source
-    mi, ma = ds.quantities["Extrema"](field)[0]
-    cls = obj.data_source.extract_connected_sets(field, 1, min_val, ma)
-    return [ClumpedRegion(o) for o in cls[1][0]]
+from .CICDeposit import *
+from .ContourFinding import *
+from .DepthFirstOctree import *
+from .fortran_reader import *
+from .freetype_writer import *
+from .Interpolators import *
+from .misc_utilities import *
+from .Octree import *
+from .png_writer import *
+from .PointsInVolume import *
+from .QuadTree import *
+from .RayIntegrators import *
+from .grid_traversal import *
+from .marching_cubes import *

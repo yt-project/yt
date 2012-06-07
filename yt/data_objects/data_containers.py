@@ -118,9 +118,9 @@ class YTDataContainer(object):
             pass
         elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
-        elif center in ("center", "c"): # is this dangerous for race conditions?
+        elif center in ("c", "center"):
             center = self.pf.domain_center
-        elif center == "max": # is this dangerous for race conditions?
+        elif center == ("max"): # is this dangerous for race conditions?
             center = self.pf.h.find_max("Density")[1]
         elif center.startswith("max_"):
             center = self.pf.h.find_max(center[4:])[1]
@@ -532,7 +532,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _convert_field_name(self, field):
         return field
 
-    def to_frb(self, width, resolution, center = None):
+    def to_frb(self, width, resolution, center=None, height=None):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -549,6 +549,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
             This will be the width of the FRB.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
+        height : height specifier
+            This will be the height of the FRB, by default it is equal to width.
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
@@ -573,13 +575,18 @@ class YTSelectionContainer2D(YTSelectionContainer):
         if iterable(width):
             w, u = width
             width = w/self.pf[u]
+        if height is None:
+            height = width
+        elif iterable(height):
+            h, u = height
+            height = h/self.pf[u]
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
         xax = x_dict[self.axis]
         yax = y_dict[self.axis]
-        bounds = (center[xax] - width/2.0, center[xax] + width/2.0,
-                  center[yax] - width/2.0, center[yax] + width/2.0)
+        bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
+                  center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
 
@@ -643,7 +650,18 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.
+        fly with a set of field_cuts.  It is very useful for applying 
+        conditions to the fields in your data object.
+        
+        Examples
+        --------
+        To find the total mass of gas above 10^6 K in your volume:
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ad = pf.h.all_data()
+        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
+
         """
         return YTValueCutExtractionBase(self, field_cuts)
 

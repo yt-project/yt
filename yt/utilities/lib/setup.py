@@ -107,94 +107,96 @@ def configuration(parent_package='',top_path=None):
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
     # support for setjmp.
     config.add_extension("CICDeposit", 
-                ["yt/utilities/_amr_utils/CICDeposit.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/CICDeposit.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("ContourFinding", 
-                ["yt/utilities/_amr_utils/ContourFinding.pyx",
-                 "yt/utilities/_amr_utils/union_find.c"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/ContourFinding.pyx",
+                 "yt/utilities/lib/union_find.c"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("DepthFirstOctree", 
-                ["yt/utilities/_amr_utils/DepthFirstOctree.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/DepthFirstOctree.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("fortran_reader", 
-                ["yt/utilities/_amr_utils/fortran_reader.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/fortran_reader.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("freetype_writer", 
-                ["yt/utilities/_amr_utils/freetype_writer.pyx"],
+                ["yt/utilities/lib/freetype_writer.pyx"],
                 include_dirs = [os.path.join(freetype_inc, "freetype2")],
                 library_dirs = [freetype_lib], libraries=["freetype"],
-                depends=["yt/utilities/_amr_utils/freetype_includes.h"])
+                depends=["yt/utilities/lib/freetype_includes.h"])
     config.add_extension("geometry_utils", 
-                ["yt/utilities/_amr_utils/geometry_utils.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/geometry_utils.pyx"],
+               extra_compile_args=['-fopenmp'],
+               extra_link_args=['-fopenmp'],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Interpolators", 
-                ["yt/utilities/_amr_utils/Interpolators.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/Interpolators.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("marching_cubes", 
-                ["yt/utilities/_amr_utils/marching_cubes.pyx",
-                 "yt/utilities/_amr_utils/FixedInterpolator.c"],
+                ["yt/utilities/lib/marching_cubes.pyx",
+                 "yt/utilities/lib/FixedInterpolator.c"],
                 libraries=["m"],
-                depends=["yt/utilities/_amr_utils/fp_utils.pxd",
-                         "yt/utilities/_amr_utils/fixed_interpolator.pxd",
-                         "yt/utilities/_amr_utils/FixedInterpolator.h",
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/utilities/lib/fixed_interpolator.pxd",
+                         "yt/utilities/lib/FixedInterpolator.h",
                 ])
     config.add_extension("misc_utilities", 
-                ["yt/utilities/_amr_utils/misc_utilities.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/misc_utilities.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Octree", 
-                ["yt/utilities/_amr_utils/Octree.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/Octree.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("png_writer", 
-                ["yt/utilities/_amr_utils/png_writer.pyx"],
+                ["yt/utilities/lib/png_writer.pyx"],
                 define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
                 include_dirs=[png_inc],
                 library_dirs=[png_lib],
                 libraries=["m", "png"],
-                depends=["yt/utilities/_amr_utils/fp_utils.pxd"]),
+                depends=["yt/utilities/lib/fp_utils.pxd"]),
     config.add_extension("PointsInVolume", 
-                ["yt/utilities/_amr_utils/PointsInVolume.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/PointsInVolume.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("QuadTree", 
-                ["yt/utilities/_amr_utils/QuadTree.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/QuadTree.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("RayIntegrators", 
-                ["yt/utilities/_amr_utils/RayIntegrators.pyx"],
-                libraries=["m"], depends=["yt/utilities/_amr_utils/fp_utils.pxd"])
+                ["yt/utilities/lib/RayIntegrators.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("VolumeIntegrator", 
-               ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
-                "yt/utilities/_amr_utils/FixedInterpolator.c",
-                "yt/utilities/_amr_utils/kdtree.c"] +
-                 glob.glob("yt/utilities/_amr_utils/healpix_*.c"), 
-               include_dirs=["yt/utilities/_amr_utils/"],
+               ["yt/utilities/lib/VolumeIntegrator.pyx",
+                "yt/utilities/lib/FixedInterpolator.c",
+                "yt/utilities/lib/kdtree.c"] +
+                 glob.glob("yt/utilities/lib/healpix_*.c"), 
+               include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
-               depends = ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
-                          "yt/utilities/_amr_utils/fp_utils.pxd",
-                          "yt/utilities/_amr_utils/healpix_interface.pxd",
-                          "yt/utilities/_amr_utils/endian_swap.h",
-                          "yt/utilities/_amr_utils/FixedInterpolator.h",
-                          "yt/utilities/_amr_utils/healpix_vectors.h",
-                          "yt/utilities/_amr_utils/kdtree.h",
-                          "yt/utilities/_amr_utils/healpix_ang2pix_nest.c",
-                          "yt/utilities/_amr_utils/healpix_mk_pix2xy.c",
-                          "yt/utilities/_amr_utils/healpix_mk_xy2pix.c",
-                          "yt/utilities/_amr_utils/healpix_pix2ang_nest.c",
-                          "yt/utilities/_amr_utils/healpix_pix2vec_nest.c",
-                          "yt/utilities/_amr_utils/healpix_vec2pix_nest.c"]
+               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
+                          "yt/utilities/lib/fp_utils.pxd",
+                          "yt/utilities/lib/healpix_interface.pxd",
+                          "yt/utilities/lib/endian_swap.h",
+                          "yt/utilities/lib/FixedInterpolator.h",
+                          "yt/utilities/lib/healpix_vectors.h",
+                          "yt/utilities/lib/kdtree.h",
+                          "yt/utilities/lib/healpix_ang2pix_nest.c",
+                          "yt/utilities/lib/healpix_mk_pix2xy.c",
+                          "yt/utilities/lib/healpix_mk_xy2pix.c",
+                          "yt/utilities/lib/healpix_pix2ang_nest.c",
+                          "yt/utilities/lib/healpix_pix2vec_nest.c",
+                          "yt/utilities/lib/healpix_vec2pix_nest.c"]
           )
     config.add_extension("grid_traversal", 
-               ["yt/utilities/_amr_utils/grid_traversal.pyx",
-                "yt/utilities/_amr_utils/FixedInterpolator.c",
-                "yt/utilities/_amr_utils/kdtree.c"] +
-                 glob.glob("yt/utilities/_amr_utils/healpix_*.c"), 
-               include_dirs=["yt/utilities/_amr_utils/"],
+               ["yt/utilities/lib/grid_traversal.pyx",
+                "yt/utilities/lib/FixedInterpolator.c",
+                "yt/utilities/lib/kdtree.c"] +
+                 glob.glob("yt/utilities/lib/healpix_*.c"), 
+               include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
                extra_compile_args=['-fopenmp'],
                extra_link_args=['-fopenmp'],
-               depends = ["yt/utilities/_amr_utils/VolumeIntegrator.pyx",
-                          "yt/utilities/_amr_utils/fp_utils.pxd",
-                          "yt/utilities/_amr_utils/kdtree.h",
-                          "yt/utilities/_amr_utils/FixedInterpolator.h",
-                          "yt/utilities/_amr_utils/fixed_interpolator.pxd",
+               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
+                          "yt/utilities/lib/fp_utils.pxd",
+                          "yt/utilities/lib/kdtree.h",
+                          "yt/utilities/lib/FixedInterpolator.h",
+                          "yt/utilities/lib/fixed_interpolator.pxd",
                           ]
           )
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
@@ -203,7 +205,7 @@ def configuration(parent_package='',top_path=None):
         ldir = os.path.join(gpd, "lib")
         print "INCLUDE AND LIB DIRS", idir, ldir
         config.add_extension("perftools_wrap",
-                ["yt/utilities/_amr_utils/perftools_wrap.pyx"],
+                ["yt/utilities/lib/perftools_wrap.pyx"],
                 libraries=["profiler"],
                 library_dirs = [ldir],
                 include_dirs = [idir],

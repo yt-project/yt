@@ -297,7 +297,7 @@ class TransportAppender(object):
         self.transport = transport
 
     def __call__(self, val):
-        from yt.utilities.amr_utils import write_png_to_string
+        from yt.utilities.lib import write_png_to_string
         from yt.visualization.image_writer import map_to_colors
         image = na.log10(val)
         mi = na.nanmin(image[~na.isinf(image)])

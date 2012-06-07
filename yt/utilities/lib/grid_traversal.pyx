@@ -29,7 +29,7 @@ cimport cython
 cimport kdtree_utils
 cimport healpix_interface
 from stdlib cimport malloc, free, abs
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
@@ -186,7 +186,7 @@ cdef class ImageSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void get_start_stop(self, np.float64_t *ex, int *rv):
+    cdef void get_start_stop(self, np.float64_t *ex, np.int64_t *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
         cdef ImageContainer *im = self.image
@@ -232,22 +232,22 @@ cdef class ImageSampler:
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, vj, hit, i, j, ni, nj, nn, offset
-        cdef int iter[4]
+        cdef int vi, vj, hit, i, j, ni, nj, nn
+        cdef np.int64_t offset, iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
         self.setup(pg)
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4]
         hit = 0
-        cdef int nx, ny, size
+        cdef np.int64_t nx, ny, size
         if im.vd_strides[0] == -1:
             self.calculate_extent(extrema, vc)
             self.get_start_stop(extrema, iter)
-            iter[0] = iclip(iter[0]-1, 0, im.nv[0])
-            iter[1] = iclip(iter[1]+1, 0, im.nv[0])
-            iter[2] = iclip(iter[2]-1, 0, im.nv[1])
-            iter[3] = iclip(iter[3]+1, 0, im.nv[1])
+            iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
+            iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
+            iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
+            iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
             nx = (iter[1] - iter[0])
             ny = (iter[3] - iter[2])
             size = nx * ny
@@ -262,7 +262,7 @@ cdef class ImageSampler:
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
-            with nogil, parallel():
+            with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -304,6 +304,9 @@ cdef class ImageSampler:
                 free(v_pos)
         return hit
 
+    cdef void setup(self, PartitionedGrid pg):
+        return
+
 cdef void projection_sampler(
                  VolumeContainer *vc, 
                  np.float64_t v_pos[3],
@@ -320,7 +323,7 @@ cdef void projection_sampler(
         im.rgba[i] += vc.data[i][di] * dl
 
 cdef class ProjectionSampler(ImageSampler):
-    def setup(self, PartitionedGrid pg):
+    cdef void setup(self, PartitionedGrid pg):
         self.sampler = projection_sampler
 
 cdef struct VolumeRenderAccumulator:
@@ -360,23 +363,14 @@ cdef void volume_render_sampler(
         dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
         dp[i] *= vc.idds[i]
         ds[i] = v_dir[i] * vc.idds[i] * dt
-    for i in range(vc.n_fields):
-        slopes[i] = offset_interpolate(vc.dims, dp,
-                        vc.data[i] + offset)
-    for i in range(3):
-        dp[i] += ds[i] * vri.n_samples
-    cdef np.float64_t temp
-    for i in range(vc.n_fields):
-        temp = slopes[i]
-        slopes[i] -= offset_interpolate(vc.dims, dp,
-                         vc.data[i] + offset)
-        slopes[i] *= -1.0/vri.n_samples
-        dvs[i] = temp
-    for dti in range(vri.n_samples): 
-        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
-                          vri.field_table_ids)
-        for i in range(vc.n_fields):
-            dvs[i] += slopes[i]
+    for i in range(vri.n_samples):
+        for j in range(vc.n_fields):
+            dvs[j] = offset_interpolate(vc.dims, dp,
+                    vc.data[j] + offset)
+        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, 
+                vri.fits, vri.field_table_ids)
+        for j in range(3):
+            dp[j] += ds[j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -562,7 +556,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                 skdc = star_list[i]
                 self.trees[i] = skdc.tree
 
-    def setup(self, PartitionedGrid pg):
+    cdef void setup(self, PartitionedGrid pg):
         if self.trees == NULL:
             self.sampler = volume_render_sampler
         else:
@@ -625,7 +619,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
             self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
         self.supp_data = <void *> self.vra
 
-    def setup(self, PartitionedGrid pg):
+    cdef void setup(self, PartitionedGrid pg):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):
@@ -1025,3 +1019,38 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
             healpix_interface.vec2pix_nest(nside, v0, &ipix)
             #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
             image[j, i] = pix_image[ipix]
+
+def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
+        nimy=1, int nimi=0, int nimj=0, np.float64_t off_theta=0.0, np.float64_t
+        off_phi=0.0):
+    # We now follow figures 4-7 of:
+    # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
+    # ...but all in Cython.
+    cdef np.ndarray[np.float64_t, ndim=3] vp
+    cdef int i, j, k
+    cdef np.float64_t r, phi, theta, px, py
+    cdef np.float64_t pi = 3.1415926
+    cdef np.float64_t fov_rad = fov * pi / 180.0
+    cdef int nx = resolution/nimx
+    cdef int ny = resolution/nimy
+    vp = np.zeros((nx,ny, 3), dtype="float64")
+    for i in range(nx):
+        px = 2.0 * (nimi*nx + i) / (resolution) - 1.0
+        for j in range(ny):
+            py = 2.0 * (nimj*ny + j) / (resolution) - 1.0
+            r = (px*px + py*py)**0.5
+            if r == 0.0:
+                phi = 0.0
+            elif px < 0:
+                phi = pi - asin(py / r)
+            else:
+                phi = asin(py / r)
+            theta = r * fov_rad / 2.0
+            theta += off_theta
+            phi += off_phi
+            vp[i,j,0] = sin(theta) * cos(phi)
+            vp[i,j,1] = sin(theta) * sin(phi)
+            vp[i,j,2] = cos(theta)
+    return vp
+
+

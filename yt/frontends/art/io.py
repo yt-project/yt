@@ -3,8 +3,6 @@ ART-specific IO
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Author: Christopher Moody <juxtaposicion@gmail.com>
-Affiliation: UC Santa Cruz
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
@@ -36,7 +34,7 @@ from yt.utilities.io_handler import \
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-import yt.utilities.amr_utils as au
+import yt.utilities.lib as au
 
 from yt.frontends.art.definitions import art_particle_field_names
 
@@ -124,7 +122,11 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
-        idx = grid.particle_indices
+        idx = na.array(grid.particle_indices)
+        if field == 'particle_index':
+            return na.array(idx)
+        if field == 'particle_type':
+            return grid.pf.particle_type[idx]
         if field == 'particle_position_x':
             return grid.pf.particle_position[idx][:,0]
         if field == 'particle_position_y':
@@ -140,40 +142,23 @@ class IOHandlerART(BaseIOHandler):
         if field == 'particle_velocity_z':
             return grid.pf.particle_velocity[idx][:,2]
         
-        tridx = grid.particle_indices >= grid.pf.particle_star_index
-        sidx  = grid.particle_indices[tridx] - grid.pf.particle_star_index
-        n = grid.particle_indices
-        if field == 'particle_creation_time':
-            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-0.0
-            if sidx.shape[0]>0:
-                tr[tridx] = grid.pf.particle_star_ages[sidx]
-            return tr
-        if field == 'particle_metallicity_fraction':
-            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            if sidx.shape[0]>0:
-                tr[tridx]  = grid.pf.particle_star_metallicity1[sidx]
-                tr[tridx] += grid.pf.particle_star_metallicity2[sidx]
-            return tr
+        #stellar fields
+        if field == 'particle_age':
+            return grid.pf.particle_age[idx]
+        if field == 'particle_metallicity':
+            return grid.pf.particle_metallicity1[idx] +\
+                   grid.pf.particle_metallicity2[idx]
         if field == 'particle_metallicity1':
-            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            if sidx.shape[0]>0:
-                tr[tridx] = grid.pf.particle_star_metallicity1[sidx]
-            return tr
+            return grid.pf.particle_metallicity1[idx]
         if field == 'particle_metallicity2':
-            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            if sidx.shape[0]>0:
-                tr[tridx] = grid.pf.particle_star_metallicity2[sidx]
-            return tr
+            return grid.pf.particle_metallicity2[idx]
         if field == 'particle_mass_initial':
-            tr = na.zeros(grid.NumberOfParticles, dtype='float64')-1.0
-            if sidx.shape[0]>0:
-                tr[tridx] = grid.pf.particle_star_mass_initial[sidx]
-            return tr
+            return grid.pf.particle_mass_initial[idx]
+        
         raise 'Should have matched one of the particle fields...'
 
         
     def _read_data_set(self, grid, field):
-        #import pdb; pdb.set_trace()
         if field in art_particle_field_names:
             return self._read_particle_field(grid, field)
         pf = grid.pf
@@ -258,8 +243,7 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     
     #Skip all the oct hierarchy data
     le     = na.zeros((nLevel,3),dtype='int64')
-    #fl     = na.ones((nLevel,6),dtype='int64') #6 dimensions to fit RAMSES
-    fl     = na.zeros(nLevel,dtype='int64')
+    fl     = na.ones((nLevel,6),dtype='int64')
     iocts  = na.zeros(nLevel+1,dtype='int64')
     idxa,idxb = 0,0
     chunk = long(1e6) #this is ~111MB for 15 dimensional 64 bit arrays
@@ -271,8 +255,7 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
         data=data.reshape(this_chunk,15)
         left-=this_chunk
         le[idxa:idxb,:] = data[:,1:4]
-        fl[idxa:idxb] = na.arange(idxa,idxb)
-        #fl[idxa:idxb,1] = na.arange(idxa,idxb)
+        fl[idxa:idxb,1] = na.arange(idxa,idxb)
         #pad byte is last, LL2, then ioct right before it
         iocts[idxa:idxb] = data[:,-3] 
         idxa=idxa+this_chunk
@@ -492,5 +475,4 @@ def b2t(tb,n = 1e2,logger=None,**kwargs):
     fb2t = na.interp(tb,tbs,ages)
     #fb2t = interp1d(tbs,ages)
     return fb2t
-
 

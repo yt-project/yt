@@ -35,7 +35,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
-from yt.utilities.amr_utils import Octree
+from yt.utilities.lib import Octree
 
 __CUDA_BLOCK_SIZE = 256
 

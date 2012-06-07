@@ -33,6 +33,15 @@ class YTException(Exception):
 
 # Data access exceptions:
 
+class YTOutputNotIdentified(YTException):
+    def __init__(self, args, kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+    def __str__(self):
+        return "Supplied %s %s, but could not load!" % (
+            self.args, self.kwargs)
+
 class YTSphereTooSmall(YTException):
     def __init__(self, pf, radius, smallest_cell):
         YTException.__init__(self, pf)

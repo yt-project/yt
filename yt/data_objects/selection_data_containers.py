@@ -260,6 +260,9 @@ class YTSliceBase(YTSelectionContainer2D):
     def _mrep(self):
         return MinimalSliceData(self)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
 class YTCuttingPlaneBase(YTSelectionContainer2D):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -269,7 +272,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
 
     def __init__(self, normal, center, fields = None, node_name = None,
-                 **kwargs):
+                 north_vector = None, **kwargs):
         """
         This is a data object corresponding to an oblique slice through the
         simulation domain.
@@ -318,16 +321,14 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
-        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
+        self.orienter = Orientation(normal, north_vector = north_vector)
+        self._norm_vec = self.orienter.normal_vector
+        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._x_vec = self.orienter.unit_vectors[0]
+        self._y_vec = self.orienter.unit_vectors[1]
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
         # First we try all three, see which has the best result:
         vecs = na.identity(3)
-        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
-        ax = _t.argmax()
-        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
-        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
         self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = na.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
@@ -390,6 +391,58 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
+    def to_frb(self, width, resolution, height=None):
+        r"""This function returns an ObliqueFixedResolutionBuffer generated
+        from this object.
+
+        An ObliqueFixedResolutionBuffer is an object that accepts a
+        variable-resolution 2D object and transforms it into an NxM bitmap that
+        can be plotted, examined or processed.  This is a convenience function
+        to return an FRB directly from an existing 2D data object.  Unlike the
+        corresponding to_frb function for other AMR2DData objects, this does
+        not accept a 'center' parameter as it is assumed to be centered at the
+        center of the cutting plane.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        height : height specifier, optional
+            This will be the height of the FRB, by default it is equal to width.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> cutting = pf.h.cutting(L, c)
+        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
+        >>> write_image(na.log10(frb["Density"]), 'density_1pc.png')
+        """
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if height is None:
+            height = width
+        elif iterable(height):
+            h, u = height
+            height = h/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
         frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
         return frb
 
@@ -817,6 +870,38 @@ class YTGridCollectionBase(YTSelectionContainer3D):
         pointI = na.where(k == True)
         return pointI
 
+class YTGridCollectionMaxLevelBase(YTSelectionContainer3D):
+    _type_name = "grid_collection_max_level"
+    _con_args = ("center", "max_level")
+    def __init__(self, center, max_level, fields = None,
+                 pf = None, **kwargs):
+        """
+        By selecting an arbitrary *max_level*, we can act on those grids.
+        Child cells are masked when the level of the grid is below the max
+        level.
+        """
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        self.max_level = max_level
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        if self._grids is not None: return
+        gi = (self.pf.h.grid_levels <= self.max_level)[:,0]
+        self._grids = self.pf.h.grids[gi]
+
+    def _is_fully_enclosed(self, grid):
+        return True
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
+
+    def _get_point_indices(self, grid, use_child_mask=True):
+        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        if use_child_mask and grid.Level < self.max_level:
+            k[grid.child_indices] = False
+        pointI = na.where(k == True)
+        return pointI
 
 class YTSphereBase(YTSelectionContainer3D):
     """

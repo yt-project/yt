@@ -133,6 +133,9 @@ class StaticOutput(object):
     def _mrep(self):
         return MinimalStaticOutput(self)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False
