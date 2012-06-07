@@ -154,27 +154,69 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         widgetName: 'plot_window',
         supportsDataObjects: false,
         supportsParameterFiles: true,
-        displayName: 'Do not use',
+        displayName: '2D Plot',
         preCreation: function(obj) {
-            var widget = Ext.create(this.getName())
-            function makeProj(b, e) {
-                reason.server.method('create_proj',
-                    {
-                        pfname: obj.varname,
-                        axis: win.query("#axis")[0].getValue(),
-                        field: win.query("#field")[0].getValue(),
-                        weight: win.query("#weightField")[0].getValue(),
-                        onmax: win.query("#maxDens")[0].getValue(),
-                    });
+            var widget = Ext.create(this.getName());
+            function makePlot(b, e) {
+                var conf = {
+                    pfname: obj.varname,
+                    axis: win.query("#axis")[0].getValue(),
+                    field: win.query("#field")[0].getValue(),
+                    onmax: win.query("#maxDens")[0].getValue(),
+                };
+                var method = 'create_slice';
+                if (win.query("#plotType")[0].getValue() == 'Projection') {
+                    method = 'create_proj';
+                    conf['weight'] = win.query("#weightField")[0].getValue();
+                } else {
+                  conf['center'] = [win.query("#slice_x_center")[0].getValue(),
+                                    win.query("#slice_y_center")[0].getValue(),
+                                    win.query("#slice_z_center")[0].getValue()];
+                }
+                reason.server.method(method, conf);
                 win.destroy();
+            }
+            function togglePlotType(b, e) {
+                var plotType = win.query("#plotType")[0].getValue();
+                examine = win;
+                if (plotType == 'Projection') {
+                    win.query("#weightField")[0].enable();
+                    win.query("#maxDens")[0].disable();
+                    win.query("#slice_x_center")[0].disable();
+                    win.query("#slice_y_center")[0].disable();
+                    win.query("#slice_z_center")[0].disable();
+                } else {
+                    win.query("#weightField")[0].disable();
+                    win.query("#maxDens")[0].enable();
+                    win.query("#slice_x_center")[0].enable();
+                    win.query("#slice_y_center")[0].enable();
+                    win.query("#slice_z_center")[0].enable();
+                }
+            }
+            function toggleMaxDens(checkbox, checked) {
+                var plotType = win.query("#plotType")[0].getValue();
+                if (plotType == "Projection") { return; }
+                if (checked == true) {
+                    win.query("#slice_x_center")[0].disable();
+                    win.query("#slice_y_center")[0].disable();
+                    win.query("#slice_z_center")[0].disable();
+                } else {
+                    win.query("#slice_x_center")[0].enable();
+                    win.query("#slice_y_center")[0].enable();
+                    win.query("#slice_z_center")[0].enable();
+                }
             }
             var title = widget.templateManager.applyObject(obj, 'pwt');
             win = Ext.widget("plotwindowcreator", {title:title, obj:obj});
             win.query("#weightField")[0].store = 
                 ['None'].concat(obj.field_list);
             win.query("#field")[0].store = obj.field_list;
-            win.query("#create")[0].on('click', makeProj);
-            win.query("#cancel")[0].on('click', function(){win.destroy;});
+            win.query("#create")[0].on('click', makePlot);
+            win.query("#cancel")[0].on('click', function(){win.destroy();});
+            win.query("#maxDens")[0].on('change', toggleMaxDens);
+            win.query("#plotType")[0].on('change', togglePlotType);
+            togglePlotType();
+            toggleMaxDens();
             win.show();
             /* Note that in this case, our instance of 'widget', which is this
                class, is not long-lived.  It dies after the window is
