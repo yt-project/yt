@@ -496,25 +496,34 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         from matplotlib.ticker import FuncFormatter
         pyplot.clf()
         ax = pyplot.axes()
+        alpha = self.red.y + self.green.y + self.blue.y
+        max_alpha = alpha.max()
+        norm = max_alpha
         i_data = na.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
-        i_data[:,:,0] = na.outer(na.ones(self.alpha.x.size), self.funcs[0].y)
-        i_data[:,:,1] = na.outer(na.ones(self.alpha.x.size), self.funcs[1].y)
-        i_data[:,:,2] = na.outer(na.ones(self.alpha.x.size), self.funcs[2].y)
-        ax.imshow(i_data, origin='lower')
-        ax.fill_between(na.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
+        i_data[:,:,0] = na.outer(na.ones(self.alpha.x.size), self.funcs[0].y/norm)
+        i_data[:,:,1] = na.outer(na.ones(self.alpha.x.size), self.funcs[1].y/norm)
+        i_data[:,:,2] = na.outer(na.ones(self.alpha.x.size), self.funcs[2].y/norm)
+        ax.imshow(i_data, origin='lower', aspect='auto')
+        print max_alpha
+        #ax.fill_between(na.arange(self.alpha.y.size), alpha, y2=max_alpha, color='black')
+        ax.plot(na.arange(self.alpha.y.size), alpha, 'w')
         ax.set_xlim(0, self.alpha.x.size)
         xticks = na.arange(na.ceil(self.alpha.x[0]), na.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        if len(xticks) > 5:
+            xticks = xticks[::len(xticks)/5]
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
         ax.xaxis.set_major_formatter(FuncFormatter(x_format))
-        yticks = na.linspace(0,1,5) * self.alpha.y.size
+        yticks = na.linspace(0,1,5) * max_alpha
         ax.yaxis.set_ticks(yticks)
         def y_format(y, pos):
-            return (y / self.alpha.y.size)
+            s = '%0.2f' % ( y )
+            return s
         ax.yaxis.set_major_formatter(FuncFormatter(y_format))
-        ax.set_ylabel("Transmission")
+        ax.set_ylim(0., max_alpha)
+        ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
         
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
