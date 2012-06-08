@@ -266,7 +266,7 @@ cdef class ImageSampler:
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                for j in prange(size, schedule="dynamic"):
+                for j in prange(size, schedule="static",chunksize=1):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
@@ -291,7 +291,7 @@ cdef class ImageSampler:
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
-                for j in prange(size, schedule="guided"):
+                for j in prange(size, schedule="dynamic", chunksize=100):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]

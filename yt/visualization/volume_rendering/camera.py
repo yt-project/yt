@@ -618,24 +618,10 @@ class InteractiveCamera(Camera):
 data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
-    def __init__(self, center, normal_vector, width,
-                 resolution, transfer_function,
-                 north_vector = None, steady_north=False,
-                 volume = None, fields = None,
-                 log_fields = None,
-                 sub_samples = 5, pf = None,
-                 use_kd=True, l_max=None, no_ghost=True,
-                 tree_type='domain', expand_factor=1.0,
-                 le=None, re=None, use_light=False):
-        self.expand_factor = expand_factor
-        Camera.__init__(self, center, normal_vector, width,
-                 resolution, transfer_function,
-                 north_vector=north_vector, steady_north=steady_north,
-                 volume=volume, fields=fields,
-                 log_fields=log_fields,
-                 sub_samples=sub_samples, pf=pf,
-                 use_kd=use_kd, l_max=l_max, no_ghost=no_ghost,
-                 tree_type=tree_type, le=le, re=re, use_light=use_light)
+    expand_factor = 1.0
+    def __init__(self, *args, **kwargs):
+        expand_factor = kwargs.pop('expand_factor', 1.0)
+        Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
         # We should move away from pre-generation of vectors like this and into
