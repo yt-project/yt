@@ -278,6 +278,10 @@ class PlotWindow(object):
     def set_vector_info(self, skip, scale = 1):
         self._vector_info = (skip, scale)
 
+    @invalidate_data
+    def refresh(self):
+        self._setup_plots()
+
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
 

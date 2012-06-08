@@ -36,6 +36,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     templates: {
         pwt: 'Projection Details for {name}',
         swt: 'Slice Details for {name}',
+        refresh: '{widget.varname}.refresh()',
         scrollZoom: '{widget.varname}.scroll_zoom({a1})',
         fieldChange: '{widget.varname}.set_current_field("{a1.data[\'field1\']}")',
         singleUpArrow:    '{widget.varname}.pan_rel(( 0.0, -0.1))',
@@ -140,6 +141,9 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             title: wd['title'],
         });
         var newRefs = this.createMyRefs(this.plotWindowView.id);
+        var refresh = this.templateManager.applyObject(
+            {widget: this.plotWindowView}, 'refresh');
+        reason.server.execute(refresh, false);
         this.getColorbar().src = "data:image/png;base64," + wd['colorbar'];
         this.getFieldSelector().store = wd['fields'];
         this.getFieldSelector().value = wd['initial_field'];
