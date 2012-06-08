@@ -477,7 +477,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
         pyplot.savefig(filename)
 
-    def show(self):
+    def show(self, ax=None):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -494,8 +494,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         """
         from matplotlib import pyplot
         from matplotlib.ticker import FuncFormatter
-        pyplot.clf()
-        ax = pyplot.axes()
+        #pyplot.clf()
+        if ax is None:
+            ax = pyplot.axes()
         alpha = self.red.y + self.green.y + self.blue.y
         max_alpha = alpha.max()
         norm = max_alpha
@@ -504,8 +505,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         i_data[:,:,1] = na.outer(na.ones(self.alpha.x.size), self.funcs[1].y/norm)
         i_data[:,:,2] = na.outer(na.ones(self.alpha.x.size), self.funcs[2].y/norm)
         ax.imshow(i_data, origin='lower', aspect='auto')
-        print max_alpha
-        #ax.fill_between(na.arange(self.alpha.y.size), alpha, y2=max_alpha, color='black')
+
+        #ax.fill_between(na.arange(self.alpha.y.size), alpha, y2=max_alpha, color='white')
         ax.plot(na.arange(self.alpha.y.size), alpha, 'w')
         ax.set_xlim(0, self.alpha.x.size)
         xticks = na.arange(na.ceil(self.alpha.x[0]), na.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
@@ -525,6 +526,63 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylim(0., max_alpha)
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
+
+    def vert_cbar(self, ax=None, label=None):
+        r"""Display an image of the transfer function
+
+        This function loads up matplotlib and displays the current transfer function.
+
+        Parameters
+        ----------
+
+        Examples
+        --------
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, 1.0)
+        >>> tf.show()
+        """
+        from matplotlib import pyplot
+        from matplotlib.ticker import FuncFormatter
+        #pyplot.clf()
+        if ax is None:
+            ax = pyplot.axes()
+        if label is None:
+            label = ''
+        alpha = self.red.y + self.green.y + self.blue.y
+        max_alpha = alpha.max()
+        norm = max_alpha
+        i_data = na.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
+        i_data[:,:,0] = na.outer(self.funcs[0].y/norm, na.ones(self.alpha.x.size))
+        i_data[:,:,1] = na.outer(self.funcs[1].y/norm, na.ones(self.alpha.x.size))
+        i_data[:,:,2] = na.outer(self.funcs[2].y/norm, na.ones(self.alpha.x.size))
+        ax.imshow(i_data, origin='lower', aspect='auto')
+
+        #ax.fill_between(na.arange(self.alpha.y.size), alpha, y2=max_alpha, color='white')
+        #ax.plot(alpha, na.arange(self.alpha.y.size), 'w')
+        ax.set_ylim(0, self.alpha.x.size)
+        xticks = na.arange(na.ceil(self.alpha.x[0]), na.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
+        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        if len(xticks) > 5:
+            xticks = xticks[::len(xticks)/5]
+        ax.yaxis.set_ticks(xticks)
+        def x_format(x, pos):
+            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+        ax.yaxis.set_major_formatter(FuncFormatter(x_format))
+        yticks = na.linspace(0,1,2,endpoint=True) * max_alpha
+        ax.xaxis.set_ticks(yticks)
+        #balls
+        def y_format(y, pos):
+            s = '%0.2f' % ( y )
+            return s
+        ax.xaxis.set_major_formatter(FuncFormatter(y_format))
+        ax.set_xlim(0., max_alpha)
+        #ax.set_xlabel("Opacity")
+        ax.get_xaxis().set_visible(False)
+        ax.get_xaxis().set_ticks([])
+        ax.tick_params(axis='y', colors='white')
+        ax.set_ylabel(label, color='white')
+
         
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
@@ -569,9 +627,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
-        r *= alpha
-        g *= alpha
-        b *= alpha    
+        r *= alpha/3.
+        g *= alpha/3.
+        b *= alpha/3. 
         self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha)))

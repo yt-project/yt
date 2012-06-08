@@ -49,6 +49,10 @@ from yt.utilities.lib import \
     pixelize_healpix, arr_fisheye_vectors
 
 class Camera(ParallelAnalysisInterface):
+    _pylab = None
+    _tf_figure = None
+    _render_figure = None
+
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
@@ -199,6 +203,8 @@ class Camera(ParallelAnalysisInterface):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         self.log_fields = log_fields
+        if self.log_fields is None:
+            self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
         self.use_kd = use_kd
         self.l_max = l_max
         self.no_ghost = no_ghost
@@ -217,7 +223,7 @@ class Camera(ParallelAnalysisInterface):
                                            log_fields = log_fields)
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
-        self.volume = volume
+        self.volume = volume        
 
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
@@ -334,13 +340,61 @@ class Camera(ParallelAnalysisInterface):
         self.finalize_image(image)
         return image
 
+    def show_tf(self):
+        if self._pylab is None: 
+            import pylab
+            self._pylab = pylab
+        if self._tf_figure is None:
+            self._tf_figure = self._pylab.figure(2)
+            self.transfer_function.show(ax=self._tf_figure.axes)
+        self._pylab.draw()
+
+    def annotate(self, ax, enhance=True):
+        ax.get_xaxis().set_visible(False)
+        ax.get_xaxis().set_ticks([])
+        ax.get_yaxis().set_visible(False)
+        ax.get_yaxis().set_ticks([])
+        cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
+        label = self.pf.field_info[self.fields[0]].get_label()
+        if self.log_fields[0]:
+            label = '$\\rm{log}\\/ $' + label
+        self.transfer_function.vert_cbar(ax=cb.ax, label=label)
+
+
+
+    def show(self, im, enhance=True):
+        if self._pylab is None:
+            import pylab
+            self._pylab = pylab
+        if self._render_figure is None:
+            self._render_figure = self._pylab.figure(1)
+        self._render_figure.clf()
+
+        if enhance:
+            nz = im[im > 0.0]
+            nim = im / (nz.mean() + 6.0 * na.std(nz))
+            nim[nim > 1.0] = 1.0
+            nim[nim < 0.0] = 0.0
+            del nz
+        else:
+            nim = im
+        ax = self._pylab.imshow(nim/nim.max(), origin='lower')
+        return ax
+
+    def draw(self):
+        self._pylab.draw()
+    
+    def save_annotated(self, fn, im=None, enhance=True, dpi=100):
+        ax = self.show(im, enhance=enhance)
+        self.annotate(ax.axes, enhance)
+        self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
+        
     def save_image(self, fn, clip_ratio, image):
         if self.comm.rank is 0 and fn is not None:
             if clip_ratio is not None:
                 write_bitmap(image, fn, clip_ratio * image.std())
             else:
                 write_bitmap(image, fn)
-
 
     def initialize_source(self):
         return self.volume.initialize_source()
@@ -581,18 +635,10 @@ data_object_registry["camera"] = Camera
 
 class InteractiveCamera(Camera):
     frames = []
-    _pylab = None
-    def snapshot(self, fn = None, clip_ratio = None):
-        if self._pylab is None: 
-            import pylab
-            self._pylab = pylab
-        self._pylab.figure(2)
-        self.transfer_function.show()
-        self._pylab.draw()
+
+    def snapshot(self, fn = None, clip_ratio = None, enhance=True):
         im = Camera.snapshot(self, fn, clip_ratio)
-        self._pylab.figure(1)
-        self._pylab.imshow(im/im.max())
-        self._pylab.draw()
+        self.show(im, enhance)
         self.frames.append(im)
         
     def rotation(self, theta, n_steps, rot_vector=None):
@@ -608,6 +654,9 @@ class InteractiveCamera(Camera):
     def clear_frames(self):
         del self.frames
         self.frames = []
+        
+    def save(self,fn):
+        self._pylab.savefig(fn, bbox_inches='tight', facecolor='black')
         
     def save_frames(self, basename, clip_ratio=None):
         for i, frame in enumerate(self.frames):
