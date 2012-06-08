@@ -112,16 +112,19 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("ContourFinding", 
                 ["yt/utilities/lib/ContourFinding.pyx",
                  "yt/utilities/lib/union_find.c"],
+                include_dirs=["yt/utilities/lib/"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("fortran_reader", 
                 ["yt/utilities/lib/fortran_reader.pyx"],
+                include_dirs=["yt/utilities/lib/"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("freetype_writer", 
                 ["yt/utilities/lib/freetype_writer.pyx"],
-                include_dirs = [freetype_inc,os.path.join(freetype_inc, "freetype2")],
+                include_dirs = [freetype_inc,os.path.join(freetype_inc, "freetype2"),
+                                "yt/utilities/lib"],
                 library_dirs = [freetype_lib], libraries=["freetype"],
                 depends=["yt/utilities/lib/freetype_includes.h"])
     config.add_extension("geometry_utils", 
@@ -135,6 +138,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("marching_cubes", 
                 ["yt/utilities/lib/marching_cubes.pyx",
                  "yt/utilities/lib/FixedInterpolator.c"],
+                include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/fixed_interpolator.pxd",

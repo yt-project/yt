@@ -1156,7 +1156,7 @@ class MosaicFisheyeCamera(Camera):
             rot_vector = na.cross(rvec, self.normal_vector)
             rot_vector /= (rot_vector**2).sum()**0.5
             
-            self.rotation_matrix = get_rotation_matrix(angle,rot_vector)
+            self.rotation_matrix = get_rotation_matrix(self,angle,rot_vector)
             self.normal_vector = na.dot(self.rotation_matrix,self.normal_vector)
             self.north_vector = na.dot(self.rotation_matrix,self.north_vector)
             self.east_vector = na.dot(self.rotation_matrix,self.east_vector)
