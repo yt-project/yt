@@ -269,7 +269,7 @@ class Workgroup(object):
         self.size = size
         self.ranks = ranks
         self.comm = comm
-	self.name = name
+        self.name = name
 
 class ProcessorPool(object):
     comm = None
@@ -292,11 +292,9 @@ class ProcessorPool(object):
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
-
-	# Default name to the workgroup number.
+        # Default name to the workgroup number.
         if name is None: 
-	    name = string(len(workgroups))
-	    
+            name = string(len(workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
