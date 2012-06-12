@@ -384,8 +384,8 @@ class Camera(ParallelAnalysisInterface):
     def draw(self):
         self._pylab.draw()
     
-    def save_annotated(self, fn, im=None, enhance=True, dpi=100):
-        ax = self.show(im, enhance=enhance)
+    def save_annotated(self, fn, image, enhance=True, dpi=100):
+        ax = self.show(image, enhance=enhance)
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
