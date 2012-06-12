@@ -28,7 +28,7 @@ try:
 except ImportError:
     pass
 from contextmanager import contextlib
-
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 class WorkSplitter(object):
     def __init__(self, controller, group1, group2):
@@ -56,11 +56,14 @@ class WorkSplitter(object):
         else:
             raise NotImplementedError
 
+    @abstractmethod
     def run_controller(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def run_group1(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def run_group2(self):
-        raise NotImplementedError
+        pass
