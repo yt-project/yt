@@ -51,7 +51,6 @@ class WidgetStore(dict):
         print "DELIVERING", payload
         self.payload_handler.add_payload(payload)
 
-    @lockit
     def create_slice(self, pf, center, axis, field, onmax):
         if onmax: 
             center = pf.h.find_max('Density')[1]
@@ -75,7 +74,6 @@ class WidgetStore(dict):
                          'initial_transform' : trans}
         self._add_widget(pw, widget_data)
 
-    @lockit
     def create_proj(self, pf, axis, field, weight):
         if weight == "None": weight = None
         axis = inv_axis_names[axis.lower()]
@@ -94,7 +92,6 @@ class WidgetStore(dict):
                        'colorbar': cb}
         self._add_widget(pw, widget_data)
 
-    @lockit
     def create_grid_dataview(self, pf):
         levels = pf.h.grid_levels
         left_edge = pf.h.grid_left_edge
@@ -120,11 +117,11 @@ class WidgetStore(dict):
                    }
         self.payload_handler.add_payload(payload)
 
-    @lockit
     def create_pf_display(self, pf):
         widget = ParameterFileWidget(pf)
         widget_data = {'fields': widget._field_list(),
                        'level_stats': widget._level_stats(),
+                       'pf_info': widget._pf_info(),
                       }
         self._add_widget(widget, widget_data)
 
@@ -139,7 +136,7 @@ class ParameterFileWidget(object):
         field_list = list(set(self.pf.h.field_list
                             + self.pf.h.derived_field_list))
         field_list.sort()
-        return field_list
+        return [dict(text = field) for field in field_list]
 
     def _level_stats(self):
         level_data = []
@@ -155,3 +152,19 @@ class ParameterFileWidget(object):
                                'cell_rel': int(100*cell_count/ncells),
                                'grid_rel': int(100*grid_count/ngrids)})
         return level_data
+
+    def _pf_info(self):
+        tr = {}
+        for k, v in self.pf._mrep._attrs.items():
+            if isinstance(v, na.ndarray):
+                tr[k] = v.tolist()
+            else:
+                tr[k] = v
+        return tr
+
+    def deliver_field(self, field):
+        ph = PayloadHandler()
+        ph.widget_payload(self,
+            {'ptype':'field_info',
+             'field_source': self.pf.field_info[field].get_source() })
+        return

@@ -42,7 +42,46 @@ Ext.define("Reason.view.widgets.ParameterFileDisplay", {
     activeTab: 0,
 
     items: [
-        { xtype: 'panel',
+        { 
+          xtype: 'panel',
+          width: 600,
+          height: 500,
+          title: 'Dataset Information',
+          layout: {
+            type: 'absolute',
+          },
+          items: [
+            {
+              xtype: 'panel',
+              itemId: 'pfParams',
+              bodyCls: 'pfdisplay',
+              width: 600,
+              height: 300,
+              x: 0,
+              y: 0,
+              items: [],
+            }, {
+              xtype: 'panel',
+              itemId: 'widgetpanel',
+              width: 600,
+              height: 300,
+              x: 0,
+              y: 300,
+              items: [],
+            }
+          ],
+        }, {
+          xtype: 'panel',
+          itemId: 'fieldPanel',
+          title: 'Field Info',
+          layout: {
+            type: 'hbox',
+            pack: 'start',
+            align: 'stretch',
+          },
+          items: []
+        }, {
+          xtype: 'panel',
           itemId: 'statsPanel',
           title: 'Mesh Statistics',
           layout: {

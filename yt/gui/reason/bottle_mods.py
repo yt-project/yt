@@ -100,7 +100,6 @@ class PayloadHandler(object):
         data['widget_id'] = widget._ext_widget_id
         self.add_payload(data)
 
-
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
     def run(self, handler):

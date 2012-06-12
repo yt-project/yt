@@ -56,3 +56,13 @@ tr.codeview td, tr.codeview pre {
 .cell_waiting {
     background-color: #FF0000;
 }
+
+.pfdisplay {
+    font-family: monospace;
+    font-size: 120%;
+}
+
+table.pftable td, table.pftable th {
+    padding-left: 10px;
+    padding-right: 10px;
+}

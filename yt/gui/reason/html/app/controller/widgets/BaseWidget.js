@@ -49,11 +49,13 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         var control = this;
         function ev() {
             console.log("Inside ... " + templateName);
+            var myArgs = arguments;
             Ext.each(arguments, function(v, i) {
-                args["a" + i] = arguments[i];
+                args["a" + i] = myArgs[i];
             });
             args['control'] = control;
             args['widget'] = ww;
+            examine = {args:args, arg2: arguments};
             if((isValidFn != null) && (isValidFn(arguments) == false)) {return;}
             reason.server.execute(tpl.apply(args), true);
         };

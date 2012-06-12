@@ -1,5 +1,5 @@
 /**********************************************************************
-Level display stats
+Field Info Display
 
 Author: Cameron Hummels <chummels@gmail.com>
 Affiliation: Columbia
@@ -29,47 +29,46 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define("Reason.view.widgets.LevelStats", {
-    extend: 'Ext.chart.Chart',
-    title: 'Level Stats',
-    alias: 'widget.levelstats',
-    layout: 'absolute',
-    flex: 1.0,
-    itemId: 'levelStats',
-    animate: true,
-    legend: {
-       position: 'right',
+Ext.define("Reason.view.widgets.FieldPanel", {
+    extend: 'Ext.panel.Panel',
+    alias: 'widget.fieldpanel',
+    iconCls: 'graph',
+    autoScroll: true,
+    layout: {
+        type: 'vbox',
+        pack: 'start',
+        align: 'stretch',
     },
-    axes: [ {
-        type: 'Numeric',
-        position: 'bottom',
-        fields: ['grid_rel', 'cell_rel'],
-        minimum: 0,
-        grid: true,
-        title: 'Relative Portion of Mesh',
-    }, {
-        type: 'Category',
-        position: 'left',
-        fields: ['level'],
-        title: 'Level',
-    } ],
-    series: [{
-       type: 'bar',
-       axis: 'bottom',
-       highlight: true,
-       xField: 'level',
-       yField: ['grid_rel', 'cell_rel'],
-       title: ['Level by Grid Count', 'Level by Cell Count'],
-       tips: {
-         trackMouse: true,
-         width: 140,
-         height: 64,
-         renderer: function(storeItem, item) {
-           this.setTitle('Level ' + storeItem.get('level') + ': ' +
-                          storeItem.get('grid_count') + ' grids and ' +
-                          storeItem.get('cell_count') + ' cells.');
-         },
-       },
-       animate: true,
-    }],
+    width: '100%',
+    height: '100%',
+
+    items: [ 
+        {
+          xtype: 'combo',
+          text: 'Field',
+          itemId: 'fieldSelector',
+          height: 30,
+          width: 700,
+          queryMode: 'local',
+          editable: false,
+          triggerAction: 'all',
+          validateOnBlur: false,
+        }, {
+          xtype: 'panel',
+          title: 'Field Source',
+          itemId: 'fieldSourcePanel',
+          flex: 3.0,
+          width: 700,
+          autoScroll: true,
+          bodyCls: 'pfdisplay',
+        }, {
+          xtype: 'panel',
+          title: 'Field Parameters',
+          height: 200,
+          width: 700,
+          autoScroll: true,
+          bodyCls: 'pfdisplay',
+        }
+    ],
 });
+
