@@ -95,6 +95,11 @@ class PayloadHandler(object):
     def replay_payloads(self):
         return self.recorded_payloads
 
+    def widget_payload(self, widget, data):
+        data['type'] = 'widget_payload'
+        data['widget_id'] = widget._ext_widget_id
+        self.add_payload(data)
+
 
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
@@ -206,3 +211,30 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
     server = server_type(host='localhost', port=port, **kwargs)
     mylog.info("Starting up the server.")
     run(server=server)
+
+class MethodLock(object):
+    _shared_state = {}
+    locks = None
+
+    def __new__(cls, *p, **k):
+        self = object.__new__(cls, *p, **k)
+        self.__dict__ = cls._shared_state
+        return self
+
+    def __init__(self):
+        if self.locks is None: self.locks = {}
+
+    def __call__(self, func):
+        if str(func) not in self.locks:
+            self.locks[str(func)] = threading.Lock()
+        @wraps(func)
+        def locker(*args, **kwargs):
+            print "Acquiring lock on %s" % (str(func))
+            with self.locks[str(func)]:
+                rv = func(*args, **kwargs)
+            print "Regained lock on %s" % (str(func))
+            return rv
+        return locker
+
+lockit = MethodLock()
+

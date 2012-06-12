@@ -36,36 +36,40 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     templates: {
         pwt: 'Projection Details for {name}',
         swt: 'Slice Details for {name}',
-        refresh: '{widget.varname}.refresh()',
-        scrollZoom: '{widget.varname}.scroll_zoom({a1})',
-        fieldChange: '{widget.varname}.set_current_field("{a1.data[\'field1\']}")',
-        singleUpArrow:    '{widget.varname}.pan_rel(( 0.0, -0.1))',
-        singleRightArrow: '{widget.varname}.pan_rel(( 0.1,  0.0))',
-        singleDownArrow:  '{widget.varname}.pan_rel(( 0.0   0.1))',
-        singleLeftArrow:  '{widget.varname}.pan_rel((-0.1,  0.0))',
-        doubleUpArrow:    '{widget.varname}.pan_rel(( 0.0, -0.5))',
-        doubleRightArrow: '{widget.varname}.pan_rel(( 0.5,  0.0))',
-        doubleDownArrow:  '{widget.varname}.pan_rel(( 0.0   0.5))',
-        doubleLeftArrow:  '{widget.varname}.pan_rel((-0.5,  0.0))',
-        zoomIn10x:  '{widget.varname}.zoom(10.0)',
-        zoomIn2x:   '{widget.varname}.zoom( 2.0)',
-        zoomOut10x: '{widget.varname}.zoom( 0.1)',
-        zoomOut2x:  '{widget.varname}.zoom( 0.5)',
-        adjustTransform: '{widget.varname}.set_transform(' +
-                         '{widget.varname}._current_field, ' +
+        refresh: 'widget_store["{widget.varname}"].refresh()',
+        createSlice: 'widget_store.create_slice({pfname}, [{center}], "{axis}",' + 
+                     '"{field}", {onmax:capitalize})',
+        createProj: 'widget_store.create_proj({pfname}, "{axis}",' + 
+                     '"{field}", "{weight}")',
+        scrollZoom: 'widget_store["{widget.varname}"].scroll_zoom({a1})',
+        fieldChange: 'widget_store["{widget.varname}"].set_current_field("{a1.data[\'field1\']}")',
+        singleUpArrow:    'widget_store["{widget.varname}"].pan_rel(( 0.0, -0.1))',
+        singleRightArrow: 'widget_store["{widget.varname}"].pan_rel(( 0.1,  0.0))',
+        singleDownArrow:  'widget_store["{widget.varname}"].pan_rel(( 0.0   0.1))',
+        singleLeftArrow:  'widget_store["{widget.varname}"].pan_rel((-0.1,  0.0))',
+        doubleUpArrow:    'widget_store["{widget.varname}"].pan_rel(( 0.0, -0.5))',
+        doubleRightArrow: 'widget_store["{widget.varname}"].pan_rel(( 0.5,  0.0))',
+        doubleDownArrow:  'widget_store["{widget.varname}"].pan_rel(( 0.0   0.5))',
+        doubleLeftArrow:  'widget_store["{widget.varname}"].pan_rel((-0.5,  0.0))',
+        zoomIn10x:  'widget_store["{widget.varname}"].zoom(10.0)',
+        zoomIn2x:   'widget_store["{widget.varname}"].zoom( 2.0)',
+        zoomOut10x: 'widget_store["{widget.varname}"].zoom( 0.1)',
+        zoomOut2x:  'widget_store["{widget.varname}"].zoom( 0.5)',
+        adjustTransform: 'widget_store["{widget.varname}"].set_transform(' +
+                         'widget_store["{widget.varname}"]._current_field, ' +
                          '"{a1.data[\'field1\']}")',
-        adjustColormap:  '{widget.varname}.set_cmap(' +
-                         '{widget.varname}._current_field, ' +
+        adjustColormap:  'widget_store["{widget.varname}"].set_cmap(' +
+                         'widget_store["{widget.varname}"]._current_field, ' +
                          '"{a1.data[\'field1\']}")',
-        adjustContours:  '{widget.varname}.set_contour_info(' +
+        adjustContours:  'widget_store["{widget.varname}"].set_contour_info(' +
                          '"{[control.getContourField().getValue()]}",' +
                          ' {[control.getNcont().getValue()]},' +
                          ' {[control.getLogit().getValue()]:capitalize})',
-        adjustVectors:   '{widget.varname}.set_vector_info(' +
+        adjustVectors:   'widget_store["{widget.varname}"].set_vector_info(' +
                          '{[control.getVectorSkip()]})',
-        recenterImage:   '{widget.varname}.image_recenter(' +
+        recenterImage:   'widget_store["{widget.varname}"].image_recenter(' +
                          '{x}, {y}, {w}, {h})',
-        dragImage:       '{widget.varname}.pan_rel(({rel_x}, {rel_y}))',
+        dragImage:       'widget_store["{widget.varname}"].pan_rel(({rel_x}, {rel_y}))',
     },
 
     widgetTriggers: [
@@ -166,18 +170,19 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                     pfname: obj.varname,
                     axis: win.query("#axis")[0].getValue(),
                     field: win.query("#field")[0].getValue(),
-                    onmax: win.query("#maxDens")[0].getValue(),
+                    onmax: "" + win.query("#maxDens")[0].getValue(),
                 };
-                var method = 'create_slice';
+                var method = 'createSlice';
                 if (win.query("#plotType")[0].getValue() == 'Projection') {
-                    method = 'create_proj';
+                    method = 'createProj';
                     conf['weight'] = win.query("#weightField")[0].getValue();
                 } else {
                   conf['center'] = [win.query("#slice_x_center")[0].getValue(),
                                     win.query("#slice_y_center")[0].getValue(),
                                     win.query("#slice_z_center")[0].getValue()];
                 }
-                reason.server.method(method, conf);
+                var cmd = widget.templateManager.applyObject(conf, method);
+                reason.server.execute(cmd);
                 win.destroy();
             }
             function togglePlotType(b, e) {

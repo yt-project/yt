@@ -29,6 +29,7 @@ Ext.define('Reason.controller.WidgetDirector', {
                "Reason.controller.widgets.PlotWindow",
                "Reason.controller.widgets.ProgressBar",
                "Reason.controller.widgets.GridDataViewer",
+               "Reason.controller.widgets.ParameterFile",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
     views: ['WidgetTypesGrid', 'WidgetInstancesGrid'],

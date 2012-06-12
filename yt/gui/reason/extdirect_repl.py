@@ -48,9 +48,10 @@ from yt.utilities.logger import ytLogger, ufstring
 from yt.utilities.definitions import inv_axis_names
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.api import Streamlines
+from .widget_store import WidgetStore
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
-                         PayloadHandler
+                         PayloadHandler, lockit
 from yt.utilities.bottle import response, request, route, static_file
 from .basic_repl import ProgrammaticREPL
 
@@ -72,32 +73,6 @@ except ImportError:
     highlight_css = ''
 
 local_dir = os.path.dirname(__file__)
-
-class MethodLock(object):
-    _shared_state = {}
-    locks = None
-
-    def __new__(cls, *p, **k):
-        self = object.__new__(cls, *p, **k)
-        self.__dict__ = cls._shared_state
-        return self
-
-    def __init__(self):
-        if self.locks is None: self.locks = {}
-
-    def __call__(self, func):
-        if str(func) not in self.locks:
-            self.locks[str(func)] = threading.Lock()
-        @wraps(func)
-        def locker(*args, **kwargs):
-            print "Acquiring lock on %s" % (str(func))
-            with self.locks[str(func)]:
-                rv = func(*args, **kwargs)
-            print "Regained lock on %s" % (str(func))
-            return rv
-        return locker
-
-lockit = MethodLock()
 
 class ExecutionThread(threading.Thread):
     def __init__(self, repl):
@@ -231,6 +206,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
         self.execution_thread = ExecutionThread(self)
+        # We pass in a reference to ourself
+        self.widget_store = WidgetStore(self)
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         reason_pylab()
@@ -239,6 +216,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute("data_objects = []", hide = True)
         self.locals['load_script'] = ext_load_script
         self.locals['deliver_image'] = deliver_image
+        self.locals['widget_store'] = self.widget_store
 
     def activate(self):
         self._setup_logging_handlers()
@@ -413,27 +391,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    def _add_widget(self, widget_name, widget_data_name = None):
-        # We need to make sure that we aren't running in advance of a new
-        # object being added.
-        self.execution_thread.queue.join()
-        widget = self.locals[widget_name]
-        uu = str(uuid.uuid1()).replace("-","_")
-        varname = "%s_%s" % (widget._widget_name, uu)
-        widget._ext_widget_id = varname
-        # THIS BREAKS THE SCRIPT DOWNLOAD!
-        # We need to make the variable be bound via an execution mechanism
-        command = "%s = %s\n" % (varname, widget_name)
-        payload = {'type': 'widget',
-                   'widget_type': widget._widget_name,
-                   'varname': varname,
-                   'data': None}
-        widget._ext_widget_id = varname
-        if widget_data_name is not None:
-            payload['data'] = self.locals[widget_data_name]
-        self.payload_handler.add_payload(payload)
-        return command
-
     @lockit
     def load(self, base_dir, filename):
         pp = os.path.join(base_dir, filename)
@@ -486,45 +443,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.execute(funccall, hide=True)
         self.execution_thread.queue.put({'type': 'add_widget',
                                          'name': '_tpp',
-                                         'widget_data_name': '_twidget_data'})
-
-    @lockit
-    def create_proj(self, pfname, axis, field, weight, onmax):
-        if weight == "None": weight = None
-        else: weight = "'%s'" % (weight)
-        if not onmax:
-            center_string = None
-        else:
-            center_string = "_tpf.h.find_max('Density')[1]"
-        funccall = """
-        _tpf = %(pfname)s
-        _taxis = %(axis)s
-        _tfield = "%(field)s"
-        _tweight = %(weight)s
-        _tcen = %(center_string)s
-        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight, periodic = True, center=_tcen)
-        _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
-        DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
-        from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw.set_current_field("%(field)s")
-        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
-        _tfield_list.sort()
-        _tcb = _tpw._get_cbar_image()
-        _twidget_data = {'fields': _tfield_list,
-                         'initial_field': _tfield,
-                         'title': "%%s Projection" %% (_tpf),
-                         'colorbar': _tcb}
-        """ % dict(pfname = pfname,
-                   axis = inv_axis_names[axis],
-                   weight = weight,
-                   center_string = center_string,
-                   field=field)
-        # There is a call to do this, but I have forgotten it ...
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpw',
                                          'widget_data_name': '_twidget_data'})
 
     @lockit
@@ -614,40 +532,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                                          'name' : '_tpw',
                                          'widget_data_name': '_twidget_data'})
 
-
-    @lockit
-    def create_grid_dataview(self, pfname):
-        funccall = """
-        _tpf = %(pfname)s
-        """ % dict(pfname = pfname)
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.join()
-        pf = self.locals['_tpf']
-        levels = pf.h.grid_levels
-        left_edge = pf.h.grid_left_edge
-        right_edge = pf.h.grid_right_edge
-        dimensions = pf.h.grid_dimensions
-        cell_counts = pf.h.grid_dimensions.prod(axis=1)
-        # This is annoying, and not ... that happy for memory.
-        i = pf.h.grids[0]._id_offset
-        vals = []
-        for i, (L, LE, RE, dim, cell) in enumerate(zip(
-            levels, left_edge, right_edge, dimensions, cell_counts)):
-            vals.append([ int(i), int(L[0]),
-                          float(LE[0]), float(LE[1]), float(LE[2]),
-                          float(RE[0]), float(RE[1]), float(RE[2]),
-                          int(dim[0]), int(dim[1]), int(dim[2]),
-                          int(cell)] )
-        uu = str(uuid.uuid1()).replace("-","_")
-        varname = "gg_%s" % (uu)
-        payload = {'type': 'widget',
-                   'widget_type': 'grid_data',
-                   'varname': varname, # Is just "None"
-                   'data': dict(gridvals = vals),
-                   }
-        self.execute("%s = None\n" % (varname), hide=True)
-        self.payload_handler.add_payload(payload)
 
     @lockit
     def create_grid_viewer(self, pfname):

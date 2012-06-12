@@ -1,0 +1,157 @@
+"""
+This is a place to store widgets, and to create them.
+
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
+Homepage: http://yt-project.org/
+License:
+  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+from yt.mods import *
+import weakref
+from .bottle_mods import PayloadHandler, lockit
+from yt.visualization.plot_window import PWViewerExtJS
+import uuid
+
+class WidgetStore(dict):
+    def __init__(self, repl):
+        self.repl = weakref.proxy(repl)
+        self.payload_handler = PayloadHandler()
+        super(WidgetStore, self).__init__()
+
+    def _add_widget(self, widget, widget_data = None):
+        # We need to make sure that we aren't running in advance of a new
+        # object being added.
+        #uu = str(uuid.uuid1()).replace("-","_")
+        #varname = "%s_%s" % (widget._widget_name, uu)
+        varname = "%s_%s" % (widget._widget_name, len(self))
+        widget._ext_widget_id = varname
+        payload = {'type': 'widget',
+                   'widget_type': widget._widget_name,
+                   'varname': varname}
+        widget._ext_widget_id = varname
+        payload['data'] = widget_data
+        self[varname] = widget
+        print "DELIVERING", payload
+        self.payload_handler.add_payload(payload)
+
+    @lockit
+    def create_slice(self, pf, center, axis, field, onmax):
+        if onmax: 
+            center = pf.h.find_max('Density')[1]
+        else:
+            center = na.array(center)
+        axis = inv_axis_names[axis.lower()]
+        coord = center[axis]
+        sl = pf.h.slice(axis, coord, center = center, periodic = True)
+        xax, yax = x_dict[axis], y_dict[axis]
+        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), setup = False)
+        pw.set_current_field(field)
+        field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        field_list.sort()
+        cb = pw._get_cbar_image()
+        trans = pw._field_transform[pw._current_field].name
+        widget_data = {'fields': field_list,
+                         'initial_field': field,
+                         'title': "%s Slice" % (pf),
+                         'colorbar': cb,
+                         'initial_transform' : trans}
+        self._add_widget(pw, widget_data)
+
+    @lockit
+    def create_proj(self, pf, axis, field, weight):
+        if weight == "None": weight = None
+        axis = inv_axis_names[axis.lower()]
+        proj = pf.h.proj(axis,field, weight_field=weight, periodic = True)
+        xax, yax = x_dict[axis], y_dict[axis]
+        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
+                           setup = False)
+        pw.set_current_field(field)
+        field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        field_list.sort()
+        cb = pw._get_cbar_image()
+        widget_data = {'fields': field_list,
+                       'initial_field': field,
+                       'title': "%s Projection" % (pf),
+                       'colorbar': cb}
+        self._add_widget(pw, widget_data)
+
+    @lockit
+    def create_grid_dataview(self, pf):
+        levels = pf.h.grid_levels
+        left_edge = pf.h.grid_left_edge
+        right_edge = pf.h.grid_right_edge
+        dimensions = pf.h.grid_dimensions
+        cell_counts = pf.h.grid_dimensions.prod(axis=1)
+        # This is annoying, and not ... that happy for memory.
+        i = pf.h.grids[0]._id_offset
+        vals = []
+        for i, (L, LE, RE, dim, cell) in enumerate(zip(
+            levels, left_edge, right_edge, dimensions, cell_counts)):
+            vals.append([ int(i), int(L[0]),
+                          float(LE[0]), float(LE[1]), float(LE[2]),
+                          float(RE[0]), float(RE[1]), float(RE[2]),
+                          int(dim[0]), int(dim[1]), int(dim[2]),
+                          int(cell)] )
+        varname = "gg_%s" % (len(self))
+        self[varname] = None
+        payload = {'type': 'widget',
+                   'widget_type': 'grid_data',
+                   'varname': varname, # Is just "None"
+                   'data': dict(gridvals = vals),
+                   }
+        self.payload_handler.add_payload(payload)
+
+    @lockit
+    def create_pf_display(self, pf):
+        widget = ParameterFileWidget(pf)
+        widget_data = {'fields': widget._field_list(),
+                       'level_stats': widget._level_stats(),
+                      }
+        self._add_widget(widget, widget_data)
+
+class ParameterFileWidget(object):
+    _ext_widget_id = None
+    _widget_name = "parameterfile"
+
+    def __init__(self, pf):
+        self.pf = weakref.proxy(pf)
+
+    def _field_list(self):
+        field_list = list(set(self.pf.h.field_list
+                            + self.pf.h.derived_field_list))
+        field_list.sort()
+        return field_list
+
+    def _level_stats(self):
+        level_data = []
+        level_stats = self.pf.h.level_stats
+        ngrids = float(level_stats['numgrids'].sum())
+        ncells = float(level_stats['numcells'].sum())
+        for level in range(self.pf.h.max_level + 1):
+            cell_count = level_stats['numcells'][level]
+            grid_count = level_stats['numgrids'][level]
+            level_data.append({'level' : level,
+                               'cell_count': int(cell_count),
+                               'grid_count': int(grid_count),
+                               'cell_rel': int(100*cell_count/ncells),
+                               'grid_rel': int(100*grid_count/ngrids)})
+        return level_data
