@@ -201,7 +201,7 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
 
     def modify(self, field):
-        if len(tr.shape) < 3:
+        if len(field.shape) < 3:
             return field
         tr = field[3:-3,3:-3,3:-3].swapaxes(0,2)
         return tr.copy() # To ensure contiguous
