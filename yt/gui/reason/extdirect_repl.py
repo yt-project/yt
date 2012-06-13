@@ -712,8 +712,8 @@ class ExtProgressBar(object):
 
     def update(self, val):
         # An update is only meaningful if it's on the order of 1/100 or greater
-        if ceil(100*self.last / self.maxval) + 1 == \
-           floor(100*val / self.maxval) or val == self.maxval:
+
+        if (val - self.last) > (self.maxval / 100.0):
             self.last = val
             self.payload_handler.add_payload(
                 {'type': 'widget_payload',
