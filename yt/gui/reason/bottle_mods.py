@@ -58,7 +58,6 @@ class PayloadHandler(object):
     count = 0
     debug = False
 
-
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
         self.__dict__ = cls._shared_state

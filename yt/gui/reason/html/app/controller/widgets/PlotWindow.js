@@ -42,7 +42,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         createProj: 'widget_store.create_proj({pfname}, "{axis}",' + 
                      '"{field}", "{weight}")',
         scrollZoom: 'widget_store["{widget.varname}"].scroll_zoom({a1})',
-        fieldChange: 'widget_store["{widget.varname}"].set_current_field("{a1.data[\'field1\']}")',
+        fieldChange: 'widget_store["{widget.varname}"].set_current_field("{a1}")',
         singleUpArrow:    'widget_store["{widget.varname}"].pan_rel(( 0.0, -0.1))',
         singleRightArrow: 'widget_store["{widget.varname}"].pan_rel(( 0.1,  0.0))',
         singleDownArrow:  'widget_store["{widget.varname}"].pan_rel(( 0.0   0.1))',
@@ -80,7 +80,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
 
     executionTriggers: [
         ['#zoomSlider', 'changecomplete', 'scrollZoom'],
-        ['#fieldSelector', 'select', 'fieldChange'],
+        ['#fieldSelector', 'change', 'fieldChange'],
         ['#singleuparrow', 'click', 'singleUpArrow'],
         ['#singlerightarrow', 'click', 'singleRightArrow'],
         ['#singledownarrow', 'click', 'singleDownArrow'],

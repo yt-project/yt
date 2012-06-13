@@ -48,7 +48,7 @@ Ext.define('Reason.controller.ServerCommunication', {
         this.heartbeat = this.taskRunner.start(
             {run: this.heartbeatCall,
              interval: 250});
-        this.heartbeat = this.taskRunner.start(
+        this.dataObjectBeat = this.taskRunner.start(
             {run: this.dataObjectsCall,
              interval: 5000});
         this.callParent(arguments);
@@ -80,6 +80,7 @@ Ext.define('Reason.controller.ServerCommunication', {
     heartbeatCall: function() {
         if (heartbeatRequest == true) return;
         heartbeatRequest = true;
+        console.log("Sending heartbeat");
         yt_rpc.ExtDirectREPL.heartbeat(
             {}, function(f, a) {
                 heartbeatRequest = false;

@@ -72,7 +72,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
             itemId: 'zoomSlider',
             minValue: 0,
             maxValue: 100,
-            increment: 0.1,
+            increment: 1,
             x: 100, y: 410,
             width: 400,
         },{
