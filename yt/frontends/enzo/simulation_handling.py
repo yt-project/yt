@@ -30,21 +30,21 @@ import glob
 import os
 
 from yt.data_objects.time_series import \
-    TimeSeriesData
+    SimulationTimeSeries, TimeSeriesData
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
 from yt.utilities.exceptions import \
-    YTException
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
+    AmbiguousOutputs, \
+    MissingParameter, \
+    NoStoppingCondition
 
 from yt.convenience import \
     load
 
-class EnzoSimulation(TimeSeriesData):
-    r"""Super class for performing the same operation over all data outputs in 
-    a simulation from one redshift to another.
+class EnzoSimulation(SimulationTimeSeries, TimeSeriesData):
+    r"""Class for creating TimeSeriesData object from an Enzo
+    simulation parameter file.
     """
     def __init__(self, parameter_filename):
         r"""Initialize an Enzo Simulation object.
@@ -65,23 +65,8 @@ class EnzoSimulation(TimeSeriesData):
         >>> print es.all_outputs
 
         """
-        self.parameter_filename = parameter_filename
-        self.parameters = {}
-
-        # Set some parameter defaults.
-        self._set_parameter_defaults()
-        # Read the simulation parameter file.
-        self._parse_parameter_file()
-        # Set up time units dictionary.
-        self._set_time_units()
-
-        # Figure out the starting and stopping times and redshift.
-        self._calculate_simulation_bounds()
-        self.print_key_parameters()
+        SimulationTimeSeries.__init__(self, parameter_filename)
         
-        # Get all possible datasets.
-        self._get_all_outputs()
-
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None, time_units='1',
                         initial_redshift=None, final_redshift=None,
@@ -259,30 +244,6 @@ class EnzoSimulation(TimeSeriesData):
         TimeSeriesData.__init__(self, outputs=[output['filename'] for output in my_outputs],
                                 parallel=parallel)
         mylog.info("%d outputs loaded into time series." % len(my_outputs))
-
-    @parallel_root_only
-    def print_key_parameters(self):
-        """
-        Print out some key parameters for the simulation.
-        """
-        for a in ["domain_dimensions", "domain_left_edge",
-                  "domain_right_edge", "initial_time", "final_time",
-                  "stop_cycle", "cosmological_simulation"]:
-            if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
-                continue
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and \
-           getattr(self, "cosmological_simulation"):
-            for a in ["omega_lambda", "omega_matter",
-                      "hubble_constant", "initial_redshift",
-                      "final_redshift"]:
-                if not hasattr(self, a):
-                    mylog.error("Missing %s in parameter file definition!", a)
-                    continue
-                v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
 
     def _parse_parameter_file(self):
         """
@@ -664,29 +625,4 @@ class EnzoSimulation(TimeSeriesData):
         times = na.array(times) / self.time_units[time_units]
         return self._get_outputs_by_key('time', times, tolerance=tolerance,
                                         outputs=outputs)
-
-class MissingParameter(YTException):
-    def __init__(self, pf, parameter):
-        YTException.__init__(self, pf)
-        self.parameter = parameter
-
-    def __str__(self):
-        return "Parameter file %s is missing %s parameter." % \
-            (self.pf, self.parameter)
-
-class NoStoppingCondition(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf)
-
-    def __str__(self):
-        return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
-            self.pf
-
-class AmbiguousOutputs(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf)
-
-    def __str__(self):
-        return "Simulation %s has both dtDataDump and CycleSkipDataDump set.  Unable to calculate datasets." % \
-            self.pf
 

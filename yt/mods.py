@@ -129,7 +129,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
-from yt.convenience import load, projload
+from yt.convenience import \
+    load, projload, simulation
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
