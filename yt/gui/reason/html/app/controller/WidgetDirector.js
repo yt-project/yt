@@ -30,6 +30,7 @@ Ext.define('Reason.controller.WidgetDirector', {
                "Reason.controller.widgets.ProgressBar",
                "Reason.controller.widgets.GridDataViewer",
                "Reason.controller.widgets.ParameterFile",
+               "Reason.controller.widgets.PannableMap",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
     views: ['WidgetTypesGrid', 'WidgetInstancesGrid'],

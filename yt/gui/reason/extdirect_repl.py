@@ -195,7 +195,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               _session_py = ("/session.py", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
                               _extjs = ("/resources/extjs-4.1.0/:path#.+#", "GET"),
-                              _app = ("/:path#.+#", "GET"),
+                              _app = ("/reason/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
@@ -512,13 +512,13 @@ class PayloadLoggingHandler(logging.StreamHandler):
              'log_entry':msg})
 
 if os.path.exists(os.path.expanduser("~/.yt/favicon.ico")):
-    ico = os.path.expanduser("~/.yt/favicon.ico")
+    ico = os.path.expanduser("~/.yt/")
 else:
-    ico = os.path.join(local_dir, "html", "images", "favicon.ico")
+    ico = os.path.join(local_dir, "html", "resources", "images")
 @route("/favicon.ico", method="GET")
 def _favicon_ico():
-    response.headers['Content-Type'] = "image/x-icon"
-    return open(ico).read()
+    print ico
+    return static_file("favicon.ico", ico)
 
 class ExtProgressBar(object):
     def __init__(self, title, maxval):

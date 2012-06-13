@@ -125,6 +125,18 @@ class WidgetStore(dict):
                       }
         self._add_widget(widget, widget_data)
 
+    def create_mapview(self, widget_name):
+        widget = self[widget_name]
+        # We want multiple maps simultaneously
+        uu = "/%s/%s" % (getattr(self.repl, "_global_token", ""),
+                        str(uuid.uuid1()).replace("-","_"))
+        from .pannable_map import PannableMapServer
+        data = widget.data_source
+        field_name = widget._current_field
+        pm = PannableMapServer(data, field_name, route_prefix = uu)
+        widget_data = {'prefix': uu, 'field':field_name}
+        self._add_widget(pm, widget_data)
+
 class ParameterFileWidget(object):
     _ext_widget_id = None
     _widget_name = "parameterfile"

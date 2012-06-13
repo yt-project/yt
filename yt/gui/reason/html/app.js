@@ -41,7 +41,7 @@ Ext.application({
                ],
     name: 'Reason',
 
-    appFolder: 'app',
+    appFolder: 'reason/app',
 
     launch: function() {
         reason = this;

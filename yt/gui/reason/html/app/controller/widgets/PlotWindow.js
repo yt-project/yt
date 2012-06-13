@@ -70,11 +70,11 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         recenterImage:   'widget_store["{widget.varname}"].image_recenter(' +
                          '{x}, {y}, {w}, {h})',
         dragImage:       'widget_store["{widget.varname}"].pan_rel(({rel_x}, {rel_y}))',
+        createPannableMap: 'widget_store.create_mapview("{widget.varname}")',
     },
 
     widgetTriggers: [
         ['#uploadimage', 'click', 'uploadImage'],
-        ['#pannablemap', 'click', 'createPannableMap'],
         ['#imagepanel', 'afterrender', 'setupClickImage'],
     ],
 
@@ -97,6 +97,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         ['#colormap', 'select', 'adjustColormap'],
         ['#contourapply', 'click', 'adjustContours'],
         ['#vectorsapply', 'click', 'adjustVectors'],
+        ['#pannablemap', 'click', 'createPannableMap'],
     ],
 
     viewRefs: [
@@ -250,10 +251,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                 Ext.Msg.alert('imgur.com', alert_text);
                 reason.fireEvent("logentry", alert_text);
             });
-    },
-
-    createPannableMap: function() {
-        alert("Not implemented!");
     },
 
     setupClickImage: function(c) {
