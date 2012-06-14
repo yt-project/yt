@@ -34,6 +34,12 @@ Ext.define('Reason.controller.Logging', {
     stores: [ 'LogEntries' ],
     view: ['LoggingGrid'],
 
+    refs: [
+        { ref: 'logEntries',
+          selector: '#logentries'
+        },
+    ],
+
     init: function() {
         this.application.addListener({
             payloadlogentry: {fn: this.addLogPayload, scope: this},
@@ -47,5 +53,8 @@ Ext.define('Reason.controller.Logging', {
 
     addLogEntry: function(text) {
         this.getLogEntriesStore().add({record: text});
+        var i = this.getLogEntriesStore().getCount();
+        examine = this.getLogEntries();
+        this.getLogEntries().getView().focusRow(i - 1);
     },
 });
