@@ -1696,5 +1696,5 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
     del projcam
-    return image
+    return image[:,:,0]
 
