@@ -211,6 +211,8 @@ class SimulationTimeSeries(object):
         if not os.path.exists(parameter_filename):
             raise IOError(parameter_filename)
         self.parameter_filename = parameter_filename
+        self.basename = os.path.basename(parameter_filename)
+        self.directory = os.path.dirname(parameter_filename)
         self.parameters = {}
 
         # Set some parameter defaults.

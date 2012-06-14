@@ -460,7 +460,7 @@ class EnzoSimulation(SimulationTimeSeries, TimeSeriesData):
     def _set_parameter_defaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
 
-        self.parameters['GlobalDir'] = "."
+        self.parameters['GlobalDir'] = self.directory
         self.parameters['DataDumpName'] = "data"
         self.parameters['DataDumpDir'] = "DD"
         self.parameters['RedshiftDumpName'] = "RedshiftOutput"
