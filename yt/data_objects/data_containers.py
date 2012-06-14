@@ -580,7 +580,7 @@ class AMROrthoRayBase(AMR1DData):
     def _get_list_of_grids(self):
         gi = ortho_ray_grids(self, 
                 self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
+                self.hierarchy.grid_right_edge).view("bool")
         self._grids = self.hierarchy.grids[gi]
 
     @restore_grid_state
@@ -654,7 +654,7 @@ class AMRRayBase(AMR1DData):
     def _get_list_of_grids(self):
         gi = ray_grids(self,
                 self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
+                self.hierarchy.grid_right_edge).view("bool")
         self._grids = self.hierarchy.grids[gi]
 
     @restore_grid_state
@@ -1057,7 +1057,7 @@ class AMRSliceBase(AMR2DData):
     def _get_list_of_grids(self):
         gi = slice_grids(self, 
                 self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
+                self.hierarchy.grid_right_edge).view("bool")
         self._grids = self.hierarchy.grids[gi]
 
     def __cut_mask_child_mask(self, grid):
@@ -1215,7 +1215,7 @@ class AMRCuttingPlaneBase(AMR2DData):
     def _get_list_of_grids(self):
         gridi = cutting_plane_grids(self, self.pf.h.grid_left_edge,
                                           self.pf.h.grid_right_edge)
-        self._grids = self.hierarchy.grids[gridi.astype("bool")]
+        self._grids = self.hierarchy.grids[gridi.view("bool")]
 
     @cache_mask
     def _get_cut_mask(self, grid):
