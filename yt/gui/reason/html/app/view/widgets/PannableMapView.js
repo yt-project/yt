@@ -37,11 +37,12 @@ Ext.define("Reason.view.widgets.PannableMapView", {
     items: [ 
         {
           xtype:'panel',
-          x: 10,
-          y: 10,
+          layout: 'absolute',
+          x: 0,
+          y: 0,
           width: 512,
           height: 512,
-          id: 'mapbox',
+          itemId: 'mapbox',
         }  
     ],
 });

@@ -32,7 +32,7 @@ Ext.define("Reason.controller.widgets.PannableMap", {
     },
 
     widgetTriggers: [
-        ['#mapbox', 'afterrender', 'setupLeaflet'],
+        ['#mapbox', 'afterlayout', 'setupLeaflet'],
     ],
 
     executionTriggers: [
@@ -47,14 +47,16 @@ Ext.define("Reason.controller.widgets.PannableMap", {
     },
 
     setupLeaflet: function() {
-        this.leafletMap = new L.Map(this.getMapBox().getEl().dom,
+        var toRender = this.getMapBox().getEl().dom.childNodes[0].id;
+        this.leafletMap = new L.Map(toRender,
             {
-                center: new L.LatLng(0.0, 0.0),
-                zoom: 0,
+                center: new L.LatLng(0, 0),
+                zoom: 1,
             });
         var ytMapURL = this.payload.data['prefix'] + '/map/{z}/{x}/{y}.png';
         this.tileLayer = new L.TileLayer(ytMapURL, {maxZoom: 18});
         this.leafletMap.addLayer(this.tileLayer)
+        examine = toRender;
     },
 
     createView: function() {
