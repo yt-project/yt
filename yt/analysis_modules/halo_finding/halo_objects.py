@@ -544,6 +544,91 @@ class Halo(object):
         return (mag_A, mag_B, mag_C, e0_vector[0], e0_vector[1],
             e0_vector[2], tilt)
 
+class RockstarHalo(Halo):
+    def __init__(self,halo_list,index,ID, DescID, Mvir, Vmax, Vrms, Rvir, Rs, Np, 
+                  X, Y, Z, VX, VY, VZ, JX, JY, JZ, Spin):
+        """Implement the properties reported by Rockstar: ID, Descendant ID,
+           Mvir, Vmax, Vrms, Rvir, Rs, Np, XYZ, VXYZ, JXYZ, and spin.
+           Most defaults are removed since we don't read in which halos
+           particles belong to. 
+        """
+        #we can still use get_sphere!
+        self.ID = ID #from rockstar
+        self.id = index #index in the halo list
+        self.pf = halo_list.pf
+
+        self.DescID = DescID
+        self.Mvir = Mvir
+        self.Vmax = Vmax
+        self.Vrms = Vrms
+        self.Rvir = Rvir
+        self.Rs   = Rs
+        self.Np   = Np
+        self.X    = X
+        self.Y    = Y
+        self.Z    = Z
+        self.VX   = VX
+        self.VY   = VY
+        self.VZ   = VZ
+        self.JX   = JX
+        self.JY   = JY
+        self.JZ   = JZ
+        self.Spin = Spin
+
+        #Halo.__init__(self,halo_list,index,
+        self.size=Np 
+        self.CoM=na.array([X,Y,Z])
+        self.max_dens_point=-1
+        self.group_total_mass=-1
+        self.max_radius=Rvir
+        self.bulk_vel=na.array([VX,VY,VZ])*1e5
+        self.rms_vel=-1
+        self.group_total_mass = -1 #not implemented 
+    
+    def maximum_density(self):
+        r"""Not implemented."""
+        return -1
+
+    def maximum_density_location(self):
+        r"""Not implemented."""
+        return self.center_of_mass()
+
+    def total_mass(self):
+        r"""Not implemented."""
+        return -1
+
+    def get_size(self):
+        r"""Return the number of particles belonging to the halo."""
+        return self.Np
+
+    def write_particle_list(self,handle):
+        r"""Not implemented."""
+        return -1
+
+    def virial_mass(self):
+        r"""Virial mass in Msun/h"""
+        return self.Mvir
+
+    def virial_radius(self):
+        r"""Virial radius in Mpc/h comoving"""
+        return self.Rvir
+
+    def virial_bin(self):
+        r"""Not implemented"""
+        return -1
+
+    def virial_density(self):
+        r"""Not implemented """
+        return -1
+
+    def virial_info(self):
+        r"""Not implemented"""
+        return -1 
+
+    def __getitem__(self,key):
+        r"""Not implemented"""
+        return None
+
 
     def get_ellipsoid_parameters(self):
         r"""Calculate the parameters that describe the ellipsoid of
@@ -1184,6 +1269,97 @@ class HaloList(object):
             f.flush()
         f.close()
 
+class RockstarHaloList(HaloList):
+    #because we don't yet no halo-particle affiliations
+    #most of the halo list methods are not implemented
+    #furthermore, Rockstar only accepts DM particles of
+    #a fixed mass, so we don't allow stars at all
+    #Still, we inherit from HaloList because in the future
+    #we might implement halo-particle affiliations
+    def __init__(self,pf,out_list):
+        mylog.info("Initializing Rockstar List")
+        self._data_source = None
+        self._groups = []
+        self._max_dens = -1
+        self.pf = pf
+        self.out_list = out_list
+        mylog.info("Parsing Rockstar halo list")
+        self._parse_output(out_list)
+        mylog.info("Finished %s"%out_list)
+
+    def _run_finder(self):
+        pass
+
+    def __obtain_particles(self):
+        pass
+
+    def _get_dm_indices(self):
+        pass
+
+    def _parse_output(self,out_list=None):
+        """
+        Read the out_*.list text file produced
+        by Rockstar into memory."""
+        
+        pf = self.pf
+
+        if out_list is None:
+            out_list = self.out_list
+
+        lines = open(out_list).readlines()
+        names = []
+        formats = []
+        
+        #find the variables names from the first defining line
+        names = lines[0].replace('#','').split(' ')
+        for j,line in enumerate(lines):
+            if not line.startswith('#'): break
+
+        #find out the table datatypes but evaluating the first data line
+        splits = filter(lambda x: len(x.strip()) > 0 ,line.split(' '))
+        for num in splits:
+            if 'nan' not in num:
+                formats += na.array(eval(num)).dtype,
+            else:
+                formats += na.dtype('float'),
+        assert len(formats) == len(names)
+
+        #Jc = 1.98892e33/pf['mpchcm']*1e5
+        Jc = 1.0
+        conv = dict(X=1.0/pf['mpchcm'],
+                    Y=1.0/pf['mpchcm'],
+                    Z=1.0/pf['mpchcm'], #to unitary
+                    VX=1e0,VY=1e0,VZ=1e0, #to km/s
+                    Mvir=1.0, #Msun/h
+                    Vmax=1e0,Vrms=1e0,
+                    Rvir=1.0/pf['kpchcm'],
+                    Rs=1.0/pf['kpchcm'],
+                    JX=Jc,JY=Jc,JZ=Jc)
+        dtype = {'names':names,'formats':formats}
+        halo_table = na.loadtxt(out_list,skiprows=j-1,dtype=dtype,comments='#')            
+        #convert position units  
+        for name in names:
+            halo_table[name]=halo_table[name]*conv.get(name,1)
+        
+        for k,row in enumerate(halo_table):
+            args = tuple([val for val in row])
+            halo = RockstarHalo(self,k,*args)
+            self._groups.append(halo)
+    
+
+    #len is ok
+    #iter is OK
+    #getitem is ok
+    #nn is ok I think
+    #nn2d is ok I think
+
+    def write_out(self):
+        pass
+    def write_particle_list(self):
+        pass
+    
+
+    
 
 class HOPHaloList(HaloList):
 
@@ -1558,7 +1734,7 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
         while index < self.group_count:
             self._groups[index] = self._halo_class(self, index, \
                 size=self.group_sizes[index], CoM=self.CoM[index], \
-                max_dens_point=self.max_dens_point[i], \
+                max_dens_point=self.max_dens_point[index], \
                 group_total_mass=self.Tot_M[index],
                 max_radius=self.max_radius[index],
                 bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],

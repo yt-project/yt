@@ -619,3 +619,16 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
         # and check, use out array.
         result.append(na.mean(sorted[indexer], axis=axis, out=out))
     return na.array(result)
+
+def get_rotation_matrix(self, theta, rot_vector):
+    ux = rot_vector[0]
+    uy = rot_vector[1]
+    uz = rot_vector[2]
+    cost = na.cos(theta)
+    sint = na.sin(theta)
+    
+    R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
+                  [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
+                  [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+    
+    return R

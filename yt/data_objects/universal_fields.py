@@ -467,7 +467,7 @@ add_field("AbsDivV", function=_AbsDivV,
           units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
-    return na.ones(data["Density"].shape)*-1
+    return -na.ones_like(data["Ones"])
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_Contours)
 add_field("tempContours", function=_Contours,
@@ -483,20 +483,8 @@ def obtain_velocities(data):
     zv = data["z-velocity"] - bv[2]
     return xv, yv, zv
 
-def _SpecificAngularMomentum(field, data):
-    """
-    Calculate the angular velocity.  Returns a vector for each cell.
-    """
-    r_vec = obtain_rvec(data)
-    xv, yv, zv = obtain_velocities(data)
-    v_vec = na.array([xv,yv,zv], dtype='float64')
-    return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
-add_field("SpecificAngularMomentum",
-          function=_SpecificAngularMomentum,
-          convert_function=_convertSpecificAngularMomentum, vector_field=True,
-          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
     return data.convert("mpc")/1e5
 
@@ -517,21 +505,6 @@ for ax in 'XYZ':
     add_field(n, function=eval("_%s" % n),
               convert_function=_convertSpecificAngularMomentum,
               units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
-
-add_field("SpecificAngularMomentumKMSMPC",
-          function=_SpecificAngularMomentum,
-          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
-          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
-def _AngularMomentum(field, data):
-    return data["CellMass"] * data["SpecificAngularMomentum"]
-add_field("AngularMomentum", function=_AngularMomentum,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
-         validators=[ValidateParameter('center')])
-def _AngularMomentumMSUNKMSMPC(field, data):
-    return data["CellMassMsun"] * data["SpecificAngularMomentumKMSMPC"]
-add_field("AngularMomentumMSUNKMSMPC", function=_AngularMomentum,
-          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}", vector_field=True,
-         validators=[ValidateParameter('center')])
 
 def _AngularMomentumX(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumX"]
@@ -613,6 +586,9 @@ for ax in 'XYZ':
     n = "ParticleSpecificAngularMomentum%s" % ax
     add_field(n, function=eval("_%s" % n), particle_type=True,
               convert_function=_convertSpecificAngularMomentum,
+              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+    add_field(n + "KMSMPC", function=eval("_%s" % n), particle_type=True,
+              convert_function=_convertSpecificAngularMomentumKMSMPC,
               units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 
 def _ParticleAngularMomentum(field, data):
@@ -887,3 +863,376 @@ add_field("VorticitySquared", function=_VorticitySquared,
           units=r"\rm{s}^{-2}",
           convert_function=_convertVorticitySquared)
 
+def _gradPressureX(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["Pressure"].shape, dtype='float64')
+    ds = div_fac * data['dx'].flat[0]
+    new_field[1:-1,1:-1,1:-1]  = data["Pressure"][sl_right,1:-1,1:-1]/ds
+    new_field[1:-1,1:-1,1:-1] -= data["Pressure"][sl_left ,1:-1,1:-1]/ds
+    return new_field
+def _gradPressureY(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["Pressure"].shape, dtype='float64')
+    ds = div_fac * data['dy'].flat[0]
+    new_field[1:-1,1:-1,1:-1]  = data["Pressure"][1:-1,sl_right,1:-1]/ds
+    new_field[1:-1,1:-1,1:-1] -= data["Pressure"][1:-1,sl_left ,1:-1]/ds
+    return new_field
+def _gradPressureZ(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["Pressure"].shape, dtype='float64')
+    ds = div_fac * data['dz'].flat[0]
+    new_field[1:-1,1:-1,1:-1]  = data["Pressure"][1:-1,1:-1,sl_right]/ds
+    new_field[1:-1,1:-1,1:-1] -= data["Pressure"][1:-1,1:-1,sl_left ]/ds
+    return new_field
+def _convertgradPressure(data):
+    return 1.0/data.convert("cm")
+for ax in 'XYZ':
+    n = "gradPressure%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              convert_function=_convertgradPressure,
+              validators=[ValidateSpatial(1, ["Pressure"])],
+              units=r"\rm{dyne}/\rm{cm}^{3}")
+
+def _gradPressureMagnitude(field, data):
+    return na.sqrt(data["gradPressureX"]**2 +
+                   data["gradPressureY"]**2 +
+                   data["gradPressureZ"]**2)
+add_field("gradPressureMagnitude", function=_gradPressureMagnitude,
+          validators=[ValidateSpatial(1, ["Pressure"])],
+          units=r"\rm{dyne}/\rm{cm}^{3}")
+
+def _gradDensityX(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["Density"].shape, dtype='float64')
+    ds = div_fac * data['dx'].flat[0]
+    new_field[1:-1,1:-1,1:-1]  = data["Density"][sl_right,1:-1,1:-1]/ds
+    new_field[1:-1,1:-1,1:-1] -= data["Density"][sl_left ,1:-1,1:-1]/ds
+    return new_field
+def _gradDensityY(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["Density"].shape, dtype='float64')
+    ds = div_fac * data['dy'].flat[0]
+    new_field[1:-1,1:-1,1:-1]  = data["Density"][1:-1,sl_right,1:-1]/ds
+    new_field[1:-1,1:-1,1:-1] -= data["Density"][1:-1,sl_left ,1:-1]/ds
+    return new_field
+def _gradDensityZ(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["Density"].shape, dtype='float64')
+    ds = div_fac * data['dz'].flat[0]
+    new_field[1:-1,1:-1,1:-1]  = data["Density"][1:-1,1:-1,sl_right]/ds
+    new_field[1:-1,1:-1,1:-1] -= data["Density"][1:-1,1:-1,sl_left ]/ds
+    return new_field
+def _convertgradDensity(data):
+    return 1.0/data.convert("cm")
+for ax in 'XYZ':
+    n = "gradDensity%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              convert_function=_convertgradDensity,
+              validators=[ValidateSpatial(1, ["Density"])],
+              units=r"\rm{g}/\rm{cm}^{4}")
+
+def _gradDensityMagnitude(field, data):
+    return na.sqrt(data["gradDensityX"]**2 +
+                   data["gradDensityY"]**2 +
+                   data["gradDensityZ"]**2)
+add_field("gradDensityMagnitude", function=_gradDensityMagnitude,
+          validators=[ValidateSpatial(1, ["Density"])],
+          units=r"\rm{g}/\rm{cm}^{4}")
+
+def _BaroclinicVorticityX(field, data):
+    rho2 = data["Density"].astype('float64')**2
+    return (data["gradPressureY"] * data["gradDensityZ"] -
+            data["gradPressureZ"] * data["gradDensityY"]) / rho2
+def _BaroclinicVorticityY(field, data):
+    rho2 = data["Density"].astype('float64')**2
+    return (data["gradPressureZ"] * data["gradDensityX"] -
+            data["gradPressureX"] * data["gradDensityZ"]) / rho2
+def _BaroclinicVorticityZ(field, data):
+    rho2 = data["Density"].astype('float64')**2
+    return (data["gradPressureX"] * data["gradDensityY"] -
+            data["gradPressureY"] * data["gradDensityX"]) / rho2
+for ax in 'XYZ':
+    n = "BaroclinicVorticity%s" % ax
+    add_field(n, function=eval("_%s" % n),
+          validators=[ValidateSpatial(1, ["Density", "Pressure"])],
+          units=r"\rm{s}^{-1}")
+
+def _BaroclinicVorticityMagnitude(field, data):
+    return na.sqrt(data["BaroclinicVorticityX"]**2 +
+                   data["BaroclinicVorticityY"]**2 +
+                   data["BaroclinicVorticityZ"]**2)
+add_field("BaroclinicVorticityMagnitude",
+          function=_BaroclinicVorticityMagnitude,
+          validators=[ValidateSpatial(1, ["Density", "Pressure"])],
+          units=r"\rm{s}^{-1}")
+
+def _VorticityX(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["z-velocity"].shape, dtype='float64')
+    new_field[1:-1,1:-1,1:-1] = (data["z-velocity"][1:-1,sl_right,1:-1] -
+                                 data["z-velocity"][1:-1,sl_left,1:-1]) \
+                                 / (div_fac*data["dy"].flat[0])
+    new_field[1:-1,1:-1,1:-1] -= (data["y-velocity"][1:-1,1:-1,sl_right] -
+                                  data["y-velocity"][1:-1,1:-1,sl_left]) \
+                                  / (div_fac*data["dz"].flat[0])
+    return new_field
+def _VorticityY(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["z-velocity"].shape, dtype='float64')
+    new_field[1:-1,1:-1,1:-1] = (data["x-velocity"][1:-1,1:-1,sl_right] -
+                                 data["x-velocity"][1:-1,1:-1,sl_left]) \
+                                 / (div_fac*data["dz"].flat[0])
+    new_field[1:-1,1:-1,1:-1] -= (data["z-velocity"][sl_right,1:-1,1:-1] -
+                                  data["z-velocity"][sl_left,1:-1,1:-1]) \
+                                  / (div_fac*data["dx"].flat[0])
+    return new_field
+def _VorticityZ(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
+    new_field[1:-1,1:-1,1:-1] = (data["y-velocity"][sl_right,1:-1,1:-1] -
+                                 data["y-velocity"][sl_left,1:-1,1:-1]) \
+                                 / (div_fac*data["dx"].flat[0])
+    new_field[1:-1,1:-1,1:-1] -= (data["x-velocity"][1:-1,sl_right,1:-1] -
+                                  data["x-velocity"][1:-1,sl_left,1:-1]) \
+                                  / (div_fac*data["dy"].flat[0])
+    return new_field
+def _convertVorticity(data):
+    return 1.0/data.convert("cm")
+for ax in 'XYZ':
+    n = "Vorticity%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              convert_function=_convertVorticity,
+              validators=[ValidateSpatial(1, 
+                          ["x-velocity", "y-velocity", "z-velocity"])],
+              units=r"\rm{s}^{-1}")
+
+def _VorticityMagnitude(field, data):
+    return na.sqrt(data["VorticityX"]**2 +
+                   data["VorticityY"]**2 +
+                   data["VorticityZ"]**2)
+add_field("VorticityMagnitude", function=_VorticityMagnitude,
+          validators=[ValidateSpatial(1, 
+                      ["x-velocity", "y-velocity", "z-velocity"])],
+          units=r"\rm{s}^{-1}")
+
+def _VorticityStretchingX(field, data):
+    return data["DivV"] * data["VorticityX"]
+def _VorticityStretchingY(field, data):
+    return data["DivV"] * data["VorticityY"]
+def _VorticityStretchingZ(field, data):
+    return data["DivV"] * data["VorticityZ"]
+for ax in 'XYZ':
+    n = "VorticityStretching%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              validators=[ValidateSpatial(0)])
+def _VorticityStretchingMagnitude(field, data):
+    return na.sqrt(data["VorticityStretchingX"]**2 +
+                   data["VorticityStretchingY"]**2 +
+                   data["VorticityStretchingZ"]**2)
+add_field("VorticityStretchingMagnitude", 
+          function=_VorticityStretchingMagnitude,
+          validators=[ValidateSpatial(1, 
+                      ["x-velocity", "y-velocity", "z-velocity"])],
+          units=r"\rm{s}^{-1}")
+
+def _VorticityGrowthX(field, data):
+    return -data["VorticityStretchingX"] - data["BaroclinicVorticityX"]
+def _VorticityGrowthY(field, data):
+    return -data["VorticityStretchingY"] - data["BaroclinicVorticityY"]
+def _VorticityGrowthZ(field, data):
+    return -data["VorticityStretchingZ"] - data["BaroclinicVorticityZ"]
+for ax in 'XYZ':
+    n = "VorticityGrowth%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              validators=[ValidateSpatial(1, 
+                          ["x-velocity", "y-velocity", "z-velocity"])],
+              units=r"\rm{s}^{-2}")
+def _VorticityGrowthMagnitude(field, data):
+    result = na.sqrt(data["VorticityGrowthX"]**2 +
+                     data["VorticityGrowthY"]**2 +
+                     data["VorticityGrowthZ"]**2)
+    dot = na.zeros(result.shape)
+    for ax in "XYZ":
+        dot += data["Vorticity%s" % ax] * data["VorticityGrowth%s" % ax]
+    result = na.sign(dot) * result
+    return result
+add_field("VorticityGrowthMagnitude", function=_VorticityGrowthMagnitude,
+          validators=[ValidateSpatial(1, 
+                      ["x-velocity", "y-velocity", "z-velocity"])],
+          units=r"\rm{s}^{-1}",
+          take_log=False)
+def _VorticityGrowthMagnitudeABS(field, data):
+    return na.sqrt(data["VorticityGrowthX"]**2 +
+                   data["VorticityGrowthY"]**2 +
+                   data["VorticityGrowthZ"]**2)
+add_field("VorticityGrowthMagnitudeABS", function=_VorticityGrowthMagnitudeABS,
+          validators=[ValidateSpatial(1, 
+                      ["x-velocity", "y-velocity", "z-velocity"])],
+          units=r"\rm{s}^{-1}")
+
+def _VorticityGrowthTimescale(field, data):
+    domegax_dt = data["VorticityX"] / data["VorticityGrowthX"]
+    domegay_dt = data["VorticityY"] / data["VorticityGrowthY"]
+    domegaz_dt = data["VorticityZ"] / data["VorticityGrowthZ"]
+    return na.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt)
+add_field("VorticityGrowthTimescale", function=_VorticityGrowthTimescale,
+          validators=[ValidateSpatial(1, 
+                      ["x-velocity", "y-velocity", "z-velocity"])],
+          units=r"\rm{s}")
+
+########################################################################
+# With radiation pressure
+########################################################################
+
+def _VorticityRadPressureX(field, data):
+    rho = data["Density"].astype('float64')
+    return (data["RadAccel2"] * data["gradDensityZ"] -
+            data["RadAccel3"] * data["gradDensityY"]) / rho
+def _VorticityRadPressureY(field, data):
+    rho = data["Density"].astype('float64')
+    return (data["RadAccel3"] * data["gradDensityX"] -
+            data["RadAccel1"] * data["gradDensityZ"]) / rho
+def _VorticityRadPressureZ(field, data):
+    rho = data["Density"].astype('float64')
+    return (data["RadAccel1"] * data["gradDensityY"] -
+            data["RadAccel2"] * data["gradDensityX"]) / rho
+def _convertRadAccel(data):
+    return data.convert("x-velocity")/data.convert("Time")
+for ax in 'XYZ':
+    n = "VorticityRadPressure%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              convert_function=_convertRadAccel,
+              validators=[ValidateSpatial(1, 
+                   ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
+              units=r"\rm{s}^{-1}")
+
+def _VorticityRadPressureMagnitude(field, data):
+    return na.sqrt(data["VorticityRadPressureX"]**2 +
+                   data["VorticityRadPressureY"]**2 +
+                   data["VorticityRadPressureZ"]**2)
+add_field("VorticityRadPressureMagnitude",
+          function=_VorticityRadPressureMagnitude,
+          validators=[ValidateSpatial(1, 
+                      ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
+          units=r"\rm{s}^{-1}")
+
+def _VorticityRPGrowthX(field, data):
+    return -data["VorticityStretchingX"] - data["BaroclinicVorticityX"] \
+           -data["VorticityRadPressureX"]
+def _VorticityRPGrowthY(field, data):
+    return -data["VorticityStretchingY"] - data["BaroclinicVorticityY"] \
+           -data["VorticityRadPressureY"]
+def _VorticityRPGrowthZ(field, data):
+    return -data["VorticityStretchingZ"] - data["BaroclinicVorticityZ"] \
+           -data["VorticityRadPressureZ"]
+for ax in 'XYZ':
+    n = "VorticityRPGrowth%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              validators=[ValidateSpatial(1, 
+                       ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
+              units=r"\rm{s}^{-1}")
+def _VorticityRPGrowthMagnitude(field, data):
+    result = na.sqrt(data["VorticityRPGrowthX"]**2 +
+                     data["VorticityRPGrowthY"]**2 +
+                     data["VorticityRPGrowthZ"]**2)
+    dot = na.zeros(result.shape)
+    for ax in "XYZ":
+        dot += data["Vorticity%s" % ax] * data["VorticityGrowth%s" % ax]
+    result = na.sign(dot) * result
+    return result
+add_field("VorticityRPGrowthMagnitude", function=_VorticityGrowthMagnitude,
+          validators=[ValidateSpatial(1, 
+                      ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
+          units=r"\rm{s}^{-1}",
+          take_log=False)
+def _VorticityRPGrowthMagnitudeABS(field, data):
+    return na.sqrt(data["VorticityRPGrowthX"]**2 +
+                   data["VorticityRPGrowthY"]**2 +
+                   data["VorticityRPGrowthZ"]**2)
+add_field("VorticityRPGrowthMagnitudeABS", 
+          function=_VorticityRPGrowthMagnitudeABS,
+          validators=[ValidateSpatial(1, 
+                      ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
+          units=r"\rm{s}^{-1}")
+
+def _VorticityRPGrowthTimescale(field, data):
+    domegax_dt = data["VorticityX"] / data["VorticityRPGrowthX"]
+    domegay_dt = data["VorticityY"] / data["VorticityRPGrowthY"]
+    domegaz_dt = data["VorticityZ"] / data["VorticityRPGrowthZ"]
+    return na.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
+add_field("VorticityRPGrowthTimescale", function=_VorticityRPGrowthTimescale,
+          validators=[ValidateSpatial(1, 
+                      ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
+          units=r"\rm{s}^{-1}")

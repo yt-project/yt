@@ -49,7 +49,8 @@ class EnzoSimulation(TimeSeriesData):
                  initial_redshift=None, final_redshift=None,
                  links=False, enzo_parameters=None, 
                  get_time_outputs=True, get_redshift_outputs=True, 
-                 get_available_data=False, get_data_by_force=False):
+                 get_available_data=False, get_data_by_force=False,
+                 parallel = True):
         r"""Initialize an Enzo Simulation object.
         
         initial_time : float
@@ -128,9 +129,9 @@ class EnzoSimulation(TimeSeriesData):
         self._get_all_outputs(brute_force=get_data_by_force)
 
         # Instantiate a TimeSeriesData object.
-        time_series_outputs = [load(output['filename']) \
-                                   for output in self.allOutputs]
-        TimeSeriesData.__init__(self, outputs=time_series_outputs)
+        time_series_outputs = [output['filename'] for output in self.allOutputs]
+        TimeSeriesData.__init__(self, outputs=time_series_outputs,
+                                parallel = parallel)
 
     def _calculate_redshift_dump_times(self):
         "Calculates time from redshift of redshift dumps."

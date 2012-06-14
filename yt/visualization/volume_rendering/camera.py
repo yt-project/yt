@@ -33,12 +33,13 @@ from .transfer_functions import ProjectionTransferFunction
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane, \
     arr_vec2pix_nest, arr_pix2vec_nest, AdaptiveRaySource, \
     arr_ang2pix_nest, arr_fisheye_vectors, rotate_vectors
+from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.orientation import Orientation
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from numpy import pi
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -48,8 +49,7 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  use_kd=True, l_max=None, no_ghost=True,
-                 tree_type='domain',expand_factor=1.0,
-                 le=None, re=None):
+                 tree_type='domain',le=None, re=None):
         r"""A viewpoint into a volume, for volume rendering.
 
         The camera represents the eye of an observer, which will be used to
@@ -64,7 +64,7 @@ class Camera(ParallelAnalysisInterface):
             The vector between the camera position and the center.
         width : float or list of floats
             The current width of the image.  If a single float, the volume is
-            cubical, but if not, it is front/back, left/right, top/bottom.
+            cubical, but if not, it is left/right, top/bottom, front/back.
         resolution : int or list of ints
             The number of pixels in each direction.
         north_vector : array_like, optional
@@ -74,7 +74,7 @@ class Camera(ParallelAnalysisInterface):
             Boolean to control whether to normalize the north_vector
             by subtracting off the dot product of it and the normal
             vector.  Makes it easier to do rotations along a single
-            axis.  If north_vector is specifies, is switched to
+            axis.  If north_vector is specified, is switched to
             True. Default: False
         volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
             The volume to ray cast through.  Can be specified for finer-grained
@@ -136,12 +136,6 @@ class Camera(ParallelAnalysisInterface):
             prone to longer data IO times.  If all the data can fit in
             memory on each cpu, this can be the fastest option for
             multiple ray casts on the same dataset.
-        expand_factor: float, optional
-            A parameter to be used with the PerspectiveCamera.
-            Controls how much larger a volume to render, which is
-            currently difficult to gauge for the PerspectiveCamera.
-            For full box renders, values in the 2.0-3.0 range seem to
-            produce desirable results. Default: 1.0
         le: array_like, optional
             Specifies the left edge of the volume to be rendered.
             Currently only works with use_kd=True.
@@ -187,24 +181,14 @@ class Camera(ParallelAnalysisInterface):
         self.resolution = resolution
         self.sub_samples = sub_samples
         if not iterable(width):
-            width = (width, width, width) # front/back, left/right, top/bottom
-        self.width = width
-        self.center = center
-        self.steady_north = steady_north
-        self.expand_factor = expand_factor
-        # This seems to be necessary for now.  Not sure what goes wrong when not true.
-        if na.all(north_vector == normal_vector):
-            mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
-            north_vector == None
-        if north_vector is not None: self.steady_north=True
-        self.north_vector = north_vector
-        self.rotation_vector = north_vector
+            width = (width, width, width) # left/right, top/bottom, front/back 
+        self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
+        self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
-        self._setup_normalized_vectors(normal_vector, north_vector)
         self.log_fields = log_fields
         self.use_kd = use_kd
         self.l_max = l_max
@@ -223,40 +207,21 @@ class Camera(ParallelAnalysisInterface):
             self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
-    def _setup_normalized_vectors(self, normal_vector, north_vector):
-        # Now we set up our various vectors
-        normal_vector /= na.sqrt( na.dot(normal_vector, normal_vector))
-        if north_vector is None:
-            vecs = na.identity(3)
-            t = na.cross(normal_vector, vecs).sum(axis=1)
-            ax = t.argmax()
-            north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
-            if self.rotation_vector is None:
-                self.rotation_vector=north_vector
-        else:
-            if self.steady_north:
-                north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
-        north_vector /= na.sqrt(na.dot(north_vector, north_vector))
-        east_vector = -na.cross(north_vector, normal_vector).ravel()
-        east_vector /= na.sqrt(na.dot(east_vector, east_vector))
-        self.normal_vector = normal_vector
-        self.unit_vectors = [north_vector, east_vector, normal_vector]
-        self.box_vectors = na.array([self.unit_vectors[0]*self.width[0],
-                                     self.unit_vectors[1]*self.width[1],
-                                     self.unit_vectors[2]*self.width[2]])
-
-        self.origin = self.center - 0.5*self.width[0]*self.unit_vectors[0] \
-                                  - 0.5*self.width[1]*self.unit_vectors[1] \
-                                  - 0.5*self.width[2]*self.unit_vectors[2]
-        self.back_center = self.center - 0.5*self.width[0]*self.unit_vectors[2]
-        self.front_center = self.center + 0.5*self.width[0]*self.unit_vectors[2]
-        self.inv_mat = na.linalg.pinv(self.unit_vectors)
+    def _setup_box_properties(self, width, center, unit_vectors):
+        self.width = width
+        self.center = center
+        self.box_vectors = na.array([unit_vectors[0]*width[0],
+                                     unit_vectors[1]*width[1],
+                                     unit_vectors[2]*width[2]])
+        self.origin = center - 0.5*na.dot(width,unit_vectors)
+        self.back_center =  center - 0.5*width[2]*unit_vectors[2]
+        self.front_center = center + 0.5*width[2]*unit_vectors[2]         
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
 
-        This will recalculate all the necessary vectors and vector planes related
-        to a camera to point at a new location.
+        This will recalculate all the necessary vectors and vector planes to orient
+        the image plane so that it points at a new location.
 
         Parameters
         ----------
@@ -268,13 +233,14 @@ class Camera(ParallelAnalysisInterface):
             calculated automatically.
         """
         normal_vector = self.front_center - new_center
-        self._setup_normalized_vectors(normal_vector, north_vector)
+        self.orienter.switch_orientation(normal_vector=normal_vector,
+                                         north_vector = north_vector)
 
     def switch_view(self, normal_vector=None, width=None, center=None, north_vector=None):
-        r"""Change the view direction based on any of the view parameters.
+        r"""Change the view based on any of the view parameters.
 
-        This will recalculate all the necessary vectors and vector planes related
-        to a camera with new normal vectors, widths, centers, or north vectors.
+        This will recalculate the orientation and width based on any of
+        normal_vector, width, center, and north_vector.
 
         Parameters
         ----------
@@ -282,7 +248,7 @@ class Camera(ParallelAnalysisInterface):
             The new looking vector.
         width: float or array of floats, optional
             The new width.  Can be a single value W -> [W,W,W] or an
-            array [W1, W2, W3]
+            array [W1, W2, W3] (left/right, top/bottom, front/back)
         center: array_like, optional
             Specifies the new center.
         north_vector : array_like, optional
@@ -292,16 +258,18 @@ class Camera(ParallelAnalysisInterface):
         if width is None:
             width = self.width
         if not iterable(width):
-            width = (width, width, width) # front/back, left/right, top/bottom
+            width = (width, width, width) # left/right, tom/bottom, front/back 
         self.width = width
         if center is not None:
             self.center = center
         if north_vector is None:
-            north_vector = self.north_vector
+            north_vector = self.orienter.north_vector
         if normal_vector is None:
-            normal_vector = self.front_center-self.center
-        self._setup_normalized_vectors(normal_vector, north_vector)
-        
+            normal_vector = self.front_cemter - self.center
+        self.orienter.switch_orientation(normal_vector = normal_vector,
+                                         north_vector = north_vector)
+        self._setup_box_properties(width, center, self.orienter.unit_vectors)
+
     def get_vector_plane(self, image):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
@@ -310,8 +278,7 @@ class Camera(ParallelAnalysisInterface):
                          self.resolution[0])[:,None]
         py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
                          self.resolution[1])[None,:]
-        inv_mat = self.inv_mat
-        bc = self.back_center
+        inv_mat = self.orienter.inv_mat
         positions = na.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
@@ -320,8 +287,8 @@ class Camera(ParallelAnalysisInterface):
         bounds = (px.min(), px.max(), py.min(), py.max())
         vector_plane = VectorPlane(positions, self.box_vectors[2],
                                       self.back_center, bounds, image,
-                                      self.unit_vectors[0],
-                                      self.unit_vectors[1])
+                                      self.orienter.unit_vectors[0],
+                                      self.orienter.unit_vectors[1])
         return vector_plane
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False):
@@ -393,8 +360,7 @@ class Camera(ParallelAnalysisInterface):
 
         """
         self.width = [w / factor for w in self.width]
-        self._setup_normalized_vectors(
-                self.unit_vectors[2], self.unit_vectors[0])
+        self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
 
     def zoomin(self, final, n_steps, clip_ratio = None):
         r"""Loop over a zoomin and return snapshots along the way.
@@ -426,8 +392,7 @@ class Camera(ParallelAnalysisInterface):
             yield self.snapshot(clip_ratio = clip_ratio)
 
     def move_to(self, final, n_steps, final_width=None, exponential=False, clip_ratio = None):
-        r"""Loop over a look_at
-
+        r"""
         This will yield `n_steps` snapshots until the current view has been
         moved to a final center of `final` with a final width of final_width.
 
@@ -459,23 +424,23 @@ class Camera(ParallelAnalysisInterface):
             if final_width is not None:
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
-                    # front/back, left/right, top/bottom
+                    # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
                     self.center += (na.array(final) - self.center) / (10. * n_steps)
                 final_zoom = final_width/na.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
             else:
-                dW = 1.0
+                dW = na.array([1.0,1.0,1.0])
             position_diff = (na.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
             if final_width is not None:
                 if not iterable(final_width):
                     width = na.array([final_width, final_width, final_width]) 
-                    # front/back, left/right, top/bottom
+                    # left/right, top/bottom, front/back
                 dW = (1.0*final_width-na.array(self.width))/n_steps
             else:
-                dW = 1.0
+                dW = na.array([0.0,0.0,0.0])
             dx = (na.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
@@ -507,15 +472,7 @@ class Camera(ParallelAnalysisInterface):
         if rot_vector is None:
             rot_vector = self.rotation_vector
             
-        ux = rot_vector[0]
-        uy = rot_vector[1]
-        uz = rot_vector[2]
-        cost = na.cos(theta)
-        sint = na.sin(theta)
-        
-        R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
-                      [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
-                      [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+        R = get_rotation_matrix(self, theta, rot_vector)
 
         normal_vector = self.front_center-self.center
 
@@ -564,8 +521,7 @@ class InteractiveCamera(Camera):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  use_kd=True, l_max=None, no_ghost=True,
-                 tree_type='domain',expand_factor=1.0,
-                 le=None, re=None):
+                 tree_type='domain',le=None, re=None):
         self.frames = []
         Camera.__init__(self, center, normal_vector, width,
                  resolution, transfer_function,
@@ -574,8 +530,7 @@ class InteractiveCamera(Camera):
                  log_fields = log_fields,
                  sub_samples = sub_samples, pf = pf,
                  use_kd=use_kd, l_max=l_max, no_ghost=no_ghost,
-                 tree_type=tree_type,expand_factor=expand_factor,
-                 le=le, re=re)
+                 tree_type=tree_type,le=le, re=re)
 
     def snapshot(self, fn = None, clip_ratio = None):
         import matplotlib
@@ -613,6 +568,26 @@ class InteractiveCamera(Camera):
 data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
+    def __init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = None, steady_north=False,
+                 volume = None, fields = None,
+                 log_fields = None,
+                 sub_samples = 5, pf = None,
+                 use_kd=True, l_max=None, no_ghost=True,
+                 tree_type='domain', expand_factor = 1.0,
+                 le=None, re=None):
+        self.expand_factor = 1.0
+        Camera.__init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = None, steady_north=False,
+                 volume = None, fields = None,
+                 log_fields = None,
+                 sub_samples = 5, pf = None,
+                 use_kd=True, l_max=None, no_ghost=True,
+                 tree_type='domain', le=None, re=None)
+        
+
     def get_vector_plane(self, image):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
@@ -624,8 +599,7 @@ class PerspectiveCamera(Camera):
                          self.resolution[0])[:,None]
         py = self.expand_factor*na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
                          self.resolution[1])[None,:]
-        inv_mat = self.inv_mat
-        bc = self.back_center
+        inv_mat = self.orienter.inv_mat
         positions = na.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
@@ -640,8 +614,8 @@ class PerspectiveCamera(Camera):
 
         vector_plane = VectorPlane(positions, vectors,
                                       self.back_center, bounds, image,
-                                      self.unit_vectors[0],
-                                      self.unit_vectors[1])
+                                      self.orienter.unit_vectors[0],
+                                      self.orienter.unit_vectors[1])
         return vector_plane
 
 def corners(left_edge, right_edge):
@@ -1065,7 +1039,7 @@ class MosaicFisheyeCamera(Camera):
             rot_vector = na.cross(rvec, self.normal_vector)
             rot_vector /= (rot_vector**2).sum()**0.5
             
-            self.rotation_matrix = self.get_rotation_matrix(angle,rot_vector)
+            self.rotation_matrix = get_rotation_matrix(angle,rot_vector)
             self.normal_vector = na.dot(self.rotation_matrix,self.normal_vector)
             self.north_vector = na.dot(self.rotation_matrix,self.north_vector)
             self.east_vector = na.dot(self.rotation_matrix,self.east_vector)
@@ -1182,7 +1156,7 @@ class MosaicFisheyeCamera(Camera):
         
         dist = ((self.focal_center - self.center)**2).sum()**0.5
         
-        R = self.get_rotation_matrix(theta, rot_vector)
+        R = get_rotation_matrix(theta, rot_vector)
 
         self.vp = rotate_vectors(self.vp, R)
         self.normal_vector = na.dot(R,self.normal_vector)
@@ -1256,19 +1230,6 @@ class MosaicFisheyeCamera(Camera):
                 self.center += dx
             yield self.snapshot()
 
-    def get_rotation_matrix(self, theta, rot_vector):
-        ux = rot_vector[0]
-        uy = rot_vector[1]
-        uz = rot_vector[2]
-        cost = na.cos(theta)
-        sint = na.sin(theta)
-        
-        R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
-                      [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
-                      [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
-
-        return R
-
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, volume = None, no_ghost = True,
                         north_vector = None):
@@ -1291,7 +1252,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         The vector between the camera position and the center.
     width : float or list of floats
         The current width of the image.  If a single float, the volume is
-        cubical, but if not, it is front/back, left/right, top/bottom.
+        cubical, but if not, it is left/right, top/bottom, front/back
     resolution : int or list of ints
         The number of pixels in each direction.
     field : string
@@ -1330,8 +1291,13 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     fields = [field]
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        def _wf(f1, w1):
+            def WeightField(field, data):
+                return data[f1].astype("float64") * \
+                       data[w1].astype("float64")
+            return WeightField
         pf.field_info.add_field("temp_weightfield",
-            function=lambda a,b:b[field]*b[weight])
+                    function=_wf(field, weight))
         fields = ["temp_weightfield", weight]
         tf = ProjectionTransferFunction(n_fields = 2)
     tf = ProjectionTransferFunction(n_fields = len(fields))
@@ -1342,10 +1308,17 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
                       north_vector = north_vector)
     vals = cam.snapshot()
     image = vals[:,:,0]
+    if iterable(width):
+        depth = width[2]
+    else:
+        depth = width
     if weight is None:
-        dl = width * pf.units[pf.field_info[field].projection_conversion]
+        dl = depth * pf.units[pf.field_info[field].projection_conversion]
         image *= dl
     else:
         image /= vals[:,:,1]
         pf.field_info.pop("temp_weightfield")
+        for g in pf.h.grids:
+            if "temp_weightfield" in g.keys():
+                del g["temp_weightfield"]
     return image

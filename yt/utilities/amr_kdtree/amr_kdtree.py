@@ -1012,7 +1012,7 @@ class AMRKDTree(HomogenizedVolume):
                     # This node belongs to someone else, move along
                     current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
-                
+
             # If we are down to one grid, we are either in it or the parent grid
             if len(current_node.grids) == 1:
                 thisgrid = current_node.grids[0]
@@ -1031,25 +1031,27 @@ class AMRKDTree(HomogenizedVolume):
                         if len(children) > 0:
                             current_node.grids = self.pf.hierarchy.grids[na.array(children,copy=False)]
                             current_node.parent_grid = thisgrid
-                            # print 'My single grid covers the rest of the volume, and I have children, about to iterate on them'
+                            #print 'My single grid covers the rest of the volume, and I have children, about to iterate on them'
                             del children
                             continue
 
                     # Else make a leaf node (brick container)
+                    #print 'My single grid covers the rest of the volume, and I have no children', thisgrid
                     set_leaf(current_node, thisgrid, current_node.l_corner, current_node.r_corner)
-                    # print 'My single grid covers the rest of the volume, and I have no children'
                     current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
 
             # If we don't have any grids, this volume belongs to the parent        
             if len(current_node.grids) == 0:
+                #print 'This volume does not have a child grid, so it belongs to my parent!'
                 set_leaf(current_node, current_node.parent_grid, current_node.l_corner, current_node.r_corner)
-                # print 'This volume does not have a child grid, so it belongs to my parent!'
                 current_node, previous_node = self.step_depth(current_node, previous_node)
                 continue
 
             # If we've made it this far, time to build a dividing node
-            self._build_dividing_node(current_node)
+            # print 'Building dividing node'
+            # Continue if building failed
+            if self._build_dividing_node(current_node): continue
 
             # Step to the nest node in a depth-first traversal.
             current_node, previous_node = self.step_depth(current_node, previous_node)
@@ -1058,10 +1060,10 @@ class AMRKDTree(HomogenizedVolume):
         '''
         Given a node, finds all the choices for the next dividing plane.  
         '''
-        data = na.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
         # For some reason doing dim 0 separately is slightly faster.
         # This could be rewritten to all be in the loop below.
 
+        data = na.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
         best_dim, split, less_ids, greater_ids = \
             kdtree_get_choices(data, current_node.l_corner, current_node.r_corner)
         return data[:,:,best_dim], best_dim, split, less_ids, greater_ids
@@ -1071,8 +1073,19 @@ class AMRKDTree(HomogenizedVolume):
         Makes the current node a dividing node, and initializes the
         left and right children.
         '''
-        
-        data,best_dim,split,less_ids,greater_ids = self._get_choices(current_node)
+
+        data = na.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
+        best_dim, split, less_ids, greater_ids = \
+            kdtree_get_choices(data, current_node.l_corner, current_node.r_corner)
+
+        del data
+
+        # Here we break out if no unique grids were found. In this case, there
+        # are likely overlapping grids, and we assume that the first grid takes
+        # precedence.  This is fragile.
+        if best_dim == -1:
+            current_node.grids = [current_node.grids[0]]
+            return 1
 
         current_node.split_ax = best_dim
         current_node.split_pos = split
@@ -1080,7 +1093,7 @@ class AMRKDTree(HomogenizedVolume):
         #greater_ids0 = (split < data[:,1])
         #assert(na.all(less_ids0 == less_ids))
         #assert(na.all(greater_ids0 == greater_ids))
-        
+
         current_node.left_child = MasterNode(my_id=_lchild_id(current_node.id),
                                              parent=current_node,
                                              parent_grid=current_node.parent_grid,
@@ -1099,7 +1112,9 @@ class AMRKDTree(HomogenizedVolume):
         # build to work.  The other deletions are just to save memory.
         del current_node.grids, current_node.parent_grid, current_node.brick,\
             current_node.li, current_node.ri, current_node.dims
-        
+
+        return 0
+
     def traverse(self, back_center, front_center, image):
         r"""Traverses the kd-Tree, casting the partitioned grids from back to
             front.
