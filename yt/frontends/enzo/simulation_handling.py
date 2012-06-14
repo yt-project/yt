@@ -42,7 +42,7 @@ from yt.utilities.exceptions import \
 from yt.convenience import \
     load
 
-class EnzoSimulation(SimulationTimeSeries, TimeSeriesData):
+class EnzoSimulation(SimulationTimeSeries):
     r"""Class for creating TimeSeriesData object from an Enzo
     simulation parameter file.
     """

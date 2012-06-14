@@ -193,7 +193,7 @@ class TimeSeriesDataObject(object):
         return cls(*self._args, **self._kwargs)
 
 
-class SimulationTimeSeries(object):
+class SimulationTimeSeries(TimeSeriesData):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
