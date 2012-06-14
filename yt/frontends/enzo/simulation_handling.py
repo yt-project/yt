@@ -526,9 +526,9 @@ class EnzoSimulation(SimulationTimeSeries):
                         time_outputs.append({'filename': filename, 'time': pf.current_time})
                         if pf.cosmological_simulation:
                             time_outputs[-1]['redshift'] = pf.current_redshift
-                    del pf
-                except:
+                except YTOutputNotIdentified:
                     mylog.error('Failed to load %s' % filename)
+
         mylog.info("Located %d time outputs." % len(time_outputs))
         time_outputs.sort(key=lambda obj: obj['time'])
         return time_outputs
