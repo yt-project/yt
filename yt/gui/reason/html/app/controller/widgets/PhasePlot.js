@@ -24,166 +24,30 @@ License:
 ***********************************************************************/
 
 
+Ext.define("Reason.controller.widgets.PhasePlot", {
+    extend: 'Reason.controller.widgets.BaseWidget',
+    requires: ['Reason.view.widgets.PhasePlot'],
 
-var WidgetPhasePlot = function(python_varname, widget_data) {
-    this.id = python_varname;
-    this.widget_data = widget_data;
-
-    viewport.get("center-panel").add(
-        {
-            xtype: 'panel',
-            id: "pp_" + this.id,
-            title: widget_data['title'],
-            iconCls: 'graph',
-            autoScroll: true,
-            layout:'absolute',
-            closable: true,
-            items: [ 
-                {
-                    xtype: 'panel',
-                    id: 'y_ticks_' + python_varname,
-                    layout: 'absolute',
-                    y: 10,
-                    x: 100,
-                    width: 40,
-                    height: 400,
-                    items : [],
-                    border: false,
-                }, {
-                    xtype: 'panel',
-                    id: 'x_ticks_' + python_varname,
-                    layout: 'absolute',
-                    y: 410,
-                    x: 140,
-                    width: 400,
-                    height: 40,
-                    items : [],
-                    border: false,
-                }, {
-                    xtype:'panel',
-                    id: 'image_panel_' + this.id,
-                    autoEl: {
-                        tag: 'img',
-                        id: "img_" + this.id,
-                        width: 400,
-                        height: 400,
-                        style: 'border: 1px solid #000000',
-                    },
-                    x: 138,
-                    y: 8,
-                    width: 400,
-                    height: 400,
-                }, {
-                    xtype:'panel',
-                    id: 'colorbar_' + python_varname,
-                    autoEl: {
-                        tag: 'img',
-                        id: "cb_" + python_varname,
-                        src: "data:image/png;base64," +
-                             widget_data['colorbar'],
-                        width: 28,
-                        height: 398,
-                        style: 'border: 1px solid #000000;',
-                    },
-                    x: 560,
-                    y: 10,
-                    width: 30,
-                    height: 400,
-                }, {
-                    xtype: 'panel',
-                    id: 'ticks_' + python_varname,
-                    layout: 'absolute',
-                    y: 10,
-                    x: 590,
-                    width: 40,
-                    height: 400,
-                    items : [],
-                    border: false,
-                },{
-                    xtype: 'button',
-                    text: 'Upload Image',
-                    x: 10,
-                    y: 285,
-                    width: 80,
-                    tooltip: "Upload the current image to " +
-                             "<a href='http://imgur.com'>imgur.com</a>",
-                    handler: function(b,e) {
-                        img_data = image_dom.src;
-                        yt_rpc.ExtDirectREPL.upload_image(
-                            {image_data:img_data,
-                             caption:metadata_string},
-                        function(rv) {
-                            var alert_text;
-                            if(rv['uploaded'] == false) {
-                                alert_text = "Failure uploading image!";
-                            } else {
-                                alert_text = "Uploaded to " +
-                                        rv['upload']['links']['imgur_page'];
-                            }
-                            Ext.Msg.alert('imgur.com', alert_text);
-                            var record = new logging_store.recordType(
-                                {record: alert_text });
-                            logging_store.add(record, number_log_records++);
-                        }); 
-                    }
-                },{
-                    xtype: 'panel',
-                    layout: 'vbox',
-                    id: 'rhs_panel_' + python_varname,
-                    width: 300,
-                    height: 460,
-                    x: 640, y: 10,
-                    layoutConfig: {
-                        align: 'stretch',
-                        pack: 'start',
-                    },
-                    items: [
-                        {
-                          xtype: 'panel',
-                          title: 'Plot MetaData',
-                          id: 'metadata_' + python_varname,
-                          style: {fontFamily: '"Inconsolata", monospace'},
-                          html: 'Welcome to the Plot Window.',
-                          height: 200,
-                        }, {
-                          xtype: 'panel',
-                          title: 'Plot Editor',
-                          id: 'plot_edit',
-                          flex: 1,
-                        }]
-                }
-            ]
-        }
-    );
-
-    viewport.get("center-panel").activate("pp_" + this.id);
-    viewport.get("center-panel").doLayout();
-    viewport.doLayout();
-    this.panel = viewport.get("center-panel").get("pp_" + python_varname);
-    this.panel.doLayout();
-    this.panel.show();
-    this.image_panel = this.panel.get("image_panel_"+python_varname);
-    this.ticks = this.panel.get("ticks_"+python_varname);
-    var x_ticks = this.panel.get("x_ticks_"+python_varname);
-    var y_ticks = this.panel.get("y_ticks_"+python_varname);
-    var ticks = this.ticks;
-    this.metadata_panel = this.panel.get("rhs_panel_" + python_varname).get("metadata_" + python_varname);
-    var image_dom = this.image_panel.el.dom;
-    var control_panel = this.panel;
-    var metadata_string;
-    var colorbar = this.panel.get("colorbar_"+python_varname);
-
-    this.accept_results = function(payload) {
-        this.image_panel.el.dom.src = "data:image/png;base64," + payload['image_data'];
-        examine = this.metadata_panel;
-        this.metadata_panel.update(payload['metadata_string']);
-        metadata_string = payload['metadata_string'];
+    viewRefs: [
+        { ref: 'yTicks', selector: '#y_ticks'},
+        { ref: 'xTicks', selector: '#x_ticks'},
+        { ref: 'colorTicks', selector: 'cb_ticks'},
+        { ref: 'colorbar', selector: '#colorbar'},
+        { ref: 'image', selector: '#imagepanel'},
+        { ref: 'metadataString', selector: '#metadataString'},
+    ],
+    
+    applyPayload: function(payload) {
+        this.getImage().getEl().dom.src = 
+            "data:image/png;base64," + payload['image_data'];
+        this.getMetadataString().update(payload['metadata_string']);
+        this.getMetaDataString().mds = payload['metadata_string'];
         ticks.removeAll();
-        colorbar.el.dom.src = "data:image/png;base64," +
-                              payload['cbar']['cmap_image'];
+        this.getColorbar.getEl().dom.src=
+            "data:image/png;base64," + payload['cbar']['cmap_image'];
+        var YTicks = this.getYTicks();
         Ext.each(payload['yax']['ticks'], function(tick, index) {
-            examine = tick;
-            y_ticks.add({xtype:'panel',
+            YTicks.add({xtype:'panel',
                        width: 20, height:15,
                        border: false,
                        style: 'font-family: "Inconsolata", monospace;' +
@@ -191,21 +55,21 @@ var WidgetPhasePlot = function(python_varname, widget_data) {
                               'padding-right: 5px;',
                        html: ' ' + tick[2] + ' ',
                        x:0, y: tick[0]-6});
-            y_ticks.add({xtype:'panel',
+            YTicks.add({xtype:'panel',
                        width: 20, height:1,
                        style: 'background-color: #000000;',
                        html:'&nbsp;',
                        x:20, y: tick[0]});
         });
-        y_ticks.doLayout();
+        YTicks.doLayout();
+        var XTicks = this.getXTicks();
         Ext.each(payload['xax']['ticks'], function(tick, index) {
-            examine = tick;
-            x_ticks.add({xtype:'panel',
+            XTicks.add({xtype:'panel',
                        width: 1, height:20,
                        style: 'background-color: #000000;',
                        html:'&nbsp;',
                        x:(400 - tick[0]) + 10, y: 0});
-            x_ticks.add({xtype:'panel',
+            XTicks.add({xtype:'panel',
                        width: 20, height:20,
                        border: false,
                        style: 'font-family: "Inconsolata", monospace;' +
@@ -213,14 +77,15 @@ var WidgetPhasePlot = function(python_varname, widget_data) {
                        html: ' ' + tick[2] + ' ',
                        x: (400 - tick[0]), y: 20});
         });
-        x_ticks.doLayout();
+        XTicks.doLayout();
+        var colorTicks = this.getColorTicks();
         Ext.each(payload['cbar']['ticks'], function(tick, index) {
-            ticks.add({xtype:'panel',
+            colorTicks.add({xtype:'panel',
                        width: 10, height:1,
                        style: 'background-color: #000000;',
                        html:'&nbsp;',
                        x:0, y: tick[0]});
-            ticks.add({xtype:'panel',
+            colorTicks.add({xtype:'panel',
                        width: 30, height:15,
                        border: false,
                        style: 'font-family: "Inconsolata", monospace;' +
@@ -228,12 +93,80 @@ var WidgetPhasePlot = function(python_varname, widget_data) {
                        html: ' ' + tick[2] + ' ',
                        x:18, y: tick[0]-6});
         });
-        ticks.doLayout();
-        x_ticks.doLayout();
-    }
-    yt_rpc.ExtDirectREPL.execute(
-        {code:python_varname + '._setup_plot()', hide:true},
-        cell_finished);
-}
+        colorTicks.doLayout();
+    },
 
-widget_types['phase_plot'] = WidgetPhasePlot;
+    statics: {
+        widgetName: 'phase_plot',
+        supportsDataObjects: true,
+        supportsParameterFiles: false,
+        displayName: 'Phase Plot',
+        preCreation: function(obj) {
+            var widget = Ext.create(this.getName());
+            function makePlot(b, e) {
+                var conf = {
+                    pfname: obj.varname,
+                    axis: win.query("#axis")[0].getValue(),
+                    field: win.query("#field")[0].getValue(),
+                    onmax: "" + win.query("#maxDens")[0].getValue(),
+                };
+                var method = 'createSlice';
+                if (win.query("#plotType")[0].getValue() == 'Projection') {
+                    method = 'createProj';
+                    conf['weight'] = win.query("#weightField")[0].getValue();
+                } else {
+                  conf['center'] = [win.query("#slice_x_center")[0].getValue(),
+                                    win.query("#slice_y_center")[0].getValue(),
+                                    win.query("#slice_z_center")[0].getValue()];
+                }
+                var cmd = widget.templateManager.applyObject(conf, method);
+                reason.server.execute(cmd);
+                win.destroy();
+            }
+            function togglePlotType(b, e) {
+                var plotType = win.query("#plotType")[0].getValue();
+                examine = win;
+                if (plotType == 'Projection') {
+                    win.query("#weightField")[0].enable();
+                    win.query("#maxDens")[0].disable();
+                    win.query("#slice_x_center")[0].disable();
+                    win.query("#slice_y_center")[0].disable();
+                    win.query("#slice_z_center")[0].disable();
+                } else {
+                    win.query("#weightField")[0].disable();
+                    win.query("#maxDens")[0].enable();
+                    win.query("#slice_x_center")[0].enable();
+                    win.query("#slice_y_center")[0].enable();
+                    win.query("#slice_z_center")[0].enable();
+                }
+            }
+            function toggleMaxDens(checkbox, checked) {
+                var plotType = win.query("#plotType")[0].getValue();
+                if (plotType == "Projection") { return; }
+                if (checked == true) {
+                    win.query("#slice_x_center")[0].disable();
+                    win.query("#slice_y_center")[0].disable();
+                    win.query("#slice_z_center")[0].disable();
+                } else {
+                    win.query("#slice_x_center")[0].enable();
+                    win.query("#slice_y_center")[0].enable();
+                    win.query("#slice_z_center")[0].enable();
+                }
+            }
+            var title = widget.templateManager.applyObject(obj, 'pwt');
+            win = Ext.widget("plotwindowcreator", {title:title, obj:obj});
+            win.query("#weightField")[0].store = 
+                ['None'].concat(obj.field_list);
+            win.query("#field")[0].store = obj.field_list;
+            win.query("#create")[0].on('click', makePlot);
+            win.query("#cancel")[0].on('click', function(){win.destroy();});
+            win.query("#maxDens")[0].on('change', toggleMaxDens);
+            win.query("#plotType")[0].on('change', togglePlotType);
+            togglePlotType();
+            toggleMaxDens();
+            win.show();
+            /* Note that in this case, our instance of 'widget', which is this
+               class, is not long-lived.  It dies after the window is
+               destroyed. */
+        },
+});
