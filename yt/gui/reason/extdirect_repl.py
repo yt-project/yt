@@ -473,11 +473,10 @@ class ExtDirectParameterFileList(BottleDirectRouter):
         for fn, pf in sorted(_cached_pfs.items()):
             objs = []
             pf_varname = "_cached_pfs['%s']" % (fn)
-            fields = []
+            field_list = []
             if pf._instantiated_hierarchy is not None: 
-                fields = set(pf.h.field_list + pf.h.derived_field_list)
-                fields = list(fields)
-                fields.sort()
+                field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+                field_list = [dict(text = f) for f in sorted(field_list)]
                 for i,obj in enumerate(pf.h.objects):
                     try:
                         name = str(obj)
@@ -488,7 +487,7 @@ class ExtDirectParameterFileList(BottleDirectRouter):
                                      varname = "%s.h.objects[%s]" % (pf_varname, i)))
             rv.append( dict(name = str(pf), children = objs, filename=fn,
                             type = "parameter_file",
-                            varname = pf_varname, field_list = fields) )
+                            varname = pf_varname, field_list = field_list) )
         return rv
 
 def ext_load_script(filename):

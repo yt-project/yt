@@ -31,6 +31,7 @@ Ext.define('Reason.controller.WidgetDirector', {
                "Reason.controller.widgets.GridDataViewer",
                "Reason.controller.widgets.ParameterFile",
                "Reason.controller.widgets.PannableMap",
+               "Reason.controller.widgets.PhasePlot",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
     views: ['WidgetTypesGrid', 'WidgetInstancesGrid'],
@@ -70,6 +71,7 @@ Ext.define('Reason.controller.WidgetDirector', {
 
     showWidgetMenu: function(treerecord, e) {
         var contextMenu = Ext.create('Ext.menu.Menu', {plain: true,});
+        examine = treerecord;
         var data = treerecord.data;
         var w;
         this.getWidgetTypesStore().each(function(record, idx) {

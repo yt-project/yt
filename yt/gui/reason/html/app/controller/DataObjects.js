@@ -76,11 +76,11 @@ Ext.define('Reason.controller.DataObjects', {
             });
             Ext.each(o['children'], function(c, ci, cs) {
                 /*console.log("    Appending " + c['name']);*/
-                pf.appendChild({name: o.name,
-                                type: o.type,
+                pf.appendChild({name: c.name,
+                                type: c.type,
                                 filename: o.filename,
                                 field_list: o.field_list,
-                                varname: o.varname,
+                                varname: c.varname,
                                 leaf: true,
                                 iconcls: 'data_obj'});
 

@@ -26,7 +26,11 @@ License:
 
 Ext.define("Reason.controller.widgets.PhasePlot", {
     extend: 'Reason.controller.widgets.BaseWidget',
-    requires: ['Reason.view.widgets.PhasePlot'],
+    requires: ['Reason.view.widgets.PhasePlotCreator',
+               'Reason.view.widgets.PhasePlot'],
+    templates: {
+        createPhasePlot: "print 1",
+    },
 
     viewRefs: [
         { ref: 'yTicks', selector: '#y_ticks'},
@@ -103,70 +107,43 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         displayName: 'Phase Plot',
         preCreation: function(obj) {
             var widget = Ext.create(this.getName());
+            examine = obj;
             function makePlot(b, e) {
                 var conf = {
                     pfname: obj.varname,
-                    axis: win.query("#axis")[0].getValue(),
-                    field: win.query("#field")[0].getValue(),
-                    onmax: "" + win.query("#maxDens")[0].getValue(),
+                    xField: win.query("#x_field")[0].getValue(),
+                    yfield: win.query("#y_field")[0].getValue(),
+                    zfield: win.query("#z_field")[0].getValue(),
                 };
-                var method = 'createSlice';
-                if (win.query("#plotType")[0].getValue() == 'Projection') {
-                    method = 'createProj';
-                    conf['weight'] = win.query("#weightField")[0].getValue();
-                } else {
-                  conf['center'] = [win.query("#slice_x_center")[0].getValue(),
-                                    win.query("#slice_y_center")[0].getValue(),
-                                    win.query("#slice_z_center")[0].getValue()];
+                var weight = win.query("#weight")[0].getValue();
+                if (weight == 'Mass') {
+                    weightField = '"CellMassMsun"';
+                } else if (weight == 'Volume') {
+                    weightField = '"CellVolume"';
+                } else if (weight == 'Just Sum') {
+                    weightField = 'None';
                 }
-                var cmd = widget.templateManager.applyObject(conf, method);
+                conf['weight'] = weightField;
+                var cmd = widget.templateManager.applyObject(
+                    conf, 'createPhasePlot');
                 reason.server.execute(cmd);
                 win.destroy();
             }
-            function togglePlotType(b, e) {
-                var plotType = win.query("#plotType")[0].getValue();
-                examine = win;
-                if (plotType == 'Projection') {
-                    win.query("#weightField")[0].enable();
-                    win.query("#maxDens")[0].disable();
-                    win.query("#slice_x_center")[0].disable();
-                    win.query("#slice_y_center")[0].disable();
-                    win.query("#slice_z_center")[0].disable();
-                } else {
-                    win.query("#weightField")[0].disable();
-                    win.query("#maxDens")[0].enable();
-                    win.query("#slice_x_center")[0].enable();
-                    win.query("#slice_y_center")[0].enable();
-                    win.query("#slice_z_center")[0].enable();
-                }
-            }
-            function toggleMaxDens(checkbox, checked) {
-                var plotType = win.query("#plotType")[0].getValue();
-                if (plotType == "Projection") { return; }
-                if (checked == true) {
-                    win.query("#slice_x_center")[0].disable();
-                    win.query("#slice_y_center")[0].disable();
-                    win.query("#slice_z_center")[0].disable();
-                } else {
-                    win.query("#slice_x_center")[0].enable();
-                    win.query("#slice_y_center")[0].enable();
-                    win.query("#slice_z_center")[0].enable();
-                }
-            }
-            var title = widget.templateManager.applyObject(obj, 'pwt');
-            win = Ext.widget("plotwindowcreator", {title:title, obj:obj});
-            win.query("#weightField")[0].store = 
-                ['None'].concat(obj.field_list);
-            win.query("#field")[0].store = obj.field_list;
+            win = Ext.widget("phaseplotcreator", {obj:obj});
+            var xFieldObj = win.query("#x_field")[0];
+            var yFieldObj = win.query("#y_field")[0];
+            var zFieldObj = win.query("#z_field")[0];
+            this.fieldStore = Ext.create("Reason.store.Fields");
+            this.fieldStore.loadData(obj.field_list);
+            xFieldObj.bindStore(this.fieldStore);
+            yFieldObj.bindStore(this.fieldStore);
+            zFieldObj.bindStore(this.fieldStore);
+            xFieldObj.setValue("Density");
+            yFieldObj.setValue("Temperature");
+            zFieldObj.setValue("CellMassMsun");
             win.query("#create")[0].on('click', makePlot);
             win.query("#cancel")[0].on('click', function(){win.destroy();});
-            win.query("#maxDens")[0].on('change', toggleMaxDens);
-            win.query("#plotType")[0].on('change', togglePlotType);
-            togglePlotType();
-            toggleMaxDens();
             win.show();
-            /* Note that in this case, our instance of 'widget', which is this
-               class, is not long-lived.  It dies after the window is
-               destroyed. */
         },
+    },
 });
