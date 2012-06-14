@@ -32,11 +32,10 @@ Ext.define("Reason.controller.widgets.PannableMap", {
     },
 
     widgetTriggers: [
-
+        ['#mapbox', 'afterrender', 'setupLeaflet'],
     ],
 
     executionTriggers: [
-        ['#mapbox', 'afterrender', 'setupLeaflet'],
     ],
 
     viewRefs: [
