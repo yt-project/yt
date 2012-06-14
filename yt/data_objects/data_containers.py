@@ -41,8 +41,7 @@ from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.lib import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
-    march_cubes_grid, march_cubes_grid_flux, ortho_ray_grids, ray_grids, \
-    slice_grids, cutting_plane_grids, cutting_plane_cells
+    march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -578,10 +577,12 @@ class AMROrthoRayBase(AMR1DData):
         return (self.px, self.py)
 
     def _get_list_of_grids(self):
-        gi = ortho_ray_grids(self, 
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge).view("bool")
-        self._grids = self.hierarchy.grids[gi]
+        # This bugs me, but we will give the tie to the LeftEdge
+        y = na.where( (self.px >=  self.pf.hierarchy.grid_left_edge[:,self.px_ax])
+                    & (self.px < self.pf.hierarchy.grid_right_edge[:,self.px_ax])
+                    & (self.py >=  self.pf.hierarchy.grid_left_edge[:,self.py_ax])
+                    & (self.py < self.pf.hierarchy.grid_right_edge[:,self.py_ax]))
+        self._grids = self.hierarchy.grids[y]
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
@@ -652,10 +653,31 @@ class AMRRayBase(AMR1DData):
         #self._refresh_data()
 
     def _get_list_of_grids(self):
-        gi = ray_grids(self,
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge).view("bool")
-        self._grids = self.hierarchy.grids[gi]
+        # Get the value of the line at each LeftEdge and RightEdge
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
+        p = na.zeros(self.pf.h.num_grids, dtype='bool')
+        # Check left faces first
+        for i in range(3):
+            i1 = (i+1) % 3
+            i2 = (i+2) % 3
+            vs = self._get_line_at_coord(LE[:,i], i)
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
+            vs = self._get_line_at_coord(RE[:,i], i)
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
+        p = p | ( na.all( LE <= self.start_point, axis=1 ) 
+                & na.all( RE >= self.start_point, axis=1 ) )
+        p = p | ( na.all( LE <= self.end_point,   axis=1 ) 
+                & na.all( RE >= self.end_point,   axis=1 ) )
+        self._grids = self.hierarchy.grids[p]
+
+    def _get_line_at_coord(self, v, index):
+        # t*self.vec + self.start_point = self.end_point
+        t = (v - self.start_point[index])/self.vec[index]
+        t = t.reshape((t.shape[0],1))
+        return self.start_point + t*self.vec
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
@@ -1055,10 +1077,9 @@ class AMRSliceBase(AMR2DData):
         self.ActiveDimensions = (t.shape[1], 1, 1)
 
     def _get_list_of_grids(self):
-        gi = slice_grids(self, 
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge).view("bool")
-        self._grids = self.hierarchy.grids[gi]
+        goodI = ((self.pf.h.grid_right_edge[:,self.axis] > self.coord)
+              &  (self.pf.h.grid_left_edge[:,self.axis] <= self.coord ))
+        self._grids = self.pf.h.grids[goodI] # Using sources not hierarchy
 
     def __cut_mask_child_mask(self, grid):
         mask = grid.child_mask.copy()
@@ -1213,9 +1234,25 @@ class AMRCuttingPlaneBase(AMR2DData):
         return self._norm_vec
 
     def _get_list_of_grids(self):
-        gridi = cutting_plane_grids(self, self.pf.h.grid_left_edge,
-                                          self.pf.h.grid_right_edge)
-        self._grids = self.hierarchy.grids[gridi.view("bool")]
+        # Recall that the projection of the distance vector from a point
+        # onto the normal vector of a plane is:
+        # D = (a x_0 + b y_0 + c z_0 + d)/sqrt(a^2+b^2+c^2)
+        # @todo: Convert to using corners
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
+        vertices = na.array([[LE[:,0],LE[:,1],LE[:,2]],
+                             [RE[:,0],RE[:,1],RE[:,2]],
+                             [LE[:,0],LE[:,1],RE[:,2]],
+                             [RE[:,0],RE[:,1],LE[:,2]],
+                             [LE[:,0],RE[:,1],RE[:,2]],
+                             [RE[:,0],LE[:,1],LE[:,2]],
+                             [LE[:,0],RE[:,1],LE[:,2]],
+                             [RE[:,0],LE[:,1],RE[:,2]]])
+        # This gives us shape: 8, 3, n_grid
+        D = na.sum(self._norm_vec.reshape((1,3,1)) * vertices, axis=1) + self._d
+        self.D = D
+        self._grids = self.hierarchy.grids[
+            na.where(na.logical_not(na.all(D<0,axis=0) | na.all(D>0,axis=0) )) ]
 
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -3377,8 +3414,6 @@ class AMRCoveringGridBase(AMR3DData):
             The left edge of the region to be extracted
         dims : array_like
             Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
@@ -3537,16 +3572,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         left_edge : array_like
             The left edge of the region to be extracted
         dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
+            Number of cells along each axis of resulting covering_grid.
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
         Example
         -------
         cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
         """
         self._base_dx = (
@@ -3585,10 +3617,16 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
+                mylog.debug("Updating level state to %s", last_level + 1)
                 self._update_level_state(last_level + 1)
                 self._refine(1, fields_to_get)
                 last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
+        while last_level < self.level:
+            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
+            self._update_level_state(last_level + 1)
+            self._refine(1, fields_to_get)
+            last_level += 1
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
