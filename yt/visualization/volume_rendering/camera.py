@@ -360,6 +360,13 @@ class Camera(ParallelAnalysisInterface):
         clip_ratio : float, optional
             If supplied, the 'max_val' argument to write_bitmap will be handed
             clip_ratio * image.std()
+        double_check : bool, optional
+            Optionally makes sure that the data contains only valid entries.
+            Used for debugging.
+        num_threads : int, optional
+            If supplied, will use 'num_threads' number of OpenMP threads during
+            the rendering.  Defaults to 0, which uses the environment variable
+            OMP_NUM_THREADS.
 
         Returns
         -------
@@ -776,6 +783,7 @@ class HEALpixCamera(Camera):
         self.save_image(fn, clim, image)
 
         return image
+
     def save_image(self, fn, clim, image):
         if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
@@ -1611,12 +1619,13 @@ class ProjectionCamera(Camera):
         sampler = self.get_sampler(args)
 
         self.initialize_source()
-        
+
         image = self._render(double_check, num_threads, image, sampler)
 
         self.save_image(fn, clip_ratio, image)
 
         return image
+    snapshot.__doc__ = Camera.snapshot.__doc__
 
 data_object_registry["projection_camera"] = ProjectionCamera
 
