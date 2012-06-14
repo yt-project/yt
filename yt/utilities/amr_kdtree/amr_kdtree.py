@@ -1156,12 +1156,12 @@ class AMRKDTree(HomogenizedVolume):
 
         """
         if self.tree is None: 
-            print 'No KD Tree Exists'
+            mylog.error('No KD Tree Exists')
             return
         self.image = image
 
         viewpoint = back_center 
-        print 'Moving from front_center to back_center:',front_center, back_center
+        # print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
@@ -1204,9 +1204,9 @@ class AMRKDTree(HomogenizedVolume):
             else:
                 front = parent.left_child
                 back = parent.right_child
-            print 'Combining', viewpoint, parent.split_ax, parent.split_pos
-            print front.l_corner, front.r_corner
-            print back.l_corner, back.r_corner
+            # print 'Combining', viewpoint, parent.split_ax, parent.split_pos
+            # print front.l_corner, front.r_corner
+            # print back.l_corner, back.r_corner
 
             # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
             # Send the images around

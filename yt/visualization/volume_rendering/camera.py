@@ -1108,7 +1108,7 @@ class MosaicFisheyeCamera(Camera):
             self.wg = my_wg
             self.imi = int(self.wg.name[0:4])
             self.imj = int(self.wg.name[5:9])
-            print 'My new communicator has the name %s' % self.wg.name
+            mylog.info('My new communicator has the name %s' % self.wg.name)
             self.nimx = nimx
             self.nimy = nimy
         else:
@@ -1588,8 +1588,6 @@ class ProjectionCamera(Camera):
         return image
 
     def save_image(self, fn, clip_ratio, image):
-        print 'I am here!'
-        print fn 
         if self.pf.field_info[self.field].take_log:
             im = na.log10(image)
         else:
