@@ -51,6 +51,7 @@ Ext.define('Reason.view.CellView', {
         stripeRows: false,
         disableSelection: true,
         trackOver: false,
+        enableTextSelection: true,
     },
     features: [{
         ftype: 'rowbody',
