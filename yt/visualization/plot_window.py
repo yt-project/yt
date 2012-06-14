@@ -34,6 +34,7 @@ from .fixed_resolution import \
     FixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit
 from .tick_locators import LogLocator, LinearLocator
+from yt.utilities.delaunay.triangulate import Triangulation as triang
 
 from yt.funcs import *
 from yt.utilities.amr_utils import write_png_to_string
@@ -419,7 +420,6 @@ class PWViewerExtJS(PWViewer):
         from matplotlib.figure import Figure
         from yt.visualization._mpl_imports import \
             FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
-        from yt.utilities.delaunay.triangulate import Triangulation as triang
 
         vi, vj, vn = img.shape
 

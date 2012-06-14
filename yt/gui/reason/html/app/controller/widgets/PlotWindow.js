@@ -62,11 +62,11 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                          'widget_store["{widget.varname}"]._current_field, ' +
                          '"{a1.data[\'field1\']}")',
         adjustContours:  'widget_store["{widget.varname}"].set_contour_info(' +
-                         '"{[control.getContourField().getValue()]}",' +
-                         ' {[control.getNcont().getValue()]},' +
-                         ' {[control.getLogit().getValue()]:capitalize})',
+                         '"{[values.control.getContourField().getValue()]}",' +
+                         ' {[values.control.getNumContours().getValue()]},' +
+                         ' {[(Ext.util.Format.capitalize(""+values.control.getLogContours().getValue()))]})',
         adjustVectors:   'widget_store["{widget.varname}"].set_vector_info(' +
-                         '{[control.getVectorSkip()]})',
+                         '{[values.control.getVectorSkip().getValue()]})',
         recenterImage:   'widget_store["{widget.varname}"].image_recenter(' +
                          '{x}, {y}, {w}, {h})',
         dragImage:       'widget_store["{widget.varname}"].pan_rel(({rel_x}, {rel_y}))',
@@ -106,9 +106,12 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         { ref: 'fieldSelector', selector: '#fieldSelector'},
         { ref: 'transform', selector: '#transform'},
         { ref: 'contourField', selector: '#contourfield'},
+        { ref: 'numContours', selector: '#ncont'},
+        { ref: 'logContours', selector: '#logit'},
         { ref: 'zoomSlider', selector: '#zoomSlider'},
         { ref: 'metadataString', selector: '#metadataString'},
         { ref: 'ticks', selector: '#ticks'},
+        { ref: 'vectorSkip', selector: '#skip'},
     ],
 
     keyTriggers: [
