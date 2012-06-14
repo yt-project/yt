@@ -363,12 +363,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
-        for i,tf in enumerate(self.funcs[:3]):
-            self.add_field_table(tf, 0, weight_table_id = 3)
+        for i,tf in enumerate(self.funcs[:4]):
+            self.add_field_table(tf, 0 )
             self.link_channels(i, i)
-        self.add_field_table(self.funcs[3], 0)
+        #self.add_field_table(self.funcs[3], 0, )
+        #self.link_channels(3,3)
         # We don't have a fifth table, so the value will *always* be zero.
-        self.link_channels(4, [3,4,5])
+        #self.link_channels(4, [3,4,5])
 
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
@@ -642,16 +643,15 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.x_bounds[0]))
         tomap = na.linspace(0.,1.,num=rel1-rel0)
         cmap = get_cmap(colormap)
-        cc = cmap(tomap)*scale
+        cc = cmap(tomap)
         if scale_func is None:
             scale_mult = 1.0
         else:
             scale_mult = scale_func(tomap,0.0,1.0)
-        print scale_mult 
         self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
         self.green.y[rel0:rel1]= cc[:,1]*scale_mult
         self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
-        self.alpha.y[rel0:rel1]= cc[:,3]*scale_mult
+        self.alpha.y[rel0:rel1]= scale*cc[:,3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):

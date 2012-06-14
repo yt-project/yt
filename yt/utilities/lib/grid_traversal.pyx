@@ -37,6 +37,8 @@ from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
 
+DEF Nch = 4
+
 cdef extern from "math.h":
     double exp(double x) nogil
     float expf(float x) nogil
@@ -129,7 +131,7 @@ cdef struct ImageContainer:
     np.float64_t *x_vec, *y_vec
 
 cdef struct ImageAccumulator:
-    np.float64_t rgba[3]
+    np.float64_t rgba[Nch]
     void *supp_data
 
 cdef class ImageSampler:
@@ -175,6 +177,7 @@ cdef class ImageSampler:
             imagec.vp_strides[i] = vp_pos.strides[i] / 8
             imagec.im_strides[i] = image.strides[i] / 8
             self.width[i] = width[i]
+
         if vp_dir.ndim > 1:
             for i in range(3):
                 imagec.vd_strides[i] = vp_dir.strides[i] / 8
@@ -277,10 +280,10 @@ cdef class ImageSampler:
                     v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
                     offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    for i in range(Nch): idata.rgba[i] = im.image[i + offset]
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
                                 (<void *> idata))
-                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+                    for i in range(Nch): im.image[i + offset] = idata.rgba[i]
                 free(idata)
                 free(v_pos)
         else:
@@ -295,10 +298,10 @@ cdef class ImageSampler:
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    for i in range(Nch): idata.rgba[i] = im.image[i + offset]
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
                                 (<void *> idata))
-                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+                    for i in range(Nch): im.image[i + offset] = idata.rgba[i]
                 free(v_dir)
                 free(idata)
                 free(v_pos)
@@ -371,6 +374,7 @@ cdef void volume_render_sampler(
                 vri.fits, vri.field_table_ids)
         for j in range(3):
             dp[j] += ds[j]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

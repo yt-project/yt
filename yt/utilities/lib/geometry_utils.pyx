@@ -125,7 +125,9 @@ def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                       np.ndarray[np.float64_t, ndim=2] right_edges):
     cdef int i, ax
     cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.ndarray[np.uint8_t, cast=True, ndim=1] gridi = np.zeros(ng,
+            dtype='bool')
+    #cdef np.ndarray[np.bint32_t, ndim=1] gridi = np.zeros(ng, dtype='bint32')
     ax = dobj.axis
     cdef np.float64_t coord = dobj.coord
     for i in range(ng):

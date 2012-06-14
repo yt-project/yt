@@ -1161,15 +1161,15 @@ class AMRKDTree(HomogenizedVolume):
         self.image = image
 
         viewpoint = back_center 
-        print 'Moving from front_center to back_center:',front_center, back_center
+        # print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
                 if node.brick is not None:
                     yield node.brick
 
-        mylog.debug('About to enter reduce, my image has a max of %e' %
-                self.image.max())
+        #mylog.debug('About to enter reduce, my image has a max of %e' %
+        #        self.image.max())
         self.reduce_tree_images(self.tree, viewpoint)
         self.comm.barrier()
 
@@ -1182,6 +1182,7 @@ class AMRKDTree(HomogenizedVolume):
         my_node_id = 0
         my_node.owner = 0
         path = na.binary_repr(anprocs+self.comm.rank)
+        # print 'Max: %e' % self.image.sum(axis=2).max()
         for i in range(rounds):
             try:
                 my_node.left_child.owner = my_node.owner
@@ -1204,24 +1205,21 @@ class AMRKDTree(HomogenizedVolume):
             else:
                 front = parent.left_child
                 back = parent.right_child
-            print 'Combining', viewpoint, parent.split_ax, parent.split_pos
-            print front.l_corner, front.r_corner
-            print back.l_corner, back.r_corner
 
-            # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
             # Send the images around
             if front.owner == self.comm.rank:
                 if front.owner == parent.owner:
                     mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
                     arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
-                    ta = 1.0 - na.sum(self.image,axis=2)
+                    ta = 1.0 - self.image[:,:,3]
                     ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
                         self.image[:,:,i  ] = self.image[:,:,i] + ta*arr2[:,:,i]
+                    self.image[:,:,3] = self.image[:,:,3] + ta*arr2[:,:,3]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank,back.owner, self.image.max()))
@@ -1238,14 +1236,14 @@ class AMRKDTree(HomogenizedVolume):
                     arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
                     #ta = na.exp(-na.sum(arr2,axis=2))
-                    ta = 1.0 - na.sum(arr2, axis=2)
+                    ta = 1.0 - arr2[:,:,3]
                     ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
                         self.image[:,:,i  ] = ta*self.image[:,:,i  ] + arr2[:,:,i]
-
+                    self.image[:,:,3] = ta*self.image[:,:,3] + arr2[:,:,3]
             # Set parent owner to back owner
             # my_node = (my_node-1)>>1
             if self.comm.rank == my_node.parent.owner: 

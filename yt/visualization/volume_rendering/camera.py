@@ -287,8 +287,9 @@ class Camera(ParallelAnalysisInterface):
         self.orienter.switch_orientation(normal_vector = normal_vector,
                                          north_vector = north_vector)
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
+        
     def new_image(self):
-        image = na.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        image = na.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
@@ -392,9 +393,9 @@ class Camera(ParallelAnalysisInterface):
     def save_image(self, fn, clip_ratio, image):
         if self.comm.rank is 0 and fn is not None:
             if clip_ratio is not None:
-                write_bitmap(image, fn, clip_ratio * image.std())
+                write_bitmap(image[:,:,:3], fn, clip_ratio * image[:,:,:3].std())
             else:
-                write_bitmap(image, fn)
+                write_bitmap(image[:,:,:3], fn)
 
     def initialize_source(self):
         return self.volume.initialize_source()

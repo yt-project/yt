@@ -27,6 +27,8 @@ cimport cython
 cimport numpy as np
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 
+DEF Nch = 4
+
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
     # externally.
@@ -91,11 +93,11 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
-    ttot = trgba[0] + trgba[1] + trgba[2]
-    ta = fmax(1.0 - dt*ttot, 0.0)
+
+    ta = fmax(1.0 - dt*trgba[3],0.0)
     for i in range(3):
-        #ta = 1.0-dt*fmax(trgba[i], 0.0))
-        rgba[i] = (1.0-ta)*trgba[i] + ta*rgba[i]
+        rgba[i] = dt*trgba[i] + ta*rgba[i]
+    rgba[3] = dt*trgba[3] + ta*rgba[3]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
