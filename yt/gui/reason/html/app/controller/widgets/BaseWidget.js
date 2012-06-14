@@ -33,6 +33,7 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
     templates: {},
     executionTriggers: [],
     widgetTriggers: [],
+    keyTriggers: [],
 
     constructor: function() {
         this.templateManager = Ext.create(
@@ -79,6 +80,25 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             conf[trigger[1]] = this[trigger[2]];
             ww.query(trigger[0])[0].on(conf);
         }, this);
+
+        this.keyMap = new Ext.util.KeyMap({target: document});
+        this.keyMap.disable();
+        Ext.each(this.keyTriggers,  function(trigger) {
+            trigger['fn'] = this.getExecuteFunction(ww, trigger['tpl']);
+            this.keyMap.addBinding(trigger);
+        }, this);
+        ww.on("activate", this.activateKeyMap, this);
+        ww.on("deactivate", this.deactivateKeyMap, this);
+    },
+
+    activateKeyMap: function() {
+        console.log("Activating key map.");
+        this.keyMap.enable();
+    },
+
+    deactivateKeyMap: function() {
+        console.log("Deactivating key map.");
+        this.keyMap.disable();
     },
 
     createMyRefs: function(varname) {
