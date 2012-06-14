@@ -64,7 +64,7 @@ class WidgetStore(dict):
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), setup = False)
         pw.set_current_field(field)
         field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
-        field_list.sort()
+        field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         trans = pw._field_transform[pw._current_field].name
         widget_data = {'fields': field_list,
@@ -84,7 +84,7 @@ class WidgetStore(dict):
                            setup = False)
         pw.set_current_field(field)
         field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
-        field_list.sort()
+        field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         widget_data = {'fields': field_list,
                        'initial_field': field,

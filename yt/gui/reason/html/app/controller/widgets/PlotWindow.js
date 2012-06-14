@@ -57,10 +57,10 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         zoomOut2x:  'widget_store["{widget.varname}"].zoom( 0.5)',
         adjustTransform: 'widget_store["{widget.varname}"].set_transform(' +
                          'widget_store["{widget.varname}"]._current_field, ' +
-                         '"{a1.data[\'field1\']}")',
+                         '"{a1}")',
         adjustColormap:  'widget_store["{widget.varname}"].set_cmap(' +
                          'widget_store["{widget.varname}"]._current_field, ' +
-                         '"{a1.data[\'field1\']}")',
+                         '"{a1}")',
         adjustContours:  'widget_store["{widget.varname}"].set_contour_info(' +
                          '"{[values.control.getContourField().getValue()]}",' +
                          ' {[values.control.getNumContours().getValue()]},' +
@@ -93,8 +93,8 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         ['#zoomin2x', 'click', 'zoomIn2x'],
         ['#zoomout10x', 'click', 'zoomOut10x'],
         ['#zoomout2x', 'click', 'zoomOut2x'],
-        ['#transform', 'select', 'adjustTransform'],
-        ['#colormap', 'select', 'adjustColormap'],
+        ['#transform', 'change', 'adjustTransform'],
+        ['#colormap', 'change', 'adjustColormap'],
         ['#contourapply', 'click', 'adjustContours'],
         ['#vectorsapply', 'click', 'adjustVectors'],
         ['#pannablemap', 'click', 'createPannableMap'],
@@ -130,10 +130,11 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     ],
 
     applyPayload: function(payload) {
-        this.getImage().getEl("img").dom.src = 
+        this.getImage().getEl().dom.src = 
             "data:image/png;base64," + payload['image_data'];
         this.getZoomSlider().setValue(0, payload['zoom'], true);
         this.getMetadataString().update(payload['metadata_string']);
+        this.getMetaDataString().mds = payload['metadata_string'];
         var ticks = this.getTicks();
         ticks.removeAll();
         Ext.each(payload['ticks'], function(tick, index) {
@@ -168,11 +169,14 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             {widget: this.plotWindowView}, 'refresh');
         reason.server.execute(refresh, false);
         this.getColorbar().src = "data:image/png;base64," + wd['colorbar'];
-        this.getFieldSelector().store = wd['fields'];
-        this.getFieldSelector().value = wd['initial_field'];
-        this.getTransform().value = wd['initial_transform'];
-        this.getContourField().store = wd['fields'];
-        this.getContourField().value = wd['initial_field'];
+        this.fieldStore = Ext.create("Reason.store.Fields")
+        this.fieldStore.loadData(wd['fields']);
+        examine = this.fieldStore;
+        this.getFieldSelector().bindStore(this.fieldStore);
+        this.getFieldSelector().setValue(wd['initial_field']);
+        this.getTransform().setValue(wd['initial_transform']);
+        this.getContourField().bindStore(this.fieldStore);
+        this.getContourField().setValue(wd['initial_field']);
         this.applyExecuteHandlers(this.plotWindowView);
         return this.plotWindowView;
     },
@@ -254,10 +258,10 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     },
 
     uploadImage: function() {
-        var imageData = this.getImage().dom.src;
-        var mds = this.getMetadataString();
+        var imageData = this.getImage().getEl().dom.src;
+        var mds = this.getMetadataString().mds;
         yt_rpc.ExtDirectREPL.upload_image(
-            {image_data:imageData, caption:metadata_string},
+            {image_data:imageData, caption:mds},
             function(rv) {
                 var alert_text;
                 if(rv['uploaded'] == false) {
@@ -266,8 +270,8 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                     alert_text = "Uploaded to " +
                             rv['upload']['links']['imgur_page'];
                 }
-                Ext.Msg.alert('imgur.com', alert_text);
                 reason.fireEvent("logentry", alert_text);
+                Ext.Msg.alert('imgur.com', alert_text);
             });
     },
 
