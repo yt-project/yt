@@ -52,7 +52,7 @@ Ext.define("Reason.view.widgets.PlotWindow", {
         }, {
             xtype:'image',
             itemId: 'colorbar',
-            src: 'nothing.png',
+            src: 'reason/resources/images/loading.png',
             style: 'border: 1px solid #000000;',
             x: 510,
             y: 10,

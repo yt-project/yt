@@ -118,7 +118,7 @@ Ext.define("Reason.view.widgets.PlotWindowCreator", {
               }],
               buttons: [
                   {
-                      text: 'Project', itemId: 'create',
+                      text: 'Go', itemId: 'create',
                   },{
                       text: 'Cancel', itemId: 'cancel',
                   }
