@@ -47,6 +47,11 @@ p {
     font-size: 120%;
 }
 
+.logentry .x-grid-cell {
+    font-family: monospace;
+    font-size: 120%;
+}
+
 tr.codeview td, tr.codeview pre {
     padding-left: 20px;
     font-family: monospace;
