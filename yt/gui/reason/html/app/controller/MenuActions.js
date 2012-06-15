@@ -73,7 +73,7 @@ Ext.define('Reason.controller.MenuActions', {
     },
 
     openFile: function(b, e) {
-        alert("Not yet implemented.");
+        this.application.getController("FileOpen").openDialog();
     },
 
     downloadScript: function(b, e) {

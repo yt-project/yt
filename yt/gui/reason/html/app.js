@@ -106,6 +106,7 @@ Ext.application({
         'WidgetDirector',
         'MenuActions',
         'Debugger',
+        'FileOpen',
     ],
 
 });
