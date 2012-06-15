@@ -1078,13 +1078,24 @@ class HaloProfiler(ParallelAnalysisInterface):
         picked up during the filtering process.
         """
 
+        if filename.endswith('.h5'):
+            self._write_filtered_halo_list_h5(filename)
+        else:
+            self._write_filtered_halo_list_ascii(filename, format=format)
+
+    def _write_filtered_halo_list_ascii(self, filename, format="%s"):
+        """
+        Write out list of filtered halos along with any quantities 
+        picked up during the filtering process.
+        """
+
         if len(self.filtered_halos) == 0:
             mylog.error("No halos in filtered list.")
             return
 
         filename = "%s/%s" % (self.pf.fullpath, filename)
         mylog.info("Writing filtered halo list to %s." % filename)
-        file = open(filename, "w")
+        out_file = open(filename, "w")
         fields = [field for field in sorted(self.filtered_halos[0])]
         halo_fields = []
         for halo_field in self.filter_quantities:
@@ -1099,24 +1110,52 @@ class HaloProfiler(ParallelAnalysisInterface):
                                       for q in range(len(self.filtered_halos[0][halo_field]))])
             else:
                 header_fields.append(halo_field)
-        file.write("# ")
-        file.write("\t".join(header_fields + fields + ["\n"]))
+        out_file.write("# ")
+        out_file.write("\t".join(header_fields + fields + ["\n"]))
 
         for halo in self.filtered_halos:
             for halo_field in halo_fields:
                 if isinstance(halo[halo_field], types.ListType):
                     field_data = na.array(halo[halo_field])
-                    field_data.tofile(file, sep="\t", format=format)
+                    field_data.tofile(out_file, sep="\t", format=format)
                 else:
                     if halo_field == 'id':
-                        file.write("%04d" % halo[halo_field])
+                        out_file.write("%04d" % halo[halo_field])
                     else:
-                        file.write("%s" % halo[halo_field])
-                file.write("\t")
+                        out_file.write("%s" % halo[halo_field])
+                out_file.write("\t")
             field_data = na.array([halo[field] for field in fields])
-            field_data.tofile(file, sep="\t", format=format)
-            file.write("\n")
-        file.close()
+            field_data.tofile(out_file, sep="\t", format=format)
+            out_file.write("\n")
+        out_file.close()
+
+    def _write_filtered_halo_list_h5(self, filename):
+        """
+        Write out list of filtered halos along with any quantities 
+        picked up during the filtering process.
+        """
+
+        if len(self.filtered_halos) == 0:
+            mylog.error("No halos in filtered list.")
+            return
+
+        filename = "%s/%s" % (self.pf.fullpath, filename)
+        mylog.info("Writing filtered halo list to %s." % filename)
+        out_file = h5py.File(filename, "w")
+        fields = [field for field in sorted(self.filtered_halos[0])]
+        halo_fields = []
+        for halo_field in self.filter_quantities:
+            if halo_field in fields:
+                fields.remove(halo_field)
+                halo_fields.append(halo_field)
+
+        for halo_field in halo_fields:
+            value_list = []
+            for halo in self.filtered_halos:
+                value_list.append(halo[halo_field])
+            value_list = na.array(value_list)
+            out_file.create_dataset(halo_field, data=value_list)
+        out_file.close()
 
     def _write_profile(self, profile, filename, format="%0.16e"):
         fid = open(filename, "w")
