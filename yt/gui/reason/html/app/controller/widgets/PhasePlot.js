@@ -51,8 +51,6 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         examine = payload;
         this.getImage().getEl().dom.src = 
             "data:image/png;base64," + payload['image_data'];
-        this.getMetadataString().update(payload['metadata_string']);
-        this.getMetadataString().mds = payload['metadata_string'];
         this.getColorbar().getEl().dom.src=
             "data:image/png;base64," + payload['cbar']['cmap_image'];
         var YTicks = this.getYTicks();
@@ -117,6 +115,8 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         });
         this.createMyRefs(this.dataView.id);
         this.applyExecuteHandlers(this.dataView);
+        this.getMetadataString().update(this.payload['data']['metadata_string']);
+        this.getMetadataString().mds = this.payload['data']['metadata_string'];
         return this.dataView;
     },
 

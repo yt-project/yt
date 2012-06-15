@@ -29,6 +29,14 @@ from .bottle_mods import PayloadHandler, lockit
 from yt.visualization.plot_window import PWViewerExtJS
 import uuid
 
+_phase_plot_mds = """<pre>
+Field X: %s
+Field Y: %s
+Field Z: %s
+Weight : %s
+</pre>
+"""
+
 class WidgetStore(dict):
     def __init__(self, repl):
         self.repl = weakref.proxy(repl)
@@ -138,11 +146,12 @@ class WidgetStore(dict):
         self._add_widget(pm, widget_data)
 
     def create_phase(self, obj, field_x, field_y, field_z, weight):
-        if weight == "None": weight = None
-        else: weight = "'%s'" % (weight)
         from yt.visualization.profile_plotter import PhasePlotterExtWidget
         pp = PhasePlotterExtWidget(obj, field_x, field_y, field_z, weight)
-        widget_data = {'title': "%s Phase Plot" % (obj)}
+        mds = _phase_plot_mds % (field_x, field_y, field_z, 
+                                 pp._initial_weight)
+        widget_data = {'title': "%s Phase Plot" % (obj),
+                       'metadata_string': mds}
         self._add_widget(pp, widget_data)
 
 class ParameterFileWidget(object):

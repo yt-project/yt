@@ -99,11 +99,7 @@ Ext.define("Reason.view.widgets.PhasePlot", {
             width: 300,
             height: 460,
             x: 640, y: 10,
-            layoutConfig: {
-                type: 'vbox',
-                align: 'stretch',
-                pack: 'start',
-            },
+            layout: 'absolute',
             items: [
                 {
                   xtype: 'panel',
@@ -112,12 +108,19 @@ Ext.define("Reason.view.widgets.PhasePlot", {
                   style: {fontFamily: '"Inconsolata", monospace'},
                   html: 'Welcome to the Plot Window.',
                   height: 200,
+                  width: 300,
+                  x: 0,
+                  y: 0,
                 }, {
                   xtype: 'panel',
                   title: 'Plot Editor',
                   itemId: 'plot_edit',
-                  flex: 1,
-                }]
+                  height: 460,
+                  width: 300,
+                  x: 0,
+                  y: 200,
+                },
+           ],
         }
     ],
 });
