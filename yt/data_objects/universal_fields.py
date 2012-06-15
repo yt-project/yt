@@ -32,7 +32,7 @@ import copy
 
 from yt.funcs import *
 
-from yt.utilities.amr_utils import CICDeposit_3, obtain_rvec
+from yt.utilities.lib import CICDeposit_3, obtain_rvec
 from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
