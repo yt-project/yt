@@ -343,7 +343,6 @@ class ResultsStorage(object):
 def parallel_objects(objects, njobs = 0, storage = None, barrier = True):
     if not parallel_capable:
         njobs = 1
-        mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
     if njobs <= 0:
