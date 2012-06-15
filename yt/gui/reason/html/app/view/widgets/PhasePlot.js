@@ -100,6 +100,7 @@ Ext.define("Reason.view.widgets.PhasePlot", {
             height: 460,
             x: 640, y: 10,
             layoutConfig: {
+                type: 'vbox',
                 align: 'stretch',
                 pack: 'start',
             },

@@ -421,45 +421,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             results.append((os.path.basename(fn), size, t))
         return dict(objs = results, cur_dir=cur_dir)
 
-    @lockit
-    def create_phase(self, objname, field_x, field_y, field_z, weight):
-        if weight == "None": weight = None
-        else: weight = "'%s'" % (weight)
-        funccall = """
-        _tfield_x = "%(field_x)s"
-        _tfield_y = "%(field_y)s"
-        _tfield_z = "%(field_z)s"
-        _tweight = %(weight)s
-        _tobj = %(objname)s
-        _tpf = _tobj.pf
-        from yt.visualization.profile_plotter import PhasePlotterExtWidget
-        _tpp = PhasePlotterExtWidget(_tobj, _tfield_x, _tfield_y, _tfield_z, _tweight)
-        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
-        _tfield_list.sort()
-        _twidget_data = {'title': "%%s Phase Plot" %% (_tobj)}
-        """ % dict(objname = objname, field_x = field_x, field_y = field_y,
-                   field_z = field_z, weight = weight)
-        funccall = "\n".join(line.strip() for line in funccall.splitlines())
-        self.execute(funccall, hide=True)
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpp',
-                                         'widget_data_name': '_twidget_data'})
-
-    @lockit
-    def create_mapview(self, widget_name):
-        # We want multiple maps simultaneously
-        uu = "/%s/%s" % (getattr(self, "_global_token", ""),
-                        str(uuid.uuid1()).replace("-","_"))
-        from .pannable_map import PannableMapServer
-        data = self.locals[widget_name].data_source
-        field_name = self.locals[widget_name]._current_field
-        pm = PannableMapServer(data, field_name, route_prefix = uu)
-        self.locals['_tpm'] = pm
-        self.locals['_twidget_data'] = {'prefix': uu, 'field':field_name}
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpm',
-                                         'widget_data_name': '_twidget_data'})
-
 class ExtDirectParameterFileList(BottleDirectRouter):
     my_name = "ExtDirectParameterFileList"
     api_url = "pflist"

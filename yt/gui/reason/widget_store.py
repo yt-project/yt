@@ -137,6 +137,14 @@ class WidgetStore(dict):
         widget_data = {'prefix': uu, 'field':field_name}
         self._add_widget(pm, widget_data)
 
+    def create_phase(self, obj, field_x, field_y, field_z, weight):
+        if weight == "None": weight = None
+        else: weight = "'%s'" % (weight)
+        from yt.visualization.profile_plotter import PhasePlotterExtWidget
+        pp = PhasePlotterExtWidget(obj, field_x, field_y, field_z, weight)
+        widget_data = {'title': "%s Phase Plot" % (obj)}
+        self._add_widget(pp, widget_data)
+
 class ParameterFileWidget(object):
     _ext_widget_id = None
     _widget_name = "parameterfile"

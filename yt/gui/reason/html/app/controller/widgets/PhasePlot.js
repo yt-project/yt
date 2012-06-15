@@ -29,27 +29,34 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
     requires: ['Reason.view.widgets.PhasePlotCreator',
                'Reason.view.widgets.PhasePlot'],
     templates: {
-        createPhasePlot: "print 1",
+        createPhasePlot: 'widget_store.create_phase({objname}, ' + 
+                         '"{xField}", "{yField}", "{zField}", {weight})',
+        setupPlot:       'widget_store["{widget.varname}"]._setup_plot()',
     },
+
+    executionTriggers: [
+        ['#imagepanel', 'afterrender', 'setupPlot'],
+    ],
 
     viewRefs: [
         { ref: 'yTicks', selector: '#y_ticks'},
         { ref: 'xTicks', selector: '#x_ticks'},
-        { ref: 'colorTicks', selector: 'cb_ticks'},
+        { ref: 'colorTicks', selector: '#cb_ticks'},
         { ref: 'colorbar', selector: '#colorbar'},
         { ref: 'image', selector: '#imagepanel'},
         { ref: 'metadataString', selector: '#metadataString'},
     ],
     
     applyPayload: function(payload) {
+        examine = payload;
         this.getImage().getEl().dom.src = 
             "data:image/png;base64," + payload['image_data'];
         this.getMetadataString().update(payload['metadata_string']);
-        this.getMetaDataString().mds = payload['metadata_string'];
-        ticks.removeAll();
-        this.getColorbar.getEl().dom.src=
+        this.getMetadataString().mds = payload['metadata_string'];
+        this.getColorbar().getEl().dom.src=
             "data:image/png;base64," + payload['cbar']['cmap_image'];
         var YTicks = this.getYTicks();
+        YTicks.removeAll();
         Ext.each(payload['yax']['ticks'], function(tick, index) {
             YTicks.add({xtype:'panel',
                        width: 20, height:15,
@@ -67,6 +74,7 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         });
         YTicks.doLayout();
         var XTicks = this.getXTicks();
+        XTicks.removeAll();
         Ext.each(payload['xax']['ticks'], function(tick, index) {
             XTicks.add({xtype:'panel',
                        width: 1, height:20,
@@ -83,6 +91,7 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         });
         XTicks.doLayout();
         var colorTicks = this.getColorTicks();
+        colorTicks.removeAll();
         Ext.each(payload['cbar']['ticks'], function(tick, index) {
             colorTicks.add({xtype:'panel',
                        width: 10, height:1,
@@ -100,6 +109,17 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         colorTicks.doLayout();
     },
 
+    createView: function() {
+        var wd = this.payload['data'];
+        this.dataView = Ext.widget("phaseplotwindow",{
+            varname : this.payload['varname'],
+            title: wd['title'],
+        });
+        this.createMyRefs(this.dataView.id);
+        this.applyExecuteHandlers(this.dataView);
+        return this.dataView;
+    },
+
     statics: {
         widgetName: 'phase_plot',
         supportsDataObjects: true,
@@ -110,10 +130,10 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
             examine = obj;
             function makePlot(b, e) {
                 var conf = {
-                    pfname: obj.varname,
+                    objname: obj.varname,
                     xField: win.query("#x_field")[0].getValue(),
-                    yfield: win.query("#y_field")[0].getValue(),
-                    zfield: win.query("#z_field")[0].getValue(),
+                    yField: win.query("#y_field")[0].getValue(),
+                    zField: win.query("#z_field")[0].getValue(),
                 };
                 var weight = win.query("#weight")[0].getValue();
                 if (weight == 'Mass') {
@@ -124,6 +144,7 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
                     weightField = 'None';
                 }
                 conf['weight'] = weightField;
+                examine = {conf: conf, widget: widget};
                 var cmd = widget.templateManager.applyObject(
                     conf, 'createPhasePlot');
                 reason.server.execute(cmd);
