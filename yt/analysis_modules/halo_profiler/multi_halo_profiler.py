@@ -1149,7 +1149,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 fields.remove(halo_field)
                 halo_fields.append(halo_field)
 
-        for halo_field in halo_fields:
+        for halo_field in halo_fields + fields:
             value_list = []
             for halo in self.filtered_halos:
                 value_list.append(halo[halo_field])
