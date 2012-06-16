@@ -591,6 +591,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
             profile.write_out(filename, format='%0.6e')
+            # profile will have N+1 bins so remove the last one
+            for field in profile.keys():
+                profile[field] = profile[field][:-1]
         elif force_write:
             mylog.info("Re-writing halo %d" % halo['id'])
             self._write_profile(profile, filename, format='%0.6e')
