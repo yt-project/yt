@@ -401,10 +401,12 @@ class EnzoSimulation(SimulationTimeSeries):
 
         if self.parameters['dtDataDump'] > 0 and \
             self.parameters['CycleSkipDataDump'] > 0:
-            raise AmbiguousOutputs(self.parameter_filename)
+            mylog.info("Simulation %s has both dtDataDump and CycleSkipDataDump set." % self.parameter_filename )
+            mylog.info("    Unable to calculate datasets.  Attempting to search in the current directory")
+            self.all_time_outputs = self._find_outputs()
 
         # Get all time or cycle outputs.
-        if self.parameters['CycleSkipDataDump'] > 0:
+        elif self.parameters['CycleSkipDataDump'] > 0:
             self._calculate_cycle_outputs()
         else:
             self._calculate_time_outputs()
@@ -518,12 +520,15 @@ class EnzoSimulation(SimulationTimeSeries):
                                     "%s%s" % (dir_key, index),
                                     "%s%s" % (output_key, index))
             if os.path.exists(filename):
-                pf = load(filename)
-                if pf is not None:
-                    time_outputs.append({'filename': filename, 'time': pf.current_time})
-                    if pf.cosmological_simulation:
-                        time_outputs[-1]['redshift'] = pf.current_redshift
-                del pf
+                try:
+                    pf = load(filename)
+                    if pf is not None:
+                        time_outputs.append({'filename': filename, 'time': pf.current_time})
+                        if pf.cosmological_simulation:
+                            time_outputs[-1]['redshift'] = pf.current_redshift
+                except YTOutputNotIdentified:
+                    mylog.error('Failed to load %s' % filename)
+
         mylog.info("Located %d time outputs." % len(time_outputs))
         time_outputs.sort(key=lambda obj: obj['time'])
         return time_outputs

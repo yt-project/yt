@@ -38,7 +38,7 @@ from yt.funcs import *
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.amr_utils import find_grids_in_inclined_box, \
+from yt.utilities.lib import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
     march_cubes_grid, march_cubes_grid_flux

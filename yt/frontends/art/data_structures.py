@@ -45,7 +45,7 @@ from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 try:
     import yt.frontends.ramses._ramses_reader as _ramses_reader

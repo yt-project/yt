@@ -43,7 +43,7 @@ from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-from yt.utilities.amr_utils import get_box_grids_level
+from yt.utilities.lib import get_box_grids_level
 from yt.utilities.definitions import mpc_conversion
 
 from .definitions import parameter_type_dict, nyx_to_enzo_dict, \
