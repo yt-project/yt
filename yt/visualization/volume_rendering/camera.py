@@ -1010,6 +1010,156 @@ class FisheyeCamera(Camera):
 
         return image
 
+class MosaicCamera(Camera):
+    def __init__(self, center, normal_vector, width,
+                 resolution, transfer_function,
+                 north_vector = None, steady_north=False,
+                 volume = None, fields = None,
+                 log_fields = None,
+                 sub_samples = 5, pf = None,
+                 use_kd=True, l_max=None, no_ghost=True,
+                 tree_type='domain',expand_factor=1.0,
+                 le=None, re=None, nimx=1, nimy=1, procs_per_wg=None,
+                 preload=True, use_light=False):
+
+        ParallelAnalysisInterface.__init__(self)
+        PP = ProcessorPool()
+        if procs_per_wg is None:
+            procs_per_wg = PP.size
+        for j in range(nimy):
+            for i in range(nimx):
+                PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
+
+        for wg in PP.workgroups:
+            if self.comm.rank in wg.ranks:
+                my_wg = wg
+
+        self.image_decomp = (nimx>1) or (nimy>1)
+        self.global_comm = self.comm
+        self.comm = my_wg.comm
+        self.wg = my_wg
+        self.imi = int(self.wg.name[0:4])
+        self.imj = int(self.wg.name[5:9])
+        print 'My new communicator has the name %s' % self.wg.name
+
+        if pf is not None: self.pf = pf
+        if not iterable(resolution):
+            resolution = (int(resolution/nimx), int(resolution/nimy))
+        self.resolution = resolution
+        self.nimx = nimx
+        self.nimy = nimy
+        self.sub_samples = sub_samples
+        if not iterable(width):
+            width = (width, width, width) # front/back, left/right, top/bottom
+        self.width = (width[0]/nimx, width[1]/nimy, width[2])
+        self.center = center
+        self.steady_north = steady_north
+        self.expand_factor = expand_factor
+        # This seems to be necessary for now.  Not sure what goes wrong when not true.
+        if north_vector is not None: self.steady_north=True
+        self.north_vector = north_vector
+        self.rotation_vector = north_vector
+        self.normal_vector = normal_vector
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        self.log_fields = log_fields
+        self.use_kd = use_kd
+        self.l_max = l_max
+        self.no_ghost = no_ghost
+        self.preload = preload
+        
+        self.use_light = use_light
+        self.light_dir = None
+        self.light_rgba = None
+
+        width[0] /= self.nimx
+        width[1] /= self.nimy
+        self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
+        self.rotation_vector = self.orienter.north_vector
+        self._setup_box_properties(width, center, self.orienter.unit_vectors)
+        
+        if self.no_ghost:
+            mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
+        self.tree_type = tree_type
+        if volume is None:
+            if self.use_kd:
+                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost, tree_type=tree_type,
+                                   log_fields = log_fields, le=le, re=re)
+            else:
+                volume = HomogenizedVolume(fields, pf = self.pf,
+                                           log_fields = log_fields)
+        else:
+            self.use_kd = isinstance(volume, AMRKDTree)
+        self.volume = volume
+
+        self.cameras = na.empty(self.nimx*self.nimy)
+
+    def new_image(self):
+        image = na.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
+        return image
+
+    def _setup_box_properties(self, width, center, unit_vectors):
+        owidth = width
+        self.width = width 
+        self.center = center
+        offi = -self.nimx*0.5 + (self.imi + 0.5)
+        offj = -self.nimy*0.5 + (self.imj + 0.5)
+        mylog.info("Mosaic offset: %f %f" % (offi,offj))
+        global_center = self.center
+        self.center += offi*self.width[0]*self.orienter.unit_vectors[0]
+        self.center += offj*self.width[1]*self.orienter.unit_vectors[1]
+
+        self.box_vectors = na.array([self.orienter.unit_vectors[0]*self.width[0],
+                                     self.orienter.unit_vectors[1]*self.width[1],
+                                     self.orienter.unit_vectors[2]*self.width[2]])
+
+        self.origin = self.center - 0.5*self.width[0]*self.orienter.unit_vectors[0] \
+                                  - 0.5*self.width[1]*self.orienter.unit_vectors[1] \
+                                  - 0.5*self.width[2]*self.orienter.unit_vectors[2]
+        self.back_center = self.center - 0.5*self.width[0]*self.orienter.unit_vectors[2]
+        self.front_center = self.center + 0.5*self.width[0]*self.orienter.unit_vectors[2]
+        self.center = global_center
+        self.width = owidth
+
+    def save_image(self, fn, clip_ratio, image):
+        print fn
+        if '.png' not in fn:
+            fn = fn + '.png'
+
+        nx,ny = self.resolution[0], self.resolution[1]
+        if self.image_decomp:
+            if self.comm.rank == 0:
+                if self.global_comm.rank == 0:
+                    final_image = na.empty((nx*self.nimx, 
+                        ny*self.nimy, 4),
+                        dtype='float64',order='C')
+                    final_image[:nx, :ny, :] = image
+                    for j in range(self.nimy):
+                        for i in range(self.nimx):
+                            if i==0 and j==0: continue
+                            arr = self.global_comm.recv_array((self.wg.size)*(j*self.nimx + i), tag = (self.wg.size)*(j*self.nimx + i))
+
+                            final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
+                            del arr
+                    if clip_ratio is not None:
+                        write_bitmap(final_image[:,:,:3], fn, clip_ratio*final_image.std())
+                    else:
+                        write_bitmap(final_image[:,:,:3], fn)
+                else:
+                    self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
+        else:
+            if self.comm.rank == 0:
+                if clip_ratio is not None:
+                    write_bitmap(image[:,:,:3], fn, clip_ratio*image.std())
+                else:
+                    write_bitmap(image[:,:,:3], fn)
+        return
+data_object_registry["mosaic_camera"] = MosaicCamera
+
+
 class MosaicFisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution, focal_center=None,
                  transfer_function=None, fields=None,
