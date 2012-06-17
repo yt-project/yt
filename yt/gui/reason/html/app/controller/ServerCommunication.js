@@ -89,10 +89,10 @@ Ext.define('Reason.controller.ServerCommunication', {
                             reason.fireEvent("payloadreceived", payload);
                     });
                 }
-                else if (!a.status) {
+                /*else if (!a.status) {
                     reason.fireEvent("stopheartbeat");
                     Ext.Msg.alert("Error", "Error talking to server.  Shutting down.");
-                }
+                }*/
                 return true;
             }
         );
