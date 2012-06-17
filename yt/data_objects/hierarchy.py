@@ -381,18 +381,18 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%11s" % ("level","# grids", "# cells")
+        header = "%3s\t%6s\t%14s" % ("level","# grids", "# cells")
         print header
         print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 11i" % \
+            print "% 3i\t% 6i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level])
             dx = self.select_grids(level)[0].dds[0]
         print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
+        print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
         print "\n"
         try:
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])

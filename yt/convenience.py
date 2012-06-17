@@ -33,6 +33,7 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.utilities.parameter_file_storage import \
     output_type_registry, \
+    simulation_time_series_registry, \
     EnzoRunDatabase
 
 def load(*args ,**kwargs):
@@ -110,4 +111,15 @@ def projload(pf, axis, weight_field = None):
     proj.pf = pf
     f.close()
     return proj
+
+def simulation(parameter_filename, simulation_type):
+    """
+    Loads a simulation time series object of the specified
+    simulation type.
+    """
+
+    if simulation_type not in simulation_time_series_registry:
+        raise YTSimulationNotIdentified(simulation_type)
+
+    return simulation_time_series_registry[simulation_type](parameter_filename)
 

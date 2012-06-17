@@ -495,7 +495,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         self._sorted = {}
 
     def get_data(self, fields=None, in_grids=False):
-        if self._grids == None:
+        if self._grids is None:
             self._get_list_of_grids()
         points = []
         if not fields:
@@ -2543,7 +2543,18 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.
+        fly with a set of field_cuts.  It is very useful for applying 
+        conditions to the fields in your data object.
+        
+        Examples
+        --------
+        To find the total mass of gas above 10^6 K in your volume:
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ad = pf.h.all_data()
+        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
+
         """
         return InLineExtractedRegionBase(self, field_cuts)
 
@@ -3292,6 +3303,40 @@ class AMRGridCollectionBase(AMR3DData):
         pointI = na.where(k == True)
         return pointI
 
+class AMRMaxLevelCollection(AMR3DData):
+    _type_name = "grid_collection_max_level"
+    _con_args = ("center", "max_level")
+    def __init__(self, center, max_level, fields = None,
+                 pf = None, **kwargs):
+        """
+        By selecting an arbitrary *max_level*, we can act on those grids.
+        Child cells are masked when the level of the grid is below the max
+        level.
+        """
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        self.max_level = max_level
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        if self._grids is not None: return
+        gi = (self.pf.h.grid_levels <= self.max_level)[:,0]
+        self._grids = self.pf.h.grids[gi]
+
+    def _is_fully_enclosed(self, grid):
+        return True
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
+
+    def _get_point_indices(self, grid, use_child_mask=True):
+        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        if use_child_mask and grid.Level < self.max_level:
+            k[grid.child_indices] = False
+        pointI = na.where(k == True)
+        return pointI
+
+
 class AMRSphereBase(AMR3DData):
     """
     A sphere of points
@@ -3369,8 +3414,6 @@ class AMRCoveringGridBase(AMR3DData):
             The left edge of the region to be extracted
         dims : array_like
             Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
@@ -3529,16 +3572,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         left_edge : array_like
             The left edge of the region to be extracted
         dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
+            Number of cells along each axis of resulting covering_grid.
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
         Example
         -------
         cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
         """
         self._base_dx = (
@@ -3577,10 +3617,16 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
+                mylog.debug("Updating level state to %s", last_level + 1)
                 self._update_level_state(last_level + 1)
                 self._refine(1, fields_to_get)
                 last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
+        while last_level < self.level:
+            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
+            self._update_level_state(last_level + 1)
+            self._refine(1, fields_to_get)
+            last_level += 1
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
