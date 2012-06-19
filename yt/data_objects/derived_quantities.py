@@ -97,6 +97,10 @@ class DerivedQuantity(ParallelAnalysisInterface):
         self.retvals = [ [] for i in range(self.n_ret)]
         for gi,g in enumerate(self._get_grids()):
             rv = self.func(GridChildMaskWrapper(g, self._data_source), *args, **kwargs)
+            try:
+                rv[i]
+            except IndexError:
+                rv = [rv]
             for i in range(self.n_ret): self.retvals[i].append(rv[i])
             g.clear_data()
         self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]
