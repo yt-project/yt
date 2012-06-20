@@ -227,6 +227,7 @@ class ChomboStaticOutput(StaticOutput):
         fileh = h5py.File(filename,'r')
         self.current_time = fileh.attrs['time']
         self.ini_filename = ini_filename
+        self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
         

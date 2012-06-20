@@ -2381,7 +2381,7 @@ class AMRFixedResProjectionBase(AMR2DData):
     def _get_data_from_grid(self, grid, fields, dls):
         g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
-        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
+        ref_ratio = self.pf.refine_by[level]**(self.level - grid.Level)
         FillBuffer(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
@@ -3463,7 +3463,7 @@ class AMRCoveringGridBase(AMR3DData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
-        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
+        ref_ratio = self.pf.refine_by[self.level]**(self.level - grid.Level)
         g_fields = [grid[field].astype("float64") for field in fields]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
@@ -3475,7 +3475,7 @@ class AMRCoveringGridBase(AMR3DData):
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
-        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
+        ref_ratio = self.pf.refine_by[level]**(self.level - grid.Level)
         g_fields = []
         for field in fields:
             if not grid.has_key(field): grid[field] = \
@@ -3569,7 +3569,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         if self._use_pbar: pbar.finish()
 
     def _update_level_state(self, level, fields = None):
-        dx = self._base_dx / self.pf.refine_by**level
+        dx = self._base_dx / self.pf.refine_by[level]**level
         self.field_data['cdx'] = dx[0]
         self.field_data['cdy'] = dx[1]
         self.field_data['cdz'] = dx[2]
@@ -3595,7 +3595,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             self._cur_dims = idims.astype("int32")
 
     def _refine(self, dlevel, fields):
-        rf = float(self.pf.refine_by**dlevel)
+        rf = float(self.pf.refine_by[dlevel]**dlevel)
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
