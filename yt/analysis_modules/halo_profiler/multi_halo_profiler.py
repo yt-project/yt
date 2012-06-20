@@ -42,7 +42,11 @@ from .centering_methods import \
     centering_registry
 from yt.data_objects.field_info_container import \
     add_field
+from yt.data_objects.static_output import \
+    StaticOutput
 
+from yt.utilities.exceptions import \
+    YTException
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call, \
@@ -64,7 +68,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                                          dm_only=False, resize=True, 
                                          fancy_padding=True, rearrange=True),
                  halo_radius=None, radius_units='1', n_profile_bins=50,
-                 recenter = None,
+                 recenter=None,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
                  velocity_center=['bulk', 'halo'], filter_quantities=['id', 'center', 'r_max'], 
@@ -111,8 +115,32 @@ class HaloProfiler(ParallelAnalysisInterface):
             Args given with call to halo finder function.  Default: None.
         halo_finder_kwargs : dict
             kwargs given with call to halo finder function. Default: None.
-        recenter : {string, function
-            The name of a function that recenters the halo for analysis.
+        recenter : {string, function}
+            The exact location of the sphere center can significantly affect 
+            radial profiles.  The halo center loaded by the HaloProfiler will 
+            typically be the dark matter center of mass calculated by a halo 
+            finder.  However, this may not be the best location for centering 
+            profiles of baryon quantities.  For example, one may want to center 
+            on the maximum density.
+            If recenter is given as a string, one of the existing recentering 
+            functions will be used:
+                Min_Dark_Matter_Density : location of minimum dark matter density
+                Max_Dark_Matter_Density : location of maximum dark matter density
+                CoM_Dark_Matter_Density : dark matter center of mass
+                Min_Gas_Density : location of minimum gas density
+                Max_Gas_Density : location of maximum gas density
+                CoM_Gas_Density : gas center of mass
+                Min_Total_Density : location of minimum total density
+                Max_Total_Density : location of maximum total density
+                CoM_Total_Density : total center of mass
+                Min_Temperature : location of minimum temperature
+                Max_Temperature : location of maximum temperature
+            Alternately, a function can be supplied for custom recentering.
+            The function should take only one argument, a sphere object.
+                Example function:
+                    def my_center_of_mass(data):
+                       my_x, my_y, my_z = data.quantities['CenterOfMass']()
+                       return (my_x, my_y, my_z)
             Default: None.
         halo_radius : float
             If no halo radii are provided in the halo list file, this
@@ -148,8 +176,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 * ["bulk", "sphere"]: the bulk velocity of the sphere
                   centered on the halo center.
     	        * ["max", field]: the velocity of the cell that is the
-    	          location of the maximum of the field 
-                  specified (used only when halos set to single).
+    	          location of the maximum of the field specified.
         filter_quantities : array_like
             Quantities from the original halo list file to be written out in the 
             filtered list file.  Default: ['id','center'].
@@ -161,8 +188,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         
         Examples
         --------
-        >>> import yt.analysis_modules.halo_profiler.api as HP
-        >>> hp = HP.halo_profiler("DD0242/DD0242")
+        >>> from yt.analysis_modules.halo_profiler.api import *
+        >>> hp = HaloProfiler("RedshiftOutput0005/RD0005")
         
         """
         ParallelAnalysisInterface.__init__(self)
@@ -226,13 +253,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Option to recenter sphere someplace else.
         self.recenter = recenter
 
-        # Look for any field that might need to have the bulk velocity set.
+        # Flag for whether calculating halo bulk velocity is necessary.
         self._need_bulk_velocity = False
-        for field in [hp['field'] for hp in self.profile_fields]:
-            if 'Velocity' in field or 'Mach' in field:
-                self._need_bulk_velocity = True
-                break
-
+        
         # Check validity for VelocityCenter parameter which toggles how the 
         # velocity is zeroed out for radial velocity profiles.
         self.velocity_center = velocity_center[:]
@@ -250,15 +273,16 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("Second value of VelocityCenter must be either 'halo' or 'sphere' if first value is 'bulk'.")
                 return None
         elif self.velocity_center[0] == 'max':
-            if self.halos is 'multiple':
-                mylog.error("Getting velocity center from a max field value only works with halos='single'.")
-                return None
+            mylog.info('Using position of max %s for velocity center.' % self.velocity_center[1])
         else:
             mylog.error("First value of parameter, VelocityCenter, must be either 'bulk' or 'max'.")
             return None
 
         # Create dataset object.
-        self.pf = load(self.dataset)
+        if isinstance(self.dataset, StaticOutput):
+            self.pf = self.dataset
+        else:
+            self.pf = load(self.dataset)
         self.pf.h
 
         # Figure out what max radius to use for profiling.
@@ -284,7 +308,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("No halos loaded, there will be nothing to do.")
                 return None
         else:
-            mylog.error("I don't know whether to get halos from hop or from density maximum.  This should not have happened.")
+            mylog.error("Keyword, halos, must be either 'single' or 'multiple'.")
             return None
 
     def add_halo_filter(self, function, *args, **kwargs):
@@ -351,6 +375,10 @@ class HaloProfiler(ParallelAnalysisInterface):
             
         """
 
+        # Check for any field that might need to have the bulk velocity set.
+        if 'Velocity' in field or 'Mach' in field:
+            self._need_bulk_velocity = True
+
         self.profile_fields.append({'field':field, 'weight_field':weight_field, 
                                     'accumulation':accumulation})
 
@@ -379,11 +407,16 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         """
 
+        # Check for any field that might need to have the bulk velocity set.
+        if 'Velocity' in field or 'Mach' in field:
+            self._need_bulk_velocity = True
+
         self.projection_fields.append({'field':field, 'weight_field':weight_field, 
                                        'cmap': cmap})
 
     @parallel_blocking_call
-    def make_profiles(self, filename=None, prefilters=None, **kwargs):
+    def make_profiles(self, filename=None, prefilters=None, njobs=-1,
+                      profile_format='ascii'):
         r"""Make radial profiles for all halos in the list.
         
         After all the calls to `add_profile`, this will trigger the actual
@@ -391,10 +424,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         
         Paramters
         ---------
-        filename : string
+        filename : str
             If set, a file will be written with all of the filtered halos
             and the quantities returned by the filter functions.
-            Default=None.
+            Default: None.
         prefilters : array_like
             A single dataset can contain thousands or tens of thousands of
             halos. Significant time can be saved by not profiling halos
@@ -402,6 +435,14 @@ class HaloProfiler(ParallelAnalysisInterface):
             Simple filters based on quantities provided in the initial
             halo list can be used to filter out unwanted halos using this
             parameter.
+            Default: None.
+        njobs : int
+            The number of jobs over which to split the profiling.  Set
+            to -1 so that each halo is done by a single processor.
+            Default: -1.
+        profile_format : str
+            The file format for the radial profiles, 'ascii' or 'hdf5'.
+            Default: 'ascii'.
         
         Examples
         --------
@@ -409,6 +450,13 @@ class HaloProfiler(ParallelAnalysisInterface):
                  prefilters=["halo['mass'] > 1e13"])
         
         """
+
+        extension_map = {'ascii': 'dat',
+                         'hdf5': 'h5'}
+        if not profile_format in extension_map:
+            mylog.error("Invalid profile_format: %s.  Valid options are %s." %
+                        (profile_format, ", ".join(extension_map.keys())))
+            raise YTException(pf=self.pf)
 
         if len(self.all_halos) == 0:
             mylog.error("Halo list is empty, returning.")
@@ -454,7 +502,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Profile all halos.
         updated_halos = []
-        for halo in parallel_objects(self.all_halos, -1):
+        for halo in parallel_objects(self.all_halos, njobs=njobs):
             # Apply prefilters to avoid profiling unwanted halos.
             filter_result = True
             haloQuantities = {}
@@ -466,9 +514,11 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             if filter_result and len(self.profile_fields) > 0:
 
-                profile_filename = "%s/Halo_%04d_profile.dat" % (my_output_dir, halo['id'])
+                profile_filename = "%s/Halo_%04d_profile.%s" % \
+                    (my_output_dir, halo['id'], extension_map[profile_format])
 
-                profiledHalo = self._get_halo_profile(halo, profile_filename, virial_filter=virial_filter)
+                profiledHalo = self._get_halo_profile(halo, profile_filename,
+                                                      virial_filter=virial_filter)
 
                 if profiledHalo is None:
                     continue
@@ -487,26 +537,26 @@ class HaloProfiler(ParallelAnalysisInterface):
                 for quantity in self.filter_quantities:
                     if halo.has_key(quantity): haloQuantities[quantity] = halo[quantity]
 
-                self.filtered_halos.append(haloQuantities)
+                only_on_root(self.filtered_halos.append, haloQuantities)
 
             # If we've gotten this far down, this halo is good and we want
             # to keep it. But we need to communicate the recentering changes
             # to all processors (the root one in particular) without having
             # one task clobber the other.
-            updated_halos.append(halo)
-        
+            only_on_root(updated_halos.append, halo)
+
         # And here is where we bring it all together.
         updated_halos = self.comm.par_combine_object(updated_halos,
                             datatype="list", op="cat")
-        updated_halos.sort(key = lambda a:a['id'])
+        updated_halos.sort(key=lambda a:a['id'])
         self.all_halos = updated_halos
 
         self.filtered_halos = self.comm.par_combine_object(self.filtered_halos,
                             datatype="list", op="cat")
-        self.filtered_halos.sort(key = lambda a:a['id'])
+        self.filtered_halos.sort(key=lambda a:a['id'])
 
         if filename is not None:
-            self._write_filtered_halo_list(filename, **kwargs)
+            self._write_filtered_halo_list(filename)
 
     def _get_halo_profile(self, halo, filename, virial_filter=True,
             force_write=False):
@@ -529,31 +579,13 @@ class HaloProfiler(ParallelAnalysisInterface):
                 return None
 
             # get a sphere object to profile
-            sphere = get_halo_sphere(halo, self.pf, recenter=self.recenter)
+            sphere = self._get_halo_sphere(halo)
             if sphere is None: return None
-
-            if self._need_bulk_velocity:
-                # Set bulk velocity to zero out radial velocity profiles.
-                if self.velocity_center[0] == 'bulk':
-                    if self.velocity_center[1] == 'halo':
-                        sphere.set_field_parameter('bulk_velocity', halo['velocity'])
-                    elif self.velocity_center[1] == 'sphere':
-                        sphere.set_field_parameter('bulk_velocity', 
-                                                   sphere.quantities['BulkVelocity'](lazy_reader=False, 
-                                                                                     preload=False))
-                    else:
-                        mylog.error("Invalid parameter: VelocityCenter.")
-                elif self.velocity_center[0] == 'max':
-                    max_grid, max_cell, max_value, max_location = \
-                        self.pf.h.find_max_cell_location(self.velocity_center[1])
-                    sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
-                                                                 max_grid['y-velocity'][max_cell],
-                                                                 max_grid['z-velocity'][max_cell]])
 
             try:
                 profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                                 r_min, halo['r_max'],
-                                                log_space=True, lazy_reader=False,
+                                                log_space=True, lazy_reader=True,
                                                 end_collect=True)
             except EmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
@@ -572,7 +604,13 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
-            profile.write_out(filename, format='%0.6e')
+            if filename.endswith('.h5'):
+                profile.write_out_h5(filename)
+            else:
+                profile.write_out(filename, format='%0.6e')
+            # profile will have N+1 bins so remove the last one
+            for field in profile.keys():
+                profile[field] = profile[field][:-1]
         elif force_write:
             mylog.info("Re-writing halo %d" % halo['id'])
             self._write_profile(profile, filename, format='%0.6e')
@@ -586,9 +624,75 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         return profile
 
+    def _get_halo_sphere(self, halo):
+        """
+        Returns a sphere object for a given halo, performs the recentering,
+        and calculates bulk velocities.
+        """
+
+        sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+        if len(sphere._grids) == 0: return None
+        new_sphere = False
+
+        if self.recenter:
+            old = halo['center']
+            if self.recenter in centering_registry:
+                new_x, new_y, new_z = \
+                    centering_registry[self.recenter](sphere)
+            else:
+                # user supplied function
+                new_x, new_y, new_z = self.recenter(sphere)
+            if new_x < self.pf.domain_left_edge[0] or \
+                    new_y < self.pf.domain_left_edge[1] or \
+                    new_z < self.pf.domain_left_edge[2]:
+                mylog.info("Recentering rejected, skipping halo %d" % \
+                    halo['id'])
+                return None
+            halo['center'] = [new_x, new_y, new_z]
+            d = self.pf['kpc'] * periodic_dist(old, halo['center'],
+                self.pf.domain_right_edge - self.pf.domain_left_edge)
+            mylog.info("Recentered halo %d %1.3e kpc away." % (halo['id'], d))
+            # Expand the halo to account for recentering. 
+            halo['r_max'] += d / 1000. # d is in kpc -> want mpc
+            new_sphere = True
+
+        if new_sphere:
+            # Temporary solution to memory leak.
+            for g in self.pf.h.grids:
+                g.clear_data()
+            sphere.clear_data()
+            del sphere
+            sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+
+        if self._need_bulk_velocity:
+            # Set bulk velocity to zero out radial velocity profiles.
+            if self.velocity_center[0] == 'bulk':
+                if self.velocity_center[1] == 'halo':
+                    sphere.set_field_parameter('bulk_velocity', halo['velocity'])
+                elif self.velocity_center[1] == 'sphere':
+                    mylog.info('Calculating sphere bulk velocity.')
+                    sphere.set_field_parameter('bulk_velocity', 
+                                               sphere.quantities['BulkVelocity'](lazy_reader=True, 
+                                                                                 preload=False))
+                else:
+                    mylog.error("Invalid parameter: velocity_center.")
+                    return None
+            elif self.velocity_center[0] == 'max':
+                mylog.info('Setting bulk velocity with value at max %s.' % self.velocity_center[1])
+                max_val, maxi, mx, my, mz, mg = sphere.quantities['MaxLocation'](self.velocity_center[1],
+                                                                                 lazy_reader=True)
+                max_grid = self.pf.h.grids[mg]
+                max_cell = na.unravel_index(maxi, max_grid.ActiveDimensions)
+                sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
+                                                             max_grid['y-velocity'][max_cell],
+                                                             max_grid['z-velocity'][max_cell]])
+            mylog.info('Bulk velocity set.')
+
+        return sphere
+
     @parallel_blocking_call
     def make_projections(self, axes=[0, 1, 2], halo_list='filtered',
-            save_images=False, save_cube=True):
+                         save_images=False, save_cube=True, njobs=-1):
         r"""Make projections of all halos using specified fields.
         
         After adding fields using `add_projection`, this starts the actual
@@ -608,6 +712,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         save_cube : bool
             Whether or not to save the HDF5 files of the halo projections.
             Default=True.
+        njobs : int
+            The number of jobs over which to split the projections.  Set
+            to -1 so that each halo is done by a single processor.
+            Default: -1.
         
         Examples
         --------
@@ -656,7 +764,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                          self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
 
-        for halo in parallel_objects(halo_projection_list, -1):
+        for halo in parallel_objects(halo_projection_list, njobs=njobs):
             if halo is None:
                 continue
             # Check if region will overlap domain edge.
@@ -745,7 +853,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
     @parallel_blocking_call
     def analyze_halo_spheres(self, analysis_function, halo_list='filtered',
-                             analysis_output_dir=None):
+                             analysis_output_dir=None, njobs=-1):
         r"""Perform custom analysis on all halos.
         
         This will loop through all halo on the HaloProfiler's list, 
@@ -768,6 +876,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         analysis_output_dir : string, optional
             If specified, this directory will be created within the dataset to 
             contain any output from the analysis function.  Default: None.
+        njobs : int
+            The number of jobs over which to split the analysis.  Set
+            to -1 so that each halo is done by a single processor.
+            Default: -1.
 
         Examples
         --------
@@ -803,11 +915,11 @@ class HaloProfiler(ParallelAnalysisInterface):
                 my_output_dir = "%s/%s" % (self.pf.fullpath, analysis_output_dir)
             self.__check_directory(my_output_dir)
 
-        for halo in parallel_objects(halo_analysis_list, -1):
+        for halo in parallel_objects(halo_analysis_list, njobs=njobs):
             if halo is None: continue
 
             # Get a sphere object to analze.
-            sphere = get_halo_sphere(halo, self.pf, recenter=self.recenter)
+            sphere = self._get_halo_sphere(halo)
             if sphere is None: continue
 
             # Call the given analysis function.
@@ -920,9 +1032,20 @@ class HaloProfiler(ParallelAnalysisInterface):
         if not os.path.exists(profileFile):
             return None
 
+        if profileFile.endswith('.h5'):
+            return self._read_profile_hdf5(profileFile)
+        else:
+            return self._read_profile_ascii(profileFile)
+
+    def _read_profile_ascii(self, profileFile):
+        "Read radial profile from file.  Return None if it doesn't have all the fields requested."
+
         f = open(profileFile, 'r')
         lines = f.readlines()
         f.close()
+
+        if not lines:
+            return None
 
         # Get fields from header.
         header = lines.pop(0)
@@ -965,6 +1088,34 @@ class HaloProfiler(ParallelAnalysisInterface):
         else:
             return None
 
+    def _read_profile_hdf5(self, profileFile):
+        "Read radial profile from file.  Return None if it doesn't have all the fields requested."
+
+        profile = {}
+        in_file = h5py.File(profileFile, 'r')
+        if not 'RadiusMpc-1d' in in_file:
+            return None
+        my_group = in_file['RadiusMpc-1d']
+        if not 'x-axis-RadiusMpc' in my_group.attrs:
+            return None
+        profile['RadiusMpc'] = my_group.attrs['x-axis-RadiusMpc']
+        fields = my_group.keys()
+
+        # Check if all fields needed are present.
+        all_profile_fields = [hp['field'] for hp in self.profile_fields]
+        for field in all_profile_fields:
+            if not field in fields:
+                in_file.close()
+                return None
+
+        for field in fields:
+            profile[field] = my_group[field][:]
+        in_file.close()
+
+        profile_obj = FakeProfile(self.pf)
+        profile_obj._data = profile
+        return profile_obj
+
     @parallel_blocking_call
     def _run_hop(self, hop_file):
         "Run hop to get halos."
@@ -983,13 +1134,24 @@ class HaloProfiler(ParallelAnalysisInterface):
         picked up during the filtering process.
         """
 
+        if filename.endswith('.h5'):
+            self._write_filtered_halo_list_h5(filename)
+        else:
+            self._write_filtered_halo_list_ascii(filename, format=format)
+
+    def _write_filtered_halo_list_ascii(self, filename, format="%s"):
+        """
+        Write out list of filtered halos along with any quantities 
+        picked up during the filtering process.
+        """
+
         if len(self.filtered_halos) == 0:
             mylog.error("No halos in filtered list.")
             return
 
         filename = "%s/%s" % (self.pf.fullpath, filename)
         mylog.info("Writing filtered halo list to %s." % filename)
-        file = open(filename, "w")
+        out_file = open(filename, "w")
         fields = [field for field in sorted(self.filtered_halos[0])]
         halo_fields = []
         for halo_field in self.filter_quantities:
@@ -1004,24 +1166,52 @@ class HaloProfiler(ParallelAnalysisInterface):
                                       for q in range(len(self.filtered_halos[0][halo_field]))])
             else:
                 header_fields.append(halo_field)
-        file.write("# ")
-        file.write("\t".join(header_fields + fields + ["\n"]))
+        out_file.write("# ")
+        out_file.write("\t".join(header_fields + fields + ["\n"]))
 
         for halo in self.filtered_halos:
             for halo_field in halo_fields:
                 if isinstance(halo[halo_field], types.ListType):
                     field_data = na.array(halo[halo_field])
-                    field_data.tofile(file, sep="\t", format=format)
+                    field_data.tofile(out_file, sep="\t", format=format)
                 else:
                     if halo_field == 'id':
-                        file.write("%04d" % halo[halo_field])
+                        out_file.write("%04d" % halo[halo_field])
                     else:
-                        file.write("%s" % halo[halo_field])
-                file.write("\t")
+                        out_file.write("%s" % halo[halo_field])
+                out_file.write("\t")
             field_data = na.array([halo[field] for field in fields])
-            field_data.tofile(file, sep="\t", format=format)
-            file.write("\n")
-        file.close()
+            field_data.tofile(out_file, sep="\t", format=format)
+            out_file.write("\n")
+        out_file.close()
+
+    def _write_filtered_halo_list_h5(self, filename):
+        """
+        Write out list of filtered halos along with any quantities 
+        picked up during the filtering process.
+        """
+
+        if len(self.filtered_halos) == 0:
+            mylog.error("No halos in filtered list.")
+            return
+
+        filename = "%s/%s" % (self.pf.fullpath, filename)
+        mylog.info("Writing filtered halo list to %s." % filename)
+        out_file = h5py.File(filename, "w")
+        fields = [field for field in sorted(self.filtered_halos[0])]
+        halo_fields = []
+        for halo_field in self.filter_quantities:
+            if halo_field in fields:
+                fields.remove(halo_field)
+                halo_fields.append(halo_field)
+
+        for halo_field in halo_fields + fields:
+            value_list = []
+            for halo in self.filtered_halos:
+                value_list.append(halo[halo_field])
+            value_list = na.array(value_list)
+            out_file.create_dataset(halo_field, data=value_list)
+        out_file.close()
 
     def _write_profile(self, profile, filename, format="%0.16e"):
         fid = open(filename, "w")
@@ -1041,94 +1231,6 @@ class HaloProfiler(ParallelAnalysisInterface):
                 raise IOError(my_output_dir)
         else:
             os.mkdir(my_output_dir)
-
-def get_halo_sphere(halo, pf, recenter=None):
-    r"""Returns a sphere object for a given halo.
-        
-    With a dictionary containing halo properties, such as center 
-    and r_max, this creates a sphere object and optionally 
-    recenters and recreates the sphere using a recentering function.
-    This is to be used primarily to make spheres for a set of halos 
-    loaded by the HaloProfiler.
-    
-    Parameters
-    ----------
-    halo : dict, required
-        The dictionary containing halo properties used to make the sphere.
-        Required entries:
-            center : list with center coordinates.
-            r_max : sphere radius in Mpc.
-    pf : parameter file object, required
-        The parameter file from which the sphere will be made.
-    recenter : {None, string or function}
-        The exact location of the sphere center can significantly affect 
-        radial profiles.  The halo center loaded by the HaloProfiler will 
-        typically be the dark matter center of mass calculated by a halo 
-        finder.  However, this may not be the best location for centering 
-        profiles of baryon quantities.  For example, one may want to center 
-        on the maximum density.
-        If recenter is given as a string, one of the existing recentering 
-        functions will be used:
-            Min_Dark_Matter_Density : location of minimum dark matter density
-            Max_Dark_Matter_Density : location of maximum dark matter density
-            CoM_Dark_Matter_Density : dark matter center of mass
-            Min_Gas_Density : location of minimum gas density
-            Max_Gas_Density : location of maximum gas density
-            CoM_Gas_Density : gas center of mass
-            Min_Total_Density : location of minimum total density
-            Max_Total_Density : location of maximum total density
-            CoM_Total_Density : total center of mass
-            Min_Temperature : location of minimum temperature
-            Max_Temperature : location of maximum temperature
-        Alternately, a function can be supplied for custom recentering.
-        The function should take only one argument, a sphere object.
-            Example function:
-                def my_center_of_mass(data):
-                   my_x, my_y, my_z = data.quantities['CenterOfMass']()
-                   return (my_x, my_y, my_z)
-
-        Examples: this should primarily be used with the halo list of the HaloProfiler.
-        This is an example with an abstract halo asssuming a pre-defined pf.
-        >>> halo = {'center': [0.5, 0.5, 0.5], 'r_max': 1.0}
-        >>> my_sphere = get_halo_sphere(halo, pf, recenter='Max_Gas_Density')
-        >>> # Assuming the above example function has been defined.
-        >>> my_sphere = get_halo_sphere(halo, pf, recenter=my_center_of_mass)
-    """
-        
-    sphere = pf.h.sphere(halo['center'], halo['r_max']/pf.units['mpc'])
-    if len(sphere._grids) == 0: return None
-    new_sphere = False
-
-    if recenter:
-        old = halo['center']
-        if recenter in centering_registry:
-            new_x, new_y, new_z = \
-                centering_registry[recenter](sphere)
-        else:
-            # user supplied function
-            new_x, new_y, new_z = recenter(sphere)
-        if new_x < pf.domain_left_edge[0] or \
-                new_y < pf.domain_left_edge[1] or \
-                new_z < pf.domain_left_edge[2]:
-            mylog.info("Recentering rejected, skipping halo %d" % \
-                halo['id'])
-            return None
-        halo['center'] = [new_x, new_y, new_z]
-        d = pf['kpc'] * periodic_dist(old, halo['center'],
-            pf.domain_right_edge - pf.domain_left_edge)
-        mylog.info("Recentered halo %d %1.3e kpc away." % (halo['id'], d))
-        # Expand the halo to account for recentering. 
-        halo['r_max'] += d / 1000 # d is in kpc -> want mpc
-        new_sphere = True
-
-    if new_sphere:
-        # Temporary solution to memory leak.
-        for g in pf.h.grids:
-            g.clear_data()
-        sphere.clear_data()
-        del sphere
-        sphere = pf.h.sphere(halo['center'], halo['r_max']/pf.units['mpc'])
-    return sphere
 
 def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """

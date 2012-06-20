@@ -31,7 +31,7 @@ import numpy as na
 
 from .image_writer import \
     write_image, apply_colormap
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \

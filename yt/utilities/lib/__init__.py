@@ -1,5 +1,5 @@
 """
-API for yt.astro_objects
+Compatibility module
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
@@ -21,14 +21,20 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
-from .astrophysical_object import \
-    AstrophysicalObject, identification_method, correlation_method
-
-from .simulation_volume import \
-    SimulationVolume
-
-from .clumped_region import \
-    ClumpedRegion
+from .CICDeposit import *
+from .ContourFinding import *
+from .DepthFirstOctree import *
+from .fortran_reader import *
+from .freetype_writer import *
+from .geometry_utils import *
+from .Interpolators import *
+from .misc_utilities import *
+from .Octree import *
+from .png_writer import *
+from .PointsInVolume import *
+from .QuadTree import *
+from .RayIntegrators import *
+from .grid_traversal import *
+from .marching_cubes import *
