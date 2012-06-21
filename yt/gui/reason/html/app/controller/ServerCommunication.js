@@ -149,7 +149,62 @@ Ext.define('Reason.controller.ServerCommunication', {
         m(args, fn);
     },
 
-    m: function() { return this.method(arguments); }
+    m: function() { return this.method(arguments); },
+
+    multicast: function(widget) {
+        /*
+           This will be two step.  The first will be to create a window that
+           allows the user to set up the MultiCast session, which will be an
+           iframe loading the GAE instance.  Then we tell our local server that
+           we want to multicast.
+        */
+        var win = Ext.create("Ext.window.Window", {
+            title: "Set up Multicasting",
+            modal: true,
+            height: 500,
+            width: 400,
+            layout: {
+                type:'vbox',
+                pack: 'start',
+                align: 'stretch',
+            },
+            items: [
+                { xtype : "component",
+                  autoEl : {
+                      tag : "iframe",
+                      src : "http://localhost:8080/CreateSession"
+                  },
+                  height: 400,
+                  width: "100%",
+                }, {
+                  xtype: "form",
+                  labelWidth: 80,
+                  frame: true,
+                  height: 100,
+                  width: "100%",
+                  items: [
+                    {
+                      xtype: 'textfield',
+                      fieldLabel: 'Session ID',
+                      itemId: 'session_id',
+                    }, {
+                      xtype: 'textfield',
+                      fieldLabel: 'Session Token',
+                      itemId: 'session_token',
+                    }, 
+                  ],
+                  buttons: [
+                      {
+                          text: 'Go', itemId: 'create',
+                      },{
+                          text: 'Cancel', itemId: 'cancel',
+                      }
+                  ],
+                }
+            ],
+        });
+        win.show();
+    },
 
 });
 
