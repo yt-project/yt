@@ -193,6 +193,14 @@ Ext.define("Reason.view.widgets.PlotWindow", {
             width: 80,
             tooltip: "Open a pannable map in a new tab",
         },{
+            xtype: 'button',
+            text: 'Multicast',
+            itemId: 'multicast',
+            x: 10,
+            y: 385,
+            width: 80,
+            tooltip: "Share this session across the Internet",
+        },{
             xtype: 'panel',
             itemId: 'rhs_panel',
             width: 300,

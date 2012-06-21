@@ -114,4 +114,8 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         return refs;
     },
 
+    multicast: function() {
+        reason.server.multicast(this);
+    }
+
 });

@@ -174,13 +174,13 @@ Ext.define('Reason.controller.ServerCommunication', {
                       tag : "iframe",
                       src : "http://localhost:8080/CreateSession"
                   },
-                  height: 400,
+                  flex: 3.0,
                   width: "100%",
                 }, {
                   xtype: "form",
                   labelWidth: 80,
                   frame: true,
-                  height: 100,
+                  flex: 2.0,
                   width: "100%",
                   items: [
                     {
@@ -195,7 +195,7 @@ Ext.define('Reason.controller.ServerCommunication', {
                   ],
                   buttons: [
                       {
-                          text: 'Go', itemId: 'create',
+                          text: 'Multicast', itemId: 'multicast',
                       },{
                           text: 'Cancel', itemId: 'cancel',
                       }

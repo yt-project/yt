@@ -76,6 +76,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     widgetTriggers: [
         ['#uploadimage', 'click', 'uploadImage'],
         ['#imagepanel', 'afterrender', 'setupClickImage'],
+        ['#pannablemap', 'click', 'multicast'],
     ],
 
     executionTriggers: [
