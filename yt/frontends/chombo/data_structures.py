@@ -85,7 +85,7 @@ class ChomboGrid(AMRGridPatch):
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
             na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by[self.Level-1]).astype('int64').ravel()
+        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
     def _setup_dx(self):
@@ -93,7 +93,7 @@ class ChomboGrid(AMRGridPatch):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by[self.Level-1]
+            self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
@@ -284,10 +284,8 @@ class ChomboStaticOutput(StaticOutput):
             self.domain_right_edge = self.__calc_right_edge()
             self.domain_dimensions = self.__calc_domain_dimensions()
             self.dimensionality = 3
-            self.refine_by = []
             fileh = h5py.File(self.parameter_filename,'r')
-            for level in range(0,fileh.attrs['num_levels']):
-                self.refine_by.append(fileh['/level_'+str(level)].attrs['ref_ratio'])
+            self.refine_by = fileh['/level_0'].attrs['ref_ratio']
 
     def _parse_pluto_file(self, ini_filename):
         """
