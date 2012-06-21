@@ -56,8 +56,13 @@ class WidgetStore(dict):
         widget._ext_widget_id = varname
         payload['data'] = widget_data
         self[varname] = widget
-        print "DELIVERING", payload
         self.payload_handler.add_payload(payload)
+
+    def activate_multicast(self, widget_id, multicast_session, multicast_token):
+        # Here we have to conduct the handshake between us and the GAE
+        self.payload_handler.multicast_ids[widget_id] = (
+            multicast_session, multicast_token)
+        mylog.info("Multicasting %s to %s", widget_id, multicast_session)
 
     def create_slice(self, pf, center, axis, field, onmax):
         if onmax: 
