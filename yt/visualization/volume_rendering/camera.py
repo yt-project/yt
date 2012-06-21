@@ -526,7 +526,7 @@ class Camera(ParallelAnalysisInterface):
         if rot_vector is None:
             rot_vector = self.rotation_vector
           
-        R = get_rotation_matrix(self, theta, rot_vector)
+        R = get_rotation_matrix(theta, rot_vector)
 
         normal_vector = self.front_center-self.center
 
@@ -548,7 +548,7 @@ class Camera(ParallelAnalysisInterface):
         >>> cam.roll(na.pi/4)
         """
         rot_vector = self.orienter.normal_vector
-        R = get_rotation_matrix(self, theta, rot_vector)
+        R = get_rotation_matrix(theta, rot_vector)
         north_vector = self.orienter.north_vector
         self.switch_view(north_vector=na.dot(R, north_vector))
 
@@ -1164,7 +1164,7 @@ class MosaicFisheyeCamera(Camera):
             rot_vector = na.cross(rvec, self.normal_vector)
             rot_vector /= (rot_vector**2).sum()**0.5
             
-            self.rotation_matrix = get_rotation_matrix(self,angle,rot_vector)
+            self.rotation_matrix = get_rotation_matrix(angle,rot_vector)
             self.normal_vector = na.dot(self.rotation_matrix,self.normal_vector)
             self.north_vector = na.dot(self.rotation_matrix,self.north_vector)
             self.east_vector = na.dot(self.rotation_matrix,self.east_vector)
