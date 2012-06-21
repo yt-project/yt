@@ -29,6 +29,8 @@ from yt.utilities.physical_constants import \
     mh, kboltz
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
+    NullFunc, \
+    TranslationFunc, \
     FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
@@ -44,24 +46,24 @@ add_orion_field = KnownOrionFields.add_field
 OrionFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = OrionFieldInfo.add_field
 
-add_orion_field("density", function=lambda a,b: None, take_log=True,
+add_orion_field("density", function=NullFunc, take_log=True,
                 validators = [ValidateDataField("density")],
                 units=r"\rm{g}/\rm{cm}^3")
 KnownOrionFields["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
 
-add_orion_field("eden", function=lambda a,b: None, take_log=True,
+add_orion_field("eden", function=NullFunc, take_log=True,
                 validators = [ValidateDataField("eden")],
                 units=r"\rm{erg}/\rm{cm}^3")
 
-add_orion_field("xmom", function=lambda a,b: None, take_log=False,
+add_orion_field("xmom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("xmom")],
                 units=r"\rm{g}/\rm{cm^2\ s}")
 
-add_orion_field("ymom", function=lambda a,b: None, take_log=False,
+add_orion_field("ymom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("ymom")],
                 units=r"\rm{gm}/\rm{cm^2\ s}")
 
-add_orion_field("zmom", function=lambda a,b: None, take_log=False,
+add_orion_field("zmom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("zmom")],
                 units=r"\rm{g}/\rm{cm^2\ s}")
 
@@ -76,15 +78,14 @@ translation_dict = {"x-velocity": "xvel",
                     "z-momentum": "zmom"
                    }
 
-def _generate_translation(mine, theirs):
-    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
-
 for f,v in translation_dict.items():
-    if v not in OrionFieldInfo:
-        add_field(v, function=lambda a,b: None, take_log=False,
+    if v not in KnownOrionFields:
+        add_orion_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)])
-    #print "Setting up translator from %s to %s" % (v, f)
-    _generate_translation(v, f)
+    ff = KnownOrionFields[v]
+    add_field(f, TranslationFunc(v),
+              take_log=KnownOrionFields[v].take_log,
+              units = ff._units, display_name=f)
 
 def _xVelocity(field, data):
     """generate x-velocity from x-momentum and density
@@ -170,6 +171,6 @@ _particle_field_list = ["mass",
 
 for pf in _particle_field_list:
     pfunc = particle_func("particle_%s" % (pf))
-    add_orion_field("particle_%s" % pf, function=pfunc,
-                    validators = [ValidateSpatial(0)],
-                    particle_type=True)
+    add_field("particle_%s" % pf, function=pfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)

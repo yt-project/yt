@@ -33,7 +33,11 @@ var main_menu = {
     text: 'Menu',
     id: 'main_menu',
     menu: [
-           {xtype:'menuitem', text: 'Open', disabled: true},
+           {xtype:'menuitem', text: 'Open File', 
+               handler: function(b,e) {
+                  open_file()
+               },
+           },
            {xtype:'menuitem', text: 'Open Directory', disabled: true},
            {xtype: 'menuseparator'},
            {xtype:'menuitem', text: 'Save Script',

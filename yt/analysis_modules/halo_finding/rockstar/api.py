@@ -1,8 +1,8 @@
 """
-API for yt.astro_objects
+API for Rockstar halo finding
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
+Affiliation: Columbia
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -24,11 +24,4 @@ License:
 
 """
 
-from .astrophysical_object import \
-    AstrophysicalObject, identification_method, correlation_method
-
-from .simulation_volume import \
-    SimulationVolume
-
-from .clumped_region import \
-    ClumpedRegion
+from .rockstar import RockstarHaloFinder

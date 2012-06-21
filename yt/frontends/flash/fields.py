@@ -34,7 +34,8 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-
+from yt.utilities.physical_constants import \
+    kboltz
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -62,9 +63,8 @@ translation_dict = {"x-velocity": "velx",
                     "y-velocity": "vely",
                     "z-velocity": "velz",
                     "Density": "dens",
-                    "TotalEnergy": "ener",
-                    "GasEnergy": "eint",
                     "Temperature": "temp",
+                    "Pressure" : "pres", 
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",
                     "particle_position_z" : "particle_posz",
@@ -193,17 +193,16 @@ for f,v in translation_dict.items():
         add_flash_field(v, function=NullFunc, take_log=False,
                   validators = [ValidateDataField(v)],
                   particle_type = pfield)
-    else:
-        if f.endswith("_Fraction") :
-            dname = "%s\/Fraction" % f.split("_")[0]
-        else :
-            dname = f                    
-        ff = KnownFLASHFields[v]
-        pfield = f.startswith("particle")
-        add_field(f, TranslationFunc(v),
-                  take_log=KnownFLASHFields[v].take_log,
-                  units = ff._units, display_name=dname,
-                  particle_type = pfield)
+    if f.endswith("_Fraction") :
+        dname = "%s\/Fraction" % f.split("_")[0]
+    else :
+        dname = f                    
+    ff = KnownFLASHFields[v]
+    pfield = f.startswith("particle")
+    add_field(f, TranslationFunc(v),
+              take_log=KnownFLASHFields[v].take_log,
+              units = ff._units, display_name=dname,
+              particle_type = pfield)
 
 def _convertParticleMassMsun(data):
     return 1.0/1.989e33
@@ -213,3 +212,44 @@ add_field("ParticleMassMsun",
           function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun,
           particle_convert_function=_ParticleMassMsun)
+
+def _ThermalEnergy(fields, data) :
+    try:
+        return data["eint"]
+    except:
+        pass
+    try:
+        return data["Pressure"] / (data.pf["Gamma"] - 1.0) / data["Density"]
+    except:
+        pass
+    if data.has_field_parameter("mu") :
+        mu = data.get_field_parameter("mu")
+    else:
+        mu = 0.6
+    return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf["Gamma"] - 1.0)
+    
+add_field("ThermalEnergy", function=_ThermalEnergy,
+          units=r"\rm{ergs}/\rm{g}")
+
+def _TotalEnergy(fields, data) :
+    try:
+        etot = data["ener"]
+    except:
+        etot = data["ThermalEnergy"] + 0.5 * (
+            data["x-velocity"]**2.0 +
+            data["y-velocity"]**2.0 +
+            data["z-velocity"]**2.0)
+    try:
+        etot += data['magp']/data["Density"]
+    except:
+        pass
+    return etot
+
+add_field("TotalEnergy", function=_TotalEnergy,
+          units=r"\rm{ergs}/\rm{g}")
+
+def _GasEnergy(fields, data) :
+    return data["ThermalEnergy"]
+
+add_field("GasEnergy", function=_GasEnergy, 
+          units=r"\rm{ergs}/\rm{g}")

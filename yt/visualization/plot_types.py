@@ -295,6 +295,17 @@ class RavenPlot(object):
             if not hasattr(c, '_type_name'): continue
             self.modify[c._type_name] = c
 
+    def _pretty_name(self):
+        width = self.im.get("Width", "NA")
+        unit = self.im.get("Unit", "NA")
+        field = self.axis_names.get("Z", self.axis_names.get("Field1"))
+        if hasattr(self.data, "_data_source"):
+            data = self.data._data_source
+        else:
+            data = self.data
+        return "%s: %s (%s %s) %s" % (self._type_name,
+            field, width, unit, data)
+
 class VMPlot(RavenPlot):
     _antialias = True
     _period = (0.0, 0.0)
@@ -492,6 +503,7 @@ class VMPlot(RavenPlot):
         else: data_label = self.datalabel
         if self.colorbar != None:
             self.colorbar.set_label(str(data_label), **self.label_kws)
+
 
 class FixedResolutionPlot(VMPlot):
 

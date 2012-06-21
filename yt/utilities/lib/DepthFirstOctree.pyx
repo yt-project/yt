@@ -66,6 +66,7 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                             np.ndarray[np.float64_t, ndim=2] output,
                             np.ndarray[np.int32_t, ndim=1] refined,
                             OctreeGridList grids):
+    #cdef int s = curpos
     cdef int i, i_off, j, j_off, k, k_off, ci, fi
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
@@ -78,8 +79,13 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
     cdef np.float64_t child_dx
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
+    #here we go over the 8 octants
+    #in general however, a mesh cell on this level
+    #may have more than 8 children on the next level
+    #so we find the int float center (cxyz) of each child cell
+    # and from that find the child cell indices
     for i_off in range(i_f):
-        i = i_off + i_i
+        i = i_off + i_i #index
         cx = (leftedges[0] + i*dx)
         for j_off in range(j_f):
             j = j_off + j_i
@@ -103,9 +109,9 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                     child_i = int((cx - child_leftedges[0])/child_dx)
                     child_j = int((cy - child_leftedges[1])/child_dx)
                     child_k = int((cz - child_leftedges[2])/child_dx)
-                    s = RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
+                    # s = Recurs.....
+                    RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
                                         curpos, ci - grid.offset, output, refined, grids)
-    return s
 
 @cython.boundscheck(False)
 def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
@@ -130,10 +136,10 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
     cdef int cp
-    cdef int s = 0
     for i_off in range(i_f):
         i = i_off + i_i
         cx = (leftedges[0] + i*dx)
+        if i_f > 2: print k, cz
         for j_off in range(j_f):
             j = j_off + j_i
             cy = (leftedges[1] + j*dx)
@@ -160,8 +166,9 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                     genealogy[cp, 0] = curpos[level+1] 
                     # set next parent id to id of current cell
                     genealogy[curpos[level+1]:curpos[level+1]+8, 1] = cp
-                    RecurseOctreeByLevels(child_i, child_j, child_k, 2, 2, 2,
+                    s = RecurseOctreeByLevels(child_i, child_j, child_k, 2, 2, 2,
                                               curpos, ci, output, genealogy,
                                               corners, grids)
                 curpos[level] += 1
-    return
+    return s
+

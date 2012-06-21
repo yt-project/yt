@@ -326,9 +326,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
 
         full_name = "%s/%s" % (node, name)
-        try:
+        if len(self._data_file[full_name].shape) > 0:
             return self._data_file[full_name][:]
-        except TypeError:
+        else:
             return self._data_file[full_name]
 
     def _close_data_file(self):
@@ -336,18 +336,6 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self._data_file.close()
             del self._data_file
             self._data_file = None
-
-    def _deserialize_hierarchy(self, harray):
-        # THIS IS BROKEN AND NEEDS TO BE FIXED
-        mylog.debug("Cached entry found.")
-        self.gridDimensions[:] = harray[:,0:3]
-        self.gridStartIndices[:] = harray[:,3:6]
-        self.gridEndIndices[:] = harray[:,6:9]
-        self.gridLeftEdge[:] = harray[:,9:12]
-        self.gridRightEdge[:] = harray[:,12:15]
-        self.gridLevels[:] = harray[:,15:16]
-        self.gridTimes[:] = harray[:,16:17]
-        self.gridNumberOfParticles[:] = harray[:,17:18]
 
     def get_smallest_dx(self):
         """
@@ -366,7 +354,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         #   1 = number of cells
         #   2 = blank
         desc = {'names': ['numgrids','numcells','level'],
-                'formats':['Int32']*3}
+                'formats':['Int64']*3}
         self.level_stats = blankRecordArray(desc, MAXLEVEL)
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
@@ -393,18 +381,18 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%11s" % ("level","# grids", "# cells")
+        header = "%3s\t%6s\t%14s" % ("level","# grids", "# cells")
         print header
         print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 11i" % \
+            print "% 3i\t% 6i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level])
             dx = self.select_grids(level)[0].dds[0]
         print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
+        print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
         print "\n"
         try:
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])

@@ -34,6 +34,89 @@ cdef extern from "stdlib.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=1] bsource,
+                  np.ndarray[np.float64_t, ndim=1] wresult,
+                  np.ndarray[np.float64_t, ndim=1] bresult,
+                  np.ndarray[np.float64_t, ndim=1] mresult,
+                  np.ndarray[np.float64_t, ndim=1] qresult,
+                  np.ndarray[np.float64_t, ndim=1] used):
+    cdef int n, bin
+    cdef np.float64_t wval, bval
+    for n in range(bins_x.shape[0]):
+        bin = bins_x[n]
+        bval = bsource[n]
+        wval = wsource[n]
+        qresult[bin] += (wresult[bin] * wval * (bval - mresult[bin])**2) / \
+            (wresult[bin] + wval)
+        wresult[bin] += wval
+        bresult[bin] += wval*bval
+        mresult[bin] += wval * (bval - mresult[bin]) / wresult[bin]
+        used[bin] = 1
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.int64_t, ndim=1] bins_y,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=1] bsource,
+                  np.ndarray[np.float64_t, ndim=2] wresult,
+                  np.ndarray[np.float64_t, ndim=2] bresult,
+                  np.ndarray[np.float64_t, ndim=2] mresult,
+                  np.ndarray[np.float64_t, ndim=2] qresult,
+                  np.ndarray[np.float64_t, ndim=2] used):
+    cdef int n, bini, binj
+    cdef np.int64_t bin
+    cdef np.float64_t wval, bval
+    for n in range(bins_x.shape[0]):
+        bini = bins_x[n]
+        binj = bins_y[n]
+        bval = bsource[n]
+        wval = wsource[n]
+        qresult[bini, binj] += (wresult[bini, binj] * wval * (bval - mresult[bini, binj])**2) / \
+            (wresult[bini, binj] + wval)
+        wresult[bini, binj] += wval
+        bresult[bini, binj] += wval*bval
+        mresult[bini, binj] += wval * (bval - mresult[bini, binj]) / wresult[bini, binj]
+        used[bini, binj] = 1
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.int64_t, ndim=1] bins_y,
+                  np.ndarray[np.int64_t, ndim=1] bins_z,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=1] bsource,
+                  np.ndarray[np.float64_t, ndim=3] wresult,
+                  np.ndarray[np.float64_t, ndim=3] bresult,
+                  np.ndarray[np.float64_t, ndim=3] mresult,
+                  np.ndarray[np.float64_t, ndim=3] qresult,
+                  np.ndarray[np.float64_t, ndim=3] used):
+    cdef int n, bini, binj, bink
+    cdef np.int64_t bin
+    cdef np.float64_t wval, bval
+    for n in range(bins_x.shape[0]):
+        bini = bins_x[n]
+        binj = bins_y[n]
+        bink = bins_z[n]
+        bval = bsource[n]
+        wval = wsource[n]
+        qresult[bini, binj, bink] += (wresult[bini, binj, bink] * wval * (bval - mresult[bini, binj, bink])**2) / \
+            (wresult[bini, binj, bink] + wval)
+        wresult[bini, binj, bink] += wval
+        bresult[bini, binj, bink] += wval*bval
+        mresult[bini, binj, bink] += wval * (bval - mresult[bini, binj, bink]) / wresult[bini, binj, bink]
+        used[bini, binj, bink] = 1
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.ndarray[np.float64_t, ndim=1] py,
                      np.ndarray[np.float64_t, ndim=1] pdx,
@@ -204,6 +287,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         uniquedims[i] = <np.float64_t *> \
                 alloca(2*n_grids * sizeof(np.float64_t))
     my_max = 0
+    best_dim = -1
     for dim in range(3):
         n_unique = 0
         uniques = uniquedims[dim]
@@ -249,3 +333,4 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
             greater_ids[i] = 0
     # Return out unique values
     return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")
+

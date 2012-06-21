@@ -22,7 +22,7 @@ License:
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import TimeSeriesData
-from yt.utilities.amr_utils import sample_field_at_positions
+from yt.utilities.lib import sample_field_at_positions
 from yt.funcs import *
 
 import numpy as na

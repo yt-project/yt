@@ -28,7 +28,7 @@ import numpy as na
 
 from yt.funcs import *
 import yt.utilities.data_point_utilities as data_point_utilities
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 def coalesce_join_tree(jtree1):
     joins = defaultdict(set)

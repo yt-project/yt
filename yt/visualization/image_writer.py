@@ -27,7 +27,7 @@ import numpy as na
 
 from yt.funcs import *
 import _colormap_data as cmd
-import yt.utilities.amr_utils as au
+import yt.utilities.lib as au
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -116,7 +116,7 @@ def multi_image_composite(fn, red_channel, blue_channel,
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
 
-def write_bitmap(bitmap_array, filename, max_val = None):
+def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
@@ -150,6 +150,9 @@ def write_bitmap(bitmap_array, filename, max_val = None):
         s1, s2 = bitmap_array.shape[:2]
         alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
         bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
+    if transpose:
+        for channel in range(bitmap_array.shape[2]):
+            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
     au.write_png(bitmap_array.copy(), filename)
     return bitmap_array
 
@@ -411,3 +414,70 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
     pl.clf()
     pl.close()
+
+def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
+
+    """
+    This will export a FITS image of a floating point array. The output filename is
+    *filename_prefix*. If clobber is set to True, this will overwrite any existing
+    FITS file.
+    
+    This requires the *pyfits* module, which is a standalone module
+    provided by STSci to interface with FITS-format files.
+    """
+    r"""Write out a floating point array directly to a FITS file, optionally
+    adding coordinates. 
+        
+    Parameters
+    ----------
+    image : array_like
+        This is an (unscaled) array of floating point values, shape (N,N,) to save
+        in a FITS file.
+    filename_prefix : string
+        This prefix will be prepended to every FITS file name.
+    clobber : boolean
+        If the file exists, this governs whether we will overwrite.
+    coords : dictionary, optional
+        A set of header keys and values to write to the FITS header to set up
+        a coordinate system. 
+    gzip_file : boolean, optional
+        gzip the file after writing, default False
+    """
+    
+    import pyfits
+    from os import system
+    
+    if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
+    
+    hdu = pyfits.PrimaryHDU(image)
+
+    if (coords is not None) :
+
+        hdu.header.update('WCSNAMEP', "PHYSICAL")
+        hdu.header.update('CTYPE1P', "LINEAR")
+        hdu.header.update('CTYPE2P', "LINEAR")
+        hdu.header.update('CRPIX1P', 0.5)
+        hdu.header.update('CRPIX2P', 0.5)
+        hdu.header.update('CRVAL1P', coords["xmin"])
+        hdu.header.update('CRVAL2P', coords["ymin"])
+        hdu.header.update('CDELT1P', coords["dx"])
+        hdu.header.update('CDELT2P', coords["dy"])
+        
+        hdu.header.update('CTYPE1', "LINEAR")
+        hdu.header.update('CTYPE2', "LINEAR")
+        hdu.header.update('CUNIT1', coords["units"])
+        hdu.header.update('CUNIT2', coords["units"])
+        hdu.header.update('CRPIX1', 0.5)
+        hdu.header.update('CRPIX2', 0.5)
+        hdu.header.update('CRVAL1', coords["xmin"])
+        hdu.header.update('CRVAL2', coords["ymin"])
+        hdu.header.update('CDELT1', coords["dx"])
+        hdu.header.update('CDELT2', coords["dy"])
+
+    hdu.writeto("%s.fits" % (filename_prefix), clobber=clobber)
+
+    if (gzip_file) :
+        clob = ""
+        if (clobber) : clob="-f"
+        system("gzip "+clob+" %s.fits" % (filename_prefix))
+    

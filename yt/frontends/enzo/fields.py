@@ -40,7 +40,7 @@ from yt.utilities.physical_constants import \
     mh
 from yt.funcs import *
 
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = EnzoFieldInfo.add_field
@@ -51,7 +51,7 @@ add_enzo_field = KnownEnzoFields.add_field
 _speciesList = ["HI", "HII", "Electron",
                 "HeI", "HeII", "HeIII",
                 "H2I", "H2II", "HM",
-                "DI", "DII", "HDI", "Metal", "PreShock"]
+                "DI", "DII", "HDI", "Metal", "MetalSNIa", "PreShock"]
 _speciesMass = {"HI": 1.0, "HII": 1.0, "Electron": 1.0,
                 "HeI": 4.0, "HeII": 4.0, "HeIII": 4.0,
                 "H2I": 2.0, "H2II": 2.0, "HM": 1.0,
@@ -224,7 +224,10 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum",
-                   "Bx", "By", "Bz", "Dust_Temperature"]
+                   "Bx", "By", "Bz", "Dust_Temperature",
+                   "HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss", "PhotoGamma",
+                   "RadAccel1", "RadAccel2", "RadAccel3", "SN_Colour",
+                   "Ray_Segments"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -247,11 +250,35 @@ for field in ['Bx','By','Bz']:
     f._units=r"\mathrm{Gau\ss}"
     f.take_log=False
 
+def _convertkph(data):
+    return data.convert("Time")
+for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
+    f = KnownEnzoFields[field]
+    f._convert_function = _convertkph
+    f._units=r"\rm{s}^{-1}"
+    f.take_log=True
+
+def _convertRadiationAccel(data):
+    return data.convert("cm") / data.convert("Time")
+for dim in range(1,4):
+    f = KnownEnzoFields["RadAccel%d" % dim]
+    f._convert_function = _convertRadiationAccel
+    f._units=r"\rm{cm}\ \rm{s}^{-2}"
+    f.take_log=False
+def _RadiationAccelerationMagnitude(field, data):
+    return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
+             data["RadAccel3"]**2 )**(1.0/2.0)
+add_field("RadiationAcceleration", 
+          function=_RadiationAccelerationMagnitude,
+          validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
+          display_name="Radiation\ Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
+
 # Now we override
 
 def _convertDensity(data):
     return data.convert("Density")
-for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
+for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
+        ["SN_Colour"]:
     KnownEnzoFields[field]._units = r"\rm{g}/\rm{cm}^3"
     KnownEnzoFields[field]._projected_units = r"\rm{g}/\rm{cm}^2"
     KnownEnzoFields[field]._convert_function=_convertDensity

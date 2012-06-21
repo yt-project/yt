@@ -67,7 +67,8 @@ from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
 
 from yt.frontends.enzo.api import \
-    EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
+    EnzoStaticOutput, EnzoStaticOutputInMemory, \
+    EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
 from yt.frontends.castro.api import \
@@ -116,7 +117,7 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image, write_projection
+    apply_colormap, scale_image, write_projection, write_fits
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
@@ -128,7 +129,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
-from yt.convenience import all_pfs, max_spheres, load, projload
+from yt.convenience import \
+    load, projload, simulation
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \

@@ -121,7 +121,36 @@ class ChomboHierarchy(AMRHierarchy):
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._fhandle.keys()[1:]
         AMRHierarchy.__init__(self,pf,data_style)
+        self._read_particles()
         self._fhandle.close()
+
+    def _read_particles(self):
+        self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
+        if not os.path.exists(self.particle_filename): return
+        with open(self.particle_filename, 'r') as f:
+            lines = f.readlines()
+            self.num_stars = int(lines[0].strip().split(' ')[0])
+            for line in lines[1:]:
+                particle_position_x = float(line.split(' ')[1])
+                particle_position_y = float(line.split(' ')[2])
+                particle_position_z = float(line.split(' ')[3])
+                coord = [particle_position_x, particle_position_y, particle_position_z]
+                # for each particle, determine which grids contain it
+                # copied from object_finding_mixin.py                                                                                                             
+                mask=na.ones(self.num_grids)
+                for i in xrange(len(coord)):
+                    na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                    na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                ind = na.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = na.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
 
     def _initialize_data_storage(self):
         pass
@@ -198,6 +227,7 @@ class ChomboStaticOutput(StaticOutput):
         fileh = h5py.File(filename,'r')
         self.current_time = fileh.attrs['time']
         self.ini_filename = ini_filename
+        self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
         
@@ -254,10 +284,7 @@ class ChomboStaticOutput(StaticOutput):
             self.domain_right_edge = self.__calc_right_edge()
             self.domain_dimensions = self.__calc_domain_dimensions()
             self.dimensionality = 3
-#            self.refine_by = []
             fileh = h5py.File(self.parameter_filename,'r')
-#            for level in range(0,fileh.attrs['max_level']):
-#                self.refine_by.append(fileh['/level_'+str(level)].attrs['ref_ratio'])
             self.refine_by = fileh['/level_0'].attrs['ref_ratio']
 
     def _parse_pluto_file(self, ini_filename):

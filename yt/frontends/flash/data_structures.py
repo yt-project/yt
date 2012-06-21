@@ -79,13 +79,6 @@ class FLASHHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s for s in self._handle["/unknown names"][:].flat]
-        facevars = [s for s in self._handle
-                    if s.startswith(("fcx","fcy","fcz")) and s[-1].isdigit()]
-        nfacevars = len(facevars)
-        if (nfacevars > 0) :
-            ncomp += nfacevars
-            for facevar in facevars :
-                self.field_list.append(facevar)
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -106,14 +99,22 @@ class FLASHHierarchy(AMRHierarchy):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
         
-        self.grid_left_edge[:] = f["/bounding box"][:,:,0]
-        self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        # Initialize to the domain left / domain right
+        ND = self.parameter_file.dimensionality
+        DLE = self.parameter_file.domain_left_edge
+        DRE = self.parameter_file.domain_right_edge
+        for i in range(3):
+            self.grid_left_edge[:,i] = DLE[i]
+            self.grid_right_edge[:,i] = DRE[i]
+        # We only go up to ND for 2D datasets
+        self.grid_left_edge[:,:ND] = f["/bounding box"][:,:,0]
+        self.grid_right_edge[:,:ND] = f["/bounding box"][:,:,1]
         
         # Move this to the parameter file
         try:
-            nxb = pf._find_parameter("integer", "nxb", True)
-            nyb = pf._find_parameter("integer", "nyb", True)
-            nzb = pf._find_parameter("integer", "nzb", True)
+            nxb = pf.parameters['nxb']
+            nyb = pf.parameters['nyb']
+            nzb = pf.parameters['nzb']
         except KeyError:
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
@@ -230,6 +231,9 @@ class FLASHStaticOutput(StaticOutput):
             self.parameters["EOSType"] = -1
         if self.cosmological_simulation == 1:
             self._setup_comoving_units()
+        if "pc_unitsbase" in self.parameters:
+            if self.parameters["pc_unitsbase"] == "CGS":
+                self._setup_cgs_units()
         else:
             self._setup_nounits_units()
         self.time_units['1'] = 1
@@ -265,6 +269,22 @@ class FLASHStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
+    def _setup_cgs_units(self):
+        self.conversion_factors['dens'] = 1.0
+        self.conversion_factors['pres'] = 1.0
+        self.conversion_factors['eint'] = 1.0
+        self.conversion_factors['ener'] = 1.0
+        self.conversion_factors['temp'] = 1.0
+        self.conversion_factors['velx'] = 1.0
+        self.conversion_factors['vely'] = 1.0
+        self.conversion_factors['velz'] = 1.0
+        self.conversion_factors['particle_velx'] = 1.0
+        self.conversion_factors['particle_vely'] = 1.0
+        self.conversion_factors['particle_velz'] = 1.0
+        self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
     def _setup_nounits_units(self):
         self.conversion_factors['dens'] = 1.0
         self.conversion_factors['pres'] = 1.0
@@ -277,7 +297,6 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['particle_velx'] = 1.0
         self.conversion_factors['particle_vely'] = 1.0
         self.conversion_factors['particle_velz'] = 1.0
-        z = 0
         mylog.warning("Setting 1.0 in code units to be 1.0 cm")
         if not self.has_key("TimeUnits"):
             mylog.warning("No time units.  Setting 1.0 = 1 second.")
@@ -289,9 +308,13 @@ class FLASHStaticOutput(StaticOutput):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
         if nn not in self._handle: raise KeyError(nn)
-        for tpname, pval in self._handle[nn][:]:
+        for tpname, pval in zip(self._handle[nn][:,'name'],
+                                self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                return pval
+                if ptype == "string" :
+                    return pval.strip()
+                else :
+                    return pval
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
@@ -305,24 +328,60 @@ class FLASHStaticOutput(StaticOutput):
                 self._handle["sim info"][:]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
+        # First we load all of the parameters
+        hns = ["simulation parameters"]
+        # note the ordering here is important: runtime parameters should
+        # ovewrite scalars with the same name.
+        for ptype in ['scalars', 'runtime parameters']:
+            for vtype in ['integer', 'real', 'logical', 'string']:
+                hns.append("%s %s" % (vtype, ptype))
+        if self._flash_version > 7:
+            for hn in hns:
+                if hn not in self._handle:
+                    continue
+                for varname, val in zip(self._handle[hn][:,'name'],
+                                        self._handle[hn][:,'value']):
+                    vn = varname.strip()
+                    if hn.startswith("string") :
+                        pval = val.strip()
+                    else :
+                        pval = val
+                    if vn in self.parameters and self.parameters[vn] != pval:
+                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
+                    self.parameters[vn] = pval
+        if self._flash_version == 7:
+            for hn in hns:
+                if hn not in self._handle:
+                    continue
+                if hn is 'simulation parameters':
+                    zipover = zip(self._handle[hn].dtype.names,self._handle[hn][0])
+                else:
+                    zipover = zip(self._handle[hn][:,'name'],self._handle[hn][:,'value'])
+                for varname, val in zipover:
+                    vn = varname.strip()
+                    if hn.startswith("string") :
+                        pval = val.strip()
+                    else :
+                        pval = val
+                    if vn in self.parameters and self.parameters[vn] != pval:
+                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
+                    self.parameters[vn] = pval
         self.domain_left_edge = na.array(
-            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz']).astype("float64")
+            [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
-            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz']).astype("float64")
-        self.min_level = self._find_parameter(
-            "integer", "lrefine_min", scalar = False) - 1
+            [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
+        self.min_level = self.parameters["lrefine_min"] -1
 
         # Determine domain dimensions
         try:
-            nxb = self._find_parameter("integer", "nxb", scalar = True)
-            nyb = self._find_parameter("integer", "nyb", scalar = True)
-            nzb = self._find_parameter("integer", "nzb", scalar = True)
+            nxb = self.parameters["nxb"]
+            nyb = self.parameters["nyb"]
+            nzb = self.parameters["nzb"]
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz'] # FLASH2 only!
         try:
-            dimensionality = self._find_parameter("integer", "dimensionality",
-                                                  scalar = True)
+            dimensionality = self.parameters["dimensionality"]
         except KeyError:
             dimensionality = 3
             if nzb == 1: dimensionality = 2
@@ -330,45 +389,28 @@ class FLASHStaticOutput(StaticOutput):
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
 
-        nblockx = self._find_parameter("integer", "nblockx")
-        nblocky = self._find_parameter("integer", "nblocky")
-        nblockz = self._find_parameter("integer", "nblockz")
+        nblockx = self.parameters["nblockx"]
+        nblocky = self.parameters["nblocky"]
+        nblockz = self.parameters["nblockz"]
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
-
         try:
-            self.parameters['Gamma'] = self._find_parameter("real", "gamma")
-        except KeyError:
+            self.parameters["Gamma"] = self.parameters["gamma"]
+        except:
+            mylog.warning("Cannot find Gamma")
             pass
 
-        if self._flash_version == 7:
-            self.current_time = float(
-                self._handle["simulation parameters"][:]["time"])
-        else:
-            self.current_time = \
-                float(self._find_parameter("real", "time", scalar=True))
+        self.current_time = self.parameters["time"]
 
-        if self._flash_version == 7:
-            self.parameters['timestep'] = float(
-                self._handle["simulation parameters"]["timestep"])
-        else:
-            self.parameters['timestep'] = \
-                float(self._find_parameter("real", "dt", scalar=True))
-
-        try:
-            use_cosmo = self._find_parameter("logical", "usecosmology") 
-        except:
-            use_cosmo = 0
-
-        if use_cosmo == 1:
+        try: 
+            self.parameters["usecosmology"]
             self.cosmological_simulation = 1
-            self.current_redshift = self._find_parameter("real", "redshift",
-                                        scalar = True)
-            self.omega_lambda = self._find_parameter("real", "cosmologicalconstant")
-            self.omega_matter = self._find_parameter("real", "omegamatter")
-            self.hubble_constant = self._find_parameter("real", "hubbleconstant")
-        else:
+            self.current_redshift = self.parameters['redshift']
+            self.omega_lambda = self.parameters['cosmologicalconstant']
+            self.omega_matter = self.parameters['omegamatter']
+            self.hubble_constant = self.parameters['hubbleconstant']
+        except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 

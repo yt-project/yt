@@ -1,5 +1,5 @@
 """
-An AstrophysicalObject that represents a simulation volume
+Compatibility module
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
@@ -23,10 +23,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .astrophysical_object import \
-    AstrophysicalObject, identification_method, correlation_method
-    
-class SimulationVolume(AstrophysicalObject):
-    _type_name = "simulation_volume"
-    def __init__(self, data_source):
-        AstrophysicalObject.__init__(self, data_source)
+from .CICDeposit import *
+from .ContourFinding import *
+from .DepthFirstOctree import *
+from .fortran_reader import *
+from .freetype_writer import *
+from .geometry_utils import *
+from .Interpolators import *
+from .misc_utilities import *
+from .Octree import *
+from .png_writer import *
+from .PointsInVolume import *
+from .QuadTree import *
+from .RayIntegrators import *
+from .grid_traversal import *
+from .marching_cubes import *

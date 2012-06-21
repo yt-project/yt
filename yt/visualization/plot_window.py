@@ -36,7 +36,7 @@ from .plot_modifications import get_smallest_appropriate_unit
 from .tick_locators import LogLocator, LinearLocator
 
 from yt.funcs import *
-from yt.utilities.amr_utils import write_png_to_string
+from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
@@ -90,6 +90,7 @@ class PlotWindow(object):
     _plot_valid = False
     _colorbar_valid = False
     _contour_info = None
+    _vector_info = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, periodic = True):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
@@ -273,6 +274,10 @@ class PlotWindow(object):
             return
         self._contour_info = (field_name, n_cont, colors, logit)
 
+    @invalidate_plot
+    def set_vector_info(self, skip, scale = 1):
+        self._vector_info = (skip, scale)
+
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
 
@@ -405,19 +410,39 @@ class PWViewerExtJS(PWViewer):
             ph.add_payload(payload)
 
     def _apply_modifications(self, img):
-        if self._contour_info is None:
+        if self._contour_info is None and self._vector_info is None:
             return write_png_to_string(img)
         from matplotlib.figure import Figure
         from yt.visualization._mpl_imports import \
             FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
         from yt.utilities.delaunay.triangulate import Triangulation as triang
-        plot_args = {}
-        field, number, colors, logit = self._contour_info
-        if colors is not None: plot_args['colors'] = colors
 
         vi, vj, vn = img.shape
 
         # Now we need to get our field values
+        fig = Figure((vi/100.0, vj/100.0), dpi = 100)
+        fig.figimage(img)
+        # Add our contour
+        ax = fig.add_axes([0.0, 0.0, 1.0, 1.0], frameon=False)
+        ax.patch.set_alpha(0.0)
+
+        # Now apply our modifications
+        self._apply_contours(ax, vi, vj)
+        self._apply_vectors(ax, vi, vj)
+
+        canvas = FigureCanvasAgg(fig)
+        f = cStringIO.StringIO()
+        canvas.print_figure(f)
+        f.seek(0)
+        img = f.read()
+        return img
+
+    def _apply_contours(self, ax, vi, vj):
+        if self._contour_info is None: return 
+        plot_args = {}
+        field, number, colors, logit = self._contour_info
+        if colors is not None: plot_args['colors'] = colors
+
         raw_data = self._frb.data_source
         b = self._frb.bounds
         xi, yi = na.mgrid[b[0]:b[1]:(vi / 8) * 1j,
@@ -426,22 +451,32 @@ class PWViewerExtJS(PWViewer):
         y = raw_data['py']
         z = raw_data[field]
         if logit: z = na.log10(z)
-        fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()
+        fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()[::-1,:]
 
-        fig = Figure((vi/100.0, vj/100.0), dpi = 100)
-        fig.figimage(img)
-        # Add our contour
-        ax = fig.add_axes([0.0, 0.0, 1.0, 1.0], frameon=False)
-        ax.patch.set_alpha(0.0)
-
-        # Now contour it
         ax.contour(fvals, number, colors='w')
-        canvas = FigureCanvasAgg(fig)
-        f = cStringIO.StringIO()
-        canvas.print_figure(f)
-        f.seek(0)
-        img = f.read()
-        return img
+        
+    def _apply_vectors(self, ax, vi, vj):
+        if self._vector_info is None: return 
+        skip, scale = self._vector_info
+
+        nx = self._frb.buff_size[0]/skip
+        ny = self._frb.buff_size[1]/skip
+        new_frb = FixedResolutionBuffer(self._frb.data_source,
+                        self._frb.bounds, (nx,ny))
+
+        axis = self._frb.data_source.axis
+        fx = "%s-velocity" % (axis_names[x_dict[axis]])
+        fy = "%s-velocity" % (axis_names[y_dict[axis]])
+        px = new_frb[fx][::-1,:]
+        py = new_frb[fy][::-1,:]
+        x = na.mgrid[0:vi-1:ny*1j]
+        y = na.mgrid[0:vj-1:nx*1j]
+        # Always normalize, then we scale
+        nn = ((px**2.0 + py**2.0)**0.5).max()
+        px /= nn
+        py /= nn
+        print scale, px.min(), px.max(), py.min(), py.max()
+        ax.quiver(x, y, px, py, scale=float(vi)/skip)
         
     def get_ticks(self, field, height = 400):
         # This will eventually change to work with non-logged fields

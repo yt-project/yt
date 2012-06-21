@@ -82,11 +82,15 @@ class YTCommand(object):
         if cls.npfs > 1:
             self(args)
         else:
-            if len(getattr(args, "pf", [])) > 1:
+            pf_args = getattr(args, "pf", [])
+            if len(pf_args) > 1:
                 pfs = args.pf
                 for pf in pfs:
                     args.pf = pf
                     self(args)
+            elif len(pf_args) == 0:
+                pfs = []
+                self(args)
             else:
                 args.pf = getattr(args, 'pf', [None])[0]
                 self(args)
@@ -105,6 +109,8 @@ class GetParameterFiles(argparse.Action):
 _common_options = dict(
     pf      = dict(short="pf", action=GetParameterFiles,
                    nargs="+", help="Parameter files to run on"),
+    opf     = dict(action=GetParameterFiles, dest="pf",
+                   nargs="*", help="(Optional) Parameter files to run on"),
     axis    = dict(short="-a", long="--axis",
                    action="store", type=int,
                    dest="axis", default=4,
@@ -152,6 +158,10 @@ _common_options = dict(
                    dest="center", default=None,
                    nargs=3,
                    help="Center, space separated (-1 -1 -1 for max)"),
+    max     = dict(short="-m", long="--max",
+                   action="store_true",
+                   dest="max",default=False,
+                   help="Center the plot on the density maximum"),
     bn      = dict(short="-b", long="--basename",
                    action="store", type=str,
                    dest="basename", default=None,
@@ -991,7 +1001,8 @@ class YTLoadCmd(YTCommand):
         import IPython
         if IPython.__version__.startswith("0.10"):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11"):
+        elif IPython.__version__.startswith("0.11") or \
+             IPython.__version__.startswith("0.12"):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
@@ -1006,11 +1017,7 @@ class YTLoadCmd(YTCommand):
         else:
             from IPython.config.loader import Config
             cfg = Config()
-            cfg.InteractiveShellEmbed.local_ns = local_ns
-            IPython.embed(config=cfg)
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-            ipshell = InteractiveShellEmbed(config=cfg)
-
+            IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -1105,7 +1112,9 @@ class YTPastebinGrabCmd(YTCommand):
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center",
             "zlim", "axis", "field", "weight", "skip",
-            "cmap", "output", "grids", "time", "pf")
+            "cmap", "output", "grids", "time", "pf",
+            "max")
+    
     name = "plot"
     
     description = \
@@ -1119,6 +1128,8 @@ class YTPlotCmd(YTCommand):
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
+            v, center = pf.h.find_max("Density")
+        if args.max:
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
@@ -1264,7 +1275,8 @@ class YTGUICmd(YTCommand):
                  help="At startup, find all *.hierarchy files in the CWD"),
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
-                 help="Add a debugging mode for cell execution")
+                 help="Add a debugging mode for cell execution"),
+            "opf"
             )
     description = \
         """
@@ -1310,36 +1322,36 @@ class YTGUICmd(YTCommand):
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(base_extjs_path)
         hr.debug = PayloadHandler.debug = args.debug
+        command_line = ["pfs = []"]
         if args.find:
             # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
             for fn in sorted(glob.glob("*/*.hierarchy")):
                 command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
+        hr.execute("\n".join(command_line))
         bottle.debug()
         uuid_serve_functions(open_browser=args.open_browser,
                     port=int(args.port), repl=hr)
 
 class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf', 'field',
-            dict(long="--max", action="store_true", default=False,
-                 dest='max', help="Display maximum of requested field."),
-            dict(long="--min", action="store_true", default=False,
-                 dest='min', help="Display minimum of requested field."))
+    args = ('outputfn','bn','skip','pf','field',
+            dict(long="--max", action='store_true', default=False,
+                 dest='max', help="Display maximum of field requested through -f option."),
+            dict(long="--min", action='store_true', default=False,
+                 dest='min', help="Display minimum of field requested through -f option."))
     name = "stats"
     description = \
         """
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
 
-        (default field is density)
+        (default field is Density)
 
         """
 
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
-        if args.field in pf.h.field_list:
+        if args.field in pf.h.derived_field_list:
             if args.max == True:
                 v, c = pf.h.find_max(args.field)
                 print "Maximum %s: %0.5e at %s" % (args.field, v, c)
@@ -1425,7 +1437,7 @@ class YTUploadImageCmd(YTCommand):
         if 'upload' in rv and 'links' in rv['upload']:
             print
             print "Image successfully uploaded!  You can find it at:"
-            print "    %s" % (rv['upload']['links']['imgur_page'])
+            print "    %s" % (rv['upload']['links']['original'])
             print
             print "If you'd like to delete it, visit this page:"
             print "    %s" % (rv['upload']['links']['delete_page'])

@@ -151,7 +151,7 @@ class OrionHierarchy(AMRHierarchy):
         if not os.path.exists(fn): return
         with open(fn, 'r') as f:
             lines = f.readlines()
-            self.num_stars = int(lines[0].strip())
+            self.num_stars = int(lines[0].strip()[0])
             for line in lines[1:]:
                 particle_position_x = float(line.split(' ')[1])
                 particle_position_y = float(line.split(' ')[2])
@@ -163,16 +163,16 @@ class OrionHierarchy(AMRHierarchy):
                 for i in xrange(len(coord)):
                     na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
                     na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                    ind = na.where(mask == 1)
-                    selected_grids = self.grids[ind]
-                    # in orion, particles always live on the finest level.
-                    # so, we want to assign the particle to the finest of
-                    # the grids we just found
-                    if len(selected_grids) != 0:
-                        grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                        ind = na.where(self.grids == grid)[0][0]
-                        self.grid_particle_count[ind] += 1
-                        self.grids[ind].NumberOfParticles += 1
+                ind = na.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = na.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
         return True
                 
     def readGlobalHeader(self,filename,paranoid_read):
@@ -502,7 +502,8 @@ class OrionStaticOutput(StaticOutput):
         castro = any(("castro." in line for line in open(pfn)))
         nyx = any(("nyx." in line for line in open(pfn)))
         maestro = os.path.exists(os.path.join(pname, "job_info"))
-        orion = (not castro) and (not maestro) and (not nyx)
+        really_orion = any(("geometry.prob_lo" in line for line in open(pfn)))
+        orion = (not castro) and (not maestro) and (not nyx) and really_orion
         return orion
         
     def _parse_parameter_file(self):

@@ -24,6 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, os
+import contextlib
 import warnings, struct, subprocess
 from math import floor, ceil
 
@@ -93,22 +94,6 @@ try:
 except ImportError:
     pass
 
-def __memory_fallback(pid):
-    """
-    Get process memory from a system call.
-    """
-    value = os.popen('ps -o rss= -p %d' % pid).read().strip().split('\n')
-    if len(value) == 1: return float(value[0])
-    value.pop(0)
-    for line in value:
-        online = line.split()
-        if online[0] != pid: continue
-        try:
-            return float(online[2])
-        except:
-            return 0.0
-    return 0.0
-
 def get_memory_usage():
     """
     Returning resident size in megabytes
@@ -117,10 +102,10 @@ def get_memory_usage():
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return __memory_fallback(pid) / 1024
+        return -1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return __memory_fallback(pid) / 1024
+        return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
@@ -562,3 +547,16 @@ def fix_length(length, pf):
        isinstance(length[1], types.StringTypes):
        length = length[0]/pf[length[1]]
     return length
+
+@contextlib.contextmanager
+def parallel_profile(prefix):
+    import cProfile
+    from yt.config import ytcfg
+    fn = "%s_%04i_%04i.cprof" % (prefix,
+                ytcfg.getint("yt", "__topcomm_parallel_size"),
+                ytcfg.getint("yt", "__topcomm_parallel_rank"))
+    p = cProfile.Profile()
+    p.enable()
+    yield fn
+    p.disable()
+    p.dump_stats(fn)

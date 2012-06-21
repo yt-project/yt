@@ -1,5 +1,6 @@
 #!python
 import os, re
+from distutils import version
 from yt.mods import *
 from yt.data_objects.data_containers import AMRData
 namespace = locals().copy()
@@ -22,9 +23,15 @@ except:
     code.interact(doc, None, namespace)
     sys.exit()
 
+if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
+    api_version = '0.10'
+else:
+    api_version = '0.11'
+
 if IPython.__version__.startswith("0.10"):
     api_version = '0.10'
-elif IPython.__version__.startswith("0.11"):
+elif IPython.__version__.startswith("0.11") or \
+     IPython.__version__.startswith("0.12"):
     api_version = '0.11'
 
 if api_version == "0.10" and "DISPLAY" in os.environ:
