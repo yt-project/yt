@@ -28,7 +28,7 @@ License:
 
 import os
 import numpy as na
-from yt.utilities.amr_utils import read_castro_particles, read_and_seek
+from yt.utilities.lib import read_castro_particles, read_and_seek
 from yt.utilities.io_handler import BaseIOHandler
 
 from definitions import fab_header_pattern, nyx_particle_field_names, \

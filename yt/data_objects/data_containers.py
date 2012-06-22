@@ -40,7 +40,7 @@ from yt.funcs import *
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.amr_utils import find_grids_in_inclined_box, \
+from yt.utilities.lib import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
     march_cubes_grid, march_cubes_grid_flux
@@ -3786,7 +3786,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                     self.pf.domain_left_edge)/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64') + 2
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -3794,7 +3794,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -3805,8 +3805,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
-
+        output_dims = na.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
 
         for field in fields:

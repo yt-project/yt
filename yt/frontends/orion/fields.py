@@ -171,6 +171,6 @@ _particle_field_list = ["mass",
 
 for pf in _particle_field_list:
     pfunc = particle_func("particle_%s" % (pf))
-    add_orion_field("particle_%s" % pf, function=pfunc,
-                    validators = [ValidateSpatial(0)],
-                    particle_type=True)
+    add_field("particle_%s" % pf, function=pfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)

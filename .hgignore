@@ -9,6 +9,22 @@ yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
 yt/utilities/libconfig_wrapper.c
 yt/utilities/spatial/ckdtree.c
+yt/utilities/_amr_utils/CICDeposit.c
+yt/utilities/_amr_utils/ContourFinding.c
+yt/utilities/_amr_utils/DepthFirstOctree.c
+yt/utilities/_amr_utils/FixedInterpolator.c
+yt/utilities/_amr_utils/fortran_reader.c
+yt/utilities/_amr_utils/freetype_writer.c
+yt/utilities/_amr_utils/geometry_utils.c
+yt/utilities/_amr_utils/Interpolators.c
+yt/utilities/_amr_utils/kdtree.c
+yt/utilities/_amr_utils/misc_utilities.c
+yt/utilities/_amr_utils/Octree.c
+yt/utilities/_amr_utils/png_writer.c
+yt/utilities/_amr_utils/PointsInVolume.c
+yt/utilities/_amr_utils/QuadTree.c
+yt/utilities/_amr_utils/RayIntegrators.c
+yt/utilities/_amr_utils/VolumeIntegrator.c
 syntax: glob
 *.pyc
 .*.swp
