@@ -32,6 +32,7 @@ Ext.define('Reason.controller.WidgetDirector', {
                "Reason.controller.widgets.ParameterFile",
                "Reason.controller.widgets.PannableMap",
                "Reason.controller.widgets.PhasePlot",
+               "Reason.controller.widgets.Scene",
     ],
     stores: ['WidgetTypes', 'WidgetInstances'],
     views: ['WidgetTypesGrid', 'WidgetInstancesGrid'],
