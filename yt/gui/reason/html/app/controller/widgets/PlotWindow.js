@@ -181,6 +181,19 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         return this.plotWindowView;
     },
 
+    createMulticastView: function() {
+        this.plotWindowView = Ext.widget("plotwindow", {
+            varname = null,
+            title: "Multicast View",
+        });
+        Ext.each(this.widgetTriggers, function(trigger, index, all) {
+            this.plotWindowView.query(trigger[0])[0].disable();
+        });
+        Ext.each(this.executionTriggers, function(trigger, index, all) {
+            this.plotWindowView.query(trigger[0])[0].disable();
+        });
+    },
+
     statics: {
         widgetName: 'plot_window',
         supportsDataObjects: false,
