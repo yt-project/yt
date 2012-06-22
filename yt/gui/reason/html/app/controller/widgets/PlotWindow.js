@@ -183,7 +183,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
 
     createMulticastView: function() {
         this.plotWindowView = Ext.widget("plotwindow", {
-            varname = null,
+            varname: null,
             title: "Multicast View",
         });
         Ext.each(this.widgetTriggers, function(trigger, index, all) {
