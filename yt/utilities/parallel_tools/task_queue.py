@@ -29,6 +29,7 @@ from mpi4py import MPI
 import time, threading, random
 
 from .parallel_analysis_interface import \
+    communication_system, \
     _get_comm
 
 messages = dict(
@@ -39,10 +40,10 @@ messages = dict(
 )
 
 class TaskQueueNonRoot(object):
-    def __init__(self, tasks):
+    def __init__(self, comm, tasks):
         self.tasks = tasks
         self.results = None
-        self.comm = _get_comm(())
+        self.comm = comm
 
     def send_result(self, result):
         new_msg = messages['result'].copy()
@@ -71,15 +72,14 @@ class TaskQueueNonRoot(object):
         return self.comm.comm.bcast(vals, root = 0)
 
 class TaskQueueRoot(TaskQueueNonRoot):
-    def __init__(self, tasks):
+    def __init__(self, comm, tasks):
         self.tasks = tasks
         self.results = {}
         self.assignments = {}
         self._notified = 0
         self._current = 0
         self._remaining = len(self.tasks)
-        self.comm = _get_comm(())
-        print "Done with probe loop"
+        self.comm = comm
         # Set up threading here
         # self.dist = threading.Thread(target=self.handle_assignments)
         # self.dist.daemon = True
@@ -120,3 +120,11 @@ class TaskQueueRoot(TaskQueueNonRoot):
         if self._notified >= self.comm.comm.size - 1:
             print "NOTIFIED ENOUGH!"
             raise StopIteration
+
+def task_queue(func, tasks):
+    comm = _get_comm(())
+    if comm.comm.rank == 0:
+        my_q = TaskQueueRoot(comm, tasks)
+    else:
+        my_q = TaskQueueNonRoot(comm, None)
+    my_q.run(func)
