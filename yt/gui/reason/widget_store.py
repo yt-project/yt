@@ -26,6 +26,7 @@ License:
 from yt.mods import *
 import weakref
 from .bottle_mods import PayloadHandler, lockit
+from .widget_builders import RenderingScene 
 from yt.visualization.plot_window import PWViewerExtJS
 import uuid
 
@@ -159,6 +160,14 @@ class WidgetStore(dict):
                        'metadata_string': mds}
         self._add_widget(pp, widget_data)
 
+    def create_scene(self, pf):
+        '''Creates 3D XTK-based scene'''
+        widget = SceneWidget()
+        widget_data = {'render': widget._add_volume_rendering(),
+                      }
+        self._add_widget(widget, widget_data)
+
+
 class ParameterFileWidget(object):
     _ext_widget_id = None
     _widget_name = "parameterfile"
@@ -202,3 +211,32 @@ class ParameterFileWidget(object):
             {'ptype':'field_info',
              'field_source': self.pf.field_info[field].get_source() })
         return
+
+class SceneWidget(object):
+    _ext_widget_id = None
+    _widget_name = "scene"
+    _rendering_scene = None
+
+    def __init__(self, pf):
+        self.pf = weakref.proxy(pf)
+
+    def add_volume_rendering(self):
+        self._rendering_scene = RenderingScene(self.pf, None, None)
+
+    def deliver_rendering(self, scene_config):
+        ph = PayloadHandler()
+        ph.widget_payload(self, {'ptype':'rendering',
+                                 'image':self._rendering_scene.snapshot()})
+        return
+
+    def deliver_gridlines(self):
+        ph = PayloadHandler()
+        ph.widget_payload(self, {'ptype':'grid_lines',
+                                 'vertices': get_grid_vertices(),
+                                 'colors': get_grid_colors()})
+        return
+
+    def deliver_streamlines(self):
+        pf = PayloadHandler()
+        pass
+
