@@ -58,6 +58,9 @@ from yt.utilities.parameter_file_storage import \
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
 from yt.utilities.orientation import Orientation
+from yt.utilities.math_utils import RX
+from yt.utilities.math_utils import RY
+from yt.utilities.math_utils import RZ
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -3422,23 +3425,7 @@ class AMREllipsoidBase(AMR3DData):
         self._e0 = e0
         self._tilt = tilt
         
-        # define the rotation matrix needed later
-        def RX(ax):
-            rot_matrix = na.array([[1, 0, 0], \
-                                   [0, na.cos(ax), na.sin(ax)], \
-                                   [0,-na.sin(ax), na.cos(ax)]])
-            return rot_matrix
-        def RY(ay):
-            rot_matrix = na.array([[na.cos(ay), 0,-na.sin(ay)], \
-                                   [0, 1, 0], \
-                                   [na.sin(ay), 0, na.cos(ay)]])
-            return rot_matrix
-        def RZ(az):
-            rot_matrix = na.array([[na.cos(az), na.sin(az), 0], \
-                                   [-na.sin(az), na.cos(az), 0], \
-                                   [0, 0, 1]])
-            return rot_matrix
-
+        # Should have rotation matrix RX,RY,RZ imported at top
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = na.arctan(e0[1] / e0[0])
         # rotate e0 by -t1

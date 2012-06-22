@@ -58,22 +58,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call
 
+from yt.utilities.math_utils import RX
+from yt.utilities.math_utils import RY
+from yt.utilities.math_utils import RZ
+
 TINY = 1.e-40
 
 # Ellipsoid funtions.
-# define the rotation matrix needed later
-def RX(ax):
-    rot_matrix = na.array([[1, 0, 0], [0, na.cos(ax), na.sin(ax)],
-        [0, -na.sin(ax), na.cos(ax)]])
-    return rot_matrix
-def RY(ay):
-    rot_matrix = na.array([[na.cos(ay), 0, -na.sin(ay)], [0, 1, 0],
-        [na.sin(ay), 0, na.cos(ay)]])
-    return rot_matrix
-def RZ(az):
-    rot_matrix = na.array([[na.cos(az), na.sin(az), 0],
-        [-na.sin(az), na.cos(az), 0], [0, 0, 1]])
-    return rot_matrix
+# Rotation Matrixes should already be imported at top
 
 class Halo(object):
     """
@@ -463,8 +455,7 @@ class Halo(object):
         # that is almost certainly never to occur,
         # will deal with it later if it ever comes up
         if na.size(self["particle_position_x"]) < 4:
-            print "not enough particles to form ellipsoid returning zeros"
-            return (0, 0, 0, 0, 0, 0, 0)
+            raise YTNotEnoughParticles(na.size(self["particle_position_x"]))
         # Calculate the parameters that describe the ellipsoid of
         # the particles that constitute the halo. This function returns
         # all the parameters except for the center of mass.

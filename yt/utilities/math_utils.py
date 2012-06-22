@@ -5,6 +5,8 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD Physics/CASS
 Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
+Author: Geoffrey So <gsiisg@gmail.com>
+Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
@@ -632,3 +634,61 @@ def get_rotation_matrix(self, theta, rot_vector):
                   [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
     
     return R
+
+def RX(ax):
+    """
+    Returns
+    -------
+    Gives the rotation matrix about the x-axis as an array
+
+    Example
+    -------
+    >>>>from yt.mods import *
+    >>>>from yt.utilities.math_utils import RX
+    >>>>RX(na.pi)
+    >>>>array([[  1.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+               [  0.00000000e+00,  -1.00000000e+00,   1.22464680e-16],
+               [  0.00000000e+00,  -1.22464680e-16,  -1.00000000e+00]])
+    """
+    rot_matrix = na.array([[1, 0, 0], \
+                           [0, na.cos(ax), na.sin(ax)], \
+                           [0,-na.sin(ax), na.cos(ax)]])
+    return rot_matrix
+def RY(ay):
+    """
+    Returns
+    -------
+    Gives the rotation matrix about the y-axis as an array
+
+    Example
+    -------
+    >>>>from yt.mods import *
+    >>>>from yt.utilities.math_utils import RY
+    >>>>RY(na.pi)
+    >>>>array([[ -1.00000000e+00,   0.00000000e+00,  -1.22464680e-16],
+               [  0.00000000e+00,   1.00000000e+00,   0.00000000e+00],
+               [  1.22464680e-16,   0.00000000e+00,  -1.00000000e+00]])
+    """
+    rot_matrix = na.array([[na.cos(ay), 0,-na.sin(ay)], \
+                           [0, 1, 0], \
+                           [na.sin(ay), 0, na.cos(ay)]])
+    return rot_matrix
+def RZ(az):
+    """
+    Returns
+    -------
+    Gives the rotation matrix about the z-axis as an array
+
+    Example
+    -------
+    >>>>from yt.mods import *
+    >>>>from yt.utilities.math_utils import RZ
+    >>>>RZ(na.pi)
+    >>>>array([[ -1.00000000e+00,   1.22464680e-16,   0.00000000e+00],
+               [ -1.22464680e-16,  -1.00000000e+00,   0.00000000e+00],
+               [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
+    """
+    rot_matrix = na.array([[na.cos(az), na.sin(az), 0], \
+                           [-na.sin(az), na.cos(az), 0], \
+                           [0, 0, 1]])
+    return rot_matrix
