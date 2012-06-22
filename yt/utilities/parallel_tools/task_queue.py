@@ -32,7 +32,8 @@ from yt.funcs import *
 from .parallel_analysis_interface import \
     communication_system, \
     _get_comm, \
-    parallel_capable
+    parallel_capable, \
+    ResultsStorage
 
 messages = dict(
     task = dict(msg = 'next'),
@@ -44,7 +45,7 @@ messages = dict(
 class TaskQueueNonRoot(object):
     def __init__(self, tasks, comm, subcomm):
         self.tasks = tasks
-        self.results = None
+        self.results = {}
         self.comm = comm
         self.subcomm = subcomm
 
@@ -153,4 +154,46 @@ def task_queue(func, tasks, njobs=0):
         my_q = TaskQueueRoot(tasks, comm, njobs)
     else:
         my_q = TaskQueueNonRoot(None, comm, subcomm)
+    communication_system.pop()
     return my_q.run(func)
+
+def dynamic_parallel_objects(tasks, njobs=0, storage=None):
+    comm = _get_comm(())
+    if not parallel_capable:
+        mylog.error("Cannot create task queue for serial process.")
+        raise RunTimeError
+    my_size = comm.comm.size
+    if njobs <= 0:
+        njobs = my_size - 1
+    if njobs >= my_size:
+        mylog.error("You have asked for %s jobs, but only %s processors are available.",
+                    njobs, (my_size - 1))
+        raise RunTimeError
+    my_rank = comm.rank
+    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
+    all_new_comms.insert(0, na.array([0]))
+    for i,comm_set in enumerate(all_new_comms):
+        if my_rank in comm_set:
+            my_new_id = i
+            break
+    subcomm = communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
+    
+    if comm.comm.rank == 0:
+        my_q = TaskQueueRoot(tasks, comm, njobs)
+        my_q.comm.probe_loop(1, my_q.handle_assignment)
+    else:
+        my_q = TaskQueueNonRoot(None, comm, subcomm)
+        if storage is None:
+            for task in my_q:
+                yield task
+        else:
+            for task in my_q:
+                rstore = ResultsStorage()
+                yield rstore, task
+                my_q.send_result(rstore.result)
+
+    if storage is not None:
+        my_results = my_q.comm.comm.bcast(my_q.results, root=0)
+        storage.update(my_results)
+
+    communication_system.pop()

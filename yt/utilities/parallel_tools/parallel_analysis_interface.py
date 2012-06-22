@@ -340,7 +340,13 @@ class ResultsStorage(object):
     result = None
     result_id = None
 
-def parallel_objects(objects, njobs = 0, storage = None, barrier = True):
+def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
+                     dynamic = False):
+    if dynamic:
+        from .task_queue import dynamic_parallel_objects
+        dynamic_parallel_objects(objects, njobs=njobs,
+                                 storage=storage)
+    
     if not parallel_capable:
         njobs = 1
     my_communicator = communication_system.communicators[-1]
@@ -789,7 +795,7 @@ class Communicator(object):
             try:
                 callback(st)
             except StopIteration:
-                print "PROBE LOOP ENDING"
+                mylog.debug("Probe loop ending.")
                 break
 
 communication_system = CommunicationSystem()
