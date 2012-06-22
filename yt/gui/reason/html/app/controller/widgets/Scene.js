@@ -34,6 +34,7 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     /* These call functions on the controller object */
     widgetTriggers: [
+        ["#scenepanel", "afterrender", "setupXTK"],
     ],
 
     /* These call templates */
@@ -42,6 +43,7 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     /* ref: and selector: */
     viewRefs: [
+        { ref:'scenePanel', selector: '#scenepanel' },
     ],
 
     /* key: , shift: and tpl: */
@@ -72,7 +74,13 @@ Ext.define("Reason.controller.widgets.Scene", {
                 obj, 'createDisplay');
             reason.server.execute(cmd);
         },
+    },
 
+    setupXTK: function() {
+        var sp = this.getScenePanel();
+        this.renderer = new X.renderer3D();
+        this.renderer.container = sp.getEl().dom;
+        this.renderer.init();
     },
 
 });
