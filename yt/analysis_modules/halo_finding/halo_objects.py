@@ -455,7 +455,8 @@ class Halo(object):
         # that is almost certainly never to occur,
         # will deal with it later if it ever comes up
         if na.size(self["particle_position_x"]) < 4:
-            raise YTNotEnoughParticles(na.size(self["particle_position_x"]))
+            mylog.warning("Too few particles for ellipsoid parameters.")
+            return (0, 0, 0, 0, 0, 0, 0)
         # Calculate the parameters that describe the ellipsoid of
         # the particles that constitute the halo. This function returns
         # all the parameters except for the center of mass.

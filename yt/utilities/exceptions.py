@@ -67,11 +67,3 @@ class YTNoDataInObjectError(YTException):
         if self.obj_type == "slice":
             s += "  It may lie on a grid face.  Try offsetting slightly."
         return s
-
-class YTNotEnoughParticles(YTException):
-    def __init__(self, nparticles):
-        self.nparticles = nparticles
-        
-    def __str__(self):
-        return "There are %i particles, not enough for ellipsoid" % \
-            (self.nparticles)
