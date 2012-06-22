@@ -1,11 +1,13 @@
 """
-A task queue for distributing work to worker agents
+Task queue in yt
 
+Author: Britton Smith <matthewturk@gmail.com>
+Affiliation: Michigan State University
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -23,127 +25,175 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import threading
+import numpy as na
+import time, threading, random
+
 from yt.funcs import *
+from .parallel_analysis_interface import \
+    communication_system, \
+    _get_comm, \
+    parallel_capable, \
+    ResultsStorage
 
-# The idea here is that we have a set of tasks, which we want to distribute.
-# We'll try to make this forward-compatible.  To do so, we want to support the
-# idea that there's a single, global set of tasks, as well as consumers that
-# receive tasks from the main controller.  These consumers then pass them out
-# to executors.
-#
-# The middle level, the "Consumer," is only really distinct from the executor
-# in the case that there is an MPI subcommunicator.  The reason for the
-# separation is so that the controller only communicates with a single member
-# of each subcommunicator, which then passes that info back out.
+messages = dict(
+    task = dict(msg = 'next'),
+    result = dict(msg = 'result'),
+    task_req = dict(msg = 'task_req'),
+    end = dict(msg = 'no_more_tasks'),
+)
 
-def locked(func):
-    @wraps(func)
-    def exclusive(self, *args, **kwargs):
-        with self.lock:
-            return func(self, *args, **kwargs)
-    return exclusive
-
-class YTTaskCommunicator(object):
-    # This should carefully be checked for a race condition, particularly in
-    # the wait() function
-    def __init__(self, interval = 2.0):
-        self.interval = interval
-        self.task_id = None
-        self.waiting = False
-        self.lock = threading.Lock()
-
-    @locked
-    def send_task(self, task_id):
-        self.task_id = task_id
-
-    @locked
-    def query(self):
-        return (self.waiting and self.task_id is None)
-
-    def wait(self):
-        self.waiting = True
-        while self.task_id is None:
-            time.sleep(self.interval)
-        with self.lock:
-            self.waiting = False
-            new_task_id = self.task_id
-            self.task_id = None
-        return new_task_id
-
-class YTTaskQueueController(threading.Thread):
-    # There's only one of these for every instance of yt -- whether than
-    # instance be spread across processors or not.
-    # We assume that this will exist in the process space of a consumer, so it
-    # will be threading based.
-    def __init__(self, tasks, interval = 2.0, communicators = None):
-        self.assignments = []
-        self.interval = interval
-        # Communicators can be anything but they have to implement a mechanism
-        # for saying, "I'm ready" and "I'm done"
+class TaskQueueNonRoot(object):
+    def __init__(self, tasks, comm, subcomm):
         self.tasks = tasks
-        self.communicators = communicators
-        threading.Thread.__init__(self)
+        self.results = {}
+        self.comm = comm
+        self.subcomm = subcomm
 
-    def run(self):
-        # Now we bootstrap
-        for i,c in enumerate(self.communicators):
-            self.assignments.append(i)
-            if i == len(self.tasks): break
-            c.send_task(i)
-        while len(self.assignments) < len(self.tasks):
-            time.sleep(self.interval)
-            for i,c in enumerate(self.communicators):
-                if not c.query(): continue
-                print "Sending assignment %s to %s" % (
-                    len(self.assignments), i)
-                c.send_task(len(self.assignments))
-                self.assignments.append(i)
-                if len(self.assignments) >= len(self.tasks): break
-        terminated = 0
-        while terminated != len(self.communicators):
-            for i,c in enumerate(self.communicators):
-                if not c.query(): continue
-                c.send_task(-1)
-                terminated += 1
-                print "Terminated %s" % (i)
+    def send_result(self, result):
+        new_msg = messages['result'].copy()
+        new_msg['value'] = result
+        if self.subcomm.rank == 0:
+            self.comm.comm.send(new_msg, dest = 0, tag=1)
+        self.subcomm.barrier()
 
-class YTTaskQueueConsumer(object):
-    # One of these will exist per individual MPI task or one per MPI
-    # subcommunicator, depending on the level of parallelism.  They serve to
-    # talk to the YTTaskQueueController on one side and possibly several
-    # YTTaskExecutors on the other.
-    #
-    # One potential setup for this, when using MPI, would be to have the
-    # Executors each have one of these, but only the head process of that
-    # subcommunicator possess an external communicator.  Then in next_task,
-    # if the external communicator exists, one would probe that; otherwise,
-    # accept a broadcast from the internal communicator's 0th task.
-    def __init__(self, external_communicator, internal_communicator):
-        self.external_communicator = external_communicator
-        self.internal_communicator = internal_communicator
+    def get_next(self):
+        msg = messages['task_req'].copy()
+        if self.subcomm.rank == 0:
+            self.comm.comm.send(msg, dest = 0, tag=1)
+            msg = self.comm.comm.recv(source = 0, tag=2)
+        msg = self.subcomm.bcast(msg, root=0)
+        if msg['msg'] == messages['end']['msg']:
+            mylog.info("Notified to end")
+            raise StopIteration
+        return msg['value']
 
-    def next_task(self):
-        next_task = self.external_communicator.wait()
-        #self.internal_communicator.notify(next_task)
-        return next_task
-
-class YTTaskExecutor(object):
-    _count = 0
-    # One of these will exist per computational actor
-    def __init__(self, tasks, communicator):
-        self.communicator = communicator
-        self.tasks = tasks
-        self.name = "Runner%03s" % (self.__class__._count)
-        self.__class__._count += 1
-
-    def run(self):
-        # Note that right now this only works for a 1:1 mapping of
-        # YTTaskQueueConsumer to YTTaskExecutor
-        next_task = None
+    def __iter__(self):
         while 1:
-            next_task = self.communicator.next_task()
-            if next_task == -1: break
-            print "Executing on %s" % (self.name),
-            self.tasks[next_task]()
-        print "Concluded on %s" % (self.name)
+            yield self.get_next()
+
+    def run(self, callable):
+        for task in self:
+            self.send_result(callable(task))
+        return self.finalize()
+
+    def finalize(self, vals = None):
+        return self.comm.comm.bcast(vals, root = 0)
+
+class TaskQueueRoot(TaskQueueNonRoot):
+    def __init__(self, tasks, comm, njobs):
+        self.njobs = njobs
+        self.tasks = tasks
+        self.results = {}
+        self.assignments = {}
+        self._notified = 0
+        self._current = 0
+        self._remaining = len(self.tasks)
+        self.comm = comm
+        # Set up threading here
+        # self.dist = threading.Thread(target=self.handle_assignments)
+        # self.dist.daemon = True
+        # self.dist.start()
+
+    def run(self, func = None):
+        self.comm.probe_loop(1, self.handle_assignment)
+        return self.finalize(self.results)
+
+    def insert_result(self, source_id, result):
+        task_id = self.assignments[source_id]
+        self.results[task_id] = result
+
+    def assign_task(self, source_id):
+        if self._remaining == 0:
+            mylog.debug("Notifying %s to end", source_id)
+            msg = messages['end'].copy()
+            self._notified += 1
+        else:
+            msg = messages['task'].copy()
+            task_id = self._current
+            task = self.tasks[task_id]
+            self.assignments[source_id] = task_id
+            self._current += 1
+            self._remaining -= 1
+            msg['value'] = task
+        self.comm.comm.send(msg, dest = source_id, tag = 2)
+
+    def handle_assignment(self, status):
+        msg = self.comm.comm.recv(source = status.source, tag = 1)
+        if msg['msg'] == messages['result']['msg']:
+            self.insert_result(status.source, msg['value'])
+        elif msg['msg'] == messages['task_req']['msg']:
+            self.assign_task(status.source)
+        else:
+            mylog.error("GOT AN UNKNOWN MESSAGE: %s", msg)
+            raise RuntimeError
+        if self._notified >= self.njobs:
+            raise StopIteration
+
+def task_queue(func, tasks, njobs=0):
+    comm = _get_comm(())
+    if not parallel_capable:
+        mylog.error("Cannot create task queue for serial process.")
+        raise RunTimeError
+    my_size = comm.comm.size
+    if njobs <= 0:
+        njobs = my_size - 1
+    if njobs >= my_size:
+        mylog.error("You have asked for %s jobs, but only %s processors are available.",
+                    njobs, (my_size - 1))
+        raise RunTimeError
+    my_rank = comm.rank
+    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
+    all_new_comms.insert(0, na.array([0]))
+    for i,comm_set in enumerate(all_new_comms):
+        if my_rank in comm_set:
+            my_new_id = i
+            break
+    subcomm = communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
+    
+    if comm.comm.rank == 0:
+        my_q = TaskQueueRoot(tasks, comm, njobs)
+    else:
+        my_q = TaskQueueNonRoot(None, comm, subcomm)
+    communication_system.pop()
+    return my_q.run(func)
+
+def dynamic_parallel_objects(tasks, njobs=0, storage=None):
+    comm = _get_comm(())
+    if not parallel_capable:
+        mylog.error("Cannot create task queue for serial process.")
+        raise RunTimeError
+    my_size = comm.comm.size
+    if njobs <= 0:
+        njobs = my_size - 1
+    if njobs >= my_size:
+        mylog.error("You have asked for %s jobs, but only %s processors are available.",
+                    njobs, (my_size - 1))
+        raise RunTimeError
+    my_rank = comm.rank
+    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
+    all_new_comms.insert(0, na.array([0]))
+    for i,comm_set in enumerate(all_new_comms):
+        if my_rank in comm_set:
+            my_new_id = i
+            break
+    subcomm = communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
+    
+    if comm.comm.rank == 0:
+        my_q = TaskQueueRoot(tasks, comm, njobs)
+        my_q.comm.probe_loop(1, my_q.handle_assignment)
+    else:
+        my_q = TaskQueueNonRoot(None, comm, subcomm)
+        if storage is None:
+            for task in my_q:
+                yield task
+        else:
+            for task in my_q:
+                rstore = ResultsStorage()
+                yield rstore, task
+                my_q.send_result(rstore.result)
+
+    if storage is not None:
+        my_results = my_q.comm.comm.bcast(my_q.results, root=0)
+        storage.update(my_results)
+
+    communication_system.pop()
