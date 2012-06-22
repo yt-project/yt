@@ -1,7 +1,7 @@
 """
 Task queue in yt
 
-Author: Britton Smith <matthewturk@gmail.com>
+Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: Michigan State University
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
