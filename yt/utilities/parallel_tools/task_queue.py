@@ -104,17 +104,18 @@ class TaskQueueRoot(TaskQueueNonRoot):
 
     def handle_assignments(self):
         while 1:
-            st = MPI.Status()
-            self.comm.comm.Probe(MPI.ANY_SOURCE, tag = 1, status = st)
-            msg = self.comm.comm.recv(source = st.source, tag = 1)
-            if msg['msg'] == messages['result']['msg']:
-                self.insert_result(st.source, msg['value'])
-            elif msg['msg'] == messages['task_req']['msg']:
-                self.assign_task(st.source)
-            else:
-                print "GOT AN UNKNOWN MESSAGE", msg
-                raise RuntimeError
+            self.comm.probe(1, self.handshake)
             if self._notified >= self.comm.comm.size: break
+
+    def handshake(self, status)
+        msg = self.comm.recv(source = status.source, tag = 1)
+        if msg['msg'] == messages['result']['msg']:
+            self.insert_result(st.source, msg['value'])
+        elif msg['msg'] == messages['task_req']['msg']:
+            self.assign_task(st.source)
+        else:
+            print "GOT AN UNKNOWN MESSAGE", msg
+            raise RuntimeError
 
     def finalize(self):
         self.dist.join()

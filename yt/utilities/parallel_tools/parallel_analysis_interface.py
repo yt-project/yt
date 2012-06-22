@@ -782,6 +782,11 @@ class Communicator(object):
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
 
+    def probe(self, tag, callback):
+        st = MPI.Status()
+        self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
+        callback(st)
+
 communication_system = CommunicationSystem()
 if parallel_capable:
     ranks = na.arange(MPI.COMM_WORLD.size)
