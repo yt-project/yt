@@ -650,9 +650,7 @@ def RX(ax):
                [  0.00000000e+00,  -1.00000000e+00,   1.22464680e-16],
                [  0.00000000e+00,  -1.22464680e-16,  -1.00000000e+00]])
     """
-    rot_matrix = na.array([[1, 0, 0], \
-                           [0, na.cos(ax), na.sin(ax)], \
-                           [0,-na.sin(ax), na.cos(ax)]])
+    rot_matrix = get_rotation_matrix(-ax,(1,0,0))
     return rot_matrix
 def RY(ay):
     """
@@ -669,9 +667,7 @@ def RY(ay):
                [  0.00000000e+00,   1.00000000e+00,   0.00000000e+00],
                [  1.22464680e-16,   0.00000000e+00,  -1.00000000e+00]])
     """
-    rot_matrix = na.array([[na.cos(ay), 0,-na.sin(ay)], \
-                           [0, 1, 0], \
-                           [na.sin(ay), 0, na.cos(ay)]])
+    rot_matrix = get_rotation_matrix(-ay,(0,1,0))
     return rot_matrix
 def RZ(az):
     """
@@ -688,7 +684,5 @@ def RZ(az):
                [ -1.22464680e-16,  -1.00000000e+00,   0.00000000e+00],
                [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
     """
-    rot_matrix = na.array([[na.cos(az), na.sin(az), 0], \
-                           [-na.sin(az), na.cos(az), 0], \
-                           [0, 0, 1]])
+    rot_matrix = get_rotation_matrix(-az,(0,0,1))
     return rot_matrix
