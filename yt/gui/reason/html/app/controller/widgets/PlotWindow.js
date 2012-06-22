@@ -76,7 +76,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     widgetTriggers: [
         ['#uploadimage', 'click', 'uploadImage'],
         ['#imagepanel', 'afterrender', 'setupClickImage'],
-        ['#pannablemap', 'click', 'multicast'],
+        ['#multicast', 'click', 'multicast'],
     ],
 
     executionTriggers: [
@@ -172,7 +172,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
         this.getColorbar().src = "data:image/png;base64," + wd['colorbar'];
         this.fieldStore = Ext.create("Reason.store.Fields")
         this.fieldStore.loadData(wd['fields']);
-        examine = this.fieldStore;
         this.getFieldSelector().bindStore(this.fieldStore);
         this.getFieldSelector().setValue(wd['initial_field']);
         this.getTransform().setValue(wd['initial_transform']);
@@ -211,7 +210,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             }
             function togglePlotType(b, e) {
                 var plotType = win.query("#plotType")[0].getValue();
-                examine = win;
                 if (plotType == 'Projection') {
                     win.query("#weightField")[0].enable();
                     win.query("#maxDens")[0].disable();

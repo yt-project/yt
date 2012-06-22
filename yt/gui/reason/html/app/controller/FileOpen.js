@@ -89,7 +89,6 @@ Ext.define('Reason.controller.FileOpen', {
 
     fillStore: function(f, a) {
         var con = reason.getController("FileOpen");
-        examine = a.result;
         if(a.status == false){
           Ext.Msg.alert("Error", "Something has gone wrong.");
           con.window.destroy();

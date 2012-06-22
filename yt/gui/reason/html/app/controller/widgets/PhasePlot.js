@@ -48,7 +48,6 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
     ],
     
     applyPayload: function(payload) {
-        examine = payload;
         this.getImage().getEl().dom.src = 
             "data:image/png;base64," + payload['image_data'];
         this.getColorbar().getEl().dom.src=
@@ -127,7 +126,6 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
         displayName: 'Phase Plot',
         preCreation: function(obj) {
             var widget = Ext.create(this.getName());
-            examine = obj;
             function makePlot(b, e) {
                 var conf = {
                     objname: obj.varname,
@@ -144,7 +142,6 @@ Ext.define("Reason.controller.widgets.PhasePlot", {
                     weightField = 'None';
                 }
                 conf['weight'] = weightField;
-                examine = {conf: conf, widget: widget};
                 var cmd = widget.templateManager.applyObject(
                     conf, 'createPhasePlot');
                 reason.server.execute(cmd);

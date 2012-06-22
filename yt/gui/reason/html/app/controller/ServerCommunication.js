@@ -35,6 +35,7 @@ Ext.define('Reason.controller.ServerCommunication', {
     extend: 'Ext.app.Controller',
     stores: ['Payloads'],
     views: ['PayloadGrid'],
+    requires: ['Reason.view.MulticastSetup'],
 
     init: function() {
         this.application.addListener({
@@ -126,7 +127,6 @@ Ext.define('Reason.controller.ServerCommunication', {
                              action: trans.action,
                              method: trans.method});
             Ext.Msg.alert("Error", tpl);
-            examine = {result: result, e: e};
             Ext.Error.raise(tpl);
         }
         reason.fireEvent("allowinput");
@@ -137,7 +137,6 @@ Ext.define('Reason.controller.ServerCommunication', {
         if (!m) {
             var t = "Could not identify method " + methodName;
             Ext.Msg.alert("Error", t);
-            examine = {result: result, e: e};
             Ext.Error.raise(t);
         }
         var fn;
@@ -151,58 +150,25 @@ Ext.define('Reason.controller.ServerCommunication', {
 
     m: function() { return this.method(arguments); },
 
-    multicast: function(widget) {
+    multicast: function(widget_var) {
         /*
            This will be two step.  The first will be to create a window that
            allows the user to set up the MultiCast session, which will be an
            iframe loading the GAE instance.  Then we tell our local server that
            we want to multicast.
         */
-        var win = Ext.create("Ext.window.Window", {
-            title: "Set up Multicasting",
-            modal: true,
-            height: 500,
-            width: 400,
-            layout: {
-                type:'vbox',
-                pack: 'start',
-                align: 'stretch',
-            },
-            items: [
-                { xtype : "component",
-                  autoEl : {
-                      tag : "iframe",
-                      src : "http://localhost:8080/CreateSession"
-                  },
-                  flex: 3.0,
-                  width: "100%",
-                }, {
-                  xtype: "form",
-                  labelWidth: 80,
-                  frame: true,
-                  flex: 2.0,
-                  width: "100%",
-                  items: [
-                    {
-                      xtype: 'textfield',
-                      fieldLabel: 'Session ID',
-                      itemId: 'session_id',
-                    }, {
-                      xtype: 'textfield',
-                      fieldLabel: 'Session Token',
-                      itemId: 'session_token',
-                    }, 
-                  ],
-                  buttons: [
-                      {
-                          text: 'Multicast', itemId: 'multicast',
-                      },{
-                          text: 'Cancel', itemId: 'cancel',
-                      }
-                  ],
-                }
-            ],
-        });
+        var win = Ext.widget('multicastsetup');
+        setupMulticast = function() {
+            var cmd = Ext.String.format(
+                'widget_store.activate_multicast("{0}", "{1}", "{2}")',
+                widget_var,
+                win.query("#session_id")[0].getValue(),
+                win.query("#session_token")[0].getValue());
+            reason.server.execute(cmd);
+            win.destroy();
+        }
+        win.query('#multicast')[0].on('click', setupMulticast);
+        win.query('#cancel')[0].on('click', function(){win.destroy();});
         win.show();
     },
 

@@ -54,7 +54,6 @@ Ext.define('Reason.controller.Logging', {
     addLogEntry: function(text) {
         this.getLogEntriesStore().add({record: text});
         var i = this.getLogEntriesStore().getCount();
-        examine = this.getLogEntries();
         this.getLogEntries().getView().focusRow(i - 1);
     },
 });

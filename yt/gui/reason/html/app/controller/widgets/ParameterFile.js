@@ -95,7 +95,6 @@ Ext.define("Reason.controller.widgets.ParameterFile", {
 
     createView: function() {
         var wd = this.payload['data'];
-        examine = wd;
         this.levelDataStore = Ext.create("Reason.store.widgets.LevelInformation");
         this.levelDataStore.loadData(wd['level_stats']);
         this.levelStatsDisplay = Ext.widget("levelstats", {

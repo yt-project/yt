@@ -56,7 +56,6 @@ Ext.define("Reason.controller.widgets.PannableMap", {
         var ytMapURL = this.payload.data['prefix'] + '/map/{z}/{x}/{y}.png';
         this.tileLayer = new L.TileLayer(ytMapURL, {maxZoom: 18});
         this.leafletMap.addLayer(this.tileLayer)
-        examine = toRender;
     },
 
     createView: function() {

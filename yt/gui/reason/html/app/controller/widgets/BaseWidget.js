@@ -56,7 +56,6 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             });
             args['control'] = control;
             args['widget'] = ww;
-            examine = {args:args, arg2: arguments, tpl:tpl};
             if((isValidFn != null) && (isValidFn(arguments) == false)) {return;}
             reason.server.execute(tpl.apply(args), true);
         };
@@ -115,7 +114,7 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
     },
 
     multicast: function() {
-        reason.server.multicast(this);
+        reason.server.multicast(this.payload['varname']);
     }
 
 });
