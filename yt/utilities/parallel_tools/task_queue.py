@@ -25,7 +25,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mpi4py import MPI
 import numpy as na
 import time, threading, random
 
@@ -104,7 +103,7 @@ class TaskQueueRoot(TaskQueueNonRoot):
 
     def assign_task(self, source_id):
         if self._remaining == 0:
-            print "Notifying %s to end" % source_id
+            mylog.debug("Notifying %s to end", source_id)
             msg = messages['end'].copy()
             self._notified += 1
         else:
@@ -124,10 +123,9 @@ class TaskQueueRoot(TaskQueueNonRoot):
         elif msg['msg'] == messages['task_req']['msg']:
             self.assign_task(status.source)
         else:
-            print "GOT AN UNKNOWN MESSAGE", msg
+            mylog.error("GOT AN UNKNOWN MESSAGE: %s", msg)
             raise RuntimeError
         if self._notified >= self.njobs:
-            print "NOTIFIED ENOUGH!"
             raise StopIteration
 
 def task_queue(func, tasks, njobs=0):
