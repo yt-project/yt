@@ -51,7 +51,12 @@ Ext.define("Reason.controller.widgets.Scene", {
     ],
 
     applyPayload: function(payload) {
-        
+        if (payload['ptype'] == 'grid_lines') {
+            this.addGridLines(payload['corners'], payload['levels']);
+        } else {
+            console.log("Unknown payload type received for 3D scene: " +
+                        payload['ptype']);
+        }
     },
 
     createView: function() {
@@ -61,6 +66,7 @@ Ext.define("Reason.controller.widgets.Scene", {
         });
         this.createMyRefs(this.dataView.id);
         this.applyExecuteHandlers(this.dataView);
+        this.widgets = [];
         return this.dataView;
     },
 
@@ -85,5 +91,32 @@ Ext.define("Reason.controller.widgets.Scene", {
         this.renderer.container = toRender;
         this.renderer.init();
     },
+
+    addGridLines: function(corners, levels) {
+        var grids = new X.mesh();
+        this.widgets.push(grids);
+        grids.ga = "LINES";
+        var p = grids.points;
+        var n = grids.normals;
+        var ii = 0;
+        var i;
+        var order1 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3];
+        var order2 = [1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7];
+        examine = corners;
+        Ext.each(levels, function(level, index, allLevels) {
+            for (i = 0; i < 12; i = i + 1) {
+                n.add(1.0, 0.0, 0.0);
+                n.add(1.0, 0.0, 0.0);
+                p.add(corners[order1[i]][0][index],
+                      corners[order1[i]][1][index],
+                      corners[order1[i]][2][index]);
+                p.add(corners[order2[i]][0][index],
+                      corners[order2[i]][1][index],
+                      corners[order2[i]][2][index]);
+            }
+        });
+        this.renderer.add(grids);
+        this.renderer.render();
+    }
 
 });

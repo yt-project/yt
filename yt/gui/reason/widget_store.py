@@ -26,7 +26,7 @@ License:
 from yt.mods import *
 import weakref
 from .bottle_mods import PayloadHandler, lockit
-from .widget_builders import RenderingScene 
+from .widget_builders import RenderingScene, get_corners
 from yt.visualization.plot_window import PWViewerExtJS
 import uuid
 
@@ -231,9 +231,10 @@ class SceneWidget(object):
 
     def deliver_gridlines(self):
         ph = PayloadHandler()
+        corners, levels = get_corners(self.pf)
         ph.widget_payload(self, {'ptype':'grid_lines',
-                                 'vertices': get_grid_vertices(),
-                                 'colors': get_grid_colors()})
+                                 'corners': corners,
+                                 'levels': levels})
         return
 
     def deliver_streamlines(self):
