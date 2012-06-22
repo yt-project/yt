@@ -25,6 +25,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+cimport numpy as np
+cimport cython
+from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,

@@ -287,6 +287,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         uniquedims[i] = <np.float64_t *> \
                 alloca(2*n_grids * sizeof(np.float64_t))
     my_max = 0
+    best_dim = -1
     for dim in range(3):
         n_unique = 0
         uniques = uniquedims[dim]
@@ -311,7 +312,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         if n_unique > my_max:
             best_dim = dim
             my_max = n_unique
-            my_split = (n_unique)/2
+            my_split = (n_unique-1)/2
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
@@ -332,3 +333,4 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
             greater_ids[i] = 0
     # Return out unique values
     return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")
+

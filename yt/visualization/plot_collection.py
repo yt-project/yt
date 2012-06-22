@@ -24,7 +24,10 @@ License:
 """
 
 from matplotlib import figure
+import shutil
+import tempfile
 import numpy as na
+import os
 
 from yt.funcs import *
 
@@ -47,6 +50,8 @@ from .plot_types import \
     PhasePlot, \
     LineQueryPlot, \
     ScatterPlot
+from yt.utilities.minimal_representation import \
+    MinimalImageCollectionData
 
 # No better place to put this
 def concatenate_pdfs(output_fn, input_fns):
@@ -59,6 +64,18 @@ def concatenate_pdfs(output_fn, input_fns):
 
 def _fix_axis(axis):
     return inv_axis_names.get(axis, axis)
+
+
+class ImageCollection(object):
+    def __init__(self, pf, name):
+        self.pf = pf
+        self.name = name
+        self.images = []
+        self.image_metadata = []
+
+    def add_image(self, fn, descr):
+        self.image_metadata.append(descr)
+        self.images.append((os.path.basename(fn), na.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
     __id_counter = 0
@@ -116,6 +133,19 @@ class PlotCollection(object):
     def __iter__(self):
         for p in self.plots:
             yield p
+
+    @property
+    def _mrep(self):
+        ic = ImageCollection(self.pf, "Plot Collection with center %s" % self.c)
+        dd = tempfile.mkdtemp()
+        fns = self.save(os.path.join(dd, "temp"))
+        for fn, p in zip(fns, self.plots):
+            ic.add_image(fn, p._pretty_name())
+        shutil.rmtree(dd)
+        return MinimalImageCollectionData(ic)
+
+    def hub_upload(self):
+        self._mrep.upload()
 
     def save(self, basename=None, format="png", override=False, force_save=False):
         r"""Save out all the plots hanging off this plot collection, using

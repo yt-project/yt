@@ -1,15 +1,11 @@
 """
-API for halo_profiler
+Turn on and off perftools profiling
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,13 +21,19 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
-from .halo_filters import \
-    VirialFilter
+# For more info:
+# https://pygabriel.wordpress.com/2010/04/14/profiling-python-c-extensions/
 
-from .multi_halo_profiler import \
-    HaloProfiler, \
-    FakeProfile, \
-    standard_fields
+# prof.pyx
+cdef extern from "google/profiler.h":
+    void ProfilerStart( char* fname )
+    void ProfilerStop()
+
+def profiler_start(fname):
+    ProfilerStart(<char *>fname)
+
+def profiler_stop():
+    ProfilerStop()
+

@@ -26,6 +26,7 @@ License:
 
 import json
 import os
+import stat
 import cStringIO
 import logging
 import uuid
@@ -276,7 +277,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         for i in range(30):
             # Check for stop
             if self.stopped: return {'type':'shutdown'} # No race condition
-            if self.payload_handler.event.wait(1): # One second timeout
+            if self.payload_handler.event.wait(0.01): # One second timeout
                 return self.payload_handler.deliver_payloads()
         if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
         return []
@@ -457,6 +458,36 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             payload['data'] = self.locals[widget_data_name]
         self.payload_handler.add_payload(payload)
         return command
+
+    @lockit
+    def load(self, base_dir, filename):
+        pp = os.path.join(base_dir, filename)
+        funccall = "pfs.append(load('%s'))" % pp
+        self.execute(funccall)
+        return []
+
+    def file_listing(self, base_dir, sub_dir):
+        if base_dir == "":
+            cur_dir = os.getcwd()
+        elif sub_dir == "":
+            cur_dir = base_dir
+        else:
+            cur_dir = os.path.join(base_dir, sub_dir)
+            cur_dir = os.path.abspath(cur_dir)
+        if not os.path.isdir(cur_dir):
+            return {'change':False}
+        fns = os.listdir(cur_dir)
+        results = [("..", 0, "directory")]
+        for fn in sorted((os.path.join(cur_dir, f) for f in fns)):
+            if not os.access(fn, os.R_OK): continue
+            if os.path.isfile(fn):
+                size = os.path.getsize(fn)
+                t = "file"
+            else:
+                size = 0
+                t = "directory"
+            results.append((os.path.basename(fn), size, t))
+        return dict(objs = results, cur_dir=cur_dir)
 
     @lockit
     def create_phase(self, objname, field_x, field_y, field_z, weight):
