@@ -162,9 +162,8 @@ class WidgetStore(dict):
 
     def create_scene(self, pf):
         '''Creates 3D XTK-based scene'''
-        widget = SceneWidget()
-        widget_data = {'render': widget._add_volume_rendering(),
-                      }
+        widget = SceneWidget(pf)
+        widget_data = {'title':'Scene for %s' % pf}
         self._add_widget(widget, widget_data)
 
 
@@ -221,6 +220,7 @@ class SceneWidget(object):
         self.pf = weakref.proxy(pf)
 
     def add_volume_rendering(self):
+        return None
         self._rendering_scene = RenderingScene(self.pf, None, None)
 
     def deliver_rendering(self, scene_config):

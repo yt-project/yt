@@ -51,6 +51,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     ],
 
     applyPayload: function(payload) {
+        
     },
 
     createView: function() {
@@ -64,22 +65,24 @@ Ext.define("Reason.controller.widgets.Scene", {
     },
 
     statics: {
-        widgetName: '3d_scene',
+        widgetName: 'scene',
         supportsDataObjects: false,
         supportsParameterFiles: true,
         displayName: '3D Plot',
         preCreation: function(obj) {
             var widget = Ext.create(this.getName());
             var cmd = widget.templateManager.applyObject(
-                obj, 'createDisplay');
+                obj, 'createScene');
+            console.log("Executing " + cmd);
             reason.server.execute(cmd);
         },
     },
 
     setupXTK: function() {
-        var sp = this.getScenePanel();
+        var toRender = this.getScenePanel().getEl().dom.childNodes[0];
+        toRender.classList.add("XTKScene");
         this.renderer = new X.renderer3D();
-        this.renderer.container = sp.getEl().dom;
+        this.renderer.container = toRender;
         this.renderer.init();
     },
 

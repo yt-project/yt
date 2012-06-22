@@ -71,3 +71,7 @@ table.pftable td, table.pftable th {
     padding-left: 10px;
     padding-right: 10px;
 }
+
+div.XTKscene {
+    background-color:#000;
+}

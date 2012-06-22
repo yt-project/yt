@@ -75,12 +75,12 @@ class RenderingScene(object):
         return self._camera.snapshot()
 
 
-def get_corners(pf, max_level=Non):
+def get_corners(pf, max_level=None):
     corners = pf.h.grid_corners.tolist()
     levels = pf.h.grid_levels.to_list()
     return corners, levels    
 
-def get_grid_vertices(pf, max_level=None)
+def get_grid_vertices(pf, max_level=None):
     if max_level is None: max_level = pf.h.max_level
     fns = []
     for lvl in range(max_level):
