@@ -782,10 +782,15 @@ class Communicator(object):
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
 
-    def probe(self, tag, callback):
-        st = MPI.Status()
-        self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
-        callback(st)
+    def probe_loop(self, tag, callback):
+        while 1:
+            st = MPI.Status()
+            self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
+            try:
+                callback(st)
+            except StopIteration:
+                print "PROBE LOOP ENDING"
+                break
 
 communication_system = CommunicationSystem()
 if parallel_capable:

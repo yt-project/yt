@@ -54,6 +54,7 @@ class TaskQueueNonRoot(object):
         self.comm.comm.send(msg, dest = 0, tag=1)
         msg = self.comm.comm.recv(source = 0, tag=2)
         if msg['msg'] == messages['end']['msg']:
+            print "Notified to end"
             raise StopIteration
         return msg['value']
 
@@ -66,8 +67,8 @@ class TaskQueueNonRoot(object):
             self.send_result(callable(task))
         return self.finalize()
 
-    def finalize(self):
-        return self.comm.comm.bcast(None, root = 0)
+    def finalize(self, vals = None):
+        return self.comm.comm.bcast(vals, root = 0)
 
 class TaskQueueRoot(TaskQueueNonRoot):
     def __init__(self, tasks):
@@ -78,11 +79,15 @@ class TaskQueueRoot(TaskQueueNonRoot):
         self._current = 0
         self._remaining = len(self.tasks)
         self.comm = _get_comm(())
-        self.handle_assignments()
+        print "Done with probe loop"
         # Set up threading here
         # self.dist = threading.Thread(target=self.handle_assignments)
         # self.dist.daemon = True
         # self.dist.start()
+
+    def run(self, func = None):
+        self.comm.probe_loop(1, self.handle_assignment)
+        return self.finalize(self.results)
 
     def insert_result(self, source_id, result):
         task_id = self.assignments[source_id]
@@ -90,6 +95,7 @@ class TaskQueueRoot(TaskQueueNonRoot):
 
     def assign_task(self, source_id):
         if self._remaining == 0:
+            print "Notifying %s to end" % source_id
             msg = messages['end'].copy()
             self._notified += 1
         else:
@@ -102,23 +108,15 @@ class TaskQueueRoot(TaskQueueNonRoot):
             msg['value'] = task
         self.comm.comm.send(msg, dest = source_id, tag = 2)
 
-    def handle_assignments(self):
-        while 1:
-            self.comm.probe(1, self.handshake)
-            if self._notified >= self.comm.comm.size: break
-
-    def handshake(self, status)
-        msg = self.comm.recv(source = status.source, tag = 1)
+    def handle_assignment(self, status):
+        msg = self.comm.comm.recv(source = status.source, tag = 1)
         if msg['msg'] == messages['result']['msg']:
-            self.insert_result(st.source, msg['value'])
+            self.insert_result(status.source, msg['value'])
         elif msg['msg'] == messages['task_req']['msg']:
-            self.assign_task(st.source)
+            self.assign_task(status.source)
         else:
             print "GOT AN UNKNOWN MESSAGE", msg
             raise RuntimeError
-
-    def finalize(self):
-        self.dist.join()
-        rv = self.comm.comm.bcast(self.results, root = 0)
-        return rv
-
+        if self._notified >= self.comm.comm.size - 1:
+            print "NOTIFIED ENOUGH!"
+            raise StopIteration
