@@ -111,11 +111,11 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
 
     if (not (na.array(overDensity) >= virial_overdensity).any()) and \
             must_be_virialized:
-        mylog.error("This halo is not virialized!")
+        mylog.debug("This halo is not virialized!")
         return [False, {}]
 
     if (len(overDensity) < 2):
-        mylog.error("Skipping halo with no valid points in profile.")
+        mylog.debug("Skipping halo with no valid points in profile.")
         return [False, {}]
 
     if (overDensity[1] <= virial_overdensity):
@@ -133,7 +133,7 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
 
     for field in fields:
         if (overDensity[index+1] - overDensity[index]) == 0:
-            mylog.error("Overdensity profile has slope of zero.")
+            mylog.debug("Overdensity profile has slope of zero.")
             return [False, {}]
         else:
             slope = (temp_profile[field][index+1] - temp_profile[field][index]) / \
