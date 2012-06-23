@@ -82,12 +82,13 @@ def get_corners(pf, max_level=None):
     levels = pf.h.grid_levels.tolist()
     return corners, levels
 
-def get_isocontour(pf, field, value=None):
+def get_isocontour(pf, field, value=None, rel_val = False):
 
     dd = pf.h.all_data()
-    if value is None:
+    if value is None or rel_val:
+        if value is None: value = 0.5
         mi, ma = na.log10(dd.quantities["Extrema"]("Density")[0])
-        value = 10.0**(0.75*(mi + ma))
+        value = 10.0**(value*(mi + ma))
     vert = dd.extract_isocontours("Density", value)
     na.multiply(vert, 100, vert)
     return vert

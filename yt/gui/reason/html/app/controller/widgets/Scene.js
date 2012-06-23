@@ -28,13 +28,15 @@ License:
 Ext.define("Reason.controller.widgets.Scene", {
     extend: 'Reason.controller.widgets.BaseWidget',
     requires: ['Reason.view.widgets.Scene',
+               'Reason.view.widgets.IsocontourCreator',
                'Reason.store.widgets.CameraKeyFrames',
                'Reason.store.widgets.SceneWidgets',
                'Ext.ux.CheckColumn'],
     templates: {
         createScene: 'widget_store.create_scene({varname})',
         deliverGrids: 'widget_store["{widget.varname}"].deliver_gridlines()',
-        createIsocontour: 'widget_store["{widget.varname}"].deliver_isocontour("Density", None)',
+        createIsocontour: 'widget_store["{varname}"].deliver_isocontour(' +
+                          '"{field}", {value}, {relValue:capitalize})',
     },
 
     /* These call functions on the controller object */
@@ -44,11 +46,11 @@ Ext.define("Reason.controller.widgets.Scene", {
         ["#renderPath", "click", "renderPath"],
         ["#keyframeview", "select", "shiftToKeyframe"],
         ["#widgetEnabled", "checkchange", "toggleWidgetEnabled"],
+        ["#addIsocontour", "click", "createIsocontour"],
     ],
 
     /* These call templates */
     executionTriggers: [
-        ["#addIsocontour", "click", "createIsocontour"],
     ],
 
     /* ref: and selector: */
@@ -61,7 +63,6 @@ Ext.define("Reason.controller.widgets.Scene", {
     /* key: , shift: and tpl: */
     keyTriggers: [
     ],
-
 
     applyPayload: function(payload) {
         if (payload['ptype'] == 'grid_lines') {
@@ -87,6 +88,8 @@ Ext.define("Reason.controller.widgets.Scene", {
         this.getKeyFrameView().bindStore(this.keyFrames);
         this.widgets = Ext.create("Reason.store.widgets.SceneWidgets");
         this.getWidgetPanel().bindStore(this.widgets);
+        this.fieldStore = Ext.create("Reason.store.Fields")
+        this.fieldStore.loadData(wd['fields']);
         return this.dataView;
     },
 
@@ -151,6 +154,29 @@ Ext.define("Reason.controller.widgets.Scene", {
             this.renderer.add(gw[i]);
         }
         this.renderer.render();
+    },
+
+    createIsocontour: function() {
+        var win; 
+        var controller = this;
+        /* field , value */
+        function callExtract(b, e) {
+            var conf = {
+                varname: controller.dataView.varname,
+                field: win.query("#field")[0].getValue(),
+                value: win.query("#value")[0].getValue(),
+                relValue: "" + win.query("#relValue")[0].getValue(),
+            };
+            cmd = controller.templateManager.applyObject(
+                    conf, "createIsocontour");
+            reason.server.execute(cmd);
+            win.destroy();
+        }
+        win = Ext.widget("isocontourcreator");
+        win.query("#field")[0].bindStore(this.fieldStore);
+        win.query("#extract")[0].on('click', callExtract);
+        win.query("#cancel")[0].on('click', function(){win.destroy();});
+        win.show();
     },
 
     addIsocontour: function(vertices, normals) {

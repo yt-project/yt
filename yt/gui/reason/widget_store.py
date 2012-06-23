@@ -163,7 +163,11 @@ class WidgetStore(dict):
     def create_scene(self, pf):
         '''Creates 3D XTK-based scene'''
         widget = SceneWidget(pf)
-        widget_data = {'title':'Scene for %s' % pf}
+        field_list = list(set(pf.h.field_list
+                            + pf.h.derived_field_list))
+        field_list.sort()
+        widget_data = {'title':'Scene for %s' % pf,
+                       'fields': field_list}
         self._add_widget(widget, widget_data)
 
 
@@ -229,9 +233,9 @@ class SceneWidget(object):
                                  'image':self._rendering_scene.snapshot()})
         return
 
-    def deliver_isocontour(self, field, value):
+    def deliver_isocontour(self, field, value, rel_val = False):
         ph = PayloadHandler()
-        vert = get_isocontour(self.pf, field, value)
+        vert = get_isocontour(self.pf, field, value, rel_val)
         normals = na.empty(vert.shape)
         for i in xrange(vert.shape[0]/3):
             n = na.cross(vert[i*3,:], vert[i*3+1,:])
