@@ -162,21 +162,6 @@ class PyroExecutionThread(ExecutionThread):
         return []
 
 
-def deliver_image(im):
-    if hasattr(im, 'read'):
-        img_data = base64.b64encode(im.read())
-    elif isinstance(im, types.StringTypes) and \
-         im.endswith(".png"):
-        img_data = base64.b64encode(open(im).read())
-    elif isinstance(im, types.StringTypes):
-        img_data = im
-    else:
-        raise RuntimeError
-    ph = PayloadHandler()
-    payload = {'type':'png_string',
-               'image_data':img_data}
-    ph.add_payload(payload)
-
 def reason_pylab():
     def _canvas_deliver(canvas):
         tf = tempfile.TemporaryFile()
@@ -209,6 +194,18 @@ def reason_pylab():
     import pylab, matplotlib
     matplotlib.rcParams["backend"] = "module://reason_agg"
     pylab.switch_backend("module://reason_agg")
+
+_startup_template = r"""\
+import pylab
+from yt.mods import *
+from yt.gui.reason.utils import load_script, deliver_image
+from yt.gui.reason.widget_store import WidgetStore
+from yt.data_objects.static_output import _cached_pfs
+
+pylab.ion()
+data_objects = []
+widget_store = WidgetStore()
+"""
 
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
@@ -251,22 +248,18 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         else:
             self.execution_thread = ExecutionThread(self)
         # We pass in a reference to ourself
+        self.execute(_startup_template)
         self.widget_store = WidgetStore(self)
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         reason_pylab()
-        self.execute("from yt.mods import *\nimport pylab\npylab.ion()")
-        self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
-        self.execute("data_objects = []", hide = True)
-        self.locals['load_script'] = ext_load_script
-        self.locals['deliver_image'] = deliver_image
-        self.locals['widget_store'] = self.widget_store
 
     def activate(self):
         self._setup_logging_handlers()
         # Setup our heartbeat
         self.last_heartbeat = time.time()
         self._check_heartbeat()
+        self.execute("widget_store._global_token = '%s'" % self._global_token)
         self.execution_thread.start()
 
     def exception_handler(self, exc):
@@ -494,15 +487,6 @@ class ExtDirectParameterFileList(BottleDirectRouter):
                             type = "parameter_file",
                             varname = pf_varname, field_list = field_list) )
         return rv
-
-def ext_load_script(filename):
-    contents = open(filename).read()
-    payload_handler = PayloadHandler()
-    payload_handler.add_payload(
-        {'type': 'cell_contents',
-         'value': contents}
-    )
-    return
 
 class PayloadLoggingHandler(logging.StreamHandler):
     def __init__(self, *args, **kwargs):
