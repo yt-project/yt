@@ -74,19 +74,44 @@ Ext.define("Reason.view.widgets.Scene", {
                   items: [
                 {
                   xtype: 'panel',
-                  title: 'Data Editor',
-                  itemId: 'data_edit',
-                  layout: 'absolute',
-                  flex: 1,
-                  items : [
-                  ]
-                }, {
-                  xtype: 'panel',
                   title: 'Widgets',
                   itemId: 'widget_edit',
-                  layout: 'absolute',
                   flex: 1,
+                  layout: {
+                    type: 'vbox',
+                    pack: 'start',
+                    align: 'stretch',
+                  },
                   items : [
+                    {
+                      xtype: 'gridpanel',
+                      itemId: 'widgetlist',
+                      flex: 1.0,
+                      selType: 'rowmodel',
+                      columns: [
+                        {
+                          itemId: 'widgetEnabled',
+                          header: '',
+                          dataIndex: 'enabled',
+                          xtype: 'checkcolumn',
+                          width: 30,
+                        }, {
+                          itemId: 'name',
+                          header: 'Name',
+                          dataIndex: 'name',
+                          editor: false,
+                        }, {
+                          itemId: 'type',
+                          header: 'Type',
+                          dataIndex: 'type',
+                          editor: false,
+                        }
+                      ],
+                      plugins: [
+                        {ptype: 'cellediting',
+                         clicksToEdit: 1},
+                      ],
+                    },
                   ]
                 }, {
                   xtype: 'panel',
@@ -147,7 +172,15 @@ Ext.define("Reason.view.widgets.Scene", {
                       itemId: 'addKeyframe',
                     }
                   ]
-                }
+                }, {
+                  xtype: 'panel',
+                  title: 'Data Editor',
+                  itemId: 'data_edit',
+                  layout: 'absolute',
+                  flex: 1,
+                  items : [
+                  ]
+                },
                 ] } /* tabpanel items and entry */
                 ]
         }

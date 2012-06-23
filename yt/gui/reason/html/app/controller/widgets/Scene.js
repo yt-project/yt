@@ -28,7 +28,9 @@ License:
 Ext.define("Reason.controller.widgets.Scene", {
     extend: 'Reason.controller.widgets.BaseWidget',
     requires: ['Reason.view.widgets.Scene',
-               'Reason.store.widgets.CameraKeyFrames'],
+               'Reason.store.widgets.CameraKeyFrames',
+               'Reason.store.widgets.SceneWidgets',
+               'Ext.ux.CheckColumn'],
     templates: {
         createScene: 'widget_store.create_scene({varname})',
         deliverGrids: 'widget_store["{widget.varname}"].deliver_gridlines()',
@@ -39,6 +41,7 @@ Ext.define("Reason.controller.widgets.Scene", {
         ["#scenepanel", "afterrender", "setupXTK"],
         ["#addKeyframe", "click", "addKeyframe"],
         ["#keyframeview", "select", "shiftToKeyframe"],
+        ["#widgetEnabled", "checkchange", "toggleWidgetEnabled"],
     ],
 
     /* These call templates */
@@ -49,6 +52,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     viewRefs: [
         { ref:'scenePanel', selector: '#scenepanel' },
         { ref:'keyFrameView', selector: '#keyframeview' },
+        { ref:'widgetPanel', selector: '#widgetlist'},
     ],
 
     /* key: , shift: and tpl: */
@@ -74,9 +78,10 @@ Ext.define("Reason.controller.widgets.Scene", {
         });
         this.createMyRefs(this.dataView.id);
         this.applyExecuteHandlers(this.dataView);
-        this.widgets = [];
         this.keyFrames = Ext.create("Reason.store.widgets.CameraKeyFrames");
         this.getKeyFrameView().bindStore(this.keyFrames);
+        this.widgets = Ext.create("Reason.store.widgets.SceneWidgets");
+        this.getWidgetPanel().bindStore(this.widgets);
         return this.dataView;
     },
 
@@ -114,9 +119,13 @@ Ext.define("Reason.controller.widgets.Scene", {
         gw = [];
         for (i = 0; i < maxLevel + 1; i = i + 1) {
             var grids = new X.mesh();
-            grids.name = "Grid Level " + i;
             gw.push(grids);
-            this.widgets.push(grids);
+            this.widgets.add({
+              name: "Grid Level " + i,
+              type: 'grids',
+              widget: grids,
+              enabled: true,
+            });
             grids.ga = "LINES";
         }
         Ext.each(levels, function(level, index, allLevels) {
@@ -153,6 +162,13 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     shiftToKeyframe: function(rowModel, record, index) {
         this.renderer.camera.view = record.data.view;
+        this.renderer.render();
+    },
+
+    toggleWidgetEnabled: function(column, rowIndex, enabled) {
+        /* We have to get the store, then the widget ... */
+        var rec = this.widgets.data.items[rowIndex];
+        rec.data.widget.visible = enabled;
         this.renderer.render();
     },
 
