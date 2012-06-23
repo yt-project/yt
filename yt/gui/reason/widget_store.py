@@ -28,6 +28,7 @@ import weakref
 from .bottle_mods import PayloadHandler, lockit
 from .widget_builders import RenderingScene, get_corners, get_isocontour
 from yt.visualization.plot_window import PWViewerExtJS
+from yt.visualization.volume_rendering.create_spline import create_spline
 import uuid
 
 _phase_plot_mds = """<pre>
@@ -252,6 +253,24 @@ class SceneWidget(object):
                                  'levels': levels,
                                  'max_level': int(self.pf.h.max_level)})
         return
+
+    def render_path(self, views, times, N):
+        # Assume that path comes in as a list of matrice
+        # Assume original vector is (0., 0., 1.), up is (0., 1., 0.)
+        # for matrix in matrices:
+
+        views = [na.array(view) for view in views]
+        
+        times = na.linspace(0.0,1.0,len(times))
+        norm = na.array([0.,0.,1.,1.])
+        up = na.array([0.,1.,0.,1.])
+        centers = na.array([na.dot(R, norm) for R in views])
+        ups = na.array([na.dot(R,up) for R in views])
+        x,y,z = [create_spline(times, centers[:,i], na.linspace(0.0,1.0,N)) for i in [0,1,2]]
+        #fx,fy,fz = [create_spline(times, focuses[:,i], na.linspace(0.0,1.0,N)) for i in [0,1,2]]
+        ux,uy,uz = [create_spline(times, ups[:,i], na.linspace(0.0,1.0,N)) for i in [0,1,2]]
+        fx, fy, fz = 0,0,0
+        return [x,y,z], [fx,fy,fz], [ux,uy,uz]
 
     def deliver_streamlines(self):
         pf = PayloadHandler()
