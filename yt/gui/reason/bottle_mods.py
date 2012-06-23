@@ -48,9 +48,25 @@ def preroute(future_route, *args, **kwargs):
 def notify_route(watcher):
     route_watchers.append(watcher)
 
+class BinaryDelivery(object):
+    delivered = False
+    payload = ""
+    def __init__(self, payload):
+        self.payload = payload
+
+    def get(self):
+        # We set our 
+        p = self.payload
+        if p == "":
+            response.status = 404
+            return
+        self.payload = ""
+        return p
+
 class PayloadHandler(object):
     _shared_state = {}
     payloads = None
+    binary_payloads = None
     recorded_payloads = None
     multicast_ids = None
     multicast_payloads = None
@@ -59,6 +75,7 @@ class PayloadHandler(object):
     event = None
     count = 0
     debug = False
+    _prefix = ""
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -72,6 +89,7 @@ class PayloadHandler(object):
         if self.event is None: self.event = threading.Event()
         if self.multicast_payloads is None: self.multicast_payloads = {}
         if self.multicast_ids is None: self.multicast_ids = {}
+        if self.binary_payloads is None: self.binary_payloads = []
 
     def deliver_payloads(self):
         with self.lock:
@@ -92,6 +110,8 @@ class PayloadHandler(object):
 
     def add_payload(self, to_add):
         with self.lock:
+            if "binary" in to_add:
+                self._add_binary_payload(to_add)
             self.payloads.append(to_add)
             # Does this next part need to be in the lock?
             if to_add.get("widget_id", None) in self.multicast_ids:
@@ -100,6 +120,16 @@ class PayloadHandler(object):
             self.event.set()
             if self.debug:
                 sys.__stderr__.write("**** Adding payload of type %s\n" % (to_add['type']))
+
+    def _add_binary_payload(self, bp):  
+        # This shouldn't be called by anybody other than add_payload.
+        bdata = bp.pop(bp['binary']) # Get the binary data
+        bpserver = BinaryDelivery(bdata)
+        self.binary_payloads.append(bpserver)
+        uu = uuid.uuid4().hex
+        bp['binary'] = uu
+        route("%s/%s" % (self._prefix, uu))(bpserver.get)
+        sys.__stderr__.write("**** Adding binary payload to %s\n" % (uu))
 
     def replay_payloads(self):
         return self.recorded_payloads

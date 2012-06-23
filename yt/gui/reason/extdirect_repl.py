@@ -219,6 +219,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.locals['widget_store'] = self.widget_store
 
     def activate(self):
+        self.payload_handler._prefix = self._global_token
         self._setup_logging_handlers()
         # Setup our heartbeat
         self.last_heartbeat = time.time()
