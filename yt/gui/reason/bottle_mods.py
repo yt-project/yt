@@ -24,16 +24,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.bottle import \
-    server_names, debug, route, run, request, ServerAdapter, response
 import uuid
-from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
 import logging, threading
-from yt.utilities.logger import ytLogger as mylog
-from yt.funcs import *
 import sys
 import urllib, urllib2
+import numpy as na
+
+from yt.utilities.bottle import \
+    server_names, debug, route, run, request, ServerAdapter, response
+from extdirect_router import DirectRouter, DirectProviderDefinition
+from yt.utilities.logger import ytLogger as mylog
+from yt.funcs import *
 
 route_functions = {}
 route_watchers = []
@@ -123,13 +125,18 @@ class PayloadHandler(object):
 
     def _add_binary_payload(self, bp):  
         # This shouldn't be called by anybody other than add_payload.
-        bdata = bp.pop(bp['binary']) # Get the binary data
-        bpserver = BinaryDelivery(bdata)
-        self.binary_payloads.append(bpserver)
-        uu = uuid.uuid4().hex
-        bp['binary'] = uu
-        route("%s/%s" % (self._prefix, uu))(bpserver.get)
-        sys.__stderr__.write("**** Adding binary payload to %s\n" % (uu))
+        bkeys = ensure_list(bp['binary'])
+        bp['binary'] = []
+        for bkey in bkeys:
+            bdata = bp.pop(bkey) # Get the binary data
+            if isinstance(bdata, na.ndarray):
+                bdata = bdata.tostring()
+            bpserver = BinaryDelivery(bdata)
+            self.binary_payloads.append(bpserver)
+            uu = uuid.uuid4().hex
+            bp['binary'].append((bkey, uu))
+            route("%s/%s" % (self._prefix, uu))(bpserver.get)
+            sys.__stderr__.write("**** Adding binary payload to %s\n" % (uu))
 
     def replay_payloads(self):
         return self.recorded_payloads

@@ -78,8 +78,8 @@ class RenderingScene(object):
 def get_corners(pf, max_level=None):
     DL = pf.domain_left_edge[None,:,None]
     DW = pf.domain_width[None,:,None]/100.0
-    corners = ((pf.h.grid_corners-DL)/DW).tolist()
-    levels = pf.h.grid_levels.tolist()
+    corners = ((pf.h.grid_corners-DL)/DW)
+    levels = pf.h.grid_levels
     return corners, levels
 
 def get_isocontour(pf, field, value=None, rel_val = False):

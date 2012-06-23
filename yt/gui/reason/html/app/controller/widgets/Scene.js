@@ -69,8 +69,10 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     applyPayload: function(payload) {
         if (payload['ptype'] == 'grid_lines') {
-            this.addGridLines(payload['corners'], payload['levels'],
-                              payload['max_level']);
+            corners = new Float64Array(payload['corners']);
+            levels = new Int32Array(payload['levels']);
+            payload['corners'] = payload['levels'] = null;
+            this.addGridLines(corners, levels, payload['max_level']);
         } else if (payload['ptype'] == 'isocontour') {
             this.addIsocontour(payload['vert'], payload['normals']);
         } else if (payload['ptype'] == 'camerapath') {
@@ -127,9 +129,10 @@ Ext.define("Reason.controller.widgets.Scene", {
     },
 
     addGridLines: function(corners, levels, maxLevel) {
-        var i, g, n, p;
+        var i, g, n, p, offset, ind;
         var order1 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3];
         var order2 = [1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7];
+        var nv = levels.length;
         gw = [];
         for (i = 0; i < maxLevel + 1; i = i + 1) {
             var grids = new X.mesh();
@@ -142,18 +145,20 @@ Ext.define("Reason.controller.widgets.Scene", {
             });
             grids.ga = "LINES";
         }
+        examine = {n: n, p: p, corners: corners};
+        var i0, i1, i2;
         Ext.each(levels, function(level, index, allLevels) {
             p = gw[level].points;
             n = gw[level].normals;
             for (i = 0; i < 12; i = i + 1) {
                 n.add(1.0, 0.0, 0.0);
                 n.add(1.0, 0.0, 0.0);
-                p.add(corners[order1[i]][0][index],
-                      corners[order1[i]][1][index],
-                      corners[order1[i]][2][index]);
-                p.add(corners[order2[i]][0][index],
-                      corners[order2[i]][1][index],
-                      corners[order2[i]][2][index]);
+                p.add(corners[(((order1[i] * 3 + 0)*nv)+index)],
+                      corners[(((order1[i] * 3 + 1)*nv)+index)],
+                      corners[(((order1[i] * 3 + 2)*nv)+index)]);
+                p.add(corners[(((order2[i] * 3 + 0)*nv)+index)],
+                      corners[(((order2[i] * 3 + 1)*nv)+index)],
+                      corners[(((order2[i] * 3 + 2)*nv)+index)]);
             }
         });
         for (i = 0; i < maxLevel + 1; i = i + 1) {
