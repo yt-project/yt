@@ -31,7 +31,7 @@ import numpy as na
 from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.utilities.amr_utils import bin_profile1d, bin_profile2d, bin_profile3d
+from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 

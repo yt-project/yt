@@ -35,18 +35,19 @@ cdef extern from "kdtree.h":
     void kd_free(kdtree *tree)
     
     int kd_insert3(kdtree *tree, np.float64_t x, np.float64_t y, np.float64_t z, void *data)
-    kdres *kd_nearest3(kdtree *tree, np.float64_t x, np.float64_t y, np.float64_t z)
+    kdres *kd_nearest3(kdtree *tree, np.float64_t x, np.float64_t y,
+                       np.float64_t z) nogil
 
     kdres *kd_nearest_range3(kdtree *tree, np.float64_t x, np.float64_t y, np.float64_t z,
-                             np.float64_t range)
+                             np.float64_t range) nogil
 
-    void kd_res_free(kdres *set)
-    int kd_res_size(kdres *set)
-    int kd_res_next(kdres *set)
-    void kd_res_rewind(kdres *set)
+    void kd_res_free(kdres *set) nogil
+    int kd_res_size(kdres *set) nogil
+    int kd_res_next(kdres *set) nogil
+    void kd_res_rewind(kdres *set) nogil
 
-    void kd_res_item3(kdres *set, np.float64_t *x, np.float64_t *y, np.float64_t *z)
-    void *kd_res_item_data(kdres *set)
+    void kd_res_item3(kdres *set, np.float64_t *x, np.float64_t *y,
+                      np.float64_t *z) nogil
+    void *kd_res_item_data(kdres *set) nogil
 
     void kd_data_destructor(kdtree *tree, void (*destr)(void*))
-    void *kd_res_item_data(kdres *set)

@@ -5,6 +5,8 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD Physics/CASS
 Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
+Author: Geoffrey So <gsiisg@gmail.com>
+Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
@@ -620,7 +622,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
         result.append(na.mean(sorted[indexer], axis=axis, out=out))
     return na.array(result)
 
-def get_rotation_matrix(self, theta, rot_vector):
+def get_rotation_matrix(theta, rot_vector):
     ux = rot_vector[0]
     uy = rot_vector[1]
     uz = rot_vector[2]
