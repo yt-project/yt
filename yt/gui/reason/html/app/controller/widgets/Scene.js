@@ -27,7 +27,8 @@ License:
 
 Ext.define("Reason.controller.widgets.Scene", {
     extend: 'Reason.controller.widgets.BaseWidget',
-    requires: ['Reason.view.widgets.Scene'],
+    requires: ['Reason.view.widgets.Scene',
+               'Reason.store.widgets.CameraKeyFrames'],
     templates: {
         createScene: 'widget_store.create_scene({varname})',
         deliverGrids: 'widget_store["{widget.varname}"].deliver_gridlines()',
@@ -36,21 +37,23 @@ Ext.define("Reason.controller.widgets.Scene", {
     /* These call functions on the controller object */
     widgetTriggers: [
         ["#scenepanel", "afterrender", "setupXTK"],
+        ["#addKeyframe", "click", "addKeyframe"],
     ],
 
     /* These call templates */
     executionTriggers: [
-        ["#deliverGrids", "click", "deliverGrids"],
     ],
 
     /* ref: and selector: */
     viewRefs: [
         { ref:'scenePanel', selector: '#scenepanel' },
+        { ref:'keyFrameView', selector: '#keyframeview' },
     ],
 
     /* key: , shift: and tpl: */
     keyTriggers: [
     ],
+
 
     applyPayload: function(payload) {
         if (payload['ptype'] == 'grid_lines') {
@@ -71,6 +74,8 @@ Ext.define("Reason.controller.widgets.Scene", {
         this.createMyRefs(this.dataView.id);
         this.applyExecuteHandlers(this.dataView);
         this.widgets = [];
+        this.keyFrames = Ext.create("Reason.store.widgets.CameraKeyFrames");
+        this.getKeyFrameView().bindStore(this.keyFrames);
         return this.dataView;
     },
 
@@ -94,8 +99,11 @@ Ext.define("Reason.controller.widgets.Scene", {
         this.renderer = new X.renderer3D();
         this.renderer.container = toRender;
         this.renderer.init();
-        /*this.renderer.interactor.onKey = function() {};*/
-        examine = this.renderer;
+        this.renderer.interactor.config.KEYBOARD_ENABLED = false;
+        this.renderer.interactor.init();
+        var cmd = this.templateManager.applyObject(
+            {widget: this.dataView}, 'deliverGrids');
+        reason.server.execute(cmd);
     },
 
     addGridLines: function(corners, levels, maxLevel) {
@@ -128,6 +136,18 @@ Ext.define("Reason.controller.widgets.Scene", {
             this.renderer.add(gw[i]);
         }
         this.renderer.render();
-    }
+    },
+
+    addKeyframe: function() {
+        var v = this.renderer.camera.view.toArray();
+        examine = v;
+        this.keyFrames.add({
+            time: 1.0,
+            view: v,
+            pos_x: -v[0][3],
+            pos_y: -v[1][3],
+            pos_z: -v[2][3],
+        });
+    },
 
 });

@@ -79,11 +79,6 @@ Ext.define("Reason.view.widgets.Scene", {
                   layout: 'absolute',
                   flex: 1,
                   items : [
-                    {
-                        xtype: 'button',
-                        itemId: 'deliverGrids',
-                        text: 'Deliver Grids',
-                    },
                   ]
                 }, {
                   xtype: 'panel',
@@ -97,9 +92,60 @@ Ext.define("Reason.view.widgets.Scene", {
                   xtype: 'panel',
                   title: 'Camera Path',
                   itemId: 'camera_path',
-                  layout: 'absolute',
-                  flex: 1,
+                  layout: {
+                    type: 'vbox',
+                    pack: 'start',
+                    align: 'stretch',
+                  },
+                  flex: 1.0,
                   items : [
+                    {
+                      xtype: 'gridpanel',
+                      flex: 1.0,
+                      selType: 'cellmodel',
+                      columns: [
+                        {
+                          id: 'time',
+                          header: 'Time',
+                          dataIndex: 'time',
+                          editor: {
+                            xtype: 'textfield',
+                          },
+                          flex: 1.0,
+                          sortable: true,
+                        }, {
+                          id: 'pos_x',
+                          header: 'Pos X',
+                          dataIndex: 'pos_x',
+                          editor: false,
+                          flex: 1.0,
+                          sortable: true,
+                        }, {
+                          id: 'pos_y',
+                          header: 'Pos Y',
+                          dataIndex: 'pos_y',
+                          editor: false,
+                          flex: 1.0,
+                          sortable: true,
+                        }, {
+                          id: 'pos_z',
+                          header: 'Pos Z',
+                          dataIndex: 'pos_z',
+                          editor: false,
+                          flex: 1.0,
+                          sortable: true,
+                        },
+                      ],
+                      itemId: 'keyframeview',
+                      plugins: [
+                        {ptype: 'cellediting',
+                         clicksToEdit: 1},
+                      ],
+                    }, {
+                      xtype: 'button',
+                      text: 'Add Keyframe',
+                      itemId: 'addKeyframe',
+                    }
                   ]
                 }
                 ] } /* tabpanel items and entry */
