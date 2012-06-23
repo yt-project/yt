@@ -183,6 +183,11 @@ Ext.define("Reason.view.widgets.Scene", {
                   layout: 'absolute',
                   flex: 1,
                   items : [
+                    {
+                      xtype: 'button',
+                      text: 'Add Isocontour',
+                      itemId: 'addIsocontour'
+                    },
                   ]
                 },
                 ] } /* tabpanel items and entry */

@@ -26,7 +26,7 @@ License:
 from yt.mods import *
 import weakref
 from .bottle_mods import PayloadHandler, lockit
-from .widget_builders import RenderingScene, get_corners
+from .widget_builders import RenderingScene, get_corners, get_isocontour
 from yt.visualization.plot_window import PWViewerExtJS
 import uuid
 
@@ -228,6 +228,17 @@ class SceneWidget(object):
         ph.widget_payload(self, {'ptype':'rendering',
                                  'image':self._rendering_scene.snapshot()})
         return
+
+    def deliver_isocontour(self, field, value):
+        ph = PayloadHandler()
+        vert = get_isocontour(self.pf, field, value)
+        normals = na.empty(vert.shape)
+        for i in xrange(vert.shape[0]/3):
+            n = na.cross(vert[i*3,:], vert[i*3+1,:])
+            normals[i*3:i*3+3,:] = n[None,:]
+        ph.widget_payload(self, {'ptype':'isocontour',
+                                 'vert':vert.tolist(),
+                                 'normals':normals.tolist()})
 
     def deliver_gridlines(self):
         ph = PayloadHandler()

@@ -34,6 +34,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     templates: {
         createScene: 'widget_store.create_scene({varname})',
         deliverGrids: 'widget_store["{widget.varname}"].deliver_gridlines()',
+        createIsocontour: 'widget_store["{widget.varname}"].deliver_isocontour("Density", None)',
     },
 
     /* These call functions on the controller object */
@@ -47,6 +48,7 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     /* These call templates */
     executionTriggers: [
+        ["#addIsocontour", "click", "createIsocontour"],
     ],
 
     /* ref: and selector: */
@@ -65,6 +67,8 @@ Ext.define("Reason.controller.widgets.Scene", {
         if (payload['ptype'] == 'grid_lines') {
             this.addGridLines(payload['corners'], payload['levels'],
                               payload['max_level']);
+        } else if (payload['ptype'] == 'isocontour') {
+            this.addIsocontour(payload['vert'], payload['normals']);
         } else {
             console.log("Unknown payload type received for 3D scene: " +
                         payload['ptype']);
@@ -146,6 +150,44 @@ Ext.define("Reason.controller.widgets.Scene", {
         for (i = 0; i < maxLevel + 1; i = i + 1) {
             this.renderer.add(gw[i]);
         }
+        this.renderer.render();
+    },
+
+    addIsocontour: function(vertices, normals) {
+        alert("Adding isocontours.");
+        var i, g, n, p;
+        Ext.MessageBox.show({
+            title : "Adding Isocontour Vertices",
+            width: 300,
+            msg: "Updating ...",
+            progress: true,
+            closable: false,
+        });
+        var nv = vertices.length();
+        var last = 0;
+        var surf = new X.mesh();
+        this.widgets.add({
+          name: "Isocontour",
+          type: 'isocontour',
+          widget: surf,
+          enabled: true,
+        });
+        surf.ga = "TRIANGLES";
+        p = surf.points;
+        n = surf.normals;
+        Ext.each(vertices, function(vert, index, allVerts) {
+            if ((index - last) > ( nv / 100.0)) {
+                Ext.MessageBox.updateProgress(
+                        (index / nv),
+                        Math.round(100*index/nv) + '% completed');
+                last = index;
+            }
+            p.add(vert[0], vert[1], vert[2]);
+            n.add(normals[index][0], normals[index][1], normals[index][2]);
+        });
+        Ext.MessageBox.hide();
+        surf.color = [1.0, 0.0, 0.0];
+        this.renderer.add(surf);
         this.renderer.render();
     },
 
