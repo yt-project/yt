@@ -39,7 +39,7 @@ from yt.utilities.orientation import Orientation
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, ProcessorPool
+    ParallelAnalysisInterface, ProcessorPool, parallel_objects
 from yt.utilities.amr_kdtree.api import AMRKDTree
 
 from yt.utilities.lib import \
@@ -1023,25 +1023,8 @@ class MosaicCamera(Camera):
                  preload=True, use_light=False):
 
         ParallelAnalysisInterface.__init__(self)
-        PP = ProcessorPool()
-        if procs_per_wg is None:
-            procs_per_wg = PP.size
-        for j in range(nimy):
-            for i in range(nimx):
-                PP.add_workgroup(size=procs_per_wg, name='%04i_%04i'%(i,j))
 
-        for wg in PP.workgroups:
-            if self.comm.rank in wg.ranks:
-                my_wg = wg
-
-        self.image_decomp = (nimx>1) or (nimy>1)
-        self.global_comm = self.comm
-        self.comm = my_wg.comm
-        self.wg = my_wg
-        self.imi = int(self.wg.name[0:4])
-        self.imj = int(self.wg.name[5:9])
-        print 'My new communicator has the name %s' % self.wg.name
-
+        self.procs_per_wg = procs_per_wg
         if pf is not None: self.pf = pf
         if not iterable(resolution):
             resolution = (int(resolution/nimx), int(resolution/nimy))
@@ -1074,28 +1057,33 @@ class MosaicCamera(Camera):
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
-
+        self.le = le
+        self.re = re
+        
         width[0] /= self.nimx
         width[1] /= self.nimy
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         self.rotation_vector = self.orienter.north_vector
-        self._setup_box_properties(width, center, self.orienter.unit_vectors)
+        # self._setup_box_properties(width, center, self.orienter.unit_vectors)
         
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
         self.tree_type = tree_type
-        if volume is None:
-            if self.use_kd:
-                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost, tree_type=tree_type,
-                                   log_fields = log_fields, le=le, re=re)
-            else:
-                volume = HomogenizedVolume(fields, pf = self.pf,
-                                           log_fields = log_fields)
-        else:
-            self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
-        self.cameras = na.empty(self.nimx*self.nimy)
+        # self.cameras = na.empty(self.nimx*self.nimy)
+
+    def build_volume(self, volume, fields, log_fields, l_max, no_ghost, tree_type, le, re):
+        if volume is None:
+            if self.use_kd:
+                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, 
+                                   no_ghost=no_ghost, tree_type=tree_type, 
+                                   log_fields=log_fields, le=le, re=re)
+            else:
+                volume = HomogenizedVolume(fields, pf=self.pf, log_fields=log_fields)
+        else:
+            self.use_kd = isinstance(volume, AMRKDTree)
+        return volume
 
     def new_image(self):
         image = na.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
@@ -1124,38 +1112,49 @@ class MosaicCamera(Camera):
         self.center = global_center
         self.width = owidth
 
-    def save_image(self, fn, clip_ratio, image):
+    def snapshot(self, fn = None, clip_ratio = None, double_check = False,
+                 num_threads = 0):
+
+        my_storage = {}
+        offx,offy = na.meshgrid(range(self.nimx),range(self.nimy))
+        offxy = zip(offx.ravel(), offy.ravel())
+
+        for sto, xy in parallel_objects(offxy, self.procs_per_wg, storage = my_storage, dynamic=True):
+            self.volume = self.build_volume(self.volume, self.fields, self.log_fields, 
+                                   self.l_max, self.no_ghost, 
+                                   self.tree_type, self.le, self.re)
+            self.initialize_source()
+
+            self.imi, self.imj = xy
+            self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
+            image = self.new_image()
+            args = self.get_sampler_args(image)
+            sampler = self.get_sampler(args)
+            image = self._render(double_check, num_threads, image, na, sampler)
+            my_storage[xy] = image
+        
+        self.save_image(fn, clip_ratio, my_storage)
+        return image
+
+
+    def save_image(self, fn, clip_ratio, im_dict):
         print fn
         if '.png' not in fn:
             fn = fn + '.png'
-
-        nx,ny = self.resolution[0], self.resolution[1]
-        if self.image_decomp:
-            if self.comm.rank == 0:
-                if self.global_comm.rank == 0:
-                    final_image = na.empty((nx*self.nimx, 
-                        ny*self.nimy, 4),
+        
+        if self.comm.rank == 0:
+            offx,offy = na.meshgrid(range(self.nimx),range(self.nimy))
+            offxy = zip(offx.ravel(), offy.ravel())
+            nx,ny = self.resolution
+            final_image = na.empty((nx*self.nimx, ny*self.nimy, 4),
                         dtype='float64',order='C')
-                    final_image[:nx, :ny, :] = image
-                    for j in range(self.nimy):
-                        for i in range(self.nimx):
-                            if i==0 and j==0: continue
-                            arr = self.global_comm.recv_array((self.wg.size)*(j*self.nimx + i), tag = (self.wg.size)*(j*self.nimx + i))
-
-                            final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = arr
-                            del arr
-                    if clip_ratio is not None:
-                        write_bitmap(final_image[:,:,:3], fn, clip_ratio*final_image.std())
-                    else:
-                        write_bitmap(final_image[:,:,:3], fn)
-                else:
-                    self.global_comm.send_array(image, 0, tag = self.global_comm.rank)
-        else:
-            if self.comm.rank == 0:
-                if clip_ratio is not None:
-                    write_bitmap(image[:,:,:3], fn, clip_ratio*image.std())
-                else:
-                    write_bitmap(image[:,:,:3], fn)
+            for xy in offxy: 
+                i, j = xy
+                final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = im_dict.pop(xy)
+            if clip_ratio is not None:
+                write_bitmap(final_image[:,:,:3], fn, clip_ratio*final_image.std())
+            else:
+                write_bitmap(final_image[:,:,:3], fn)
         return
 data_object_registry["mosaic_camera"] = MosaicCamera
 
