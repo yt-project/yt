@@ -76,9 +76,11 @@ class RenderingScene(object):
 
 
 def get_corners(pf, max_level=None):
-    corners = (100*pf.h.grid_corners).tolist()
+    DL = pf.domain_left_edge[None,:,None]
+    DW = pf.domain_width[None,:,None]/100.0
+    corners = ((pf.h.grid_corners-DL)/DW).tolist()
     levels = pf.h.grid_levels.tolist()
-    return corners, levels    
+    return corners, levels
 
 def get_grid_vertices(pf, max_level=None):
     if max_level is None: max_level = pf.h.max_level

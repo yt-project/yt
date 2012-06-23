@@ -74,4 +74,8 @@ table.pftable td, table.pftable th {
 
 div.XTKscene {
     background-color:#000;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden !important;
 }

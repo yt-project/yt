@@ -37,12 +37,14 @@ Ext.define("Reason.view.widgets.Scene", {
     closable: true,
 
     items: [ 
-        { xtype:'panel',
-          itemId: 'scenepanel',
+        {
+          xtype:'panel',
+          layout: 'absolute',
           x: 10,
           y: 10,
           width: 450,
           height: 450,
+          itemId: 'scenepanel',
         }, {
             xtype: 'multislider',
             itemId: 'cameraPathSlider',
@@ -73,16 +75,20 @@ Ext.define("Reason.view.widgets.Scene", {
                 {
                   xtype: 'panel',
                   title: 'Data Editor',
-                  itemId: 'plot_edit',
+                  itemId: 'data_edit',
                   layout: 'absolute',
                   flex: 1,
                   items : [
+                    {
+                        xtype: 'button',
+                        itemId: 'deliverGrids',
+                        text: 'Deliver Grids',
+                    },
                   ]
                 }, {
                   xtype: 'panel',
                   title: 'Widgets',
-                  itemId: 'contour_edit',
-                  style: {fontFamily: '"Inconsolata", monospace'},
+                  itemId: 'widget_edit',
                   layout: 'absolute',
                   flex: 1,
                   items : [
@@ -90,8 +96,7 @@ Ext.define("Reason.view.widgets.Scene", {
                 }, {
                   xtype: 'panel',
                   title: 'Camera Path',
-                  itemId: 'contour_edit',
-                  style: {fontFamily: '"Inconsolata", monospace'},
+                  itemId: 'camera_path',
                   layout: 'absolute',
                   flex: 1,
                   items : [

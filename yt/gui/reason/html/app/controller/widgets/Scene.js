@@ -30,6 +30,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     requires: ['Reason.view.widgets.Scene'],
     templates: {
         createScene: 'widget_store.create_scene({varname})',
+        deliverGrids: 'widget_store["{widget.varname}"].deliver_gridlines()',
     },
 
     /* These call functions on the controller object */
@@ -39,6 +40,7 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     /* These call templates */
     executionTriggers: [
+        ["#deliverGrids", "click", "deliverGrids"],
     ],
 
     /* ref: and selector: */
@@ -63,6 +65,7 @@ Ext.define("Reason.controller.widgets.Scene", {
         var wd = this.payload['data'];
         this.dataView = Ext.widget("scene",{
             title: wd['title'],
+            varname: this.payload['varname'],
         });
         this.createMyRefs(this.dataView.id);
         this.applyExecuteHandlers(this.dataView);
