@@ -30,6 +30,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     requires: ['Reason.view.widgets.Scene',
                'Reason.view.widgets.IsocontourCreator',
                'Reason.store.widgets.CameraKeyFrames',
+               'Reason.store.widgets.CameraPathElements',
                'Reason.store.widgets.SceneWidgets',
                'Ext.ux.CheckColumn'],
     templates: {
@@ -47,6 +48,7 @@ Ext.define("Reason.controller.widgets.Scene", {
         ["#keyframeview", "select", "shiftToKeyframe"],
         ["#widgetEnabled", "checkchange", "toggleWidgetEnabled"],
         ["#addIsocontour", "click", "createIsocontour"],
+        ["#cameraPathSlider", "change", "updateCameraPosition"],
     ],
 
     /* These call templates */
@@ -58,6 +60,7 @@ Ext.define("Reason.controller.widgets.Scene", {
         { ref:'scenePanel', selector: '#scenepanel' },
         { ref:'keyFrameView', selector: '#keyframeview' },
         { ref:'widgetPanel', selector: '#widgetlist'},
+        { ref:'cameraPathSlider', selector: '#cameraPathSlider'},
     ],
 
     /* key: , shift: and tpl: */
@@ -70,6 +73,8 @@ Ext.define("Reason.controller.widgets.Scene", {
                               payload['max_level']);
         } else if (payload['ptype'] == 'isocontour') {
             this.addIsocontour(payload['vert'], payload['normals']);
+        } else if (payload['ptype'] == 'camerapath') {
+            this.updateCameraPathElements(payload['data']);
         } else {
             console.log("Unknown payload type received for 3D scene: " +
                         payload['ptype']);
@@ -86,6 +91,7 @@ Ext.define("Reason.controller.widgets.Scene", {
         this.applyExecuteHandlers(this.dataView);
         this.keyFrames = Ext.create("Reason.store.widgets.CameraKeyFrames");
         this.getKeyFrameView().bindStore(this.keyFrames);
+        this.pathElements = Ext.create("Reason.store.widgets.CameraPathElements");
         this.widgets = Ext.create("Reason.store.widgets.SceneWidgets");
         this.getWidgetPanel().bindStore(this.widgets);
         this.fieldStore = Ext.create("Reason.store.Fields")
@@ -218,6 +224,8 @@ Ext.define("Reason.controller.widgets.Scene", {
     },
 
     addKeyframe: function() {
+        this.getCameraPathSlider().setValue(0);
+        this.getCameraPathSlider().disable();
         var v = this.renderer.camera.view;
         var va = v.toArray();
         this.keyFrames.add({
@@ -247,7 +255,7 @@ Ext.define("Reason.controller.widgets.Scene", {
                                   " [{8}, {9}, {10}, {11}], ",
                                   " [{12}, {13}, {14}, {15}]],\n");
         var cmdt = new Ext.XTemplate("widget_store['{0}'].render_path(\n",
-                                     "[{1}]\n,[{2}], 100)");
+                                     "[{1}]\n,[{2}], 101)");
         var path = "";
         var times = "";
         Ext.each(this.keyFrames.data.items, function(rec, ind, all) {
@@ -256,6 +264,28 @@ Ext.define("Reason.controller.widgets.Scene", {
         });
         var cmd = cmdt.apply([this.dataView.varname, path, times]);
         reason.server.execute(cmd);
+    },
+
+    updateCameraPathElements: function(elements) {
+        var cpe = this.pathElements;
+        var i;
+        cpe.removeAll();
+        for (i = 0; i < elements[0].length; i = i + 1) {
+            cpe.add({position: elements[0][i],
+                     focus: elements[1][i],
+                     up: elements[2][i]});
+        }
+        v = this.getCameraPathSlider().enable();
+    },
+
+    updateCameraPosition: function(b, e) {
+        v = this.getCameraPathSlider().getValue();
+        console.log(v);
+        rec = this.pathElements.data.items[v].data;
+        this.renderer.camera.position = rec.position;
+        this.renderer.camera.focus = rec.focus;
+        this.renderer.camera.up = rec.up;
+        this.renderer.render();
     },
 
 });

@@ -48,6 +48,7 @@ Ext.define("Reason.view.widgets.Scene", {
         }, {
             xtype: 'multislider',
             itemId: 'cameraPathSlider',
+            disabled: true,
             minValue: 0,
             maxValue: 100,
             increment: 1,
