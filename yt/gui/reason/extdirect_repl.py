@@ -40,6 +40,7 @@ import tempfile
 import base64
 import imp
 import threading
+import Pyro4
 import Queue
 import zipfile
 
@@ -121,6 +122,45 @@ class ExecutionThread(threading.Thread):
                  'input': highlighter(code),
                  'raw_input': code},
                 )
+
+class PyroExecutionThread(ExecutionThread):
+    def __init__(self, repl):
+        ExecutionThread.__init__(self, repl)
+        hmac_key = raw_input("HMAC_KEY? ").strip()
+        uri = raw_input("URI? ").strip()
+        Pyro4.config.HMAC_KEY = hmac_key
+        self.executor = Pyro4.Proxy(uri)
+
+    def execute_one(self, code, hide):
+        self.repl.executed_cell_texts.append(code)
+        print code
+        result = self.executor.execute(code)
+        if not hide:
+            self.repl.payload_handler.add_payload(
+                {'type': 'cell',
+                 'output': result,
+                 'input': highlighter(code),
+                 'raw_input': code},
+                )
+        ph = self.executor.deliver()
+        for p in ph:
+            self.repl.payload_handler.add_payload(p)
+
+    def heartbeat(self):
+        self.last_heartbeat = time.time()
+        if self.debug: print "### Heartbeat ... started: %s" % (time.ctime())
+        for i in range(30):
+            # Check for stop
+            if self.debug: print "    ###"
+            if self.stopped: return {'type':'shutdown'} # No race condition
+            if self.payload_handler.event.wait(1): # One second timeout
+                if self.debug: print "    ### Delivering payloads"
+                rv = self.payload_handler.deliver_payloads()
+                if self.debug: print "    ### Got back, returning"
+                return rv
+        if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
+        return []
+
 
 def deliver_image(im):
     if hasattr(im, 'read'):
@@ -205,7 +245,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.pflist = ExtDirectParameterFileList()
         self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
-        self.execution_thread = ExecutionThread(self)
+        #self.execution_thread = ExecutionThread(self)
+        self.execution_thread = PyroExecutionThread(self)
         # We pass in a reference to ourself
         self.widget_store = WidgetStore(self)
         # Now we load up all the yt.mods stuff, but only after we've finished
