@@ -40,6 +40,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     widgetTriggers: [
         ["#scenepanel", "afterrender", "setupXTK"],
         ["#addKeyframe", "click", "addKeyframe"],
+        ["#renderPath", "click", "renderPath"],
         ["#keyframeview", "select", "shiftToKeyframe"],
         ["#widgetEnabled", "checkchange", "toggleWidgetEnabled"],
     ],
@@ -170,6 +171,23 @@ Ext.define("Reason.controller.widgets.Scene", {
         var rec = this.widgets.data.items[rowIndex];
         rec.data.widget.visible = enabled;
         this.renderer.render();
+    },
+
+    renderPath: function() {
+        
+        var t = new Ext.XTemplate("[[{0}, {1}, {2}, {3}], ",
+                                  " [{4}, {5}, {6}, {7}], ",
+                                  " [{8}, {9}, {10}, {11}], ",
+                                  " [{12}, {13}, {14}, {15}]],\n");
+        var cmdt = new Ext.XTemplate("widget_store['{0}'].render_path(\n",
+                                     "[{1}]\n,[{2}], 100)");
+        var path = "";
+        var times = "";
+        Ext.each(this.keyFrames.data.items, function(rec, ind, all) {
+            times = times + rec.data.time + ", ";
+            path = path + t.apply(rec.data.view.flatten());
+        });
+        var cmd = cmdt.apply([this.dataView.varname, path, times]);
     },
 
 });
