@@ -5,6 +5,8 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
+Author: Geoffrey So <gsiisg@gmail.com> (AMREllipsoidBase)
+Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
@@ -41,8 +43,7 @@ from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.lib import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
-    march_cubes_grid, march_cubes_grid_flux, ortho_ray_grids, ray_grids, \
-    slice_grids, cutting_plane_grids, cutting_plane_cells
+    march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -57,6 +58,7 @@ from yt.utilities.parameter_file_storage import \
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
 from yt.utilities.orientation import Orientation
+from yt.utilities.math_utils import get_rotation_matrix
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -578,10 +580,12 @@ class AMROrthoRayBase(AMR1DData):
         return (self.px, self.py)
 
     def _get_list_of_grids(self):
-        gi = ortho_ray_grids(self, 
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
-        self._grids = self.hierarchy.grids[gi]
+        # This bugs me, but we will give the tie to the LeftEdge
+        y = na.where( (self.px >=  self.pf.hierarchy.grid_left_edge[:,self.px_ax])
+                    & (self.px < self.pf.hierarchy.grid_right_edge[:,self.px_ax])
+                    & (self.py >=  self.pf.hierarchy.grid_left_edge[:,self.py_ax])
+                    & (self.py < self.pf.hierarchy.grid_right_edge[:,self.py_ax]))
+        self._grids = self.hierarchy.grids[y]
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
@@ -652,10 +656,31 @@ class AMRRayBase(AMR1DData):
         #self._refresh_data()
 
     def _get_list_of_grids(self):
-        gi = ray_grids(self,
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
-        self._grids = self.hierarchy.grids[gi]
+        # Get the value of the line at each LeftEdge and RightEdge
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
+        p = na.zeros(self.pf.h.num_grids, dtype='bool')
+        # Check left faces first
+        for i in range(3):
+            i1 = (i+1) % 3
+            i2 = (i+2) % 3
+            vs = self._get_line_at_coord(LE[:,i], i)
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
+            vs = self._get_line_at_coord(RE[:,i], i)
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
+        p = p | ( na.all( LE <= self.start_point, axis=1 ) 
+                & na.all( RE >= self.start_point, axis=1 ) )
+        p = p | ( na.all( LE <= self.end_point,   axis=1 ) 
+                & na.all( RE >= self.end_point,   axis=1 ) )
+        self._grids = self.hierarchy.grids[p]
+
+    def _get_line_at_coord(self, v, index):
+        # t*self.vec + self.start_point = self.end_point
+        t = (v - self.start_point[index])/self.vec[index]
+        t = t.reshape((t.shape[0],1))
+        return self.start_point + t*self.vec
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
@@ -1055,10 +1080,9 @@ class AMRSliceBase(AMR2DData):
         self.ActiveDimensions = (t.shape[1], 1, 1)
 
     def _get_list_of_grids(self):
-        gi = slice_grids(self, 
-                self.hierarchy.grid_left_edge,
-                self.hierarchy.grid_right_edge)
-        self._grids = self.hierarchy.grids[gi]
+        goodI = ((self.pf.h.grid_right_edge[:,self.axis] > self.coord)
+              &  (self.pf.h.grid_left_edge[:,self.axis] <= self.coord ))
+        self._grids = self.pf.h.grids[goodI] # Using sources not hierarchy
 
     def __cut_mask_child_mask(self, grid):
         mask = grid.child_mask.copy()
@@ -1213,9 +1237,25 @@ class AMRCuttingPlaneBase(AMR2DData):
         return self._norm_vec
 
     def _get_list_of_grids(self):
-        gridi = cutting_plane_grids(self, self.pf.h.grid_left_edge,
-                                          self.pf.h.grid_right_edge)
-        self._grids = self.hierarchy.grids[gridi.astype("bool")]
+        # Recall that the projection of the distance vector from a point
+        # onto the normal vector of a plane is:
+        # D = (a x_0 + b y_0 + c z_0 + d)/sqrt(a^2+b^2+c^2)
+        # @todo: Convert to using corners
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
+        vertices = na.array([[LE[:,0],LE[:,1],LE[:,2]],
+                             [RE[:,0],RE[:,1],RE[:,2]],
+                             [LE[:,0],LE[:,1],RE[:,2]],
+                             [RE[:,0],RE[:,1],LE[:,2]],
+                             [LE[:,0],RE[:,1],RE[:,2]],
+                             [RE[:,0],LE[:,1],LE[:,2]],
+                             [LE[:,0],RE[:,1],LE[:,2]],
+                             [RE[:,0],LE[:,1],RE[:,2]]])
+        # This gives us shape: 8, 3, n_grid
+        D = na.sum(self._norm_vec.reshape((1,3,1)) * vertices, axis=1) + self._d
+        self.D = D
+        self._grids = self.hierarchy.grids[
+            na.where(na.logical_not(na.all(D<0,axis=0) | na.all(D>0,axis=0) )) ]
 
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -3360,6 +3400,141 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
+class AMREllipsoidBase(AMR3DData):
+    """
+    We can define an ellipsoid to act as a data object.
+    """
+    _type_name = "ellipsoid"
+    _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
+    def __init__(self, center, A, B, C, e0, tilt, fields=None,
+                 pf=None, **kwargs):
+        """
+        By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
+        can define a ellipsoid of any proportion.  Only cells whose centers are
+        within the ellipsoid will be selected.
+        """
+        AMR3DData.__init__(self, na.array(center), fields, pf, **kwargs)
+        # make sure the smallest side is not smaller than dx
+        if C < self.hierarchy.get_smallest_dx():
+            raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
+        self._A = A
+        self._B = B
+        self._C = C
+        self._e0 = e0
+        self._tilt = tilt
+        
+        # find the t1 angle needed to rotate about z axis to align e0 to x
+        t1 = na.arctan(e0[1] / e0[0])
+        # rotate e0 by -t1
+        RZ = get_rotation_matrix(t1, (0,0,1)).transpose()
+        r1 = (e0 * RZ).sum(axis = 1)
+        # find the t2 angle needed to rotate about y axis to align e0 to x
+        t2 = na.arctan(-r1[2] / r1[0])
+        """
+        calculate the original e1
+        given the tilt about the x axis when e0 was aligned 
+        to x after t1, t2 rotations about z, y
+        """
+        RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
+        RY = get_rotation_matrix(-t2,   (0,1,0)).transpose()
+        RZ = get_rotation_matrix(-t1,   (0,0,1)).transpose()
+        e1 = ((0, 1, 0) * RX).sum(axis = 1)
+        e1 = (e1 * RY).sum(axis = 1)
+        e1 = (e1 * RZ).sum(axis = 1)
+        e2 = na.cross(e0, e1)
+
+        self._e1 = e1
+        self._e2 = e2
+
+        self.set_field_parameter('A', A)
+        self.set_field_parameter('B', B)
+        self.set_field_parameter('C', C)
+        self.set_field_parameter('e0', e0)
+        self.set_field_parameter('e1', e1)
+        self.set_field_parameter('e2', e2)
+        self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
+        self._refresh_data()
+
+        """
+        Having another function find_ellipsoid_grids is too much work, 
+        can just use the sphere one and forget about checking orientation
+        but feed in the A parameter for radius
+        """
+    def _get_list_of_grids(self, field = None):
+        """
+        This returns the grids that are possibly within the ellipse
+        """
+        grids,ind = self.hierarchy.find_sphere_grids(self.center, self._A)
+        # Now we sort by level
+        grids = grids.tolist()
+        grids.sort(key=lambda x: (x.Level, \
+                                  x.LeftEdge[0], \
+                                  x.LeftEdge[1], \
+                                  x.LeftEdge[2]))
+        self._grids = na.array(grids, dtype = 'object')
+
+    def _is_fully_enclosed(self, grid):
+        """
+        check if all grid corners are inside the ellipsoid
+        """
+        # vector from corner to center
+        vr = (grid._corners - self.center)
+        # 3 possible cases of locations taking periodic BC into account
+        # just listing the components, find smallest later
+        dotarr=na.array([vr, vr + self.DW, vr - self.DW])
+        # these vrdote# finds the product of vr components with e#
+        # square the results
+        # find the smallest
+        # sums it
+        vrdote0_2 = (na.multiply(dotarr, self._e0)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        vrdote1_2 = (na.multiply(dotarr, self._e1)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        vrdote2_2 = (na.multiply(dotarr, self._e2)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        return na.all(vrdote0_2 / self._A**2 + \
+                      vrdote1_2 / self._B**2 + \
+                      vrdote2_2 / self._C**2 <=1.0)
+
+    @restore_grid_state # Pains me not to decorate with cache_mask here
+    def _get_cut_mask(self, grid, field = None):
+        """
+        This checks if each cell is inside the ellipsoid
+        """
+        # We have the *property* center, which is not necessarily
+        # the same as the field_parameter
+        if self._is_fully_enclosed(grid):
+            return True # We do not want child masking here
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
+           and grid.id in self._cut_masks:
+            return self._cut_masks[grid.id]
+        Inside = na.zeros(grid["x"].shape, dtype = 'float64')
+        dim = grid["x"].shape
+        # need this to take into account non-cube root grid tiles
+        dot_evec = na.zeros([3, dim[0], dim[1], dim[2]])
+        for i, ax in enumerate('xyz'):
+            # distance to center
+            ar  = grid[ax]-self.center[i]
+            # cases to take into account periodic BC
+            case = na.array([ar, ar + self.DW[i], ar - self.DW[i]])
+            # find which of the 3 cases is smallest in magnitude
+            index = na.abs(case).argmin(axis = 0)
+            # restrict distance to only the smallest cases
+            vec = na.choose(index, case)
+            # sum up to get the dot product with e_vectors
+            dot_evec += na.array([vec * self._e0[i], \
+                                  vec * self._e1[i], \
+                                  vec * self._e2[i]])
+        # Calculate the eqn of ellipsoid, if it is inside
+        # then result should be <= 1.0
+        Inside = dot_evec[0]**2 / self._A**2 + \
+                 dot_evec[1]**2 / self._B**2 + \
+                 dot_evec[2]**2 / self._C**2
+        cm = ((Inside <= 1.0) & grid.child_mask)
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
+            self._cut_masks[grid.id] = cm
+        return cm
+
 class AMRCoveringGridBase(AMR3DData):
     _spatial = True
     _type_name = "covering_grid"
@@ -3377,8 +3552,6 @@ class AMRCoveringGridBase(AMR3DData):
             The left edge of the region to be extracted
         dims : array_like
             Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
@@ -3537,16 +3710,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         left_edge : array_like
             The left edge of the region to be extracted
         dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
+            Number of cells along each axis of resulting covering_grid.
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
         Example
         -------
         cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
         """
         self._base_dx = (
@@ -3585,10 +3755,16 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
+                mylog.debug("Updating level state to %s", last_level + 1)
                 self._update_level_state(last_level + 1)
                 self._refine(1, fields_to_get)
                 last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
+        while last_level < self.level:
+            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
+            self._update_level_state(last_level + 1)
+            self._refine(1, fields_to_get)
+            last_level += 1
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
@@ -3611,7 +3787,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                     self.pf.domain_left_edge)/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64') + 2
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -3619,7 +3795,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -3630,8 +3806,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
-
+        output_dims = na.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
 
         for field in fields:

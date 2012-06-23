@@ -1156,7 +1156,7 @@ class AMRKDTree(HomogenizedVolume):
 
         """
         if self.tree is None: 
-            print 'No KD Tree Exists'
+            mylog.error('No KD Tree Exists')
             return
         self.image = image
 

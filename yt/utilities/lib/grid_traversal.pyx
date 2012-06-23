@@ -325,10 +325,6 @@ cdef void projection_sampler(
     for i in range(imin(3, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
-cdef class ProjectionSampler(ImageSampler):
-    cdef void setup(self, PartitionedGrid pg):
-        self.sampler = projection_sampler
-
 cdef struct VolumeRenderAccumulator:
     int n_fits
     int n_samples
@@ -340,6 +336,71 @@ cdef struct VolumeRenderAccumulator:
     kdtree_utils.kdtree *star_list
     np.float64_t *light_dir
     np.float64_t *light_rgba
+
+
+cdef class ProjectionSampler(ImageSampler):
+    cdef void setup(self, PartitionedGrid pg):
+        self.sampler = projection_sampler
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void interpolated_projection_sampler(
+                 VolumeContainer *vc, 
+                 np.float64_t v_pos[3],
+                 np.float64_t v_dir[3],
+                 np.float64_t enter_t,
+                 np.float64_t exit_t,
+                 int index[3],
+                 void *data) nogil:
+    cdef ImageAccumulator *im = <ImageAccumulator *> data
+    cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
+            im.supp_data
+    # we assume this has vertex-centered data.
+    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
+                    + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
+    cdef np.float64_t dvs[6]
+    for i in range(3):
+        dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
+        dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
+        dp[i] *= vc.idds[i]
+        ds[i] = v_dir[i] * vc.idds[i] * dt
+    for i in range(vri.n_samples):
+        for j in range(vc.n_fields):
+            dvs[j] = offset_interpolate(vc.dims, dp,
+                    vc.data[j] + offset)
+        for j in range(imin(3, vc.n_fields)):
+            im.rgba[j] += dvs[j] * dt
+        for j in range(3):
+            dp[j] += ds[j]
+
+cdef class InterpolatedProjectionSampler(ImageSampler):
+    cdef VolumeRenderAccumulator *vra
+    cdef public object tf_obj
+    cdef public object my_field_tables
+    def __cinit__(self, 
+                  np.ndarray vp_pos,
+                  np.ndarray vp_dir,
+                  np.ndarray[np.float64_t, ndim=1] center,
+                  bounds,
+                  np.ndarray[np.float64_t, ndim=3] image,
+                  np.ndarray[np.float64_t, ndim=1] x_vec,
+                  np.ndarray[np.float64_t, ndim=1] y_vec,
+                  np.ndarray[np.float64_t, ndim=1] width,
+                  n_samples = 10):
+        ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
+                               x_vec, y_vec, width)
+        cdef int i
+        # Now we handle tf_obj
+        self.vra = <VolumeRenderAccumulator *> \
+            malloc(sizeof(VolumeRenderAccumulator))
+        self.vra.n_samples = n_samples
+        self.supp_data = <void *> self.vra
+
+    cdef void setup(self, PartitionedGrid pg):
+        self.sampler = interpolated_projection_sampler
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
