@@ -154,7 +154,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     },
 
     addIsocontour: function(vertices, normals) {
-        alert("Adding isocontours.");
+        console.log("Adding isocontours ...");
         var i, g, n, p;
         Ext.MessageBox.show({
             title : "Adding Isocontour Vertices",
@@ -163,7 +163,7 @@ Ext.define("Reason.controller.widgets.Scene", {
             progress: true,
             closable: false,
         });
-        var nv = vertices.length();
+        var nv = vertices.length;
         var last = 0;
         var surf = new X.mesh();
         this.widgets.add({
