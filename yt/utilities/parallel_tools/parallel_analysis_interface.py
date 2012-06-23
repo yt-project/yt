@@ -36,7 +36,7 @@ from yt.config import ytcfg
 from yt.utilities.definitions import \
     x_dict, y_dict
 import yt.utilities.logger
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     QuadTree, merge_quadtrees
 
 parallel_capable = ytcfg.getboolean("yt", "__parallel")
@@ -340,10 +340,15 @@ class ResultsStorage(object):
     result = None
     result_id = None
 
-def parallel_objects(objects, njobs = 0, storage = None, barrier = True):
+def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
+                     dynamic = False):
+    if dynamic:
+        from .task_queue import dynamic_parallel_objects
+        dynamic_parallel_objects(objects, njobs=njobs,
+                                 storage=storage)
+    
     if not parallel_capable:
         njobs = 1
-        mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
     if njobs <= 0:
@@ -782,6 +787,16 @@ class Communicator(object):
         self.comm.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
+
+    def probe_loop(self, tag, callback):
+        while 1:
+            st = MPI.Status()
+            self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
+            try:
+                callback(st)
+            except StopIteration:
+                mylog.debug("Probe loop ending.")
+                break
 
 communication_system = CommunicationSystem()
 if parallel_capable:

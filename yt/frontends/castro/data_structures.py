@@ -39,7 +39,7 @@ from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.definitions import mpc_conversion
-from yt.utilities.amr_utils import get_box_grids_level
+from yt.utilities.lib import get_box_grids_level
 
 from .definitions import \
     castro2enzoDict, \

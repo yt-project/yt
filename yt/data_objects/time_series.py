@@ -33,7 +33,9 @@ from .analyzer_objects import create_quantity_proxy, \
 from .derived_quantities import quantity_info
 from yt.utilities.exceptions import YTException
 from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import parallel_objects
+    import parallel_objects, parallel_root_only
+from yt.utilities.parameter_file_storage import \
+    simulation_time_series_registry
 
 class AnalysisTaskProxy(object):
     def __init__(self, time_series):
@@ -107,13 +109,14 @@ class TimeSeriesData(object):
     def __len__(self):
         return len(self._pre_outputs)
 
-    def piter(self, storage = None):
+    def piter(self, storage = None, dynamic = False):
         if self.parallel == False:
             njobs = 1
         else:
             if self.parallel == True: njobs = -1
             else: njobs = self.parallel
-        return parallel_objects(self, njobs, storage)
+        return parallel_objects(self, njobs=njobs, storage=storage,
+                                dynamic=dynamic)
         
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
@@ -189,3 +192,67 @@ class TimeSeriesDataObject(object):
         # hierarchy
         cls = getattr(pf.h, self.data_object_name)
         return cls(*self._args, **self._kwargs)
+
+
+class SimulationTimeSeries(TimeSeriesData):
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            code_name = name[:name.find('Simulation')]
+            if code_name:
+                simulation_time_series_registry[code_name] = cls
+                mylog.debug("Registering simulation: %s as %s", code_name, cls)
+
+    def __init__(self, parameter_filename):
+        """
+        Base class for generating simulation time series types.
+        Principally consists of a *parameter_filename*.
+        """
+
+        if not os.path.exists(parameter_filename):
+            raise IOError(parameter_filename)
+        self.parameter_filename = parameter_filename
+        self.basename = os.path.basename(parameter_filename)
+        self.directory = os.path.dirname(parameter_filename)
+        self.parameters = {}
+
+        # Set some parameter defaults.
+        self._set_parameter_defaults()
+        # Read the simulation parameter file.
+        self._parse_parameter_file()
+        # Set up time units dictionary.
+        self._set_time_units()
+
+        # Figure out the starting and stopping times and redshift.
+        self._calculate_simulation_bounds()
+        self.print_key_parameters()
+        
+        # Get all possible datasets.
+        self._get_all_outputs()
+
+    def __repr__(self):
+        return self.parameter_filename
+
+    @parallel_root_only
+    def print_key_parameters(self):
+        """
+        Print out some key parameters for the simulation.
+        """
+        for a in ["domain_dimensions", "domain_left_edge",
+                  "domain_right_edge", "initial_time", "final_time",
+                  "stop_cycle", "cosmological_simulation"]:
+            if not hasattr(self, a):
+                mylog.error("Missing %s in parameter file definition!", a)
+                continue
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)
+        if hasattr(self, "cosmological_simulation") and \
+           getattr(self, "cosmological_simulation"):
+            for a in ["omega_lambda", "omega_matter",
+                      "hubble_constant", "initial_redshift",
+                      "final_redshift"]:
+                if not hasattr(self, a):
+                    mylog.error("Missing %s in parameter file definition!", a)
+                    continue
+                v = getattr(self, a)
+                mylog.info("Parameters: %-25s = %s", a, v)

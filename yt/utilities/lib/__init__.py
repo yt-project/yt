@@ -1,15 +1,11 @@
 """
-API for halo_profiler
+Compatibility module
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,13 +21,20 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
-from .halo_filters import \
-    VirialFilter
-
-from .multi_halo_profiler import \
-    HaloProfiler, \
-    FakeProfile, \
-    standard_fields
+from .CICDeposit import *
+from .ContourFinding import *
+from .DepthFirstOctree import *
+from .fortran_reader import *
+from .freetype_writer import *
+from .geometry_utils import *
+from .Interpolators import *
+from .misc_utilities import *
+from .Octree import *
+from .png_writer import *
+from .PointsInVolume import *
+from .QuadTree import *
+from .RayIntegrators import *
+from .grid_traversal import *
+from .marching_cubes import *

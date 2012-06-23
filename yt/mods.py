@@ -67,7 +67,8 @@ from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
 
 from yt.frontends.enzo.api import \
-    EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
+    EnzoStaticOutput, EnzoStaticOutputInMemory, \
+    EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
 from yt.frontends.castro.api import \
@@ -129,7 +130,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
-from yt.convenience import load, projload
+from yt.convenience import \
+    load, projload, simulation
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
