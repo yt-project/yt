@@ -172,7 +172,7 @@ Ext.define("Reason.view.widgets.Scene", {
                       itemId: 'addKeyframe',
                     }, {
                       xtype: 'button',
-                      text: 'Render Path',
+                      text: 'Calculate Path',
                       itemId: 'renderPath',
                     }
                   ]
