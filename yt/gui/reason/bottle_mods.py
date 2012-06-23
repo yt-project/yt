@@ -56,11 +56,13 @@ class BinaryDelivery(object):
     def __init__(self, payload, name = ""):
         self.name = name
         self.payload = payload
+        #sys.__stderr__.write("CREATING A BINARY PAYLOAD %s (%s)\n" % (
+        #    self.name, len(self.payload)))
 
     def get(self):
         # We set our 
-        sys.__stderr__.write("REQUESTED A BINARY PAYLOAD %s (%s)\n" % (
-            self.name, len(self.payload)))
+        #sys.__stderr__.write("REQUESTED A BINARY PAYLOAD %s (%s)\n" % (
+        #    self.name, len(self.payload)))
         p = self.payload
         if p == "":
             response.status = 404
@@ -139,8 +141,9 @@ class PayloadHandler(object):
             uu = uuid.uuid4().hex
             bp['binary'].append((bkey, uu))
             route("%s/%s" % (self._prefix, uu))(bpserver.get)
-            sys.__stderr__.write("**** Adding binary payload (%s) to %s\n" % (
-                    bkey, uu))
+            if self.debug:
+                sys.__stderr__.write(
+                    "**** Adding binary payload (%s) to %s\n" % (bkey, uu))
 
     def replay_payloads(self):
         return self.recorded_payloads
