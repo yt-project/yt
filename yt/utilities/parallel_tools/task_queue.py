@@ -157,7 +157,7 @@ def task_queue(func, tasks, njobs=0):
     communication_system.pop()
     return my_q.run(func)
 
-def dynamic_parallel_objects(tasks, njobs=0, storage=None):
+def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
     comm = _get_comm(())
     if not parallel_capable:
         mylog.error("Cannot create task queue for serial process.")
@@ -193,7 +193,10 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None):
                 my_q.send_result(rstore.result)
 
     if storage is not None:
-        my_results = my_q.comm.comm.bcast(my_q.results, root=0)
+        if broadcast:
+            my_results = my_q.comm.comm.bcast(my_q.results, root=0)
+        else:
+            my_results = my_q.results
         storage.update(my_results)
 
     communication_system.pop()

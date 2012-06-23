@@ -341,11 +341,11 @@ class ResultsStorage(object):
     result_id = None
 
 def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
-                     dynamic = False):
+                     dynamic = False, broadcast=True):
     if dynamic:
         from .task_queue import dynamic_parallel_objects
         for my_obj in dynamic_parallel_objects(objects, njobs=njobs,
-                                               storage=storage):
+                                               storage=storage, broadcast=broadcast):
             yield my_obj
         return
     

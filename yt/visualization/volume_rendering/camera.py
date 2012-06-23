@@ -27,6 +27,7 @@ import numpy as na
 
 from yt.funcs import *
 from yt.utilities.math_utils import *
+from copy import deepcopy
 
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
@@ -391,7 +392,7 @@ class Camera(ParallelAnalysisInterface):
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
     def save_image(self, fn, clip_ratio, image):
-        if self.comm.rank is 0 and fn is not None:
+        if self.comm.rank == 0 and fn is not None:
             if clip_ratio is not None:
                 write_bitmap(image[:,:,:3], fn, clip_ratio * image[:,:,:3].std())
             else:
@@ -1042,7 +1043,7 @@ class MosaicCamera(Camera):
         self.sub_samples = sub_samples
         if not iterable(width):
             width = (width, width, width) # front/back, left/right, top/bottom
-        self.width = (width[0]/nimx, width[1]/nimy, width[2])
+        self.width = na.array([width[0], width[1], width[2]])
         self.center = center
         self.steady_north = steady_north
         self.expand_factor = expand_factor
@@ -1067,9 +1068,9 @@ class MosaicCamera(Camera):
         self.light_rgba = None
         self.le = le
         self.re = re
+        self.width[0]/=self.nimx
+        self.width[1]/=self.nimy
         
-        width[0] /= self.nimx
-        width[1] /= self.nimy
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         self.rotation_vector = self.orienter.north_vector
         # self._setup_box_properties(width, center, self.orienter.unit_vectors)
@@ -1098,23 +1099,26 @@ class MosaicCamera(Camera):
         return image
 
     def _setup_box_properties(self, width, center, unit_vectors):
-        owidth = width
-        self.width = width 
-        self.center = center
-        offi = -self.nimx*0.5 + (self.imi + 0.5)
-        offj = -self.nimy*0.5 + (self.imj + 0.5)
+        owidth = deepcopy(width)
+        self.width = width
+        self.origin = self.center - 0.5*self.nimx*self.width[0]*self.orienter.unit_vectors[0] \
+                                  - 0.5*self.nimy*self.width[1]*self.orienter.unit_vectors[1] \
+                                  - 0.5*self.width[2]*self.orienter.unit_vectors[2]
+        dx = self.width[0]
+        dy = self.width[1]
+        print 'I am the width!', self.width
+        offi = (self.imi + 0.5)
+        offj = (self.imj + 0.5)
         mylog.info("Mosaic offset: %f %f" % (offi,offj))
         global_center = self.center
-        self.center += offi*self.width[0]*self.orienter.unit_vectors[0]
-        self.center += offj*self.width[1]*self.orienter.unit_vectors[1]
-
-        self.box_vectors = na.array([self.orienter.unit_vectors[0]*self.width[0],
-                                     self.orienter.unit_vectors[1]*self.width[1],
+        self.center = self.origin
+        self.center += offi*dx*self.orienter.unit_vectors[0]
+        self.center += offj*dy*self.orienter.unit_vectors[1]
+        print 'Setting center to', self.center
+        
+        self.box_vectors = na.array([self.orienter.unit_vectors[0]*dx*self.nimx,
+                                     self.orienter.unit_vectors[1]*dy*self.nimx,
                                      self.orienter.unit_vectors[2]*self.width[2]])
-
-        self.origin = self.center - 0.5*self.width[0]*self.orienter.unit_vectors[0] \
-                                  - 0.5*self.width[1]*self.orienter.unit_vectors[1] \
-                                  - 0.5*self.width[2]*self.orienter.unit_vectors[2]
         self.back_center = self.center - 0.5*self.width[0]*self.orienter.unit_vectors[2]
         self.front_center = self.center + 0.5*self.width[0]*self.orienter.unit_vectors[2]
         self.center = global_center
@@ -1127,43 +1131,43 @@ class MosaicCamera(Camera):
         offx,offy = na.meshgrid(range(self.nimx),range(self.nimy))
         offxy = zip(offx.ravel(), offy.ravel())
 
-        for sto, xy in parallel_objects(offxy, self.procs_per_wg, storage = my_storage, dynamic=True):
+        for sto, xy in parallel_objects(offxy, self.procs_per_wg, storage = my_storage, 
+                                        dynamic=True, broadcast=False):
             self.volume = self.build_volume(self.volume, self.fields, self.log_fields, 
                                    self.l_max, self.no_ghost, 
                                    self.tree_type, self.le, self.re)
             self.initialize_source()
 
             self.imi, self.imj = xy
+            print 'Working on: %i %i' % (self.imi, self.imj)
             self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
             image = self.new_image()
             args = self.get_sampler_args(image)
             sampler = self.get_sampler(args)
             image = self._render(double_check, num_threads, image, sampler)
-            my_storage[xy] = image
-        
-        self.save_image(fn, clip_ratio, my_storage)
+            sto.id = self.imj*self.nimx + self.imi
+            sto.result = image
+        print 'after snap:', my_storage.keys()
+        image = self.reduce_images(my_storage)
+        self.save_image(fn, clip_ratio, image)
         return image
 
-
-    def save_image(self, fn, clip_ratio, im_dict):
-        print fn
-        if '.png' not in fn:
-            fn = fn + '.png'
-        
+    def reduce_images(self,im_dict):
+        final_image = 0
         if self.comm.rank == 0:
             offx,offy = na.meshgrid(range(self.nimx),range(self.nimy))
             offxy = zip(offx.ravel(), offy.ravel())
             nx,ny = self.resolution
             final_image = na.empty((nx*self.nimx, ny*self.nimy, 4),
                         dtype='float64',order='C')
+            print offxy
+            print im_dict.keys()
             for xy in offxy: 
                 i, j = xy
-                final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = im_dict.pop(xy)
-            if clip_ratio is not None:
-                write_bitmap(final_image[:,:,:3], fn, clip_ratio*final_image.std())
-            else:
-                write_bitmap(final_image[:,:,:3], fn)
-        return
+                ind = j*self.nimx+i
+                final_image[i*nx:(i+1)*nx, j*ny:(j+1)*ny,:] = im_dict[ind]
+        return final_image
+
 data_object_registry["mosaic_camera"] = MosaicCamera
 
 
