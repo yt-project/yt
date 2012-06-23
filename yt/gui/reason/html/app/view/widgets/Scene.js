@@ -101,8 +101,9 @@ Ext.define("Reason.view.widgets.Scene", {
                   items : [
                     {
                       xtype: 'gridpanel',
+                      itemId: 'keyframeview',
                       flex: 1.0,
-                      selType: 'cellmodel',
+                      selType: 'rowmodel',
                       columns: [
                         {
                           id: 'time',
@@ -136,7 +137,6 @@ Ext.define("Reason.view.widgets.Scene", {
                           sortable: true,
                         },
                       ],
-                      itemId: 'keyframeview',
                       plugins: [
                         {ptype: 'cellediting',
                          clicksToEdit: 1},

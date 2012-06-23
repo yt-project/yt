@@ -38,6 +38,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     widgetTriggers: [
         ["#scenepanel", "afterrender", "setupXTK"],
         ["#addKeyframe", "click", "addKeyframe"],
+        ["#keyframeview", "select", "shiftToKeyframe"],
     ],
 
     /* These call templates */
@@ -139,15 +140,20 @@ Ext.define("Reason.controller.widgets.Scene", {
     },
 
     addKeyframe: function() {
-        var v = this.renderer.camera.view.toArray();
-        examine = v;
+        var v = this.renderer.camera.view;
+        var va = v.toArray();
         this.keyFrames.add({
             time: 1.0,
             view: v,
-            pos_x: -v[0][3],
-            pos_y: -v[1][3],
-            pos_z: -v[2][3],
+            pos_x: -va[0][3],
+            pos_y: -va[1][3],
+            pos_z: -va[2][3],
         });
+    },
+
+    shiftToKeyframe: function(rowModel, record, index) {
+        this.renderer.camera.view = record.data.view;
+        this.renderer.render();
     },
 
 });
