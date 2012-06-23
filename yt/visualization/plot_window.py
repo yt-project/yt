@@ -109,9 +109,6 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None):
     # aren't well-defined for off-axis data objects
     return PWViewerMPL(cutting,bounds,origin='center-window',periodic=False,oblique=True)
 
-def OffAxisProjectionPlot():
-    pass
-
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
         width = (pf.domain_right_edge - pf.domain_left_edge)
