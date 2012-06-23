@@ -256,6 +256,7 @@ Ext.define("Reason.controller.widgets.Scene", {
             path = path + t.apply(rec.data.view.flatten());
         });
         var cmd = cmdt.apply([this.dataView.varname, path, times]);
+        reason.server.execute(cmd);
     },
 
 });
