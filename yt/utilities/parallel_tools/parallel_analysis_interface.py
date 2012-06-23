@@ -344,8 +344,10 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
                      dynamic = False):
     if dynamic:
         from .task_queue import dynamic_parallel_objects
-        dynamic_parallel_objects(objects, njobs=njobs,
-                                 storage=storage)
+        for my_obj in dynamic_parallel_objects(objects, njobs=njobs,
+                                               storage=storage):
+            yield my_obj
+        return
     
     if not parallel_capable:
         njobs = 1
