@@ -54,7 +54,8 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     applyPayload: function(payload) {
         if (payload['ptype'] == 'grid_lines') {
-            this.addGridLines(payload['corners'], payload['levels']);
+            this.addGridLines(payload['corners'], payload['levels'],
+                              payload['max_level']);
         } else {
             console.log("Unknown payload type received for 3D scene: " +
                         payload['ptype']);
@@ -93,20 +94,25 @@ Ext.define("Reason.controller.widgets.Scene", {
         this.renderer = new X.renderer3D();
         this.renderer.container = toRender;
         this.renderer.init();
+        /*this.renderer.interactor.onKey = function() {};*/
+        examine = this.renderer;
     },
 
-    addGridLines: function(corners, levels) {
-        var grids = new X.mesh();
-        this.widgets.push(grids);
-        grids.ga = "LINES";
-        var p = grids.points;
-        var n = grids.normals;
-        var ii = 0;
-        var i;
+    addGridLines: function(corners, levels, maxLevel) {
+        var i, g, n, p;
         var order1 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3];
         var order2 = [1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7];
-        examine = corners;
+        gw = [];
+        for (i = 0; i < maxLevel + 1; i = i + 1) {
+            var grids = new X.mesh();
+            grids.name = "Grid Level " + i;
+            gw.push(grids);
+            this.widgets.push(grids);
+            grids.ga = "LINES";
+        }
         Ext.each(levels, function(level, index, allLevels) {
+            p = gw[level].points;
+            n = gw[level].normals;
             for (i = 0; i < 12; i = i + 1) {
                 n.add(1.0, 0.0, 0.0);
                 n.add(1.0, 0.0, 0.0);
@@ -118,7 +124,9 @@ Ext.define("Reason.controller.widgets.Scene", {
                       corners[order2[i]][2][index]);
             }
         });
-        this.renderer.add(grids);
+        for (i = 0; i < maxLevel + 1; i = i + 1) {
+            this.renderer.add(gw[i]);
+        }
         this.renderer.render();
     }
 

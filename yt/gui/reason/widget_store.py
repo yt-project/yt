@@ -234,7 +234,8 @@ class SceneWidget(object):
         corners, levels = get_corners(self.pf)
         ph.widget_payload(self, {'ptype':'grid_lines',
                                  'corners': corners,
-                                 'levels': levels})
+                                 'levels': levels,
+                                 'max_level': int(self.pf.h.max_level)})
         return
 
     def deliver_streamlines(self):
