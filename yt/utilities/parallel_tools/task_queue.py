@@ -63,7 +63,7 @@ class TaskQueueNonRoot(object):
             msg = self.comm.comm.recv(source = 0, tag=2)
         msg = self.subcomm.bcast(msg, root=0)
         if msg['msg'] == messages['end']['msg']:
-            mylog.info("Notified to end")
+            mylog.debug("Notified to end")
             raise StopIteration
         return msg['value']
 
