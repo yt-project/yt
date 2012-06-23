@@ -88,7 +88,7 @@ def get_isocontour(pf, field, value=None, rel_val = False):
     if value is None or rel_val:
         if value is None: value = 0.5
         mi, ma = na.log10(dd.quantities["Extrema"]("Density")[0])
-        value = 10.0**(value*(mi + ma))
+        value = 10.0**(value*(ma - mi) + mi)
     vert = dd.extract_isocontours("Density", value)
     na.multiply(vert, 100, vert)
     return vert
