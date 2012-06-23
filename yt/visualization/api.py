@@ -65,5 +65,8 @@ from streamlines import \
 
 from plot_window import \
     SlicePlot, \
-    ProjectionPlot
+    OffAxisSlicePlot, \
+    ProjectionPlot, \
+    OffAxisProjectionPlot
+    
 

@@ -3,6 +3,8 @@ A plotting mechanism based on the idea of a "window" into the data.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: Nathan Goldbaum <goldbaum@ucolick.org>
+Affiliation: UCSC Astronomy
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 J. S. Oishi.  All Rights Reserved.
@@ -31,7 +33,8 @@ import numpy as na
 from .image_writer import \
     write_image, apply_colormap
 from .fixed_resolution import \
-    FixedResolutionBuffer
+    FixedResolutionBuffer, \
+    ObliqueFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit
 from .tick_locators import LogLocator, LinearLocator
 
@@ -42,6 +45,8 @@ from yt.utilities.definitions import \
     y_dict, y_names, \
     axis_names, \
     axis_labels
+from yt.utilities.math_utils import \
+    ortho_find
 
 def invalidate_data(f):
     @wraps(f)
@@ -97,6 +102,16 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
     proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
     return PWViewerMPL(proj,bounds,origin=origin)
 
+def OffAxisSlicePlot(pf, normal, fields, center=None, width=None):
+    (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
+    cutting = pf.h.cutting(normal,center,fields=fields)
+    # Hard-coding the origin keyword since the other two options
+    # aren't well-defined for off-axis data objects
+    return PWViewerMPL(cutting,bounds,origin='center-window',periodic=False,oblique=True)
+
+def OffAxisProjectionPlot():
+    pass
+
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
         width = (pf.domain_right_edge - pf.domain_left_edge)
@@ -113,13 +128,36 @@ def GetBoundsAndCenter(axis, center, width, pf):
               center[y_dict[axis]]+width/2] 
     return (bounds,center)
 
+def GetOffAxisBoundsAndCenter(normal, center, width, pf):
+    if width == None:
+        width = (pf.domain_right_edge - pf.domain_left_edge)
+    if iterable(width):
+        w,u = width
+        width = w/pf[u]
+    if center == None:
+        v, center = pf.h.mind_max("Density")
+    elif center == "center" or center == "c":
+        center = [0,0,0]
+    else:
+        center = [(c - pf.domain_left_edge[i])/
+                  (pf.domain_right_edge[i] - pf.domain_left_edge[i]) - 0.5 
+                  for i,c in enumerate(center)]
+    (normal,perp1,perp2) = ortho_find(normal)
+    mat = na.transpose(na.column_stack((perp1,perp2,normal)))
+    center = na.dot(mat,center)
+    bounds = [center[0]-width/2,
+              center[0]+width/2,
+              center[1]-width/2,
+              center[1]+width/2]
+    return (bounds,center)
+
 class PlotWindow(object):
     _plot_valid = False
     _colorbar_valid = False
     _contour_info = None
     _vector_info = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, 
-                 periodic = True, origin='center-window'):
+                 periodic = True, origin='center-window', oblique=False):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
         
@@ -153,12 +191,13 @@ class PlotWindow(object):
         self.center = None
         self.plots = {}
         self._periodic = periodic
+        self.oblique = oblique
         self.data_source = data_source
         self.buff_size = buff_size
         self.antialias = True
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        if self.data_source.center is not None:
+        if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
             self.set_center(center)
         self._initfinished = True
@@ -169,9 +208,14 @@ class PlotWindow(object):
     def _recreate_frb(self):
         try:
             bounds = self.bounds
-            self._frb = FixedResolutionBuffer(self.data_source, 
-                                              bounds, self.buff_size, 
-                                              self.antialias, periodic=self._periodic)
+            if self.oblique == False:
+                self._frb = FixedResolutionBuffer(self.data_source, 
+                                                  bounds, self.buff_size, 
+                                                  self.antialias, periodic=self._periodic)
+            else:
+                self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
+                                                         bounds, self.buff_size, 
+                                                         self.antialias, periodic=self._periodic)
         except:
             raise RuntimeError("Failed to repixelize.")
         self._frb._get_data_source_fields()
@@ -392,7 +436,7 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
-        if ds._type_name == "slice":
+        if ds._type_name == "slice" or "cutting":
             units = pf.field_info[field].get_units()
         elif ds._type_name == "proj":
             units = pf.field_info[field].get_projected_units()
@@ -417,29 +461,40 @@ class PWViewerMPL(PWViewer):
         self._colorbar_valid = True
         for f in self.fields:
             md = self.get_metadata(f, strip_mathml = False, return_string = False)
-            if self.origin == 'center-window':
-                extent = [self.xlim[i] - (self.xlim[0]+self.xlim[1])/2. for i in (0,1)]
-                extent.extend([self.ylim[i] - (self.ylim[0]+self.ylim[1])/2. for i in (0,1)])
-            elif self.origin == 'center-domain':
-                pass
-            elif self.origin == 'left-domain':
-                pass
-            else:
-                raise RuntimeError('Origin keyword not recognized')
+            axis_index = self.data_source.axis
 
+            if self.origin == 'center-window':
+                xc = (self.xlim[0]+self.xlim[1])/2
+                yc = (self.ylim[0]+self.ylim[1])/2
+            elif self.origin == 'center-domain':
+                xc = (self.pf.domain_left_edge[x_dict[axis_index]]+
+                      self.pf.domain_right_edge[x_dict[axis_index]])/2
+                yc = (self.pf.domain_left_edge[y_dict[axis_index]]+
+                      self.pf.domain_right_edge[y_dict[axis_index]])/2
+            elif self.origin == 'left-domain':
+                xc = self.pf.domain_left_edge[x_dict[axis_index]]
+                yc = self.pf.domain_left_edge[y_dict[axis_index]]
+            else:
+                raise RuntimeError('origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
+            
+            extent = [self.xlim[i] - xc for i in (0,1)]
+            extent.extend([self.xlim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent)
             
             cb = matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
-            axis_index = self.data_source.axis
-            
-            labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
-                      r'\/\/('+md['unit'].encode('string-escape')+r')}$' for i in (0,1)]
 
+            try:
+                labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
+                          r'\/\/('+md['unit'].encode('string-escape')+r')}$' for i in (0,1)]
+            except IndexError:
+                labels = [r'$\rm{Image\/x}\/\/\rm{('+md['unit'].encode('string-escape')+r')}$',
+                          r'$\rm{Image\/y}\/\/\rm{('+md['unit'].encode('string-escape')+r')}$']
+                
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
-             
+
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
         self._plot_valid = True
