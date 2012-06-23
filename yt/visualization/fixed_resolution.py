@@ -375,6 +375,6 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
                                self.data_source.center, self.data_source._inv_mat, indices,
                                self.data_source[item],
                                self.buff_size[0], self.buff_size[1],
-                               self.bounds)
+                               self.bounds).transpose()
         self[item] = buff
         return buff

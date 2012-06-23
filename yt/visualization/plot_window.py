@@ -102,9 +102,9 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
     proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
     return PWViewerMPL(proj,bounds,origin=origin)
 
-def OffAxisSlicePlot(pf, normal, fields, center=None, width=None):
+def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=None):
     (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
-    cutting = pf.h.cutting(normal,center,fields=fields)
+    cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
     # Hard-coding the origin keyword since the other two options
     # aren't well-defined for off-axis data objects
     return PWViewerMPL(cutting,bounds,origin='center-window',periodic=False,oblique=True)
