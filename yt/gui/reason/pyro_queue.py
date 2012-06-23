@@ -28,18 +28,11 @@ License:
 import numpy as na
 import Pyro4
 import uuid
-from yt.gui.reason.basic_repl import ProgrammaticREPL
-from yt.gui.reason.bottle_mods import PayloadHandler
-
-from yt.mods import *
 
 from yt.funcs import *
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    _get_comm, \
-    communication_system
-from yt.utilities.parallel_tools.task_queue import \
-    TaskQueueRoot, \
-    TaskQueueNonRoot
+
+from yt.gui.reason.basic_repl import ProgrammaticREPL
+from yt.gui.reason.bottle_mods import PayloadHandler
 
 class PyroQueueRoot(object):
     def __init__(self, comm):
