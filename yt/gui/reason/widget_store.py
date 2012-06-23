@@ -269,8 +269,18 @@ class SceneWidget(object):
         x,y,z = [create_spline(times, centers[:,i], na.linspace(0.0,1.0,N)) for i in [0,1,2]]
         #fx,fy,fz = [create_spline(times, focuses[:,i], na.linspace(0.0,1.0,N)) for i in [0,1,2]]
         ux,uy,uz = [create_spline(times, ups[:,i], na.linspace(0.0,1.0,N)) for i in [0,1,2]]
-        fx, fy, fz = 0,0,0
-        return [x,y,z], [fx,fy,fz], [ux,uy,uz]
+        fx, fy, fz = na.zeros(N), na.zeros(N), na.zeros(N)
+
+        path = [[x.tolist(), y.tolist(), z.tolist()],
+                [fx.tolist(), fy.tolist(), fz.tolist()], 
+                [ux.tolist(), uy.tolist(), uz.tolist()]]
+    
+        ph = PayloadHandler()
+        ph.widget_payload(self, {'ptype':'camerapath',
+                                 'data':path,})
+
+        return
+
 
     def deliver_streamlines(self):
         pf = PayloadHandler()
