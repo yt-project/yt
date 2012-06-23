@@ -1276,6 +1276,9 @@ class YTGUICmd(YTCommand):
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
                  help="Add a debugging mode for cell execution"),
+            dict(short = "-r", long = "--remote", action = "store_true",
+                 default = False, dest="use_pyro",
+                 help = "Use with a remote Pyro4 server."),
             "opf"
             )
     description = \
@@ -1320,7 +1323,7 @@ class YTGUICmd(YTCommand):
         import yt.utilities.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
+        hr = ExtDirectREPL(base_extjs_path, use_pyro=args.use_pyro)
         hr.debug = PayloadHandler.debug = args.debug
         command_line = ["pfs = []"]
         if args.find:

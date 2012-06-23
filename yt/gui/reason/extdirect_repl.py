@@ -219,7 +219,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     debug = False
     _heartbeat_timer = None
 
-    def __init__(self, base_extjs_path, locals=None):
+    def __init__(self, base_extjs_path, locals=None,
+                 use_pyro=False):
         # First we do the standard initialization
         self.extjs_file = zipfile.ZipFile(os.path.join(
             base_extjs_path, "ext-4.1.0-gpl.zip"), 'r')
@@ -245,8 +246,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         self.pflist = ExtDirectParameterFileList()
         self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
-        #self.execution_thread = ExecutionThread(self)
-        self.execution_thread = PyroExecutionThread(self)
+        if use_pyro:
+            self.execution_thread = PyroExecutionThread(self)
+        else:
+            self.execution_thread = ExecutionThread(self)
         # We pass in a reference to ourself
         self.widget_store = WidgetStore(self)
         # Now we load up all the yt.mods stuff, but only after we've finished
