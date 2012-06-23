@@ -242,9 +242,9 @@ class SceneWidget(object):
             n = na.cross(vert[i*3,:], vert[i*3+1,:])
             normals[i*3:i*3+3,:] = n[None,:]
         ph.widget_payload(self, {'ptype':'isocontour',
-                                 'binary':'vert',
+                                 'binary': ['vert', 'normals'],
                                  'vert':vert,
-                                 'normals':normals.tolist()})
+                                 'normals':normals})
 
     def deliver_gridlines(self):
         ph = PayloadHandler()

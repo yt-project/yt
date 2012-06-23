@@ -53,11 +53,14 @@ def notify_route(watcher):
 class BinaryDelivery(object):
     delivered = False
     payload = ""
-    def __init__(self, payload):
+    def __init__(self, payload, name = ""):
+        self.name = name
         self.payload = payload
 
     def get(self):
         # We set our 
+        sys.__stderr__.write("REQUESTED A BINARY PAYLOAD %s (%s)\n" % (
+            self.name, len(self.payload)))
         p = self.payload
         if p == "":
             response.status = 404
@@ -131,12 +134,13 @@ class PayloadHandler(object):
             bdata = bp.pop(bkey) # Get the binary data
             if isinstance(bdata, na.ndarray):
                 bdata = bdata.tostring()
-            bpserver = BinaryDelivery(bdata)
+            bpserver = BinaryDelivery(bdata, bkey)
             self.binary_payloads.append(bpserver)
             uu = uuid.uuid4().hex
             bp['binary'].append((bkey, uu))
             route("%s/%s" % (self._prefix, uu))(bpserver.get)
-            sys.__stderr__.write("**** Adding binary payload to %s\n" % (uu))
+            sys.__stderr__.write("**** Adding binary payload (%s) to %s\n" % (
+                    bkey, uu))
 
     def replay_payloads(self):
         return self.recorded_payloads

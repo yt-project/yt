@@ -69,11 +69,12 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     applyPayload: function(payload) {
         if (payload['ptype'] == 'grid_lines') {
-            corners = new Float64Array(payload['corners']);
-            levels = new Int32Array(payload['levels']);
-            payload['corners'] = payload['levels'] = null;
-            this.addGridLines(corners, levels, payload['max_level']);
+            payload['corners'] = new Float64Array(payload['corners']);
+            payload['levels'] = new Int32Array(payload['levels']);
+            this.addGridLines(payload['corners'], payload['levels'], payload['max_level']);
         } else if (payload['ptype'] == 'isocontour') {
+            payload['vert'] = new Float64Array(payload['vert']);
+            payload['normals'] = new Float64Array(payload['normals']);
             this.addIsocontour(payload['vert'], payload['normals']);
         } else if (payload['ptype'] == 'camerapath') {
             this.updateCameraPathElements(payload['data']);
@@ -193,14 +194,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     addIsocontour: function(vertices, normals) {
         console.log("Adding isocontours ...");
         var i, g, n, p;
-        Ext.MessageBox.show({
-            title : "Adding Isocontour Vertices",
-            width: 300,
-            msg: "Updating ...",
-            progress: true,
-            closable: false,
-        });
-        var nv = vertices.length;
+        var nv = vertices.length/3;
         var last = 0;
         var surf = new X.mesh();
         this.widgets.add({
@@ -212,17 +206,15 @@ Ext.define("Reason.controller.widgets.Scene", {
         surf.ga = "TRIANGLES";
         p = surf.points;
         n = surf.normals;
-        Ext.each(vertices, function(vert, index, allVerts) {
-            if ((index - last) > ( nv / 100.0)) {
-                Ext.MessageBox.updateProgress(
-                        (index / nv),
-                        Math.round(100*index/nv) + '% completed');
-                last = index;
-            }
-            p.add(vert[0], vert[1], vert[2]);
-            n.add(normals[index][0], normals[index][1], normals[index][2]);
-        });
-        Ext.MessageBox.hide();
+
+        for (index = 0; index < nv; index = index + 1) {
+            p.add(vertices[index * 3 + 0],
+                  vertices[index * 3 + 1],
+                  vertices[index * 3 + 2]);
+            n.add(normals[index * 3 + 0],
+                  normals[index * 3 + 1],
+                  normals[index * 3 + 2]);
+        }
         surf.color = [1.0, 0.0, 0.0];
         this.renderer.add(surf);
         this.renderer.render();
