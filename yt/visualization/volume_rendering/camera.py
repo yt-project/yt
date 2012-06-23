@@ -590,14 +590,14 @@ class InteractiveCamera(Camera):
     frames = []
 
     def snapshot(self, fn = None, clip_ratio = None):
-        import matplotlib
-        matplotlib.pylab.figure(2)
+        from matplotlib import pylab
+        pylab.figure(2)
         self.transfer_function.show()
-        matplotlib.pylab.draw()
+        pylab.draw()
         im = Camera.snapshot(self, fn, clip_ratio)
-        matplotlib.pylab.figure(1)
-        matplotlib.pylab.imshow(im/im.max())
-        matplotlib.pylab.draw()
+        pylab.figure(1)
+        pylab.imshow(im/im.max())
+        pylab.draw()
         self.frames.append(im)
         
     def rotation(self, theta, n_steps, rot_vector=None):
