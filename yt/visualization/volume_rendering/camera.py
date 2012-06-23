@@ -1138,7 +1138,7 @@ class MosaicCamera(Camera):
             image = self.new_image()
             args = self.get_sampler_args(image)
             sampler = self.get_sampler(args)
-            image = self._render(double_check, num_threads, image, na, sampler)
+            image = self._render(double_check, num_threads, image, sampler)
             my_storage[xy] = image
         
         self.save_image(fn, clip_ratio, my_storage)
