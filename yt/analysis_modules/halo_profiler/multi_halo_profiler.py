@@ -1105,7 +1105,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         "Read radial profile from file.  Return None if it doesn't have all the fields requested."
 
         profile = {}
-        in_file = h5py.File(profileFile, 'r')
+        try:
+            in_file = h5py.File(profileFile, 'r')
+        except IOError:
+            return None
         if not 'RadiusMpc-1d' in in_file:
             return None
         my_group = in_file['RadiusMpc-1d']
