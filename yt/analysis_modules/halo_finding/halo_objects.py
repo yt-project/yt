@@ -42,7 +42,7 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.utilities.performance_counters import \
     yt_counters, time_function
-from yt.utilities.math_utils import periodic_dist
+from yt.utilities.math_utils import periodic_dist, get_rotation_matrix
 from yt.utilities.physical_constants import rho_crit_now, mass_sun_cgs
 
 from .hop.EnzoHop import RunHOP
@@ -57,10 +57,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
-
-from yt.utilities.math_utils import RX
-from yt.utilities.math_utils import RY
-from yt.utilities.math_utils import RZ
 
 TINY = 1.e-40
 
@@ -528,10 +524,12 @@ class Halo(object):
         # after e0 is aligned with x axis
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = na.arctan(e0_vector[1] / e0_vector[0])
-        r1 = (e0_vector * RZ(t1).transpose()).sum(axis = 1)
+        RZ = get_rotation_matrix(-t1, (0, 0, 1)).transpose()
+        r1 = (e0_vector * rz).sum(axis = 1)
         # find the t2 angle needed to rotate about y axis to align e0 to x
         t2 = na.arctan(-r1[2] / r1[0])
-        r2 = na.dot(RY(t2), na.dot(RZ(t1), e1_vector))
+        RY = get_rotation_matrix(-t2, (0, 1, 0)).transpose()
+        r2 = na.dot(RY, na.dot(RZ, e1_vector))
         tilt = na.arctan(r2[2]/r2[1])
         return (mag_A, mag_B, mag_C, e0_vector[0], e0_vector[1],
             e0_vector[2], tilt)

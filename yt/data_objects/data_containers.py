@@ -58,9 +58,7 @@ from yt.utilities.parameter_file_storage import \
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
 from yt.utilities.orientation import Orientation
-from yt.utilities.math_utils import RX
-from yt.utilities.math_utils import RY
-from yt.utilities.math_utils import RZ
+from yt.utilities.math_utils import get_rotation_matrix
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -3425,11 +3423,11 @@ class AMREllipsoidBase(AMR3DData):
         self._e0 = e0
         self._tilt = tilt
         
-        # Should have rotation matrix RX,RY,RZ imported at top
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = na.arctan(e0[1] / e0[0])
         # rotate e0 by -t1
-        r1 = (e0 * RZ(-t1).transpose()).sum(axis = 1)
+        RZ = get_rotation_matrix(t1, (0,0,1)).transpose()
+        r1 = (e0 * RZ).sum(axis = 1)
         # find the t2 angle needed to rotate about y axis to align e0 to x
         t2 = na.arctan(-r1[2] / r1[0])
         """
@@ -3437,13 +3435,16 @@ class AMREllipsoidBase(AMR3DData):
         given the tilt about the x axis when e0 was aligned 
         to x after t1, t2 rotations about z, y
         """
-        e1 = ((0, 1, 0) * RX(tilt).transpose()).sum(axis = 1)
-        e1 = (e1 * RY(t2).transpose()).sum(axis = 1)
-        e1 = (e1 * RZ(t1).transpose()).sum(axis = 1)
+        RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
+        RY = get_rotation_matrix(-t2,   (0,1,0)).transpose()
+        RZ = get_rotation_matrix(-t1,   (0,0,1)).transpose()
+        e1 = ((0, 1, 0) * RX).sum(axis = 1)
+        e1 = (e1 * RY).sum(axis = 1)
+        e1 = (e1 * RZ).sum(axis = 1)
         e2 = na.cross(e0, e1)
 
-	self._e1 = e1
-	self._e2 = e2
+        self._e1 = e1
+        self._e2 = e2
 
         self.set_field_parameter('A', A)
         self.set_field_parameter('B', B)
