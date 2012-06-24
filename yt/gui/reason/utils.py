@@ -33,7 +33,7 @@ def load_script(filename):
     contents = open(filename).read()
     payload_handler = PayloadHandler()
     payload_handler.add_payload(
-        {'type': 'cell_contents',
+        {'type': 'script',
          'value': contents}
     )
     return
@@ -49,7 +49,10 @@ def deliver_image(im):
     else:
         raise RuntimeError
     ph = PayloadHandler()
-    payload = {'type':'png_string',
+    payload = {'type':'cell',
+               'output': '',
+               'input': '',
+               'raw_input': '',
                'image_data':img_data}
     ph.add_payload(payload)
 

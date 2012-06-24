@@ -38,6 +38,13 @@ var cellDisplay = new Ext.XTemplate(
     '<pre>{output}</pre><br/><br/>'
 );
 
+var imageDisplay = new Ext.XTemplate(
+    '<b>Image</b><br/><br/>',
+    '<hr>',
+    '<img src="data:image/png;base64,{image_data}">',
+    '<br/><br/>'
+);
+
 Ext.define('Reason.view.CellView', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.notebookcells',
@@ -56,8 +63,15 @@ Ext.define('Reason.view.CellView', {
     features: [{
         ftype: 'rowbody',
         getAdditionalData: function(data, rowIndex, record, orig) {
+            var disp;
+            console.log(data);
+            if(data['image_data'] != '') {
+                disp = imageDisplay.apply(data);
+            } else {
+                disp = cellDisplay.apply(data);
+            }
             return {
-                rowBody: cellDisplay.apply(data),
+                rowBody: disp,
                 rowBodyCls: 'codeview',
                 rowBodyColspan: this.view.headerCt.getColumnCount(),
             };

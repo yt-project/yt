@@ -121,6 +121,7 @@ class ExecutionThread(threading.Thread):
                 {'type': 'cell',
                  'output': result,
                  'input': highlighter(code),
+                 'image_data': '',
                  'raw_input': code},
                 )
         objs = get_list_of_datasets()
@@ -168,6 +169,7 @@ class PyroExecutionThread(ExecutionThread):
 
 
 def reason_pylab():
+    from .utils import deliver_image
     def _canvas_deliver(canvas):
         tf = tempfile.TemporaryFile()
         canvas.print_png(tf)
