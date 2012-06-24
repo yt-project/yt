@@ -49,9 +49,6 @@ Ext.define('Reason.controller.ServerCommunication', {
         this.heartbeat = this.taskRunner.start(
             {run: this.heartbeatCall,
              interval: 250});
-        this.dataObjectBeat = this.taskRunner.start(
-            {run: this.dataObjectsCall,
-             interval: 5000});
         this.callParent(arguments);
     },
 
@@ -68,14 +65,6 @@ Ext.define('Reason.controller.ServerCommunication', {
             });
         }
         this.application.fireEvent('payload' + payload['type'], payload);
-    },
-
-    dataObjectsCall: function() {
-        yt_rpc.ExtDirectParameterFileList.get_list_of_pfs({}, 
-            function(f, a) {
-                if (f == null) { return; }
-                reason.fireEvent("newdataobjects", f);
-        });
     },
 
     heartbeatCall: function() {
