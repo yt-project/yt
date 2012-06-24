@@ -52,6 +52,7 @@ Ext.define("Reason.view.widgets.IsocontourCreator", {
                 fieldLabel: 'Relative Value?',
                 itemId: 'relValue',
                 value: true,
+                checked: true,
                 width: 290,
                 allowBlank:false,
               },{

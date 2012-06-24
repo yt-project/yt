@@ -69,9 +69,12 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     applyPayload: function(payload) {
         if (payload['ptype'] == 'grid_lines') {
-            this.addGridLines(payload['corners'], payload['levels'],
-                              payload['max_level']);
+            payload['corners'] = new Float64Array(payload['corners']);
+            payload['levels'] = new Int32Array(payload['levels']);
+            this.addGridLines(payload['corners'], payload['levels'], payload['max_level']);
         } else if (payload['ptype'] == 'isocontour') {
+            payload['vert'] = new Float64Array(payload['vert']);
+            payload['normals'] = new Float64Array(payload['normals']);
             this.addIsocontour(payload['vert'], payload['normals']);
         } else if (payload['ptype'] == 'camerapath') {
             this.updateCameraPathElements(payload['data']);
@@ -127,9 +130,10 @@ Ext.define("Reason.controller.widgets.Scene", {
     },
 
     addGridLines: function(corners, levels, maxLevel) {
-        var i, g, n, p;
+        var i, g, n, p, offset, ind;
         var order1 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3];
         var order2 = [1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7];
+        var nv = levels.length;
         gw = [];
         for (i = 0; i < maxLevel + 1; i = i + 1) {
             var grids = new X.mesh();
@@ -142,18 +146,20 @@ Ext.define("Reason.controller.widgets.Scene", {
             });
             grids.ga = "LINES";
         }
+        examine = {n: n, p: p, corners: corners};
+        var i0, i1, i2;
         Ext.each(levels, function(level, index, allLevels) {
             p = gw[level].points;
             n = gw[level].normals;
             for (i = 0; i < 12; i = i + 1) {
                 n.add(1.0, 0.0, 0.0);
                 n.add(1.0, 0.0, 0.0);
-                p.add(corners[order1[i]][0][index],
-                      corners[order1[i]][1][index],
-                      corners[order1[i]][2][index]);
-                p.add(corners[order2[i]][0][index],
-                      corners[order2[i]][1][index],
-                      corners[order2[i]][2][index]);
+                p.add(corners[(((order1[i] * 3 + 0)*nv)+index)],
+                      corners[(((order1[i] * 3 + 1)*nv)+index)],
+                      corners[(((order1[i] * 3 + 2)*nv)+index)]);
+                p.add(corners[(((order2[i] * 3 + 0)*nv)+index)],
+                      corners[(((order2[i] * 3 + 1)*nv)+index)],
+                      corners[(((order2[i] * 3 + 2)*nv)+index)]);
             }
         });
         for (i = 0; i < maxLevel + 1; i = i + 1) {
@@ -188,14 +194,7 @@ Ext.define("Reason.controller.widgets.Scene", {
     addIsocontour: function(vertices, normals) {
         console.log("Adding isocontours ...");
         var i, g, n, p;
-        Ext.MessageBox.show({
-            title : "Adding Isocontour Vertices",
-            width: 300,
-            msg: "Updating ...",
-            progress: true,
-            closable: false,
-        });
-        var nv = vertices.length;
+        var nv = vertices.length/3;
         var last = 0;
         var surf = new X.mesh();
         this.widgets.add({
@@ -207,17 +206,15 @@ Ext.define("Reason.controller.widgets.Scene", {
         surf.ga = "TRIANGLES";
         p = surf.points;
         n = surf.normals;
-        Ext.each(vertices, function(vert, index, allVerts) {
-            if ((index - last) > ( nv / 100.0)) {
-                Ext.MessageBox.updateProgress(
-                        (index / nv),
-                        Math.round(100*index/nv) + '% completed');
-                last = index;
-            }
-            p.add(vert[0], vert[1], vert[2]);
-            n.add(normals[index][0], normals[index][1], normals[index][2]);
-        });
-        Ext.MessageBox.hide();
+
+        for (index = 0; index < nv; index = index + 1) {
+            p.add(vertices[index * 3 + 0],
+                  vertices[index * 3 + 1],
+                  vertices[index * 3 + 2]);
+            n.add(normals[index * 3 + 0],
+                  normals[index * 3 + 1],
+                  normals[index * 3 + 2]);
+        }
         surf.color = [1.0, 0.0, 0.0];
         this.renderer.add(surf);
         this.renderer.render();

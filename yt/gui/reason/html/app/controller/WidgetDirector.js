@@ -134,8 +134,44 @@ Ext.define('Reason.controller.WidgetDirector', {
         }
         /*console.log("Directing payload for " + payload['widget_id'] +
                     " to resultId " + resultId);*/
+        if (payload['binary'] != null) {
+            this.loadBinaryData(payload);
+            return;
+        }
         var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
         widgetInfo['widget'].applyPayload(payload);
+    },
+
+    loadBinaryData: function(payload1) {
+        /* https://developer.mozilla.org/en/using_xmlhttprequest
+           including progress */
+        function loadBinaryPayload(payload) {
+            var req = new XMLHttpRequest();
+            var bkeys = payload['binary'];
+            var nLeft = bkeys.length;
+            var bkey = bkeys[nLeft - 1];
+            var director = this;
+            payload['binary'] = null;
+            req.open("GET", bkey[1], true);
+            req.responseType = "arraybuffer";
+            onLoad = function(e) {
+                payload[bkey[0]] = req.response;
+                nLeft = nLeft - 1;
+                if (nLeft == 0) {
+                  director.sendPayload(payload);
+                } else {
+                  bkey = bkeys[nLeft - 1];
+                  req.open("GET", bkey[1], true);
+                  req.responseType = "arraybuffer";
+                  req.onload = onLoad;
+                  req.send();
+                  exaine = payload;
+                }
+            }
+            req.onload = onLoad;
+            req.send();
+        }
+        loadBinaryPayload.call(this, payload1);
     },
 
     enableDebug: function() {

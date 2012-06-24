@@ -78,8 +78,8 @@ class RenderingScene(object):
 def get_corners(pf, max_level=None):
     DL = pf.domain_left_edge[None,:,None]
     DW = pf.domain_width[None,:,None]/100.0
-    corners = ((pf.h.grid_corners-DL)/DW).tolist()
-    levels = pf.h.grid_levels.tolist()
+    corners = ((pf.h.grid_corners-DL)/DW)
+    levels = pf.h.grid_levels
     return corners, levels
 
 def get_isocontour(pf, field, value=None, rel_val = False):
@@ -88,7 +88,7 @@ def get_isocontour(pf, field, value=None, rel_val = False):
     if value is None or rel_val:
         if value is None: value = 0.5
         mi, ma = na.log10(dd.quantities["Extrema"]("Density")[0])
-        value = 10.0**(value*(mi + ma))
+        value = 10.0**(value*(ma - mi) + mi)
     vert = dd.extract_isocontours("Density", value)
     na.multiply(vert, 100, vert)
     return vert
