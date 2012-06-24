@@ -46,6 +46,7 @@ class PyroQueueRoot(object):
         datasets = get_list_of_datasets()
         self.payload_handler.add_payload({'type': 'payloaddataobjects',
                                           'objs': datasets})
+        return value
 
     def deliver(self):
         return self.payload_handler.deliver_payloads()
