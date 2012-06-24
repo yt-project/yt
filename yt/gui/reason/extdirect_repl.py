@@ -40,6 +40,7 @@ import tempfile
 import base64
 import imp
 import threading
+import Pyro4
 import Queue
 import zipfile
 
@@ -53,6 +54,7 @@ from .widget_store import WidgetStore
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler, lockit
 from yt.utilities.bottle import response, request, route, static_file
+from .utils import get_list_of_datasets
 from .basic_repl import ProgrammaticREPL
 
 try:
@@ -77,9 +79,13 @@ local_dir = os.path.dirname(__file__)
 class ExecutionThread(threading.Thread):
     def __init__(self, repl):
         self.repl = repl
+        self.payload_handler = PayloadHandler()
         self.queue = Queue.Queue()
         threading.Thread.__init__(self)
         self.daemon = True
+
+    def heartbeat(self):
+        return
 
     def run(self):
         while 1:
@@ -89,7 +95,7 @@ class ExecutionThread(threading.Thread):
             except Queue.Empty:
                 if self.repl.stopped: return
                 continue
-            #print "Received the task", task
+            print "Received the task", task
             if task['type'] == 'code':
                 self.execute_one(task['code'], task['hide'])
                 self.queue.task_done()
@@ -115,29 +121,48 @@ class ExecutionThread(threading.Thread):
             print result
             print "========================================================"
         if not hide:
+            self.payload_handler.add_payload(
+                {'type': 'cell',
+                 'output': result,
+                 'input': highlighter(code),
+                 'image_data': '',
+                 'raw_input': code},
+                )
+        objs = get_list_of_datasets()
+        self.payload_handler.add_payload(
+            {'type': 'dataobjects',
+             'objs': objs})
+
+class PyroExecutionThread(ExecutionThread):
+    def __init__(self, repl):
+        ExecutionThread.__init__(self, repl)
+        hmac_key = raw_input("HMAC_KEY? ").strip()
+        uri = raw_input("URI? ").strip()
+        Pyro4.config.HMAC_KEY = hmac_key
+        self.executor = Pyro4.Proxy(uri)
+
+    def execute_one(self, code, hide):
+        self.repl.executed_cell_texts.append(code)
+        print code
+        result = self.executor.execute(code)
+        if not hide:
             self.repl.payload_handler.add_payload(
                 {'type': 'cell',
                  'output': result,
                  'input': highlighter(code),
                  'raw_input': code},
                 )
+        ph = self.executor.deliver()
+        for p in ph:
+            self.repl.payload_handler.add_payload(p)
 
-def deliver_image(im):
-    if hasattr(im, 'read'):
-        img_data = base64.b64encode(im.read())
-    elif isinstance(im, types.StringTypes) and \
-         im.endswith(".png"):
-        img_data = base64.b64encode(open(im).read())
-    elif isinstance(im, types.StringTypes):
-        img_data = im
-    else:
-        raise RuntimeError
-    ph = PayloadHandler()
-    payload = {'type':'png_string',
-               'image_data':img_data}
-    ph.add_payload(payload)
+    def heartbeat(self):
+        ph = self.executor.deliver()
+        for p in ph:
+            self.repl.payload_handler.add_payload(p)
 
 def reason_pylab():
+    from .utils import deliver_image
     def _canvas_deliver(canvas):
         tf = tempfile.TemporaryFile()
         canvas.print_png(tf)
@@ -170,19 +195,29 @@ def reason_pylab():
     matplotlib.rcParams["backend"] = "module://reason_agg"
     pylab.switch_backend("module://reason_agg")
 
+_startup_template = r"""\
+import pylab
+from yt.mods import *
+from yt.gui.reason.utils import load_script, deliver_image
+from yt.gui.reason.widget_store import WidgetStore
+from yt.data_objects.static_output import _cached_pfs
+
+pylab.ion()
+data_objects = []
+widget_store = WidgetStore()
+"""
+
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
     timeout = 660 # a minute longer than the rocket server timeout
     server = None
-    stopped = False
-    debug = False
     _heartbeat_timer = None
 
-    def __init__(self, base_extjs_path, locals=None):
+    def __init__(self, reasonjs_path, locals=None,
+                 use_pyro=False):
         # First we do the standard initialization
-        self.extjs_file = zipfile.ZipFile(os.path.join(
-            base_extjs_path, "ext-4.1.0-gpl.zip"), 'r')
+        self.reasonjs_file = zipfile.ZipFile(reasonjs_path, 'r')
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
         # since they have different arguments, and most of all because we only
@@ -194,7 +229,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               _myapi = ("/ext-repl-api.js", "GET"),
                               _session_py = ("/session.py", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
-                              _extjs = ("/resources/extjs-4.1.0/:path#.+#", "GET"),
+                              _reasonjs = ("/reason-js/:path#.+#", "GET"),
                               _app = ("/reason/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
@@ -202,21 +237,17 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # This has to be routed to the root directory
         self.api_url = "repl"
         BottleDirectRouter.__init__(self)
-        self.pflist = ExtDirectParameterFileList()
-        self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
-        self.execution_thread = ExecutionThread(self)
+        if use_pyro:
+            self.execution_thread = PyroExecutionThread(self)
+        else:
+            self.execution_thread = ExecutionThread(self)
         # We pass in a reference to ourself
+        self.execute(_startup_template)
         self.widget_store = WidgetStore(self)
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         reason_pylab()
-        self.execute("from yt.mods import *\nimport pylab\npylab.ion()")
-        self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
-        self.execute("data_objects = []", hide = True)
-        self.locals['load_script'] = ext_load_script
-        self.locals['deliver_image'] = deliver_image
-        self.locals['widget_store'] = self.widget_store
 
     def activate(self):
         self.payload_handler._prefix = self._global_token
@@ -224,6 +255,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # Setup our heartbeat
         self.last_heartbeat = time.time()
         self._check_heartbeat()
+        self.execute("widget_store._global_token = '%s'" % self._global_token)
         self.execution_thread.start()
 
     def exception_handler(self, exc):
@@ -254,6 +286,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                 rv = self.payload_handler.deliver_payloads()
                 if self.debug: print "    ### Got back, returning"
                 return rv
+            self.execution_thread.heartbeat()
         if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
         return []
 
@@ -288,10 +321,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         root = os.path.join(local_dir, "html")
         return static_file("help.html", root)
 
-    def _extjs(self, path):
-        pp = os.path.join("extjs-4.1.0", path)
+    def _reasonjs(self, path):
+        pp = os.path.join("reason-js", path)
         try:
-            f = self.extjs_file.open(pp)
+            f = self.reasonjs_file.open(pp)
         except KeyError:
             response.status = 404
             return
@@ -312,11 +345,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return highlighter_css
 
     def execute(self, code, hide = False):
-            task = {'type': 'code',
-                    'code': code,
-                    'hide': hide}
-            self.execution_thread.queue.put(task)
-            return dict(status = True)
+        task = {'type': 'code',
+                'code': code,
+                'hide': hide}
+        self.execution_thread.queue.put(task)
+        return dict(status = True)
 
     def get_history(self):
         return self.executed_cell_texts[:]
@@ -421,45 +454,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                 t = "directory"
             results.append((os.path.basename(fn), size, t))
         return dict(objs = results, cur_dir=cur_dir)
-
-class ExtDirectParameterFileList(BottleDirectRouter):
-    my_name = "ExtDirectParameterFileList"
-    api_url = "pflist"
-
-    def get_list_of_pfs(self):
-        # Note that this instantiates the hierarchy.  This can be a costly
-        # event.  However, we're going to assume that it's okay, if you have
-        # decided to load up the parameter file.
-        from yt.data_objects.static_output import _cached_pfs
-        rv = []
-        for fn, pf in sorted(_cached_pfs.items()):
-            objs = []
-            pf_varname = "_cached_pfs['%s']" % (fn)
-            field_list = []
-            if pf._instantiated_hierarchy is not None: 
-                field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
-                field_list = [dict(text = f) for f in sorted(field_list)]
-                for i,obj in enumerate(pf.h.objects):
-                    try:
-                        name = str(obj)
-                    except ReferenceError:
-                        continue
-                    objs.append(dict(name=name, type=obj._type_name,
-                                     filename = '', field_list = [],
-                                     varname = "%s.h.objects[%s]" % (pf_varname, i)))
-            rv.append( dict(name = str(pf), children = objs, filename=fn,
-                            type = "parameter_file",
-                            varname = pf_varname, field_list = field_list) )
-        return rv
-
-def ext_load_script(filename):
-    contents = open(filename).read()
-    payload_handler = PayloadHandler()
-    payload_handler.add_payload(
-        {'type': 'cell_contents',
-         'value': contents}
-    )
-    return
 
 class PayloadLoggingHandler(logging.StreamHandler):
     def __init__(self, *args, **kwargs):

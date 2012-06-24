@@ -310,19 +310,11 @@ def get_pbar(title, maxval):
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
-    elif "SAGE_ROOT" in os.environ:
-        try:
-            from sage.server.support import EMBEDDED_MODE
-            if EMBEDDED_MODE: return DummyProgressBar()
-        except:
-            pass
-    elif "CODENODE" in os.environ:
-        return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar
         return ExtProgressBar(title, maxval)
+    elif ytcfg.getboolean("yt", "__parallel"):
+        return ParallelProgressBar(title, maxval)
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),

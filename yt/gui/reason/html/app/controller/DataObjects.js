@@ -45,7 +45,7 @@ Ext.define('Reason.controller.DataObjects', {
 
     init: function() {
         this.application.addListener({
-           newdataobjects : {fn: this.refreshDataObjects, scope: this},
+           payloaddataobjects : {fn: this.refreshDataObjects, scope: this},
         });
         this.control({
             "#dataobjects": { itemcontextmenu:
@@ -57,8 +57,9 @@ Ext.define('Reason.controller.DataObjects', {
         this.callParent(arguments);
     },
 
-    refreshDataObjects: function(objs) {
+    refreshDataObjects: function(payload) {
         /*console.log("Refreshing data objects");*/
+        var objs = payload['objs'];
         var root = this.getDataObjectsStore().getRootNode();
         root.removeAll();
         var pf;

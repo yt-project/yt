@@ -40,8 +40,8 @@ Weight : %s
 """
 
 class WidgetStore(dict):
-    def __init__(self, repl):
-        self.repl = weakref.proxy(repl)
+    def __init__(self, global_token = ""):
+        self._global_token = global_token
         self.payload_handler = PayloadHandler()
         super(WidgetStore, self).__init__()
 
@@ -143,7 +143,7 @@ class WidgetStore(dict):
     def create_mapview(self, widget_name):
         widget = self[widget_name]
         # We want multiple maps simultaneously
-        uu = "/%s/%s" % (getattr(self.repl, "_global_token", ""),
+        uu = "/%s/%s" % (self._global_token,
                         str(uuid.uuid1()).replace("-","_"))
         from .pannable_map import PannableMapServer
         data = widget.data_source
