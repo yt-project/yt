@@ -270,7 +270,7 @@ class SceneWidget(object):
         centers = na.array([na.dot(na.eye(4)*R[3,2],na.dot(R, norm)) for R in views])
         r = views[0]
         print r 
-        ups = na.array([na.dot(R,up)) for R in views])
+        ups = na.array([na.dot(R,up) for R in views])
         print 'centers'
         for center in centers: print center
         print 'ups'
