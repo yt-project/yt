@@ -240,7 +240,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # This has to be routed to the root directory
         self.api_url = "repl"
         BottleDirectRouter.__init__(self)
-        self.pflist = ExtDirectParameterFileList()
         self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
         if use_pyro:
