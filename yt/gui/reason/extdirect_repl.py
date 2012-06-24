@@ -223,11 +223,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     debug = False
     _heartbeat_timer = None
 
-    def __init__(self, base_extjs_path, locals=None,
+    def __init__(self, reasonjs_path, locals=None,
                  use_pyro=False):
         # First we do the standard initialization
-        self.extjs_file = zipfile.ZipFile(os.path.join(
-            base_extjs_path, "ext-4.1.0-gpl.zip"), 'r')
+        self.reasonjs_file = zipfile.ZipFile(reasonjs_path, 'r')
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
         # since they have different arguments, and most of all because we only
@@ -239,7 +238,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                               _myapi = ("/ext-repl-api.js", "GET"),
                               _session_py = ("/session.py", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
-                              _extjs = ("/resources/extjs-4.1.0/:path#.+#", "GET"),
+                              _reasonjs = ("/reason-js/:path#.+#", "GET"),
                               _app = ("/reason/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
@@ -331,10 +330,10 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         root = os.path.join(local_dir, "html")
         return static_file("help.html", root)
 
-    def _extjs(self, path):
-        pp = os.path.join("extjs-4.1.0", path)
+    def _reasonjs(self, path):
+        pp = os.path.join("reason-js", path)
         try:
-            f = self.extjs_file.open(pp)
+            f = self.reasonjs_file.open(pp)
         except KeyError:
             response.status = 404
             return
