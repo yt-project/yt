@@ -48,6 +48,7 @@ Ext.define('Reason.controller.Notebook', {
     init: function() {
         this.application.addListener({
             payloadcell: {fn: this.addCell, scope: this},
+            payloadscript: {fn: this.loadScript, scope: this},
             executecell: {fn: this.executeCell, scope: this},
             wipeinput:   {fn: this.wipeInputLine, scope: this},
             blockinput:  {fn: this.blockInput, scope: this},
@@ -78,10 +79,18 @@ Ext.define('Reason.controller.Notebook', {
             input: cell['input'],
             output: cell['output'],
             raw_input: cell['raw_input'],
+            image_data: cell['image_data'],
             executiontime: cell['executiontime'],
         });
         this.application.fireEvent("scrolltobottom");
     },
+
+    loadScript: function(payload) {
+        console.log("Loading script ...");
+        this.getInputLine().setValue(payload['value']);
+        this.getInputLine()._lock = true;
+    },
+
     executeCell: function(line) {
         this.application.fireEvent("blockinput");
         console.log("Asked to execute " + line);
@@ -95,7 +104,11 @@ Ext.define('Reason.controller.Notebook', {
     },
     
     wipeInputLine: function() {
-        this.getInputLine().setValue("");
+        if(this.getInputLine()._lock == true) {
+            this.getInputLine()._lock = false;
+        } else {
+            this.getInputLine().setValue("");
+        }
     },
 
     blockInput: function() {
