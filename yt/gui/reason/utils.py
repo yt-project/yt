@@ -53,3 +53,28 @@ def deliver_image(im):
                'image_data':img_data}
     ph.add_payload(payload)
 
+def get_list_of_datasets():
+    # Note that this instantiates the hierarchy.  This can be a costly
+    # event.  However, we're going to assume that it's okay, if you have
+    # decided to load up the parameter file.
+    from yt.data_objects.static_output import _cached_pfs
+    rv = []
+    for fn, pf in sorted(_cached_pfs.items()):
+        objs = []
+        pf_varname = "_cached_pfs['%s']" % (fn)
+        field_list = []
+        if pf._instantiated_hierarchy is not None: 
+            field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+            field_list = [dict(text = f) for f in sorted(field_list)]
+            for i,obj in enumerate(pf.h.objects):
+                try:
+                    name = str(obj)
+                except ReferenceError:
+                    continue
+                objs.append(dict(name=name, type=obj._type_name,
+                                 filename = '', field_list = [],
+                                 varname = "%s.h.objects[%s]" % (pf_varname, i)))
+        rv.append( dict(name = str(pf), children = objs, filename=fn,
+                        type = "parameter_file",
+                        varname = pf_varname, field_list = field_list) )
+    return rv

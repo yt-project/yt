@@ -1,5 +1,5 @@
 """
-Task queue to connect with reason via Pyro4.
+Task queue for reason.
 
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: Michigan State University
@@ -26,13 +26,12 @@ License:
 """
 
 import numpy as na
-import Pyro4
-import uuid
 
 from yt.funcs import *
 
 from yt.gui.reason.basic_repl import ProgrammaticREPL
 from yt.gui.reason.bottle_mods import PayloadHandler
+from .utils import get_list_of_datasets
 
 class PyroQueueRoot(object):
     def __init__(self, comm):
@@ -44,7 +43,9 @@ class PyroQueueRoot(object):
         mylog.info('Root sending out code.')
         code = self.comm.comm.bcast(code, root=0)
         value = self.repl.execute(code)
-        return value
+        datasets = get_list_of_datasets()
+        self.payload_handler.add_payload({'type': 'payloaddataobjects',
+                                          'objs': datasets})
 
     def deliver(self):
         return self.payload_handler.deliver_payloads()
