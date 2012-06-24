@@ -79,6 +79,7 @@ local_dir = os.path.dirname(__file__)
 class ExecutionThread(threading.Thread):
     def __init__(self, repl):
         self.repl = repl
+        self.payload_handler = PayloadHandler()
         self.queue = Queue.Queue()
         threading.Thread.__init__(self)
         self.daemon = True
@@ -117,7 +118,7 @@ class ExecutionThread(threading.Thread):
             print result
             print "========================================================"
         if not hide:
-            self.repl.payload_handler.add_payload(
+            self.payload_handler.add_payload(
                 {'type': 'cell',
                  'output': result,
                  'input': highlighter(code),
@@ -125,7 +126,7 @@ class ExecutionThread(threading.Thread):
                  'raw_input': code},
                 )
         objs = get_list_of_datasets()
-        self.repl.payload_handler.add_payload(
+        self.payload_handler.add_payload(
             {'type': 'dataobjects',
              'objs': objs})
 
@@ -219,8 +220,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     my_name = "ExtDirectREPL"
     timeout = 660 # a minute longer than the rocket server timeout
     server = None
-    stopped = False
-    debug = False
     _heartbeat_timer = None
 
     def __init__(self, reasonjs_path, locals=None,
@@ -246,7 +245,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # This has to be routed to the root directory
         self.api_url = "repl"
         BottleDirectRouter.__init__(self)
-        self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
         if use_pyro:
             self.execution_thread = PyroExecutionThread(self)

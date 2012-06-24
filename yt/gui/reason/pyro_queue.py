@@ -30,6 +30,7 @@ import numpy as na
 from yt.funcs import *
 
 from yt.gui.reason.basic_repl import ProgrammaticREPL
+from yt.gui.reason.extdirect_repl import ExecutionThread
 from yt.gui.reason.bottle_mods import PayloadHandler
 from .utils import get_list_of_datasets
 
@@ -37,16 +38,14 @@ class PyroQueueRoot(object):
     def __init__(self, comm):
         self.comm = comm
         self.repl = ProgrammaticREPL()
+        self.execution_thread = ExecutionThread(self.repl)
         self.payload_handler = PayloadHandler()
+        self.execution_thread.start()
 
     def execute(self, code):
         mylog.info('Root sending out code.')
         code = self.comm.comm.bcast(code, root=0)
-        value = self.repl.execute(code)
-        datasets = get_list_of_datasets()
-        self.payload_handler.add_payload({'type': 'dataobjects',
-                                          'objs': datasets})
-        return value
+        self.execution_thread.execute_one(code, False)
 
     def deliver(self):
         return self.payload_handler.deliver_payloads()

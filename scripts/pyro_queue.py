@@ -13,6 +13,7 @@ comm = _get_comm(())
 my_rank = comm.comm.rank
 
 if my_rank == 0:
+    from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
     my_q = PyroQueueRoot(comm)
     Pyro4.config.HMAC_KEY = uuid.uuid4().hex
     key_file = 'reason.key'
