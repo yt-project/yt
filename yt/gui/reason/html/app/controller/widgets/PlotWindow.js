@@ -252,9 +252,13 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             }
             var title = widget.templateManager.applyObject(obj, 'pwt');
             win = Ext.widget("plotwindowcreator", {title:title, obj:obj});
-            win.query("#weightField")[0].store = 
-                ['None'].concat(obj.field_list);
-            win.query("#field")[0].store = obj.field_list;
+            console.log(obj.field_list);
+            var field_list = [];
+            Ext.each(obj.field_list, function(f, i, af) {
+                field_list.push(f.text);
+            });
+            win.query("#weightField")[0].store = ['None'].concat(field_list);
+            win.query("#field")[0].store = field_list;
             win.query("#create")[0].on('click', makePlot);
             win.query("#cancel")[0].on('click', function(){win.destroy();});
             win.query("#maxDens")[0].on('change', toggleMaxDens);
