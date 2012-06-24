@@ -24,16 +24,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.bottle import \
-    server_names, debug, route, run, request, ServerAdapter, response
 import uuid
-from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
 import logging, threading
-from yt.utilities.logger import ytLogger as mylog
-from yt.funcs import *
 import sys
 import urllib, urllib2
+import numpy as na
+
+from yt.utilities.bottle import \
+    server_names, debug, route, run, request, ServerAdapter, response
+from extdirect_router import DirectRouter, DirectProviderDefinition
+from yt.utilities.logger import ytLogger as mylog
+from yt.funcs import *
 
 route_functions = {}
 route_watchers = []
@@ -48,9 +50,30 @@ def preroute(future_route, *args, **kwargs):
 def notify_route(watcher):
     route_watchers.append(watcher)
 
+class BinaryDelivery(object):
+    delivered = False
+    payload = ""
+    def __init__(self, payload, name = ""):
+        self.name = name
+        self.payload = payload
+        #sys.__stderr__.write("CREATING A BINARY PAYLOAD %s (%s)\n" % (
+        #    self.name, len(self.payload)))
+
+    def get(self):
+        # We set our 
+        #sys.__stderr__.write("REQUESTED A BINARY PAYLOAD %s (%s)\n" % (
+        #    self.name, len(self.payload)))
+        p = self.payload
+        if p == "":
+            response.status = 404
+            return
+        self.payload = ""
+        return p
+
 class PayloadHandler(object):
     _shared_state = {}
     payloads = None
+    binary_payloads = None
     recorded_payloads = None
     multicast_ids = None
     multicast_payloads = None
@@ -59,6 +82,7 @@ class PayloadHandler(object):
     event = None
     count = 0
     debug = False
+    _prefix = ""
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -72,6 +96,7 @@ class PayloadHandler(object):
         if self.event is None: self.event = threading.Event()
         if self.multicast_payloads is None: self.multicast_payloads = {}
         if self.multicast_ids is None: self.multicast_ids = {}
+        if self.binary_payloads is None: self.binary_payloads = []
 
     def deliver_payloads(self):
         with self.lock:
@@ -92,6 +117,8 @@ class PayloadHandler(object):
 
     def add_payload(self, to_add):
         with self.lock:
+            if "binary" in to_add:
+                self._add_binary_payload(to_add)
             self.payloads.append(to_add)
             # Does this next part need to be in the lock?
             if to_add.get("widget_id", None) in self.multicast_ids:
@@ -100,6 +127,23 @@ class PayloadHandler(object):
             self.event.set()
             if self.debug:
                 sys.__stderr__.write("**** Adding payload of type %s\n" % (to_add['type']))
+
+    def _add_binary_payload(self, bp):  
+        # This shouldn't be called by anybody other than add_payload.
+        bkeys = ensure_list(bp['binary'])
+        bp['binary'] = []
+        for bkey in bkeys:
+            bdata = bp.pop(bkey) # Get the binary data
+            if isinstance(bdata, na.ndarray):
+                bdata = bdata.tostring()
+            bpserver = BinaryDelivery(bdata, bkey)
+            self.binary_payloads.append(bpserver)
+            uu = uuid.uuid4().hex
+            bp['binary'].append((bkey, uu))
+            route("%s/%s" % (self._prefix, uu))(bpserver.get)
+            if self.debug:
+                sys.__stderr__.write(
+                    "**** Adding binary payload (%s) to %s\n" % (bkey, uu))
 
     def replay_payloads(self):
         return self.recorded_payloads

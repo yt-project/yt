@@ -259,6 +259,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         reason_pylab()
 
     def activate(self):
+        self.payload_handler._prefix = self._global_token
         self._setup_logging_handlers()
         # Setup our heartbeat
         self.last_heartbeat = time.time()

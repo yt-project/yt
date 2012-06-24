@@ -26,8 +26,9 @@ License:
 from yt.mods import *
 import weakref
 from .bottle_mods import PayloadHandler, lockit
-from .widget_builders import RenderingScene, get_corners
+from .widget_builders import RenderingScene, get_corners, get_isocontour
 from yt.visualization.plot_window import PWViewerExtJS
+from yt.visualization.volume_rendering.create_spline import create_spline
 import uuid
 
 _phase_plot_mds = """<pre>
@@ -163,7 +164,11 @@ class WidgetStore(dict):
     def create_scene(self, pf):
         '''Creates 3D XTK-based scene'''
         widget = SceneWidget(pf)
-        widget_data = {'title':'Scene for %s' % pf}
+        field_list = list(set(pf.h.field_list
+                            + pf.h.derived_field_list))
+        field_list.sort()
+        widget_data = {'title':'Scene for %s' % pf,
+                       'fields': field_list}
         self._add_widget(widget, widget_data)
 
 
@@ -229,14 +234,63 @@ class SceneWidget(object):
                                  'image':self._rendering_scene.snapshot()})
         return
 
+    def deliver_isocontour(self, field, value, rel_val = False):
+        ph = PayloadHandler()
+        vert = get_isocontour(self.pf, field, value, rel_val)
+        normals = na.empty(vert.shape)
+        for i in xrange(vert.shape[0]/3):
+            n = na.cross(vert[i*3,:], vert[i*3+1,:])
+            normals[i*3:i*3+3,:] = n[None,:]
+        ph.widget_payload(self, {'ptype':'isocontour',
+                                 'binary': ['vert', 'normals'],
+                                 'vert':vert,
+                                 'normals':normals})
+
     def deliver_gridlines(self):
         ph = PayloadHandler()
         corners, levels = get_corners(self.pf)
         ph.widget_payload(self, {'ptype':'grid_lines',
+                                 'binary': ['corners', 'levels'],
                                  'corners': corners,
                                  'levels': levels,
                                  'max_level': int(self.pf.h.max_level)})
         return
+
+    def render_path(self, views, times, N):
+        # Assume that path comes in as a list of matrice
+        # Assume original vector is (0., 0., 1.), up is (0., 1., 0.)
+        # for matrix in matrices:
+
+        views = [na.array(view) for view in views]
+        
+        times = na.linspace(0.0,1.0,len(times))
+        norm = na.array([0.,0.,1.,1.])
+        up = na.array([0.,1.,0.,1.])
+        
+        centers = na.array([na.dot(na.eye(4)*R[3,2],na.dot(R, norm)) for R in views])
+        r = views[0]
+        print r 
+        ups = na.array([na.dot(R,up) for R in views])
+        print 'centers'
+        for center in centers: print center
+        print 'ups'
+        for up in ups: print up
+
+        pos = na.empty((N,3), dtype="float64")
+        uv = na.empty((N,3), dtype="float64")
+        f = na.zeros((N,3), dtype="float64")
+        for i in range(3):
+            pos[:,i] = create_spline(times, centers[:,i], na.linspace(0.0,1.0,N))
+            uv[:,i] = create_spline(times, ups[:,i], na.linspace(0.0,1.0,N))
+    
+        path = [pos.tolist(), f.tolist(), uv.tolist()]
+    
+        ph = PayloadHandler()
+        ph.widget_payload(self, {'ptype':'camerapath',
+                                 'data':path,})
+
+        return
+
 
     def deliver_streamlines(self):
         pf = PayloadHandler()

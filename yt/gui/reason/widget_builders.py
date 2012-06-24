@@ -78,63 +78,20 @@ class RenderingScene(object):
 def get_corners(pf, max_level=None):
     DL = pf.domain_left_edge[None,:,None]
     DW = pf.domain_width[None,:,None]/100.0
-    corners = ((pf.h.grid_corners-DL)/DW).tolist()
-    levels = pf.h.grid_levels.tolist()
+    corners = ((pf.h.grid_corners-DL)/DW)
+    levels = pf.h.grid_levels
     return corners, levels
 
-def get_grid_vertices(pf, max_level=None):
-    if max_level is None: max_level = pf.h.max_level
-    fns = []
-    for lvl in range(max_level):
-        fn = "%s_lvl_%02i_grids.vtk"%(pf, lvl)
-        f = open(fn, "w")
-
-        f.write("""# vtk DataFile Version 3.0
-        vtk output
-        ASCII
-        DATASET POLYDATA
-        POINTS %s float
-        """ % (pf.h.num_grids * 8))
-
-        for gi in xrange(pf.h.num_grids):
-            if pf.h.grid_levels[gi][0] != lvl: continue
-            gc = pf.h.grid_corners[:, :, gi] * 100.0
-            for i in range(8):
-                f.write("%0.9f %0.9f %0.9f\n" % (gc[i, 0], gc[i, 1], gc[i, 2]))
-
-        f.write("LINES %s %s\n" % (pf.h.num_grids * 12, 3 * pf.h.num_grids * 12))
-
-        order1 = (0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3)
-        order2 = (1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7)
-
-        for gi in xrange(pf.h.num_grids):
-            if pf.h.grid_levels[gi][0] != lvl: continue
-            offset = 8 * gi
-            for p1, p2 in zip(order1, order2):
-                f.write("2 %s %s\n" % (p1 + offset, p2 + offset))
-        f.close()
-        fns.append(fn)
-    return fn
-
-def get_isocontour(pf, field, value=None):
+def get_isocontour(pf, field, value=None, rel_val = False):
 
     dd = pf.h.all_data()
-    if value is None:
+    if value is None or rel_val:
+        if value is None: value = 0.5
         mi, ma = na.log10(dd.quantities["Extrema"]("Density")[0])
-        value = 10.**((mi + ma)/2.)
+        value = 10.0**(value*(ma - mi) + mi)
     vert = dd.extract_isocontours("Density", value)
     na.multiply(vert, 100, vert)
-
-    fn = "%s_surface.vtk" % pf
-    f = open(fn, "w")
-    f.write("vtk output\nASCII\nDATASET POLYDATA\nPOINTS %s float\n" % (vert.shape[0]))
-    for v in vert:
-        f.write("%0.14f %0.14f %0.14f\n" % (v[0], v[1], v[2]))
-    f.write("VERTICES %s %s\n" % (vert.shape[0]/3, vert.shape[0] + vert.shape[0]/3))
-    for i in range(vert.shape[0]/3):
-        f.write("3 %i %i %i\n" % (i*3, i*3+1, i*3+2))
-    f.close()
-    return fn
+    return vert
 
 def get_streamlines(pf):
     from yt.visualization.api import Streamlines

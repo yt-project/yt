@@ -48,6 +48,7 @@ Ext.define("Reason.view.widgets.Scene", {
         }, {
             xtype: 'multislider',
             itemId: 'cameraPathSlider',
+            disabled: true,
             minValue: 0,
             maxValue: 100,
             increment: 1,
@@ -183,6 +184,11 @@ Ext.define("Reason.view.widgets.Scene", {
                   layout: 'absolute',
                   flex: 1,
                   items : [
+                    {
+                      xtype: 'button',
+                      text: 'Add Isocontour',
+                      itemId: 'addIsocontour'
+                    },
                   ]
                 },
                 ] } /* tabpanel items and entry */
