@@ -33,6 +33,7 @@ import numpy as na
 import weakref
 
 class FixedResolutionBuffer(object):
+    _exclude_fields = ('pz','pdz','dx','x','y','z')
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         r"""
@@ -132,7 +133,7 @@ class FixedResolutionBuffer(object):
         self.data[item] = val
 
     def _get_data_source_fields(self):
-        exclude = self.data_source._key_fields + ['pz','pdz','x','y','z']
+        exclude = self.data_source._key_fields + list(self._exclude_fields)
         for f in self.data_source.fields:
             if f not in exclude:
                 self[f]

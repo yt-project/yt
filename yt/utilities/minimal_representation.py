@@ -58,6 +58,7 @@ class MinimalRepresentation(object):
             setattr(self, attr, getattr(obj, attr, None))
         if hasattr(obj, "pf"):
             self.output_hash = obj.pf._hash()
+            self._pf_mrep = obj.pf._mrep
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
@@ -93,6 +94,8 @@ class MinimalRepresentation(object):
         api_key = ytcfg.get("yt","hub_api_key")
         url = ytcfg.get("yt","hub_url")
         metadata, (final_name, chunks) = self._generate_post()
+        if hasattr(self, "_pf_mrep"):
+            self._pf_mrep.upload()
         for i in metadata:
             if isinstance(metadata[i], na.ndarray):
                 metadata[i] = metadata[i].tolist()
@@ -110,7 +113,15 @@ class MinimalRepresentation(object):
                                              'api_key' : api_key})
         request = urllib2.Request(url, datagen, headers)
         # Actually do the request, and get the response
-        rv = urllib2.urlopen(request).read()
+        try:
+            rv = urllib2.urlopen(request).read()
+        except urllib2.HTTPError as ex:
+            if ex.code == 401:
+                mylog.error("You must create an API key before uploading.")
+                mylog.error("https://data.yt-project.org/getting_started.html")
+                return
+            else:
+                raise ex
         uploader_info = json.loads(rv)
         new_url = url + "/handler/%s" % uploader_info['handler_uuid']
         for i, (cn, cv) in enumerate(chunks):
@@ -125,8 +136,9 @@ class MinimalRepresentation(object):
 
         datagen, headers = multipart_encode({'status' : 'FINAL'})
         request = urllib2.Request(new_url, datagen, headers)
-        rv = urllib2.urlopen(request).read()
-        return json.loads(rv)
+        rv = json.loads(urllib2.urlopen(request).read())
+        mylog.info("Upload succeeded!  View here: %s", rv['url'])
+        return rv
 
 class FilteredRepresentation(MinimalRepresentation):
     def _generate_post(self):
@@ -180,3 +192,25 @@ class MinimalImageCollectionData(MinimalRepresentation):
         chunks = [(fn, d) for fn, d in self.images]
         return (metadata, ('images', chunks))
 
+_hub_categories = ("News", "Documents", "Simulation Management",
+                   "Data Management", "Analysis and Visualization",
+                   "Paper Repositories", "Astrophysical Utilities",
+                   "yt Scripts")
+
+class MinimalProjectDescription(MinimalRepresentation):
+    type = "project"
+    _attr_list = ("title", "url", "description", "category", "image_url")
+
+    def __init__(self, title, url, description,
+                 category, image_url = ""):
+        assert(category in _hub_categories)
+        self.title = title
+        self.url = url
+        self.description = description
+        self.category = category
+        self.image_url = image_url
+
+    def _generate_post(self):
+        metadata = self._attrs
+        chunks = []
+        return (metadata, ("chunks", []))

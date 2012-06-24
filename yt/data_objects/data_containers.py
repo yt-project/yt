@@ -5,6 +5,8 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
+Author: Geoffrey So <gsiisg@gmail.com> (AMREllipsoidBase)
+Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
@@ -38,7 +40,7 @@ from yt.funcs import *
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.amr_utils import find_grids_in_inclined_box, \
+from yt.utilities.lib import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
     march_cubes_grid, march_cubes_grid_flux
@@ -55,6 +57,8 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
+from yt.utilities.orientation import Orientation
+from yt.utilities.math_utils import get_rotation_matrix
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -239,6 +243,8 @@ class AMRData(object):
             pass
         elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
+        elif center in ("c", "center"):
+            center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
             center = self.pf.h.find_max("Density")[1]
         elif center.startswith("max_"):
@@ -492,7 +498,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         self._sorted = {}
 
     def get_data(self, fields=None, in_grids=False):
-        if self._grids == None:
+        if self._grids is None:
             self._get_list_of_grids()
         points = []
         if not fields:
@@ -1151,6 +1157,9 @@ class AMRSliceBase(AMR2DData):
     def _mrep(self):
         return MinimalSliceData(self)
 
+    def hub_upload(self):
+        self._mrep.upload()
+
 class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -1158,7 +1167,7 @@ class AMRCuttingPlaneBase(AMR2DData):
     _type_name = "cutting"
     _con_args = ('normal', 'center')
     def __init__(self, normal, center, fields = None, node_name = None,
-                 **kwargs):
+                 north_vector = None, **kwargs):
         """
         This is a data object corresponding to an oblique slice through the
         simulation domain.
@@ -1207,16 +1216,11 @@ class AMRCuttingPlaneBase(AMR2DData):
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
-        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
+        self.orienter = Orientation(normal, north_vector = north_vector)
+        self._norm_vec = self.orienter.normal_vector
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
-        # First we try all three, see which has the best result:
-        vecs = na.identity(3)
-        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
-        ax = _t.argmax()
-        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
-        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
+        self._x_vec = self.orienter.unit_vectors[0]
+        self._y_vec = self.orienter.unit_vectors[1]
         self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = na.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
@@ -1336,7 +1340,7 @@ class AMRCuttingPlaneBase(AMR2DData):
             This can either be a floating point value, in the native domain
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
-        height : height specifier
+        height : height specifier, optional
             This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
@@ -1676,6 +1680,9 @@ class AMRQuadTreeProjBase(AMR2DData):
     @property
     def _mrep(self):
         return MinimalProjectionData(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -2565,7 +2572,18 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.
+        fly with a set of field_cuts.  It is very useful for applying 
+        conditions to the fields in your data object.
+        
+        Examples
+        --------
+        To find the total mass of gas above 10^6 K in your volume:
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ad = pf.h.all_data()
+        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
+
         """
         return InLineExtractedRegionBase(self, field_cuts)
 
@@ -3314,6 +3332,40 @@ class AMRGridCollectionBase(AMR3DData):
         pointI = na.where(k == True)
         return pointI
 
+class AMRMaxLevelCollection(AMR3DData):
+    _type_name = "grid_collection_max_level"
+    _con_args = ("center", "max_level")
+    def __init__(self, center, max_level, fields = None,
+                 pf = None, **kwargs):
+        """
+        By selecting an arbitrary *max_level*, we can act on those grids.
+        Child cells are masked when the level of the grid is below the max
+        level.
+        """
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        self.max_level = max_level
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        if self._grids is not None: return
+        gi = (self.pf.h.grid_levels <= self.max_level)[:,0]
+        self._grids = self.pf.h.grids[gi]
+
+    def _is_fully_enclosed(self, grid):
+        return True
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
+
+    def _get_point_indices(self, grid, use_child_mask=True):
+        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        if use_child_mask and grid.Level < self.max_level:
+            k[grid.child_indices] = False
+        pointI = na.where(k == True)
+        return pointI
+
+
 class AMRSphereBase(AMR3DData):
     """
     A sphere of points
@@ -3374,6 +3426,141 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
+class AMREllipsoidBase(AMR3DData):
+    """
+    We can define an ellipsoid to act as a data object.
+    """
+    _type_name = "ellipsoid"
+    _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
+    def __init__(self, center, A, B, C, e0, tilt, fields=None,
+                 pf=None, **kwargs):
+        """
+        By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
+        can define a ellipsoid of any proportion.  Only cells whose centers are
+        within the ellipsoid will be selected.
+        """
+        AMR3DData.__init__(self, na.array(center), fields, pf, **kwargs)
+        # make sure the smallest side is not smaller than dx
+        if C < self.hierarchy.get_smallest_dx():
+            raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
+        self._A = A
+        self._B = B
+        self._C = C
+        self._e0 = e0
+        self._tilt = tilt
+        
+        # find the t1 angle needed to rotate about z axis to align e0 to x
+        t1 = na.arctan(e0[1] / e0[0])
+        # rotate e0 by -t1
+        RZ = get_rotation_matrix(t1, (0,0,1)).transpose()
+        r1 = (e0 * RZ).sum(axis = 1)
+        # find the t2 angle needed to rotate about y axis to align e0 to x
+        t2 = na.arctan(-r1[2] / r1[0])
+        """
+        calculate the original e1
+        given the tilt about the x axis when e0 was aligned 
+        to x after t1, t2 rotations about z, y
+        """
+        RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
+        RY = get_rotation_matrix(-t2,   (0,1,0)).transpose()
+        RZ = get_rotation_matrix(-t1,   (0,0,1)).transpose()
+        e1 = ((0, 1, 0) * RX).sum(axis = 1)
+        e1 = (e1 * RY).sum(axis = 1)
+        e1 = (e1 * RZ).sum(axis = 1)
+        e2 = na.cross(e0, e1)
+
+        self._e1 = e1
+        self._e2 = e2
+
+        self.set_field_parameter('A', A)
+        self.set_field_parameter('B', B)
+        self.set_field_parameter('C', C)
+        self.set_field_parameter('e0', e0)
+        self.set_field_parameter('e1', e1)
+        self.set_field_parameter('e2', e2)
+        self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
+        self._refresh_data()
+
+        """
+        Having another function find_ellipsoid_grids is too much work, 
+        can just use the sphere one and forget about checking orientation
+        but feed in the A parameter for radius
+        """
+    def _get_list_of_grids(self, field = None):
+        """
+        This returns the grids that are possibly within the ellipse
+        """
+        grids,ind = self.hierarchy.find_sphere_grids(self.center, self._A)
+        # Now we sort by level
+        grids = grids.tolist()
+        grids.sort(key=lambda x: (x.Level, \
+                                  x.LeftEdge[0], \
+                                  x.LeftEdge[1], \
+                                  x.LeftEdge[2]))
+        self._grids = na.array(grids, dtype = 'object')
+
+    def _is_fully_enclosed(self, grid):
+        """
+        check if all grid corners are inside the ellipsoid
+        """
+        # vector from corner to center
+        vr = (grid._corners - self.center)
+        # 3 possible cases of locations taking periodic BC into account
+        # just listing the components, find smallest later
+        dotarr=na.array([vr, vr + self.DW, vr - self.DW])
+        # these vrdote# finds the product of vr components with e#
+        # square the results
+        # find the smallest
+        # sums it
+        vrdote0_2 = (na.multiply(dotarr, self._e0)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        vrdote1_2 = (na.multiply(dotarr, self._e1)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        vrdote2_2 = (na.multiply(dotarr, self._e2)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        return na.all(vrdote0_2 / self._A**2 + \
+                      vrdote1_2 / self._B**2 + \
+                      vrdote2_2 / self._C**2 <=1.0)
+
+    @restore_grid_state # Pains me not to decorate with cache_mask here
+    def _get_cut_mask(self, grid, field = None):
+        """
+        This checks if each cell is inside the ellipsoid
+        """
+        # We have the *property* center, which is not necessarily
+        # the same as the field_parameter
+        if self._is_fully_enclosed(grid):
+            return True # We do not want child masking here
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
+           and grid.id in self._cut_masks:
+            return self._cut_masks[grid.id]
+        Inside = na.zeros(grid["x"].shape, dtype = 'float64')
+        dim = grid["x"].shape
+        # need this to take into account non-cube root grid tiles
+        dot_evec = na.zeros([3, dim[0], dim[1], dim[2]])
+        for i, ax in enumerate('xyz'):
+            # distance to center
+            ar  = grid[ax]-self.center[i]
+            # cases to take into account periodic BC
+            case = na.array([ar, ar + self.DW[i], ar - self.DW[i]])
+            # find which of the 3 cases is smallest in magnitude
+            index = na.abs(case).argmin(axis = 0)
+            # restrict distance to only the smallest cases
+            vec = na.choose(index, case)
+            # sum up to get the dot product with e_vectors
+            dot_evec += na.array([vec * self._e0[i], \
+                                  vec * self._e1[i], \
+                                  vec * self._e2[i]])
+        # Calculate the eqn of ellipsoid, if it is inside
+        # then result should be <= 1.0
+        Inside = dot_evec[0]**2 / self._A**2 + \
+                 dot_evec[1]**2 / self._B**2 + \
+                 dot_evec[2]**2 / self._C**2
+        cm = ((Inside <= 1.0) & grid.child_mask)
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
+            self._cut_masks[grid.id] = cm
+        return cm
+
 class AMRCoveringGridBase(AMR3DData):
     _spatial = True
     _type_name = "covering_grid"
@@ -3389,9 +3576,16 @@ class AMRCoveringGridBase(AMR3DData):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
-            The right edge of the region to be extracted
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  right_edge=[1.0, 1.0, 1.0],
+                                  dims=[128, 128, 128])
         """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
@@ -3527,7 +3721,8 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
-        single, specified resolution.
+        single, specified resolution. (Identical to covering_grid,
+        except that it interpolates.)
 
         Smoothed covering grids start at level 0, interpolating to
         fill the region to level 1, replacing any cells actually
@@ -3540,9 +3735,15 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             The resolution level data is uniformly gridded at
         left_edge : array_like
             The left edge of the region to be extracted
-        right_edge : array_like
-            The right edge of the region to be extracted
+        dims : array_like
+            Number of cells along each axis of resulting covering_grid.
+        fields : array_like, optional
+            A list of fields that you'd like pre-generated for your object
 
+        Example
+        -------
+        cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                                  dims=[128, 128, 128])
         """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
@@ -3580,10 +3781,16 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
+                mylog.debug("Updating level state to %s", last_level + 1)
                 self._update_level_state(last_level + 1)
                 self._refine(1, fields_to_get)
                 last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
+        while last_level < self.level:
+            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
+            self._update_level_state(last_level + 1)
+            self._refine(1, fields_to_get)
+            last_level += 1
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
@@ -3606,7 +3813,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                     self.pf.domain_left_edge)/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64') + 2
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -3614,7 +3821,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -3625,8 +3832,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
-
+        output_dims = na.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
 
         for field in fields:

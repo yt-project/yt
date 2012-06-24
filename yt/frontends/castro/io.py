@@ -28,7 +28,7 @@ import os
 import numpy as na
 from yt.utilities.io_handler import \
            BaseIOHandler
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
             read_castro_particles
 
 from definitions import \

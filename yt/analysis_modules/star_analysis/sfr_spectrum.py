@@ -246,7 +246,7 @@ for faster memory access.
 """
 
 class SpectrumBuilder(object):
-    def __init__(self, pf, bcdir="", model="chabrier"):
+    def __init__(self, pf, bcdir="", model="chabrier", time_now=None):
         r"""Initialize the data to build a summed flux spectrum for a
         collection of stars using the models of Bruzual & Charlot (2003).
         This function loads the necessary data tables into memory and
@@ -280,8 +280,12 @@ class SpectrumBuilder(object):
              OmegaLambdaNow = self._pf.omega_lambda,
              InitialRedshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
-        self.time_now = self.cosm.ComputeTimeFromRedshift(
-            self._pf.current_redshift) # seconds
+        
+        if time_now is None:
+            self.time_now = self.cosm.ComputeTimeFromRedshift(
+                self._pf.current_redshift) # seconds
+        else:
+            self.time_now = time_now
         
         # Read the tables.
         self.read_bclib()
@@ -404,7 +408,8 @@ class SpectrumBuilder(object):
         self.star_metal = self.star_metal[sort]
         
         # Interpolate the flux for each star, adding to the total by weight.
-        for star in itertools.izip(Mname, Aindex, ratio1, ratio2, self.star_mass):
+        pbar = get_pbar("Calculating fluxes",len(self.star_mass))
+        for i,star in enumerate(itertools.izip(Mname, Aindex, ratio1, ratio2, self.star_mass)):
             # Pick the right age bin for the right flux array.
             flux = self.flux[star[0]][star[1],:]
             # Get the one just before the one above.
@@ -413,6 +418,9 @@ class SpectrumBuilder(object):
             int_flux = star[3] * na.log10(flux_1) + star[2] * na.log10(flux)
             # Add this flux to the total, weighted by mass.
             self.final_spec += na.power(10., int_flux) * star[4]
+            pbar.update(i)
+        pbar.finish()    
+        
         # Normalize.
         self.total_mass = na.sum(self.star_mass)
         self.avg_mass = na.mean(self.star_mass)
