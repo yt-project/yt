@@ -264,14 +264,23 @@ class SceneWidget(object):
         times = na.linspace(0.0,1.0,len(times))
         norm = na.array([0.,0.,1.,1.])
         up = na.array([0.,1.,0.,1.])
-        centers = na.array([na.dot(R, norm) for R in views])
-        ups = na.array([na.dot(R,up) for R in views])
+        
+        centers = na.array([na.dot(na.eye(4)*R[3,2],na.dot(R, norm)) for R in views])
+        r = views[0]
+        print r 
+        ups = na.array([na.dot(R,up)) for R in views])
+        print 'centers'
+        for center in centers: print center
+        print 'ups'
+        for up in ups: print up
+
         pos = na.empty((N,3), dtype="float64")
         uv = na.empty((N,3), dtype="float64")
+        f = na.zeros((N,3), dtype="float64")
         for i in range(3):
             pos[:,i] = create_spline(times, centers[:,i], na.linspace(0.0,1.0,N))
             uv[:,i] = create_spline(times, ups[:,i], na.linspace(0.0,1.0,N))
-        f = na.zeros((N,3), dtype="float64")
+    
         path = [pos.tolist(), f.tolist(), uv.tolist()]
     
         ph = PayloadHandler()
