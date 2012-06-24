@@ -84,6 +84,9 @@ class ExecutionThread(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = True
 
+    def heartbeat(self):
+        return
+
     def run(self):
         while 1:
             #print "Checking for a queue ..."
@@ -92,7 +95,7 @@ class ExecutionThread(threading.Thread):
             except Queue.Empty:
                 if self.repl.stopped: return
                 continue
-            #print "Received the task", task
+            print "Received the task", task
             if task['type'] == 'code':
                 self.execute_one(task['code'], task['hide'])
                 self.queue.task_done()
@@ -154,20 +157,9 @@ class PyroExecutionThread(ExecutionThread):
             self.repl.payload_handler.add_payload(p)
 
     def heartbeat(self):
-        self.last_heartbeat = time.time()
-        if self.debug: print "### Heartbeat ... started: %s" % (time.ctime())
-        for i in range(30):
-            # Check for stop
-            if self.debug: print "    ###"
-            if self.stopped: return {'type':'shutdown'} # No race condition
-            if self.payload_handler.event.wait(1): # One second timeout
-                if self.debug: print "    ### Delivering payloads"
-                rv = self.payload_handler.deliver_payloads()
-                if self.debug: print "    ### Got back, returning"
-                return rv
-        if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
-        return []
-
+        ph = self.executor.deliver()
+        for p in ph:
+            self.repl.payload_handler.add_payload(p)
 
 def reason_pylab():
     from .utils import deliver_image
@@ -294,6 +286,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                 rv = self.payload_handler.deliver_payloads()
                 if self.debug: print "    ### Got back, returning"
                 return rv
+            self.execution_thread.heartbeat()
         if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
         return []
 
@@ -352,11 +345,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         return highlighter_css
 
     def execute(self, code, hide = False):
-            task = {'type': 'code',
-                    'code': code,
-                    'hide': hide}
-            self.execution_thread.queue.put(task)
-            return dict(status = True)
+        task = {'type': 'code',
+                'code': code,
+                'hide': hide}
+        self.execution_thread.queue.put(task)
+        return dict(status = True)
 
     def get_history(self):
         return self.executed_cell_texts[:]

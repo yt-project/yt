@@ -42,10 +42,13 @@ class PyroQueueRoot(object):
         self.payload_handler = PayloadHandler()
         self.execution_thread.start()
 
-    def execute(self, code):
+    def execute(self, code, hide = False):
         mylog.info('Root sending out code.')
         code = self.comm.comm.bcast(code, root=0)
-        self.execution_thread.execute_one(code, False)
+        task = {'type': 'code',
+                'code': code,
+                'hide': hide}
+        self.execution_thread.queue.put(task)
 
     def deliver(self):
         return self.payload_handler.deliver_payloads()
