@@ -54,6 +54,7 @@ from .widget_store import WidgetStore
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
                          PayloadHandler, lockit
 from yt.utilities.bottle import response, request, route, static_file
+from .utils import get_list_of_datasets
 from .basic_repl import ProgrammaticREPL
 
 try:
@@ -122,6 +123,10 @@ class ExecutionThread(threading.Thread):
                  'input': highlighter(code),
                  'raw_input': code},
                 )
+        objs = get_list_of_datasets()
+        self.repl.payload_handler.add_payload(
+            {'type': 'dataobjects',
+             'objs': objs})
 
 class PyroExecutionThread(ExecutionThread):
     def __init__(self, repl):

@@ -106,7 +106,6 @@ Ext.define('Reason.controller.Notebook', {
     allowInput: function() {
         this.getInputLine().removeCls("cell_waiting");
         this.getInputLine().setReadOnly(false);
-        console.log("Calling FileList");
         var application = this.application;
     },
 

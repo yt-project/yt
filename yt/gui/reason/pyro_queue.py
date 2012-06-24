@@ -44,7 +44,7 @@ class PyroQueueRoot(object):
         code = self.comm.comm.bcast(code, root=0)
         value = self.repl.execute(code)
         datasets = get_list_of_datasets()
-        self.payload_handler.add_payload({'type': 'payloaddataobjects',
+        self.payload_handler.add_payload({'type': 'dataobjects',
                                           'objs': datasets})
         return value
 

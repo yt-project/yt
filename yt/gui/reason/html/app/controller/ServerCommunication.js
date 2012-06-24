@@ -70,7 +70,7 @@ Ext.define('Reason.controller.ServerCommunication', {
     heartbeatCall: function() {
         if (heartbeatRequest == true) return;
         heartbeatRequest = true;
-        console.log("Sending heartbeat");
+        /*console.log("Sending heartbeat");*/
         yt_rpc.ExtDirectREPL.heartbeat(
             {}, function(f, a) {
                 heartbeatRequest = false;
