@@ -259,22 +259,30 @@ class SceneWidget(object):
     def render_path(self, views, times, N):
         # Assume that path comes in as a list of matrice
         # Assume original vector is (0., 0., 1.), up is (0., 1., 0.)
-        # for matrix in matrices:
+        
+        views = [na.array(view).transpose() for view in views]
 
-        views = [na.array(view) for view in views]
-        
         times = na.linspace(0.0,1.0,len(times))
-        norm = na.array([0.,0.,1.,1.])
-        up = na.array([0.,1.,0.,1.])
-        
-        centers = na.array([na.dot(na.eye(4)*R[3,2],na.dot(R, norm)) for R in views])
-        r = views[0]
-        print r 
-        ups = na.array([na.dot(R,up) for R in views])
-        print 'centers'
-        for center in centers: print center
-        print 'ups'
-        for up in ups: print up
+                
+        # This is wrong.
+        reflect = na.array([[1,0,0],[0,1,0],[0,0,-1]])
+
+        rots = na.array([R[0:3,0:3] for R in views])
+
+        rots = na.array([na.dot(reflect,rot) for rot in rots])
+
+        centers = na.array([na.dot(rot,R[0:3,3]) for R,rot in zip(views,rots)])
+
+        ups = na.array([na.dot(rot,R[0:3,1]) for R,rot in zip(views,rots)])
+
+        #print 'views'
+        #for view in views: print view
+        #print 'rots'
+        #for rot in rots: print rot
+        #print 'centers'
+        #for center in centers: print center
+        #print 'ups'
+        #for up in ups: print up
 
         pos = na.empty((N,3), dtype="float64")
         uv = na.empty((N,3), dtype="float64")
