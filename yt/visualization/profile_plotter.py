@@ -277,6 +277,7 @@ class PhasePlotter(object):
            field_z.startswith("CellVolume"):
             mylog.warning("Setting weight to None")
             weight = None
+        self._initial_weight = weight
         profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_z
         self.profile = profile

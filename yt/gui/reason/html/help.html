@@ -62,7 +62,7 @@ ul.quick_list {
 }
 
 a {
-    /*text-decoration: none;*/
+    text-decoration: none;
 }
 
 a:link {
@@ -84,17 +84,15 @@ img.yt_image {
 </style>
 <body>
 <div class="yt_logo">
-<h1>yt:</h1>
-<p>because your data isn't going to analyze itself!</p>
+<h1>yt</h1>
 <ul class="quick_list">
+<li><a href="http://yt-project.org/">home</a></li>
 <li><a href="http://yt-project.org/doc/">docs</a></li>
-<li><a href="http://yt-project.org/wiki/Gallery">gallery</a> ( <a href="video_gallery.html">video</a> )</li>
-<li><a href="http://yt-project.org/wiki">wiki</a></li>
-<li><a href="http://yt-project.org/doc/orientation.html">quick start</a></li>
-<li><a href="http://yt-project.org/newticket">report a bug</a></li>
-<li><a href="http://yt-project.org/browser">source</a></li>
-<li><a href="principles.html">principles</a></li>
-<li><a href="http://blog.enzotools.org/">development blog</a></li>
+<li><a href="https://bitbucket.org/yt_analyis/yt/">development page</a></li>
+<li><a href="https://bitbucket.org/yt_analyis/yt/newticket">report a bug</a></li>
+<li><a href="http://yt-project.org/irc.html">chat</a></li>
+<li>&nbsp;</li>
+<li><a href="http://yt-project.org/docs/2.3/interacting/reason.html">reason manual</a></li>
 </ul>
 </div>
 <div class="faq">
@@ -117,28 +115,22 @@ has returned a result, it will return to normal and allow input.</p>
 images will be returned in the window.  You can click on these images to view
 them at full-size.</p>
 
-<h2>Using the interactive plot window</h2>
-<p>As you execute cells and load parameter files from disk, these parameter
-files will get added to the tree view on the left, along with any objects that
-have been created from them.</p>
+<h2>Interactive Visualization</h2>
+<p>Once you have loaded data off disk, either by loading it in the Notebook,
+or choosing "Load File" from the menu, you can right click on any object
+in the left hand menu to choose different visualization options.</p>
 
-<p>Over time, these objects will expose right-click events to create plot
-windows, as well as drag-and-drop functionality.</p>
+<p>You can also supply files on the command line when starting Reason, or run
+with "-f" to search for them in the current directory.</p>
 
-<h2>Saving and loading sessions</h2>
-<p>There are three methods for saving your work.  You can click "Download" to
-download a copy of your session on your local machine.  By clicking "Save" you
-can save a copy on the server on which Reason is running.  By clicking
-"Pastebin" you can send a copy of it to the <a
-href="http://paste.yt-project.org/">yt pastebin</a>.</p>
-
-<p>If you use the command 'load_script' and supply it a file the server can
-find locally, it will read that file in and populate the contents of your next
-submission cell with it.</p>
+<h2>Delivering Images and Scripts</h2>
+<p>The command <tt>deliver_image('filename.png')</tt> will display the file
+<tt>filename.png</tt> in the output window.  The command <tt>load_script('filename.py')</tt>
+will fill the execution area with the script <tt>filename.py</tt>.</p>
 
 <h2>How to Quit</h2>
-<p>To quit, simply press Ctrl-C in the console window that you ran "yt serve"
-within.</p>
+<p>To quit, either choose "Quit" from the menu or press Ctrl-C in the console
+window that you ran "yt serve" within.</p>
 
 </div>
 </body>

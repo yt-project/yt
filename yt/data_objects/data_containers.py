@@ -2634,13 +2634,16 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         verts = []
         samples = []
+        pb = get_pbar("Extracting ", len(list(self._get_grid_objs())))
         for i, g in enumerate(self._get_grid_objs()):
+            pb.update(i)
             my_verts = self._extract_isocontours_from_grid(
                             g, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
+        pb.finish()
         verts = na.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         verts = verts.transpose()

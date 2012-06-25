@@ -34,8 +34,10 @@ import traceback
 from cStringIO import StringIO
 
 class ProgrammaticREPL(object):
-    
+    stopped = False
+    debug = False
     def __init__(self, locals=None):
+        self.executed_cell_texts = []
         self.locals = {}
         if locals:
             self.locals.update(locals)

@@ -37,6 +37,7 @@ from .fixed_resolution import \
     ObliqueFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit
 from .tick_locators import LogLocator, LinearLocator
+from yt.utilities.delaunay.triangulate import Triangulation as triang
 
 from yt.funcs import *
 from yt.utilities.lib import write_png_to_string
@@ -349,6 +350,10 @@ class PlotWindow(object):
     def set_vector_info(self, skip, scale = 1):
         self._vector_info = (skip, scale)
 
+    @invalidate_data
+    def refresh(self):
+        self._setup_plots()
+
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
 
@@ -575,7 +580,6 @@ class PWViewerExtJS(PWViewer):
         from matplotlib.figure import Figure
         from yt.visualization._mpl_imports import \
             FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
-        from yt.utilities.delaunay.triangulate import Triangulation as triang
 
         vi, vj, vn = img.shape
 
