@@ -58,7 +58,7 @@ def ortho_ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
     cdef int py_ax = dobj.py_ax
     cdef np.float64_t px = dobj.px
     cdef np.float64_t py = dobj.py
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32_t')
+    cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
     for i in range(ng):
         if (    (px >= left_edges[i, px])
             and (px < right_edges[i, px])
@@ -72,7 +72,7 @@ def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
     cdef int i, ax
     cdef int i1, i2
     cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
     cdef np.float64_t vs[3], t, p0[3], p1[3], v[3]
     for i in range(3):
         p0[i] = dobj.start_point[i]
@@ -125,7 +125,7 @@ def slice_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                       np.ndarray[np.float64_t, ndim=2] right_edges):
     cdef int i, ax
     cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
     ax = dobj.axis
     cdef np.float64_t coord = dobj.coord
     for i in range(ng):
@@ -138,7 +138,7 @@ def cutting_plane_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
                         np.ndarray[np.float64_t, ndim=2] right_edges):
     cdef int i
     cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
+    cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
     cdef np.float64_t *arr[2]
     arr[0] = <np.float64_t *> left_edges.data
     arr[1] = <np.float64_t *> right_edges.data
@@ -183,7 +183,7 @@ cdef inline int cutting_plane_cell(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def cutting_plane_cells(dobj, gobj):
-    cdef np.ndarray[np.int32_t, ndim=3] mask 
+    cdef np.ndarray[np.uint8_t, ndim=3] mask 
     cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
     cdef int i, j, k
@@ -191,7 +191,7 @@ def cutting_plane_cells(dobj, gobj):
     cdef np.float64_t norm_vec[3]
     cdef np.float64_t d = dobj._d
 
-    mask = np.zeros(gobj.ActiveDimensions, dtype='int32')
+    mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
     for i in range(3): norm_vec[i] = dobj._norm_vec[i]
     dist = 0.5*(dds[0]*dds[0] + dds[1]*dds[1] + dds[2]*dds[2])**0.5
     x = left_edge[0] + dds[0] * 0.5

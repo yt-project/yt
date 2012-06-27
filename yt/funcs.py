@@ -26,6 +26,7 @@ License:
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
+from distutils import version
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
@@ -231,10 +232,10 @@ def insert_ipython(num_up=1):
     """
 
     import IPython
-    if IPython.__version__.startswith("0.10"):
-       api_version = '0.10'
-    elif IPython.__version__.startswith("0.11"):
-       api_version = '0.11'
+    if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
+        api_version = '0.10'
+    else:
+        api_version = '0.11'
 
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
@@ -309,19 +310,11 @@ def get_pbar(title, maxval):
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
-    elif "SAGE_ROOT" in os.environ:
-        try:
-            from sage.server.support import EMBEDDED_MODE
-            if EMBEDDED_MODE: return DummyProgressBar()
-        except:
-            pass
-    elif "CODENODE" in os.environ:
-        return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar
         return ExtProgressBar(title, maxval)
+    elif ytcfg.getboolean("yt", "__parallel"):
+        return ParallelProgressBar(title, maxval)
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),

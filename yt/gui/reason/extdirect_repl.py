@@ -40,17 +40,21 @@ import tempfile
 import base64
 import imp
 import threading
+import Pyro4
 import Queue
+import zipfile
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
 from yt.utilities.definitions import inv_axis_names
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.api import Streamlines
+from .widget_store import WidgetStore
 
 from .bottle_mods import preroute, BottleDirectRouter, notify_route, \
-                         PayloadHandler
-from yt.utilities.bottle import response, request, route
+                         PayloadHandler, lockit
+from yt.utilities.bottle import response, request, route, static_file
+from .utils import get_list_of_datasets
 from .basic_repl import ProgrammaticREPL
 
 try:
@@ -72,38 +76,16 @@ except ImportError:
 
 local_dir = os.path.dirname(__file__)
 
-class MethodLock(object):
-    _shared_state = {}
-    locks = None
-
-    def __new__(cls, *p, **k):
-        self = object.__new__(cls, *p, **k)
-        self.__dict__ = cls._shared_state
-        return self
-
-    def __init__(self):
-        if self.locks is None: self.locks = {}
-
-    def __call__(self, func):
-        if str(func) not in self.locks:
-            self.locks[str(func)] = threading.Lock()
-        @wraps(func)
-        def locker(*args, **kwargs):
-            print "Acquiring lock on %s" % (str(func))
-            with self.locks[str(func)]:
-                rv = func(*args, **kwargs)
-            print "Regained lock on %s" % (str(func))
-            return rv
-        return locker
-
-lockit = MethodLock()
-
 class ExecutionThread(threading.Thread):
     def __init__(self, repl):
         self.repl = repl
+        self.payload_handler = PayloadHandler()
         self.queue = Queue.Queue()
         threading.Thread.__init__(self)
         self.daemon = True
+
+    def heartbeat(self):
+        return
 
     def run(self):
         while 1:
@@ -113,7 +95,7 @@ class ExecutionThread(threading.Thread):
             except Queue.Empty:
                 if self.repl.stopped: return
                 continue
-            #print "Received the task", task
+            print "Received the task", task
             if task['type'] == 'code':
                 self.execute_one(task['code'], task['hide'])
                 self.queue.task_done()
@@ -139,29 +121,48 @@ class ExecutionThread(threading.Thread):
             print result
             print "========================================================"
         if not hide:
+            self.payload_handler.add_payload(
+                {'type': 'cell',
+                 'output': result,
+                 'input': highlighter(code),
+                 'image_data': '',
+                 'raw_input': code},
+                )
+        objs = get_list_of_datasets()
+        self.payload_handler.add_payload(
+            {'type': 'dataobjects',
+             'objs': objs})
+
+class PyroExecutionThread(ExecutionThread):
+    def __init__(self, repl):
+        ExecutionThread.__init__(self, repl)
+        hmac_key = raw_input("HMAC_KEY? ").strip()
+        uri = raw_input("URI? ").strip()
+        Pyro4.config.HMAC_KEY = hmac_key
+        self.executor = Pyro4.Proxy(uri)
+
+    def execute_one(self, code, hide):
+        self.repl.executed_cell_texts.append(code)
+        print code
+        result = self.executor.execute(code)
+        if not hide:
             self.repl.payload_handler.add_payload(
-                {'type': 'cell_results',
+                {'type': 'cell',
                  'output': result,
                  'input': highlighter(code),
                  'raw_input': code},
                 )
+        ph = self.executor.deliver()
+        for p in ph:
+            self.repl.payload_handler.add_payload(p)
 
-def deliver_image(im):
-    if hasattr(im, 'read'):
-        img_data = base64.b64encode(im.read())
-    elif isinstance(im, types.StringTypes) and \
-         im.endswith(".png"):
-        img_data = base64.b64encode(open(im).read())
-    elif isinstance(im, types.StringTypes):
-        img_data = im
-    else:
-        raise RuntimeError
-    ph = PayloadHandler()
-    payload = {'type':'png_string',
-               'image_data':img_data}
-    ph.add_payload(payload)
+    def heartbeat(self):
+        ph = self.executor.deliver()
+        for p in ph:
+            self.repl.payload_handler.add_payload(p)
 
 def reason_pylab():
+    from .utils import deliver_image
     def _canvas_deliver(canvas):
         tf = tempfile.TemporaryFile()
         canvas.print_png(tf)
@@ -194,20 +195,29 @@ def reason_pylab():
     matplotlib.rcParams["backend"] = "module://reason_agg"
     pylab.switch_backend("module://reason_agg")
 
+_startup_template = r"""\
+import pylab
+from yt.mods import *
+from yt.gui.reason.utils import load_script, deliver_image
+from yt.gui.reason.widget_store import WidgetStore
+from yt.data_objects.static_output import _cached_pfs
+
+pylab.ion()
+data_objects = []
+widget_store = WidgetStore()
+"""
+
 class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     _skip_expose = ('index')
     my_name = "ExtDirectREPL"
     timeout = 660 # a minute longer than the rocket server timeout
     server = None
-    stopped = False
-    debug = False
     _heartbeat_timer = None
 
-    def __init__(self, base_extjs_path, locals=None):
+    def __init__(self, reasonjs_path, locals=None,
+                 use_pyro=False):
         # First we do the standard initialization
-        self.extjs_path = os.path.join(base_extjs_path, "ext-resources")
-        self.extjs_theme_path = os.path.join(base_extjs_path, "ext-theme")
-        self.philogl_path = os.path.join(base_extjs_path, "PhiloGL")
+        self.reasonjs_file = zipfile.ZipFile(reasonjs_path, 'r')
         ProgrammaticREPL.__init__(self, locals)
         # Now, since we want to only preroute functions we know about, and
         # since they have different arguments, and most of all because we only
@@ -216,43 +226,40 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         # than through metaclasses or other fancy decorating.
         preroute_table = dict(index = ("/", "GET"),
                               _help_html = ("/help.html", "GET"),
-                              _myapi = ("/resources/ext-repl-api.js", "GET"),
-                              _resources = ("/resources/:path#.+#", "GET"),
-                              _philogl = ("/philogl/:path#.+#", "GET"),
-                              _js = ("/js/:path#.+#", "GET"),
-                              _leaflet = ("/leaflet/:path#.+#", "GET"),
-                              _images = ("/images/:path#.+#", "GET"),
-                              _theme = ("/theme/:path#.+#", "GET"),
+                              _myapi = ("/ext-repl-api.js", "GET"),
                               _session_py = ("/session.py", "GET"),
                               _highlighter_css = ("/highlighter.css", "GET"),
+                              _reasonjs = ("/reason-js/:path#.+#", "GET"),
+                              _app = ("/reason/:path#.+#", "GET"),
                               )
         for v, args in preroute_table.items():
             preroute(args[0], method=args[1])(getattr(self, v))
         # This has to be routed to the root directory
         self.api_url = "repl"
         BottleDirectRouter.__init__(self)
-        self.pflist = ExtDirectParameterFileList()
-        self.executed_cell_texts = []
         self.payload_handler = PayloadHandler()
-        self.execution_thread = ExecutionThread(self)
+        if use_pyro:
+            self.execution_thread = PyroExecutionThread(self)
+        else:
+            self.execution_thread = ExecutionThread(self)
+        # We pass in a reference to ourself
+        self.execute(_startup_template)
+        self.widget_store = WidgetStore(self)
         # Now we load up all the yt.mods stuff, but only after we've finished
         # setting up.
         reason_pylab()
-        self.execute("from yt.mods import *\nimport pylab\npylab.ion()")
-        self.execute("from yt.data_objects.static_output import _cached_pfs", hide = True)
-        self.execute("data_objects = []", hide = True)
-        self.locals['load_script'] = ext_load_script
-        self.locals['deliver_image'] = deliver_image
 
     def activate(self):
+        self.payload_handler._prefix = self._global_token
         self._setup_logging_handlers()
         # Setup our heartbeat
         self.last_heartbeat = time.time()
         self._check_heartbeat()
+        self.execute("widget_store._global_token = '%s'" % self._global_token)
         self.execution_thread.start()
 
     def exception_handler(self, exc):
-        result = {'type': 'cell_results',
+        result = {'type': 'cell',
                   'input': 'ERROR HANDLING IN REASON',
                   'output': traceback.format_exc()}
         return result
@@ -263,22 +270,23 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         handler.setFormatter(formatter)
         ytLogger.addHandler(handler)
 
-
     def index(self):
-        """Return an HTTP-based Read-Eval-Print-Loop terminal."""
-        # For now this doesn't work!  We will need to move to a better method
-        # for this.  It should use the package data command.
-        vals = open(os.path.join(local_dir, "html/index.html")).read()
-        return vals
+        root = os.path.join(local_dir, "html")
+        return static_file("index.html", root)
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
         if self.debug: print "### Heartbeat ... started: %s" % (time.ctime())
         for i in range(30):
             # Check for stop
+            if self.debug: print "    ###"
             if self.stopped: return {'type':'shutdown'} # No race condition
-            if self.payload_handler.event.wait(0.01): # One second timeout
-                return self.payload_handler.deliver_payloads()
+            if self.payload_handler.event.wait(1): # One second timeout
+                if self.debug: print "    ### Delivering payloads"
+                rv = self.payload_handler.deliver_payloads()
+                if self.debug: print "    ### Got back, returning"
+                return rv
+            self.execution_thread.heartbeat()
         if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
         return []
 
@@ -310,59 +318,38 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             print "Found a living thread:", t
 
     def _help_html(self):
-        vals = open(os.path.join(local_dir, "html/help.html")).read()
-        return vals
+        root = os.path.join(local_dir, "html")
+        return static_file("help.html", root)
 
-    def _resources(self, path):
-        pp = os.path.join(self.extjs_path, path)
-        if not os.path.exists(pp):
+    def _reasonjs(self, path):
+        pp = os.path.join("reason-js", path)
+        try:
+            f = self.reasonjs_file.open(pp)
+        except KeyError:
             response.status = 404
             return
-        return open(pp).read()
+        if path[-4:].lower() in (".png", ".gif", ".jpg"):
+            response.headers['Content-Type'] = "image/%s" % (path[-3:].lower())
+        elif path[-4:].lower() == ".css":
+            response.headers['Content-Type'] = "text/css"
+        elif path[-3:].lower() == ".js":
+            response.headers['Content-Type'] = "text/javascript"
+        return f.read()
 
-    def _philogl(self, path):
-        pp = os.path.join(self.philogl_path, path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _theme(self, path):
-        pp = os.path.join(self.extjs_theme_path, path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _js(self, path):
-        pp = os.path.join(local_dir, "html", "js", path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _leaflet(self, path):
-        pp = os.path.join(local_dir, "html", "leaflet", path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
-
-    def _images(self, path):
-        pp = os.path.join(local_dir, "html", "images", path)
-        if not os.path.exists(pp):
-            response.status = 404
-            return
-        return open(pp).read()
+    def _app(self, path):
+        root = os.path.join(local_dir, "html")
+        return static_file(path, root)
 
     def _highlighter_css(self):
+        response.headers['Content-Type'] = "text/css"
         return highlighter_css
 
     def execute(self, code, hide = False):
-            task = {'type': 'code',
-                    'code': code,
-                    'hide': hide}
-            self.execution_thread.queue.put(task)
+        task = {'type': 'code',
+                'code': code,
+                'hide': hide}
+        self.execution_thread.queue.put(task)
+        return dict(status = True)
 
     def get_history(self):
         return self.executed_cell_texts[:]
@@ -438,27 +425,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers["content-disposition"] = "attachment;"
         return cs
 
-    def _add_widget(self, widget_name, widget_data_name = None):
-        # We need to make sure that we aren't running in advance of a new
-        # object being added.
-        self.execution_thread.queue.join()
-        widget = self.locals[widget_name]
-        uu = str(uuid.uuid1()).replace("-","_")
-        varname = "%s_%s" % (widget._widget_name, uu)
-        widget._ext_widget_id = varname
-        # THIS BREAKS THE SCRIPT DOWNLOAD!
-        # We need to make the variable be bound via an execution mechanism
-        command = "%s = %s\n" % (varname, widget_name)
-        payload = {'type': 'widget',
-                   'widget_type': widget._widget_name,
-                   'varname': varname,
-                   'data': None}
-        widget._ext_widget_id = varname
-        if widget_data_name is not None:
-            payload['data'] = self.locals[widget_data_name]
-        self.payload_handler.add_payload(payload)
-        return command
-
     @lockit
     def load(self, base_dir, filename):
         pp = os.path.join(base_dir, filename)
@@ -489,333 +455,6 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             results.append((os.path.basename(fn), size, t))
         return dict(objs = results, cur_dir=cur_dir)
 
-    @lockit
-    def create_phase(self, objname, field_x, field_y, field_z, weight):
-        if weight == "None": weight = None
-        else: weight = "'%s'" % (weight)
-        funccall = """
-        _tfield_x = "%(field_x)s"
-        _tfield_y = "%(field_y)s"
-        _tfield_z = "%(field_z)s"
-        _tweight = %(weight)s
-        _tobj = %(objname)s
-        _tpf = _tobj.pf
-        from yt.visualization.profile_plotter import PhasePlotterExtWidget
-        _tpp = PhasePlotterExtWidget(_tobj, _tfield_x, _tfield_y, _tfield_z, _tweight)
-        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
-        _tfield_list.sort()
-        _twidget_data = {'title': "%%s Phase Plot" %% (_tobj)}
-        """ % dict(objname = objname, field_x = field_x, field_y = field_y,
-                   field_z = field_z, weight = weight)
-        funccall = "\n".join(line.strip() for line in funccall.splitlines())
-        self.execute(funccall, hide=True)
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpp',
-                                         'widget_data_name': '_twidget_data'})
-
-    @lockit
-    def create_proj(self, pfname, axis, field, weight, onmax):
-        if weight == "None": weight = None
-        else: weight = "'%s'" % (weight)
-        if not onmax:
-            center_string = None
-        else:
-            center_string = "_tpf.h.find_max('Density')[1]"
-        funccall = """
-        _tpf = %(pfname)s
-        _taxis = %(axis)s
-        _tfield = "%(field)s"
-        _tweight = %(weight)s
-        _tcen = %(center_string)s
-        _tsl = _tpf.h.proj(_taxis,_tfield, weight_field=_tweight, periodic = True, center=_tcen)
-        _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
-        DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
-        from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw.set_current_field("%(field)s")
-        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
-        _tfield_list.sort()
-        _tcb = _tpw._get_cbar_image()
-        _twidget_data = {'fields': _tfield_list,
-                         'initial_field': _tfield,
-                         'title': "%%s Projection" %% (_tpf),
-                         'colorbar': _tcb}
-        """ % dict(pfname = pfname,
-                   axis = inv_axis_names[axis],
-                   weight = weight,
-                   center_string = center_string,
-                   field=field)
-        # There is a call to do this, but I have forgotten it ...
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpw',
-                                         'widget_data_name': '_twidget_data'})
-
-    @lockit
-    def create_mapview(self, widget_name):
-        # We want multiple maps simultaneously
-        uu = "/%s/%s" % (getattr(self, "_global_token", ""),
-                        str(uuid.uuid1()).replace("-","_"))
-        from .pannable_map import PannableMapServer
-        data = self.locals[widget_name].data_source
-        field_name = self.locals[widget_name]._current_field
-        pm = PannableMapServer(data, field_name, route_prefix = uu)
-        self.locals['_tpm'] = pm
-        self.locals['_twidget_data'] = {'prefix': uu, 'field':field_name}
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpm',
-                                         'widget_data_name': '_twidget_data'})
-
-    @lockit
-    def create_slice(self, pfname, center, axis, field, onmax):
-        if not onmax: 
-            center_string = \
-              "na.array([%(c1)0.20f,%(c2)0.20f, %(c3)0.20f],dtype='float64')" \
-                % dict(c1 = float(center[0]),
-                       c2 = float(center[1]),
-                       c3 = float(center[2]))
-        else:
-            center_string = "_tpf.h.find_max('Density')[1]"
-        funccall = """
-        _tpf = %(pfname)s
-        _taxis = %(axis)s
-        _tfield = "%(field)s"
-        _tcenter = %(center_string)s
-        _tcoord = _tcenter[_taxis]
-        _tsl = _tpf.h.slice(_taxis, _tcoord, center = _tcenter, periodic = True)
-        _txax, _tyax = x_dict[_taxis], y_dict[_taxis]
-        DLE, DRE = _tpf.domain_left_edge, _tpf.domain_right_edge
-        from yt.visualization.plot_window import PWViewerExtJS
-        _tpw = PWViewerExtJS(_tsl, (DLE[_txax], DRE[_txax], DLE[_tyax], DRE[_tyax]), setup = False)
-        _tpw.set_current_field("%(field)s")
-        _tfield_list = list(set(_tpf.h.field_list + _tpf.h.derived_field_list))
-        _tfield_list.sort()
-        _tcb = _tpw._get_cbar_image()
-        _ttrans = _tpw._field_transform[_tpw._current_field].name
-        _twidget_data = {'fields': _tfield_list,
-                         'initial_field': _tfield,
-                         'title': "%%s Slice" %% (_tpf),
-                         'colorbar': _tcb,
-                         'initial_transform' : _ttrans}
-        """ % dict(pfname = pfname,
-                   center_string = center_string,
-                   axis = inv_axis_names[axis],
-                   field=field)
-        # There is a call to do this, but I have forgotten it ...
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name': '_tpw',
-                                         'widget_data_name': '_twidget_data'})
-
-    @lockit
-    def create_isocontours(self, pfname, field, value, sampling_field):
-        funccall = """
-        _tpf = %(pfname)s
-        _tfield = "%(field)s"
-        _tvalue = %(value)s
-        _tsample_values = "%(sampling_field)s"
-        _tdd = _tpf.h.all_data()
-        _tiso = _tdd.extract_isocontours(_tfield, _tvalue, rescale = True,
-                                         sample_values = _tsample_values)
-        from yt.funcs import YTEmptyClass
-        _tpw = YTEmptyClass()
-        print "GOT TPW"
-        _tpw._widget_name = 'isocontour_viewer'
-        _tpw._ext_widget_id = None
-        _tverts = _tiso[0].ravel().tolist()
-        _tc = (apply_colormap(na.log10(_tiso[1]))).squeeze()
-        _tcolors = na.empty((_tc.shape[0] * 3, 4), dtype='float32')
-        _tcolors[0::3,:] = _tc
-        _tcolors[1::3,:] = _tc
-        _tcolors[2::3,:] = _tc
-        _tcolors = (_tcolors.ravel()/255.0).tolist()
-        _twidget_data = {'vertex_positions': _tverts, 'vertex_colors': _tcolors}
-        """ % dict(pfname=pfname, value=value, sampling_field=sampling_field, field=field)
-        # There is a call to do this, but I have forgotten it ...
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.put({'type': 'add_widget',
-                                         'name' : '_tpw',
-                                         'widget_data_name': '_twidget_data'})
-
-
-    @lockit
-    def create_grid_dataview(self, pfname):
-        funccall = """
-        _tpf = %(pfname)s
-        """ % dict(pfname = pfname)
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.join()
-        pf = self.locals['_tpf']
-        levels = pf.h.grid_levels
-        left_edge = pf.h.grid_left_edge
-        right_edge = pf.h.grid_right_edge
-        dimensions = pf.h.grid_dimensions
-        cell_counts = pf.h.grid_dimensions.prod(axis=1)
-        # This is annoying, and not ... that happy for memory.
-        i = pf.h.grids[0]._id_offset
-        vals = []
-        for i, (L, LE, RE, dim, cell) in enumerate(zip(
-            levels, left_edge, right_edge, dimensions, cell_counts)):
-            vals.append([ int(i), int(L[0]),
-                          float(LE[0]), float(LE[1]), float(LE[2]),
-                          float(RE[0]), float(RE[1]), float(RE[2]),
-                          int(dim[0]), int(dim[1]), int(dim[2]),
-                          int(cell)] )
-        uu = str(uuid.uuid1()).replace("-","_")
-        varname = "gg_%s" % (uu)
-        payload = {'type': 'widget',
-                   'widget_type': 'grid_data',
-                   'varname': varname, # Is just "None"
-                   'data': dict(gridvals = vals),
-                   }
-        self.execute("%s = None\n" % (varname), hide=True)
-        self.payload_handler.add_payload(payload)
-
-    @lockit
-    def create_grid_viewer(self, pfname):
-        funccall = """
-        _tpf = %(pfname)s
-        """ % dict(pfname = pfname)
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        self.execution_thread.queue.join()
-        pf = self.locals['_tpf']
-        corners = pf.h.grid_corners
-        levels = pf.h.grid_levels
-        colors = apply_colormap(levels*1.0,
-                                color_bounds=[0,pf.h.max_level],
-                                cmap_name="algae").repeat(24,axis=0)[:,0,:]*1.0/255.
-        colors[:,3]=0.7
-        colors = colors.ravel().tolist()
-        
-        vertices = []
-        
-        trans  = [0, 1, 2, 7, 5, 6, 3, 4]
-        order  = [0, 1, 1, 2, 2, 3, 3, 0]
-        order += [4, 5, 5, 6, 6, 7, 7, 4]
-        order += [0, 4, 1, 5, 2, 6, 3, 7]
-
-        for g in xrange(corners.shape[2]):
-            for c in order:
-                ci = trans[c]
-                vertices.append(corners[ci,:,g])
-        vertices = na.concatenate(vertices).tolist()
-        uu = str(uuid.uuid1()).replace("-","_")
-        varname = "gv_%s" % (uu)
-        payload = {'type': 'widget',
-                   'widget_type': 'grid_viewer',
-                   'varname': varname, # Is just "None"
-                   'data': dict(n_vertices = len(vertices)/3,
-                                vertex_positions = vertices,
-                                vertex_colors = colors)
-                   }
-        self.execute("%s = None\n" % (varname), hide=True)
-        self.payload_handler.add_payload(payload)
-
-    @lockit
-    def create_streamline_viewer(self, pfname):
-        funccall = """
-        _tpf = %(pfname)s
-        """ % dict(pfname = pfname)
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = True)
-        pf = self.locals['_tpf']
-
-        c = na.array([0.5]*3)
-        N = 100
-        scale = 1.0
-        pos_dx = na.random.random((N,3))*scale-scale/2.
-        pos = c+pos_dx
-        
-        SL = Streamlines(pf,pos,'x-velocity', 'y-velocity', 'z-velocity', length=1.0, get_magnitude=True)
-        SL.integrate_through_volume()
-        streamlist=[]
-        stream_lengths = []
-        for i,stream in enumerate(SL.streamlines):
-            stream_lengths.append( stream[na.all(stream != 0.0, axis=1)].shape[0])
-        streamlist = SL.streamlines.flatten()
-        streamlist = streamlist[streamlist!=0.0].tolist()
-
-        stream_colors = SL.magnitudes.flatten()
-        stream_colors = na.log10(stream_colors[stream_colors > 0.0])
-        stream_colors = apply_colormap(stream_colors, cmap_name='algae')
-        stream_colors = stream_colors*1./255.
-        stream_colors[:,:,3] = 0.8
-        stream_colors = stream_colors.flatten().tolist()
-
-        uu = str(uuid.uuid1()).replace("-","_")
-        varname = "sl_%s" % (uu)
-        payload = {'type': 'widget',
-                   'widget_type': 'streamline_viewer',
-                   'varname': varname, # Is just "None"
-                   'data': dict(n_streamlines = SL.streamlines.shape[0],
-                                stream_positions = streamlist,
-                                stream_colors = stream_colors,
-                                stream_lengths = stream_lengths)
-                   }
-        self.execute("%s = None\n" % (varname), hide=True)
-        self.payload_handler.add_payload(payload)
-
-    @lockit
-    def object_creator(self, pfname, objtype, objargs):
-        funccall = "_tobjargs = {}\n"
-        for argname, argval in objargs.items():
-            # These arguments may need further sanitization
-            if isinstance(argval, types.StringTypes):
-                argval = "'%s'" % argval
-            funccall += "_tobjargs['%(argname)s'] = %(argval)s\n" % dict(
-                    argname = argname, argval = argval)
-        funccall += """
-        _tpf = %(pfname)s
-        _tobjclass = getattr(_tpf.h, '%(objtype)s')
-        data_objects.append(_tobjclass(**_tobjargs))
-        """ % dict(pfname = pfname, objtype = objtype)
-        funccall = "\n".join((line.strip() for line in funccall.splitlines()))
-        self.execute(funccall, hide = False)
-        pf = self.locals['_tpf']
-
-class ExtDirectParameterFileList(BottleDirectRouter):
-    my_name = "ExtDirectParameterFileList"
-    api_url = "pflist"
-
-    def get_list_of_pfs(self):
-        # Note that this instantiates the hierarchy.  This can be a costly
-        # event.  However, we're going to assume that it's okay, if you have
-        # decided to load up the parameter file.
-        from yt.data_objects.static_output import _cached_pfs
-        rv = []
-        for fn, pf in sorted(_cached_pfs.items()):
-            objs = []
-            pf_varname = "_cached_pfs['%s']" % (fn)
-            fields = []
-            if pf._instantiated_hierarchy is not None: 
-                fields = set(pf.h.field_list + pf.h.derived_field_list)
-                fields = list(fields)
-                fields.sort()
-                for i,obj in enumerate(pf.h.objects):
-                    try:
-                        name = str(obj)
-                    except ReferenceError:
-                        continue
-                    objs.append(dict(name=name, type=obj._type_name,
-                                     varname = "%s.h.objects[%s]" % (pf_varname, i)))
-            rv.append( dict(name = str(pf), objects = objs, filename=fn,
-                            varname = pf_varname, field_list = fields) )
-        return rv
-
-def ext_load_script(filename):
-    contents = open(filename).read()
-    payload_handler = PayloadHandler()
-    payload_handler.add_payload(
-        {'type': 'cell_contents',
-         'value': contents}
-    )
-    return
-
 class PayloadLoggingHandler(logging.StreamHandler):
     def __init__(self, *args, **kwargs):
         logging.StreamHandler.__init__(self, *args, **kwargs)
@@ -824,17 +463,17 @@ class PayloadLoggingHandler(logging.StreamHandler):
     def emit(self, record):
         msg = self.format(record)
         self.payload_handler.add_payload(
-            {'type':'log_entry',
+            {'type':'logentry',
              'log_entry':msg})
 
 if os.path.exists(os.path.expanduser("~/.yt/favicon.ico")):
-    ico = os.path.expanduser("~/.yt/favicon.ico")
+    ico = os.path.expanduser("~/.yt/")
 else:
-    ico = os.path.join(local_dir, "html", "images", "favicon.ico")
+    ico = os.path.join(local_dir, "html", "resources", "images")
 @route("/favicon.ico", method="GET")
 def _favicon_ico():
-    response.headers['Content-Type'] = "image/x-icon"
-    return open(ico).read()
+    print ico
+    return static_file("favicon.ico", ico)
 
 class ExtProgressBar(object):
     def __init__(self, title, maxval):
@@ -846,14 +485,14 @@ class ExtProgressBar(object):
         self.payload_handler.add_payload(
             {'type': 'widget',
              'widget_type': 'progressbar',
-             'varname': None,
+             'varname': 'pbar_top',
              'data': {'title':title}
             })
 
     def update(self, val):
         # An update is only meaningful if it's on the order of 1/100 or greater
-        if ceil(100*self.last / self.maxval) + 1 == \
-           floor(100*val / self.maxval) or val == self.maxval:
+
+        if (val - self.last) > (self.maxval / 100.0):
             self.last = val
             self.payload_handler.add_payload(
                 {'type': 'widget_payload',
