@@ -41,7 +41,10 @@ class Tree(object):
     trunk = None
     pf = None
     _id_offset = None
-    def __init__(self, pf, left=None, right=None):
+    min_level = None
+    max_level = None
+    def __init__(self, pf, left=None, right=None, 
+            min_level=None, max_level=None):
 
         self.pf = pf
         self._id_offset = self.pf.h.grids[0]._id_offset
@@ -49,11 +52,17 @@ class Tree(object):
             left = na.array([-na.inf]*3)
         if right is None:
             right = na.array([na.inf]*3)
+
+        if min_level is None: min_level = 0
+        if max_level is None: max_level = pf.h.max_level
+        self.min_level = min_level
+        self.max_level = max_level
         self.trunk = Node(None, None, None,
                 left, right, None)
         self.build()
 
     def build(self, grids = None):
+        lvl_range = range(self.min_level, self.max_level)
         if grids is None:
             level_iter = self.pf.hierarchy.get_levels()
             while True:
@@ -61,6 +70,7 @@ class Tree(object):
                     grids = level_iter.next()
                 except:
                     break
+                if grids[0].Level not in lvl_range: continue
                 gles = na.array([g.LeftEdge for g in grids])
                 gres = na.array([g.RightEdge for g in grids])
                 gids = na.array([g.id for g in grids])
@@ -96,7 +106,7 @@ class AMRKDTree(HomogenizedVolume):
     brick_dimensions = [] 
     _initialized = False
     def __init__(self, pf,  l_max=None, le=None, re=None,
-                 fields=None, no_ghost=False,
+                 fields=None, no_ghost=False, min_level=None, max_level=None,
                  tree_type='domain',log_fields=None, merge_trees=False):
 
         ParallelAnalysisInterface.__init__(self)
@@ -126,7 +136,7 @@ class AMRKDTree(HomogenizedVolume):
             self.re = na.array(re)
 
         print 'Building tree with le,re ', self.le, self.re
-        self.tree = Tree(pf, self.le, self.re)
+        self.tree = Tree(pf, self.le, self.re, min_level=min_level, max_level=max_level)
 
     def initialize_source(self):
         if self._initialized : return
@@ -140,11 +150,11 @@ class AMRKDTree(HomogenizedVolume):
     def traverse(self, viewpoint=None):
         if viewpoint is None:
             for node in depth_traverse(self.tree):
-                if kd_is_leaf(node):
+                if kd_is_leaf(node) and node.grid is not None:
                     yield self.get_brick_data(node)
         else:
             for node in viewpoint_traverse(self.tree, viewpoint):
-                if kd_is_leaf(node):
+                if kd_is_leaf(node) and node.grid is not None:
                     yield self.get_brick_data(node)
 
     def get_brick_data(self, node):

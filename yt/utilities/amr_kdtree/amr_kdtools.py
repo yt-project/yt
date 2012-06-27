@@ -33,7 +33,7 @@ class Node(object):
     data = None
     split = None
     data = None
-    def __init__(self, parent, left, right, 
+    def __init__(self, parent, left, right,
             left_edge, right_edge, grid_id):
         self.left = left
         self.right = right
@@ -63,9 +63,9 @@ def add_grids(node, gles, gres, gids):
             add_grids(node.right, gles[greater_ids], gres[greater_ids], gids[greater_ids])
 
 def insert_grids(node, gles, gres, grid_ids):
-    if len(grid_ids) < 1:
+    if len(grid_ids) == 0:
         #node.grid = node.parent.grid
-        assert(node.grid is not None)
+        #assert(node.grid is not None)
         return
 
     if len(grid_ids) == 1:
