@@ -135,7 +135,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
             "data:image/png;base64," + payload['image_data'];
         this.getZoomSlider().setValue(0, payload['zoom'], true);
         this.getMetadataString().update(payload['metadata_string']);
-        this.getMetaDataString().mds = payload['metadata_string'];
+        this.getMetadataString().mds = payload['metadata_string'];
         var ticks = this.getTicks();
         ticks.removeAll();
         Ext.each(payload['ticks'], function(tick, index) {
