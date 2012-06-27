@@ -277,7 +277,6 @@ Ext.define("Reason.controller.widgets.Scene", {
 
     updateCameraPosition: function(b, e) {
         v = this.getCameraPathSlider().getValue();
-        console.log(v);
         rec = this.pathElements.data.items[v].data;
         this.renderer.camera.position = rec.position;
         this.renderer.camera.focus = rec.focus;
