@@ -25,9 +25,8 @@ License:
 """
 from yt.funcs import *
 import numpy as na
-from yt.utilities.lib import kdtree_get_choices
-from amr_kdtools import kd_is_leaf, kd_sum_volume, kd_node_check, \
-        depth_traverse, viewpoint_traverse
+from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
+        depth_traverse, viewpoint_traverse, add_grids
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
@@ -38,34 +37,12 @@ def my_break():
     my_debug = False 
     if my_debug: pdb.set_trace()
 
-class Split(object):
-    dim = None
-    pos = None
-    def __init__(self, dim, pos):
-        self.dim = dim
-        self.pos = pos
-
-class Node(object):
-    left = None
-    right = None
-    parent = None
-    data = None
-    split = None
-    data = None
-    def __init__(self, parent, left, right, 
-            left_edge, right_edge, grid_id):
-        self.left = left
-        self.right = right
-        self.left_edge = left_edge
-        self.right_edge = right_edge
-        self.grid = grid_id
-        self.parent = parent
-
 class Tree(object):
     trunk = None
     pf = None
     _id_offset = None
     def __init__(self, pf, left=None, right=None):
+
         self.pf = pf
         self._id_offset = self.pf.h.grids[0]._id_offset
         if left is None:
@@ -105,54 +82,6 @@ class Tree(object):
             assert(na.all(grid.LeftEdge <= node.left_edge))
             assert(na.all(grid.RightEdge >= node.right_edge))
             print grid, dims, li, ri
-
-def add_grids(node, gles, gres, gids):
-    if kd_is_leaf(node):
-        insert_grids(node, gles, gres, gids)
-    else:
-        less_ids = gles[:,node.split.dim] < node.split.pos
-        if len(less_ids) > 0:
-            add_grids(node.left, gles[less_ids], gres[less_ids], gids[less_ids])
-
-        greater_ids = gres[:,node.split.dim] > node.split.pos
-        if len(greater_ids) > 0:
-            add_grids(node.right, gles[greater_ids], gres[greater_ids], gids[greater_ids])
-
-def insert_grids(node, gles, gres, grid_ids):
-    if len(grid_ids) < 1:
-        #node.grid = node.parent.grid
-        assert(node.grid is not None)
-        return
-
-    if len(grid_ids) == 1:
-        if na.all(gles[0] <= node.left_edge) and \
-                na.all(gres[0] >= node.right_edge):
-            node.grid = grid_ids[0]
-            #print 'Created a node using grid %i with le, re' % node.grid, node.left_edge, node.right_edge
-            assert(node.grid is not None)
-            return
-
-    # Find a Split
-    data = na.array([(gles[i,:], gres[i,:]) for i in xrange(grid_ids.shape[0])], copy=False)
-    best_dim, split_pos, less_ids, greater_ids = \
-        kdtree_get_choices(data, node.left_edge, node.right_edge)
-    split = Split(best_dim, split_pos)
-
-    del data, best_dim, split_pos
-
-    # Create a Split
-    divide(node, split)
-
-    # Populate Left Node
-    #print 'Inserting left node', node.left_edge, node.right_edge
-    insert_grids(node.left, gles[less_ids], gres[less_ids], grid_ids[less_ids])
-
-    # Populate Right Node
-    #print 'Inserting right node', node.left_edge, node.right_edge
-    insert_grids(node.right, gles[greater_ids], gres[greater_ids], grid_ids[greater_ids])
-
-    del less_ids, greater_ids
-    return
 
 class AMRKDTree(HomogenizedVolume):
     current_vcds = []
@@ -252,28 +181,6 @@ class AMRKDTree(HomogenizedVolume):
         node.data = brick
         if not self._initialized: self.brick_dimensions.append(dims)
         return brick
-
-def new_right(Node, split):
-    new_right = na.empty(3, dtype='float64')
-    new_right[:] = Node.right_edge[:]
-    new_right[split.dim] = split.pos
-    return new_right
-
-def new_left(Node, split):
-    new_left = na.empty(3, dtype='float64')
-    new_left[:] = Node.left_edge[:]
-    new_left[split.dim] = split.pos
-    return new_left
-
-def divide(node, split):
-    # Create a Split
-    node.split = split
-    node.left = Node(node, None, None,
-            node.left_edge, new_right(node, split), node.grid)
-    node.right = Node(node, None, None,
-            new_left(node, split), node.right_edge, node.grid)
-    return
-
 
 if __name__ == "__main__":
     from yt.mods import *

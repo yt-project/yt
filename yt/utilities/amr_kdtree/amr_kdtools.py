@@ -24,6 +24,103 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as na
+from yt.utilities.lib import kdtree_get_choices
+
+class Node(object):
+    left = None
+    right = None
+    parent = None
+    data = None
+    split = None
+    data = None
+    def __init__(self, parent, left, right, 
+            left_edge, right_edge, grid_id):
+        self.left = left
+        self.right = right
+        self.left_edge = left_edge
+        self.right_edge = right_edge
+        self.grid = grid_id
+        self.parent = parent
+
+
+class Split(object):
+    dim = None
+    pos = None
+    def __init__(self, dim, pos):
+        self.dim = dim
+        self.pos = pos
+
+def add_grids(node, gles, gres, gids):
+    if kd_is_leaf(node):
+        insert_grids(node, gles, gres, gids)
+    else:
+        less_ids = gles[:,node.split.dim] < node.split.pos
+        if len(less_ids) > 0:
+            add_grids(node.left, gles[less_ids], gres[less_ids], gids[less_ids])
+
+        greater_ids = gres[:,node.split.dim] > node.split.pos
+        if len(greater_ids) > 0:
+            add_grids(node.right, gles[greater_ids], gres[greater_ids], gids[greater_ids])
+
+def insert_grids(node, gles, gres, grid_ids):
+    if len(grid_ids) < 1:
+        #node.grid = node.parent.grid
+        assert(node.grid is not None)
+        return
+
+    if len(grid_ids) == 1:
+        if na.all(gles[0] <= node.left_edge) and \
+                na.all(gres[0] >= node.right_edge):
+            node.grid = grid_ids[0]
+            #print 'Created a node using grid %i with le, re' % node.grid, node.left_edge, node.right_edge
+            assert(node.grid is not None)
+            return
+
+    # Find a Split
+    data = na.array([(gles[i,:], gres[i,:]) for i in xrange(grid_ids.shape[0])], copy=False)
+    best_dim, split_pos, less_ids, greater_ids = \
+        kdtree_get_choices(data, node.left_edge, node.right_edge)
+    split = Split(best_dim, split_pos)
+
+    del data, best_dim, split_pos
+
+    # Create a Split
+    divide(node, split)
+
+    # Populate Left Node
+    #print 'Inserting left node', node.left_edge, node.right_edge
+    insert_grids(node.left, gles[less_ids], gres[less_ids], grid_ids[less_ids])
+
+    # Populate Right Node
+    #print 'Inserting right node', node.left_edge, node.right_edge
+    insert_grids(node.right, gles[greater_ids], gres[greater_ids], grid_ids[greater_ids])
+
+    del less_ids, greater_ids
+    return
+
+def new_right(Node, split):
+    new_right = na.empty(3, dtype='float64')
+    new_right[:] = Node.right_edge[:]
+    new_right[split.dim] = split.pos
+    return new_right
+
+def new_left(Node, split):
+    new_left = na.empty(3, dtype='float64')
+    new_left[:] = Node.left_edge[:]
+    new_left[split.dim] = split.pos
+    return new_left
+
+def divide(node, split):
+    # Create a Split
+    node.split = split
+    node.left = Node(node, None, None,
+            node.left_edge, new_right(node, split), node.grid)
+    node.right = Node(node, None, None,
+            new_left(node, split), node.right_edge, node.grid)
+    return
+
+
+
 def new_right(Node, split):
     new_right = na.empty(3, dtype='float64')
     new_right[:] = Node.right_edge[:]
@@ -56,41 +153,6 @@ def add_grids(node, gles, gres, gids):
         greater_ids = gres[:,node.split.dim] > node.split.pos
         if len(greater_ids) > 0:
             add_grids(node.right, gles[greater_ids], gres[greater_ids], gids[greater_ids])
-
-def insert_grids(node, gles, gres, grid_ids):
-    if len(grid_ids) < 1:
-        node.grid = node.parent.grid
-        assert(node.grid is not None)
-        return
-
-    if len(grid_ids) == 1:
-        node.grid = grid_ids[0]
-        #print 'Created a node using grid %i with le, re' % node.grid, node.left_edge, node.right_edge
-        assert(node.grid is not None)
-        return
-
-    # Find a Split
-    data = na.array([(gles[i,:], gres[i,:]) for i in xrange(grid_ids.shape[0])], copy=False)
-    best_dim, split_pos, less_ids, greater_ids = \
-        kdtree_get_choices(data, node.left_edge, node.right_edge)
-    split = Split(best_dim, split_pos)
-
-    del data, best_dim, split_pos
-
-    # Create a Split
-    divide(node, split)
-
-    # Populate Left Node
-    #print 'Inserting left node', node.left_edge, node.right_edge
-    insert_grids(node.left, gles[less_ids], gres[less_ids], grid_ids[less_ids])
-
-    # Populate Right Node
-    #print 'Inserting right node', node.left_edge, node.right_edge
-    insert_grids(node.right, gles[greater_ids], gres[greater_ids], grid_ids[greater_ids])
-
-    del less_ids, greater_ids
-    return
-
 
 def kd_sum_volume(node):
     if (node.left is None)  and (node.right is None):
