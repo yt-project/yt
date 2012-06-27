@@ -3377,8 +3377,6 @@ class AMRCoveringGridBase(AMR3DData):
             The left edge of the region to be extracted
         dims : array_like
             Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
@@ -3537,16 +3535,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         left_edge : array_like
             The left edge of the region to be extracted
         dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        right_edge : array_like, optional
-            The right edge of the region to be extracted
+            Number of cells along each axis of resulting covering_grid.
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
         Example
         -------
         cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
         """
         self._base_dx = (
@@ -3585,10 +3580,16 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
+                mylog.debug("Updating level state to %s", last_level + 1)
                 self._update_level_state(last_level + 1)
                 self._refine(1, fields_to_get)
                 last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
+        while last_level < self.level:
+            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
+            self._update_level_state(last_level + 1)
+            self._refine(1, fields_to_get)
+            last_level += 1
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]

@@ -226,8 +226,8 @@ class Camera(ParallelAnalysisInterface):
                                      unit_vectors[1]*width[1],
                                      unit_vectors[2]*width[2]])
         self.origin = center - 0.5*na.dot(width,unit_vectors)
-        self.back_center =  center - 0.5*width[0]*unit_vectors[2]
-        self.front_center = center + 0.5*width[0]*unit_vectors[2]         
+        self.back_center =  center - 0.5*width[2]*unit_vectors[2]
+        self.front_center = center + 0.5*width[2]*unit_vectors[2]         
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.

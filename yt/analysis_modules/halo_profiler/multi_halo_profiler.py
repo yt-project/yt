@@ -42,6 +42,8 @@ from .centering_methods import \
     centering_registry
 from yt.data_objects.field_info_container import \
     add_field
+from yt.data_objects.static_output import \
+    StaticOutput
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
@@ -275,7 +277,10 @@ class HaloProfiler(ParallelAnalysisInterface):
             return None
 
         # Create dataset object.
-        self.pf = load(self.dataset)
+        if isinstance(self.dataset, StaticOutput):
+            self.pf = self.dataset
+        else:
+            self.pf = load(self.dataset)
         self.pf.h
 
         # Figure out what max radius to use for profiling.
@@ -1010,6 +1015,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         f = open(profileFile, 'r')
         lines = f.readlines()
         f.close()
+
+        if not lines:
+            return None
 
         # Get fields from header.
         header = lines.pop(0)
