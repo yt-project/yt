@@ -327,7 +327,7 @@ class Camera(ParallelAnalysisInterface):
                         raise RuntimeError
 
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
-        for brick in self.volume.traverse(view_pos, self.front_center, image):
+        for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
