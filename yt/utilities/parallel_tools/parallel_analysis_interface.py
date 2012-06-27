@@ -709,6 +709,10 @@ class Communicator(object):
 
         mask = 1
 
+        buf = qt.tobuffer()
+        print "PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape
+        sys.exit()
+
         args = qt.get_args() # Will always be the same
         tgd = na.array([args[0], args[1]], dtype='int64')
         sizebuf = na.zeros(1, 'int64')

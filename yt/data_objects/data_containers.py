@@ -1586,7 +1586,7 @@ class AMRQuadTreeProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,
+                 preload_style=None, serialize=True,
                  style = "integrate", **kwargs):
         """
         This is a data object corresponding to a line integral through the
@@ -1634,9 +1634,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             region of a grid out.  They can be of the form "grid['Temperature']
             > 100" for instance.
         preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
+            Either 'level', 'all', or None (default).  Defines how grids are
+            loaded -- either level by level, or all at once.  Only applicable
+            during parallel runs.
         serialize : bool, optional
             Whether we should store this projection in the .yt file or not.
         kwargs : dict of items
@@ -1763,11 +1763,20 @@ class AMRQuadTreeProjBase(AMR2DData):
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
+            op = "max"
         elif self.proj_style == "integrate":
             merge_style = 1
+            op = "sum"
         else:
             raise NotImplementedError
-        tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        #tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        buf = list(tree.tobuffer())
+        del tree
+        new_buf = [buf.pop(0)]
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        tree = self._get_tree(len(fields))
+        tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -1810,7 +1819,7 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
         # We build up the fields to add
-        if self._weight is None:
+        if self._weight is None or fields is None:
             weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data = [fd.astype('float64') * weight_data
@@ -1831,7 +1840,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+            used_points = na.logical_or.reduce(used_data, self.axis)
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
@@ -1847,16 +1856,33 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = [g for g in self._get_grid_objs()
                             if g.Level == level]
-        if len(grids_to_project) == 0: return
-        dls, convs = self._get_dls(grids_to_project[0], fields)
+        grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
-        pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids_to_project))
-        for pi, grid in enumerate(grids_to_project):
-            self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+        if len(grids_to_initialize) == 0: return
+        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+                          % (level, self._max_level), len(grids_to_initialize))
+        start_index = na.empty(2, dtype="int64")
+        dims = na.empty(2, dtype="int64")
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        for pi, grid in enumerate(grids_to_initialize):
+            dims[0] = grid.ActiveDimensions[xax]
+            dims[1] = grid.ActiveDimensions[yax]
+            ind = grid.get_global_startindex()
+            start_index[0] = ind[xax]
+            start_index[1] = ind[yax]
+            tree.initialize_grid(level, start_index, dims)
             pbar.update(pi)
-            grid.clear_data()
         pbar.finish()
+        if len(grids_to_project) > 0:
+            dls, convs = self._get_dls(grids_to_project[0], fields)
+            pbar = get_pbar('Projecting  level % 2i / % 2i ' \
+                              % (level, self._max_level), len(grids_to_project))
+            for pi, grid in enumerate(grids_to_project):
+                self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+                pbar.update(pi)
+                grid.clear_data()
+            pbar.finish()
         return
 
     def _get_points_in_region(self, grid):
