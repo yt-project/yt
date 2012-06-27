@@ -34,7 +34,7 @@ from yt.utilities.io_handler import \
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-import yt.utilities.amr_utils as au
+import yt.utilities.lib as au
 
 from yt.frontends.art.definitions import art_particle_field_names
 

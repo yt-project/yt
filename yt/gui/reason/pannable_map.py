@@ -27,7 +27,7 @@ import numpy as na
 
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.utilities.amr_utils import write_png_to_string, get_color_bounds
+from yt.utilities.lib import write_png_to_string, get_color_bounds
 
 import yt.utilities.bottle as bottle
 
@@ -61,7 +61,6 @@ class PannableMapServer(object):
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
 
-    #@exc_writeout
     def map(self, L, x, y):
         dd = 1.0 / (2.0**(int(L)))
         relx = int(x) * dd

@@ -40,7 +40,7 @@ from yt.utilities.physical_constants import \
     mh
 from yt.funcs import *
 
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = EnzoFieldInfo.add_field

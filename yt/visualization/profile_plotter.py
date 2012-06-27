@@ -31,7 +31,7 @@ import numpy as na
 
 from .image_writer import \
     write_image, apply_colormap
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
@@ -277,6 +277,7 @@ class PhasePlotter(object):
            field_z.startswith("CellVolume"):
             mylog.warning("Setting weight to None")
             weight = None
+        self._initial_weight = weight
         profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_z
         self.profile = profile

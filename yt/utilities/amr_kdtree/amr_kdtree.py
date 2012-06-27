@@ -28,7 +28,9 @@ License:
 import numpy as na
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
-from yt.utilities.amr_utils import PartitionedGrid, kdtree_get_choices
+from yt.visualization.image_writer import write_image, write_bitmap
+from yt.utilities.lib import kdtree_get_choices
+from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
@@ -678,7 +680,7 @@ class AMRKDTree(HomogenizedVolume):
                 if na.any(current_node.r_corner-current_node.l_corner == 0):
                     current_node.brick = None
                 else:
-                    current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+                    current_node.brick = PartitionedGrid(current_node.grid.id, data,
                                                          current_node.l_corner.copy(), 
                                                          current_node.r_corner.copy(), 
                                                          current_node.dims.astype('int64'))
@@ -708,7 +710,7 @@ class AMRKDTree(HomogenizedVolume):
                   current_node.li[1]:current_node.ri[1]+1,
                   current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
 
-        current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+        current_node.brick = PartitionedGrid(current_node.grid.id, data,
                                              current_node.l_corner.copy(), 
                                              current_node.r_corner.copy(), 
                                              current_node.dims.astype('int64'))
@@ -922,6 +924,7 @@ class AMRKDTree(HomogenizedVolume):
                     current = current.parent
             else:
                 current = current.parent
+        
         return current, previous
                 
     def count_volume(self):
@@ -993,7 +996,14 @@ class AMRKDTree(HomogenizedVolume):
         current_node.id = 0
         par_tree_depth = int(na.log2(self.comm.size))
         anprocs = 2**par_tree_depth
+
+        volume_partitioned = 0.0
+        pbar = get_pbar("Building kd-Tree",
+                na.prod(self.domain_right_edge-self.domain_left_edge))
+
         while current_node is not None:
+            pbar.update(volume_partitioned)
+
             # If we don't have any grids, that means we are revisiting
             # a dividing node, and there is nothing to be done.
             try: ngrids = current_node.grids
@@ -1038,6 +1048,8 @@ class AMRKDTree(HomogenizedVolume):
                     # Else make a leaf node (brick container)
                     #print 'My single grid covers the rest of the volume, and I have no children', thisgrid
                     set_leaf(current_node, thisgrid, current_node.l_corner, current_node.r_corner)
+                    volume_partitioned += na.prod(current_node.r_corner-current_node.l_corner)
+                    # print 'My single grid covers the rest of the volume, and I have no children'
                     current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
 
@@ -1055,6 +1067,9 @@ class AMRKDTree(HomogenizedVolume):
 
             # Step to the nest node in a depth-first traversal.
             current_node, previous_node = self.step_depth(current_node, previous_node)
+        
+        pbar.finish()
+
 
     def _get_choices(self, current_node):
         '''
@@ -1130,31 +1145,34 @@ class AMRKDTree(HomogenizedVolume):
             Position of the front center to which the traversal progresses.
         image: na.array
             Image plane to contain resulting ray cast.
-            
+
         Returns
         ----------
         None, but modifies the image array.
-        
+
         See Also
         ----------
         yt.visualization.volume_rendering.camera
-        
+
         """
         if self.tree is None: 
-            print 'No KD Tree Exists'
+            mylog.error('No KD Tree Exists')
             return
         self.image = image
 
-        viewpoint = front_center
+        viewpoint = back_center 
+        # print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
                 if node.brick is not None:
                     yield node.brick
-         
-        self.reduce_tree_images(self.tree, front_center)
+
+        mylog.debug('About to enter reduce, my image has a max of %e' %
+                self.image.max())
+        self.reduce_tree_images(self.tree, viewpoint)
         self.comm.barrier()
-        
+
     def reduce_tree_images(self, tree, viewpoint, image=None):
         if image is not None:
             self.image = image
@@ -1168,7 +1186,7 @@ class AMRKDTree(HomogenizedVolume):
             try:
                 my_node.left_child.owner = my_node.owner
                 my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))
-                if path[i+1] is '0': 
+                if path[i+1] == '0':
                     my_node = my_node.left_child
                     my_node_id = my_node.id
                 else:
@@ -1180,54 +1198,54 @@ class AMRKDTree(HomogenizedVolume):
             #print self.comm.rank, 'my node', my_node_id
             parent = my_node.parent
             #print parent['split_ax'], parent['split_pos']
-            if viewpoint[parent.split_ax] <= parent.split_pos:
+            if viewpoint[parent.split_ax] > parent.split_pos:
                 front = parent.right_child
                 back = parent.left_child
             else:
                 front = parent.left_child
-                back = parent.right_child 
+                back = parent.right_child
+            # print 'Combining', viewpoint, parent.split_ax, parent.split_pos
+            # print front.l_corner, front.r_corner
+            # print back.l_corner, back.r_corner
 
             # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
-                
             # Send the images around
             if front.owner == self.comm.rank:
                 if front.owner == parent.owner:
                     mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
                     arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
+                    ta = 1.0 - na.sum(self.image,axis=2)
+                    ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        #print arr2.shape
-                        #                ta = (1.0 - arr2[:,:,i+3])
-                        ta = (1.0 - na.sum(self.image,axis=2))
-                        ta[ta<0.0] = 0.0 
-                        self.image[:,:,i  ] = self.image[:,:,i  ] + ta * arr2[:,:,i  ]
+                        self.image[:,:,i  ] = self.image[:,:,i] + ta*arr2[:,:,i]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank,back.owner))
+                    mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank,back.owner, self.image.max()))
                     self.comm.send_array(self.image.ravel(), back.owner, tag=self.comm.rank)
-                
+
             if back.owner == self.comm.rank:
                 if front.owner == parent.owner:
-                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank, front.owner))
+                    mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank, front.owner,
+                                self.image.max()))
                     self.comm.send_array(self.image.ravel(), front.owner, tag=self.comm.rank)
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i receiving image from %04i'%(self.comm.rank,front.owner))
                     arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
+                    #ta = na.exp(-na.sum(arr2,axis=2))
+                    ta = 1.0 - na.sum(arr2, axis=2)
+                    ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        # print arr2.shape
-                        # ta = (1.0 - arr2[:,:,i+3])
-                        ta = (1.0 - na.sum(arr2,axis=2))
-                        ta[ta<0.0] = 0.0 
-                        self.image[:,:,i  ] = arr2[:,:,i  ] + ta * self.image[:,:,i  ]
-                        # image[:,:,i+3] = arr2[:,:,i+3] + ta * image[:,:,i+3]
+                        self.image[:,:,i  ] = ta*self.image[:,:,i  ] + arr2[:,:,i]
+
             # Set parent owner to back owner
             # my_node = (my_node-1)>>1
             if self.comm.rank == my_node.parent.owner: 
@@ -1266,7 +1284,7 @@ class AMRKDTree(HomogenizedVolume):
                 if node.grid is not None:
                     data = [f["brick_%s_%s" %
                               (hex(i), field)][:].astype('float64') for field in self.fields]
-                    node.brick = PartitionedGrid(node.grid.id, len(self.fields), data,
+                    node.brick = PartitionedGrid(node.grid.id, data,
                                                  node.l_corner.copy(), 
                                                  node.r_corner.copy(), 
                                                  node.dims.astype('int64'))

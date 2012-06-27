@@ -28,12 +28,6 @@ if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
 else:
     api_version = '0.11'
 
-if IPython.__version__.startswith("0.10"):
-    api_version = '0.10'
-elif IPython.__version__.startswith("0.11") or \
-     IPython.__version__.startswith("0.12"):
-    api_version = '0.11'
-
 if api_version == "0.10" and "DISPLAY" in os.environ:
     from matplotlib import rcParams
     ipbackends = dict(Qt4 = IPython.Shell.IPShellMatplotlibQt4,
