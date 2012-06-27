@@ -251,7 +251,7 @@ for field in ['Bx','By','Bz']:
     f.take_log=False
 
 def _convertkph(data):
-    return data.convert("Time")
+    return 1.0/data.convert("Time")
 for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
     f = KnownEnzoFields[field]
     f._convert_function = _convertkph
