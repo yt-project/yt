@@ -89,13 +89,11 @@ class Tree(object):
                 gids = na.array([g.id for g in grids])
 
                 add_grids(self.trunk, gles, gres, gids)
-                #print 'Checking level %i' % grids[0].Level
-                #self.check_tree()
+                del gles, gres, gids, grids
 
     def check_tree(self):
         for node in depth_traverse(self):
-            if node.grid is None: 
-                print 'Node has no grid', node, node.left_edge, node.right_edge
+            if node.grid is None:
                 continue
             grid = self.pf.h.grids[node.grid - self._id_offset]
             dds = grid.dds
@@ -107,29 +105,6 @@ class Tree(object):
             assert(na.all(grid.LeftEdge <= node.left_edge))
             assert(na.all(grid.RightEdge >= node.right_edge))
             print grid, dims, li, ri
-
-    def insert_level(self, level, node):
-        if node.left is not None:
-            self.insert_level(level, node.left)
-        if node.right is not None:
-            self.insert_level(level, node.right)
-        if node.grid is None: return
-        if self.pf.h.grid_levels[node.grid-self._id_offset][0] == (level-1):
-            self.insert_children(node)
-
-    def insert_children(self, node):
-        thisgrid = self.pf.h.grids[node.grid - self._id_offset]
-        if len(thisgrid.Children) == 0: return
-        children = [child for child in thisgrid.Children
-                    if na.all(child.LeftEdge < node.right_edge) &
-                    na.all(child.RightEdge > node.left_edge)]
-
-        # If we have children, get all the new grids, and keep building the tree
-        if len(children) > 0:
-            gles = na.array([g.LeftEdge for g in children])
-            gres = na.array([g.RightEdge for g in children])
-            gids = na.array([g.id for g in children])
-            insert_grids(node, gles, gres, gids)
 
 def add_grids(node, gles, gres, gids):
     if kd_is_leaf(node):
