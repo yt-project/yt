@@ -72,9 +72,10 @@ Ext.define('Reason.controller.Notebook', {
         this.callParent(arguments);
     },
 
-    addRequest: function(request_id) {
+    addRequest: function(request_id, command) {
+        console.log("Adding request " + request_id);
         this.getRequestsStore().add({
-            request_id: request_id, pending: true,
+            request_id: request_id, command: command,
         });
     },
 
@@ -82,11 +83,11 @@ Ext.define('Reason.controller.Notebook', {
         this.application.fireEvent("wipeinput");
         this.application.fireEvent("allowinput");
         if (cell['result_id'] != null) {
+            console.log("Turning off result_id " + cell['result_id']);
             var ind = this.getRequestsStore().find(
                 'request_id', cell['result_id']);
             if (ind != -1) {
-                var rec = this.getRequestsStore().getAt(ind);
-                rec.data.pending = false;
+                var rec = this.getRequestsStore().removeAt(ind);
             }
             reason.pending.update([this.getRequestsStore().count()]);
         }

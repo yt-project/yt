@@ -32,10 +32,7 @@ License:
 Ext.define('Reason.store.Requests', {
     extend: 'Ext.data.Store',
     id: 'requestsstore',
-    fields: ['request_id',
-             { name: 'pending', type: 'bool' }
-    ],
-    filters: [ { property: 'pending', value: true, } ],
+    fields: ['request_id', 'command'],
     data: [],
 });
 

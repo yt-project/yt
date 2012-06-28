@@ -107,7 +107,7 @@ Ext.define('Reason.controller.ServerCommunication', {
         result_id = reason.numberOfRequests + 1;
         reason.numberOfRequests += 1;
         console.log("Number of requests: " + reason.numberOfRequests);
-        reason.getController("Notebook").addRequest(result_id);
+        reason.getController("Notebook").addRequest(result_id, code);
         yt_rpc.ExtDirectREPL.execute({
             code: code,
             hide:hide,
