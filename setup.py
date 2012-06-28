@@ -10,13 +10,31 @@ distribute_setup.use_setuptools()
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils import log
 
-DATA_FILES_HTML = glob.glob('yt/gui/reason/html/*.html')
-DATA_FILES_JS = glob.glob('yt/gui/reason/html/js/*.js')
-DATA_FILES_PNG = glob.glob('yt/gui/reason/html/images/*.png') \
-                + glob.glob('yt/gui/reason/html/images/*.ico')
-DATA_FILES_LL = glob.glob('yt/gui/reason/html/leaflet/*.js') \
-                + glob.glob('yt/gui/reason/html/leaflet/*.css')
-DATA_FILES_LLI = glob.glob('yt/gui/reason/html/leaflet/images/*.png')
+REASON_FILES = []
+REASON_DIRS = [
+    "",
+    "resources",
+    "resources/ux",
+    "resources/images",
+    "resources/css",
+    "resources/css/images",
+    "app",
+    "app/store",
+    "app/store/widgets",
+    "app/view",
+    "app/view/widgets",
+    "app/model",
+    "app/controller",
+    "app/controller/widgets",
+    "app/templates",
+]
+
+for subdir in REASON_DIRS:
+    dir_name = "yt/gui/reason/html/%s/" % (subdir)
+    files = []
+    for ext in ["js", "html", "css", "png", "ico", "gif"]:
+        files += glob.glob("%s/*.%s" % (dir_name, ext))
+    REASON_FILES.append( (dir_name, files) )
 
 # Verify that we have Cython installed
 try:
@@ -133,11 +151,7 @@ def setup_package():
         license="GPL-3",
         configuration=configuration,
         zip_safe=False,
-        data_files=[('yt/gui/reason/html/', DATA_FILES_HTML),
-                      ('yt/gui/reason/html/js/', DATA_FILES_JS),
-                      ('yt/gui/reason/html/images/', DATA_FILES_PNG),
-                      ('yt/gui/reason/html/leaflet/', DATA_FILES_LL),
-                      ('yt/gui/reason/html/leaflet/images', DATA_FILES_LLI)],
+        data_files=REASON_FILES,
         )
     return
 
