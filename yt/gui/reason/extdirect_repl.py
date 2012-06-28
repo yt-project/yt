@@ -96,22 +96,16 @@ class ExecutionThread(threading.Thread):
                 if self.repl.stopped: return
                 continue
             print "Received the task", task
-            if task['type'] == 'code':
-                self.execute_one(task['code'], task['hide'])
-                self.queue.task_done()
-            elif task['type'] == 'add_widget':
-                #print "Adding new widget"
-                self.queue.task_done()
-                new_code = self.repl._add_widget(
-                    task['name'], task['widget_data_name'])
-                #print "Got this command:", new_code
-                self.execute_one(new_code, hide=True)
-                #print "Executed!"
+            if task['type'] != 'code':
+                raise NotImplementedError
+            print task
+            self.execute_one(task['code'], task['hide'], task['result_id'])
+            self.queue.task_done()
 
     def wait(self):
         self.queue.join()
 
-    def execute_one(self, code, hide):
+    def execute_one(self, code, hide, result_id):
         self.repl.executed_cell_texts.append(code)
         result = ProgrammaticREPL.execute(self.repl, code)
         if self.repl.debug:
@@ -120,14 +114,15 @@ class ExecutionThread(threading.Thread):
             print "====================                ===================="
             print result
             print "========================================================"
-        if not hide:
-            self.payload_handler.add_payload(
-                {'type': 'cell',
-                 'output': result,
-                 'input': highlighter(code),
-                 'image_data': '',
-                 'raw_input': code},
-                )
+        self.payload_handler.add_payload(
+            {'type': 'cell',
+             'output': result,
+             'input': highlighter(code),
+             'image_data': '',
+             'result_id': result_id,
+             'hide': hide,
+             'raw_input': code},
+            )
         objs = get_list_of_datasets()
         self.payload_handler.add_payload(
             {'type': 'dataobjects',
@@ -141,7 +136,7 @@ class PyroExecutionThread(ExecutionThread):
         Pyro4.config.HMAC_KEY = hmac_key
         self.executor = Pyro4.Proxy(uri)
 
-    def execute_one(self, code, hide):
+    def execute_one(self, code, hide, result_id):
         self.repl.executed_cell_texts.append(code)
         print code
         result = self.executor.execute(code)
@@ -150,6 +145,7 @@ class PyroExecutionThread(ExecutionThread):
                 {'type': 'cell',
                  'output': result,
                  'input': highlighter(code),
+                 'result_id': result_id,
                  'raw_input': code},
                 )
         ph = self.executor.deliver()
@@ -261,6 +257,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     def exception_handler(self, exc):
         result = {'type': 'cell',
                   'input': 'ERROR HANDLING IN REASON',
+                  'result_id': None,
                   'output': traceback.format_exc()}
         return result
 
@@ -344,10 +341,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         response.headers['Content-Type'] = "text/css"
         return highlighter_css
 
-    def execute(self, code, hide = False):
+    def execute(self, code, hide = False, result_id = None):
         task = {'type': 'code',
                 'code': code,
-                'hide': hide}
+                'hide': hide,
+                'result_id': result_id,
+                }
         self.execution_thread.queue.put(task)
         return dict(status = True)
 

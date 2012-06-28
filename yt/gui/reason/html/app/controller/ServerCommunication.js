@@ -104,7 +104,15 @@ Ext.define('Reason.controller.ServerCommunication', {
         else { fn = this.returnFromRPC; }
         if (hide == null) { hide = false; }
         reason.fireEvent("disableinput");
-        yt_rpc.ExtDirectREPL.execute({code: code, hide:hide}, fn);
+        result_id = reason.numberOfRequests + 1;
+        reason.numberOfRequests += 1;
+        console.log("Number of requests: " + reason.numberOfRequests);
+        reason.getController("Notebook").addRequest(result_id);
+        yt_rpc.ExtDirectREPL.execute({
+            code: code,
+            hide:hide,
+            result_id: result_id
+        }, fn);
     },
 
     returnFromRPC: function(result, e) {

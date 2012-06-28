@@ -45,6 +45,7 @@ Ext.application({
 
     launch: function() {
         reason = this;
+        this.numberOfRequests = 0;
         rdebug = this.getController("Debugger");
         this.server = this.getController("ServerCommunication");
         Ext.create('Ext.container.Viewport', {
@@ -71,10 +72,19 @@ Ext.application({
                     maxSize: 400,
                     collapsible: true,
                     layout: {
-                        type: 'anchor',
+                        type: 'vbox',
+                        pack: 'start',
+                        align: 'stretch',
                     },
                     items: [
-                        { xtype: 'dataobjecttree', },
+                        { xtype: 'dataobjecttree', 
+                          flex: 1.0},
+                        { xtype: 'panel',
+                          tpl: 'Pending Requests: {0}',
+                          data: [0],
+                          height: 30,
+                          id: 'pending',
+                        }
                     ],
               }, {
                 xtype: 'tabpanel',
@@ -96,6 +106,7 @@ Ext.application({
               }
             ]
         });
+        this.pending = Ext.getCmp("pending");
         this.fireEvent("allowinput");
     },
     controllers : [

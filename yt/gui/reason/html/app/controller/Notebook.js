@@ -31,7 +31,7 @@ License:
 
 Ext.define('Reason.controller.Notebook', {
     extend: 'Ext.app.Controller',
-    stores: [ 'CellValues' ],
+    stores: [ 'CellValues' , 'Requests'],
     views: ['Notebook', 'CellView'],
     refs: [
         { ref: 'inputLine',
@@ -72,15 +72,32 @@ Ext.define('Reason.controller.Notebook', {
         this.callParent(arguments);
     },
 
+    addRequest: function(request_id) {
+        this.getRequestsStore().add({
+            request_id: request_id, pending: true,
+        });
+    },
+
     addCell: function(cell) {
         this.application.fireEvent("wipeinput");
         this.application.fireEvent("allowinput");
+        if (cell['result_id'] != null) {
+            var ind = this.getRequestsStore().find(
+                'request_id', cell['result_id']);
+            if (ind != -1) {
+                var rec = this.getRequestsStore().getAt(ind);
+                rec.data.pending = false;
+            }
+            reason.pending.update([this.getRequestsStore().count()]);
+        }
+        if (cell['hide'] == true) { return; }
         this.getCellValuesStore().add({
             input: cell['input'],
             output: cell['output'],
             raw_input: cell['raw_input'],
             image_data: cell['image_data'],
             executiontime: cell['executiontime'],
+            result_id: cell['result_id'],
         });
         this.application.fireEvent("scrolltobottom");
     },

@@ -53,6 +53,7 @@ def deliver_image(im):
                'output': '',
                'input': '',
                'raw_input': '',
+               'result_id': None,
                'image_data':img_data}
     ph.add_payload(payload)
 

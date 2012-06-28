@@ -1,5 +1,5 @@
 /**********************************************************************
-Logging entry store for Reason
+A store for outstanding requests
 
 Author: Cameron Hummels <chummels@gmail.com>
 Affiliation: Columbia
@@ -29,13 +29,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.store.CellValues', {
+Ext.define('Reason.store.Requests', {
     extend: 'Ext.data.Store',
-    id: 'cellvalues',
-    fields: ['input', 'output', 'raw_input', 'executiontime', 
-        { name: 'image_data', type: 'string', defaultValue: '' },
-        'result_id',
+    id: 'requestsstore',
+    fields: ['request_id',
+             { name: 'pending', type: 'bool' }
     ],
+    filters: [ { property: 'pending', value: true, } ],
     data: [],
 });
 
