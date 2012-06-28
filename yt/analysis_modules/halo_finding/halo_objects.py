@@ -525,7 +525,7 @@ class Halo(object):
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = na.arctan(e0_vector[1] / e0_vector[0])
         RZ = get_rotation_matrix(-t1, (0, 0, 1)).transpose()
-        r1 = (e0_vector * rz).sum(axis = 1)
+        r1 = (e0_vector * RZ).sum(axis = 1)
         # find the t2 angle needed to rotate about y axis to align e0 to x
         t2 = na.arctan(-r1[2] / r1[0])
         RY = get_rotation_matrix(-t2, (0, 1, 0)).transpose()
