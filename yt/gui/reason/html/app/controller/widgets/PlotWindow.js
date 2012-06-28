@@ -131,6 +131,10 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
     ],
 
     applyPayload: function(payload) {
+        if(this.getImage().getEl() == null) { /* Not yet rendered */
+            this.pendingPayloads.push(payload);
+            return;
+        }
         this.getImage().getEl().dom.src = 
             "data:image/png;base64," + payload['image_data'];
         this.getZoomSlider().setValue(0, payload['zoom'], true);
@@ -161,6 +165,7 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
 
     createView: function() {
         var wd = this.payload['data'];
+        this.pendingPayloads = [];
         this.plotWindowView = Ext.widget("plotwindow",{
             varname : this.payload['varname'],
             title: wd['title'],
@@ -306,5 +311,6 @@ Ext.define("Reason.controller.widgets.PlotWindow", {
                         args, "recenterImage");
             reason.server.execute(code, true);
         });
+        Ext.each(this.pendingPayloads, this.applyPayload, this);
     },
 });

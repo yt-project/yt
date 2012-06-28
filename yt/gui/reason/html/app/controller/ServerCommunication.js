@@ -35,7 +35,7 @@ Ext.define('Reason.controller.ServerCommunication', {
     extend: 'Ext.app.Controller',
     stores: ['Payloads'],
     views: ['PayloadGrid'],
-    requires: ['Reason.view.MulticastSetup'],
+    requires: ['Reason.view.MulticastSetup', 'Reason.view.RequestsGrid'],
 
     init: function() {
         this.application.addListener({
@@ -70,7 +70,6 @@ Ext.define('Reason.controller.ServerCommunication', {
     heartbeatCall: function() {
         if (heartbeatRequest == true) return;
         heartbeatRequest = true;
-        /*console.log("Sending heartbeat");*/
         yt_rpc.ExtDirectREPL.heartbeat(
             {}, function(f, a) {
                 heartbeatRequest = false;
@@ -96,6 +95,9 @@ Ext.define('Reason.controller.ServerCommunication', {
         this.payloadGrid = Ext.widget("payloadgrid");
         Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
             this.payloadGrid);
+        this.requestsGrid = Ext.widget('requestsgrid');
+        Ext.ComponentQuery.query("viewport > #center-panel")[0].add(
+            this.requestsGrid);
     },
 
     execute: function(code, hide, callback) {
@@ -106,7 +108,6 @@ Ext.define('Reason.controller.ServerCommunication', {
         reason.fireEvent("disableinput");
         result_id = reason.numberOfRequests + 1;
         reason.numberOfRequests += 1;
-        console.log("Number of requests: " + reason.numberOfRequests);
         reason.getController("Notebook").addRequest(result_id, code);
         yt_rpc.ExtDirectREPL.execute({
             code: code,

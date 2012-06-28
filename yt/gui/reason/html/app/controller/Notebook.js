@@ -73,7 +73,6 @@ Ext.define('Reason.controller.Notebook', {
     },
 
     addRequest: function(request_id, command) {
-        console.log("Adding request " + request_id);
         this.getRequestsStore().add({
             request_id: request_id, command: command,
         });
@@ -83,7 +82,6 @@ Ext.define('Reason.controller.Notebook', {
         this.application.fireEvent("wipeinput");
         this.application.fireEvent("allowinput");
         if (cell['result_id'] != null) {
-            console.log("Turning off result_id " + cell['result_id']);
             var ind = this.getRequestsStore().find(
                 'request_id', cell['result_id']);
             if (ind != -1) {
@@ -104,20 +102,17 @@ Ext.define('Reason.controller.Notebook', {
     },
 
     loadScript: function(payload) {
-        console.log("Loading script ...");
         this.getInputLine().setValue(payload['value']);
         this.getInputLine()._lock = true;
     },
 
     executeCell: function(line) {
         this.application.fireEvent("blockinput");
-        console.log("Asked to execute " + line);
         reason.server.execute(line, false);
     },
 
     scrollToBottom: function() {
         var i = this.getCellValuesStore().getCount();
-        console.log("Scrolling to bottom: " + i);
         this.getCellDisplay().getView().focusRow(i-1);
     },
     

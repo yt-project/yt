@@ -1,5 +1,5 @@
 /**********************************************************************
-Debug helper for Reason
+Requests Grid for Reason
 
 Author: Cameron Hummels <chummels@gmail.com>
 Affiliation: Columbia
@@ -29,26 +29,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-Ext.define('Reason.controller.Debugger', {
-    extend: 'Ext.app.Controller',
-    stores: ['WidgetTypes', 'WidgetInstances', 'Requests'],
-
-    getWidget: function(widgetId) {
-        this.getWidgetInstancesStore().find(
-            {'widgetid': widgetId});
-        var widgetInfo = this.getWidgetInstancesStore().getAt(resultId).data;
-        return widgetInfo.widget;
-    },
-
-    getAllWidgetsByType: function(typeName) {
-        var arr = []
-        this.getWidgetInstancesStore().each(function(r) {
-            if (r.data['widgettype'] == typeName) {
-                arr.push(r.data);
-            }
-        });
-        return arr;
-    },
-
+Ext.define('Reason.view.RequestsGrid', {
+    extend: 'Ext.grid.Panel',
+    alias: 'widget.requestsgrid',
+    title: 'Pending Requests',
+    store: 'Requests',
+    columns: [ {header: 'Request ID', dataIndex:'result_id', width:80},
+               {header: 'Command', dataIndex: 'command', flex: 1.0},
+    ],
 });
-
