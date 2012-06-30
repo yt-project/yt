@@ -110,7 +110,7 @@ def voigt(a,u):
     dno1 = 1. - 2. * x * f
     dno2 = f
 
-    q = x > 5
+    q = na.abs(x) > 5
     if q.any():
         x14 = na.power(na.clip(x[q], -na.inf, 500.),  14)
         x12 = na.power(na.clip(x[q], -na.inf, 1000.), 12)
