@@ -2474,6 +2474,8 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
+        if len(self._grids) == 0:
+            raise YTNoDataInObjectError(self)
         points = []
         if not fields:
             fields_to_get = self.fields[:]
