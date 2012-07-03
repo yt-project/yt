@@ -98,6 +98,8 @@ class ObjectIterator(object):
             gs = getattr(pobj, attr)
         else:
             gs = getattr(pobj._data_source, attr)
+        if len(gs) == 0:
+            raise YTNoDataInObjectError(pobj)
         if hasattr(gs[0], 'proc_num'):
             # This one sort of knows about MPI, but not quite
             self._objs = [g for g in gs if g.proc_num ==
