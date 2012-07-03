@@ -49,6 +49,9 @@ from yt.utilities.lib import \
     pixelize_healpix, arr_fisheye_vectors
 
 class Camera(ParallelAnalysisInterface):
+
+    _sampler_object = VolumeRenderSampler
+
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
@@ -311,7 +314,7 @@ class Camera(ParallelAnalysisInterface):
             sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
                     light_rgba=self.light_rgba)
         else:
-            sampler = VolumeRenderSampler(*args)
+            sampler = self._sampler_object(*args)
         return sampler
 
     def finalize_image(self, image):
