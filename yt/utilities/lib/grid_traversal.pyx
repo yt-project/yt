@@ -137,6 +137,48 @@ cdef class PartitionedGrid:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def integrate_streamline_BE(self, pos, np.float64_t h, mag):
+        cdef np.float64_t cmag[1]
+        cdef np.float64_t k1[3]
+        cdef np.float64_t newpos[3], oldpos[3], guess[3]
+        cdef np.float64_t tol, err, 
+        cdef np.int32_t iter, maxiter
+
+        tol = 0.01 * h
+        maxiter = 100
+
+        for i in range(3):
+            newpos[i] = oldpos[i] = guess[i] = pos[i]
+
+        err = 1.e300
+        iter = 0
+        while ( (err > tol) and (iter < maxiter) ):
+
+            for i in range(3):
+                guess[i] = newpos[i]
+            self.get_vector_field(guess, k1, cmag)
+
+            for i in range(3):
+                newpos[i] = oldpos[i] + k1[i]*h 
+
+            err = 0.
+            for i in range(3):
+                err += (newpos[i]-guess[i])**2.0
+            err = sqrt(err)
+            iter += 1
+
+        for i in range(3):
+            pos[i] = newpos[i]
+
+        if mag is not None:
+            for i in range(3):
+                newpos[i] = pos[i]
+            self.get_vector_field(newpos, k1, cmag)
+            mag[0] = cmag[0]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def integrate_streamline(self, pos, np.float64_t h, mag):
         cdef np.float64_t cmag[1]
         cdef np.float64_t k1[3], k2[3], k3[3], k4[3]
