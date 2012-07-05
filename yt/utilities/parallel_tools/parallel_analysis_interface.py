@@ -340,7 +340,15 @@ class ResultsStorage(object):
     result = None
     result_id = None
 
-def parallel_objects(objects, njobs = 0, storage = None, barrier = True):
+def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
+                     dynamic = False):
+    if dynamic:
+        from .task_queue import dynamic_parallel_objects
+        for my_obj in dynamic_parallel_objects(objects, njobs=njobs,
+                                               storage=storage):
+            yield my_obj
+        return
+    
     if not parallel_capable:
         njobs = 1
     my_communicator = communication_system.communicators[-1]
@@ -701,6 +709,10 @@ class Communicator(object):
 
         mask = 1
 
+        buf = qt.tobuffer()
+        print "PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape
+        sys.exit()
+
         args = qt.get_args() # Will always be the same
         tgd = na.array([args[0], args[1]], dtype='int64')
         sizebuf = na.zeros(1, 'int64')
@@ -781,6 +793,16 @@ class Communicator(object):
         self.comm.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
+
+    def probe_loop(self, tag, callback):
+        while 1:
+            st = MPI.Status()
+            self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
+            try:
+                callback(st)
+            except StopIteration:
+                mylog.debug("Probe loop ending.")
+                break
 
 communication_system = CommunicationSystem()
 if parallel_capable:

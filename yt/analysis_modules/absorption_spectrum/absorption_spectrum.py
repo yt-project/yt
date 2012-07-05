@@ -53,7 +53,7 @@ class AbsorptionSpectrum(object):
         self.line_list = []
         self.continuum_list = []
 
-    def add_line(self, label, field_name, wavelength, 
+    def add_line(self, label, field_name, wavelength,
                  f_value, gamma, atomic_mass,
                  label_threshold=None):
         """
@@ -66,12 +66,12 @@ class AbsorptionSpectrum(object):
         :param atomic_mass (float): mass of atom in amu.
         """
 
-        self.line_list.append({'label': label, 'field_name': field_name, 
-                               'wavelength': wavelength, 'f_value': f_value, 
+        self.line_list.append({'label': label, 'field_name': field_name,
+                               'wavelength': wavelength, 'f_value': f_value,
                                'gamma': gamma, 'atomic_mass': atomic_mass,
                                'label_threshold': label_threshold})
 
-    def add_continuum(self, label, field_name, wavelength, 
+    def add_continuum(self, label, field_name, wavelength,
                       normalization, index):
         """
         Add a continuum feature that follows a power-law.
@@ -82,13 +82,13 @@ class AbsorptionSpectrum(object):
         :param index (float): the power-law index for the wavelength dependence.
         """
 
-        self.continuum_list.append({'label': label, 'field_name': field_name, 
-                                    'wavelength': wavelength, 
+        self.continuum_list.append({'label': label, 'field_name': field_name,
+                                    'wavelength': wavelength,
                                     'normalization': normalization,
                                     'index': index})
 
     def make_spectrum(self, input_file, output_file='spectrum.h5',
-                      line_list_file='lines.txt', 
+                      line_list_file='lines.txt',
                       use_peculiar_velocity=True):
         """
         Make spectrum from ray data using the line list.
@@ -98,7 +98,7 @@ class AbsorptionSpectrum(object):
                     - .h5: hdf5.
                     - .fits: fits.
                     - anything else: ascii.
-        :param use_peculiar_velocity (bool): if True, include line of sight 
+        :param use_peculiar_velocity (bool): if True, include line of sight
         velocity for shifting lines.
         """
 
@@ -149,8 +149,8 @@ class AbsorptionSpectrum(object):
                     field_data['los_velocity'] / speed_of_light_cgs
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = na.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
-            left_index = na.digitize((this_wavelength * 
-                                     na.power((tau_min * continuum['normalization'] / 
+            left_index = na.digitize((this_wavelength *
+                                     na.power((tau_min * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
                                     self.lambda_bins).clip(0, self.n_lambda)
 
@@ -161,7 +161,7 @@ class AbsorptionSpectrum(object):
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
             for i, lixel in enumerate(valid_continuua):
-                line_tau = na.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] / 
+                line_tau = na.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] /
                                      this_wavelength[lixel]), continuum['index']) * \
                                      column_density[lixel] / continuum['normalization']
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
@@ -174,6 +174,8 @@ class AbsorptionSpectrum(object):
         """
         # Only make voigt profile for slice of spectrum that is 10 times the line width.
         spectrum_bin_ratio = 5
+        # Widen wavelength window until optical depth reaches a max value at the ends.
+        max_tau = 0.001
 
         for line in self.line_list:
             column_density = field_data[line['field_name']] * field_data['dl']
@@ -182,10 +184,10 @@ class AbsorptionSpectrum(object):
                 # include factor of (1 + z) because our velocity is in proper frame.
                 delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['los_velocity'] / speed_of_light_cgs
-            thermal_b = km_per_cm * na.sqrt((2 * boltzmann_constant_cgs * 
-                                             field_data['Temperature']) / 
+            thermal_b = km_per_cm * na.sqrt((2 * boltzmann_constant_cgs *
+                                             field_data['Temperature']) /
                                             (amu_cgs * line['atomic_mass']))
-            center_bins = na.digitize((delta_lambda + line['wavelength']), 
+            center_bins = na.digitize((delta_lambda + line['wavelength']),
                                       self.lambda_bins)
 
             # ratio of line width to bin width
@@ -193,37 +195,48 @@ class AbsorptionSpectrum(object):
                 thermal_b / speed_of_light_kms / self.bin_width
 
             # do voigt profiles for a subset of the full spectrum
-            left_index  = (center_bins - 
+            left_index  = (center_bins -
                            spectrum_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
-            right_index = (center_bins + 
+            right_index = (center_bins +
                            spectrum_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
 
             # loop over all lines wider than the bin width
-            valid_lines = na.where((width_ratio >= 1.0) & 
+            valid_lines = na.where((width_ratio >= 1.0) &
                                    (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             valid_lines.size)
             for i, lixel in enumerate(valid_lines):
+                my_bin_ratio = spectrum_bin_ratio
+                while True:
                     lambda_bins, line_tau = \
                         tau_profile(line['wavelength'], line['f_value'],
-                                    line['gamma'], thermal_b[lixel], 
-                                    column_density[lixel], 
+                                    line['gamma'], thermal_b[lixel],
+                                    column_density[lixel],
                                     delta_lambda=delta_lambda[lixel],
                                     lambda_bins=self.lambda_bins[left_index[lixel]:right_index[lixel]])
-                    self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
-                    if line['label_threshold'] is not None and \
-                            column_density[lixel] >= line['label_threshold']:
-                        if use_peculiar_velocity:
-                            peculiar_velocity = km_per_cm * field_data['los_velocity'][lixel]
-                        else:
-                            peculiar_velocity = 0.0
-                        self.spectrum_line_list.append({'label': line['label'],
-                                                        'wavelength': (line['wavelength'] +
-                                                                       delta_lambda[lixel]),
-                                                        'column_density': column_density[lixel],
-                                                        'b_thermal': thermal_b[lixel],
-                                                        'redshift': field_data['redshift'][lixel],
-                                                        'v_pec': peculiar_velocity})
+                    # Widen wavelength window until optical depth reaches a max value at the ends.
+                    if (line_tau[0] < max_tau and line_tau[-1] < max_tau) or \
+                      (left_index[lixel] == 0 and right_index[lixel] == self.n_lambda - 1):
+                        break
+                    my_bin_ratio *= 2
+                    left_index[lixel]  = (center_bins[lixel] -
+                                          my_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
+                    right_index[lixel] = (center_bins[lixel] +
+                                          my_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
+                self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
+                if line['label_threshold'] is not None and \
+                        column_density[lixel] >= line['label_threshold']:
+                    if use_peculiar_velocity:
+                        peculiar_velocity = km_per_cm * field_data['los_velocity'][lixel]
+                    else:
+                        peculiar_velocity = 0.0
+                    self.spectrum_line_list.append({'label': line['label'],
+                                                    'wavelength': (line['wavelength'] +
+                                                                   delta_lambda[lixel]),
+                                                    'column_density': column_density[lixel],
+                                                    'b_thermal': thermal_b[lixel],
+                                                    'redshift': field_data['redshift'][lixel],
+                                                    'v_pec': peculiar_velocity})
                     pbar.update(i)
             pbar.finish()
 
@@ -237,7 +250,7 @@ class AbsorptionSpectrum(object):
         print "Writing spectral line list: %s." % filename
         self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
-        f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' % 
+        f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
                 ('Wavelength', 'Line', 'N [cm^-2]', 'b [km/s]', 'z', 'v_pec [km/s]'))
         for line in self.spectrum_line_list:
             f.write('%-14.6f %-14ls %e %e %e %e.\n' % (line['wavelength'], line['label'],
@@ -253,7 +266,7 @@ class AbsorptionSpectrum(object):
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
         for i in xrange(self.lambda_bins.size):
-            f.write("%e %e %e\n" % (self.lambda_bins[i], 
+            f.write("%e %e %e\n" % (self.lambda_bins[i],
                                     self.tau_field[i], self.flux_field[i]))
         f.close()
 

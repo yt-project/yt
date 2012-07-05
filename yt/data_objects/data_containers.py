@@ -5,6 +5,8 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
+Author: Geoffrey So <gsiisg@gmail.com> (AMREllipsoidBase)
+Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
@@ -56,6 +58,7 @@ from yt.utilities.parameter_file_storage import \
 from yt.utilities.minimal_representation import \
     MinimalProjectionData, MinimalSliceData
 from yt.utilities.orientation import Orientation
+from yt.utilities.math_utils import get_rotation_matrix
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -1583,7 +1586,7 @@ class AMRQuadTreeProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,
+                 preload_style=None, serialize=True,
                  style = "integrate", **kwargs):
         """
         This is a data object corresponding to a line integral through the
@@ -1631,9 +1634,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             region of a grid out.  They can be of the form "grid['Temperature']
             > 100" for instance.
         preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
+            Either 'level', 'all', or None (default).  Defines how grids are
+            loaded -- either level by level, or all at once.  Only applicable
+            during parallel runs.
         serialize : bool, optional
             Whether we should store this projection in the .yt file or not.
         kwargs : dict of items
@@ -1760,11 +1763,20 @@ class AMRQuadTreeProjBase(AMR2DData):
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
+            op = "max"
         elif self.proj_style == "integrate":
             merge_style = 1
+            op = "sum"
         else:
             raise NotImplementedError
-        tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        #tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        buf = list(tree.tobuffer())
+        del tree
+        new_buf = [buf.pop(0)]
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        tree = self._get_tree(len(fields))
+        tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -1807,7 +1819,7 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
         # We build up the fields to add
-        if self._weight is None:
+        if self._weight is None or fields is None:
             weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data = [fd.astype('float64') * weight_data
@@ -1828,7 +1840,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+            used_points = na.logical_or.reduce(used_data, self.axis)
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
@@ -1844,16 +1856,33 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = [g for g in self._get_grid_objs()
                             if g.Level == level]
-        if len(grids_to_project) == 0: return
-        dls, convs = self._get_dls(grids_to_project[0], fields)
+        grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
-        pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids_to_project))
-        for pi, grid in enumerate(grids_to_project):
-            self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+        if len(grids_to_initialize) == 0: return
+        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+                          % (level, self._max_level), len(grids_to_initialize))
+        start_index = na.empty(2, dtype="int64")
+        dims = na.empty(2, dtype="int64")
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        for pi, grid in enumerate(grids_to_initialize):
+            dims[0] = grid.ActiveDimensions[xax]
+            dims[1] = grid.ActiveDimensions[yax]
+            ind = grid.get_global_startindex()
+            start_index[0] = ind[xax]
+            start_index[1] = ind[yax]
+            tree.initialize_grid(level, start_index, dims)
             pbar.update(pi)
-            grid.clear_data()
         pbar.finish()
+        if len(grids_to_project) > 0:
+            dls, convs = self._get_dls(grids_to_project[0], fields)
+            pbar = get_pbar('Projecting  level % 2i / % 2i ' \
+                              % (level, self._max_level), len(grids_to_project))
+            for pi, grid in enumerate(grids_to_project):
+                self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+                pbar.update(pi)
+                grid.clear_data()
+            pbar.finish()
         return
 
     def _get_points_in_region(self, grid):
@@ -2631,13 +2660,16 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         verts = []
         samples = []
+        pb = get_pbar("Extracting ", len(list(self._get_grid_objs())))
         for i, g in enumerate(self._get_grid_objs()):
+            pb.update(i)
             my_verts = self._extract_isocontours_from_grid(
                             g, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
+        pb.finish()
         verts = na.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         verts = verts.transpose()
@@ -3393,6 +3425,141 @@ class AMRSphereBase(AMR3DData):
            and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         cm = ( (grid["RadiusCode"]<=self.radius) & grid.child_mask )
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
+            self._cut_masks[grid.id] = cm
+        return cm
+
+class AMREllipsoidBase(AMR3DData):
+    """
+    We can define an ellipsoid to act as a data object.
+    """
+    _type_name = "ellipsoid"
+    _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
+    def __init__(self, center, A, B, C, e0, tilt, fields=None,
+                 pf=None, **kwargs):
+        """
+        By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
+        can define a ellipsoid of any proportion.  Only cells whose centers are
+        within the ellipsoid will be selected.
+        """
+        AMR3DData.__init__(self, na.array(center), fields, pf, **kwargs)
+        # make sure the smallest side is not smaller than dx
+        if C < self.hierarchy.get_smallest_dx():
+            raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
+        self._A = A
+        self._B = B
+        self._C = C
+        self._e0 = e0
+        self._tilt = tilt
+        
+        # find the t1 angle needed to rotate about z axis to align e0 to x
+        t1 = na.arctan(e0[1] / e0[0])
+        # rotate e0 by -t1
+        RZ = get_rotation_matrix(t1, (0,0,1)).transpose()
+        r1 = (e0 * RZ).sum(axis = 1)
+        # find the t2 angle needed to rotate about y axis to align e0 to x
+        t2 = na.arctan(-r1[2] / r1[0])
+        """
+        calculate the original e1
+        given the tilt about the x axis when e0 was aligned 
+        to x after t1, t2 rotations about z, y
+        """
+        RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
+        RY = get_rotation_matrix(-t2,   (0,1,0)).transpose()
+        RZ = get_rotation_matrix(-t1,   (0,0,1)).transpose()
+        e1 = ((0, 1, 0) * RX).sum(axis = 1)
+        e1 = (e1 * RY).sum(axis = 1)
+        e1 = (e1 * RZ).sum(axis = 1)
+        e2 = na.cross(e0, e1)
+
+        self._e1 = e1
+        self._e2 = e2
+
+        self.set_field_parameter('A', A)
+        self.set_field_parameter('B', B)
+        self.set_field_parameter('C', C)
+        self.set_field_parameter('e0', e0)
+        self.set_field_parameter('e1', e1)
+        self.set_field_parameter('e2', e2)
+        self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
+        self._refresh_data()
+
+        """
+        Having another function find_ellipsoid_grids is too much work, 
+        can just use the sphere one and forget about checking orientation
+        but feed in the A parameter for radius
+        """
+    def _get_list_of_grids(self, field = None):
+        """
+        This returns the grids that are possibly within the ellipse
+        """
+        grids,ind = self.hierarchy.find_sphere_grids(self.center, self._A)
+        # Now we sort by level
+        grids = grids.tolist()
+        grids.sort(key=lambda x: (x.Level, \
+                                  x.LeftEdge[0], \
+                                  x.LeftEdge[1], \
+                                  x.LeftEdge[2]))
+        self._grids = na.array(grids, dtype = 'object')
+
+    def _is_fully_enclosed(self, grid):
+        """
+        check if all grid corners are inside the ellipsoid
+        """
+        # vector from corner to center
+        vr = (grid._corners - self.center)
+        # 3 possible cases of locations taking periodic BC into account
+        # just listing the components, find smallest later
+        dotarr=na.array([vr, vr + self.DW, vr - self.DW])
+        # these vrdote# finds the product of vr components with e#
+        # square the results
+        # find the smallest
+        # sums it
+        vrdote0_2 = (na.multiply(dotarr, self._e0)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        vrdote1_2 = (na.multiply(dotarr, self._e1)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        vrdote2_2 = (na.multiply(dotarr, self._e2)**2).min(axis \
+                                                           = 0).sum(axis = 1)
+        return na.all(vrdote0_2 / self._A**2 + \
+                      vrdote1_2 / self._B**2 + \
+                      vrdote2_2 / self._C**2 <=1.0)
+
+    @restore_grid_state # Pains me not to decorate with cache_mask here
+    def _get_cut_mask(self, grid, field = None):
+        """
+        This checks if each cell is inside the ellipsoid
+        """
+        # We have the *property* center, which is not necessarily
+        # the same as the field_parameter
+        if self._is_fully_enclosed(grid):
+            return True # We do not want child masking here
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
+           and grid.id in self._cut_masks:
+            return self._cut_masks[grid.id]
+        Inside = na.zeros(grid["x"].shape, dtype = 'float64')
+        dim = grid["x"].shape
+        # need this to take into account non-cube root grid tiles
+        dot_evec = na.zeros([3, dim[0], dim[1], dim[2]])
+        for i, ax in enumerate('xyz'):
+            # distance to center
+            ar  = grid[ax]-self.center[i]
+            # cases to take into account periodic BC
+            case = na.array([ar, ar + self.DW[i], ar - self.DW[i]])
+            # find which of the 3 cases is smallest in magnitude
+            index = na.abs(case).argmin(axis = 0)
+            # restrict distance to only the smallest cases
+            vec = na.choose(index, case)
+            # sum up to get the dot product with e_vectors
+            dot_evec += na.array([vec * self._e0[i], \
+                                  vec * self._e1[i], \
+                                  vec * self._e2[i]])
+        # Calculate the eqn of ellipsoid, if it is inside
+        # then result should be <= 1.0
+        Inside = dot_evec[0]**2 / self._A**2 + \
+                 dot_evec[1]**2 / self._B**2 + \
+                 dot_evec[2]**2 / self._C**2
+        cm = ((Inside <= 1.0) & grid.child_mask)
         if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
             self._cut_masks[grid.id] = cm
         return cm

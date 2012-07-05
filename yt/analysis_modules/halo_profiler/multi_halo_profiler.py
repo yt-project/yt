@@ -416,7 +416,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
     @parallel_blocking_call
     def make_profiles(self, filename=None, prefilters=None, njobs=-1,
-                      profile_format='ascii'):
+                      dynamic=False, profile_format='ascii'):
         r"""Make radial profiles for all halos in the list.
         
         After all the calls to `add_profile`, this will trigger the actual
@@ -440,6 +440,10 @@ class HaloProfiler(ParallelAnalysisInterface):
             The number of jobs over which to split the profiling.  Set
             to -1 so that each halo is done by a single processor.
             Default: -1.
+        dynamic : bool
+            If True, distribute halos using a task queue.  If False,
+            distribute halos evenly over all jobs.
+            Default: False.
         profile_format : str
             The file format for the radial profiles, 'ascii' or 'hdf5'.
             Default: 'ascii'.
@@ -502,7 +506,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Profile all halos.
         updated_halos = []
-        for halo in parallel_objects(self.all_halos, njobs=njobs):
+        for halo in parallel_objects(self.all_halos, njobs=njobs, dynamic=dynamic):
             # Apply prefilters to avoid profiling unwanted halos.
             filter_result = True
             haloQuantities = {}
@@ -692,7 +696,8 @@ class HaloProfiler(ParallelAnalysisInterface):
 
     @parallel_blocking_call
     def make_projections(self, axes=[0, 1, 2], halo_list='filtered',
-                         save_images=False, save_cube=True, njobs=-1):
+                         save_images=False, save_cube=True, njobs=-1,
+                         dynamic=False):
         r"""Make projections of all halos using specified fields.
         
         After adding fields using `add_projection`, this starts the actual
@@ -716,6 +721,10 @@ class HaloProfiler(ParallelAnalysisInterface):
             The number of jobs over which to split the projections.  Set
             to -1 so that each halo is done by a single processor.
             Default: -1.
+        dynamic : bool
+            If True, distribute halos using a task queue.  If False,
+            distribute halos evenly over all jobs.
+            Default: False.
         
         Examples
         --------
@@ -764,7 +773,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                          self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
 
-        for halo in parallel_objects(halo_projection_list, njobs=njobs):
+        for halo in parallel_objects(halo_projection_list, njobs=njobs, dynamic=dynamic):
             if halo is None:
                 continue
             # Check if region will overlap domain edge.
@@ -853,7 +862,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
     @parallel_blocking_call
     def analyze_halo_spheres(self, analysis_function, halo_list='filtered',
-                             analysis_output_dir=None, njobs=-1):
+                             analysis_output_dir=None, njobs=-1, dynamic=False):
         r"""Perform custom analysis on all halos.
         
         This will loop through all halo on the HaloProfiler's list, 
@@ -880,6 +889,10 @@ class HaloProfiler(ParallelAnalysisInterface):
             The number of jobs over which to split the analysis.  Set
             to -1 so that each halo is done by a single processor.
             Default: -1.
+        dynamic : bool
+            If True, distribute halos using a task queue.  If False,
+            distribute halos evenly over all jobs.
+            Default: False.
 
         Examples
         --------
@@ -915,7 +928,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 my_output_dir = "%s/%s" % (self.pf.fullpath, analysis_output_dir)
             self.__check_directory(my_output_dir)
 
-        for halo in parallel_objects(halo_analysis_list, njobs=njobs):
+        for halo in parallel_objects(halo_analysis_list, njobs=njobs, dynamic=dynamic):
             if halo is None: continue
 
             # Get a sphere object to analze.
@@ -1092,7 +1105,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         "Read radial profile from file.  Return None if it doesn't have all the fields requested."
 
         profile = {}
-        in_file = h5py.File(profileFile, 'r')
+        try:
+            in_file = h5py.File(profileFile, 'r')
+        except IOError:
+            return None
         if not 'RadiusMpc-1d' in in_file:
             return None
         my_group = in_file['RadiusMpc-1d']

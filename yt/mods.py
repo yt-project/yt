@@ -117,7 +117,8 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image, write_projection, write_fits
+    apply_colormap, scale_image, write_projection, write_fits, \
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

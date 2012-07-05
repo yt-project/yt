@@ -332,7 +332,7 @@ else
     sleep 60
 fi
 
-function get_enzotools
+function get_ytproject
 {
     echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
@@ -358,8 +358,7 @@ echo 'b8a12bf05b3aafa71135e47da81440fd0f16a4bd91954bc5615ad3d3b7f9df7d5a7d5620dc
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
 echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
 echo 'c017d3d59dd324ac91af0edc178c76b60a5f90fbb775cf843e39062f95bd846238f2c53705f8890ed3f34bc0e6e75671a73d13875eb0287d6201cb45f0a2d338  bzip2-1.0.5.tar.gz' > bzip2-1.0.5.tar.gz.sha512
-echo 'de73b14727c2a6623c19896d4c034ad0f705bf5ccbb8501c786a9d074cce97a7760db9246ae7da3db47dd2de29a1707a8a0ee17ab41a6d9140f2a7dbf455af0f  ext-3.3.2.zip' > ext-3.3.2.zip.sha512
-echo '6d65dcbb77978d4f4a9711062f11ae9d61133ca086f9207a8c1ecea8807dc9612cc8c3b2428157d2fb00dea8e0958f61e35cce4e07987c80bc808bbda3608a6c  ext-slate-110328.zip' > ext-slate-110328.zip.sha512
+echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d6f69042b4c87c58c881ee2aaa279561ea0f0f48d5842155f4de9de  freetype-2.4.4.tar.gz' > freetype-2.4.4.tar.gz.sha512
 echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72a7dbd496a5590828131c5f046ddead695e5cba79343b8c205148d1  h5py-2.0.1.tar.gz' > h5py-2.0.1.tar.gz.sha512
 echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
@@ -375,26 +374,24 @@ echo 'd761b492352841cdc125d9f0c99ee6d6c435812472ea234728b7f0fb4ad1048e1eec9b399d
 echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254bc76b9b3b14b4aab7c3e1135858f68abc5636daedf2f01f9b8a3cf  tornado-2.2.tar.gz' > tornado-2.2.tar.gz.sha512
 
 # Individual processes
-[ -z "$HDF5_DIR" ] && get_enzotools hdf5-1.8.7.tar.gz
-[ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
-[ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
-[ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
-[ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
-[ $INST_SQLITE3 -eq 1 ] && get_enzotools sqlite-autoconf-3070500.tar.gz
-[ $INST_PYX -eq 1 ] && get_enzotools PyX-0.11.1.tar.gz
-[ $INST_0MQ -eq 1 ] && get_enzotools zeromq-2.2.0.tar.gz
-[ $INST_0MQ -eq 1 ] && get_enzotools pyzmq-2.1.11.tar.gz
-[ $INST_0MQ -eq 1 ] && get_enzotools tornado-2.2.tar.gz
-get_enzotools Python-2.7.2.tgz
-get_enzotools numpy-1.6.1.tar.gz
-get_enzotools matplotlib-1.1.0.tar.gz
-get_enzotools mercurial-2.2.2.tar.gz
-get_enzotools ipython-0.12.tar.gz
-get_enzotools h5py-2.0.1.tar.gz
-get_enzotools Cython-0.16.tar.gz
-get_enzotools ext-3.3.2.zip
-get_enzotools ext-slate-110328.zip
-get_enzotools PhiloGL-1.4.2.zip
+[ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.7.tar.gz
+[ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
+[ $INST_BZLIB -eq 1 ] && get_ytproject bzip2-1.0.5.tar.gz
+[ $INST_PNG -eq 1 ] && get_ytproject libpng-1.2.43.tar.gz
+[ $INST_FTYPE -eq 1 ] && get_ytproject freetype-2.4.4.tar.gz
+[ $INST_SQLITE3 -eq 1 ] && get_ytproject sqlite-autoconf-3070500.tar.gz
+[ $INST_PYX -eq 1 ] && get_ytproject PyX-0.11.1.tar.gz
+[ $INST_0MQ -eq 1 ] && get_ytproject zeromq-2.2.0.tar.gz
+[ $INST_0MQ -eq 1 ] && get_ytproject pyzmq-2.1.11.tar.gz
+[ $INST_0MQ -eq 1 ] && get_ytproject tornado-2.2.tar.gz
+get_ytproject Python-2.7.2.tgz
+get_ytproject numpy-1.6.1.tar.gz
+get_ytproject matplotlib-1.1.0.tar.gz
+get_ytproject mercurial-2.2.2.tar.gz
+get_ytproject ipython-0.12.tar.gz
+get_ytproject h5py-2.0.1.tar.gz
+get_ytproject Cython-0.16.tar.gz
+get_ytproject reason-js-20120623.zip
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -659,36 +656,6 @@ then
     cd ${DEST_DIR}/src/
     ${HG_EXEC} clone https://enzo.googlecode.com/hg/ ./enzo-hg-stable
     cd $MY_PWD
-fi
-
-# Now we open up the ext repository
-if [ ! -e ext-3.3.2/done ]
-then
-    ( unzip -o ext-3.3.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( echo "Symlinking ext-3.3.2 as ext-resources" 2>&1 ) 1>> ${LOG_FILE}
-    rm -rf ext-resources
-    ln -sf ext-3.3.2 ext-resources
-    touch ext-3.3.2/done
-fi
-
-# Now we open up the ext theme
-if [ ! -e ext-slate-110328/done ]
-then
-    ( unzip -o ext-slate-110328.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( echo "Symlinking ext-slate-110328 as ext-theme" 2>&1 ) 1>> ${LOG_FILE}
-    rm -rf ext-theme
-    ln -sf ext-slate-110328 ext-theme
-    touch ext-slate-110328/done
-fi
-
-# Now we open up PhiloGL
-if [ ! -e PhiloGL-1.4.2/done ]
-then
-    ( unzip -o PhiloGL-1.4.2.zip 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( echo "Symlinking PhiloGL-1.4.2 as PhiloGL" 2>&1 ) 1>> ${LOG_FILE}
-    rm -rf PhiloGL
-    ln -sf PhiloGL-1.4.2 PhiloGL
-    touch PhiloGL-1.4.2/done
 fi
 
 if [ -e $HOME/.matplotlib/fontList.cache ] && \

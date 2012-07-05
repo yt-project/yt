@@ -250,16 +250,20 @@ for field in ['Bx','By','Bz']:
     f._units=r"\mathrm{Gau\ss}"
     f.take_log=False
 
-def _convertkph(data):
-    return data.convert("Time")
+def _convertRadiation(data):
+    return 1.0/data.convert("Time")
 for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
     f = KnownEnzoFields[field]
-    f._convert_function = _convertkph
+    f._convert_function = _convertRadiation
     f._units=r"\rm{s}^{-1}"
     f.take_log=True
 
+KnownEnzoFields["PhotoGamma"]._convert_function = _convertRadiation
+KnownEnzoFields["PhotoGamma"]._units = r"\rm{eV} \rm{s}^{-1}"
+KnownEnzoFields["PhotoGamma"].take_log = True
+
 def _convertRadiationAccel(data):
-    return data.convert("cm") / data.convert("Time")
+    return data.convert("cm") / data.convert("Time")**2
 for dim in range(1,4):
     f = KnownEnzoFields["RadAccel%d" % dim]
     f._convert_function = _convertRadiationAccel

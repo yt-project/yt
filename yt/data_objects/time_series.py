@@ -109,13 +109,14 @@ class TimeSeriesData(object):
     def __len__(self):
         return len(self._pre_outputs)
 
-    def piter(self, storage = None):
+    def piter(self, storage = None, dynamic = False):
         if self.parallel == False:
             njobs = 1
         else:
             if self.parallel == True: njobs = -1
             else: njobs = self.parallel
-        return parallel_objects(self, njobs, storage)
+        return parallel_objects(self, njobs=njobs, storage=storage,
+                                dynamic=dynamic)
         
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)

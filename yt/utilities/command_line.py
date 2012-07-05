@@ -1276,6 +1276,9 @@ class YTGUICmd(YTCommand):
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
                  help="Add a debugging mode for cell execution"),
+            dict(short = "-r", long = "--remote", action = "store_true",
+                 default = False, dest="use_pyro",
+                 help = "Use with a remote Pyro4 server."),
             "opf"
             )
     description = \
@@ -1307,20 +1310,26 @@ class YTGUICmd(YTCommand):
             except ValueError:
                 print "Please try a number next time."
                 return 1
-        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
-        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
+        fn = "reason-js-20120623.zip"
+        reasonjs_path = os.path.join(os.environ["YT_DEST"], "src", fn)
+        if not os.path.isfile(reasonjs_path):
             print
-            print "*** You are missing the ExtJS support files. You  ***"
+            print "*** You are missing the Reason support files. You ***"
             print "*** You can get these by either rerunning the     ***"
             print "*** install script installing, or downloading     ***"
             print "*** them manually.                                ***"
+            print "***                                               ***"
+            print "*** FOR INSTANCE:                                 ***"
+            print
+            print "cd %s" % os.path.join(os.environ["YT_DEST"], "src")
+            print "wget http://yt-project.org/dependencies/reason-js-20120623.zip"
             print
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.utilities.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
+        hr = ExtDirectREPL(reasonjs_path, use_pyro=args.use_pyro)
         hr.debug = PayloadHandler.debug = args.debug
         command_line = ["pfs = []"]
         if args.find:
