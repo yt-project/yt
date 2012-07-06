@@ -648,7 +648,7 @@ class PWViewerMPL(PWViewer):
             extent.extend([self.xlim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent)
+            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f])
             
             cb = matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
 
@@ -858,7 +858,7 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class PlotMPL(object):
-    """A base class for all yt plots made using matplotlib.
+    """A base class for all yt plots made using matplotl5Bib.
 
     YtPlot and the classes that derive from it are *by design* limited
     and designed for rapid, production quality plot production, rather
@@ -885,13 +885,16 @@ class WindowPlotMPL(PlotMPL):
     zmax = None
     zlabel = None
 
-    def __init__(self, data, extent, size=(9,8)):
+    def __init__(self, data, extent, field_transform, size=(9,8)):
         PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent)
+        self.__init_image(data, extent, field_transform)
 
-    def __init_image(self, data, extent):
-        self.image = self.axes.imshow(data,origin='lower',extent=extent,
-                                      norm=matplotlib.colors.LogNorm())
+    def __init_image(self, data, extent, field_transform):
+        if (field_transform.name == 'log10'):
+            self.image = self.axes.imshow(data,origin='lower',extent=extent,
+                                          norm=matplotlib.colors.LogNorm())
+        elif (field_transform.name == 'linear'):
+            self.image = self.axes.imshow(data,origin='lower',extent=extent)
 
     @invalidate_plot
     def set_zlim(self, zmin, zmax):
