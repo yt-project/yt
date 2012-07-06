@@ -224,7 +224,7 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
 
 def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=None):
     r"""
-    SlicePlot(pf, normal, fields, center=None, width=None, north_vector=None)
+    OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=None)
 
     Given a pf object, a normal vector defining a slicing plonae, and
     a field name string, this will return a PWViewrMPL object
@@ -674,8 +674,13 @@ class PWViewerMPL(PWViewer):
         self.plots[field].image.set_cmap(cmap)
 
     def save(self,name):
+        axis = axis_names[self.data_source.axis]
+        if 'Slice' in self.data_source.__class__.__name__:
+            type = 'Slice'
+        if 'Proj' in self.data_source.__class__.__name__:
+            type = 'Projection'
         for k,v in self.plots.iteritems():
-            n = "%s_%s" % (name, k)
+            n = "%s_%s_%s_%s" % (name, type, axis, k)
             v.save(n)
 
 class PWViewerRaw(PWViewer):
@@ -877,7 +882,7 @@ class PlotMPL(object):
         self.cax = self.figure.add_axes((.86,.10,.04,.8))
 
     def save(self,name):
-        print "saving plot %s" % name
+        print "saving plot %s.png" % name
         self.figure.savefig('%s.png' % name)
 
 class WindowPlotMPL(PlotMPL):
