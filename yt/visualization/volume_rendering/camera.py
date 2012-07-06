@@ -49,6 +49,9 @@ from yt.utilities.lib import \
     pixelize_healpix, arr_fisheye_vectors
 
 class Camera(ParallelAnalysisInterface):
+
+    _sampler_object = VolumeRenderSampler
+
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
@@ -311,7 +314,7 @@ class Camera(ParallelAnalysisInterface):
             sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
                     light_rgba=self.light_rgba)
         else:
-            sampler = VolumeRenderSampler(*args)
+            sampler = self._sampler_object(*args)
         return sampler
 
     def finalize_image(self, image):
@@ -349,7 +352,7 @@ class Camera(ParallelAnalysisInterface):
         return self.volume.initialize_source()
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0):
+                 num_threads = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -376,6 +379,8 @@ class Camera(ParallelAnalysisInterface):
         image : array
             An (N,M,3) array of the final returned values, in float64 form.
         """
+        if num_threads is None:
+            num_threads=get_num_threads()
         image = self.new_image()
 
         args = self.get_sampler_args(image)
@@ -753,7 +758,7 @@ class HEALpixCamera(Camera):
         return image
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0, clim = None):
+                 num_threads = None, clim = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -773,6 +778,8 @@ class HEALpixCamera(Camera):
         image : array
             An (N,M,3) array of the final returned values, in float64 form.
         """
+        if num_threads is None:
+            num_threads=get_num_threads()
         image = self.new_image()
 
         args = self.get_sampler_args(image)
@@ -1610,7 +1617,10 @@ class ProjectionCamera(Camera):
                 write_image(im, fn)
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0):
+                 num_threads = None):
+
+        if num_threads is None:
+            num_threads=get_num_threads()
 
         fields = [self.field]
         resolution = self.resolution
@@ -1633,7 +1643,7 @@ class ProjectionCamera(Camera):
 data_object_registry["projection_camera"] = ProjectionCamera
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, num_threads = 0, 
+                        field, weight = None, 
                         volume = None, no_ghost = False, interpolated = False):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
@@ -1695,7 +1705,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
             field, weight=weight, pf=pf, volume=volume,
             no_ghost=no_ghost, interpolated=interpolated)
-    image = projcam.snapshot(num_threads=num_threads)
+    image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
     del projcam

@@ -553,3 +553,12 @@ def parallel_profile(prefix):
     yield fn
     p.disable()
     p.dump_stats(fn)
+
+def get_num_threads():
+    from .config import ytcfg
+    nt = ytcfg.getint("yt","numthreads")
+    if nt < 0:
+        return os.environ.get("OMP_NUM_THREADS", 0)
+    return nt
+        
+

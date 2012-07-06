@@ -2474,6 +2474,8 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
+        if len(self._grids) == 0:
+            raise YTNoDataInObjectError(self)
         points = []
         if not fields:
             fields_to_get = self.fields[:]
@@ -3584,8 +3586,8 @@ class AMRCoveringGridBase(AMR3DData):
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
-        Example
-        -------
+        Examples
+        --------
         cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
                                   right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])

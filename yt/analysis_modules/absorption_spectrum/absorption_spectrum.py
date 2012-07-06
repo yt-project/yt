@@ -220,9 +220,11 @@ class AbsorptionSpectrum(object):
                         break
                     my_bin_ratio *= 2
                     left_index[lixel]  = (center_bins[lixel] -
-                                          my_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
+                                          my_bin_ratio *
+                                          width_ratio[lixel]).astype(int).clip(0, self.n_lambda)
                     right_index[lixel] = (center_bins[lixel] +
-                                          my_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
+                                          my_bin_ratio *
+                                          width_ratio[lixel]).astype(int).clip(0, self.n_lambda)
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
                 if line['label_threshold'] is not None and \
                         column_density[lixel] >= line['label_threshold']:
