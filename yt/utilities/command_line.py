@@ -28,6 +28,7 @@ ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
+from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
 import urllib, urllib2, base64
 
@@ -767,6 +768,14 @@ class YTHubSubmitCmd(YTCommand):
 
     def __call__(self, args):
         import imp
+        api_key = ytcfg.get("yt","hub_api_key")
+        url = ytcfg.get("yt","hub_url")
+        if api_key == '':
+            print
+            print "You must create an API key before uploading."
+            print "https://data.yt-project.org/getting_started.html"
+            print
+            sys.exit(1)
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
         uu = ui.ui()
@@ -860,12 +869,14 @@ class YTHubSubmitCmd(YTCommand):
                         bb_username, bb_username, bb_repo_name)
             cedit.config.addsource(uu, repo, "default", bb_url)
             commands.push(uu, repo, bb_url)
+            # Now we reset
+            bb_url = "https://bitbucket.org/%s/%s" % (
+                        bb_username, bb_repo_name)
         if bb_url.startswith("bb://"):
             bb_username, bb_repo_name = bb_url.split("/")[-2:]
-            bb_url = "https://%s@bitbucket.org/%s/%s" % (
-                bb_username, bb_username, bb_repo_name)
+            bb_url = "https://bitbucket.org/%s/%s" % (
+                bb_username, bb_repo_name)
         # Now we can submit
-        import xml.etree.ElementTree as etree
         print
         print "Okay.  Now we're ready to submit to the Hub."
         print "Remember, you can go to the Hub at any time at"
@@ -873,40 +884,27 @@ class YTHubSubmitCmd(YTCommand):
         print
         print "(Especially if you don't have a user yet!  We can wait.)"
         print
-        hub_username = raw_input("What is your Hub username? ")
-        hub_password = getpass.getpass("What is your Hub password? ")
-        data = urllib.urlencode(dict(fn = "list",
-                                     username=hub_username,
-                                     password=hub_password))
-        req = urllib2.Request(uri, data)
-        rv = urllib2.urlopen(req).read()
-        try:
-            cats = etree.fromstring(rv)
-        except:
-            print "I think you entered your password wrong.  Please check!"
-            return
 
-        categories = {}
-
-        for cat in cats.findall("./cate"):
-            cat_id = int(cat.findall("id")[0].text)
-            cat_name = cat.findall("name")[0].text
-            categories[cat_id] = cat_name
-
-        print
-        for i, n in sorted(categories.items()):
-            print "%i. %s" % (i, n)
-        print
-        cat_id = int(raw_input("Which category number does your script fit into? "))
+        categories = {
+            1: "News",
+            2: "Documents",
+            3: "Simulation Management",
+            4: "Data Management",
+            5: "Analysis and Visualization",
+            6: "Paper Repositories",
+            7: "Astrophysical Utilities",
+            8: "yt Scripts"
+        }
+        cat_id = -1
+        while cat_id not in categories:
+            print
+            for i, n in sorted(categories.items()):
+                print "%i. %s" % (i, n)
+            print
+            cat_id = int(raw_input("Which category number does your script fit into? "))
         print
         print "What is the title of your submission? (Usually a repository name) "
         title = raw_input("Title? ")
-        print
-        print "What tags should be applied to this submission?  Separate with commas."
-        print "(e.g., enzo, flash, gadget, ramses, nyx, yt, visualization, analysis,"
-        print " utility, cosmology)"
-        print
-        tags = raw_input("Tags? ")
         print
         print "Give us a very brief summary of the project -- enough to get someone"
         print "interested enough to click the link and see what it's about.  This"
@@ -914,17 +912,18 @@ class YTHubSubmitCmd(YTCommand):
         print
         summary = raw_input("Summary? ")
         print
+        print "Is there a URL that you'd like to point the image to?  Just hit"
+        print "enter if no."
+        print
+        image_url = raw_input("Image URL? ").strip()
+        print
         print "Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out."
         print
         loki = raw_input()
 
-        data = urllib.urlencode(dict(fn = "post",
-                                     username=hub_username, password=hub_password,
-                                     url = bb_url, category = cat_id, title = title,
-                                     content = summary, tags = tags))
-        req = urllib2.Request(uri, data)
-        rv = urllib2.urlopen(req).read()
-        print rv
+        mpd = MinimalProjectDescription(title, bb_url, summary, 
+                categories[cat_id], image_url)
+        mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
     name = "instinfo"
