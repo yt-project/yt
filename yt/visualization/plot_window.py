@@ -278,11 +278,11 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
         width = (pf.domain_right_edge - pf.domain_left_edge)
-    if iterable(width):
+    elif iterable(width):
         w,u = width
         width = w/pf[u]
     if center == None:
-        v, center = pf.h.mind_max("Density")
+        v, center = pf.h.find_max("Density")
     elif center == "center" or center == "c":
         center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
     bounds = [center[x_dict[axis]]-width/2,
@@ -294,7 +294,7 @@ def GetBoundsAndCenter(axis, center, width, pf):
 def GetOffAxisBoundsAndCenter(normal, center, width, pf):
     if width == None:
         width = (pf.domain_right_edge - pf.domain_left_edge)
-    if iterable(width):
+    elif iterable(width):
         w,u = width
         width = w/pf[u]
     if center == None:
@@ -517,7 +517,8 @@ class PlotWindow(object):
 
     @invalidate_data
     def refresh(self):
-        self._setup_plots()
+        # invalidate_data will take care of everything
+        pass
 
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
@@ -526,8 +527,10 @@ class PWViewer(PlotWindow):
     def __init__(self, *args,**kwargs):
         setup = kwargs.pop("setup", True)
         PlotWindow.__init__(self, *args,**kwargs)
-        self._field_transform = {}
         self._colormaps = defaultdict(lambda: 'algae')
+        self.zmin = None
+        self.zmax = None
+        self._field_transform = {}
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
                 self._field_transform[field] = log_transform
@@ -565,8 +568,9 @@ class PWViewer(PlotWindow):
         self._colormaps[field] = cmap_name
 
     @invalidate_plot
-    def set_zlim(self):
-        pass
+    def set_zlim(self, field, zmin, zmax):
+        self.zmin = zmin
+        self.zmax = zmax
 
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
@@ -648,7 +652,7 @@ class PWViewerMPL(PWViewer):
             extent.extend([self.xlim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent)
+            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], zlim = (self.zmin,self.zmax))
             
             cb = matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
 
@@ -665,6 +669,9 @@ class PWViewerMPL(PWViewer):
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
         self._plot_valid = True
+
+    def set_cmap(self, field, cmap):
+        self.plots[field].image.set_cmap(cmap)
 
     def save(self,name):
         for k,v in self.plots.iteritems():
@@ -860,13 +867,6 @@ class PWViewerExtJS(PWViewer):
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
-    YtPlot and the classes that derive from it are *by design* limited
-    and designed for rapid, production quality plot production, rather
-    than full generality. If you require more customization of the end
-    result, these objects are designed to return to you the basic data
-    so you the user can insert them into a matplotlib figure on your
-    own outside of the YtPlot class.
-
     """
     datalabel = None
     figure = None
@@ -881,20 +881,14 @@ class PlotMPL(object):
         self.figure.savefig('%s.png' % name)
 
 class WindowPlotMPL(PlotMPL):
-    zmin = None
-    zmax = None
-    zlabel = None
-
-    def __init__(self, data, extent, size=(9,8)):
+    def __init__(self, data, extent, field_transform, size=(9,8), zlim = (None, None)):
         PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent)
+        self.__init_image(data, extent, field_transform, zlim)
 
-    def __init_image(self, data, extent):
+    def __init_image(self, data, extent, field_transform, zlim):
+        if (field_transform.name == 'log10'):
+            norm = matplotlib.colors.LogNorm()
+        elif (field_transform.name == 'linear'):
+            norm = matplotlib.colors.Normalize()
         self.image = self.axes.imshow(data,origin='lower',extent=extent,
-                                      norm=matplotlib.colors.LogNorm())
-
-    @invalidate_plot
-    def set_zlim(self, zmin, zmax):
-        self.zmin = zmin
-        self.zmax = zmax
-
+                                      norm=norm, vmin = zlim[0], vmax = zlim[1])
