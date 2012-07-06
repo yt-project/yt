@@ -278,11 +278,11 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
         width = (pf.domain_right_edge - pf.domain_left_edge)
-    if iterable(width):
+    elif iterable(width):
         w,u = width
         width = w/pf[u]
     if center == None:
-        v, center = pf.h.mind_max("Density")
+        v, center = pf.h.find_max("Density")
     elif center == "center" or center == "c":
         center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
     bounds = [center[x_dict[axis]]-width/2,
@@ -294,7 +294,7 @@ def GetBoundsAndCenter(axis, center, width, pf):
 def GetOffAxisBoundsAndCenter(normal, center, width, pf):
     if width == None:
         width = (pf.domain_right_edge - pf.domain_left_edge)
-    if iterable(width):
+    elif iterable(width):
         w,u = width
         width = w/pf[u]
     if center == None:
