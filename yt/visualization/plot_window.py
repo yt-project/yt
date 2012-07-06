@@ -517,7 +517,7 @@ class PlotWindow(object):
 
     @invalidate_data
     def refresh(self):
-        self._setup_plots()
+        pass
 
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
