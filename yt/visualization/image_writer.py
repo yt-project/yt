@@ -152,7 +152,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
         bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
     if transpose:
         for channel in range(bitmap_array.shape[2]):
-            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].transpose()
+            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
     au.write_png(bitmap_array.copy(), filename)
     return bitmap_array
 
