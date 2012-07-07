@@ -94,8 +94,6 @@ linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
 def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window'):
     r"""
-    SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
-
     Given a pf object, an axis to slice along, and a field name
     string, this will return a PWViewrMPL object containing
     the plot.
@@ -105,48 +103,38 @@ def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.apy.StaticOutput`
-
+    pf : :class:`yt.data_objects.api.StaticOutput`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
-
     axis : int
-
-         An int corresponding to the axis to slice along.  
-	 (0 : x, 1 : y, 2 : z)
-
+        An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
     fields : string
-    
-          The name of the field(s) to be plotted.
-
+        The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or
              'center'
-
-           The coordinate of the center of the image.  If left blanck,
-           the image centers on the location of the maximum density
-           cell.  If set to 'c' or 'center', the plot is centered on
-           the middle of the domain.
-
+        The coordinate of the center of the image.  If left blanck,
+        the image centers on the location of the maximum density
+        cell.  If set to 'c' or 'center', the plot is centered on
+        the middle of the domain.
     width : A tuple or a float
-    
-           A tuple containing the width of image and the string key of
-           the unit: (width, 'unit').  If set to a float, code units
-           are assumed
-
+        A tuple containing the width of image and the string key of
+        the unit: (width, 'unit').  If set to a float, code units
+        are assumed
     origin : A string
+        The location of the origin of the plot coordinate system.
+        Currently, can be set to three options: 'left-domain', corresponding
+        to the bottom-left hand corner of the simulation domain, 'left-window',
+        corresponding to the bottom-left hand cordiner of the plot window, or
+        'center-window' for the center of the plot window.
 
-            The location of the origin of the plot coordinate system.
-            Currently, can be set to three options:
+    Examples
+    --------
 
-	    'left-domain':
-	         The bottom-left hand corner of the simulation domain.
+    This is a very simple way of creating a slice plot.
 
-            'left-window':
-	         The bottom-left hand cordiner of the plot window.
-
-	    'center-window'
-	         The center of the plot window.
-
+    >>> pf = load('galaxy0030/galaxy0030')
+    >>> p = SlicePlot(pf,2,'Density','c',(20,'kpc'))
+    >>> p.save('sliceplot')
     """
     (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
     slice = pf.h.slice(axis,center[axis],fields=fields)
@@ -155,9 +143,6 @@ def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
 def ProjectionPlot(pf, axis, fields, center=None, width=None,
                    weight_field=None, max_level=None, origin='center-window'):
     r"""
-    ProjectionPlot(pf, axis, fields, center=None, width=None, 
-                   weight_field=None, max_level=None, origin='center-window')
-
     Given a pf object, an axis to project along, and a field name
     string, this will return a PWViewrMPL object containing
     the plot.
@@ -167,55 +152,48 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.apy.StaticOutput`
-
+    pf : :class:`yt.data_objects.api.StaticOutput`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
-
     axis : int
-
-         An int corresponding to the axis to project along.  
-	 (0 : x, 1 : y, 2 : z)
-
+        An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
     fields : string
-    
-          The name of the field(s) to be plotted.
-
+        The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or
              'center'
-
-           The coordinate of the center of the image.  If left blanck,
-           the image centers on the location of the maximum density
-           cell.  If set to 'c' or 'center', the plot is centered on
-           the middle of the domain.
-
+        The coordinate of the center of the image.  If left blanck,
+        the image centers on the location of the maximum density
+        cell.  If set to 'c' or 'center', the plot is centered on
+        the middle of the domain.
     width : A tuple or a float
-    
-           A tuple containing the width of image and the string key of
-           the unit: (width, 'unit').  If set to a float, code units
-           are assumed
-
+        A tuple containing the width of image and the string key of
+        the unit: (width, 'unit').  If set to a float, code units
+        are assumed
+    origin : A string
+        The location of the origin of the plot coordinate system.
+        Currently, can be set to three options: 'left-domain', corresponding
+        to the bottom-left hand corner of the simulation domain, 'left-window',
+        corresponding to the bottom-left hand cordiner of the plot window, or
+        'center-window' for the center of the plot window.
     weight_field : string
-
-            The name of the weighting field.  Set to None for no weight.
-
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
+        The maximum level to project to.
+    origin : A string
+        The location of the origin of the plot coordinate system.
+        Currently, can be set to three options: 'left-domain', corresponding
+        to the bottom-left hand corner of the simulation domain, 'left-window',
+        corresponding to the bottom-left hand cordiner of the plot window, or
+        'center-window' for the center of the plot window.
 
-            The maximum level to project to.
-            
-    origin : string
+    Examples
+    --------
 
-            The location of the origin of the plot coordinate system.
-            Currently, can be set to three options:
+    This is a very simple way of creating a projection plot.
 
-	    'left-domain':
-	         The bottom-left hand corner of the simulation domain.
-
-            'left-window':
-	         The bottom-left hand cordiner of the plot window.
-
-	    'center-window'
-	         The center of the plot window.
+    >>> pf = load('galaxy0030/galaxy0030')
+    >>> p = ProjectionPlot(pf,2,'Density','c',(20,'kpc'))
+    >>> p.save('sliceplot')
 
     """
     (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
@@ -224,9 +202,7 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
 
 def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=None):
     r"""
-    OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=None)
-
-    Given a pf object, a normal vector defining a slicing plonae, and
+    Given a pf object, a normal vector defining a slicing plane, and
     a field name string, this will return a PWViewrMPL object
     containing the plot.
 
@@ -235,39 +211,27 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.apy.StaticOutput`
-
+    pf : :class:`yt.data_objects.api.StaticOutput`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
-
     normal : a sequence of floats
-
          The vector normal to the slicing plane.
-
     fields : string
-    
-          The name of the field(s) to be plotted.
-
+        The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or
              'center'
-
-           The coordinate of the center of the image.  If left blanck,
-           the image centers on the location of the maximum density
-           cell.  If set to 'c' or 'center', the plot is centered on
-           the middle of the domain.
-
+        The coordinate of the center of the image.  If left blanck,
+        the image centers on the location of the maximum density
+        cell.  If set to 'c' or 'center', the plot is centered on
+        the middle of the domain.
     width : A tuple or a float
-    
-           A tuple containing the width of image and the string key of
-           the unit: (width, 'unit').  If set to a float, code units
-           are assumed
-
+        A tuple containing the width of image and the string key of
+        the unit: (width, 'unit').  If set to a float, code units
+        are assumed
     north-vector : a sequence of floats
-    
-           A vector defining the 'up' direction in the plot.  This
-           option sets the orientation of the slicing plane.  If not
-           set, an arbitrary grid-aligned north-vector is chosen.
-
+        A vector defining the 'up' direction in the plot.  This
+        option sets the orientation of the slicing plane.  If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     """
     (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
     cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
