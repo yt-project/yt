@@ -258,7 +258,7 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
-        width = 1.0
+        width = pf.domain_width.min()
     elif iterable(width):
         w,u = width
         width = w/pf[u]
