@@ -1148,11 +1148,11 @@ class YTPlotCmd(YTCommand):
                 plt = SlicePlot(pf, ax, args.field, center=center,
                                 width=args.width)
             if args.grids:
-                warnings.warn("Grids are temporarily disabled from the command line")
+                plt.draw_grids()
             if args.time: 
-                warnings.warn("Time annotation is temporarily disabled from the command line")
-                #time = pf.current_time*pf['Time']*pf['years']
-                #pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
+                time = pf.current_time*pf['Time']*pf['years']
+                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+
             plt.set_cmap(args.field,args.cmap)
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)

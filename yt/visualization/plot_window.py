@@ -30,12 +30,14 @@ import cStringIO
 from functools import wraps
 
 import numpy as na
+from .color_maps import yt_colormaps, is_colormap
 from .image_writer import \
     write_image, apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit
+from .plot_modifications import get_smallest_appropriate_unit, \
+    GridBoundaryCallback, TextLabelCallback
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 
@@ -256,7 +258,7 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
-        width = (pf.domain_right_edge - pf.domain_left_edge)
+        width = 1.0
     elif iterable(width):
         w,u = width
         width = w/pf[u]
@@ -342,7 +344,6 @@ class PlotWindow(object):
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
             self.set_center(center)
-        self._callbacks = []
         self._initfinished = True
 
     def __getitem__(self, item):
@@ -475,10 +476,6 @@ class PlotWindow(object):
         Wy = self.ylim[1] - self.ylim[0]
         return (Wx, Wy)
 
-    # @property
-    # def window(self):
-    #     return self.xlim + self.ylim
-
     @invalidate_data
     def set_antialias(self,aa):
         self.antialias = aa
@@ -510,6 +507,9 @@ class PWViewer(PlotWindow):
         self._colormaps = defaultdict(lambda: 'algae')
         self.zmin = None
         self.zmax = None
+        self._draw_grids = False
+        self._annotate_text = False
+        self._callbacks = []
         self._field_transform = {}
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
@@ -551,6 +551,16 @@ class PWViewer(PlotWindow):
     def set_zlim(self, field, zmin, zmax):
         self.zmin = zmin
         self.zmax = zmax
+
+    @invalidate_plot
+    def draw_grids(self, alpha=1.0, min_pix=1, annotate = False, periodic = True):
+        self._draw_grids = True
+        self.grid_params = (alpha, min_pix, annotate, periodic)
+
+    @invalidate_plot
+    def annotate_text(self, position, message, data_coords = False, text_args = None):
+        self._annotate_text = True
+        self.text_params = (position, message, data_coords, text_args)
 
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
@@ -632,7 +642,8 @@ class PWViewerMPL(PWViewer):
             extent.extend([self.xlim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], zlim = (self.zmin,self.zmax))
+            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
+                                          self._colormaps[f], zlim = (self.zmin,self.zmax))
             
             cb = matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
 
@@ -648,13 +659,29 @@ class PWViewerMPL(PWViewer):
 
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
+            if self._draw_grids:
+                self._callbacks.append(GridBoundaryCallback(*self.grid_params))
+
+            if self._annotate_text:
+                self._callbacks.append(TextLabelCallback(*self.text_params))
+                
             for callback in self._callbacks:
                 cbr = CallbackWrapper(self.plots[f], self._frb, f)
                 callback(cbr)
 
         self._plot_valid = True
 
+    @invalidate_plot
     def set_cmap(self, field, cmap):
+        if isinstance(cmap, types.StringTypes):
+            if str(cmap) in yt_colormaps:
+                cmap = yt_colormaps[str(cmap)]
+            elif hasattr(matplotlib.cm, cmap):
+                cmap = getattr(matplotlib.cm, cmap)
+        if not is_colormap(cmap) and cmap is not None:
+            raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
+        else:
+            self.cmap = cmap
         self.plots[field].image.set_cmap(cmap)
 
     def save(self,name):
@@ -870,14 +897,15 @@ class PlotMPL(object):
         self.figure.savefig('%s.png' % name)
 
 class WindowPlotMPL(PlotMPL):
-    def __init__(self, data, extent, field_transform, size=(9,8), zlim = (None, None)):
+    def __init__(self, data, extent, field_transform, cmap, size=(9,8), zlim = (None, None)):
         PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent, field_transform, zlim)
+        self.__init_image(data, extent, field_transform, zlim, cmap)
 
-    def __init_image(self, data, extent, field_transform, zlim):
+    def __init_image(self, data, extent, field_transform, zlim, cmap):
         if (field_transform.name == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (field_transform.name == 'linear'):
             norm = matplotlib.colors.Normalize()
-        self.image = self.axes.imshow(data,origin='lower',extent=extent,
-                                      norm=norm, vmin = zlim[0], vmax = zlim[1])
+        self.image = self.axes.imshow(data, origin='lower', extent = extent,
+                                      norm = norm, vmin = zlim[0], vmax = zlim[1],
+                                      cmap = cmap)
