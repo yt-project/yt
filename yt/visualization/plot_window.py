@@ -72,6 +72,21 @@ def invalidate_plot(f):
 
 field_transforms = {}
 
+class IMPlot(object): pass
+
+class CallbackWrapper(object):
+    def __init__(self, window_plot, frb, field):
+        self.data = frb.data_source
+        self._axes = window_plot.axes
+        self._figure = window_plot.figure
+        if len(self._axes.images) > 0:
+            self.image = self._axes.images[0]
+        self._period = frb.pf.domain_width
+        self.pf = frb.pf
+        self.xlim = (frb.bounds[0], frb.bounds[1])
+        self.ylim = (frb.bounds[2], frb.bounds[3])
+        self._type_name = ''
+
 class FieldTransform(object):
     def __init__(self, name, func, locator):
         self.name = name
@@ -327,6 +342,7 @@ class PlotWindow(object):
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
             self.set_center(center)
+        self._callbacks = []
         self._initfinished = True
 
     def __getitem__(self, item):
@@ -631,6 +647,10 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1])
 
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
+
+            for callback in self._callbacks:
+                cbr = CallbackWrapper(self.plots[f], self._frb, f)
+                callback(cbr)
 
         self._plot_valid = True
 
