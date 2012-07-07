@@ -1133,25 +1133,30 @@ class YTPlotCmd(YTCommand):
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = na.array(center)
-        pc=PlotCollection(pf, center=center)
         if args.axis == 4:
             axes = range(3)
         else:
             axes = [args.axis]
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)
-            if args.projection: pc.add_projection(args.field, ax,
-                                    weight_field=args.weight, center=center)
-            else: pc.add_slice(args.field, ax, center=center)
-            if args.grids: pc.plots[-1].modify["grids"]()
+            if args.projection:
+                plt = ProjectionPlot(pf, ax, args.field, center=center,
+                                     width=args.width,
+                                     weight_field=args.weight)
+            else:
+                plt = SlicePlot(pf, ax, args.field, center=center,
+                                width=args.width)
+            if args.grids:
+                plt.draw_grids()
             if args.time: 
                 time = pf.current_time*pf['Time']*pf['years']
-                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
-        pc.set_width(args.width, args.unit)
-        pc.set_cmap(args.cmap)
-        if args.zlim: pc.set_zlim(*args.zlim)
-        if not os.path.isdir(args.output): os.makedirs(args.output)
-        pc.save(os.path.join(args.output,"%s" % (pf)))
+                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+
+            plt.set_cmap(args.field,args.cmap)
+            if args.zlim:
+                plt.set_zlim(args.field,*args.zlim)
+            if not os.path.isdir(args.output): os.makedirs(args.output)
+            plt.save(os.path.join(args.output,"%s" % (pf)))
 
 class YTRenderCmd(YTCommand):
         

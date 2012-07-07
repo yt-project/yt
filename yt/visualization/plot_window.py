@@ -30,12 +30,14 @@ import cStringIO
 from functools import wraps
 
 import numpy as na
+from .color_maps import yt_colormaps, is_colormap
 from .image_writer import \
     write_image, apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit
+from .plot_modifications import get_smallest_appropriate_unit, \
+    GridBoundaryCallback, TextLabelCallback
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 
@@ -72,6 +74,21 @@ def invalidate_plot(f):
 
 field_transforms = {}
 
+class IMPlot(object): pass
+
+class CallbackWrapper(object):
+    def __init__(self, window_plot, frb, field):
+        self.data = frb.data_source
+        self._axes = window_plot.axes
+        self._figure = window_plot.figure
+        if len(self._axes.images) > 0:
+            self.image = self._axes.images[0]
+        self._period = frb.pf.domain_width
+        self.pf = frb.pf
+        self.xlim = (frb.bounds[0], frb.bounds[1])
+        self.ylim = (frb.bounds[2], frb.bounds[3])
+        self._type_name = ''
+
 class FieldTransform(object):
     def __init__(self, name, func, locator):
         self.name = name
@@ -94,8 +111,6 @@ linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
 def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window'):
     r"""
-    SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
-
     Given a pf object, an axis to slice along, and a field name
     string, this will return a PWViewrMPL object containing
     the plot.
@@ -105,48 +120,38 @@ def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.apy.StaticOutput`
-
+    pf : :class:`yt.data_objects.api.StaticOutput`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
-
     axis : int
-
-         An int corresponding to the axis to slice along.  
-	 (0 : x, 1 : y, 2 : z)
-
+        An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
     fields : string
-    
-          The name of the field(s) to be plotted.
-
+        The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or
              'center'
-
-           The coordinate of the center of the image.  If left blanck,
-           the image centers on the location of the maximum density
-           cell.  If set to 'c' or 'center', the plot is centered on
-           the middle of the domain.
-
+        The coordinate of the center of the image.  If left blanck,
+        the image centers on the location of the maximum density
+        cell.  If set to 'c' or 'center', the plot is centered on
+        the middle of the domain.
     width : A tuple or a float
-    
-           A tuple containing the width of image and the string key of
-           the unit: (width, 'unit').  If set to a float, code units
-           are assumed
-
+        A tuple containing the width of image and the string key of
+        the unit: (width, 'unit').  If set to a float, code units
+        are assumed
     origin : A string
+        The location of the origin of the plot coordinate system.
+        Currently, can be set to three options: 'left-domain', corresponding
+        to the bottom-left hand corner of the simulation domain, 'left-window',
+        corresponding to the bottom-left hand cordiner of the plot window, or
+        'center-window' for the center of the plot window.
 
-            The location of the origin of the plot coordinate system.
-            Currently, can be set to three options:
+    Examples
+    --------
 
-	    'left-domain':
-	         The bottom-left hand corner of the simulation domain.
+    This is a very simple way of creating a slice plot.
 
-            'left-window':
-	         The bottom-left hand cordiner of the plot window.
-
-	    'center-window'
-	         The center of the plot window.
-
+    >>> pf = load('galaxy0030/galaxy0030')
+    >>> p = SlicePlot(pf,2,'Density','c',(20,'kpc'))
+    >>> p.save('sliceplot')
     """
     (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
     slice = pf.h.slice(axis,center[axis],fields=fields)
@@ -155,9 +160,6 @@ def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
 def ProjectionPlot(pf, axis, fields, center=None, width=None,
                    weight_field=None, max_level=None, origin='center-window'):
     r"""
-    ProjectionPlot(pf, axis, fields, center=None, width=None, 
-                   weight_field=None, max_level=None, origin='center-window')
-
     Given a pf object, an axis to project along, and a field name
     string, this will return a PWViewrMPL object containing
     the plot.
@@ -167,55 +169,48 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.apy.StaticOutput`
-
+    pf : :class:`yt.data_objects.api.StaticOutput`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
-
     axis : int
-
-         An int corresponding to the axis to project along.  
-	 (0 : x, 1 : y, 2 : z)
-
+        An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
     fields : string
-    
-          The name of the field(s) to be plotted.
-
+        The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or
              'center'
-
-           The coordinate of the center of the image.  If left blanck,
-           the image centers on the location of the maximum density
-           cell.  If set to 'c' or 'center', the plot is centered on
-           the middle of the domain.
-
+        The coordinate of the center of the image.  If left blanck,
+        the image centers on the location of the maximum density
+        cell.  If set to 'c' or 'center', the plot is centered on
+        the middle of the domain.
     width : A tuple or a float
-    
-           A tuple containing the width of image and the string key of
-           the unit: (width, 'unit').  If set to a float, code units
-           are assumed
-
+        A tuple containing the width of image and the string key of
+        the unit: (width, 'unit').  If set to a float, code units
+        are assumed
+    origin : A string
+        The location of the origin of the plot coordinate system.
+        Currently, can be set to three options: 'left-domain', corresponding
+        to the bottom-left hand corner of the simulation domain, 'left-window',
+        corresponding to the bottom-left hand cordiner of the plot window, or
+        'center-window' for the center of the plot window.
     weight_field : string
-
-            The name of the weighting field.  Set to None for no weight.
-
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
+        The maximum level to project to.
+    origin : A string
+        The location of the origin of the plot coordinate system.
+        Currently, can be set to three options: 'left-domain', corresponding
+        to the bottom-left hand corner of the simulation domain, 'left-window',
+        corresponding to the bottom-left hand cordiner of the plot window, or
+        'center-window' for the center of the plot window.
 
-            The maximum level to project to.
-            
-    origin : string
+    Examples
+    --------
 
-            The location of the origin of the plot coordinate system.
-            Currently, can be set to three options:
+    This is a very simple way of creating a projection plot.
 
-	    'left-domain':
-	         The bottom-left hand corner of the simulation domain.
-
-            'left-window':
-	         The bottom-left hand cordiner of the plot window.
-
-	    'center-window'
-	         The center of the plot window.
+    >>> pf = load('galaxy0030/galaxy0030')
+    >>> p = ProjectionPlot(pf,2,'Density','c',(20,'kpc'))
+    >>> p.save('sliceplot')
 
     """
     (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
@@ -224,9 +219,7 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
 
 def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=None):
     r"""
-    SlicePlot(pf, normal, fields, center=None, width=None, north_vector=None)
-
-    Given a pf object, a normal vector defining a slicing plonae, and
+    Given a pf object, a normal vector defining a slicing plane, and
     a field name string, this will return a PWViewrMPL object
     containing the plot.
 
@@ -235,39 +228,27 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.apy.StaticOutput`
-
+    pf : :class:`yt.data_objects.api.StaticOutput`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
-
     normal : a sequence of floats
-
          The vector normal to the slicing plane.
-
     fields : string
-    
-          The name of the field(s) to be plotted.
-
+        The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or
              'center'
-
-           The coordinate of the center of the image.  If left blanck,
-           the image centers on the location of the maximum density
-           cell.  If set to 'c' or 'center', the plot is centered on
-           the middle of the domain.
-
+        The coordinate of the center of the image.  If left blanck,
+        the image centers on the location of the maximum density
+        cell.  If set to 'c' or 'center', the plot is centered on
+        the middle of the domain.
     width : A tuple or a float
-    
-           A tuple containing the width of image and the string key of
-           the unit: (width, 'unit').  If set to a float, code units
-           are assumed
-
+        A tuple containing the width of image and the string key of
+        the unit: (width, 'unit').  If set to a float, code units
+        are assumed
     north-vector : a sequence of floats
-    
-           A vector defining the 'up' direction in the plot.  This
-           option sets the orientation of the slicing plane.  If not
-           set, an arbitrary grid-aligned north-vector is chosen.
-
+        A vector defining the 'up' direction in the plot.  This
+        option sets the orientation of the slicing plane.  If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     """
     (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
     cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
@@ -277,7 +258,7 @@ def OffAxisSlicePlot(pf, normal, fields, center=None, width=None, north_vector=N
 
 def GetBoundsAndCenter(axis, center, width, pf):
     if width == None:
-        width = (pf.domain_right_edge - pf.domain_left_edge)
+        width = pf.domain_width.min()
     elif iterable(width):
         w,u = width
         width = w/pf[u]
@@ -495,10 +476,6 @@ class PlotWindow(object):
         Wy = self.ylim[1] - self.ylim[0]
         return (Wx, Wy)
 
-    # @property
-    # def window(self):
-    #     return self.xlim + self.ylim
-
     @invalidate_data
     def set_antialias(self,aa):
         self.antialias = aa
@@ -530,6 +507,9 @@ class PWViewer(PlotWindow):
         self._colormaps = defaultdict(lambda: 'algae')
         self.zmin = None
         self.zmax = None
+        self._draw_grids = False
+        self._annotate_text = False
+        self._callbacks = []
         self._field_transform = {}
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
@@ -571,6 +551,16 @@ class PWViewer(PlotWindow):
     def set_zlim(self, field, zmin, zmax):
         self.zmin = zmin
         self.zmax = zmax
+
+    @invalidate_plot
+    def draw_grids(self, alpha=1.0, min_pix=1, annotate = False, periodic = True):
+        self._draw_grids = True
+        self.grid_params = (alpha, min_pix, annotate, periodic)
+
+    @invalidate_plot
+    def annotate_text(self, position, message, data_coords = False, text_args = None):
+        self._annotate_text = True
+        self.text_params = (position, message, data_coords, text_args)
 
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
@@ -652,7 +642,8 @@ class PWViewerMPL(PWViewer):
             extent.extend([self.xlim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], zlim = (self.zmin,self.zmax))
+            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
+                                          self._colormaps[f], zlim = (self.zmin,self.zmax))
             
             cb = matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
 
@@ -668,14 +659,39 @@ class PWViewerMPL(PWViewer):
 
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
+            if self._draw_grids:
+                self._callbacks.append(GridBoundaryCallback(*self.grid_params))
+
+            if self._annotate_text:
+                self._callbacks.append(TextLabelCallback(*self.text_params))
+                
+            for callback in self._callbacks:
+                cbr = CallbackWrapper(self.plots[f], self._frb, f)
+                callback(cbr)
+
         self._plot_valid = True
 
+    @invalidate_plot
     def set_cmap(self, field, cmap):
+        if isinstance(cmap, types.StringTypes):
+            if str(cmap) in yt_colormaps:
+                cmap = yt_colormaps[str(cmap)]
+            elif hasattr(matplotlib.cm, cmap):
+                cmap = getattr(matplotlib.cm, cmap)
+        if not is_colormap(cmap) and cmap is not None:
+            raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
+        else:
+            self.cmap = cmap
         self.plots[field].image.set_cmap(cmap)
 
     def save(self,name):
+        axis = axis_names[self.data_source.axis]
+        if 'Slice' in self.data_source.__class__.__name__:
+            type = 'Slice'
+        if 'Proj' in self.data_source.__class__.__name__:
+            type = 'Projection'
         for k,v in self.plots.iteritems():
-            n = "%s_%s" % (name, k)
+            n = "%s_%s_%s_%s" % (name, type, axis, k)
             v.save(n)
 
 class PWViewerRaw(PWViewer):
@@ -877,18 +893,19 @@ class PlotMPL(object):
         self.cax = self.figure.add_axes((.86,.10,.04,.8))
 
     def save(self,name):
-        print "saving plot %s" % name
+        print "saving plot %s.png" % name
         self.figure.savefig('%s.png' % name)
 
 class WindowPlotMPL(PlotMPL):
-    def __init__(self, data, extent, field_transform, size=(9,8), zlim = (None, None)):
+    def __init__(self, data, extent, field_transform, cmap, size=(9,8), zlim = (None, None)):
         PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent, field_transform, zlim)
+        self.__init_image(data, extent, field_transform, zlim, cmap)
 
-    def __init_image(self, data, extent, field_transform, zlim):
+    def __init_image(self, data, extent, field_transform, zlim, cmap):
         if (field_transform.name == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (field_transform.name == 'linear'):
             norm = matplotlib.colors.Normalize()
-        self.image = self.axes.imshow(data,origin='lower',extent=extent,
-                                      norm=norm, vmin = zlim[0], vmax = zlim[1])
+        self.image = self.axes.imshow(data, origin='lower', extent = extent,
+                                      norm = norm, vmin = zlim[0], vmax = zlim[1],
+                                      cmap = cmap)
