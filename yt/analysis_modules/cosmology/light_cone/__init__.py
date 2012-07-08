@@ -1,11 +1,11 @@
 """
-API for cosmology analysis.
+Import stuff for light cone generator.
 
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: Michigan State University
+Author: Britton Smith <brittons@origins.colorado.edu>
+Affiliation: CASA/University of CO, Boulder
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -21,15 +21,4 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
-
-from .cosmology_splice import \
-    CosmologySplice
-
-from .light_cone.api import \
-    LightCone, \
-    light_cone_halo_mask, \
-    light_cone_halo_map, \
-    find_unique_solutions, \
-    project_unique_light_cones

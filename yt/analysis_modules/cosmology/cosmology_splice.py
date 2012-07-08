@@ -85,9 +85,16 @@ class CosmologySplice(object):
 
         # Link datasets in list with pointers.
         # This is used for connecting datasets together.
-        for i, output in enumerate(self.simulation.all_outputs[:-1]):
-            output['next'] = self.simulation.all_outputs[i + 1]
-        self.simulation.all_outputs[-1]['next'] = None
+        for i, output in enumerate(self.simulation.all_outputs):
+            if i == 0:
+                output['previous'] = None
+                output['next'] = self.simulation.all_outputs[i + 1]
+            elif i == len(self.simulation.all_outputs) - 1:
+                output['previous'] = self.simulation.all_outputs[i - 1]
+                output['next'] = None
+            else:
+                output['previous'] = self.simulation.all_outputs[i - 1]
+                output['next'] = self.simulation.all_outputs[i + 1]
 
         # Calculate maximum delta z for each data dump.
         self._calculate_deltaz_max()
@@ -228,7 +235,7 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        targetDistance = self.simulation.box_size
+        target_distance = self.simulation.box_size
 
         for output in self.simulation.all_outputs:
             z = output['redshift']
@@ -245,11 +252,11 @@ class CosmologySplice(object):
             distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
               self.simulation.hubble_constant
 
-            while ((na.fabs(distance2-targetDistance)/distance2) > d_Tolerance):
+            while ((na.fabs(distance2-target_distance)/distance2) > d_Tolerance):
                 m = (distance2 - distance1) / (z2 - z1)
                 z1 = z2
                 distance1 = distance2
-                z2 = ((targetDistance - distance2) / m) + z2
+                z2 = ((target_distance - distance2) / m) + z2
                 distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
                   self.simulation.hubble_constant
                 iteration += 1
@@ -267,7 +274,7 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        targetDistance = self.simulation.box_size / \
+        target_distance = self.simulation.box_size / \
           self.simulation.domain_dimensions[0]
 
         for output in self.simulation.all_outputs:
@@ -285,11 +292,11 @@ class CosmologySplice(object):
             distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
               self.simulation.hubble_constant
 
-            while ((na.fabs(distance2 - targetDistance) / distance2) > d_Tolerance):
+            while ((na.fabs(distance2 - target_distance) / distance2) > d_Tolerance):
                 m = (distance2 - distance1) / (z2 - z1)
                 z1 = z2
                 distance1 = distance2
-                z2 = ((targetDistance - distance2) / m) + z2
+                z2 = ((target_distance - distance2) / m) + z2
                 distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
                   self.simulation.hubble_constant
                 iteration += 1
