@@ -24,5 +24,5 @@ License:
 
 """
 
-from .cosmology_time_series import \
-    CosmologyTimeSeries
+from .cosmology_splice import \
+    CosmologySplice
