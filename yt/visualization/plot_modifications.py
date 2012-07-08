@@ -259,10 +259,13 @@ class GridBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        width, height = plot.image._A.shape
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        dx = (xx1-xx0)/(x1-x0)
-        dy = (yy1-yy0)/(y1-y0)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
@@ -275,21 +278,23 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
-            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx + xx0
-            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy + yy0
-            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx + xx0
-            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx
+            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy
+            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
+            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
             verts = na.array(
-                    [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                     (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
+                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
+                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
             visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
                        ( right_edge_px - left_edge_px > self.min_pix )
             verts=verts.transpose()[visible,:,:]
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
+            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width  - 0.5)
+            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height - 0.5)
             grid_collection = matplotlib.collections.PolyCollection(
-                    verts, facecolors="none",
-                           edgecolors=edgecolors)
+                verts, facecolors="none",
+                edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
             if self.annotate:

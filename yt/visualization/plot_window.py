@@ -36,8 +36,8 @@ from .image_writer import \
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit, \
-    GridBoundaryCallback, TextLabelCallback
+from .plot_modifications import get_smallest_appropriate_unit
+import plot_modifications as CallbackMod
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 
@@ -450,10 +450,13 @@ class PlotWindow(object):
 
         parameters
         ----------
-        new_width : float
+        new_width : float or tuple
             the width of the image in code units.
 
         """
+        if iterable(new_width):
+            w,u = new_width
+            new_width = w/self.pf[u]
         Wx, Wy = self.width
         centerx = self.xlim[0] + Wx*0.5
         centery = self.ylim[0] + Wy*0.5
@@ -507,9 +510,8 @@ class PWViewer(PlotWindow):
         self._colormaps = defaultdict(lambda: 'algae')
         self.zmin = None
         self.zmax = None
-        self._draw_grids = False
-        self._annotate_text = False
         self._callbacks = []
+        self._callback_params = []
         self._field_transform = {}
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
@@ -554,13 +556,13 @@ class PWViewer(PlotWindow):
 
     @invalidate_plot
     def draw_grids(self, alpha=1.0, min_pix=1, annotate = False, periodic = True):
-        self._draw_grids = True
-        self.grid_params = (alpha, min_pix, annotate, periodic)
+        self._callbacks.append('GridBoundaryCallback')
+        self._callback_params.append((alpha, min_pix, annotate, periodic))
 
     @invalidate_plot
     def annotate_text(self, position, message, data_coords = False, text_args = None):
-        self._annotate_text = True
-        self.text_params = (position, message, data_coords, text_args)
+        self._callbacks.append('TextLabelCallback')
+        self._callback_params.append((position, message, data_coords, text_args))
 
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
@@ -659,14 +661,10 @@ class PWViewerMPL(PWViewer):
 
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
-            if self._draw_grids:
-                self._callbacks.append(GridBoundaryCallback(*self.grid_params))
-
-            if self._annotate_text:
-                self._callbacks.append(TextLabelCallback(*self.text_params))
-                
-            for callback in self._callbacks:
+            for callback,params in zip(self._callbacks,self._callback_params):
                 cbr = CallbackWrapper(self.plots[f], self._frb, f)
+                CallbackMaker = getattr(CallbackMod,callback)
+                callback = CallbackMaker(*params)
                 callback(cbr)
 
         self._plot_valid = True
