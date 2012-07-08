@@ -635,6 +635,7 @@ class PointAnnotateCallback(PlotCallback):
         """
         self.pos = pos
         self.text = text
+        if text_args is None: text_args = {}
         self.text_args = text_args
 
     def __call__(self, plot):
