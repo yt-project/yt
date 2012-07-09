@@ -2623,7 +2623,7 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
         Examples
         --------
         >>> pf = load("data0005")
-        >>> halos = LoadHaloes(pf, "list.txt", {'x':0, 'y':1, 'z':2, 'r':3},
+        >>> halos = LoadTextHaloes(pf, "list.txt", {'x':0, 'y':1, 'z':2, 'r':3},
             comment = ";")
         """
         TextHaloList.__init__(self, pf, filename, columns, comment)
