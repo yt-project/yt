@@ -1609,7 +1609,7 @@ class TextHaloList(HaloList):
             r = float(line[columns['r']])
             cen = na.array([x, y, z])
             self._groups.append(TextHalo(self.pf, halo, size = None,
-                CoM = cen, max_dens_point = cen,
+                CoM = cen, max_dens_point = None,
                 group_total_mass = None, max_radius = r, bulk_vel = None,
                 rms_vel = None, fnames = None))
             halo += 1
