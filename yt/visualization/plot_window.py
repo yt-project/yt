@@ -445,22 +445,27 @@ class PlotWindow(object):
             self.ylim = bounds[2:]
             
     @invalidate_data
-    def set_width(self, new_width):
+    def set_width(self, width, unit = '1'):
         """set the width of the plot window
 
         parameters
         ----------
-        new_width : float
-            the width of the image in code units.
+        width : float
+            the width of the image.
+        unit : str
+            the unit the width has been specified in.
+            defaults to code units.
 
         """
         Wx, Wy = self.width
+        width = width / self.pf[unit]
+        
         centerx = self.xlim[0] + Wx*0.5
         centery = self.ylim[0] + Wy*0.5
-        self.xlim = (centerx - new_width/2.,
-                     centerx + new_width/2.)
-        self.ylim = (centery - new_width/2.,
-                     centery + new_width/2.)
+        self.xlim = (centerx - width/2.,
+                     centerx + width/2.)
+        self.ylim = (centery - width/2.,
+                     centery + width/2.)
 
     @invalidate_data
     def set_center(self, new_center):
