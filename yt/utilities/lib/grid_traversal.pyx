@@ -204,7 +204,7 @@ cdef class PartitionedGrid:
 
         for i in range(3):
             ci[i] = (int)((pos[i]-self.LeftEdge[i])/c.dds[i])
-            dp[i] = (pos[i] - self.LeftEdge[i])%(c.dds[i])
+            dp[i] = (pos[i] - ci[i]*c.dds[i] - self.LeftEdge[i])/c.dds[i]
 
         cdef int offset = ci[0] * (c.dims[1] + 1) * (c.dims[2] + 1) \
                           + ci[1] * (c.dims[2] + 1) + ci[2]
