@@ -148,7 +148,7 @@ _common_options = dict(
                    help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
                    action="store", type=float,
-                   dest="width", default=1.0,
+                   dest="width", default=None,
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type=str,

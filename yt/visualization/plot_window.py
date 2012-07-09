@@ -153,6 +153,7 @@ def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
     >>> p = SlicePlot(pf,2,'Density','c',(20,'kpc'))
     >>> p.save('sliceplot')
     """
+    pdb.set_trace()
     (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
     slice = pf.h.slice(axis,center[axis],fields=fields)
     return PWViewerMPL(slice,bounds,origin=origin)
