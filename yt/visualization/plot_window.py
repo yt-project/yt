@@ -602,7 +602,8 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
-        if ds._type_name == "slice" or "cutting":
+        if ds._type_name in ("slice", "cutting") or \
+           (ds._type_name == "proj" and ds.weight_field is not None):
             units = pf.field_info[field].get_units()
         elif ds._type_name == "proj":
             units = pf.field_info[field].get_projected_units()
