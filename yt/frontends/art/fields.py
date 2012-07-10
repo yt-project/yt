@@ -254,3 +254,18 @@ ARTFieldInfo["Metal_Density"]._projected_units = r""
 
 #Derived particle fields
 
+def mass_dm(field, data):
+    idx = data["particle_type"]<5
+    #make a dumb assumption that the mass is evenly spread out in the grid
+    #must return an array the shape of the grid cells
+    tr  = data["Ones"] #create a grid in the right size
+    if na.sum(idx)>0:
+        tr /= na.prod(tr.shape) #divide by the volume
+        tr *= na.sum(data['particle_mass'][idx]) #Multiply by total contaiend mass
+        return tr
+    else:
+        return tr*0.0
+    
+add_field("particle_cell_mass_dm", function=mass_dm,
+          validators=[ValidateSpatial(0)])
+
