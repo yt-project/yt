@@ -145,13 +145,13 @@ KnownARTFields["GasEnergy"]._projected_units = r""
 KnownARTFields["GasEnergy"]._convert_function=_convertGasEnergy
 
 def _convertMetalDensitySNII(data):
-    return data.convert("Density")
+    return data.convert('Density')
 KnownARTFields["MetalDensitySNII"]._units = r"\rm{g}/\rm{cm}^3"
 KnownARTFields["MetalDensitySNII"]._projected_units = r"\rm{g}/\rm{cm}^2"
 KnownARTFields["MetalDensitySNII"]._convert_function=_convertMetalDensitySNII
 
 def _convertMetalDensitySNIa(data):
-    return data.convert("Density")
+    return data.convert('Density')
 KnownARTFields["MetalDensitySNIa"]._units = r"\rm{g}/\rm{cm}^3"
 KnownARTFields["MetalDensitySNIa"]._projected_units = r"\rm{g}/\rm{cm}^2"
 KnownARTFields["MetalDensitySNIa"]._convert_function=_convertMetalDensitySNIa
@@ -171,21 +171,32 @@ KnownARTFields["PotentialOld"]._convert_function=_convertPotentialOld
 ####### Derived fields
 
 def _temperature(field, data):
-    tr  = data["GasEnergy"].astype('float64') #~1
-    d = data["Density"].astype('float64')
-    d[d==0.0] = -1.0 #replace the zeroes (that cause infs)
-    tr /= d #
-    assert na.all(na.isfinite(tr)) #diagnosing some problem...
+    cd = data.pf.conversion_factors["Density"]
+    cg = data.pf.conversion_factors["GasEnergy"]
+    ct = data.pf.tr
+    dg = data["GasEnergy"].astype('float64')
+    dd = data["Density"].astype('float64')
+    di = dd==0.0
+    #dd[di] = -1.0
+    tr = dg/dd
+    #tr[na.isnan(tr)] = 0.0 
+    #if data.id==460:
+    #    import pdb;pdb.set_trace()
+    tr /= data.pf.conversion_factors["GasEnergy"]
+    tr *= data.pf.conversion_factors["Density"]
+    tr *= data.pf.tr
+    #tr[di] = -1.0 #replace the zero-density points with zero temp
+    #print tr.min()
+    #assert na.all(na.isfinite(tr))
     return tr
 def _converttemperature(data):
-    x  = data.pf.conversion_factors["Density"]
-    x /= data.pf.conversion_factors["GasEnergy"]
-    x *= data.pf.conversion_factors["Temperature"]
+    x = data.pf.conversion_factors["Temperature"]
+    x = 1.0
     return x
-add_art_field("Temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
-KnownARTFields["Temperature"]._units = r"\mathrm{K}"
-KnownARTFields["Temperature"]._projected_units = r"\mathrm{K}"
-KnownARTFields["Temperature"]._convert_function=_converttemperature
+add_field("Temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Temperature"]._units = r"\mathrm{K}"
+ARTFieldInfo["Temperature"]._projected_units = r"\mathrm{K}"
+ARTFieldInfo["Temperature"]._convert_function=_converttemperature
 
 def _metallicity_snII(field, data):
     tr  = data["MetalDensitySNII"] / data["Density"]
