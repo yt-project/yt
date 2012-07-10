@@ -183,8 +183,9 @@ class EnzoSimulation(SimulationTimeSeries):
             mylog.error('An initial or final redshift has been given for a noncosmological simulation.')
             return
 
+        # Create the set of outputs from which further selection will be done.
         if find_outputs:
-            my_outputs = self._find_outputs()
+            my_all_outputs = self._find_outputs()
 
         else:
             if time_data and redshift_data:
@@ -197,49 +198,50 @@ class EnzoSimulation(SimulationTimeSeries):
                 mylog.error('Both time_data and redshift_data are False.')
                 return
 
-            if times is not None:
-                my_outputs = self._get_outputs_by_time(times, tolerance=tolerance,
-                                                       outputs=my_all_outputs,
-                                                       time_units=time_units)
+        # Apply selection criteria to the set.
+        if times is not None:
+            my_outputs = self._get_outputs_by_time(times, tolerance=tolerance,
+                                                   outputs=my_all_outputs,
+                                                   time_units=time_units)
 
-            elif redshifts is not None:
-                my_outputs = self._get_outputs_by_redshift(redshifts, tolerance=tolerance,
-                                                           outputs=my_all_outputs)
+        elif redshifts is not None:
+            my_outputs = self._get_outputs_by_redshift(redshifts, tolerance=tolerance,
+                                                       outputs=my_all_outputs)
 
-            elif initial_cycle is not None or final_cycle is not None:
-                if initial_cycle is None:
-                    initial_cycle = 0
-                else:
-                    initial_cycle = max(initial_cycle, 0)
-                if final_cycle is None:
-                    final_cycle = self.parameters['StopCycle']
-                else:
-                    final_cycle = min(final_cycle, self.parameters['StopCycle'])
-                my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
-                                                     self.parameters['CycleSkipDataDump'])):
-                                            (final_cycle /  self.parameters['CycleSkipDataDump'])+1]
-
+        elif initial_cycle is not None or final_cycle is not None:
+            if initial_cycle is None:
+                initial_cycle = 0
             else:
-                if initial_time is not None:
-                    my_initial_time = initial_time / self.time_units[time_units]
-                elif initial_redshift is not None:
-                    my_initial_time = self.enzo_cosmology.ComputeTimeFromRedshift(initial_redshift) / \
-                        self.enzo_cosmology.TimeUnits
-                else:
-                    my_initial_time = self.initial_time
+                initial_cycle = max(initial_cycle, 0)
+            if final_cycle is None:
+                final_cycle = self.parameters['StopCycle']
+            else:
+                final_cycle = min(final_cycle, self.parameters['StopCycle'])
+            my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
+                                                 self.parameters['CycleSkipDataDump'])):
+                                        (final_cycle /  self.parameters['CycleSkipDataDump'])+1]
 
-                if final_time is not None:
-                    my_final_time = final_time / self.time_units[time_units]
-                elif final_redshift is not None:
-                    my_final_time = self.enzo_cosmology.ComputeTimeFromRedshift(final_redshift) / \
-                        self.enzo_cosmology.TimeUnits
-                else:
-                    my_final_time = self.final_time
-                    
-                my_times = na.array(map(lambda a:a['time'], my_all_outputs))
-                my_indices = na.digitize([my_initial_time, my_final_time], my_times)
-                if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
-                my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
+        else:
+            if initial_time is not None:
+                my_initial_time = initial_time / self.time_units[time_units]
+            elif initial_redshift is not None:
+                my_initial_time = self.enzo_cosmology.ComputeTimeFromRedshift(initial_redshift) / \
+                    self.enzo_cosmology.TimeUnits
+            else:
+                my_initial_time = self.initial_time
+
+            if final_time is not None:
+                my_final_time = final_time / self.time_units[time_units]
+            elif final_redshift is not None:
+                my_final_time = self.enzo_cosmology.ComputeTimeFromRedshift(final_redshift) / \
+                    self.enzo_cosmology.TimeUnits
+            else:
+                my_final_time = self.final_time
+
+            my_times = na.array(map(lambda a:a['time'], my_all_outputs))
+            my_indices = na.digitize([my_initial_time, my_final_time], my_times)
+            if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
+            my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
 
         TimeSeriesData.__init__(self, outputs=[output['filename'] for output in my_outputs],
                                 parallel=parallel)
