@@ -222,23 +222,23 @@ ARTFieldInfo["Metallicity"]._projected_units = r""
 def _x_velocity(data):
     tr  = data["XMomentumDensity"]/data["Density"]
     return tr
-add_field("x_velocity", function=_x_velocity, units = r"\mathrm{cm/s}",take_log=False)
-ARTFieldInfo["x_velocity"]._units = r"\rm{cm}/\rm{s}"
-ARTFieldInfo["x_velocity"]._projected_units = r"\rm{cm}/\rm{s}"
+add_field("x-velocity", function=_x_velocity, units = r"\mathrm{cm/s}",take_log=False)
+ARTFieldInfo["x-velocity"]._units = r"\rm{cm}/\rm{s}"
+ARTFieldInfo["x-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
 def _y_velocity(data):
     tr  = data["YMomentumDensity"]/data["Density"]
     return tr
-add_field("y_velocity", function=_y_velocity, units = r"\mathrm{cm/s}",take_log=False)
-ARTFieldInfo["y_velocity"]._units = r"\rm{cm}/\rm{s}"
-ARTFieldInfo["y_velocity"]._projected_units = r"\rm{cm}/\rm{s}"
+add_field("y-velocity", function=_y_velocity, units = r"\mathrm{cm/s}",take_log=False)
+ARTFieldInfo["y-velocity"]._units = r"\rm{cm}/\rm{s}"
+ARTFieldInfo["y-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
 def _z_velocity(data):
     tr  = data["ZMomentumDensity"]/data["Density"]
     return tr
-add_field("z_velocity", function=_z_velocity, units = r"\mathrm{cm/s}",take_log=False)
-ARTFieldInfo["z_velocity"]._units = r"\rm{cm}/\rm{s}"
-ARTFieldInfo["z_velocity"]._projected_units = r"\rm{cm}/\rm{s}"
+add_field("z-velocity", function=_z_velocity, units = r"\mathrm{cm/s}",take_log=False)
+ARTFieldInfo["z-velocity"]._units = r"\rm{cm}/\rm{s}"
+ARTFieldInfo["z-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
 
 def _metal_density(field, data):
