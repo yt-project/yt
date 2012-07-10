@@ -150,6 +150,7 @@ def assign_particles_to_cells(np.ndarray[np.int32_t, ndim=1] levels, #for cells
 @cython.wraparound(False)
 @cython.cdivision(True)
 def assign_particles_to_cell_lists(np.ndarray[np.int32_t, ndim=1] levels, #for cells
+                              np.ndarray[np.int32_t,ndim=1] assign,
                               np.int64_t level_max, 
                               np.ndarray[np.float32_t, ndim=2] left_edges, #many cells
                               np.ndarray[np.float32_t, ndim=2] right_edges,
@@ -162,9 +163,10 @@ def assign_particles_to_cell_lists(np.ndarray[np.int32_t, ndim=1] levels, #for c
     cdef long i,j,level
     cdef long npart = pos_x.shape[0]
     cdef long ncells = left_edges.shape[0] 
-    cdef np.ndarray[np.int32_t, ndim=1] assign = np.zeros(npart,dtype='int32')-1
+    #cdef np.ndarray[np.int32_t, ndim=1] assign 
+    #assign = np.zeros(npart,dtype='int32')-1
     index_lists = []
-    for level in range(level_max,0,-1):
+    for level in range(level_max,-1,-1):
         #start with the finest level
         for i in range(ncells):
             #go through every cell on the finest level first
@@ -182,4 +184,39 @@ def assign_particles_to_cell_lists(np.ndarray[np.int32_t, ndim=1] levels, #for c
     return assign,index_lists
 
     
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def recursive_particle_assignment(grids, grid, 
+                                  np.ndarray[np.float32_t, ndim=2] left_edges, #many cells
+                                  np.ndarray[np.float32_t, ndim=2] right_edges,
+                                  np.ndarray[np.float32_t, ndim=1] pos_x, #particle
+                                  np.ndarray[np.float32_t, ndim=1] pos_y,
+                                  np.ndarray[np.float32_t, ndim=1] pos_z):
+    #start on level zero, grid particles onto every mesh
+    #every particle we are fed, we can assume it exists on our grid
+    #must fill in the grid_particle_count array
+    #and particle_indices for every grid
+    cdef long i,j,level
+    cdef long npart = pos_x.shape[0]
+    cdef long ncells = left_edges.shape[0] 
+    cdef np.ndarray[np.int32_t, ndim=1] assigned       = np.zeros(npart,dtype='int32')
+    cdef np.ndarray[np.int32_t, ndim=1] never_assigned = np.ones(npart,dtype='int32')
+    for i in np.unique(grid.child_index_mask):
+        if i== -1: continue
+        #assigned to this subgrid
+        assigned = np.zeros(npart,dtype='int32') 
+        if (left_edges[i,0] <= pos_x[j] <= right_edges[i,0]):
+            if (left_edges[i,1] <= pos_y[j] <= right_edges[i,1]):
+                if (left_edges[i,2] <= pos_z[j] <= right_edges[i,2]):
+                    assigned[j]=1
+                    never_assigned[j]=0
+        if np.sum(assigned)>0:
+            recursive_particle_assignment(grids,grid,left_edges,right_edges,
+                                           pos_x[assigned],pos_y[assigned],pos_z[assigned])
+    #now we have assigned particles to other subgrids, we are left with particles on our grid
     
+            
+
+
+
