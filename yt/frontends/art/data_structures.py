@@ -356,7 +356,6 @@ class ARTHierarchy(AMRHierarchy):
         
 
         if self.pf.file_particle_data:
-            #import pdb; pdb.set_trace()
             lspecies = self.pf.parameters['lspecies']
             wspecies = self.pf.parameters['wspecies']
             Nrow     = self.pf.parameters['Nrow']
@@ -381,6 +380,7 @@ class ARTHierarchy(AMRHierarchy):
                     npb = clspecies[self.pf.only_particle_type+1]
             np = npb-npa
             self.pf.particle_position   = self.pf.particle_position[npa:npb]
+            #do NOT correct by an offset of 1.0
             #self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
             self.pf.particle_position  /= self.pf.domain_dimensions #to unitary units (comoving)
@@ -432,12 +432,6 @@ class ARTHierarchy(AMRHierarchy):
             for j,np in enumerate(nparticles):
                 mylog.debug('found %i of particle type %i'%(j,np))
             
-            if self.pf.single_particle_mass:
-                #cast all particle masses to the same mass
-                cast_type = self.pf.single_particle_type
-                
-
-            
             self.pf.particle_star_index = i
             
             do_stars = (self.pf.only_particle_type is None) or \
@@ -470,17 +464,6 @@ class ARTHierarchy(AMRHierarchy):
             #if type(self.pf.grid_particles) == type(5):
             #    max_level = min(max_level,self.pf.grid_particles)
             grid_particle_count = na.zeros((len(grids),1),dtype='int64')
-            
-            #grid particles at the finest level, removing them once gridded
-            #pbar = get_pbar("Gridding Particles ",init)
-            #assignment = amr_utils.assign_particles_to_cells(
-            #        self.grid_levels.ravel().astype('int32'),
-            #        self.grid_left_edge.astype('float32'),
-            #        self.grid_right_edge.astype('float32'),
-            #        pos[:,0].astype('float32'),
-            #        pos[:,1].astype('float32'),
-            #        pos[:,2].astype('float32'))
-            #pbar.finish()
 
             pbar = get_pbar("Gridding Particles ",init)
             assignment,ilists = amr_utils.assign_particles_to_cell_lists(
@@ -492,7 +475,6 @@ class ARTHierarchy(AMRHierarchy):
                     pos[:,1].astype('float32'),
                     pos[:,2].astype('float32'))
             pbar.finish()
-            
             
             pbar = get_pbar("Filling grids ",init)
             for gidx,(g,ilist) in enumerate(zip(grids,ilists)):
@@ -608,10 +590,8 @@ class ARTStaticOutput(StaticOutput):
                  grid_particles=False,
                  single_particle_mass=False,
                  single_particle_type=0):
-        import yt.frontends.ramses._ramses_reader as _ramses_reader
         
-        
-        dirn = os.path.dirname(filename)
+        #dirn = os.path.dirname(filename)
         base = os.path.basename(filename)
         aexp = base.split('_')[2].replace('.d','')
         
