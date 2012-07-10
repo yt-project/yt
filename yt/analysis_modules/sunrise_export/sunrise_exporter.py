@@ -33,6 +33,8 @@ except ImportError:
 
 import time
 import numpy as na
+import numpy.linalg as linalg
+import collections
 
 from yt.funcs import *
 import yt.utilities.lib as amr_utils
@@ -41,7 +43,8 @@ from yt.mods import *
 
 debug = True
 
-def export_to_sunrise(pf, fn, star_particle_type, dle, dre,**kwargs):
+def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
+        debug=False,dd=None,**kwargs):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -54,12 +57,14 @@ def export_to_sunrise(pf, fn, star_particle_type, dle, dre,**kwargs):
 
     Parameters
     ----------
-    pf : `StaticOutput`
-        The parameter file to convert.
-    fn : string
-        The filename of the output FITS file.
-    dle : The domain left edge to extract
-    dre : The domain rght edge to extract
+    pf      : `StaticOutput`
+                The parameter file to convert.
+    fn      : string
+                The filename of the output FITS file.
+    fc      : array
+                The center of the extraction region
+    fwidth  : array  
+                Ensure this radius around the center is enclosed
         Array format is (nx,ny,nz) where each element is floating point
         in unitary position units where 0 is leftmost edge and 1
         the rightmost. 
@@ -72,31 +77,39 @@ def export_to_sunrise(pf, fn, star_particle_type, dle, dre,**kwargs):
     http://sunrise.googlecode.com/ for more information.
 
     """
+
+    fc = na.array(fc)
+    fwidth = na.array(fwidth)
     
     #we must round the dle,dre to the nearest root grid cells
-    ile,ire,super_level= round_nearest_edge(pf,dle,dre)
-    super_level -= 1 #we're off by one (so we don't need a correction if we span 2 cells)
-    fle,fre = ile*1.0/pf.domain_dimensions, ire*1.0/pf.domain_dimensions
+    ile,ire,super_level,ncells_wide= \
+            round_ncells_wide(pf.domain_dimensions,fc-fwidth,fc+fwidth,nwide=ncells_wide)
+
+    assert na.all((ile-ire)==(ile-ire)[0])
     mylog.info("rounding specified region:")
-    mylog.info("from [%1.5f %1.5f %1.5f]-[%1.5f %1.5f %1.5f]"%(tuple(dle)+tuple(dre)))
+    mylog.info("from [%1.5f %1.5f %1.5f]-[%1.5f %1.5f %1.5f]"%(tuple(fc-fwidth)+tuple(fc+fwidth)))
     mylog.info("to   [%07i %07i %07i]-[%07i %07i %07i]"%(tuple(ile)+tuple(ire)))
+    fle,fre = ile*1.0/pf.domain_dimensions, ire*1.0/pf.domain_dimensions
     mylog.info("to   [%1.5f %1.5f %1.5f]-[%1.5f %1.5f %1.5f]"%(tuple(fle)+tuple(fre)))
 
+    #Create a list of the star particle properties in PARTICLE_DATA
+    #Include ID, parent-ID, position, velocity, creation_mass, 
+    #formation_time, mass, age_m, age_l, metallicity, L_bol
+    particle_data = prepare_star_particles(pf,star_particle_type,fle=fle,fre=fre,
+                                           dd=dd,**kwargs)
 
     #Create the refinement hilbert octree in GRIDSTRUCTURE
     #For every leaf (not-refined) cell we have a column n GRIDDATA
     #Include mass_gas, mass_metals, gas_temp_m, gas_teff_m, cell_volume, SFR
     #since the octree always starts with one cell, an our 0-level mesh
-    #may have many cells, we must #create the octree region sitting 
+    #may have many cells, we must create the octree region sitting 
     #ontop of the first mesh by providing a negative level
-    output, refinement = prepare_octree(pf,ile,start_level=-super_level)
+    output, refinement,dd,nleaf = prepare_octree(pf,ile,start_level=super_level,
+            debug=debug,dd=dd,center=fc)
 
-    #Create a list of the star particle properties in PARTICLE_DATA
-    #Include ID, parent-ID, position, velocity, creation_mass, 
-    #formation_time, mass, age_m, age_l, metallicity, L_bol
-    particle_data = prepare_star_particles(pf,star_particle_type,fle=fle,fre=fre,**kwargs)
+    create_fits_file(pf,fn, refinement,output,particle_data,fle,fre)
 
-    create_fits_file(pf,fn, refinement,output,particle_data,fre,fle)
+    return fle,fre,ile,ire,dd,nleaf
 
 def prepare_octree(pf,ile,start_level=0):
     add_fields() #add the metal mass field that sunrise wants
