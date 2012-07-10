@@ -668,7 +668,254 @@ class hilbert_state():
         j+=1
         yield vertex, self.descend(j)
 
+def generate_sunrise_cameraset_positions(pf,sim_center,cameraset=None,**kwargs):
+    if cameraset is None:
+        cameraset =cameraset_vertex 
+    campos =[]
+    names = []
+    dd = pf.h.all_data()
+    for name, (scene_pos,scene_up, scene_rot)  in cameraset.iteritems():
+        kwargs['scene_position']=scene_pos
+        kwargs['scene_up']=scene_up
+        kwargs['scene_rot']=scene_rot
+        kwargs['dd']=dd
+        line = generate_sunrise_camera_position(pf,sim_center,**kwargs)
+        campos += line,
+        names += name,
+    return names,campos     
+
+def generate_sunrise_camera_position(pf,sim_center,sim_axis_short=None,sim_axis_long=None,
+                                     sim_sphere_radius=None,sim_halo_radius=None,
+                                     scene_position=[0.0,0.0,1.0],scene_distance=None,
+                                     scene_up=[0.,0.,1.],scene_fov=None,scene_rot=True,
+                                     dd=None):
+    """Translate the simulation to center on sim_center, 
+    then rotate such that sim_up is along the +z direction. Then we are in the 
+    'scene' basis coordinates from which scene_up and scene_offset are defined.
+    Then a position vector, direction vector, up vector and angular field of view
+    are returned. The 3-vectors are in absolute physical kpc, not relative to the center.
+    The angular field of view is in radians. The 10 numbers should match the inputs to
+    camera_positions in Sunrise.
+    """
+
+    sim_center = na.array(sim_center)
+    if sim_sphere_radius is None:
+        sim_sphere_radius = 10.0/pf['kpc']
+    if sim_axis_short is None:
+        if dd is None:
+            dd = pf.h.all_data()
+        pos = na.array([dd["particle_position_%s"%i] for i in "xyz"]).T
+        idx = na.sqrt(na.sum((pos-sim_center)**2.0,axis=1))<sim_sphere_radius
+        mas = dd["particle_mass"]
+        pos = pos[idx]
+        mas = mas[idx]
+        mo_inertia = position_moment(pos,mas)
+        eigva, eigvc = linalg.eig(mo_inertia)
+        #order into short, long axes
+        order = eigva.real.argsort()
+        ax_short,ax_med,ax_long = [ eigvc[:,order[i]] for i in (0,1,2)]
+    else:
+        ax_short = sim_axis_short
+        ax_long  = sim_axis_long
+    if sim_halo_radius is None:
+        sim_halo_radius = 200.0/pf['kpc']
+    if scene_distance is  None:
+        scene_distance = 1e4/pf['kpc'] #this is how far the camera is from the target
+    if scene_fov is None:
+        radii = na.sqrt(na.sum((pos-sim_center)**2.0,axis=1))
+        #idx= radii < sim_halo_radius*0.10
+        #radii = radii[idx]
+        #mass  = mas[idx] #copying mass into mas
+        si = na.argsort(radii)
+        radii = radii[si]
+        mass  = mas[si]
+        idx, = na.where(na.cumsum(mass)>mass.sum()/2.0)
+        re = radii[idx[0]]
+        scene_fov = 5*re
+        scene_fov = max(scene_fov,3.0/pf['kpc']) #min size is 3kpc
+        scene_fov = min(scene_fov,20.0/pf['kpc']) #max size is 3kpc
+    #find rotation matrix
+    angles=find_half_euler_angles(ax_short,ax_long)
+    rotation  = euler_matrix(*angles)
+    irotation = numpy.linalg.inv(rotation)
+    axs = (ax_short,ax_med,ax_long)
+    ax_rs,ax_rm,ax_rl = (matmul(rotation,ax) for ax in axs)
+    axs = ([1,0,0],[0,1,0],[0,0,1])
+    ax_is,ax_im,ax_il = (matmul(irotation,ax) for ax in axs)
+    
+    #rotate the camera
+    if scene_rot :
+        irotation = na.eye(3)
+    sunrise_pos = matmul(irotation,na.array(scene_position)*scene_distance) #do NOT include sim center
+    sunrise_up  = matmul(irotation,scene_up)
+    sunrise_direction = -sunrise_pos
+    sunrise_afov = 2.0*na.arctan((scene_fov/2.0)/scene_distance)#convert from distance FOV to angular
+
+    #change to physical kpc
+    sunrise_pos *= pf['kpc']
+    sunrise_direction *= pf['kpc']
+    return sunrise_pos,sunrise_direction,sunrise_up,sunrise_afov,scene_fov
+
+def matmul(m, v):
+    """Multiply a matrix times a set of vectors, or a single vector.
+    My nPart x nDim convention leads to two transpositions, which is
+    why this is hidden away in a function.  Note that if you try to
+    use this to muliply two matricies, it will think that you're
+    trying to multiply by a set of vectors and all hell will break
+    loose."""    
+    assert type(v) is not na.matrix
+    v = na.asarray(v)
+    m, vs = [na.asmatrix(a) for a in (m, v)]
+
+    result = na.asarray(na.transpose(m * na.transpose(vs)))    
+    if len(v.shape) == 1:
+        return result[0]
+    return result
 
 
+def mag(vs):
+    """Compute the norms of a set of vectors or a single vector."""
+    vs = na.asarray(vs)
+    if len(vs.shape) == 1:
+        return na.sqrt( (vs**2).sum() )
+    return na.sqrt( (vs**2).sum(axis=1) )
+
+def mag2(vs):
+    """Compute the norms of a set of vectors or a single vector."""
+    vs = na.asarray(vs)
+    if len(vs.shape) == 1:
+        return (vs**2).sum()
+    return (vs**2).sum(axis=1)
+
+
+def position_moment(rs, ms=None, axes=None):
+    """Find second position moment tensor.
+    If axes is specified, weight by the elliptical radius (Allgood 2005)"""
+    rs = na.asarray(rs)
+    Npart, N = rs.shape
+    if ms is None: ms = na.ones(Npart)
+    else: ms = na.asarray(ms)    
+    if axes is not None:
+        axes = na.asarray(axes,dtype=float64)
+        axes = axes/axes.max()
+        norms2 = mag2(rs/axes)
+    else:
+        norms2 = na.ones(Npart)
+    M = ms.sum()
+    result = na.zeros((N,N))
+    # matrix is symmetric, so only compute half of it then fill in the
+    # other half
+    for i in range(N):
+        for j in range(i+1):
+            result[i,j] = ( rs[:,i] * rs[:,j] * ms / norms2).sum() / M
+        
+    result = result + result.transpose() - na.identity(N)*result
+    return result
+    
+
+
+def find_half_euler_angles(v,w,check=True):
+    """Find the passive euler angles that will make v lie along the z
+    axis and w lie along the x axis.  v and w are uncertain up to
+    inversions (ie, eigenvectors) so this routine removes degeneracies
+    associated with that
+
+    (old) Calculate angles to bring a body into alignment with the
+    coordinate system.  If v1 is the SHORTEST axis and v2 is the
+    LONGEST axis, then this will return the angle (Euler angles) to
+    make the long axis line up with the x axis and the short axis line
+    up with the x (z) axis for the 2 (3) dimensional case."""
+    # Make sure the vectors are normalized and orthogonal
+    mag = lambda x: na.sqrt(na.sum(x**2.0))
+    v = v/mag(v)
+    w = w/mag(w)    
+    if check:
+        if abs((v*w).sum()) / (mag(v)*mag(w)) > 1e-5: raise ValueError
+
+    # Break eigenvector scaling degeneracy by forcing it to have a positive
+    # z component
+    if v[2] < 0: v = -v
+    phi,theta = find_euler_phi_theta(v)
+
+    # Rotate w according to phi,theta and then break inversion
+    # degeneracy by requiring that resulting vector has positive
+    # x component
+    w_prime = euler_passive(w,phi,theta,0.)
+    if w_prime[0] < 0: w_prime = -w_prime
+    # Now last Euler angle should just be this:
+    psi = na.arctan2(w_prime[1],w_prime[0])
+    return phi, theta, psi
+
+def find_euler_phi_theta(v):
+    """Find (passive) euler angles that will make v point in the z
+    direction"""
+    # Make sure the vector is normalized
+    v = v/mag(v)
+    theta = na.arccos(v[2])
+    phi = na.arctan2(v[0],-v[1])
+    return phi,theta
+
+def euler_matrix(phi, the, psi):
+    """Make an Euler transformation matrix"""
+    cpsi=na.cos(psi)
+    spsi=na.sin(psi)
+    cphi=na.cos(phi)
+    sphi=na.sin(phi)
+    cthe=na.cos(the)
+    sthe=na.sin(the)
+    m = na.mat(na.zeros((3,3)))
+    m[0,0] = cpsi*cphi - cthe*sphi*spsi
+    m[0,1] = cpsi*sphi + cthe*cphi*spsi
+    m[0,2] = spsi*sthe
+    m[1,0] = -spsi*cphi - cthe*sphi*cpsi
+    m[1,1] = -spsi*sphi + cthe*cphi*cpsi 
+    m[1,2] = cpsi*sthe
+    m[2,0] = sthe*sphi
+    m[2,1] = -sthe*cphi
+    m[2,2] = cthe
+    return m
+
+def euler_passive(v, phi, the, psi):
+    """Passive Euler transform"""
+    m = euler_matrix(phi, the, psi)
+    return matmul(m,v)
+
+
+#the format for these camerasets is name,up vector,camera location, 
+#rotate to the galaxy's up direction?
+cameraset_compass = collections.OrderedDict([
+    ['top',([0.,0.,1.],[0.,-1.,0],True)], #up is north=+y
+    ['bottom',([0.,0.,-1.],[0.,-1.,0.],True)],#up is north=+y
+    ['north',([0.,1.,0.],[0.,0.,-1.],True)],#up is along z
+    ['south',([0.,-1.,0.],[0.,0.,-1.],True)],#up is along z
+    ['east',([1.,0.,0.],[0.,0.,-1.],True)],#up is along z
+    ['west',([-1.,0.,0.],[0.,0.,-1.],True)],#up is along z
+    ['top-north',([0.,0.7071,0.7071],[0., 0., -1.],True)],
+    ['top-south',([0.,-0.7071,0.7071],[0., 0., -1.],True)],
+    ['top-east',([ 0.7071,0.,0.7071],[0., 0., -1.],True)],
+    ['top-west',([-0.7071,0.,0.7071],[0., 0., -1.],True)]
+    ])
+
+cameraset_vertex = collections.OrderedDict([
+    ['top',([0.,0.,1.],[0.,-1.,0],True)], #up is north=+y
+    ['north',([0.,1.,0.],[0.,0.,-1.],True)],#up is along z
+    ['top-north',([0.,0.7071,0.7071],[0., 0., -1.],True)],
+    ['Z',([0.,0.,1.],[0.,-1.,0],False)], #up is north=+y
+    ['Y',([0.,1.,0.],[0.,0.,-1.],False)],#up is along z
+    ['ZY',([0.,0.7071,0.7071],[0., 0., -1.],False)]
+    ])
+
+#up is 45deg down from z, towards north
+#'bottom-north':([0.,0.7071,-0.7071],[0., 0., -1.])
+#up is -45deg down from z, towards north
+
+cameraset_ring = collections.OrderedDict()
+
+segments = 20
+for angle in na.linspace(0,360,segments):
+    pos = [na.cos(angle),0.,na.sin(angle)]
+    vc  = [na.cos(90-angle),0.,na.sin(90-angle)] 
+    cameraset_ring['02i'%angle]=(pos,vc)
+            
 
 
