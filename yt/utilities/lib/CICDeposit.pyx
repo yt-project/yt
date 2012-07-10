@@ -150,6 +150,7 @@ def assign_particles_to_cells(np.ndarray[np.int32_t, ndim=1] levels, #for cells
 @cython.wraparound(False)
 @cython.cdivision(True)
 def assign_particles_to_cell_lists(np.ndarray[np.int32_t, ndim=1] levels, #for cells
+                              np.ndarray[np.int32_t,ndim=1] assign,
                               np.int64_t level_max, 
                               np.ndarray[np.float32_t, ndim=2] left_edges, #many cells
                               np.ndarray[np.float32_t, ndim=2] right_edges,
@@ -162,9 +163,10 @@ def assign_particles_to_cell_lists(np.ndarray[np.int32_t, ndim=1] levels, #for c
     cdef long i,j,level
     cdef long npart = pos_x.shape[0]
     cdef long ncells = left_edges.shape[0] 
-    cdef np.ndarray[np.int32_t, ndim=1] assign = np.zeros(npart,dtype='int32')-1
+    #cdef np.ndarray[np.int32_t, ndim=1] assign 
+    #assign = np.zeros(npart,dtype='int32')-1
     index_lists = []
-    for level in range(level_max,0,-1):
+    for level in range(level_max,-1,-1):
         #start with the finest level
         for i in range(ncells):
             #go through every cell on the finest level first
