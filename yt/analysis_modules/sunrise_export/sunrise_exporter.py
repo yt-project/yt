@@ -111,7 +111,89 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     return fle,fre,ile,ire,dd,nleaf
 
-def prepare_octree(pf,ile,start_level=0):
+def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
+                                        halo_list,domains_list=None,**kwargs):
+    """
+    Using the center of mass and the virial radius
+    for a halo, calculate the regions to extract for sunrise.
+    The regions are defined on the root grid, and so individual
+    octs may span a large range encompassing many halos
+    and subhalos. Instead of repeating the oct extraction for each
+    halo, arrange halos such that we only calculate what we need to.
+
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The parameter file to convert. We use the root grid to specify the domain.
+    fni : string
+        The filename of the output FITS file, but depends on the domain. The
+        dle and dre are appended to the name.
+    particle_type : int
+        The particle index for stars
+    halo_list : list of halo objects
+        The halo list objects must have halo.CoM and halo.Rvir,
+        both of which are assumed to be in unitary length units.
+    frvir (optional) : float
+        Ensure that CoM +/- frvir*Rvir is contained within each domain
+    domains_list (optiona): dict of halos
+        Organize halos into a dict of domains. Keys are DLE/DRE tuple
+        values are a list of halos
+    """
+    dn = pf.domain_dimensions
+    if domains_list is None:
+        domains_list = domains_from_halos(pf,halo_list,**kwargs)
+    if fni.endswith('.fits'):
+        fni = fni.replace('.fits','')
+
+    ndomains_finished = 0
+    for (num_halos, domain, halos) in domains_list:
+        dle,dre = domain
+        print 'exporting: '
+        print "[%03i %03i %03i] -"%tuple(dle),
+        print "[%03i %03i %03i] "%tuple(dre),
+        print " with %i halos"%num_halos
+        dle,dre = domain
+        dle, dre = na.array(dle),na.array(dre)
+        fn = fni 
+        fn += "%03i_%03i_%03i-"%tuple(dle)
+        fn += "%03i_%03i_%03i"%tuple(dre)
+        fnf = fn + '.fits'
+        fnt = fn + '.halos'
+        if os.path.exists(fnt):
+            os.remove(fnt)
+        fh = open(fnt,'w')
+        for halo in halos:
+            fh.write("%i "%halo.ID)
+            fh.write("%6.6e "%(halo.CoM[0]*pf['kpc']))
+            fh.write("%6.6e "%(halo.CoM[1]*pf['kpc']))
+            fh.write("%6.6e "%(halo.CoM[2]*pf['kpc']))
+            fh.write("%6.6e "%(halo.Mvir))
+            fh.write("%6.6e \n"%(halo.Rvir*pf['kpc']))
+        fh.close()
+        export_to_sunrise(pf, fnf, star_particle_type, dle*1.0/dn, dre*1.0/dn)
+        ndomains_finished +=1
+
+def domains_from_halos(pf,halo_list,frvir=0.15):
+    domains = {}
+    dn = pf.domain_dimensions
+    for halo in halo_list:
+        fle, fre = halo.CoM-frvir*halo.Rvir,halo.CoM+frvir*halo.Rvir
+        dle,dre = na.floor(fle*dn), na.ceil(fre*dn)
+        dle,dre = tuple(dle.astype('int')),tuple(dre.astype('int'))
+        if (dle,dre) in domains.keys():
+            domains[(dle,dre)] += halo,
+        else:
+            domains[(dle,dre)] = [halo,]
+    #for niceness, let's process the domains in order of 
+    #the one with the most halos
+    domains_list = [(len(v),k,v) for k,v in domains.iteritems()]
+    domains_list.sort() 
+    domains_list.reverse() #we want the most populated domains first
+    domains_limits = [d[1] for d in domains_list]
+    domains_halos  = [d[2] for d in domains_list]
+    return domains_list
+
+def prepare_octree(pf,ile,start_level=0,debug=False,dd=None,center=None):
     add_fields() #add the metal mass field that sunrise wants
     fields = ["CellMassMsun","TemperatureTimesCellMassMsun", 
               "MetalMass","CellVolumeCode"]
@@ -119,7 +201,9 @@ def prepare_octree(pf,ile,start_level=0):
     #gather the field data from octs
     pbar = get_pbar("Retrieving field data",len(fields))
     field_data = [] 
-    dd = pf.h.all_data()
+    if dd is None:
+        #we keep passing dd around to not regenerate the data all the time
+        dd = pf.h.all_data()
     for fi,f in enumerate(fields):
         field_data += dd[f],
         pbar.update(fi)
@@ -159,7 +243,7 @@ def prepare_octree(pf,ile,start_level=0):
     pbar.finish()
     
     #create the octree grid list
-    oct_list =  amr_utils.OctreeGridList(grids)
+    #oct_list =  amr_utils.OctreeGridList(grids)
     
     #initialize arrays to be passed to the recursion algo
     o_length = na.sum(levels_all.values())
@@ -169,115 +253,102 @@ def prepare_octree(pf,ile,start_level=0):
     levels   = na.zeros(r_length, dtype='int32')
     pos = position()
     hs       = hilbert_state()
-    refined[0] = 1 #introduce the first cell as divided
-    levels[0]  = start_level-1 #introduce the first cell as divided
-    pos.refined_pos += 1
+    start_time = time.time()
+    if debug:
+        if center is not None: 
+            c = center*pf['kpc']
+        else:
+            c = ile*1.0/pf.domain_dimensions*pf['kpc']
+        printing = lambda x: print_oct(x,pf['kpc'],c)
+    else:
+        printing = None
+    pbar = get_pbar("Building Hilbert DFO octree",len(refined))
     RecurseOctreeDepthFirstHilbert(
-            ile[0],ile[1],ile[2],
-            pos,0, hs, 
+            ile,
+            pos,
+            grids[0], #we always start on the root grid
+            hs, 
             output,refined,levels,
             grids,
             start_level,
-            #physical_center = (ile)*1.0/pf.domain_dimensions*pf['kpc'],
-            physical_center = ile,
-            #physical_width  = pf['kpc'])
-            physical_width  = pf.domain_dimensions)
+            debug=printing,
+            tracker=pbar)
+    pbar.finish()
     #by time we get it here the 'current' position is actually 
     #for the next spot, so we're off by 1
+    print 'took %1.2e seconds'%(time.time()-start_time)
     print 'refinement tree # of cells %i, # of leaves %i'%(pos.refined_pos,pos.output_pos) 
     output  = output[:pos.output_pos]
     refined = refined[:pos.refined_pos] 
     levels = levels[:pos.refined_pos] 
-    return output,refined
+    return output,refined,dd,pos.refined_pos
 
-def print_row(level,ple,pre,pw,pc,hs):
-    print level, 
-    print '%1.5f %1.5f %1.5f '%tuple(ple*pw-pc),
-    print '%1.5f %1.5f %1.5f '%tuple(pre*pw-pc),
-    print hs.dim, hs.sgn
+def print_oct(data,nd=None,nc=None):
+    ci = data['cell_index']
+    l  = data['level']
+    g  = data['grid']
+    fle = g.left_edges+g.dx*ci
+    fre = g.left_edges+g.dx*(ci+1)
+    if nd is not None:
+        fle *= nd
+        fre *= nd
+        if nc is not None:
+            fle -= nc
+            fre -= nc
+    txt  = '%1i '
+    txt += '%1.3f '*3+'- '
+    txt += '%1.3f '*3
+    print txt%((l,)+tuple(fle)+tuple(fre))
 
-def print_child(level,grid,i,j,k,pw,pc):
-    ple = (grid.left_edges+na.array([i,j,k])*grid.dx)*pw-pc #parent LE 
-    pre = (grid.left_edges+na.array([i+1,j+1,k+1])*grid.dx)*pw-pc #parent RE 
-    print level, 
-    print '%1.5f %1.5f %1.5f '%tuple(ple),
-    print '%1.5f %1.5f %1.5f '%tuple(pre)
-
-def RecurseOctreeDepthFirstHilbert(xi,yi,zi,
-                            curpos, gi, 
-                            hs,
-                            output,
-                            refined,
-                            levels,
-                            grids,
-                            level,
-                            physical_center=None,
-                            physical_width=None,
-                            printr=False):
-    grid = grids[gi]
-    m = 2**(-level-1) if level < 0 else 1
-    ple = grid.left_edges+na.array([xi,yi,zi])*grid.dx #parent LE
-    pre = ple+grid.dx*m
-    if printr:
-        print_row(level,ple,pre,physical_width,physical_center,hs)
-
-    #here we go over the 8 octants
-    #in general however, a mesh cell on this level
-    #may have more than 8 children on the next level
-    #so we find the int float center (cxyz) of each child cell
-    # and from that find the child cell indices
-    for iv, (vertex,hs_child) in enumerate(hs):
-        #print ' '*(level+3), level,iv, vertex,curpos.refined_pos,curpos.output_pos,
-        #negative level indicates that we need to build a super-octree
-        if level < 0: 
-            #print ' '
-            #we are not on the root grid yet, but this is 
-            #how many equivalent root grid cells we would have
-            #level -1 means our oct grid's children are the same size
-            #as the root grid (hence the -level-1)
-            dx = 2**(-level-1) #this is the child width 
-            i,j,k = xi+vertex[0]*dx,yi+vertex[1]*dx,zi+vertex[2]*dx
-            #we always refine the negative levels
-            refined[curpos.refined_pos] = 1
-            levels[curpos.refined_pos] = level
-            curpos.refined_pos += 1
-            RecurseOctreeDepthFirstHilbert(i, j, k,
-                                curpos, 0, hs_child, output, refined, levels, grids,
-                                level+1,
-                                physical_center=physical_center,
-                                physical_width=physical_width,)
-        else:
-            i,j,k = xi+vertex[0],yi+vertex[1],zi+vertex[2]
-            ci = grid.child_indices[i,j,k] #is this oct subdivided?
-            if ci == -1:
-                for fi in range(grid.fields.shape[0]):
-                    output[curpos.output_pos,fi] = grid.fields[fi,i,j,k]
-                refined[curpos.refined_pos] = 0
-                levels[curpos.refined_pos] = level
-                curpos.output_pos += 1 #position updated after write
-                curpos.refined_pos += 1
-                if printr:
-                    print_child(level+1,grid,i,j,k,physical_width,physical_center)
+def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the grids[grid_index]
+                            pos, #the output hydro data position and refinement position
+                            grid,  #grid that this oct lives on (not its children)
+                            hilbert,  #the hilbert state
+                            output, #holds the hydro data
+                            refined, #holds the refinement status  of Octs, 0s and 1s
+                            levels, #For a given Oct, what is the level
+                            grids, #list of all patch grids available to us
+                            level, #starting level of the oct (not the children)
+                            debug=None,tracker=True):
+    if tracker is not None:
+        if pos.refined_pos%1000 == 500 : tracker.update(pos.refined_pos)
+    if debug is not None: 
+        debug(vars())
+    child_grid_index = grid.child_indices[cell_index[0],cell_index[1],cell_index[2]]
+    #record the refinement state
+    refined[pos.refined_pos] = child_grid_index!=-1
+    levels[pos.output_pos]  = level
+    pos.refined_pos+= 1 
+    if child_grid_index == -1 and level>=0: #never subdivide if we are on a superlevel
+        #then we have hit a leaf cell; write it out
+        for field_index in range(grid.fields.shape[0]):
+            output[pos.output_pos,field_index] = \
+                    grid.fields[field_index,cell_index[0],cell_index[1],cell_index[2]]
+        pos.output_pos+= 1 
+    else:
+        #find the grid we descend into
+        #then find the eight cells we break up into
+        subgrid = grids[child_grid_index]
+        #calculate the floating point LE of the children
+        #then translate onto the subgrid integer index 
+        parent_fle  = grid.left_edges + cell_index*grid.dx
+        subgrid_ile = na.floor((parent_fle - subgrid.left_edges)/subgrid.dx)
+        for i, (vertex,hilbert_child) in enumerate(hilbert):
+            #vertex is a combination of three 0s and 1s to 
+            #denote each of the 8 octs
+            if level < 0:
+                subgrid = grid #we don't actually descend if we're a superlevel
+                child_ile = cell_index + vertex*2**(-level)
             else:
-                cx = (grid.left_edges[0] + i*grid.dx[0]) #floating le of the child
-                cy = (grid.left_edges[1] + j*grid.dx[0])
-                cz = (grid.left_edges[2] + k*grid.dx[0])
-                refined[curpos.refined_pos] = 1
-                levels[curpos.refined_pos] = level
-                curpos.refined_pos += 1 #position updated after write
-                child_grid = grids[ci]
-                child_dx = child_grid.dx[0]
-                child_leftedges = child_grid.left_edges
-                child_i = int((cx - child_leftedges[0])/child_dx)
-                child_j = int((cy - child_leftedges[1])/child_dx)
-                child_k = int((cz - child_leftedges[2])/child_dx)
-                RecurseOctreeDepthFirstHilbert(child_i, child_j, child_k,
-                                    curpos, ci, hs_child, output, refined, levels, grids,
-                                    level+1,
-                                    physical_center=physical_center,
-                                    physical_width=physical_width)
+                child_ile = subgrid_ile+na.array(vertex)
+                child_ile = child_ile.astype('int')
+            RecurseOctreeDepthFirstHilbert(child_ile,pos,
+                    subgrid,hilbert_child,output,refined,levels,grids,level+1,
+                    debug=debug,tracker=tracker)
 
-def create_fits_file(pf,fn, refined,output,particle_data,fre,fle):
+
+
+def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
 
     #first create the grid structure
     structure = pyfits.Column("structure", format="B", array=refined.astype("bool"))
@@ -364,25 +435,66 @@ def nearest_power(x):
     x+=1 
     return x
 
-def round_nearest_edge(pf,dle,dre):
+def round_ncells_wide(dds,fle,fre,nwide=None):
+    fc = (fle+fre)/2.0
+    assert na.all(fle < fc)
+    assert na.all(fre > fc)
+    ic = na.rint(fc*dds) #nearest vertex to the center
+    ile,ire = ic.astype('int'),ic.astype('int')
+    cfle,cfre = fc.copy(),fc.copy()
+    idx = na.array([0,0,0]) #just a random non-equal array
+    width = 0.0
+    if nwide is None:
+        #expand until borders are included and
+        #we have an equaly-sized, non-zero box
+        idxq,out=False,True
+        while not out or not idxq:
+            cfle,cfre = fc-width, fc+width
+            ile = na.rint(cfle*dds).astype('int')
+            ire = na.rint(cfre*dds).astype('int')
+            idx = ire-ile
+            width += 0.1/dds
+            #quit if idxq is true:
+            idxq = idx[0]>0 and na.all(idx==idx[0])
+            out  = na.all(fle>cfle) and na.all(fre<cfre) 
+            assert width[0] < 1.1 #can't go larger than the simulation volume
+        nwide = idx[0]
+    else:
+        #expand until we are nwide cells span
+        while not na.all(idx==nwide):
+            assert na.any(idx<=nwide)
+            cfle,cfre = fc-width, fc+width
+            ile = na.rint(cfle*dds).astype('int')
+            ire = na.rint(cfre*dds).astype('int')
+            idx = ire-ile
+            width += 1e-2*1.0/dds
+    assert na.all(idx==nwide)
+    assert idx[0]>0
+    maxlevel = -na.rint(na.log2(nwide)).astype('int')
+    assert abs(na.log2(nwide)-na.rint(na.log2(nwide)))<1e-5 #nwide should be a power of 2
+    return ile,ire,maxlevel,nwide
+
+def round_nearest_edge(pf,fle,fre):
     dds = pf.domain_dimensions
-    ile = na.floor(dle*dds).astype('int')
-    ire = na.ceil(dre*dds).astype('int') 
+    ile = na.floor(fle*dds).astype('int')
+    ire = na.ceil(fre*dds).astype('int') 
     
     #this is the number of cells the super octree needs to expand to
     #must round to the nearest power of 2
     width = na.max(ire-ile)
     width = nearest_power(width)
     
-    maxlevel = na.rint(na.log2(width)).astype('int')
+    maxlevel = -na.rint(na.log2(width)).astype('int')
     return ile,ire,maxlevel
 
 def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
                           creation_time=None,initial_mass=None,
                           current_mass=None,metallicity=None,
                           radius = None,
-                          fle=[0.,0.,0.],fre=[1.,1.,1.]):
-    dd = pf.h.all_data()
+                          fle=[0.,0.,0.],fre=[1.,1.,1.],
+                          dd=None):
+    if dd is None:
+        dd = pf.h.all_data()
     idx = dd["particle_type"] == star_type
     if pos is None:
         pos = na.array([dd["particle_position_%s" % ax]
@@ -406,28 +518,29 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     if metallicity is None:
         #this should be in dimensionless units, metals mass / particle mass
         metallicity = dd["particle_metallicity"][idx]
+        #metallicity *=0.0198
+        #print 'WARNING: multiplying metallicirt by 0.0198'
     if radius is None:
         radius = initial_mass*0.0+10.0/1000.0 #10pc radius
-
-    formation_time = pf.current_time-age
+    formation_time = pf.current_time*pf['years']-age
     #create every column
     col_list = []
-    col_list.append(pyfits.Column("ID", format="I", array=na.arange(current_mass.size)))
-    col_list.append(pyfits.Column("parent_ID", format="I", array=na.arange(current_mass.size)))
+    col_list.append(pyfits.Column("ID", format="J", array=na.arange(current_mass.size).astype('int32')))
+    col_list.append(pyfits.Column("parent_ID", format="J", array=na.arange(current_mass.size).astype('int32')))
     col_list.append(pyfits.Column("position", format="3D", array=pos, unit="kpc"))
     col_list.append(pyfits.Column("velocity", format="3D", array=vel, unit="kpc/yr"))
     col_list.append(pyfits.Column("creation_mass", format="D", array=initial_mass, unit="Msun"))
     col_list.append(pyfits.Column("formation_time", format="D", array=formation_time, unit="yr"))
     col_list.append(pyfits.Column("radius", format="D", array=radius, unit="kpc"))
     col_list.append(pyfits.Column("mass", format="D", array=current_mass, unit="Msun"))
-    col_list.append(pyfits.Column("age_m", format="D", array=age))
-    col_list.append(pyfits.Column("age_l", format="D", array=age))
+    col_list.append(pyfits.Column("age", format="D", array=age,unit='yr'))
+    #col_list.append(pyfits.Column("age_l", format="D", array=age, unit = 'yr'))
     #For particles, Sunrise takes 
     #the dimensionless metallicity, not the mass of the metals
     col_list.append(pyfits.Column("metallicity", format="D",
         array=metallicity,unit="Msun")) 
-    col_list.append(pyfits.Column("L_bol", format="D",
-        array=na.zeros(current_mass.size)))
+    #col_list.append(pyfits.Column("L_bol", format="D",
+    #    array=na.zeros(current_mass.size)))
     
     #make the table
     cols = pyfits.ColDefs(col_list)
@@ -439,10 +552,10 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
 def add_fields():
     """Add three Eulerian fields Sunrise uses"""
     def _MetalMass(field, data):
-        return data["Metal_Density"] * data["CellVolume"]
+        return data["Metallicity"] * data["CellMassMsun"]
         
     def _convMetalMass(data):
-        return 1.0/1.989e33
+        return 1.0
     
     add_field("MetalMass", function=_MetalMass,
               convert_function=_convMetalMass)
