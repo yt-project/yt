@@ -201,16 +201,23 @@ ARTFieldInfo["Temperature"]._convert_function=_converttemperature
 def _metallicity_snII(field, data):
     tr  = data["MetalDensitySNII"] / data["Density"]
     return tr
-add_art_field("Metallicity_SNII", function=_metallicity_snII, units = r"\mathrm{K}",take_log=True)
-KnownARTFields["Metallicity_SNII"]._units = r""
-KnownARTFields["Metallicity_SNII"]._projected_units = r""
+add_field("Metallicity_SNII", function=_metallicity_snII, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metallicity_SNII"]._units = r""
+ARTFieldInfo["Metallicity_SNII"]._projected_units = r""
 
 def _metallicity_snIa(field, data):
     tr  = data["MetalDensitySNIa"] / data["Density"]
     return tr
-add_art_field("Metallicity_SNIa", function=_metallicity_snIa, units = r"\mathrm{K}",take_log=True)
-KnownARTFields["Metallicity_SNIa"]._units = r""
-KnownARTFields["Metallicity_SNIa"]._projected_units = r""
+add_field("Metallicity_SNIa", function=_metallicity_snIa, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metallicity_SNIa"]._units = r""
+ARTFieldInfo["Metallicity_SNIa"]._projected_units = r""
+
+def _metallicity(field, data):
+    tr  = data["Metal_Density"] / data["Density"]
+    return tr
+add_field("Metallicity", function=_metallicity, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metallicity"]._units = r""
+ARTFieldInfo["Metallicity"]._projected_units = r""
 
 def _x_velocity(data):
     tr  = data["XMomentumDensity"]/data["Density"]
@@ -238,9 +245,9 @@ def _metal_density(field, data):
     tr  = data["MetalDensitySNIa"]
     tr += data["MetalDensitySNII"]
     return tr
-add_art_field("Metal_Density", function=_metal_density, units = r"\mathrm{K}",take_log=True)
-KnownARTFields["Metal_Density"]._units = r""
-KnownARTFields["Metal_Density"]._projected_units = r""
+add_field("Metal_Density", function=_metal_density, units = r"\mathrm{K}",take_log=True)
+ARTFieldInfo["Metal_Density"]._units = r""
+ARTFieldInfo["Metal_Density"]._projected_units = r""
 
 
 #Particle fields
