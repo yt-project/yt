@@ -286,7 +286,7 @@ cdef class RockstarInterface:
     cdef public object data_source
     cdef int rank
     cdef int size
-    cdef int block_ratio
+    cdef public int block_ratio
 
     def __cinit__(self, pf, data_source):
         self.pf = pf
