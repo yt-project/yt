@@ -148,7 +148,7 @@ _common_options = dict(
                    help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
                    action="store", type=float,
-                   dest="width", default=1.0,
+                   dest="width", default=None,
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type=str,
@@ -1137,15 +1137,24 @@ class YTPlotCmd(YTCommand):
             axes = range(3)
         else:
             axes = [args.axis]
+
+        unit = args.unit
+        if unit is None:
+            unit = '1'
+        width = args.width
+        if width is None:
+            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
+        width /= pf[unit]
+
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)
             if args.projection:
                 plt = ProjectionPlot(pf, ax, args.field, center=center,
-                                     width=args.width,
+                                     width=width,
                                      weight_field=args.weight)
             else:
                 plt = SlicePlot(pf, ax, args.field, center=center,
-                                width=args.width)
+                                width=width)
             if args.grids:
                 plt.draw_grids()
             if args.time: 

@@ -455,25 +455,27 @@ class PlotWindow(object):
             self.ylim = bounds[2:]
             
     @invalidate_data
-    def set_width(self, new_width):
+    def set_width(self, width, unit = '1'):
         """set the width of the plot window
 
         parameters
         ----------
-        new_width : float or tuple
-            the width of the image in code units.
+        width : float
+            the width of the image.
+        unit : str
+            the unit the width has been specified in.
+            defaults to code units.
 
         """
-        if iterable(new_width):
-            w,u = new_width
-            new_width = w/self.pf[u]
         Wx, Wy = self.width
+        width = width / self.pf[unit]
+        
         centerx = self.xlim[0] + Wx*0.5
         centery = self.ylim[0] + Wy*0.5
-        self.xlim = (centerx - new_width/2.,
-                     centerx + new_width/2.)
-        self.ylim = (centery - new_width/2.,
-                     centery + new_width/2.)
+        self.xlim = (centerx - width/2.,
+                     centerx + width/2.)
+        self.ylim = (centery - width/2.,
+                     centery + width/2.)
 
     @invalidate_data
     def set_center(self, new_center):
@@ -610,7 +612,8 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
-        if ds._type_name == "slice" or "cutting":
+        if ds._type_name in ("slice", "cutting") or \
+           (ds._type_name == "proj" and ds.weight_field is not None):
             units = pf.field_info[field].get_units()
         elif ds._type_name == "proj":
             units = pf.field_info[field].get_projected_units()

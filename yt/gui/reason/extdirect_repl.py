@@ -40,9 +40,12 @@ import tempfile
 import base64
 import imp
 import threading
-import Pyro4
 import Queue
 import zipfile
+try:
+    import Pyro4
+except ImportError:
+    pass
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring

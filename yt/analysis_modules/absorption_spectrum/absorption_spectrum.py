@@ -216,7 +216,7 @@ class AbsorptionSpectrum(object):
                                     lambda_bins=self.lambda_bins[left_index[lixel]:right_index[lixel]])
                     # Widen wavelength window until optical depth reaches a max value at the ends.
                     if (line_tau[0] < max_tau and line_tau[-1] < max_tau) or \
-                      (left_index[lixel] == 0 and right_index[lixel] == self.n_lambda - 1):
+                      (left_index[lixel] <= 0 and right_index[lixel] >= self.n_lambda):
                         break
                     my_bin_ratio *= 2
                     left_index[lixel]  = (center_bins[lixel] -
