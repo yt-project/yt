@@ -698,7 +698,7 @@ class PWViewerMPL(PWViewer):
 
     def save(self,name=None):
         if name == None:
-            name = self.pf.parameter_filename
+            name = str(self.pf.parameter_filename)
         axis = axis_names[self.data_source.axis]
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'
