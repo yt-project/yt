@@ -49,20 +49,13 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def convert_to_pixels(self, plot, coord, offset = True):
-        if plot.xlim is not None:
-            x0, x1 = plot.xlim
-        else:
-            x0, x1 = plot._axes.get_xlim()
-        if plot.ylim is not None:
-            y0, y1 = plot.ylim
-        else:
-            y0, y1 = plot._axes.get_ylim()
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        dx = width / (x1-x0)
-        dy = height / (y1-y0)
-        return ((coord[0] - int(offset)*x0)*dx,
-                (coord[1] - int(offset)*y0)*dy)
+    def convert_to_plot(self, plot, coord, offset = True):
+        x0, x1 = plot.xlim
+        xx0, xx1 = plot._axes.get_xlim()
+        y0, y1 = plot.ylim
+        yy0, yy1 = plot._axes.get_ylim()
+        return ((coord[0]-x0)/(x1-x0)*(xx0-xx1) - xx0,
+                (coord[0]-x0)/(x1-x0)*(xx0-xx1) - xx0)
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
@@ -502,8 +495,8 @@ class ImageLineCallback(LinePlotCallback):
         plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
         kwargs = self.plot_args.copy()
         if self.data_coords and len(plot.image._A.shape) == 2:
-            p1 = self.convert_to_pixels(plot, self.p1)
-            p2 = self.convert_to_pixels(plot, self.p2)
+            p1 = self.convert_to_plot(plot, self.p1)
+            p2 = self.convert_to_plot(plot, self.p2)
         else:
             p1, p2 = self.p1, self.p2
             if not self.data_coords:
@@ -628,14 +621,14 @@ class ArrowCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
-        x, y = self.convert_to_pixels(plot, self.pos)
-        dx, dy = self.convert_to_pixels(plot, self.code_size, False)
+        x, y = self.convert_to_plot(plot, self.pos)
+        dx, dy = self.convert_to_plot(plot, self.code_size, False)
         arrow = Arrow(x, y, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
 
 class PointAnnotateCallback(PlotCallback):
     _type_name = "point"
-    def __init__(self, pos, text, text_args = {}):
+    def __init__(self, pos, text, text_args = None):
         """
         This adds *text* at position *pos*, where *pos* is in code-space.
         *text_args* is a dict fed to the text placement code.
@@ -646,7 +639,12 @@ class PointAnnotateCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-        x,y = self.convert_to_pixels(plot, self.pos)
+
+
+        width,height = plot.image._A.shape
+        x,y = self.convert_to_plot(plot, self.pos)
+        x,y = x/width,y/height
+
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
@@ -666,7 +664,7 @@ class MarkerAnnotateCallback(PlotCallback):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
-        x,y = self.convert_to_pixels(plot, pos)
+        x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
         plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
         plot._axes.hold(False)
@@ -930,7 +928,7 @@ class TextLabelCallback(PlotCallback):
                 pos = (self.pos[x_dict[plot.data.axis]],
                        self.pos[y_dict[plot.data.axis]])
             else: pos = self.pos
-            x,y = self.convert_to_pixels(plot, pos)
+            x,y = self.convert_to_plot(plot, pos)
         else:
             x, y = self.pos
             if not self.data_coords:
@@ -990,7 +988,7 @@ class ParticleCallback(PlotCallback):
             gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
-        px, py = self.convert_to_pixels(plot,
+        px, py = self.convert_to_plot(plot,
                     [reg[field_x][gg][::self.stride],
                      reg[field_y][gg][::self.stride]])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
