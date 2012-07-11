@@ -395,6 +395,7 @@ def get_smallest_appropriate_unit(v, pf):
         if vv < max_nu and vv > 1.0:
             good_u = unit
             max_nu = v*pf[unit]
+    if good_u is None : good_u = 'cm'
     return good_u
 
 class UnitBoundaryCallback(PlotCallback):
