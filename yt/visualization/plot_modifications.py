@@ -290,8 +290,8 @@ class GridBoundaryCallback(PlotCallback):
             verts=verts.transpose()[visible,:,:]
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
-            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width  - 0.5)
-            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height - 0.5)
+            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width) + xx0
+            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height) + yy0
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
                 edgecolors=edgecolors)
