@@ -944,5 +944,14 @@ class ARTStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        return False # We make no effort to auto-detect ART data
+        """
+        Defined for Daniel Ceverino's file naming scheme.
+        This could differ for other formats.
+        """
+        fn = ("%s" % (os.path.basename(args[0])))
+        f = ("%s" % args[0])
+        if fn.endswith(".d") and fn.startswith('10Mpc') and\
+                os.path.exists(f): 
+                return True
+        return False
 
