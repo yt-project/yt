@@ -247,6 +247,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     # Now we want to grab data from only a subset of the grids.
     n = rh.block_ratio
+    dd = rh.pf.h.all_data()
     grids = np.array_split(dd._grids, NUM_BLOCKS)[block]
     tnpart = 0
     for g in grids:
@@ -297,8 +298,7 @@ cdef class RockstarInterface:
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, int num_snaps = 1,
-                       int min_halo_size = 25,
-                       int periodic = 1, 
+                       int min_halo_size = 25, outbase = "None"):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
