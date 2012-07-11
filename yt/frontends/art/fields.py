@@ -36,7 +36,7 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, mass_hydrogen_cgs
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 KnownARTFields = FieldInfoContainer()
 add_art_field = KnownARTFields.add_field
