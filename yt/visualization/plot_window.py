@@ -27,6 +27,7 @@ License:
 import base64
 import matplotlib.pyplot
 import cStringIO
+import types
 from functools import wraps
 
 import numpy as na
@@ -37,7 +38,8 @@ from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
-    GridBoundaryCallback, TextLabelCallback
+    callback_registry
+import plot_modifications as CallbackMod
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 
@@ -72,12 +74,20 @@ def invalidate_plot(f):
         return rv
     return newfunc
 
+def apply_callback(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        args[0]._callbacks.append((f.__name__,(args,kwargs)))
+        return rv
+    return newfunc
+
 field_transforms = {}
 
 class IMPlot(object): pass
 
 class CallbackWrapper(object):
-    def __init__(self, window_plot, frb, field):
+    def __init__(self, viewer, window_plot, frb, field):
         self.data = frb.data_source
         self._axes = window_plot.axes
         self._figure = window_plot.figure
@@ -85,8 +95,8 @@ class CallbackWrapper(object):
             self.image = self._axes.images[0]
         self._period = frb.pf.domain_width
         self.pf = frb.pf
-        self.xlim = (frb.bounds[0], frb.bounds[1])
-        self.ylim = (frb.bounds[2], frb.bounds[3])
+        self.xlim = viewer.xlim
+        self.ylim = viewer.ylim
         self._type_name = ''
 
 class FieldTransform(object):
@@ -512,8 +522,7 @@ class PWViewer(PlotWindow):
         self._colormaps = defaultdict(lambda: 'algae')
         self.zmin = None
         self.zmax = None
-        self._draw_grids = False
-        self._annotate_text = False
+        self.setup_callbacks()
         self._callbacks = []
         self._field_transform = {}
         for field in self._frb.data.keys():
@@ -557,16 +566,17 @@ class PWViewer(PlotWindow):
         self.zmin = zmin
         self.zmax = zmax
 
-    @invalidate_plot
-    def draw_grids(self, alpha=1.0, min_pix=1, annotate = False, periodic = True):
-        self._draw_grids = True
-        self.grid_params = (alpha, min_pix, annotate, periodic)
-
-    @invalidate_plot
-    def annotate_text(self, position, message, data_coords = False, text_args = None):
-        self._annotate_text = True
-        self.text_params = (position, message, data_coords, text_args)
-
+    def setup_callbacks(self):
+        for key in callback_registry:
+            ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
+                       'UnitBoundaryCallback']
+            if key in ignored: 
+                continue
+            cbname = callback_registry[key]._type_name
+            CallbackMaker = getattr(CallbackMod,key)
+            callback = invalidate_plot(apply_callback(getattr(CallbackMod,key)))
+            self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
+        
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
         mi = fval.min()
@@ -602,7 +612,8 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
-        if ds._type_name == "slice" or "cutting":
+        if ds._type_name in ("slice", "cutting") or \
+           (ds._type_name == "proj" and ds.weight_field is not None):
             units = pf.field_info[field].get_units()
         elif ds._type_name == "proj":
             units = pf.field_info[field].get_projected_units()
@@ -644,7 +655,7 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError('origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
             
             extent = [self.xlim[i] - xc for i in (0,1)]
-            extent.extend([self.xlim[i] - yc for i in (0,1)])
+            extent.extend([self.ylim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
@@ -664,15 +675,11 @@ class PWViewerMPL(PWViewer):
 
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
-            if self._draw_grids:
-                self._callbacks.append(GridBoundaryCallback(*self.grid_params))
-
-            if self._annotate_text:
-                self._callbacks.append(TextLabelCallback(*self.text_params))
-                
-            for callback in self._callbacks:
-                cbr = CallbackWrapper(self.plots[f], self._frb, f)
-                callback(cbr)
+            for name,(args,kwargs) in self._callbacks:
+                cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
+                CallbackMaker = getattr(CallbackMod,name)
+                callback = CallbackMaker(*args[1:],**kwargs)
+                callback(cbw)
 
         self._plot_valid = True
 
@@ -689,7 +696,9 @@ class PWViewerMPL(PWViewer):
             self.cmap = cmap
         self.plots[field].image.set_cmap(cmap)
 
-    def save(self,name):
+    def save(self,name=None):
+        if name == None:
+            name = str(self.pf.parameter_filename)
         axis = axis_names[self.data_source.axis]
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'

@@ -49,20 +49,13 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def convert_to_pixels(self, plot, coord, offset = True):
-        if plot.xlim is not None:
-            x0, x1 = plot.xlim
-        else:
-            x0, x1 = plot._axes.get_xlim()
-        if plot.ylim is not None:
-            y0, y1 = plot.ylim
-        else:
-            y0, y1 = plot._axes.get_ylim()
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        dx = width / (x1-x0)
-        dy = height / (y1-y0)
-        return ((coord[0] - int(offset)*x0)*dx,
-                (coord[1] - int(offset)*y0)*dy)
+    def convert_to_plot(self, plot, coord, offset = True):
+        x0, x1 = plot.xlim
+        xx0, xx1 = plot._axes.get_xlim()
+        y0, y1 = plot.ylim
+        yy0, yy1 = plot._axes.get_ylim()
+        return ((coord[0]-x0)/(x1-x0)*(xx0-xx1) - xx0,
+                (coord[0]-x0)/(x1-x0)*(xx0-xx1) - xx0)
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
@@ -259,10 +252,13 @@ class GridBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        width, height = plot.image._A.shape
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        dx = (xx1-xx0)/(x1-x0)
-        dy = (yy1-yy0)/(y1-y0)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
@@ -275,21 +271,23 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
-            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx + xx0
-            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy + yy0
-            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx + xx0
-            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx
+            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy
+            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
+            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
             verts = na.array(
-                    [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                     (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
+                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
+                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
             visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
                        ( right_edge_px - left_edge_px > self.min_pix )
             verts=verts.transpose()[visible,:,:]
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
+            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width) + xx0
+            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height) + yy0
             grid_collection = matplotlib.collections.PolyCollection(
-                    verts, facecolors="none",
-                           edgecolors=edgecolors)
+                verts, facecolors="none",
+                edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
             if self.annotate:
@@ -497,8 +495,8 @@ class ImageLineCallback(LinePlotCallback):
         plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
         kwargs = self.plot_args.copy()
         if self.data_coords and len(plot.image._A.shape) == 2:
-            p1 = self.convert_to_pixels(plot, self.p1)
-            p2 = self.convert_to_pixels(plot, self.p2)
+            p1 = self.convert_to_plot(plot, self.p1)
+            p2 = self.convert_to_plot(plot, self.p2)
         else:
             p1, p2 = self.p1, self.p2
             if not self.data_coords:
@@ -614,6 +612,8 @@ class ArrowCallback(PlotCallback):
         units.  *plot_args* is a dict fed to matplotlib with arrow properties.
         """
         self.pos = pos
+        if not iterable(code_size):
+            code_size = (code_size, code_size)
         self.code_size = code_size
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
@@ -621,8 +621,8 @@ class ArrowCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
-        x, y = self.convert_to_pixels(plot, self.pos)
-        dx, dy = self.convert_to_pixels(plot, self.code_size, False)
+        x, y = self.convert_to_plot(plot, self.pos)
+        dx, dy = self.convert_to_plot(plot, self.code_size, False)
         arrow = Arrow(x, y, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
 
@@ -639,7 +639,12 @@ class PointAnnotateCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-        x,y = self.convert_to_pixels(plot, self.pos)
+
+
+        width,height = plot.image._A.shape
+        x,y = self.convert_to_plot(plot, self.pos)
+        x,y = x/width,y/height
+
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
@@ -659,7 +664,7 @@ class MarkerAnnotateCallback(PlotCallback):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
-        x,y = self.convert_to_pixels(plot, pos)
+        x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
         plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
         plot._axes.hold(False)
@@ -923,7 +928,7 @@ class TextLabelCallback(PlotCallback):
                 pos = (self.pos[x_dict[plot.data.axis]],
                        self.pos[y_dict[plot.data.axis]])
             else: pos = self.pos
-            x,y = self.convert_to_pixels(plot, pos)
+            x,y = self.convert_to_plot(plot, pos)
         else:
             x, y = self.pos
             if not self.data_coords:
@@ -983,7 +988,7 @@ class ParticleCallback(PlotCallback):
             gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
-        px, py = self.convert_to_pixels(plot,
+        px, py = self.convert_to_plot(plot,
                     [reg[field_x][gg][::self.stride],
                      reg[field_y][gg][::self.stride]])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
