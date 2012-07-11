@@ -44,7 +44,6 @@ add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = ARTFieldInfo.add_field
 
-import yt.utilities.amr_utils as amr_utils
 import numpy as na
 
 #these are just the hydro fields
