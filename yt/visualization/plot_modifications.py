@@ -619,6 +619,8 @@ class ArrowCallback(PlotCallback):
         units.  *plot_args* is a dict fed to matplotlib with arrow properties.
         """
         self.pos = pos
+        if not iterable(code_size):
+            code_size = (code_size, code_size)
         self.code_size = code_size
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
@@ -633,7 +635,7 @@ class ArrowCallback(PlotCallback):
 
 class PointAnnotateCallback(PlotCallback):
     _type_name = "point"
-    def __init__(self, pos, text, text_args = None):
+    def __init__(self, pos, text, text_args = {}):
         """
         This adds *text* at position *pos*, where *pos* is in code-space.
         *text_args* is a dict fed to the text placement code.
