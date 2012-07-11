@@ -655,7 +655,7 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError('origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
             
             extent = [self.xlim[i] - xc for i in (0,1)]
-            extent.extend([self.xlim[i] - yc for i in (0,1)])
+            extent.extend([self.ylim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
