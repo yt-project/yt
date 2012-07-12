@@ -36,7 +36,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.definitions import \
-    mpc_conversion
+    mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
 
@@ -246,11 +246,8 @@ class FLASHStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / \
             (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
