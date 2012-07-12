@@ -25,6 +25,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from .physical_constants import \
+   mpc_per_mpc, mpc_per_kpc, mpc_per_pc, mpc_per_au, mpc_per_rsun, \
+   mpc_per_miles, mpc_per_cm, sec_per_Gyr, sec_per_Myr, sec_per_year, \
+   sec_per_day
+
 # The number of levels we expect to have at most
 MAXLEVEL=48
 
@@ -43,12 +48,18 @@ x_names = ['y','x','x']
 y_names = ['z','z','y']
 
 # How many of each thing are in an Mpc
-mpc_conversion = {'mpc'   : 1e0,
-                  'kpc'   : 1e3,
-                  'pc'    : 1e6,
-                  'au'    : 2.063e11,
-                  'rsun'  : 4.43664e13,
-                  'cm'    : 3.0857e24,
-                  'miles' : 1.917e19}
+mpc_conversion = {'mpc'   : mpc_per_mpc,
+                  'kpc'   : mpc_per_kpc,
+                  'pc'    : mpc_per_pc,
+                  'au'    : mpc_per_au,
+                  'rsun'  : mpc_per_rsun,
+                  'miles' : mpc_per_miles,
+                  'cm'    : mpc_per_cm}
+
+# How many seconds are in each thig
+sec_conversion = {'Gyr'   : sec_per_Gyr,
+                  'Myr'   : sec_per_Myr,
+                  'years' : sec_per_year,
+                  'days'  : sec_per_day}
 
 axis_labels = [('y','z'),('x','z'),('x','y')]
