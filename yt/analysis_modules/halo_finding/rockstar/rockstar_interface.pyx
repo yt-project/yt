@@ -321,6 +321,7 @@ cdef class RockstarInterface:
         NUM_READERS = num_readers
         NUM_SNAPS = 1
         NUM_WRITERS = num_writers
+        NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
         self.block_ratio = block_ratio
 

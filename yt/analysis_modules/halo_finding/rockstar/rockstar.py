@@ -68,23 +68,15 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.re = right_edge
         if self.num_readers + self.num_writers + 1 != self.comm.size:
             print '%i reader + %i writers != %i mpi'%\
-                    (self.num_reader,self.num_writers,self.comm.size)
+                    (self.num_readers, self.num_writers, self.comm.size)
             raise RuntimeError
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
-        data_source = None
-        if self.comm.size > 1:
-            self.pool = ProcessorPool()
-            self.pool.add_workgroup(1, name = "server")
-            self.pool.add_workgroup(num_readers, name = "readers")
-            self.pool.add_workgroup(num_writers, name = "writers")
-            for wg in self.pool.workgroups:
-                if self.comm.rank in wg.ranks: self.workgroup = wg
         data_source = self.pf.h.all_data()
+        self.handler = rockstar_interface.RockstarInterface(
+                self.pf, data_source)
         if outbase is None:
             outbase = str(self.pf)+'_rockstar'
         self.outbase = outbase        
-        self.handler = rockstar_interface.RockstarInterface(
-                self.pf, data_source)
 
     def _get_hosts(self):
         if self.comm.size == 1 or self.workgroup.name == "server":
@@ -103,6 +95,15 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         """
         
         """
+        if self.comm.size > 1:
+            self.pool = ProcessorPool()
+            mylog.debug("Num Writers = %s Num Readers = %s",
+                        self.num_writers, self.num_readers)
+            self.pool.add_workgroup(1, name = "server")
+            self.pool.add_workgroup(self.num_readers, name = "readers")
+            self.pool.add_workgroup(self.num_writers, name = "writers")
+            for wg in self.pool.workgroups:
+                if self.comm.rank in wg.ranks: self.workgroup = wg
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
@@ -134,6 +135,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             elif self.workgroup.name == "writers":
                 time.sleep(0.2 + self.workgroup.comm.rank/10.0)
                 self.handler.start_client()
+            self.pool.free_all()
         self.comm.barrier()
         #quickly rename the out_0.list 
     
