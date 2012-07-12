@@ -260,6 +260,8 @@ cdef void rh_analyze_halo(halo *h, particle *hp):
     cdef particleflat[:] pslice
     pslice = <particleflat[:h.num_p]> (<particleflat *>hp)
     parray = np.asarray(pslice)
+    for cb in rh.callbacks:
+        cb(rh.pf, parray)
     # This is where we call our functions
 
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
@@ -311,6 +313,7 @@ cdef class RockstarInterface:
     cdef int rank
     cdef int size
     cdef public int block_ratio
+    cdef public object callbacks
 
     def __cinit__(self, pf, data_source):
         self.pf = pf
@@ -322,7 +325,8 @@ cdef class RockstarInterface:
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, int num_snaps = 1,
-                       int min_halo_size = 25, outbase = "None"):
+                       int min_halo_size = 25, outbase = "None",
+                       callbacks = None):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -348,6 +352,8 @@ cdef class RockstarInterface:
         NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
         self.block_ratio = block_ratio
+        if callbacks is None: callbacks = []
+        self.callbacks = callbacks
 
         h0 = self.pf.hubble_constant
         Ol = self.pf.omega_lambda
