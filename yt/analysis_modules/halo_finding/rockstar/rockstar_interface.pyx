@@ -34,9 +34,27 @@ cdef import from "particle.h":
         np.int64_t id
         float pos[6]
 
+ctypedef struct particleflat:
+    np.int64_t id
+    float pos_x
+    float pos_y
+    float pos_z
+    float vel_x
+    float vel_y
+    float vel_z
+
+cdef import from "halo.h":
+    struct halo:
+        np.int64_t id
+        float pos[6], corevel[3], bulkvel[3]
+        float m, r, child_r, mgrav, vmax, rvmax, rs, vrms, J[3], energy, spin
+        np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
+        float min_pos_err, min_vel_err, min_bulkvel_err
+
 cdef import from "io_generic.h":
     ctypedef void (*LPG) (char *filename, particle **p, np.int64_t *num_p)
-    void set_load_particles_generic(LPG func)
+    ctypedef void (*AHG) (halo *h, particle *hp)
+    void set_load_particles_generic(LPG func, AHG afunc)
 
 cdef import from "rockstar.h":
     void rockstar(float *bounds, np.int64_t manual_subs)
@@ -238,6 +256,12 @@ def print_rockstar_settings():
 
 cdef class RockstarInterface
 
+cdef void rh_analyze_halo(halo *h, particle *hp):
+    cdef particleflat[:] pslice
+    pslice = <particleflat[:h.num_p]> (<particleflat *>hp)
+    parray = np.asarray(pslice)
+    # This is where we call our functions
+
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     print 'reading from particle filename %s'%filename # should print ./inline.0
     cdef np.float64_t conv[6], left_edge[6]
@@ -345,7 +369,8 @@ cdef class RockstarInterface:
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles
-        set_load_particles_generic(func)
+        cdef AHG afunc = rh_analyze_halo
+        set_load_particles_generic(func, afunc)
 
     def call_rockstar(self):
         read_particles("generic")
