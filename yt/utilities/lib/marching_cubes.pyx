@@ -27,7 +27,7 @@ cimport numpy as np
 cimport cython
 import numpy as np
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
-from stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, free, abs
 from fixed_interpolator cimport *
 
 cdef struct Triangle:

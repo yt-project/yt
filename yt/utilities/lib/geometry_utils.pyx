@@ -26,7 +26,7 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free
 
 cdef extern from "math.h":
     double exp(double x) nogil
