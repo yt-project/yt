@@ -163,8 +163,8 @@ class QuiverCallback(PlotCallback):
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
-        X = na.mgrid[0:plot.image._A.shape[0]-1:ny*1j]# + 0.5*factor
-        Y = na.mgrid[0:plot.image._A.shape[1]-1:nx*1j]# + 0.5*factor
+        X,Y = na.meshgrid(na.linspace(xx0,xx1,nx,endpoint=True),
+                          na.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
             nn = na.sqrt(pixX**2 + pixY**2)
             pixX /= nn
