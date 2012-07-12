@@ -28,7 +28,7 @@ mass_mean_atomic_galactic = 2.3
 
 # Conversion Factors:  X au * mpc_per_au = Y mpc
 # length
-mpc_per_mpc   = 1
+mpc_per_mpc   = 1e0
 mpc_per_kpc   = 1e-3
 mpc_per_pc    = 1e-6
 mpc_per_au    = 4.847e-12
