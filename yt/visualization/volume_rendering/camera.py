@@ -352,7 +352,7 @@ class Camera(ParallelAnalysisInterface):
         return self.volume.initialize_source()
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = None):
+                 num_threads = 0):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
