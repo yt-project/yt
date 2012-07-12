@@ -123,7 +123,7 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False):
         """
         annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
 

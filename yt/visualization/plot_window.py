@@ -150,9 +150,9 @@ def SlicePlot(pf, axis, fields, center=None, width=None, origin='center-window')
     origin : A string
         The location of the origin of the plot coordinate system.
         Currently, can be set to three options: 'left-domain', corresponding
-        to the bottom-left hand corner of the simulation domain, 'left-window',
-        corresponding to the bottom-left hand cordiner of the plot window, or
-        'center-window' for the center of the plot window.
+        to the bottom-left hand corner of the simulation domain, 'center-domain',
+        corresponding the center of the simulation domain, or 'center-window' for 
+        the center of the plot window.
 
     Examples
     --------
@@ -199,19 +199,13 @@ def ProjectionPlot(pf, axis, fields, center=None, width=None,
     origin : A string
         The location of the origin of the plot coordinate system.
         Currently, can be set to three options: 'left-domain', corresponding
-        to the bottom-left hand corner of the simulation domain, 'left-window',
-        corresponding to the bottom-left hand cordiner of the plot window, or
-        'center-window' for the center of the plot window.
+        to the bottom-left hand corner of the simulation domain, 'center-domain',
+        corresponding the center of the simulation domain, or 'center-window' for 
+        the center of the plot window.
     weight_field : string
         The name of the weighting field.  Set to None for no weight.
     max_level: int
         The maximum level to project to.
-    origin : A string
-        The location of the origin of the plot coordinate system.
-        Currently, can be set to three options: 'left-domain', corresponding
-        to the bottom-left hand corner of the simulation domain, 'left-window',
-        corresponding to the bottom-left hand cordiner of the plot window, or
-        'center-window' for the center of the plot window.
 
     Examples
     --------
