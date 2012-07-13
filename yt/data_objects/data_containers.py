@@ -1103,17 +1103,19 @@ class AMRSliceBase(AMR2DData):
         mask = self.__cut_mask_child_mask(grid)[sl]
         cm = na.where(mask.ravel()== 1)
         cmI = na.indices((nx,ny))
-        xind = cmI[0, :].ravel()
+        ind = cmI[0, :].ravel()   # xind
         npoints = cm[0].shape
         # create array of "npoints" ones that will be reused later
         points = na.ones(npoints, 'float64')
         # calculate xpoints array
-        t = points * xind[cm] * dx + (grid.LeftEdge[xaxis] + 0.5 * dx)
+        t = points * ind[cm] * dx + (grid.LeftEdge[xaxis] + 0.5 * dx)
         # calculate ypoints array
-        yind = cmI[1, :].ravel()
-        t = na.vstack( (t, points * yind[cm] * dy + \
+        ind = cmI[1, :].ravel()   # yind
+        del cmI   # no longer needed 
+        t = na.vstack( (t, points * ind[cm] * dy + \
                 (grid.LeftEdge[yaxis] + 0.5 * dy))
             )
+        del ind, cm   # no longer needed
         # calculate zpoints array
         t = na.vstack((t, points * self.coord))
         # calculate dx array
