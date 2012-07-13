@@ -26,8 +26,8 @@ License:
 """
 
 from .physical_constants import \
-   mpc_per_mpc, mpc_per_kpc, mpc_per_pc, mpc_per_au, mpc_per_rsun, \
-   mpc_per_miles, mpc_per_cm, sec_per_Gyr, sec_per_Myr, sec_per_year, \
+   mpc_per_mpc, kpc_per_mpc, pc_per_mpc, au_per_mpc, rsun_per_mpc, \
+   miles_per_mpc, cm_per_mpc, sec_per_Gyr, sec_per_Myr, sec_per_year, \
    sec_per_day
 
 # The number of levels we expect to have at most
@@ -49,12 +49,12 @@ y_names = ['z','z','y']
 
 # How many of each thing are in an Mpc
 mpc_conversion = {'mpc'   : mpc_per_mpc,
-                  'kpc'   : mpc_per_kpc,
-                  'pc'    : mpc_per_pc,
-                  'au'    : mpc_per_au,
-                  'rsun'  : mpc_per_rsun,
-                  'miles' : mpc_per_miles,
-                  'cm'    : mpc_per_cm}
+                  'kpc'   : kpc_per_mpc,
+                  'pc'    : pc_per_mpc,
+                  'au'    : au_per_mpc,
+                  'rsun'  : rsun_per_mpc,
+                  'miles' : miles_per_mpc,
+                  'cm'    : cm_per_mpc}
 
 # How many seconds are in each thig
 sec_conversion = {'Gyr'   : sec_per_Gyr,
