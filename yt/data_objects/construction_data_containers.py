@@ -224,8 +224,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self.proj_style = style
         if style == "mip":
             self.func = na.max
+            op = "max"
         elif style == "integrate":
             self.func = na.sum # for the future
+            op = "sum"
         else:
             raise NotImplementedError(style)
         self.weight_field = weight_field
@@ -337,7 +339,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             merge_style = 1
         else:
             raise NotImplementedError
-        tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        buf = list(tree.tobuffer())
+        del tree
+        new_buf = [buf.pop(0)]
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        tree = self._get_tree(len(fields))
+        tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -380,7 +388,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
         # We build up the fields to add
-        if self._weight is None:
+        if self._weight is None or fields is None:
             weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data = [fd.astype('float64') * weight_data
@@ -401,7 +409,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+            used_points = na.logical_or.reduce(used_data, self.axis)
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
@@ -417,16 +425,36 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = [g for g in self._get_grid_objs()
                             if g.Level == level]
-        if len(grids_to_project) == 0: return
-        dls, convs = self._get_dls(grids_to_project[0], fields)
+        grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_project))
-        for pi, grid in enumerate(grids_to_project):
-            self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+        if len(grids_to_initialize) == 0: return
+        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+                          % (level, self._max_level), len(grids_to_initialize))
+        start_index = na.empty(2, dtype="int64")
+        dims = na.empty(2, dtype="int64")
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        for pi, grid in enumerate(grids_to_initialize):
+            dims[0] = grid.ActiveDimensions[xax]
+            dims[1] = grid.ActiveDimensions[yax]
+            ind = grid.get_global_startindex()
+            start_index[0] = ind[xax]
+            start_index[1] = ind[yax]
+            tree.initialize_grid(level, start_index, dims)
             pbar.update(pi)
             grid.clear_data()
         pbar.finish()
+        if len(grids_to_project) > 0:
+            dls, convs = self._get_dls(grids_to_project[0], fields)
+            pbar = get_pbar('Projecting  level % 2i / % 2i ' \
+                              % (level, self._max_level), len(grids_to_project))
+            for pi, grid in enumerate(grids_to_project):
+                self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+                pbar.update(pi)
+                grid.clear_data()
+            pbar.finish()
         return
 
     def _get_points_in_region(self, grid):
@@ -459,7 +487,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,**kwargs):
+                 preload_style=None, serialize=True, **kwargs):
         """
         This is a data object corresponding to a line integral through the
         simulation domain.
@@ -502,9 +530,9 @@ class YTOverlapProjBase(YTSelectionContainer2D):
             region of a grid out.  They can be of the form "grid['Temperature']
             > 100" for instance.
         preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
+            Either 'level', 'all', or None (default).  Defines how grids are
+            loaded -- either level by level, or all at once.  Only applicable
+            during parallel runs.
         serialize : bool, optional
             Whether we should store this projection in the .yt file or not.
         kwargs : dict of items
@@ -848,10 +876,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
-        Example
-        -------
+        Examples
+        --------
         cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
 
         """
@@ -1011,7 +1038,6 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         Example
         -------
         cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
         """
         self._base_dx = (
@@ -1051,10 +1077,16 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         for gi, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(gi)
             if grid.Level > last_level and grid.Level <= self.level:
+                mylog.debug("Updating level state to %s", last_level + 1)
                 self._update_level_state(last_level + 1)
                 self._refine(1, fields_to_get)
                 last_level = grid.Level
             self._get_data_from_grid(grid, fields_to_get)
+        while last_level < self.level:
+            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
+            self._update_level_state(last_level + 1)
+            self._refine(1, fields_to_get)
+            last_level += 1
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
@@ -1085,7 +1117,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
+            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
                 self.field_data[field] = na.zeros(idims,dtype='float64')-999
@@ -1096,8 +1128,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
         input_left = (self._old_global_startindex + 0.5) * rf 
         dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.right_edge-self.left_edge)/dx+0.5).astype('int32') + 2
-
+        output_dims = na.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
 
         for field in fields:

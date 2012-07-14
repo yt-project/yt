@@ -148,7 +148,7 @@ class AMRGridPatch(object):
             else:
                 self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError, field
+            raise exceptions.KeyError(field)
 
     def has_key(self, key):
         return (key in self.field_data)
@@ -375,10 +375,7 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        try:
-            rf = self.pf.refine_by[child.Level-1]
-        except TypeError:
-            rf = self.pf.refine_by
+        rf = self.pf.refine_by
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = na.maximum(0, cgi / rf - gi)
         endIndex = na.minimum((cgi + child.ActiveDimensions) / rf - gi,

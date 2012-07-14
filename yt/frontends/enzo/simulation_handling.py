@@ -30,21 +30,23 @@ import glob
 import os
 
 from yt.data_objects.time_series import \
-    TimeSeriesData
+    SimulationTimeSeries, TimeSeriesData
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
+from yt.utilities.definitions import \
+    sec_conversion
 from yt.utilities.exceptions import \
-    YTException
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
+    AmbiguousOutputs, \
+    MissingParameter, \
+    NoStoppingCondition
 
 from yt.convenience import \
     load
 
-class EnzoSimulation(TimeSeriesData):
-    r"""Super class for performing the same operation over all data outputs in 
-    a simulation from one redshift to another.
+class EnzoSimulation(SimulationTimeSeries):
+    r"""Class for creating TimeSeriesData object from an Enzo
+    simulation parameter file.
     """
     def __init__(self, parameter_filename):
         r"""Initialize an Enzo Simulation object.
@@ -65,23 +67,8 @@ class EnzoSimulation(TimeSeriesData):
         >>> print es.all_outputs
 
         """
-        self.parameter_filename = parameter_filename
-        self.parameters = {}
-
-        # Set some parameter defaults.
-        self._set_parameter_defaults()
-        # Read the simulation parameter file.
-        self._parse_parameter_file()
-        # Set up time units dictionary.
-        self._set_time_units()
-
-        # Figure out the starting and stopping times and redshift.
-        self._calculate_simulation_bounds()
-        self.print_key_parameters()
+        SimulationTimeSeries.__init__(self, parameter_filename)
         
-        # Get all possible datasets.
-        self._get_all_outputs()
-
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None, time_units='1',
                         initial_redshift=None, final_redshift=None,
@@ -260,30 +247,6 @@ class EnzoSimulation(TimeSeriesData):
                                 parallel=parallel)
         mylog.info("%d outputs loaded into time series." % len(my_outputs))
 
-    @parallel_root_only
-    def print_key_parameters(self):
-        """
-        Print out some key parameters for the simulation.
-        """
-        for a in ["domain_dimensions", "domain_left_edge",
-                  "domain_right_edge", "initial_time", "final_time",
-                  "stop_cycle", "cosmological_simulation"]:
-            if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
-                continue
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and \
-           getattr(self, "cosmological_simulation"):
-            for a in ["omega_lambda", "omega_matter",
-                      "hubble_constant", "initial_redshift",
-                      "final_redshift"]:
-                if not hasattr(self, a):
-                    mylog.error("Missing %s in parameter file definition!", a)
-                    continue
-                v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
-
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
@@ -440,10 +403,12 @@ class EnzoSimulation(TimeSeriesData):
 
         if self.parameters['dtDataDump'] > 0 and \
             self.parameters['CycleSkipDataDump'] > 0:
-            raise AmbiguousOutputs(self.parameter_filename)
+            mylog.info("Simulation %s has both dtDataDump and CycleSkipDataDump set." % self.parameter_filename )
+            mylog.info("    Unable to calculate datasets.  Attempting to search in the current directory")
+            self.all_time_outputs = self._find_outputs()
 
         # Get all time or cycle outputs.
-        if self.parameters['CycleSkipDataDump'] > 0:
+        elif self.parameters['CycleSkipDataDump'] > 0:
             self._calculate_cycle_outputs()
         else:
             self._calculate_time_outputs()
@@ -499,7 +464,7 @@ class EnzoSimulation(TimeSeriesData):
     def _set_parameter_defaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
 
-        self.parameters['GlobalDir'] = "."
+        self.parameters['GlobalDir'] = self.directory
         self.parameters['DataDumpName'] = "data"
         self.parameters['DataDumpDir'] = "DD"
         self.parameters['RedshiftDumpName'] = "RedshiftOutput"
@@ -525,10 +490,8 @@ class EnzoSimulation(TimeSeriesData):
                 / self.hubble_constant / (1 + self.initial_redshift)**1.5
         self.time_units['1'] = 1.
         self.time_units['seconds'] = self.parameters['TimeUnits']
-        self.time_units['years'] = self.time_units['seconds'] / (365*3600*24.0)
-        self.time_units['days']  = self.time_units['seconds'] / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.parameters['TimeUnits'] / sec_conversion[unit]
 
     def _find_outputs(self):
         """
@@ -557,12 +520,15 @@ class EnzoSimulation(TimeSeriesData):
                                     "%s%s" % (dir_key, index),
                                     "%s%s" % (output_key, index))
             if os.path.exists(filename):
-                pf = load(filename)
-                if pf is not None:
-                    time_outputs.append({'filename': filename, 'time': pf.current_time})
-                    if pf.cosmological_simulation:
-                        time_outputs[-1]['redshift'] = pf.current_redshift
-                del pf
+                try:
+                    pf = load(filename)
+                    if pf is not None:
+                        time_outputs.append({'filename': filename, 'time': pf.current_time})
+                        if pf.cosmological_simulation:
+                            time_outputs[-1]['redshift'] = pf.current_redshift
+                except YTOutputNotIdentified:
+                    mylog.error('Failed to load %s' % filename)
+
         mylog.info("Located %d time outputs." % len(time_outputs))
         time_outputs.sort(key=lambda obj: obj['time'])
         return time_outputs
@@ -664,29 +630,4 @@ class EnzoSimulation(TimeSeriesData):
         times = na.array(times) / self.time_units[time_units]
         return self._get_outputs_by_key('time', times, tolerance=tolerance,
                                         outputs=outputs)
-
-class MissingParameter(YTException):
-    def __init__(self, pf, parameter):
-        YTException.__init__(self, pf)
-        self.parameter = parameter
-
-    def __str__(self):
-        return "Parameter file %s is missing %s parameter." % \
-            (self.pf, self.parameter)
-
-class NoStoppingCondition(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf)
-
-    def __str__(self):
-        return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
-            self.pf
-
-class AmbiguousOutputs(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf)
-
-    def __str__(self):
-        return "Simulation %s has both dtDataDump and CycleSkipDataDump set.  Unable to calculate datasets." % \
-            self.pf
 

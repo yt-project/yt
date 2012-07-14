@@ -41,7 +41,7 @@ from yt.data_objects.static_output import \
 from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from .definitions import ramses_header
 from yt.utilities.definitions import \
-    mpc_conversion
+    mpc_conversion, sec_conversion
 from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \
@@ -363,11 +363,6 @@ class RAMSESStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = self.parameters['unit_t']
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
         self.conversion_factors["Density"] = self.parameters['unit_d']
         vel_u = self.parameters['unit_l'] / self.parameters['unit_t']
         self.conversion_factors["x-velocity"] = vel_u
@@ -377,6 +372,8 @@ class RAMSESStaticOutput(StaticOutput):
     def _setup_nounits_units(self):
         for unit in mpc_conversion.keys():
             self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
 
     def _parse_parameter_file(self):
         # hardcoded for now

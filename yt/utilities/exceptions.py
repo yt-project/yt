@@ -74,3 +74,37 @@ class YTFieldTypeNotFound(YTException):
 
     def __str__(self):
         return "Could not find field '%s'." % (self.fname)
+
+class YTSimulationNotIdentified(YTException):
+    def __init__(self, sim_type):
+        YTException.__init__(self)
+        self.sim_type = sim_type
+
+    def __str__(self):
+        return "Simulation time-series type %s not defined." % self.sim_type
+
+class AmbiguousOutputs(YTException):
+    def __init__(self, pf):
+        YTException.__init__(self, pf)
+
+    def __str__(self):
+        return "Simulation %s has both dtDataDump and CycleSkipDataDump set.  Unable to calculate datasets." % \
+            self.pf
+
+class MissingParameter(YTException):
+    def __init__(self, pf, parameter):
+        YTException.__init__(self, pf)
+        self.parameter = parameter
+
+    def __str__(self):
+        return "Parameter file %s is missing %s parameter." % \
+            (self.pf, self.parameter)
+
+class NoStoppingCondition(YTException):
+    def __init__(self, pf):
+        YTException.__init__(self, pf)
+
+    def __str__(self):
+        return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
+            self.pf
+

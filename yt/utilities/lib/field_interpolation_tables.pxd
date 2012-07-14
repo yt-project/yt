@@ -119,7 +119,7 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
-    ta = expf(-fmax(dt*(trgba[0] + trgba[1] + trgba[2]), 0.0))
+    ta = fmax(1.0-dt*(trgba[0] + trgba[1] + trgba[2]), 0.0)
     for i in range(3):
         rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
 

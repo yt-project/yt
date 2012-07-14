@@ -24,7 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 
 cdef extern from "libconfig.h":
     cdef struct config_t:

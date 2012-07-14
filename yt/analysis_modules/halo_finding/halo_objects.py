@@ -5,6 +5,8 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Stephen Skory <s@skory.us>
 Affiliation: UCSD Physics/CASS
+Author: Geoffrey So <gsiisg@gmail.com> (Ellipsoidal functions)
+Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
@@ -40,7 +42,7 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.utilities.performance_counters import \
     yt_counters, time_function
-from yt.utilities.math_utils import periodic_dist
+from yt.utilities.math_utils import periodic_dist, get_rotation_matrix
 from yt.utilities.physical_constants import rho_crit_now, mass_sun_cgs
 
 from .hop.EnzoHop import RunHOP
@@ -58,6 +60,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 TINY = 1.e-40
 
+# Ellipsoid funtions.
+# Rotation Matrixes should already be imported at top
 
 class Halo(object):
     """
@@ -74,11 +78,13 @@ class Halo(object):
 
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
-        bulk_vel=None, tasks=None, rms_vel=None):
+        bulk_vel=None, tasks=None, rms_vel=None, supp=None):
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
         self.pf = self.data.pf
+        self.gridsize = (self.pf.domain_right_edge - \
+                 self.pf.domain_left_edge)
         if indices is not None:
             self.indices = halo_list._base_indices[indices]
         else:
@@ -95,6 +101,11 @@ class Halo(object):
         self.rms_vel = rms_vel
         self.bin_count = None
         self.overdensity = None
+        # A supplementary data dict.
+        if supp is None:
+            self.supp = {}
+        else:
+            self.supp = supp
 
     def center_of_mass(self):
         r"""Calculate and return the center of mass.
@@ -403,7 +414,7 @@ class Halo(object):
         period = self.pf.domain_right_edge - \
             self.pf.domain_left_edge
         cm = self.pf["cm"]
-        thissize = max(self.size, self.indices.size)
+        thissize = self.get_size()
         rho_crit = rho_crit_now * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
@@ -435,8 +446,98 @@ class Halo(object):
             self.mass_bins[i + 1] += self.mass_bins[i]
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
-        (4. / 3. * math.pi * rho_crit * \
-        (self.radial_bins * cm) ** 3.0)
+        (4./3. * math.pi * rho_crit * \
+        (self.radial_bins * cm)**3.0)
+        
+    def _get_ellipsoid_parameters_basic(self):
+        na.seterr(all='ignore')
+        # check if there are 4 particles to form an ellipsoid
+        # neglecting to check if the 4 particles in the same plane,
+        # that is almost certainly never to occur,
+        # will deal with it later if it ever comes up
+        if na.size(self["particle_position_x"]) < 4:
+            mylog.warning("Too few particles for ellipsoid parameters.")
+            return (0, 0, 0, 0, 0, 0, 0)
+        # Calculate the parameters that describe the ellipsoid of
+        # the particles that constitute the halo. This function returns
+        # all the parameters except for the center of mass.
+        com = self.center_of_mass()
+        position = [self["particle_position_x"],
+		    self["particle_position_y"],
+		    self["particle_position_z"]]
+        # Locate the furthest particle from com, its vector length and index
+	DW = na.array([self.gridsize[0],self.gridsize[1],self.gridsize[2]])
+	position = [position[0] - com[0],
+		    position[1] - com[1],
+		    position[2] - com[2]]
+	# different cases of particles being on other side of boundary
+	for axis in range(na.size(DW)):
+	    cases = na.array([position[axis],
+	  		      position[axis] + DW[axis],
+			      position[axis] - DW[axis]])        
+            # pick out the smallest absolute distance from com
+            position[axis] = na.choose(na.abs(cases).argmin(axis=0), cases)
+	# find the furthest particle's index
+	r = na.sqrt(position[0]**2 +
+		    position[1]**2 +
+		    position[2]**2)
+        A_index = r.argmax()
+        mag_A = r.max()
+        # designate the A vector
+	A_vector = (position[0][A_index],
+		    position[1][A_index],
+		    position[2][A_index])
+        # designate the e0 unit vector
+        e0_vector = A_vector / mag_A
+        # locate the tB particle position by finding the max B
+	e0_vector_copy = na.empty((na.size(position[0]), 3), dtype='float64')
+        for i in range(3):
+            e0_vector_copy[:, i] = e0_vector[i]
+        rr = na.array([position[0],
+		       position[1],
+		       position[2]]).T # Similar to tB_vector in old code.
+        tC_vector = na.cross(e0_vector_copy, rr)
+        te2 = tC_vector.copy()
+        for dim in range(3):
+            te2[:,dim] *= na.sum(tC_vector**2., axis = 1)**(-0.5)
+        te1 = na.cross(te2, e0_vector_copy)
+        length = na.abs(-na.sum(rr * te1, axis = 1) * \
+            (1. - na.sum(rr * e0_vector_copy, axis = 1)**2. * \
+            mag_A**-2.)**(-0.5))
+        # This problem apparently happens sometimes, that the NaNs are turned
+        # into infs, which messes up the nanargmax below.
+        length[length == na.inf] = 0.
+        tB_index = na.nanargmax(length) # ignores NaNs created above.
+        mag_B = length[tB_index]
+        e1_vector = te1[tB_index]
+        e2_vector = te2[tB_index]
+        temp_e0 = rr.copy()
+        temp_e1 = rr.copy()
+        temp_e2 = rr.copy()
+        for dim in range(3):
+            temp_e0[:,dim] = e0_vector[dim]
+            temp_e1[:,dim] = e1_vector[dim]
+            temp_e2[:,dim] = e2_vector[dim]
+        length = na.abs(na.sum(rr * temp_e2, axis = 1) * (1 - \
+            na.sum(rr * temp_e0, axis = 1)**2. * mag_A**-2. - \
+            na.sum(rr * temp_e1, axis = 1)**2. * mag_B**-2)**(-0.5))
+        length[length == na.inf] = 0.
+        tC_index = na.nanargmax(length)
+        mag_C = length[tC_index]
+        # tilt is calculated from the rotation about x axis
+        # needed to align e1 vector with the y axis
+        # after e0 is aligned with x axis
+        # find the t1 angle needed to rotate about z axis to align e0 to x
+        t1 = na.arctan(e0_vector[1] / e0_vector[0])
+        RZ = get_rotation_matrix(-t1, (0, 0, 1)).transpose()
+        r1 = (e0_vector * RZ).sum(axis = 1)
+        # find the t2 angle needed to rotate about y axis to align e0 to x
+        t2 = na.arctan(-r1[2] / r1[0])
+        RY = get_rotation_matrix(-t2, (0, 1, 0)).transpose()
+        r2 = na.dot(RY, na.dot(RZ, e1_vector))
+        tilt = na.arctan(r2[2]/r2[1])
+        return (mag_A, mag_B, mag_C, e0_vector[0], e0_vector[1],
+            e0_vector[2], tilt)
 
 class RockstarHalo(Halo):
     def __init__(self,halo_list,index,ID, DescID, Mvir, Vmax, Vrms, Rvir, Rs, Np, 
@@ -524,6 +625,61 @@ class RockstarHalo(Halo):
         return None
 
 
+    def get_ellipsoid_parameters(self):
+        r"""Calculate the parameters that describe the ellipsoid of
+        the particles that constitute the halo.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        tuple : (cm, mag_A, mag_B, mag_C, e0_vector, tilt)
+            The 6-tuple has in order:
+              #. The center of mass as an array.
+              #. mag_A as a float.
+              #. mag_B as a float.
+              #. mag_C as a float.
+              #. e0_vector as an array.
+              #. tilt as a float.
+        
+        Examples
+        --------
+        >>> params = halos[0].get_ellipsoid_parameters()
+        """
+        basic_parameters = self._get_ellipsoid_parameters_basic()
+        toreturn = [self.center_of_mass()]
+        updated = [basic_parameters[0], basic_parameters[1],
+            basic_parameters[2], na.array([basic_parameters[3],
+            basic_parameters[4], basic_parameters[5]]), basic_parameters[6]]
+        toreturn.extend(updated)
+        return tuple(toreturn)
+    
+    def get_ellipsoid(self):
+        r"""Returns an ellipsoidal data object.
+        
+        This will generate a new, empty ellipsoidal data object for this
+        halo.
+        
+        Parameters
+        ----------
+        None.
+        
+        Returns
+        -------
+        ellipsoid : `yt.data_objects.api.AMREllipsoidBase`
+            The ellipsoidal data object.
+        
+        Examples
+        --------
+        >>> ell = halos[0].get_ellipsoid()
+        """
+        ep = self.get_ellipsoid_parameters()
+        ell = self.data.hierarchy.ellipsoid(ep[0], ep[1], ep[2], ep[3],
+            ep[4], ep[5])
+        return ell
+    
 class HOPHalo(Halo):
     _name = "HOPHalo"
     pass
@@ -600,6 +756,39 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         (4. / 3. * math.pi * rho_crit * \
         (self.radial_bins * self.data.pf["cm"]) ** 3.0)
 
+    def _get_ellipsoid_parameters_basic(self):
+        mylog.error("Ellipsoid calculation does not work for parallelHF halos." + \
+        " Please save the halos using .dump(), and reload them using" + \
+        " LoadHaloes() to use this function.")
+        return None
+
+    def get_ellipsoid_parameters(self):
+        r"""Calculate the parameters that describe the ellipsoid of
+        the particles that constitute the halo.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        tuple : (cm, mag_A, mag_B, mag_C, e1_vector, tilt)
+            The 6-tuple has in order:
+              #. The center of mass as an array.
+              #. mag_A as a float.
+              #. mag_B as a float.
+              #. mag_C as a float.
+              #. e1_vector as an array.
+              #. tilt as a float.
+        
+        Examples
+        --------
+        >>> params = halos[0].get_ellipsoid_parameters()
+        """
+        mylog.error("get_ellipsoid_parameters does not work for parallelHF halos." + \
+        " Please save the halos using .dump(), and reload them using" + \
+        " LoadHaloes() to use this function.")
+        return None
 
 class FOFHalo(Halo):
 
@@ -614,10 +803,14 @@ class FOFHalo(Halo):
 
 class LoadedHalo(Halo):
     def __init__(self, pf, id, size=None, CoM=None,
-        max_dens_point=None, group_total_mass=None,
-        max_radius=None, bulk_vel=None,
-        rms_vel=None, fnames=None):
+
+        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
+        rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
+        e1_vec=None, tilt=None, supp=None):
+
         self.pf = pf
+        self.gridsize = (self.pf.domain_right_edge - \
+            self.pf.domain_left_edge)
         self.id = id
         self.size = size
         self.CoM = CoM
@@ -626,6 +819,11 @@ class LoadedHalo(Halo):
         self.max_radius = max_radius
         self.bulk_vel = bulk_vel
         self.rms_vel = rms_vel
+        self.mag_A = mag_A
+        self.mag_B = mag_B
+        self.mag_C = mag_C
+        self.e1_vec = e1_vec
+        self.tilt = tilt
         # locs=the names of the h5 files that have particle data for this halo
         self.fnames = fnames
         self.bin_count = None
@@ -634,6 +832,11 @@ class LoadedHalo(Halo):
         self.particle_mask = None
         self.ds_sort = None
         self.indices = na.array([])  # Never used for a LoadedHalo.
+        # A supplementary data dict.
+        if supp is None:
+            self.supp = {}
+        else:
+            self.supp = supp
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,
@@ -706,6 +909,68 @@ class LoadedHalo(Halo):
             del f
         return field_data
 
+    def _get_ellipsoid_parameters_basic_loadedhalo(self):
+        if self.mag_A is not None:
+            return (self.mag_A, self.mag_B, self.mag_C, self.e1_vec[0],
+                self.e1_vec[1], self.e1_vec[2], self.tilt)
+        else:
+            return self._get_ellipsoid_parameters_basic()
+
+    def get_ellipsoid_parameters(self):
+        r"""Calculate the parameters that describe the ellipsoid of
+        the particles that constitute the halo.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        tuple : (cm, mag_A, mag_B, mag_C, e1_vector, tilt)
+            The 6-tuple has in order:
+              #. The center of mass as an array.
+              #. mag_A as a float.
+              #. mag_B as a float.
+              #. mag_C as a float.
+              #. e1_vector as an array.
+              #. tilt as a float.
+
+        Examples
+        --------
+        >>> params = halos[0].get_ellipsoid_parameters()
+	"""
+
+        basic_parameters = self._get_ellipsoid_parameters_basic_loadedhalo()
+        toreturn = [self.center_of_mass()]
+        updated = [basic_parameters[0], basic_parameters[1],
+            basic_parameters[2], na.array([basic_parameters[3],
+            basic_parameters[4], basic_parameters[5]]), basic_parameters[6]]
+        toreturn.extend(updated)
+        return tuple(toreturn)
+    
+    def get_ellipsoid(self):
+        r"""Returns an ellipsoidal data object.        
+        This will generate a new, empty ellipsoidal data object for this
+        halo.
+        
+        Parameters
+        ----------
+        None.
+        
+        Returns
+        -------
+        ellipsoid : `yt.data_objects.api.AMREllipsoidBase`
+            The ellipsoidal data object.
+        
+        Examples
+        --------
+        >>> ell = halos[0].get_ellipsoid()
+        """
+        ep = self.get_ellipsoid_parameters()
+        ell = self.pf.hierarchy.ellipsoid(ep[0], ep[1], ep[2], ep[3],
+            ep[4], ep[5])
+        return ell
+
     def get_sphere(self):
         r"""Returns a sphere source.
 
@@ -734,6 +999,54 @@ class LoadedHalo(Halo):
         cen = self.center_of_mass()
         r = self.maximum_radius()
         return self.pf.h.sphere(cen, r)
+
+class TextHalo(LoadedHalo):
+    def __init__(self, pf, id, size=None, CoM=None,
+
+        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
+        rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
+        e1_vec=None, tilt=None, supp=None):
+
+        self.pf = pf
+        self.gridsize = (self.pf.domain_right_edge - \
+            self.pf.domain_left_edge)
+        self.id = id
+        self.size = size
+        self.CoM = CoM
+        self.max_dens_point = max_dens_point
+        self.group_total_mass = group_total_mass
+        self.max_radius = max_radius
+        self.bulk_vel = bulk_vel
+        self.rms_vel = rms_vel
+        self.mag_A = mag_A
+        self.mag_B = mag_B
+        self.mag_C = mag_C
+        self.e1_vec = e1_vec
+        self.tilt = tilt
+        self.bin_count = None
+        self.overdensity = None
+        self.indices = na.array([])  # Never used for a LoadedHalo.
+        # A supplementary data dict.
+        if supp is None:
+            self.supp = {}
+        else:
+            self.supp = supp
+
+    def __getitem__(self, key):
+        # We'll just pull it from the sphere.
+        return self.get_sphere()[key]
+
+    def maximum_density(self):
+        r"""Undefined for text halos."""
+        return -1
+    
+    def maximum_density_location(self):
+        r"""Undefined, default to CoM"""
+        return self.center_of_mass()
+    
+    def get_size(self):
+        # Have to just get it from the sphere.
+        return self["particle_position_x"].size
 
 
 class HaloList(object):
@@ -917,7 +1230,7 @@ class HaloList(object):
             n_points.append([math.sqrt(n[0]), n[1].haloID])
         return n_points
 
-    def write_out(self, filename):
+    def write_out(self, filename, ellipsoid_data=False):
         r"""Write out standard halo information to a text file.
 
         Parameters
@@ -925,6 +1238,10 @@ class HaloList(object):
         filename : String
             The name of the file to write to.
 
+        ellipsoid_data : bool.
+            Whether to print the ellipsoidal information to the file.
+            Default = False.
+        
         Examples
         --------
         >>> halos.write_out("HopAnalysis.out")
@@ -934,10 +1251,20 @@ class HaloList(object):
         else:
             f = open(filename, "w")
         f.write("# HALOS FOUND WITH %s\n" % (self._name))
-        f.write("\t".join(["# Group", "Mass", "# part", "max dens"
-                           "x", "y", "z", "center-of-mass",
-                           "x", "y", "z",
-                           "vx", "vy", "vz", "max_r", "rms_v", "\n"]))
+
+        if not ellipsoid_data:
+            f.write("\t".join(["# Group","Mass","# part","max dens"
+                               "x","y","z", "center-of-mass",
+                               "x","y","z",
+                               "vx","vy","vz","max_r","rms_v","\n"]))
+        else:
+            f.write("\t".join(["# Group","Mass","# part","max dens"
+                               "x","y","z", "center-of-mass",
+                               "x","y","z",
+                               "vx","vy","vz","max_r","rms_v",
+                               "mag_A", "mag_B", "mag_C", "e1_vec0",
+                               "e1_vec1", "e1_vec2", "tilt", "\n"]))
+
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
@@ -952,6 +1279,8 @@ class HaloList(object):
             f.write("\t")
             f.write("%0.9e\t" % group.maximum_radius())
             f.write("%0.9e\t" % group.rms_velocity())
+            if ellipsoid_data:
+                f.write("\t".join(["%0.9e" % v for v in group._get_ellipsoid_parameters_basic()]))
             f.write("\n")
             f.flush()
         f.close()
@@ -1107,7 +1436,7 @@ class HOPHaloList(HaloList):
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
 
-    def write_out(self, filename="HopAnalysis.out"):
+    def write_out(self, filename="HopAnalysis.out", ellipsoid_data=False):
         r"""Write out standard halo information to a text file.
 
         Parameters
@@ -1115,11 +1444,15 @@ class HOPHaloList(HaloList):
         filename : String
             The name of the file to write to. Default = "HopAnalysis.out".
 
+        ellipsoid_data : bool.
+            Whether to print the ellipsoidal information to the file.
+            Default = False.
+
         Examples
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
-        HaloList.write_out(self, filename)
+        HaloList.write_out(self, filename, ellipsoid_data)
 
 
 class FOFHaloList(HaloList):
@@ -1141,7 +1474,7 @@ class FOFHaloList(HaloList):
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
 
-    def write_out(self, filename="FOFAnalysis.out"):
+    def write_out(self, filename="FOFAnalysis.out", ellipsoid_data=False):
         r"""Write out standard halo information to a text file.
 
         Parameters
@@ -1149,11 +1482,15 @@ class FOFHaloList(HaloList):
         filename : String
             The name of the file to write to. Default = "FOFAnalysis.out".
 
+        ellipsoid_data : bool.
+            Whether to print the ellipsoidal information to the file.
+            Default = False.
+
         Examples
         --------
         >>> halos.write_out("FOFAnalysis.out")
         """
-        HaloList.write_out(self, filename)
+        HaloList.write_out(self, filename, ellipsoid_data)
 
 
 class LoadedHaloList(HaloList):
@@ -1173,6 +1510,7 @@ class LoadedHaloList(HaloList):
         locations = self._collect_halo_data_locations()
         halo = 0
         for line in lines:
+            orig = line
             # Skip the comment lines at top.
             if line[0] == "#": continue
             line = line.split()
@@ -1188,9 +1526,32 @@ class LoadedHaloList(HaloList):
             bulk_vel = na.array([float(line[10]), float(line[11]),
                 float(line[12])])
             rms_vel = float(line[14])
-            self._groups.append(LoadedHalo(self.pf, halo, size, CoM,
-                max_dens_point, group_total_mass, max_radius, bulk_vel,
-                rms_vel, fnames))
+            if len(line) == 15:
+                # No ellipsoid information
+                self._groups.append(LoadedHalo(self.pf, halo, size = size,
+                    CoM = CoM,
+                    max_dens_point = max_dens_point,
+                    group_total_mass = group_total_mass, max_radius = max_radius,
+                    bulk_vel = bulk_vel, rms_vel = rms_vel, fnames = fnames))
+            elif len(line) == 22:
+                # Ellipsoid information
+                mag_A = float(line[15])
+                mag_B = float(line[16])
+                mag_C = float(line[17])
+                e1_vec0 = float(line[18])
+                e1_vec1 = float(line[19])
+                e1_vec2 = float(line[20])
+                e1_vec = na.array([e1_vec0, e1_vec1, e1_vec2])
+                tilt = float(line[21])
+                self._groups.append(LoadedHalo(self.pf, halo, size = size,
+                    CoM = CoM,
+                    max_dens_point = max_dens_point,
+                    group_total_mass = group_total_mass, max_radius = max_radius,
+                    bulk_vel = bulk_vel, rms_vel = rms_vel, fnames = fnames,
+                    mag_A = mag_A, mag_B = mag_B, mag_C = mag_C, e1_vec = e1_vec,
+                    tilt = tilt))
+            else:
+                mylog.error("I am unable to parse this line. Too many or too few items. %s" % orig)
             halo += 1
 
     def _collect_halo_data_locations(self):
@@ -1210,6 +1571,42 @@ class LoadedHaloList(HaloList):
             locations.append(temp)
         lines.close()
         return locations
+
+class TextHaloList(HaloList):
+    _name = "Text"
+
+    def __init__(self, pf, fname, columns, comment):
+        ParallelAnalysisInterface.__init__(self)
+        self.pf = pf
+        self._groups = []
+        self._retrieve_halos(fname, columns, comment)
+
+    def _retrieve_halos(self, fname, columns, comment):
+        # First get the halo particulars.
+        lines = file(fname)
+        halo = 0
+        base_set = ['x', 'y', 'z', 'r']
+        keys = columns.keys()
+        extra = (len(keys) > 4)
+        for line in lines:
+            # Skip commented lines.
+            if line[0] == comment: continue
+            line = line.split()
+            x = float(line[columns['x']])
+            y = float(line[columns['y']])
+            z = float(line[columns['z']])
+            r = float(line[columns['r']])
+            cen = na.array([x, y, z])
+            # Now we see if there's anything else.
+            if extra:
+                temp_dict = {}
+                for key in columns:
+                    if key not in base_set:
+                        val = float(line[columns[key]])
+                        temp_dict[key] = val
+            self._groups.append(TextHalo(self.pf, halo,
+                CoM = cen, max_radius = r, supp = temp_dict))
+            halo += 1
 
 
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
@@ -1443,7 +1840,7 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     def __len__(self):
         return self.group_count
 
-    def write_out(self, filename="parallelHopAnalysis.out"):
+    def write_out(self, filename="parallelHopAnalysis.out", ellipsoid_data=False):
         r"""Write out standard halo information to a text file.
 
         Parameters
@@ -1456,7 +1853,7 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("parallelHopAnalysis.out")
         """
-        HaloList.write_out(self, filename)
+        HaloList.write_out(self, filename, ellipsoid_data)
 
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
@@ -1551,7 +1948,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             arr[arr < LE[i] - self.padding] += dw[i]
             arr[arr > RE[i] + self.padding] -= dw[i]
 
-    def write_out(self, filename):
+    def write_out(self, filename, ellipsoid_data=False):
         r"""Write out standard halo information to a text file.
 
         Parameters
@@ -1559,12 +1956,16 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         filename : String
             The name of the file to write to.
 
+        ellipsoid_data : bool.
+            Whether to print the ellipsoidal information to the file.
+            Default = False.
+
         Examples
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
         f = self.comm.write_on_root(filename)
-        HaloList.write_out(self, f)
+        HaloList.write_out(self, f, ellipsoid_data)
 
     def write_particle_lists_txt(self, prefix):
         r"""Write out the names of the HDF5 files containing halo particle data
@@ -1612,7 +2013,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             halo.write_particle_list(f)
         f.close()
 
-    def dump(self, basename="HopAnalysis"):
+    def dump(self, basename="HopAnalysis", ellipsoid_data=False):
         r"""Save the full halo data to disk.
 
         This function will save the halo data in such a manner that it can be
@@ -1630,11 +2031,15 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             The base name for the files the data will be written to. Default =
             "HopAnalysis".
 
+        ellipsoid_data : bool.
+            Whether to save the ellipsoidal information to the files.
+            Default = False.
+        
         Examples
         --------
         >>> halos.dump("MyHalos")
         """
-        self.write_out("%s.out" % basename)
+        self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)
 
@@ -2186,3 +2591,39 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
         """
         self.basename = basename
         LoadedHaloList.__init__(self, pf, self.basename)
+
+class LoadTextHaloes(GenericHaloFinder, TextHaloList):
+    def __init__(self, pf, filename, columns, comment = "#"):
+        r"""Load a text file of halos.
+        
+        Like LoadHaloes, but when all that is available is a plain
+        text file. This assumes the text file has the 3-positions of halos
+        along with a radius. The halo objects created are spheres.
+
+        Parameters
+        ----------
+        fname : String
+            The name of the text file to read in.
+        
+        columns : dict
+            A dict listing the column name : column number pairs for data
+            in the text file. It is zero-based (like Python).
+            An example is {'x':0, 'y':1, 'z':2, 'r':3, 'm':4}.
+            Any column name outside of ['x', 'y', 'z', 'r'] will be attached
+            to each halo object in the supplementary dict 'supp'. See
+            example.
+        
+        comment : String
+            If the first character of a line is equal to this, the line is
+            skipped. Default = "#".
+
+        Examples
+        --------
+        >>> pf = load("data0005")
+        >>> halos = LoadTextHaloes(pf, "list.txt",
+            {'x':0, 'y':1, 'z':2, 'r':3, 'm':4},
+            comment = ";")
+        >>> halos[0].supp['m']
+            3.28392048e14
+        """
+        TextHaloList.__init__(self, pf, filename, columns, comment)

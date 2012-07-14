@@ -61,7 +61,6 @@ class PannableMapServer(object):
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
 
-    #@exc_writeout
     def map(self, L, x, y):
         dd = 1.0 / (2.0**(int(L)))
         relx = int(x) * dd

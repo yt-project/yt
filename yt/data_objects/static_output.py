@@ -171,6 +171,7 @@ class StaticOutput(object):
             if vv < max_nu and vv > 1.0:
                 good_u = unit
                 max_nu = v*self[unit]
+        if good_u is None : good_u = 'cm'
         return good_u
 
     def has_key(self, key):

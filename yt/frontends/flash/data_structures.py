@@ -36,7 +36,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.definitions import \
-    mpc_conversion
+    mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
 
@@ -107,9 +107,15 @@ class FLASHHierarchy(GridGeometryHandler):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
         # We only go up to ND for 2D datasets
-        self.grid_left_edge[:,:ND] = f["/bounding box"][:,:,0]
-        self.grid_right_edge[:,:ND] = f["/bounding box"][:,:,1]
-        
+        if (f["/bounding box"][:,:,0].shape[1] == ND) :
+            #FLASH 2/3 2D data
+            self.grid_left_edge[:,:ND] = f["/bounding box"][:,:,0]
+            self.grid_right_edge[:,:ND] = f["/bounding box"][:,:,1]
+        else:
+            self.grid_left_edge[:,:] = f["/bounding box"][:,:,0]
+            self.grid_right_edge[:,:] = f["/bounding box"][:,:,1]
+            
+
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']
@@ -240,11 +246,8 @@ class FLASHStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / \
             (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v

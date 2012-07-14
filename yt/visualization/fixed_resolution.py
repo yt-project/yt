@@ -33,6 +33,7 @@ import numpy as na
 import weakref
 
 class FixedResolutionBuffer(object):
+    _exclude_fields = ('pz','pdz','dx','x','y','z')
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         r"""
@@ -112,10 +113,16 @@ class FixedResolutionBuffer(object):
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
+    def keys(self):
+        return self.data.keys()
+    
+    def __delitem__(self, item):
+        del self.data[item]
+    
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
-        mylog.info("Making a fixed resolution buffer of %d by %d" % \
-            (self.buff_size[0], self.buff_size[1]))
+        mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
+            (item, self.buff_size[0], self.buff_size[1]))
         buff = _MPL.Pixelize(self.data_source['px'],
                              self.data_source['py'],
                              self.data_source['pdx'],
@@ -132,7 +139,7 @@ class FixedResolutionBuffer(object):
         self.data[item] = val
 
     def _get_data_source_fields(self):
-        exclude = self.data_source._key_fields + ['pz','pdz','x','y','z']
+        exclude = self.data_source._key_fields + list(self._exclude_fields)
         for f in self.data_source.fields:
             if f not in exclude:
                 self[f]
@@ -374,6 +381,6 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
                                self.data_source.center, self.data_source._inv_mat, indices,
                                self.data_source[item],
                                self.buff_size[0], self.buff_size[1],
-                               self.bounds)
+                               self.bounds).transpose()
         self[item] = buff
         return buff

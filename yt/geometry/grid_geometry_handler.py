@@ -37,6 +37,7 @@ from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
+from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
@@ -120,29 +121,29 @@ class GridGeometryHandler(GeometryHandler):
           [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
         ], dtype='float64')
 
     def print_stats(self):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%11s" % ("level","# grids", "# cells")
+        header = "%3s\t%6s\t%14s" % ("level","# grids", "# cells")
         print header
         print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 11i" % \
+            print "% 3i\t% 6i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level])
             dx = self.select_grids(level)[0].dds[0]
         print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
+        print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
         print "\n"
         try:
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
@@ -151,7 +152,7 @@ class GridGeometryHandler(GeometryHandler):
         t_s = self.pf.current_time * self.pf["Time"]
         print "t = %0.8e = %0.8e s = %0.8e years" % \
             (self.pf.current_time, \
-             t_s, t_s / (365*24*3600.0) )
+             t_s, t_s / sec_per_year )
         print "\nSmallest Cell:"
         u=[]
         for item in self.parameter_file.units.items():

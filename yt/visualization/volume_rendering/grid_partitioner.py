@@ -97,7 +97,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
             dd = [d[sl[0][0]:sl[0][1]+1,
                     sl[1][0]:sl[1][1]+1,
                     sl[2][0]:sl[2][1]+1].copy() for d in vcds]
-            pgs.append(PartitionedGrid(grid.id, len(self.fields), dd,
+            pgs.append(PartitionedGrid(grid.id, dd,
                         P.LeftEdge, P.RightEdge, sl[-1]))
         return pgs
 

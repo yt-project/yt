@@ -342,9 +342,18 @@ class SpectrumBuilder(object):
         # Initialize values
         self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
         self._data_source = data_source
-        self.star_mass = star_mass
-        self.star_creation_time = star_creation_time
-        self.star_metal = star_metallicity_fraction
+        if iterable(star_mass):
+            self.star_mass = star_mass
+        else:
+            self.star_mass = [star_mass]
+        if iterable(star_creation_time):
+            self.star_creation_time = star_creation_time
+        else:
+            self.star_creation_time = [star_creation_time]
+        if iterable(star_metallicity_fraction):
+            self.star_metal = star_metallicity_fraction
+        else:
+            self.star_metal = [star_metallicity_fraction]
         self.min_age = min_age
         
         # Check to make sure we have the right set of data.
@@ -381,8 +390,9 @@ class SpectrumBuilder(object):
         self.star_metal /= Zsun
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time * self._pf['Time']) / YEAR
+        dt = na.maximum(dt, 0.0)
         # Remove young stars
-        sub = dt > self.min_age
+        sub = dt >= self.min_age
         self.star_metal = self.star_metal[sub]
         dt = dt[sub]
         self.star_creation_time = self.star_creation_time[sub]

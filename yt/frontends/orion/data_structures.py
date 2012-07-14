@@ -38,7 +38,8 @@ from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
 from yt.data_objects.static_output import StaticOutput
-from yt.utilities.definitions import mpc_conversion
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
@@ -622,11 +623,8 @@ class OrionStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
         for key in yt2orionFieldsDict:
             self.conversion_factors[key] = 1.0
 

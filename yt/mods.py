@@ -117,7 +117,8 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
-    apply_colormap, scale_image, write_projection, write_fits
+    apply_colormap, scale_image, write_projection, write_fits, \
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
@@ -129,7 +130,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
-from yt.convenience import load, projload
+from yt.convenience import \
+    load, projload, simulation
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \

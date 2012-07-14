@@ -51,7 +51,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
      StaticOutput
 from yt.utilities.definitions import \
-     mpc_conversion
+     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 
@@ -85,7 +85,7 @@ class ChomboGrid(AMRGridPatch):
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
             na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by[self.Level-1]).astype('int64').ravel()
+        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
     def _setup_dx(self):
@@ -93,7 +93,7 @@ class ChomboGrid(AMRGridPatch):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by[self.Level-1]
+            self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
@@ -226,6 +226,7 @@ class ChomboStaticOutput(StaticOutput):
         fileh = h5py.File(filename,'r')
         self.current_time = fileh.attrs['time']
         self.ini_filename = ini_filename
+        self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
         
@@ -243,10 +244,8 @@ class ChomboStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = seconds / sec_conversion[unit]
         for key in yt2plutoFieldsDict:
             self.conversion_factors[key] = 1.0
 
@@ -282,10 +281,8 @@ class ChomboStaticOutput(StaticOutput):
             self.domain_right_edge = self.__calc_right_edge()
             self.domain_dimensions = self.__calc_domain_dimensions()
             self.dimensionality = 3
-            self.refine_by = []
             fileh = h5py.File(self.parameter_filename,'r')
-            for level in range(0,fileh.attrs['num_levels']):
-                self.refine_by.append(fileh['/level_'+str(level)].attrs['ref_ratio'])
+            self.refine_by = fileh['/level_0'].attrs['ref_ratio']
 
     def _parse_pluto_file(self, ini_filename):
         """

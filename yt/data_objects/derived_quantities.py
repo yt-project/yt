@@ -65,6 +65,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         chunks = self._data_source.chunks([], chunking_style="io")
         for ds in parallel_objects(chunks, -1):
             rv = self.func(ds, *args, **kwargs)
+            if not iterable(rv): rv = (rv,)
             for i in range(self.n_ret): retvals[i].append(rv[i])
         retvals = [na.array(retvals[i]) for i in range(self.n_ret)]
         # Note that we do some fancy footwork here.
