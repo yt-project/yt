@@ -25,6 +25,11 @@ License:
 """
 import numpy as na
 from yt.utilities.lib import kdtree_get_choices
+from yt.utilities.parallel_tools.parallel_analysis_interface import _get_comm
+
+def _lchild_id(id): return (id<<1) + 1
+def _rchild_id(id): return (id<<1) + 2
+def _parent_id(id): return (id-1)>>1
 
 class Node(object):
     left = None
@@ -33,15 +38,16 @@ class Node(object):
     data = None
     split = None
     data = None
+    id = None
     def __init__(self, parent, left, right,
-            left_edge, right_edge, grid_id):
+            left_edge, right_edge, grid_id, id):
         self.left = left
         self.right = right
         self.left_edge = left_edge
         self.right_edge = right_edge
         self.grid = grid_id
         self.parent = parent
-
+        self.id = id
 
 class Split(object):
     dim = None
@@ -76,6 +82,11 @@ def insert_grids(node, gles, gres, grid_ids):
             assert(node.grid is not None)
             return
 
+    # Split the grids
+    split_grids(node, gles, gres, grid_ids)
+    return
+
+def split_grids(node, gles, gres, grid_ids):
     # Find a Split
     data = na.array([(gles[i,:], gres[i,:]) for i in xrange(grid_ids.shape[0])], copy=False)
     best_dim, split_pos, less_ids, greater_ids = \
@@ -86,11 +97,14 @@ def insert_grids(node, gles, gres, grid_ids):
 
     # Create a Split
     divide(node, split)
-
+    comm = _get_comm([])
+    print comm.rank, comm.size
+    #if (node.left.id >> 1) < comm.size:
     # Populate Left Node
     #print 'Inserting left node', node.left_edge, node.right_edge
     insert_grids(node.left, gles[less_ids], gres[less_ids], grid_ids[less_ids])
 
+    #if (node.right.id >> 1) < comm.size:
     # Populate Right Node
     #print 'Inserting right node', node.left_edge, node.right_edge
     insert_grids(node.right, gles[greater_ids], gres[greater_ids], grid_ids[greater_ids])
@@ -114,45 +128,10 @@ def divide(node, split):
     # Create a Split
     node.split = split
     node.left = Node(node, None, None,
-            node.left_edge, new_right(node, split), node.grid)
+            node.left_edge, new_right(node, split), node.grid, _lchild_id(node.id))
     node.right = Node(node, None, None,
-            new_left(node, split), node.right_edge, node.grid)
+            new_left(node, split), node.right_edge, node.grid, _rchild_id(node.id))
     return
-
-
-
-def new_right(Node, split):
-    new_right = na.empty(3, dtype='float64')
-    new_right[:] = Node.right_edge[:]
-    new_right[split.dim] = split.pos
-    return new_right
-
-def new_left(Node, split):
-    new_left = na.empty(3, dtype='float64')
-    new_left[:] = Node.left_edge[:]
-    new_left[split.dim] = split.pos
-    return new_left
-
-def divide(node, split):
-    # Create a Split
-    node.split = split
-    node.left = Node(node, None, None,
-            node.left_edge, new_right(node, split), node.grid)
-    node.right = Node(node, None, None,
-            new_left(node, split), node.right_edge, node.grid)
-    return
-
-def add_grids(node, gles, gres, gids):
-    if kd_is_leaf(node):
-        insert_grids(node, gles, gres, gids)
-    else:
-        less_ids = gles[:,node.split.dim] < node.split.pos
-        if len(less_ids) > 0:
-            add_grids(node.left, gles[less_ids], gres[less_ids], gids[less_ids])
-
-        greater_ids = gres[:,node.split.dim] > node.split.pos
-        if len(greater_ids) > 0:
-            add_grids(node.right, gles[greater_ids], gres[greater_ids], gids[greater_ids])
 
 def kd_sum_volume(node):
     if (node.left is None)  and (node.right is None):

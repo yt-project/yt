@@ -28,13 +28,13 @@ import numpy as na
 from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids
 from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import ParallelAnalysisInterface 
+    import ParallelAnalysisInterface
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 import pdb
 
 def my_break():
-    my_debug = False 
+    my_debug = False
     if my_debug: pdb.set_trace()
 
 class Tree(object):
@@ -58,7 +58,7 @@ class Tree(object):
         self.min_level = min_level
         self.max_level = max_level
         self.trunk = Node(None, None, None,
-                left, right, None)
+                left, right, None, 1)
         self.build()
 
     def build(self, grids = None):
@@ -77,6 +77,14 @@ class Tree(object):
 
                 add_grids(self.trunk, gles, gres, gids)
                 del gles, gres, gids, grids
+        else:
+            gles = na.array([g.LeftEdge for g in grids])
+            gres = na.array([g.RightEdge for g in grids])
+            gids = na.array([g.id for g in grids])
+
+            add_grids(self.trunk, gles, gres, gids)
+            del gles, gres, gids, grids
+
 
     def check_tree(self):
         for node in depth_traverse(self):
@@ -91,7 +99,12 @@ class Tree(object):
             dims = (ri - li).astype('int32')
             assert(na.all(grid.LeftEdge <= node.left_edge))
             assert(na.all(grid.RightEdge >= node.right_edge))
-            print grid, dims, li, ri
+            # print grid, dims, li, ri
+
+        # Calculate the Volume
+        vol = kd_sum_volume(self.trunk)
+        mylog.debug('AMRKDTree volume = %e' % vol)
+        kd_node_check(self.trunk)
 
 class AMRKDTree(HomogenizedVolume):
     current_vcds = []
