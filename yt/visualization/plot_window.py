@@ -630,97 +630,97 @@ class SlicePlot(PWViewerMPL):
 class ProjectionPlot(PWViewerMPL):
     def __init__(pf, axis, fields, center=None, width=None,
                  weight_field=None, max_level=None, origin='center-window'):
-    r"""
-    Given a pf object, an axis to project along, and a field name
-    string, this will return a PWViewrMPL object containing
-    the plot.
-
-    The plot can be updated using one of the many helper functions
-    defined in PlotWindow.
-
-    Parameters
-    ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
-        This is the parameter file object corresponding to the
-        simulation output to be plotted.
-    axis : int
-        An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
-    fields : string
-        The name of the field(s) to be plotted.
-    center : A two or three-element vector of sequence floats, 'c', or
-             'center'
-        The coordinate of the center of the image.  If left blanck,
-        the image centers on the location of the maximum density
-        cell.  If set to 'c' or 'center', the plot is centered on
-        the middle of the domain.
-    width : A tuple or a float
-        A tuple containing the width of image and the string key of
-        the unit: (width, 'unit').  If set to a float, code units
-        are assumed
-    origin : A string
-        The location of the origin of the plot coordinate system.
-        Currently, can be set to three options: 'left-domain', corresponding
-        to the bottom-left hand corner of the simulation domain, 'center-domain',
-        corresponding the center of the simulation domain, or 'center-window' for 
-        the center of the plot window.
-    weight_field : string
-        The name of the weighting field.  Set to None for no weight.
-    max_level: int
-        The maximum level to project to.
-
-    Examples
-    --------
-
-    This is a very simple way of creating a projection plot.
-
-    >>> pf = load('galaxy0030/galaxy0030')
-    >>> p = ProjectionPlot(pf,2,'Density','c',(20,'kpc'))
-    >>> p.save('sliceplot')
-
-    """
-    (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
-    proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
-    PWViewerMPL.__init__(self,proj,bounds,origin=origin)
+        r"""
+        Given a pf object, an axis to project along, and a field name
+        string, this will return a PWViewrMPL object containing
+        the plot.
+        
+        The plot can be updated using one of the many helper functions
+        defined in PlotWindow.
+        
+        Parameters
+        ----------
+        pf : :class:`yt.data_objects.api.StaticOutput`
+            This is the parameter file object corresponding to the
+            simulation output to be plotted.
+        axis : int
+            An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
+        fields : string
+            The name of the field(s) to be plotted.
+         center : A two or three-element vector of sequence floats, 'c', or
+                  'center'
+            The coordinate of the center of the image.  If left blanck,
+            the image centers on the location of the maximum density
+            cell.  If set to 'c' or 'center', the plot is centered on
+            the middle of the domain.
+        width : A tuple or a float
+            A tuple containing the width of image and the string key of
+            the unit: (width, 'unit').  If set to a float, code units
+            are assumed
+        origin : A string
+            The location of the origin of the plot coordinate system.
+            Currently, can be set to three options: 'left-domain', corresponding
+            to the bottom-left hand corner of the simulation domain, 'center-domain',
+            corresponding the center of the simulation domain, or 'center-window' for 
+            the center of the plot window.
+        weight_field : string
+            The name of the weighting field.  Set to None for no weight.
+        max_level: int
+            The maximum level to project to.
+        
+        Examples
+        --------
+    
+        This is a very simple way of creating a projection plot.
+    
+        >>> pf = load('galaxy0030/galaxy0030')
+        >>> p = ProjectionPlot(pf,2,'Density','c',(20,'kpc'))
+        >>> p.save('sliceplot')
+        
+        """
+        (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
+        proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
+        PWViewerMPL.__init__(self,proj,bounds,origin=origin)
 
 class OffAxisSlicePlot(PWViewerMPL):
     def __init__(pf, normal, fields, center=None, width=None, north_vector=None):
-    r"""
-    Given a pf object, a normal vector defining a slicing plane, and
-    a field name string, this will return a PWViewrMPL object
-    containing the plot.
+        r"""
+        Given a pf object, a normal vector defining a slicing plane, and
+        a field name string, this will return a PWViewrMPL object
+        containing the plot.
+        
+        The plot can be updated using one of the many helper functions
+        defined in PlotWindow.
 
-    The plot can be updated using one of the many helper functions
-    defined in PlotWindow.
-
-    Parameters
-    ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
-        This is the parameter file object corresponding to the
-        simulation output to be plotted.
-    normal : a sequence of floats
-         The vector normal to the slicing plane.
-    fields : string
-        The name of the field(s) to be plotted.
-    center : A two or three-element vector of sequence floats, 'c', or
-             'center'
-        The coordinate of the center of the image.  If left blanck,
-        the image centers on the location of the maximum density
-        cell.  If set to 'c' or 'center', the plot is centered on
-        the middle of the domain.
-    width : A tuple or a float
-        A tuple containing the width of image and the string key of
-        the unit: (width, 'unit').  If set to a float, code units
-        are assumed
-    north-vector : a sequence of floats
-        A vector defining the 'up' direction in the plot.  This
-        option sets the orientation of the slicing plane.  If not
-        set, an arbitrary grid-aligned north-vector is chosen.
-    """
-    (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
-    cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
-    # Hard-coding the origin keyword since the other two options
-    # aren't well-defined for off-axis data objects
-    PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
+        Parameters
+        ----------
+        pf : :class:`yt.data_objects.api.StaticOutput`
+            This is the parameter file object corresponding to the
+            simulation output to be plotted.
+        normal : a sequence of floats
+            The vector normal to the slicing plane.
+        fields : string
+            The name of the field(s) to be plotted.
+        center : A two or three-element vector of sequence floats, 'c', or
+                 'center'
+            The coordinate of the center of the image.  If left blanck,
+            the image centers on the location of the maximum density
+            cell.  If set to 'c' or 'center', the plot is centered on
+            the middle of the domain.
+        width : A tuple or a float
+            A tuple containing the width of image and the string key of
+            the unit: (width, 'unit').  If set to a float, code units
+            are assumed
+        north-vector : a sequence of floats
+            A vector defining the 'up' direction in the plot.  This
+            option sets the orientation of the slicing plane.  If not
+            set, an arbitrary grid-aligned north-vector is chosen.
+            """
+        (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
+        cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
+        # Hard-coding the origin keyword since the other two options
+        # aren't well-defined for off-axis data objects
+        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
 
 
 _metadata_template = """
