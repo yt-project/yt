@@ -84,8 +84,6 @@ def apply_callback(f):
 
 field_transforms = {}
 
-class IMPlot(object): pass
-
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field):
         self.data = frb.data_source
@@ -289,10 +287,6 @@ class PlotWindow(object):
         Wx, Wy = self.width
         self.xlim = (self.xlim[0] + Wx*deltas[0], self.xlim[1] + Wx*deltas[0])
         self.ylim = (self.ylim[0] + Wy*deltas[1], self.ylim[1] + Wy*deltas[1])
-
-    @invalidate_data
-    def set_field(self):
-        pass
 
     @invalidate_data
     def set_window(self, bounds):
@@ -728,19 +722,6 @@ class OffAxisSlicePlot(PWViewerMPL):
     # aren't well-defined for off-axis data objects
     PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
 
-class PWViewerRaw(PWViewer):
-    """A PlotWindow viewer that writes raw pngs (no MPL, no axes).
-
-    """
-    def _setup_plots(self):
-        self.save('')
-        self._plot_valid = True
-
-    def save(self,name):
-        for field in self._frb.data.keys():
-            nm = "%s_%s.png" % (name,field)
-            print "writing %s" % nm
-            write_image(self._frb[field],nm)
 
 _metadata_template = """
 %(pf)s<br>
