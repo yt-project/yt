@@ -352,7 +352,7 @@ class Camera(ParallelAnalysisInterface):
         return self.volume.initialize_source()
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = None):
+                 num_threads = 0):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -597,17 +597,17 @@ data_object_registry["camera"] = Camera
 class InteractiveCamera(Camera):
     frames = []
 
-    def snapshot(self, fn = None, clip_ratio = None):
-        import matplotlib
-        matplotlib.pylab.figure(2)
+    def snapshot(self, fn=None, clip_ratio=None):
+        import matplotlib.pylab as pylab
+        pylab.figure(2)
         self.transfer_function.show()
-        matplotlib.pylab.draw()
+        pylab.draw()
         im = Camera.snapshot(self, fn, clip_ratio)
-        matplotlib.pylab.figure(1)
-        matplotlib.pylab.imshow(im/im.max())
-        matplotlib.pylab.draw()
+        pylab.figure(1)
+        pylab.imshow(im / im.max())
+        pylab.draw()
         self.frames.append(im)
-        
+
     def rotation(self, theta, n_steps, rot_vector=None):
         for frame in Camera.rotation(self, theta, n_steps, rot_vector):
             if frame is not None:
@@ -758,7 +758,7 @@ class HEALpixCamera(Camera):
         return image
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = None, clim = None):
+                 num_threads = 0, clim = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -1617,7 +1617,7 @@ class ProjectionCamera(Camera):
                 write_image(im, fn)
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = None):
+                 num_threads = 0):
 
         if num_threads is None:
             num_threads=get_num_threads()

@@ -34,6 +34,8 @@ from yt.data_objects.time_series import \
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
+from yt.utilities.definitions import \
+    sec_conversion
 from yt.utilities.exceptions import \
     AmbiguousOutputs, \
     MissingParameter, \
@@ -490,10 +492,8 @@ class EnzoSimulation(SimulationTimeSeries):
                 / self.hubble_constant / (1 + self.initial_redshift)**1.5
         self.time_units['1'] = 1.
         self.time_units['seconds'] = self.parameters['TimeUnits']
-        self.time_units['years'] = self.time_units['seconds'] / (365*3600*24.0)
-        self.time_units['days']  = self.time_units['seconds'] / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.parameters['TimeUnits'] / sec_conversion[unit]
 
     def _find_outputs(self):
         """

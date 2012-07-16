@@ -28,26 +28,37 @@ mass_mean_atomic_galactic = 2.3
 
 # Conversion Factors:  X au * mpc_per_au = Y mpc
 # length
-mpc_per_mpc   = 1
+mpc_per_mpc   = 1e0
 mpc_per_kpc   = 1e-3
 mpc_per_pc    = 1e-6
 mpc_per_au    = 4.847e-12
 mpc_per_rsun  = 2.253e-14
 mpc_per_miles = 5.216e-20
 mpc_per_cm    = 3.24e-25
-km_per_pc     = 1.3806504e13 
+km_per_pc     = 1.3806504e13
 km_per_m      = 1e-3
 km_per_cm     = 1e-5
+pc_per_cm     = 3.24e-19
 
 m_per_fpc     = 0.0324077649
 
-au_per_mpc    = 2.063e11
-rsun_per_mpc  = 4.43664e13
-miles_per_mpc = 1.917e19
-cm_per_mpc    = 3.0857e24
-cm_per_km     = 1e5
-pc_per_km     = 3.24e-14
-pc_per_cm     = 3.24e-19
+kpc_per_mpc   = 1.0 / mpc_per_kpc
+pc_per_mpc    = 1.0 / mpc_per_pc
+au_per_mpc    = 1.0 / mpc_per_au
+rsun_per_mpc  = 1.0 / mpc_per_rsun
+miles_per_mpc = 1.0 / mpc_per_miles
+cm_per_mpc    = 1.0 / mpc_per_cm
+cm_per_km     = 1.0 / km_per_cm
+pc_per_km     = 1.0 / km_per_pc
+cm_per_pc     = 1.0 / pc_per_cm
+# time
+sec_per_Gyr  = 31.5576e15
+sec_per_Myr  = 31.5576e12
+sec_per_year = 31.5576e6   # "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
+sec_per_day  = 86400.0
+sec_per_hr   = 3600.0
+day_per_year = 365.25
+
 #Short cuts
 G = gravitational_constant_cgs
 me = mass_electron_cgs

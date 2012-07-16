@@ -36,7 +36,7 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, mass_hydrogen_cgs
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 KnownARTFields = FieldInfoContainer()
 add_art_field = KnownARTFields.add_field
@@ -44,7 +44,6 @@ add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = ARTFieldInfo.add_field
 
-import yt.utilities.amr_utils as amr_utils
 import numpy as na
 
 #these are just the hydro fields
@@ -179,7 +178,7 @@ def _temperature(field, data):
     di = dd==0.0
     #dd[di] = -1.0
     tr = dg/dd
-    #tr[na.isnan(tr)] = 0.0 
+    #tr[na.isnan(tr)] = 0.0
     #if data.id==460:
     #    import pdb;pdb.set_trace()
     tr /= data.pf.conversion_factors["GasEnergy"]
@@ -265,7 +264,7 @@ def mass_dm(field, data):
         return tr
     else:
         return tr*0.0
-    
+
 add_field("particle_cell_mass_dm", function=mass_dm,
           validators=[ValidateSpatial(0)])
 

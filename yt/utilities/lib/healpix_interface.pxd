@@ -27,7 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 
 cdef extern from "healpix_vectors.h":
     int pix2vec_nest(long nside, long ipix, double *v)

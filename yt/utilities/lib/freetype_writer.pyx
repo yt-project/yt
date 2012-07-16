@@ -29,7 +29,7 @@ cimport cython
 
 cdef int initialized = 0
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 
 cdef extern from "freetype_includes.h":
     # NOTE that size_t might not be int
