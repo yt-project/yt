@@ -580,7 +580,8 @@ class PWViewerMPL(PWViewer):
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center=None, width=None, origin='center-window'):
-        r"""
+        r"""Creates a slice plot from a parameter file
+        
         Given a pf object, an axis to slice along, and a field name
         string, this will return a PWViewrMPL object containing
         the plot.
@@ -590,38 +591,38 @@ class SlicePlot(PWViewerMPL):
         
         Parameters
         ----------
-        pf : :class:`yt.data_objects.api.StaticOutput`
+        pf : `StaticOutput`
              This is the parameter file object corresponding to the
              simulation output to be plotted.
         axis : int
              An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
         fields : string
              The name of the field(s) to be plotted.
-        center : A two or three-element vector of sequence floats, 'c', or
-                 'center'
+        center : two or three-element vector of sequence floats, 'c', or 'center'
              The coordinate of the center of the image.  If left blanck,
              the image centers on the location of the maximum density
              cell.  If set to 'c' or 'center', the plot is centered on
              the middle of the domain.
-        width : A tuple or a float
+	width : tuple or a float
              A tuple containing the width of image and the string key of
              the unit: (width, 'unit').  If set to a float, code units
              are assumed
-        origin : A string
+	origin : string
              The location of the origin of the plot coordinate system.
              Currently, can be set to three options: 'left-domain', corresponding
              to the bottom-left hand corner of the simulation domain, 'center-domain',
              corresponding the center of the simulation domain, or 'center-window' for 
              the center of the plot window.
-
+             
         Examples
         --------
-
+        
         This will save an image the the file 'sliceplot_Density
-
+        
         >>> pf = load('galaxy0030/galaxy0030')
         >>> p = SlicePlot(pf,2,'Density','c',(20,'kpc'))
         >>> p.save('sliceplot')
+        
         """
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
         slice = pf.h.slice(axis,center[axis],fields=fields)
@@ -630,7 +631,8 @@ class SlicePlot(PWViewerMPL):
 class ProjectionPlot(PWViewerMPL):
     def __init__(pf, axis, fields, center=None, width=None,
                  weight_field=None, max_level=None, origin='center-window'):
-        r"""
+        r"""Creates a projection plot from a parameter file
+        
         Given a pf object, an axis to project along, and a field name
         string, this will return a PWViewrMPL object containing
         the plot.
@@ -640,15 +642,14 @@ class ProjectionPlot(PWViewerMPL):
         
         Parameters
         ----------
-        pf : :class:`yt.data_objects.api.StaticOutput`
+        pf : `StaticOutput`
             This is the parameter file object corresponding to the
             simulation output to be plotted.
         axis : int
             An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
         fields : string
             The name of the field(s) to be plotted.
-         center : A two or three-element vector of sequence floats, 'c', or
-                  'center'
+        center : A two or three-element vector of sequence floats, 'c', or 'center'
             The coordinate of the center of the image.  If left blanck,
             the image centers on the location of the maximum density
             cell.  If set to 'c' or 'center', the plot is centered on
@@ -670,9 +671,9 @@ class ProjectionPlot(PWViewerMPL):
         
         Examples
         --------
-    
+        
         This is a very simple way of creating a projection plot.
-    
+        
         >>> pf = load('galaxy0030/galaxy0030')
         >>> p = ProjectionPlot(pf,2,'Density','c',(20,'kpc'))
         >>> p.save('sliceplot')
@@ -684,7 +685,8 @@ class ProjectionPlot(PWViewerMPL):
 
 class OffAxisSlicePlot(PWViewerMPL):
     def __init__(pf, normal, fields, center=None, width=None, north_vector=None):
-        r"""
+        r"""Creates an off axis slice plot from a parameter file
+
         Given a pf object, a normal vector defining a slicing plane, and
         a field name string, this will return a PWViewrMPL object
         containing the plot.
@@ -701,8 +703,7 @@ class OffAxisSlicePlot(PWViewerMPL):
             The vector normal to the slicing plane.
         fields : string
             The name of the field(s) to be plotted.
-        center : A two or three-element vector of sequence floats, 'c', or
-                 'center'
+        center : A two or three-element vector of sequence floats, 'c', or 'center'
             The coordinate of the center of the image.  If left blanck,
             the image centers on the location of the maximum density
             cell.  If set to 'c' or 'center', the plot is centered on
@@ -715,7 +716,8 @@ class OffAxisSlicePlot(PWViewerMPL):
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
             set, an arbitrary grid-aligned north-vector is chosen.
-            """
+
+        """
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
         cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
