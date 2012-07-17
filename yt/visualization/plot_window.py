@@ -72,6 +72,7 @@ def invalidate_plot(f):
         args[0]._plot_valid = False
         args[0]._setup_plots()
         return rv
+    pdb.set_trace()
     return newfunc
 
 def apply_callback(f):
@@ -564,6 +565,16 @@ class PWViewerMPL(PWViewer):
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
+        """set the colormap for one of the fields
+        
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        cmap_name : string
+            name of the colormap
+
+        """
         if isinstance(cmap, types.StringTypes):
             if str(cmap) in yt_colormaps:
                 cmap = yt_colormaps[str(cmap)]
@@ -576,6 +587,15 @@ class PWViewerMPL(PWViewer):
         self.plots[field].image.set_cmap(cmap)
 
     def save(self,name=None):
+        """saves the plot to disk.
+
+        Parameters
+        ----------
+        name : string
+           the base of the filename.  If not set the filename of 
+           the parameter file is used
+
+        """
         if name == None:
             name = str(self.pf.parameter_filename)
         axis = axis_names[self.data_source.axis]
