@@ -307,13 +307,17 @@ class PlotWindow(object):
 
         parameters
         ----------
-        width : float
+        width : float, array of floats, or (float, unit) tuple.
             the width of the image.
         unit : str
             the unit the width has been specified in.
-            defaults to code units.
+            defaults to code units.  If width is a tuple this 
+            argument is ignored
 
         """
+        if iterable(width) and isinstance(width[1],str):
+            unit = width[1]
+            width = width[0]
         Wx, Wy = self.width
         width = width / self.pf[unit]
         
