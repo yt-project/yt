@@ -32,11 +32,11 @@ from yt.funcs import *
 
 from yt.analysis_modules.cosmology.cosmology_splice import \
      CosmologySplice
-from yt.data_objects.time_series import \
-     TimeSeriesData
+from yt.convenience import load
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     only_on_root, \
+    parallel_objects, \
     parallel_root_only
 from yt.visualization.image_writer import write_image
 
@@ -45,7 +45,7 @@ from .halo_mask import light_cone_halo_map, \
     light_cone_halo_mask
 from .light_cone_projection import _light_cone_projection
 
-class LightCone(CosmologySplice, TimeSeriesData):
+class LightCone(CosmologySplice):
     def __init__(self, parameter_filename, simulation_type,
                  near_redshift, far_redshift,
                  observer_redshift=0.0,
@@ -54,8 +54,7 @@ class LightCone(CosmologySplice, TimeSeriesData):
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  set_parameters=None,
-                 output_dir='LC', output_prefix='LightCone',
-                 parallel=True):
+                 output_dir='LC', output_prefix='LightCone'):
         """
         Initialize a LightCone object.
 
@@ -100,12 +99,6 @@ class LightCone(CosmologySplice, TimeSeriesData):
         output_prefix : string
             The prefix of all images and data files.
             Default: 'LightCone'.
-        parallel : bool/int
-            If True, the generated TimeSeriesData will divide the work
-            such that a single processor works on each dataset.  If an
-            integer is supplied, the work will be divided into that
-            number of jobs.
-            Default: True.
 
         """
 
@@ -150,9 +143,6 @@ class LightCone(CosmologySplice, TimeSeriesData):
           self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                        minimal=self.use_minimum_datasets,
                                        deltaz_min=self.deltaz_min)
-        TimeSeriesData.__init__(self, outputs=[output['filename'] \
-            for output in self.light_cone_solution],
-            parallel=parallel)
 
     def calculate_light_cone_solution(self, seed=None, filename=None):
         r"""Create list of projections to be added together to make the light cone.
@@ -298,7 +288,7 @@ class LightCone(CosmologySplice, TimeSeriesData):
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False,
                            node=None, save_stack=True, save_slice_images=False,
                            cmap_name='algae', photon_field=False,
-                           dynamic=True):
+                           njobs=1, dynamic=False):
         r"""Create projections for light cone, then add them together.
 
         Parameters
@@ -332,6 +322,15 @@ class LightCone(CosmologySplice, TimeSeriesData):
             R^2`, where R is the luminosity distance between the observer and
             the slice redshift.
             Default: False.
+        njobs : int
+            The number of parallel jobs over which the light cone projection
+            will be split.  Choose -1 for one processor per individual
+            projection and 1 to have all processors work together on each
+            projection.
+            Default: 1.
+        dynamic : bool
+            If True, use dynamic load balancing to create the projections.
+            Default: False.
         """
 
         # Clear projection stack.
@@ -345,10 +344,10 @@ class LightCone(CosmologySplice, TimeSeriesData):
 
         # for q, output in enumerate(self.light_cone_solution):
         all_storage = {}
-        for q, (my_storage, pf) in enumerate(self.piter(storage=all_storage,
-                                                        dynamic=dynamic)):
-            output = self.light_cone_solution[q]
-            output['object'] = pf
+        for my_storage, output in parallel_objects(self.light_cone_solution,
+                                                   storage=all_storage,
+                                                   dynamic=dynamic):
+            output['object'] = load(output['filename'])
             output['object'].parameters.update(self.set_parameters)
             frb = _light_cone_projection(output, field, self.pixels,
                                          weight_field=weight_field, node=node)
