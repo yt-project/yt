@@ -38,7 +38,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
-    sec_conversion
+    mpc_conversion, sec_conversion
 
 from .fields import GDFFieldInfo, KnownGDFFields
 from yt.data_objects.field_info_container import \
@@ -172,6 +172,8 @@ class GDFStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['cm'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
+        for unit in mpc_conversion.keys():
+            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
 
