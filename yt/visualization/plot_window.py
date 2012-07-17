@@ -629,7 +629,7 @@ class SlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self,slice,bounds,origin=origin)
 
 class ProjectionPlot(PWViewerMPL):
-    def __init__(pf, axis, fields, center=None, width=None,
+    def __init__(self, pf, axis, fields, center=None, width=None,
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
         
@@ -684,7 +684,7 @@ class ProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
 
 class OffAxisSlicePlot(PWViewerMPL):
-    def __init__(pf, normal, fields, center=None, width=None, north_vector=None):
+    def __init__(self, pf, normal, fields, center=None, width=None, north_vector=None):
         r"""Creates an off axis slice plot from a parameter file
 
         Given a pf object, a normal vector defining a slicing plane, and
