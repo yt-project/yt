@@ -574,6 +574,8 @@ class PWViewerMPL(PWViewer):
             name of the colormap
 
         """
+        self._colorbar_valid = False
+        self._colormaps[field] = cmap
         if isinstance(cmap, types.StringTypes):
             if str(cmap) in yt_colormaps:
                 cmap = yt_colormaps[str(cmap)]
@@ -581,8 +583,6 @@ class PWViewerMPL(PWViewer):
                 cmap = getattr(matplotlib.cm, cmap)
         if not is_colormap(cmap) and cmap is not None:
             raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
-        else:
-            self.cmap = cmap
         self.plots[field].image.set_cmap(cmap)
 
     def save(self,name=None):
