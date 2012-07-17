@@ -446,12 +446,7 @@ class PWViewer(PlotWindow):
             if key in ignored: 
                 continue
             cbname = callback_registry[key]._type_name
-            try:
-                CallbackMaker = getattr(CallbackMod,key)
-            except AttributeError:  
-                # there are user defined callbacks
-                import yt.mods
-                CallbackMaker = getattr(yt.mods,key)
+            CallbackMaker = callback_registry[key]
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__init__.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
