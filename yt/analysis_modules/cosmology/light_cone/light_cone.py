@@ -40,7 +40,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.image_writer import write_image
 
-from .common_n_volume import commonNVolume
+from .common_n_volume import common_volume
 from .halo_mask import light_cone_halo_map, \
     light_cone_halo_mask
 from .light_cone_projection import _light_cone_projection
@@ -176,11 +176,12 @@ class LightCone(CosmologySplice):
         if seed is not None:
             self.original_random_seed = int(seed)
 
-        # Calculate projection sizes, and get random projection axes and centers.
+        # Calculate projection sizes, and get
+        # random projection axes and centers.
         na.random.seed(self.original_random_seed)
 
         # For box coherence, keep track of effective depth travelled.
-        boxFractionUsed = 0.0
+        box_fraction_used = 0.0
 
         for q in range(len(self.light_cone_solution)):
             if self.light_cone_solution[q].has_key('previous'):
@@ -221,29 +222,35 @@ class LightCone(CosmologySplice):
 
             # Get projection axis and center.
             # If using box coherence, only get random axis and center if enough
-            # of the box has been used, or if boxFractionUsed will be greater
+            # of the box has been used, or if box_fraction_used will be greater
             # than 1 after this slice.
             if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-              (boxFractionUsed > self.minimum_coherent_box_fraction) or \
-              (boxFractionUsed + self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
+              (box_fraction_used > self.minimum_coherent_box_fraction) or \
+              (box_fraction_used +
+               self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
                 # Random axis and center.
-                self.light_cone_solution[q]['ProjectionAxis'] = na.random.randint(0, 3)
+                self.light_cone_solution[q]['ProjectionAxis'] = \
+                  na.random.randint(0, 3)
                 self.light_cone_solution[q]['ProjectionCenter'] = \
                   [na.random.random() for i in range(3)]
-                boxFractionUsed = 0.0
+                box_fraction_used = 0.0
             else:
-                # Same axis and center as previous slice, but with depth center shifted.
+                # Same axis and center as previous slice,
+                # but with depth center shifted.
                 self.light_cone_solution[q]['ProjectionAxis'] = \
                   self.light_cone_solution[q-1]['ProjectionAxis']
                 self.light_cone_solution[q]['ProjectionCenter'] = \
                   copy.deepcopy(self.light_cone_solution[q-1]['ProjectionCenter'])
-                self.light_cone_solution[q]['ProjectionCenter'][self.light_cone_solution[q]['ProjectionAxis']] += \
+                self.light_cone_solution[q]['ProjectionCenter']\
+                  [self.light_cone_solution[q]['ProjectionAxis']] += \
                     0.5 * (self.light_cone_solution[q]['DepthBoxFraction'] +
                            self.light_cone_solution[q-1]['DepthBoxFraction'])
-                if self.light_cone_solution[q]['ProjectionCenter'][self.light_cone_solution[q]['ProjectionAxis']] >= 1.0:
-                    self.light_cone_solution[q]['ProjectionCenter'][self.light_cone_solution[q]['ProjectionAxis']] -= 1.0
+                if self.light_cone_solution[q]['ProjectionCenter']\
+                  [self.light_cone_solution[q]['ProjectionAxis']] >= 1.0:
+                    self.light_cone_solution[q]['ProjectionCenter']\
+                      [self.light_cone_solution[q]['ProjectionAxis']] -= 1.0
 
-            boxFractionUsed += self.light_cone_solution[q]['DepthBoxFraction']
+            box_fraction_used += self.light_cone_solution[q]['DepthBoxFraction']
 
         # Store this as the master solution.
         self.master_solution = [copy.deepcopy(q) for q in self.light_cone_solution]
@@ -277,12 +284,13 @@ class LightCone(CosmologySplice):
 
         # Otherwise, make a halo mask.
         else:
-            halo_mask_cube = light_cone_halo_mask(self, mask_file=mask_file, **kwargs)
+            halo_mask_cube = light_cone_halo_mask(self, mask_file=mask_file,
+                                                  **kwargs)
             # Collapse cube into final mask.
-            if self.comm.rank == 0:
-                self.halo_mask = na.ones(shape=(self.pixels, self.pixels), dtype=bool)
-                for mask in halo_mask_cube:
-                    self.halo_mask *= mask
+            self.halo_mask = na.ones(shape=(self.pixels, self.pixels),
+                                     dtype=bool)
+            for mask in halo_mask_cube:
+                self.halo_mask *= mask
             del halo_mask_cube
 
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False,
@@ -486,11 +494,11 @@ class LightCone(CosmologySplice):
 
         # Keep track of fraction of volume in common between the original and
         # recycled solution.
-        commonVolume = 0.0
-        totalVolume = 0.0
+        common_volume = 0.0
+        total_volume = 0.0
 
         # For box coherence, keep track of effective depth travelled.
-        boxFractionUsed = 0.0
+        box_fraction_used = 0.0
 
         # Seed random number generator with new seed.
         na.random.seed(int(new_seed))
@@ -502,18 +510,18 @@ class LightCone(CosmologySplice):
 
             # Get projection axis and center.
             # If using box coherence, only get random axis and center if enough
-            # of the box has been used, or if boxFractionUsed will be greater
+            # of the box has been used, or if box_fraction_used will be greater
             # than 1 after this slice.
             if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-                    (boxFractionUsed > self.minimum_coherent_box_fraction) or \
-                    (boxFractionUsed + self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
+                    (box_fraction_used > self.minimum_coherent_box_fraction) or \
+                    (box_fraction_used + self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
                 # Get random projection axis and center.
                 # If recycling, axis will get thrown away since it is used in
                 # creating a unique projection object.
                 newAxis = na.random.randint(0, 3)
 
                 newCenter = [na.random.random() for i in range(3)]
-                boxFractionUsed = 0.0
+                box_fraction_used = 0.0
             else:
                 # Same axis and center as previous slice, but with depth center shifted.
                 newAxis = self.light_cone_solution[q-1]['ProjectionAxis']
@@ -529,7 +537,7 @@ class LightCone(CosmologySplice):
             else:
                 output['ProjectionAxis'] = newAxis
 
-            boxFractionUsed += self.light_cone_solution[q]['DepthBoxFraction']
+            box_fraction_used += self.light_cone_solution[q]['DepthBoxFraction']
 
             # Make list of rectangle corners to calculate common volume.
             newCube = na.zeros(shape=(len(newCenter), 2))
@@ -550,34 +558,39 @@ class LightCone(CosmologySplice):
                     if recycle:
                         newCube[w] = oldCube[w]
                     else:
-                        newCube[w] = [newCenter[w] -
-                                      0.5 * self.master_solution[q]['DepthBoxFraction'],
-                                      newCenter[w] +
-                                      0.5 * self.master_solution[q]['DepthBoxFraction']]
+                        newCube[w] = \
+                          [newCenter[w] -
+                           0.5 * self.master_solution[q]['DepthBoxFraction'],
+                           newCenter[w] +
+                           0.5 * self.master_solution[q]['DepthBoxFraction']]
                 else:
                     newCube[w] = [newCenter[w] -
                                   0.5 * self.master_solution[q]['WidthBoxFraction'],
                                   newCenter[w] +
                                   0.5 * self.master_solution[q]['WidthBoxFraction']]
 
-            commonVolume += commonNVolume(oldCube, newCube,
-                                          periodic=na.array([[0, 1],
-                                                             [0, 1],
-                                                             [0, 1]]))
-            totalVolume += output['DepthBoxFraction'] * output['WidthBoxFraction']**2
+            common_volume += common_volume(oldCube, newCube,
+                                           periodic=na.array([[0, 1],
+                                                              [0, 1],
+                                                              [0, 1]]))
+            total_volume += output['DepthBoxFraction'] * \
+              output['WidthBoxFraction']**2
 
             # Replace centers for every axis except the line of sight axis.
             for w in range(len(newCenter)):
-                if not(recycle and (w == self.light_cone_solution[q]['ProjectionAxis'])):
-                    self.light_cone_solution[q]['ProjectionCenter'][w] = newCenter[w]
+                if not(recycle and
+                       (w == self.light_cone_solution[q]['ProjectionAxis'])):
+                    self.light_cone_solution[q]['ProjectionCenter'][w] = \
+                      newCenter[w]
 
         if recycle:
             mylog.debug("Fractional common volume between master and recycled solution is %.2e" % \
-                        (commonVolume/totalVolume))
+                        (common_volume / total_volume))
         else:
             mylog.debug("Fraction of total volume in common with old solution is %.2e." % \
-                        (commonVolume/totalVolume))
-            self.master_solution = [copy.deepcopy(q) for q in self.light_cone_solution]
+                        (common_volume / total_volume))
+            self.master_solution = [copy.deepcopy(q) \
+                                    for q in self.light_cone_solution]
 
         # Write solution to a file.
         if filename is not None:
@@ -585,7 +598,8 @@ class LightCone(CosmologySplice):
 
     def restore_master_solution(self):
         "Reset the active light cone solution to the master solution."
-        self.light_cone_solution = [copy.deepcopy(q) for q in self.master_solution]
+        self.light_cone_solution = [copy.deepcopy(q) \
+                                    for q in self.master_solution]
 
     @parallel_root_only
     def _save_light_cone_solution(self, filename="light_cone.dat"):
@@ -601,14 +615,14 @@ class LightCone(CosmologySplice):
         else:
             f.write("Original Solution\n")
             f.write("OriginalRandomSeed = %s\n" % self.original_random_seed)
-        f.write("parameter_file = %s\n" % self.parameter_file)
+        f.write("parameter_filename = %s\n" % self.parameter_filename)
         f.write("\n")
         for q, output in enumerate(self.light_cone_solution):
             f.write("Proj %04d, %s, z = %f, depth/box = %f, width/box = %f, axis = %d, center = %f, %f, %f\n" %
                     (q, output['filename'], output['redshift'],
                      output['DepthBoxFraction'], output['WidthBoxFraction'],
-                    output['ProjectionAxis'], output['ProjectionCenter'][0],
-                    output['ProjectionCenter'][1], output['ProjectionCenter'][2]))
+                     output['ProjectionAxis'], output['ProjectionCenter'][0],
+                     output['ProjectionCenter'][1], output['ProjectionCenter'][2]))
         f.close()
 
     @parallel_root_only
@@ -640,7 +654,8 @@ class LightCone(CosmologySplice):
 
         if node_exists:
             if over_write:
-                mylog.info("Dataset, %s, already exists, overwriting." % field_node)
+                mylog.info("Dataset, %s, already exists, overwriting." %
+                           field_node)
                 write_data = True
                 del output[field_node]
             else:
@@ -656,7 +671,8 @@ class LightCone(CosmologySplice):
             field_dataset = output.create_dataset(field_node,
                                                   data=self.projection_stack)
             field_dataset.attrs['redshifts'] = redshiftList
-            field_dataset.attrs['observer_redshift'] = na.float(self.observer_redshift)
+            field_dataset.attrs['observer_redshift'] = \
+              na.float(self.observer_redshift)
             field_dataset.attrs['field_of_view_in_arcminutes'] = \
               na.float(self.field_of_view_in_arcminutes)
             field_dataset.attrs['image_resolution_in_arcseconds'] = \

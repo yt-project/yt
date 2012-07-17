@@ -33,7 +33,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
 from .light_cone import LightCone
-from .common_n_volume import commonNVolume
+from .common_n_volume import common_volume
 
 def project_unique_light_cones(lightcone, seed_file, field, **kwargs):
     "Make light cone projections using list of random seeds in a file."
@@ -186,7 +186,7 @@ def _compare_solutions(solution1, solution2):
                         solution2[q]['ProjectionCenter'][w] + 0.5 * width]
 
         totalVolume += min(volume1, volume2)
-        commonVolume += commonNVolume(cube1, cube2, periodic=na.array([[0, 1], [0, 1], [0, 1]]))
+        commonVolume += common_volume(cube1, cube2, periodic=na.array([[0, 1], [0, 1], [0, 1]]))
 
     return (commonVolume/totalVolume)
 

@@ -31,7 +31,8 @@ import copy
 import numpy as na
 import h5py
 
-def light_cone_halo_mask(lightCone, cube_file=None, mask_file=None, **kwargs):
+def light_cone_halo_mask(lightCone, cube_file=None,
+                         mask_file=None, **kwargs):
     "Make a boolean mask to cut clusters out of light cone projections."
 
     pixels = int(lightCone.field_of_view_in_arcminutes * 60.0 /
@@ -45,14 +46,16 @@ def light_cone_halo_mask(lightCone, cube_file=None, mask_file=None, **kwargs):
         light_cone_mask.append(_make_slice_mask(slice, halo_list, pixels))
 
     # Write out cube of masks from each slice.
-    if cube_file is not None and ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
+    if cube_file is not None and \
+      ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
         mylog.info("Saving halo mask cube to %s." % cube_file)
         output = h5py.File(cube_file, 'a')
         output.create_dataset('haloMaskCube', data=na.array(light_cone_mask))
         output.close()
 
     # Write out final mask.
-    if mask_file is not None and ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
+    if mask_file is not None and \
+      ytcfg.getint("yt", "__topcomm_parallel_rank") == 0:
         # Final mask is simply the product of the mask from each slice.
         mylog.info("Saving halo mask to %s." % mask_file)
         finalMask = na.ones(shape=(pixels, pixels))
@@ -66,7 +69,9 @@ def light_cone_halo_mask(lightCone, cube_file=None, mask_file=None, **kwargs):
     return light_cone_mask
 
 def light_cone_halo_map(lightCone, map_file='halo_map.out', **kwargs):
-    "Make a text list of location of halos in a light cone image with virial quantities."
+    r"""Make a text list of location of halos in a light cone
+    image with virial quantities.
+    """
 
     haloMap = []
 
@@ -83,10 +88,11 @@ def light_cone_halo_map(lightCone, map_file='halo_map.out', **kwargs):
         for halo in haloMap:
             f.write("%7.4f %9.6f %9.6f %9.3e %9.3e %9.3e\n" % \
                         (halo['redshift'], halo['x'], halo['y'],
-                         halo['mass'], halo['radiusMpc'], halo['radiusImage']))
+                         halo['mass'], halo['RadiusMpc_100'], halo['radiusImage']))
         f.close()
 
-def _get_halo_list(dataset, halo_profiler_kwargs=None, halo_profiler_actions=None, halo_list='all'):
+def _get_halo_list(dataset, halo_profiler_kwargs=None,
+                   halo_profiler_actions=None, halo_list='all'):
     "Load a list of halos for the dataset."
 
     if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
@@ -113,8 +119,10 @@ def _make_slice_mask(slice, halo_list, pixels):
     "Make halo mask for one slice in light cone solution."
 
     # Get shifted, tiled halo list.
-    all_halo_x, all_halo_y, all_halo_radius, all_halo_mass = _make_slice_halo_list(slice, halo_list)
- 
+    all_halo_x, all_halo_y, \
+      all_halo_radius, all_halo_mass = \
+      _make_slice_halo_list(slice, halo_list)
+
     # Make boolean mask and cut out halos.
     dx = slice['WidthBoxFraction'] / pixels
     x = [(q + 0.5) * dx for q in range(pixels)]
@@ -122,13 +130,18 @@ def _make_slice_mask(slice, halo_list, pixels):
 
     # Cut out any pixel that has any part at all in the circle.
     for q in range(len(all_halo_radius)):
-        dif_xIndex = na.array(int(all_halo_x[q]/dx) - na.array(range(pixels))) != 0
-        dif_yIndex = na.array(int(all_halo_y[q]/dx) - na.array(range(pixels))) != 0
+        dif_xIndex = na.array(int(all_halo_x[q]/dx) -
+                              na.array(range(pixels))) != 0
+        dif_yIndex = na.array(int(all_halo_y[q]/dx) -
+                              na.array(range(pixels))) != 0
 
-        xDistance = (na.abs(x - all_halo_x[q]) - (0.5 * dx)) * dif_xIndex
-        yDistance = (na.abs(x - all_halo_y[q]) - (0.5 * dx)) * dif_yIndex
+        xDistance = (na.abs(x - all_halo_x[q]) -
+                     (0.5 * dx)) * dif_xIndex
+        yDistance = (na.abs(x - all_halo_y[q]) -
+                     (0.5 * dx)) * dif_yIndex
 
-        distance = na.array([na.sqrt(w**2 + xDistance**2) for w in yDistance])
+        distance = na.array([na.sqrt(w**2 + xDistance**2)
+                             for w in yDistance])
         haloMask *= (distance >= all_halo_radius[q])
 
     return haloMask
@@ -142,22 +155,25 @@ def _make_slice_halo_map(slice, halo_list):
     del dataset_object
 
     # Get shifted, tiled halo list.
-    all_halo_x, all_halo_y, all_halo_radius, all_halo_mass = _make_slice_halo_list(slice, halo_list)
+    all_halo_x, all_halo_y, \
+      all_halo_radius, all_halo_mass = \
+      _make_slice_halo_list(slice, halo_list)
 
     # Construct list of halos
     haloMap = []
 
     for q in range(len(all_halo_x)):
-        # Give radius in both physics units and units of the image (0 to 1).
+        # Give radius in both physics units and
+        # units of the image (0 to 1).
         radiusMpc = all_halo_radius[q] * Mpc_units
         radiusImage = all_halo_radius[q] / slice['WidthBoxFraction']
 
-        haloMap.append({'x':all_halo_x[q]/slice['WidthBoxFraction'],
-                        'y':all_halo_y[q]/slice['WidthBoxFraction'],
-                        'redshift':slice['redshift'],
-                        'radiusMpc':radiusMpc,
-                        'radiusImage':radiusImage,
-                        'mass':all_halo_mass[q]})
+        haloMap.append({'x': all_halo_x[q] / slice['WidthBoxFraction'],
+                        'y': all_halo_y[q] / slice['WidthBoxFraction'],
+                        'redshift': slice['redshift'],
+                        'radiusMpc': radiusMpc,
+                        'radiusImage': radiusImage,
+                        'mass': all_halo_mass[q]})
 
     return haloMap
 
@@ -182,8 +198,8 @@ def _make_slice_halo_list(slice, halo_list):
             halo_depth.append(center.pop(slice['ProjectionAxis']))
             halo_x.append(center[0])
             halo_y.append(center[1])
-            halo_radius.append(halo['RadiusMpc']/Mpc_units)
-            halo_mass.append(halo['TotalMassMsun'])
+            halo_radius.append(halo['RadiusMpc_100']/Mpc_units)
+            halo_mass.append(halo['TotalMassMsun_100'])
 
     halo_x = na.array(halo_x)
     halo_y = na.array(halo_y)
@@ -201,24 +217,35 @@ def _make_slice_halo_list(slice, halo_list):
     add_left = (halo_depth + halo_radius) > 1 # should be box width
     add_right = (halo_depth - halo_radius) < 0
 
-    halo_depth = na.concatenate([halo_depth, (halo_depth[add_left]-1), (halo_depth[add_right]+1)])
+    halo_depth = na.concatenate([halo_depth,
+                                 (halo_depth[add_left]-1),
+                                 (halo_depth[add_right]+1)])
     halo_x = na.concatenate([halo_x, halo_x[add_left], halo_x[add_right]])
     halo_y = na.concatenate([halo_y, halo_y[add_left], halo_y[add_right]])
-    halo_radius = na.concatenate([halo_radius, halo_radius[add_left], halo_radius[add_right]])
-    halo_mass = na.concatenate([halo_mass, halo_mass[add_left], halo_mass[add_right]])
+    halo_radius = na.concatenate([halo_radius,
+                                  halo_radius[add_left],
+                                  halo_radius[add_right]])
+    halo_mass = na.concatenate([halo_mass,
+                                halo_mass[add_left],
+                                halo_mass[add_right]])
 
     del add_left, add_right
 
     # Cut out the halos outside the region of interest.
     if (slice['DepthBoxFraction'] < 1):
         if (depthLeft < 0):
-            mask = ((halo_depth + halo_radius >= 0) & (halo_depth - halo_radius <= depthRight)) | \
-                ((halo_depth + halo_radius >= depthLeft + 1) & (halo_depth - halo_radius <= 1))
+            mask = ((halo_depth + halo_radius >= 0) &
+                    (halo_depth - halo_radius <= depthRight)) | \
+                ((halo_depth + halo_radius >= depthLeft + 1) &
+                 (halo_depth - halo_radius <= 1))
         elif (depthRight > 1):
-            mask = ((halo_depth + halo_radius >= 0) & (halo_depth - halo_radius <= depthRight - 1)) | \
-                ((halo_depth + halo_radius >= depthLeft) & (halo_depth - halo_radius <= 1))
+            mask = ((halo_depth + halo_radius >= 0) &
+                    (halo_depth - halo_radius <= depthRight - 1)) | \
+                ((halo_depth + halo_radius >= depthLeft) &
+                 (halo_depth - halo_radius <= 1))
         else:
-            mask = (halo_depth + halo_radius >= depthLeft) & (halo_depth - halo_radius <= depthRight)
+            mask = (halo_depth + halo_radius >= depthLeft) & \
+              (halo_depth - halo_radius <= depthRight)
 
         halo_x = halo_x[mask]
         halo_y = halo_y[mask]
@@ -251,15 +278,18 @@ def _make_slice_halo_list(slice, halo_list):
     all_halo_x -= offset[0]
     all_halo_y -= offset[1]
 
-    # Wrap off-edge centers back around to other side (periodic boundary conditions).
+    # Wrap off-edge centers back around to
+    # other side (periodic boundary conditions).
     all_halo_x[all_halo_x < 0] += na.ceil(slice['WidthBoxFraction'])
     all_halo_y[all_halo_y < 0] += na.ceil(slice['WidthBoxFraction'])
 
-    # After shifting, some centers have fractional coverage on both sides of the box.
+    # After shifting, some centers have fractional coverage
+    # on both sides of the box.
     # Find those centers and make copies to be placed on the other side.
 
     # Centers hanging off the right edge.
-    add_x_right = all_halo_x + all_halo_radius > na.ceil(slice['WidthBoxFraction'])
+    add_x_right = all_halo_x + all_halo_radius > \
+      na.ceil(slice['WidthBoxFraction'])
     add_x_halo_x = all_halo_x[add_x_right]
     add_x_halo_x -= na.ceil(slice['WidthBoxFraction'])
     add_x_halo_y = all_halo_y[add_x_right]
@@ -277,7 +307,8 @@ def _make_slice_halo_list(slice, halo_list):
     del add_x_left
 
     # Centers hanging off the top edge.
-    add_y_right = all_halo_y + all_halo_radius > na.ceil(slice['WidthBoxFraction'])
+    add_y_right = all_halo_y + all_halo_radius > \
+      na.ceil(slice['WidthBoxFraction'])
     add_y_halo_x = all_halo_x[add_y_right]
     add_y_halo_y = all_halo_y[add_y_right]
     add_y_halo_y -= na.ceil(slice['WidthBoxFraction'])
@@ -295,12 +326,22 @@ def _make_slice_halo_list(slice, halo_list):
     del add_y_left
 
     # Add the hanging centers back to the projection data.
-    all_halo_x = na.concatenate([all_halo_x, add_x_halo_x, add2_x_halo_x, add_y_halo_x, add2_y_halo_x])
-    all_halo_y = na.concatenate([all_halo_y, add_x_halo_y, add2_x_halo_y, add_y_halo_y, add2_y_halo_y])
-    all_halo_radius = na.concatenate([all_halo_radius, add_x_halo_radius, add2_x_halo_radius,
-                                      add_y_halo_radius, add2_y_halo_radius])
-    all_halo_mass = na.concatenate([all_halo_mass, add_x_halo_mass, add2_x_halo_mass,
-                                    add_y_halo_mass, add2_y_halo_mass])
+    all_halo_x = na.concatenate([all_halo_x,
+                                 add_x_halo_x, add2_x_halo_x,
+                                 add_y_halo_x, add2_y_halo_x])
+    all_halo_y = na.concatenate([all_halo_y,
+                                 add_x_halo_y, add2_x_halo_y,
+                                 add_y_halo_y, add2_y_halo_y])
+    all_halo_radius = na.concatenate([all_halo_radius,
+                                      add_x_halo_radius,
+                                      add2_x_halo_radius,
+                                      add_y_halo_radius,
+                                      add2_y_halo_radius])
+    all_halo_mass = na.concatenate([all_halo_mass,
+                                    add_x_halo_mass,
+                                    add2_x_halo_mass,
+                                    add_y_halo_mass,
+                                    add2_y_halo_mass])
 
     del add_x_halo_x, add_x_halo_y, add_x_halo_radius
     del add2_x_halo_x, add2_x_halo_y, add2_x_halo_radius
@@ -308,12 +349,15 @@ def _make_slice_halo_list(slice, halo_list):
     del add2_y_halo_x, add2_y_halo_y, add2_y_halo_radius
 
     # Cut edges to proper width.
-    cut_mask = (all_halo_x - all_halo_radius < slice['WidthBoxFraction']) & \
-        (all_halo_y - all_halo_radius < slice['WidthBoxFraction'])
+    cut_mask = (all_halo_x - all_halo_radius <
+                slice['WidthBoxFraction']) & \
+        (all_halo_y - all_halo_radius <
+         slice['WidthBoxFraction'])
     all_halo_x = all_halo_x[cut_mask]
     all_halo_y = all_halo_y[cut_mask]
     all_halo_radius = all_halo_radius[cut_mask]
     all_halo_mass = all_halo_mass[cut_mask]
     del cut_mask
 
-    return (all_halo_x, all_halo_y, all_halo_radius, all_halo_mass)
+    return (all_halo_x, all_halo_y,
+            all_halo_radius, all_halo_mass)
