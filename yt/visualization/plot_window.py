@@ -116,28 +116,34 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', na.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
-def GetBoundsAndCenter(axis, center, width, pf):
+def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     if width == None:
-        width = pf.domain_width.min()
-    elif iterable(width):
-        w,u = width
-        width = w/pf[u]
+        width = (pf.domain_width[x_dict[axis]],
+                 pf.domain_width[y_dict[axis]])
+    elif iterable(width) and isinstance(width[1],str):
+        w,unit = width
+        width = w
+    Wx, Wy = width
+    width = (Wx/pf[unit], Wy/pf[unit])
     if center == None:
         v, center = pf.h.find_max("Density")
     elif center == "center" or center == "c":
         center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
-    bounds = [center[x_dict[axis]]-width/2,
-              center[x_dict[axis]]+width/2,
-              center[y_dict[axis]]-width/2,
-              center[y_dict[axis]]+width/2] 
+    bounds = [center[x_dict[axis]]-width[0]/2,
+              center[x_dict[axis]]+width[1]/2,
+              center[y_dict[axis]]-width[0]/2,
+              center[y_dict[axis]]+width[1]/2] 
     return (bounds,center)
 
 def GetOffAxisBoundsAndCenter(normal, center, width, pf):
     if width == None:
-        width = (pf.domain_right_edge - pf.domain_left_edge)
-    elif iterable(width):
-        w,u = width
-        width = w/pf[u]
+        width = (pf.domain_width[x_dict[axis]],
+                 pf.domain_width[y_dict[axis]])
+    elif iterable(width) and isinstance(width[1],str):
+        w,unit = width
+        width = w
+    Wx, Wy = width
+    width = (Wx/pf[unit], Wy/pf[unit])
     if center == None:
         v, center = pf.h.mind_max("Density")
     elif center == "center" or center == "c":
@@ -149,10 +155,10 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf):
     (normal,perp1,perp2) = ortho_find(normal)
     mat = na.transpose(na.column_stack((perp1,perp2,normal)))
     center = na.dot(mat,center)
-    bounds = [center[0]-width/2,
-              center[0]+width/2,
-              center[1]-width/2,
-              center[1]+width/2]
+    bounds = [center[0]-width[0]/2,
+              center[0]+width[1]/2,
+              center[1]-width[0]/2,
+              center[1]+width[1]/2]
     return (bounds,center)
 
 class PlotWindow(object):
@@ -317,16 +323,17 @@ class PlotWindow(object):
         if iterable(width) and isinstance(width[1],str):
             unit = width[1]
             width = width[0]
-        Wx, Wy = self.width
-        width = width / self.pf[unit]
-        
-        centerx = self.xlim[0] + Wx*0.5
-        centery = self.ylim[0] + Wy*0.5
-        self.xlim = (centerx - width/2.,
-                     centerx + width/2.)
-        self.ylim = (centery - width/2.,
-                     centery + width/2.)
+        Wx, Wy = width
+        width = (Wx,Wy)
+        width = [w / self.pf[unit] for w in width]
 
+        centerx = (self.xlim[1] + self.xlim[0])/2 
+        centery = (self.ylim[1] + self.ylim[0])/2 
+        self.xlim = (centerx - width[0]/2.,
+                     centerx + width[0]/2.)
+        self.ylim = (centery - width[1]/2.,
+                     centery + width[1]/2.)
+        
     @invalidate_data
     def set_center(self, new_center):
         if new_center is None:
