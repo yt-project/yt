@@ -77,7 +77,7 @@ def invalidate_plot(f):
 def apply_callback(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
+        rv = f(*args[1:], **kwargs)
         args[0]._callbacks.append((f.__name__,(args,kwargs)))
         return rv
     return newfunc
