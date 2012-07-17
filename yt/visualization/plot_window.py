@@ -72,7 +72,6 @@ def invalidate_plot(f):
         args[0]._plot_valid = False
         args[0]._setup_plots()
         return rv
-    pdb.set_trace()
     return newfunc
 
 def apply_callback(f):
