@@ -39,7 +39,6 @@ from .fixed_resolution import \
     ObliqueFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
-import plot_modifications as CallbackMod
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 
@@ -551,7 +550,7 @@ class PWViewerMPL(PWViewer):
 
             for name,(args,kwargs) in self._callbacks:
                 cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
-                CallbackMaker = getattr(CallbackMod,name)
+                CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:],**kwargs)
                 callback(cbw)
 
