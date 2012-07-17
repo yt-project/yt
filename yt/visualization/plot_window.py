@@ -295,6 +295,17 @@ class PlotWindow(object):
 
     @invalidate_data
     def set_window(self, bounds):
+        """Set the bounds of the plot window.
+        This is normally only called internally, see set_width.
+        
+
+        Parameters
+        ----------
+
+        bounds : a four element sequence of floats
+            The x and y bounds, in the format (x0, x1, y0, y1)
+
+        """
         if self.center is not None:
             dx = bounds[1] - bounds[0]
             dy = bounds[3] - bounds[2]
@@ -335,10 +346,24 @@ class PlotWindow(object):
                      centery + width[1]/2.)
         
     @invalidate_data
-    def set_center(self, new_center):
+    def set_center(self, new_center, unit = '1'):
+        """Sets a new center for the plot window
+
+        parameters
+        ----------
+        new_center : two element sequence of floats
+            The coordinates of the new center of the image.
+            If the unit keyword is not specified, the 
+            coordinates are assumed to be in code units
+
+        unit : string
+            The name of the unit new_center is given in.
+
+        """
         if new_center is None:
             self.center = None
         else:
+            new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
         self.set_window(self.bounds)
 
