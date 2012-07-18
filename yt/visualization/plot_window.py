@@ -123,6 +123,8 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     elif iterable(width) and isinstance(width[1],str):
         w,unit = width
         width = w
+    else:
+        width = (width, width)
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
     if center == None:
@@ -142,6 +144,8 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     elif iterable(width) and isinstance(width[1],str):
         w,unit = width
         width = w
+    else:
+        width = (width, width)
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
     if center == None:
@@ -631,7 +635,6 @@ class PWViewerMPL(PWViewer):
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k,v in self.plots.iteritems():
-            pdb.set_trace()
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
             else:
