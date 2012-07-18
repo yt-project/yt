@@ -170,6 +170,7 @@ class PlotWindow(object):
     _colorbar_valid = False
     _contour_info = None
     _vector_info = None
+    _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, 
                  periodic = True, origin='center-window', oblique=False):
         r"""
@@ -220,6 +221,9 @@ class PlotWindow(object):
         return self.plots[item]
 
     def _recreate_frb(self):
+        old_fields = None
+        if self._frb is not None:
+            old_fields = self._frb.keys()
         try:
             bounds = self.bounds
             if self.oblique == False:
@@ -232,7 +236,10 @@ class PlotWindow(object):
                                                          self.antialias, periodic=self._periodic)
         except:
             raise RuntimeError("Failed to repixelize.")
-        self._frb._get_data_source_fields()
+        if old_fields is None:
+            self._frb._get_data_source_fields()
+        else:
+            for key in old_fields: self._frb[key]
         self.pf = self._frb.pf
         self._data_valid = True
         
@@ -543,7 +550,7 @@ class PWViewerMPL(PWViewer):
         if self._current_field is not None:
             fields = [self._current_field]
         else:
-            fields = self._frb.data.keys()
+            fields = self._frb.keys()
         self._colorbar_valid = True
         for f in self.fields:
             md = self.get_metadata(f, strip_mathml = False, return_string = False)
@@ -584,13 +591,20 @@ class PWViewerMPL(PWViewer):
 
             cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
-            for name,(args,kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
-                CallbackMaker = callback_registry[name]
-                callback = CallbackMaker(*args[1:],**kwargs)
-                callback(cbw)
+            self.run_callbacks(f)
 
         self._plot_valid = True
+
+    def run_callbacks(self, f):
+        keys = self._frb.keys()
+        for name, (args, kwargs) in self._callbacks:
+            cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
+            CallbackMaker = callback_registry[name]
+            callback = CallbackMaker(*args[1:], **kwargs)
+            callback(cbw)
+        for key in self._frb.keys():
+            if key not in keys:
+                del self._frb[key]
 
     @invalidate_plot
     def set_cmap(self, field, cmap):

@@ -42,7 +42,7 @@ from yt.data_objects.field_info_container import \
 from .fields import \
     ARTFieldInfo, add_art_field, KnownARTFields
 from yt.utilities.definitions import \
-    mpc_conversion
+    mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
 import yt.utilities.lib as amr_utils
@@ -53,8 +53,8 @@ except ImportError:
     _ramses_reader = None
 
 from yt.utilities.physical_constants import \
-    mass_hydrogen_cgs
-    
+    mass_hydrogen_cgs, sec_per_Gyr
+
 from yt.frontends.art.definitions import art_particle_field_names
 
 from yt.frontends.art.io import _read_child_mask_level
@@ -446,8 +446,7 @@ class ARTHierarchy(AMRHierarchy):
                     pbar = get_pbar("Stellar Ages        ",n)
                     sages  = \
                         b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
-                    sages *= 1.0e9 #from Gyr to yr
-                    sages *= 365*24*3600 #to seconds
+                    sages *= sec_per_Gyr #from Gyr to seconds
                     sages = self.pf.current_time-sages
                     self.pf.particle_age[-nstars:] = sages
                     pbar.finish()
@@ -720,11 +719,8 @@ class ARTStaticOutput(StaticOutput):
             # Add on the 1e5 to get to cm/s
             self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
         seconds = self.t0
-        self.time_units['Gyr']   = 1.0/(1.0e9*365*3600*24.0)
-        self.time_units['Myr']   = 1.0/(1.0e6*365*3600*24.0)
-        self.time_units['years'] = 1.0/(365*3600*24.0)
-        self.time_units['days']  = 1.0 / (3600*24.0)
-
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
         #we were already in seconds, go back in to code units
         #self.current_time /= self.t0 
@@ -821,7 +817,7 @@ class ARTStaticOutput(StaticOutput):
         # integrand_arr = integrand(spacings)
         # self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
         # self.current_time *= self.hubble_time
-        self.current_time = b2t(self.current_time_raw)*1.0e9*365*3600*24         
+        self.current_time = b2t(self.current_time_raw) * sec_per_Gyr
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 

@@ -206,11 +206,12 @@ def recursive_particle_assignment(grids, grid,
         if i== -1: continue
         #assigned to this subgrid
         assigned = np.zeros(npart,dtype='int32') 
-        if (left_edges[i,0] <= pos_x[j] <= right_edges[i,0]):
-            if (left_edges[i,1] <= pos_y[j] <= right_edges[i,1]):
-                if (left_edges[i,2] <= pos_z[j] <= right_edges[i,2]):
-                    assigned[j]=1
-                    never_assigned[j]=0
+        for j in range(npart):
+            if (left_edges[i,0] <= pos_x[j] <= right_edges[i,0]):
+                if (left_edges[i,1] <= pos_y[j] <= right_edges[i,1]):
+                    if (left_edges[i,2] <= pos_z[j] <= right_edges[i,2]):
+                       assigned[j]=1
+                       never_assigned[j]=0
         if np.sum(assigned)>0:
             recursive_particle_assignment(grids,grid,left_edges,right_edges,
                                            pos_x[assigned],pos_y[assigned],pos_z[assigned])

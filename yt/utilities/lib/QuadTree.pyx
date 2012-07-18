@@ -30,7 +30,7 @@ cimport numpy as np
 cimport numpy as cnp
 cimport cython
 
-from stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
 from fp_utils cimport fmax
 

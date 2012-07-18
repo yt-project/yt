@@ -1103,17 +1103,27 @@ class AMRSliceBase(AMR2DData):
         mask = self.__cut_mask_child_mask(grid)[sl]
         cm = na.where(mask.ravel()== 1)
         cmI = na.indices((nx,ny))
-        xind = cmI[0,:].ravel()
-        xpoints = na.ones(cm[0].shape, 'float64')
-        xpoints *= xind[cm]*dx+(grid.LeftEdge[xaxis] + 0.5*dx)
-        yind = cmI[1,:].ravel()
-        ypoints = na.ones(cm[0].shape, 'float64')
-        ypoints *= yind[cm]*dy+(grid.LeftEdge[yaxis] + 0.5*dy)
-        zpoints = na.ones(xpoints.shape, 'float64') * self.coord
-        dx = na.ones(xpoints.shape, 'float64') * dx/2.0
-        dy = na.ones(xpoints.shape, 'float64') * dy/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx, dy]).swapaxes(0,1)
-        return t
+        ind = cmI[0, :].ravel()   # xind
+        npoints = cm[0].shape
+        # create array of "npoints" ones that will be reused later
+        points = na.ones(npoints, 'float64')
+        # calculate xpoints array
+        t = points * ind[cm] * dx + (grid.LeftEdge[xaxis] + 0.5 * dx)
+        # calculate ypoints array
+        ind = cmI[1, :].ravel()   # yind
+        del cmI   # no longer needed 
+        t = na.vstack( (t, points * ind[cm] * dy + \
+                (grid.LeftEdge[yaxis] + 0.5 * dy))
+            )
+        del ind, cm   # no longer needed
+        # calculate zpoints array
+        t = na.vstack((t, points * self.coord))
+        # calculate dx array
+        t = na.vstack((t, points * dx * 0.5))
+        # calculate dy array
+        t = na.vstack((t, points * dy * 0.5))
+        # return [xpoints, ypoints, zpoints, dx, dy] as (5, npoints) array
+        return t.swapaxes(0, 1)
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):

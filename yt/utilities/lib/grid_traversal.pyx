@@ -28,7 +28,7 @@ cimport numpy as np
 cimport cython
 cimport kdtree_utils
 cimport healpix_interface
-from stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
@@ -725,8 +725,8 @@ cdef class VolumeRenderSampler(ImageSampler):
 
     def __dealloc__(self):
         return
-        free(self.vra.fits)
-        free(self.vra)
+        #free(self.vra.fits)
+        #free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -784,10 +784,10 @@ cdef class LightSourceRenderSampler(ImageSampler):
 
     def __dealloc__(self):
         return
-        free(self.vra.fits)
-        free(self.vra)
-        free(self.light_dir)
-        free(self.light_rgba)
+        #free(self.vra.fits)
+        #free(self.vra)
+        #free(self.light_dir)
+        #free(self.light_rgba)
 
 
 cdef class GridFace:
@@ -1136,11 +1136,11 @@ def pixelize_healpix(long nside,
             results[thetai, phii] = values[ipix]
             count[i, j] += 1
     return results, count
-    for i in range(ntheta):
-        for j in range(nphi):
-            if count[i,j] > 0:
-                results[i,j] /= count[i,j]
-    return results, count
+    #for i in range(ntheta):
+    #    for j in range(nphi):
+    #        if count[i,j] > 0:
+    #            results[i,j] /= count[i,j]
+    #return results, count
 
 def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
                         long nside,

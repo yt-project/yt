@@ -27,7 +27,7 @@ import numpy as np
 import os, sys
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc
+from libc.stdlib cimport malloc
 
 cdef import from "particle.h":
     struct particle:
