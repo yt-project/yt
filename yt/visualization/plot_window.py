@@ -130,22 +130,22 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     elif center == "center" or center == "c":
         center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
     bounds = [center[x_dict[axis]]-width[0]/2,
-              center[x_dict[axis]]+width[1]/2,
-              center[y_dict[axis]]-width[0]/2,
+              center[x_dict[axis]]+width[0]/2,
+              center[y_dict[axis]]-width[1]/2,
               center[y_dict[axis]]+width[1]/2] 
     return (bounds,center)
 
-def GetOffAxisBoundsAndCenter(normal, center, width, pf):
+def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     if width == None:
-        width = (pf.domain_width[x_dict[axis]],
-                 pf.domain_width[y_dict[axis]])
+        width = (pf.domain_width.min(),
+                 pf.domain_width.min())
     elif iterable(width) and isinstance(width[1],str):
         w,unit = width
         width = w
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
     if center == None:
-        v, center = pf.h.mind_max("Density")
+        v, center = pf.h.find_max("Density")
     elif center == "center" or center == "c":
         center = [0,0,0]
     else:
@@ -156,8 +156,8 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf):
     mat = na.transpose(na.column_stack((perp1,perp2,normal)))
     center = na.dot(mat,center)
     bounds = [center[0]-width[0]/2,
-              center[0]+width[1]/2,
-              center[1]-width[0]/2,
+              center[0]+width[0]/2,
+              center[1]-width[1]/2,
               center[1]+width[1]/2]
     return (bounds,center)
 
@@ -628,8 +628,15 @@ class PWViewerMPL(PWViewer):
             type = 'Slice'
         if 'Proj' in self.data_source.__class__.__name__:
             type = 'Projection'
+        if 'Cutting' in self.data_source.__class__.__name__:
+            type = 'OffAxisSlice'
         for k,v in self.plots.iteritems():
-            n = "%s_%s_%s_%s" % (name, type, axis, k)
+            pdb.set_trace()
+            if axis:
+                n = "%s_%s_%s_%s" % (name, type, axis, k)
+            else:
+                # for cutting planes
+                n = "%s_%s_%s" % (name, type, k)
             v.save(n)
 
 class SlicePlot(PWViewerMPL):
@@ -773,7 +780,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
         """
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
-        cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
+        cutting = pf.h.cutting(normal,center_rot,fields=fields,north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
