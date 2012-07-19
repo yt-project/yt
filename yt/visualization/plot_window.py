@@ -123,7 +123,7 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     elif iterable(width) and isinstance(width[1],str):
         w,unit = width
         width = w
-    else:
+    if not iterable(width):
         width = (width, width)
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
@@ -144,7 +144,7 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     elif iterable(width) and isinstance(width[1],str):
         w,unit = width
         width = w
-    else:
+    if not iterable(width):
         width = (width, width)
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
