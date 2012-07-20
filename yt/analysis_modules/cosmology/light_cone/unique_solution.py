@@ -158,32 +158,32 @@ def _compare_solutions(solution1, solution2):
     totalVolume = 0.0
 
     # Check that solution volumes are the same.
-    if((solution1[0]['DepthBoxFraction'] * solution1[0]['WidthBoxFraction']**2) !=
-       (solution2[0]['DepthBoxFraction'] * solution2[0]['WidthBoxFraction']**2)):
+    if((solution1[0]['box_depth_fraction'] * solution1[0]['box_width_fraction']**2) !=
+       (solution2[0]['box_depth_fraction'] * solution2[0]['box_width_fraction']**2)):
         mylog.error("Light cone solutions do not have equal volumes, will use the smaller one.")
 
     for q in range(len(solution1)):
-        cube1 = na.zeros(shape=(len(solution1[q]['ProjectionCenter']), 2))
+        cube1 = na.zeros(shape=(len(solution1[q]['projection_center']), 2))
         volume1 = 1.0
         for w in range(len(cube1)):
-            if (w == solution1[q]['ProjectionAxis']):
-                width = solution1[q]['DepthBoxFraction']
+            if (w == solution1[q]['projection_axis']):
+                width = solution1[q]['box_depth_fraction']
             else:
-                width = solution1[q]['WidthBoxFraction']
+                width = solution1[q]['box_width_fraction']
             volume1 *= width
-            cube1[w] = [solution1[q]['ProjectionCenter'][w] - 0.5 * width,
-                        solution1[q]['ProjectionCenter'][w] + 0.5 * width]
+            cube1[w] = [solution1[q]['projection_center'][w] - 0.5 * width,
+                        solution1[q]['projection_center'][w] + 0.5 * width]
 
-        cube2 = na.zeros(shape=(len(solution2[q]['ProjectionCenter']), 2))
+        cube2 = na.zeros(shape=(len(solution2[q]['projection_center']), 2))
         volume2 = 1.0
         for w in range(len(cube2)):
-            if (w == solution2[q]['ProjectionAxis']):
-                width = solution2[q]['DepthBoxFraction']
+            if (w == solution2[q]['projection_axis']):
+                width = solution2[q]['box_depth_fraction']
             else:
-                width = solution2[q]['WidthBoxFraction']
+                width = solution2[q]['box_width_fraction']
             volume2 *= width
-            cube2[w] = [solution2[q]['ProjectionCenter'][w] - 0.5 * width,
-                        solution2[q]['ProjectionCenter'][w] + 0.5 * width]
+            cube2[w] = [solution2[q]['projection_center'][w] - 0.5 * width,
+                        solution2[q]['projection_center'][w] + 0.5 * width]
 
         totalVolume += min(volume1, volume2)
         commonVolume += common_volume(cube1, cube2, periodic=na.array([[0, 1], [0, 1], [0, 1]]))
