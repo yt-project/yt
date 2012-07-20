@@ -147,22 +147,23 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     if not iterable(width):
         width = (width, width)
     Wx, Wy = width
-    width = (Wx/pf[unit], Wy/pf[unit])
+    width = na.array((Wx/pf[unit], Wy/pf[unit]))
     if center == None:
         v, center = pf.h.find_max("Density")
     elif center == "center" or center == "c":
-        center = [0,0,0]
-    else:
-        center = [(c - pf.domain_left_edge[i])/
-                  (pf.domain_right_edge[i] - pf.domain_left_edge[i]) - 0.5 
-                  for i,c in enumerate(center)]
+        center = (pf.domain_left_edge + pf.domain_right_edge) / 2
+    
+    # Transforming to the cutting plane coordinate system
+    center = na.array(center)
+    center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
     (normal,perp1,perp2) = ortho_find(normal)
     mat = na.transpose(na.column_stack((perp1,perp2,normal)))
     center = na.dot(mat,center)
-    bounds = [center[0]-width[0]/2,
-              center[0]+width[0]/2,
-              center[1]-width[1]/2,
-              center[1]+width[1]/2]
+    width = width/pf.domain_width.min()
+
+    bounds = [center[0]-width[0]/2,center[0]+width[0]/2,
+              center[1]-width[1]/2,center[1]+width[1]/2]
+    
     return (bounds,center)
 
 class PlotWindow(object):
@@ -225,7 +226,7 @@ class PlotWindow(object):
         if self._frb is not None:
             old_fields = self._frb.keys()
         try:
-            bounds = self.bounds
+            bounds = self.xlim+self.ylim
             if self.oblique == False:
                 self._frb = FixedResolutionBuffer(self.data_source, 
                                                   bounds, self.buff_size, 
@@ -799,7 +800,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
         """
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
-        cutting = pf.h.cutting(normal,center_rot,fields=fields,north_vector=north_vector)
+        cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
