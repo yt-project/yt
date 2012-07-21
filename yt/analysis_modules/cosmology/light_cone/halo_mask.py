@@ -38,6 +38,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 def _light_cone_halo_mask(lightCone, cube_file=None,
                           mask_file=None, map_file=None,
                           halo_profiler_parameters=None,
+                          virial_overdensity=200,
                           njobs=1, dynamic=False):
     "Make a boolean mask to cut clusters out of light cone projections."
 
@@ -56,10 +57,12 @@ def _light_cone_halo_mask(lightCone, cube_file=None,
         halo_list = _get_halo_list(my_slice['filename'],
                                    **halo_profiler_parameters)
         my_storage.result = \
-          {'mask': _make_slice_mask(my_slice, halo_list, pixels)}
+          {'mask': _make_slice_mask(my_slice, halo_list, pixels,
+                                    virial_overdensity)}
         if map_file is not None:
             my_storage.result['map'] = \
-              _make_slice_halo_map(my_slice, halo_list)
+              _make_slice_halo_map(my_slice, halo_list,
+                                   virial_overdensity)
 
     # Reassemble halo mask and map lists.
     light_cone_mask = []
@@ -109,11 +112,12 @@ def _write_halo_map(filename, halo_map):
 
     mylog.info("Saving halo map to %s." % filename)
     f = open(filename, 'w')
-    f.write("#z       x         y        r_image\n")
+    f.write("#z       x         y        r_image   r_mpc     m_Msun\n")
     for halo in halo_map:
-        f.write("%7.4f %9.6f %9.6f %9.3e\n" % \
+        f.write("%7.4f %9.6f %9.6f %9.3e %9.3e %9.3e\n" % \
                     (halo['redshift'], halo['x'], halo['y'],
-                     halo['image_radius']))
+                     halo['radius_image'], halo['radius_mpc'],
+                     halo['mass']))
     f.close()
 
 def _get_halo_list(dataset, halo_profiler_kwargs=None,
@@ -140,13 +144,13 @@ def _get_halo_list(dataset, halo_profiler_kwargs=None,
     del hp
     return return_list
 
-def _make_slice_mask(slice, halo_list, pixels):
+def _make_slice_mask(slice, halo_list, pixels, virial_overdensity):
     "Make halo mask for one slice in light cone solution."
 
     # Get shifted, tiled halo list.
     all_halo_x, all_halo_y, \
       all_halo_radius, all_halo_mass = \
-      _make_slice_halo_list(slice, halo_list)
+      _make_slice_halo_list(slice, halo_list, virial_overdensity)
 
     # Make boolean mask and cut out halos.
     dx = slice['box_width_fraction'] / pixels
@@ -171,7 +175,7 @@ def _make_slice_mask(slice, halo_list, pixels):
 
     return haloMask
 
-def _make_slice_halo_map(slice, halo_list):
+def _make_slice_halo_map(slice, halo_list, virial_overdensity):
     "Make list of halos for one slice in light cone solution."
 
     # Get units to convert virial radii back to physical units.
@@ -182,7 +186,7 @@ def _make_slice_halo_map(slice, halo_list):
     # Get shifted, tiled halo list.
     all_halo_x, all_halo_y, \
       all_halo_radius, all_halo_mass = \
-      _make_slice_halo_list(slice, halo_list)
+      _make_slice_halo_list(slice, halo_list, virial_overdensity)
 
     # Construct list of halos
     halo_map = []
@@ -190,19 +194,19 @@ def _make_slice_halo_map(slice, halo_list):
     for q in range(len(all_halo_x)):
         # Give radius in both physics units and
         # units of the image (0 to 1).
-        radiusMpc = all_halo_radius[q] * Mpc_units
-        image_radius = all_halo_radius[q] / slice['box_width_fraction']
+        radius_mpc = all_halo_radius[q] * Mpc_units
+        radius_image = all_halo_radius[q] / slice['box_width_fraction']
 
         halo_map.append({'x': all_halo_x[q] / slice['box_width_fraction'],
                          'y': all_halo_y[q] / slice['box_width_fraction'],
                          'redshift': slice['redshift'],
-                         'radiusMpc': radiusMpc,
-                         'image_radius': image_radius,
+                         'radius_mpc': radius_mpc,
+                         'radius_image': radius_image,
                          'mass': all_halo_mass[q]})
 
     return halo_map
 
-def _make_slice_halo_list(slice, halo_list):
+def _make_slice_halo_list(slice, halo_list, virial_overdensity):
     "Make shifted, tiled list of halos for halo mask and halo map."
 
    # Make numpy arrays for halo centers and virial radii.
@@ -223,8 +227,9 @@ def _make_slice_halo_list(slice, halo_list):
             halo_depth.append(center.pop(slice['projection_axis']))
             halo_x.append(center[0])
             halo_y.append(center[1])
-            halo_radius.append(halo['RadiusMpc_100']/Mpc_units)
-            halo_mass.append(halo['TotalMassMsun_100'])
+            halo_radius.append(halo['RadiusMpc_%d' % virial_overdensity] /
+                               Mpc_units)
+            halo_mass.append(halo['TotalMassMsun_%d' % virial_overdensity])
 
     halo_x = na.array(halo_x)
     halo_y = na.array(halo_y)

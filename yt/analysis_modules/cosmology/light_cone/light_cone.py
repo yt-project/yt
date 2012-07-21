@@ -262,6 +262,7 @@ class LightCone(CosmologySplice):
 
     def get_halo_mask(self, mask_file=None,
                       cube_file=None, map_file=None,
+                      virial_overdensity=200,
                       halo_profiler_parameters=None,
                       njobs=1, dynamic=False):
         r"""Gets a halo mask from a file or makes a new one.
@@ -279,6 +280,10 @@ class LightCone(CosmologySplice):
             A text file to which to output the halo map (locations
             in the images of the halos.
             Default: None
+        virial_overdensity : float
+            The overdensity at which the virial radius is calculated
+            and used as the radial for the halo mask.
+            Default: 200
         halo_profiler_parameters: dict
             A dictionary of parameters to be passed to the HaloProfiler
             for each slice of the light cone.
@@ -288,7 +293,7 @@ class LightCone(CosmologySplice):
             halo mask will be split.  Choose -1 for one processor per
             individual slice and 1 to have all processors work together
             on each projection.
-            Default: 1.
+            Default: 1
         dynamic : bool
             If True, use dynamic load balancing to create the projections.
             Default: False.
@@ -310,6 +315,8 @@ class LightCone(CosmologySplice):
             halo_mask_cube = _light_cone_halo_mask(self, mask_file=mask_file,
                                                    cube_file=cube_file,
                                                    map_file=map_file,
+                                                   virial_overdensity=\
+                                                   virial_overdensity,
                                                    halo_profiler_parameters=\
                                                    halo_profiler_parameters,
                                                    njobs=njobs,
