@@ -28,10 +28,6 @@ License:
 
 """
 
-from .halo_mask import \
-    light_cone_halo_mask, \
-    light_cone_halo_map
-
 from .light_cone import \
     LightCone
 

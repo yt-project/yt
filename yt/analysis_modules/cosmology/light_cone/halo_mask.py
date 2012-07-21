@@ -28,29 +28,57 @@ import h5py
 import numpy as na
 
 from yt.funcs import *
-from yt.analysis_modules.halo_profiler.api import HaloProfiler
+from yt.analysis_modules.halo_profiler.api import \
+     HaloProfiler
 from yt.convenience import load
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_objects, \
      parallel_root_only
 
-def light_cone_halo_mask(lightCone, cube_file=None,
-                         mask_file=None, **kwargs):
+def _light_cone_halo_mask(lightCone, cube_file=None,
+                          mask_file=None, map_file=None,
+                          halo_profiler_parameters=None,
+                          njobs=1, dynamic=False):
     "Make a boolean mask to cut clusters out of light cone projections."
+
+    if halo_profiler_parameters is None:
+        halo_profiler_parameters = {}
 
     pixels = int(lightCone.field_of_view_in_arcminutes * 60.0 /
                  lightCone.image_resolution_in_arcseconds)
 
-    light_cone_mask = []
-
     # Loop through files in light cone solution and get virial quantities.
-    for slice in lightCone.light_cone_solution:
-        halo_list = _get_halo_list(slice['filename'], **kwargs)
-        light_cone_mask.append(_make_slice_mask(slice, halo_list, pixels))
+    halo_map_storage = {}
+    for my_storage, my_slice in \
+      parallel_objects(lightCone.light_cone_solution,
+                       njobs=njobs, dynamic=dynamic,
+                       storage=halo_map_storage):
+        halo_list = _get_halo_list(my_slice['filename'],
+                                   **halo_profiler_parameters)
+        my_storage.result = \
+          {'mask': _make_slice_mask(my_slice, halo_list, pixels)}
+        if map_file is not None:
+            my_storage.result['map'] = \
+              _make_slice_halo_map(my_slice, halo_list)
+
+    # Reassemble halo mask and map lists.
+    light_cone_mask = []
+    halo_map = []
+    all_slices = halo_map_storage.keys()
+    all_slices.sort()
+    for i in all_slices:
+        light_cone_mask.append(halo_map_storage[i]['mask'])
+        if map_file is not None:
+            halo_map.extend(halo_map_storage[i]['map'])
+    del halo_map_storage
 
     # Write out cube of masks from each slice.
     if cube_file is not None:
-        _write_halo_mask(cub_file, na.array(light_cone_mask))
+        _write_halo_mask(cube_file, na.array(light_cone_mask))
+
+    # Write out a text list of all halos in the image.
+    if map_file is not None:
+        _write_halo_map(map_file, halo_map)
 
     # Write out final mask.
     if mask_file is not None:
@@ -58,7 +86,6 @@ def light_cone_halo_mask(lightCone, cube_file=None,
         final_mask = na.ones(shape=(pixels, pixels))
         for mask in light_cone_mask:
             final_mask *= mask
-
         _write_halo_mask(mask_file, final_mask)
 
     return light_cone_mask
@@ -75,20 +102,6 @@ def _write_halo_mask(filename, halo_mask):
         del output['HaloMask']
     output.create_dataset('HaloMask', data=na.array(halo_mask))
     output.close()
-
-def light_cone_halo_map(lightCone, map_file='halo_map.out', **kwargs):
-    r"""Make a text list of location of halos in a light cone
-    image with virial quantities.
-    """
-
-    halo_map = []
-
-    # Loop through files in light cone solution and get virial quantities.
-    for slice in lightCone.light_cone_solution:
-        halo_list = _get_halo_list(slice['filename'], **kwargs)
-        halo_map.extend(_make_slice_halo_map(slice, halo_list))
-
-    _write_halo_map(map_file, halo_map)
 
 @parallel_root_only
 def _write_halo_map(filename, halo_map):

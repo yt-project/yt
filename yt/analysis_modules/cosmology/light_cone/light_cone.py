@@ -40,9 +40,10 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.visualization.image_writer import write_image
 
 from .common_n_volume import common_volume
-from .halo_mask import light_cone_halo_map, \
-    light_cone_halo_mask
-from .light_cone_projection import _light_cone_projection
+from .halo_mask import \
+    _light_cone_halo_mask
+from .light_cone_projection import \
+     _light_cone_projection
 
 class LightCone(CosmologySplice):
     def __init__(self, parameter_filename, simulation_type,
@@ -252,39 +253,67 @@ class LightCone(CosmologySplice):
             box_fraction_used += self.light_cone_solution[q]['box_depth_fraction']
 
         # Store this as the master solution.
-        self.master_solution = [copy.deepcopy(q) for q in self.light_cone_solution]
+        self.master_solution = [copy.deepcopy(q) \
+                                for q in self.light_cone_solution]
 
         # Write solution to a file.
         if filename is not None:
             self._save_light_cone_solution(filename=filename)
 
-    def get_halo_mask(self, mask_file=None, map_file=None, **kwargs):
+    def get_halo_mask(self, mask_file=None,
+                      cube_file=None, map_file=None,
+                      halo_profiler_parameters=None,
+                      njobs=1, dynamic=False):
         r"""Gets a halo mask from a file or makes a new one.
 
         Parameters
         ----------
-        mask_file : string, optional
-            An HDF5 file to which to output the halo mask
-        map_file : string, optional
-            A text file to which to output the halo map (locations in the
-            images of the halos
+        mask_file : string
+            An hdf5 file to output the halo mask.
+            Default: None
+        cub_file : string
+            An hdf5 file to output a halo mask for each slice
+            of the light cone.
+            Default: None
+        map_file : string
+            A text file to which to output the halo map (locations
+            in the images of the halos.
+            Default: None
+        halo_profiler_parameters: dict
+            A dictionary of parameters to be passed to the HaloProfiler
+            for each slice of the light cone.
+            Default: None
+        njobs : int
+            The number of parallel jobs over which the slices for the
+            halo mask will be split.  Choose -1 for one processor per
+            individual slice and 1 to have all processors work together
+            on each projection.
+            Default: 1.
+        dynamic : bool
+            If True, use dynamic load balancing to create the projections.
+            Default: False.
 
         """
-        # Get halo map if map_file given.
-        if map_file is not None and not os.path.exists(map_file):
-            light_cone_halo_map(self, map_file=map_file, **kwargs)
+
+        if halo_profiler_parameters is None:
+            halo_profiler_parameters = {}
 
         # Check if file already exists.
         if mask_file is not None and os.path.exists(mask_file):
             mylog.info('Reading halo mask from %s.' % mask_file)
-            input = h5py.File(mask_file, 'r')
-            self.halo_mask = input['HaloMask'].value
-            input.close()
+            in_file = h5py.File(mask_file, 'r')
+            self.halo_mask = in_file['HaloMask'].value
+            in_file.close()
 
         # Otherwise, make a halo mask.
         else:
-            halo_mask_cube = light_cone_halo_mask(self, mask_file=mask_file,
-                                                  **kwargs)
+            halo_mask_cube = _light_cone_halo_mask(self, mask_file=mask_file,
+                                                   cube_file=cube_file,
+                                                   map_file=map_file,
+                                                   halo_profiler_parameters=\
+                                                   halo_profiler_parameters,
+                                                   njobs=njobs,
+                                                   dynamic=dynamic)
             # Collapse cube into final mask.
             self.halo_mask = na.ones(shape=(self.pixels, self.pixels),
                                      dtype=bool)
@@ -476,9 +505,9 @@ class LightCone(CosmologySplice):
         self.halo_mask = []
 
         # Clean pf objects out of light cone solution.
-        for slice in self.light_cone_solution:
-            if slice.has_key('object'):
-                del slice['object']
+        for my_slice in self.light_cone_solution:
+            if my_slice.has_key('object'):
+                del my_slice['object']
 
         if recycle:
             mylog.debug("Recycling solution made with %s with new seed %s." %
@@ -630,8 +659,8 @@ class LightCone(CosmologySplice):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
 
         # Make list of redshifts to include as a dataset attribute.
-        redshiftList = na.array([slice['redshift'] \
-                                 for slice in self.light_cone_solution])
+        redshiftList = na.array([my_slice['redshift'] \
+                                 for my_slice in self.light_cone_solution])
 
         field_node = "%s_%s" % (field, weight_field)
         weight_field_node = "weight_field_%s" % weight_field

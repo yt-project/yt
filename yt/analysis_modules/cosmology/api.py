@@ -29,7 +29,5 @@ from .cosmology_splice import \
 
 from .light_cone.api import \
     LightCone, \
-    light_cone_halo_mask, \
-    light_cone_halo_map, \
     find_unique_solutions, \
     project_unique_light_cones
