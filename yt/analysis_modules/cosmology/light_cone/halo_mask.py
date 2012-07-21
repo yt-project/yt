@@ -233,9 +233,9 @@ def _make_slice_halo_list(slice, halo_list):
     halo_mass = na.array(halo_mass)
 
     # Adjust halo centers along line of sight.
-    depthCenter = slice['projection_center'][slice['projection_axis']]
-    depthLeft = depthCenter - 0.5 * slice['box_depth_fraction']
-    depthRight = depthCenter + 0.5 * slice['box_depth_fraction']
+    depth_center = slice['projection_center'][slice['projection_axis']]
+    depth_left = depth_center - 0.5 * slice['box_depth_fraction']
+    depth_right = depth_center + 0.5 * slice['box_depth_fraction']
 
     # Make boolean mask to pick out centers in region along line of sight.
     # Halos near edges may wrap around to other side.
@@ -258,19 +258,19 @@ def _make_slice_halo_list(slice, halo_list):
 
     # Cut out the halos outside the region of interest.
     if (slice['box_depth_fraction'] < 1):
-        if (depthLeft < 0):
+        if (depth_left < 0):
             mask = ((halo_depth + halo_radius >= 0) &
-                    (halo_depth - halo_radius <= depthRight)) | \
-                ((halo_depth + halo_radius >= depthLeft + 1) &
+                    (halo_depth - halo_radius <= depth_right)) | \
+                ((halo_depth + halo_radius >= depth_left + 1) &
                  (halo_depth - halo_radius <= 1))
-        elif (depthRight > 1):
+        elif (depth_right > 1):
             mask = ((halo_depth + halo_radius >= 0) &
-                    (halo_depth - halo_radius <= depthRight - 1)) | \
-                ((halo_depth + halo_radius >= depthLeft) &
+                    (halo_depth - halo_radius <= depth_right - 1)) | \
+                ((halo_depth + halo_radius >= depth_left) &
                  (halo_depth - halo_radius <= 1))
         else:
-            mask = (halo_depth + halo_radius >= depthLeft) & \
-              (halo_depth - halo_radius <= depthRight)
+            mask = (halo_depth + halo_radius >= depth_left) & \
+              (halo_depth - halo_radius <= depth_right)
 
         halo_x = halo_x[mask]
         halo_y = halo_y[mask]
