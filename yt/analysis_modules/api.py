@@ -98,13 +98,6 @@ from .level_sets.api import \
 #from .light_ray.api import \
 #    LightRay
 
-# from .light_cone.api import \
-#     LightCone, \
-#     light_cone_halo_mask, \
-#     light_cone_halo_map, \
-#     find_unique_solutions, \
-#     project_unique_light_cones
-
 from .radial_column_density.api import \
     RadialColumnDensity
 
