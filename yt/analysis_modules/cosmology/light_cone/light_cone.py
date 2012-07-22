@@ -31,15 +31,18 @@ import os
 from yt.funcs import *
 from yt.analysis_modules.cosmology.cosmology_splice import \
      CosmologySplice
-from yt.convenience import load
-from yt.utilities.cosmology import Cosmology
+from yt.convenience import \
+     load
+from yt.utilities.cosmology import \
+     Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     only_on_root, \
     parallel_objects, \
     parallel_root_only
-from yt.visualization.image_writer import write_image
-
-from .common_n_volume import common_volume
+from yt.visualization.image_writer import \
+     write_image
+from .common_n_volume import \
+     common_volume
 from .halo_mask import \
     _light_cone_halo_mask
 from .light_cone_projection import \
@@ -529,7 +532,7 @@ class LightCone(CosmologySplice):
 
         # Keep track of fraction of volume in common between the original and
         # recycled solution.
-        common_volume = 0.0
+        my_volume = 0.0
         total_volume = 0.0
 
         # For box coherence, keep track of effective depth travelled.
@@ -604,7 +607,7 @@ class LightCone(CosmologySplice):
                                   newCenter[w] +
                                   0.5 * self.master_solution[q]['box_width_fraction']]
 
-            common_volume += common_volume(oldCube, newCube,
+            my_volume += common_volume(oldCube, newCube,
                                            periodic=na.array([[0, 1],
                                                               [0, 1],
                                                               [0, 1]]))
@@ -620,10 +623,10 @@ class LightCone(CosmologySplice):
 
         if recycle:
             mylog.debug("Fractional common volume between master and recycled solution is %.2e" % \
-                        (common_volume / total_volume))
+                        (my_volume / total_volume))
         else:
             mylog.debug("Fraction of total volume in common with old solution is %.2e." % \
-                        (common_volume / total_volume))
+                        (my_volume / total_volume))
             self.master_solution = [copy.deepcopy(q) \
                                     for q in self.light_cone_solution]
 

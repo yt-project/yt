@@ -28,15 +28,31 @@ import numpy as na
 import random as rand
 import sys
 
-from yt.utilities.logger import ytLogger as mylog
+from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
-from .light_cone import LightCone
-from .common_n_volume import common_volume
+from .light_cone import \
+     LightCone
+from .common_n_volume import \
+     common_volume
 
 def project_unique_light_cones(lightcone, seed_file, field, **kwargs):
-    "Make light cone projections using list of random seeds in a file."
+    r"""Make light cone projections using list of random
+    seeds in a file.
+
+    Parameters
+    ----------
+    lightcone : LightCone
+        A LightCone object.
+    seed_file : str
+        File containing random seeds for light cone projections.
+    field : str
+        The field to be projected.
+
+    Any additional parameters to project_light_cone should be
+    given here.
+    """
 
     seedList = _read_seed_file(seed_file)
 
@@ -46,106 +62,146 @@ def project_unique_light_cones(lightcone, seed_file, field, **kwargs):
 
     for seed in seedList:
         if (seed['master'] != lastSeed):
-            lightcone.rerandomize_light_cone_solution(seed['master'], recycle=False)
+            lightcone.rerandomize_light_cone_solution(seed['master'],
+                                                      recycle=False)
             lastSeed = seed['master']
         if (seed['recycle'] is not None):
-            lightcone.rerandomize_light_cone_solution(seed['recycle'], recycle=True)
+            lightcone.rerandomize_light_cone_solution(seed['recycle'],
+                                                      recycle=True)
 
-        lightcone.output_prefix = "%s_%s_%s" % (prefix, seed['master'], seed['recycle'])
+        lightcone.output_prefix = "%s_%s_%s" % \
+          (prefix, seed['master'], seed['recycle'])
         lightcone.project_light_cone(field, **kwargs)
 
-def find_unique_solutions(lightcone1, solutions=100, seed=None, max_overlap=0.25, failures=10, 
+def find_unique_solutions(lightcone1, solutions=10, seed=None,
+                          max_overlap=0.25, failures=10,
                           recycle=True, filename='unique.dat'):
-    "Find a set of random seeds that will give light cones will minimal volume overlap."
+    r"""Find a set of random seeds that will give light cones
+    will minimal volume overlap.
+
+    Parameters
+    ----------
+    lightcone1 : LightCone
+        A LightCone object.
+    solutions : int
+        The desired number of unique solutions.
+        Default: 10
+    seed : int
+        The random seed for generating light cone randomizations.
+        Default: None
+    max_overlap : float
+        The maximum fractional volume an accepted solution can have
+        in common with the other solutions.
+        Default: 0.25
+    failures : int
+        The number of failed attempts before ending.
+        Default: 10
+    recycle : bool
+        If True, attempt to use existing realizations.  This
+        will speed up light cone projectinos.
+        Default: True
+    filename : str
+        Output file name for the list of unique seeds.
+        Default : 'unique.dat'
+
+    """
 
     lightcone2 = copy.deepcopy(lightcone1)
     lightcone1.calculate_light_cone_solution(seed=0)
     lightcone2.calculate_light_cone_solution(seed=0)
 
-    uniqueSeeds = []
+    unique_seeds = []
     if recycle:
         master = None
-    newRecycleSeed = None
+    new_recycle_seed = None
     fails = 0
-    recycleFails = 0
+    recycle_fails = 0
 
-    maxCommon = 0.0
+    max_common = 0.0
 
-    # Need to continuall save and reset the state of the random number generator
-    # since it is being reset by the light cone generator.
+    # Need to continuall save and reset the state of the random
+    # number generator since it is being reset by the light
+    # cone generator.
     if seed is None:
         state = None
     else:
         rand.seed(seed)
         state = rand.getstate()
 
-    failDigits = str(int(na.log10(failures))+1)
+    fail_digits = str(int(na.log10(failures))+1)
 
-    while (len(uniqueSeeds) < solutions):
+    while (len(unique_seeds) < solutions):
         # Create new random seed.
         if (recycle and master is not None):
-            newSeed = master
+            new_seed = master
             if state is not None: rand.setstate(state)
-            newRecycleSeed = rand.randint(1, 1e9)
+            new_recycle_seed = rand.randint(1, 1e9)
             state = rand.getstate()
         else:
             if state is not None: rand.setstate(state)
-            newSeed = rand.randint(1, 1e9)
+            new_seed = rand.randint(1, 1e9)
             state = rand.getstate()
             if recycle:
-                master = newSeed
-                recycleFails = 0
-            newRecycleSeed = None
+                master = new_seed
+                recycle_fails = 0
+            new_recycle_seed = None
 
-        sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+failDigits+"d, %"+failDigits+"d.\r") % \
-                             (len(uniqueSeeds), fails, recycleFails))
+        sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+fail_digits+"d, %"+fail_digits+"d.\r") % \
+                             (len(unique_seeds), fails, recycle_fails))
 
-        lightcone1.rerandomize_light_cone_solution(newSeed, recycle=False)
-        if newRecycleSeed is not None:
-            lightcone1.rerandomize_light_cone_solution(newRecycleSeed, recycle=True)
+        lightcone1.rerandomize_light_cone_solution(new_seed,
+                                                   recycle=False)
+        if new_recycle_seed is not None:
+            lightcone1.rerandomize_light_cone_solution(new_recycle_seed,
+                                                       recycle=True)
 
         # Compare with all other seeds.
-        testPass = True
-        for uniqueSeed in uniqueSeeds:
-            lightcone2.rerandomize_light_cone_solution(uniqueSeed['master'], recycle=False)
-            if uniqueSeed['recycle'] is not None:
-                lightcone2.rerandomize_light_cone_solution(uniqueSeed['recycle'], recycle=True)
+        test_pass = True
+        for unique_seed in unique_seeds:
+            lightcone2.rerandomize_light_cone_solution(unique_seed['master'],
+                                                       recycle=False)
+            if unique_seed['recycle'] is not None:
+                lightcone2.rerandomize_light_cone_solution(unique_seed['recycle'],
+                                                           recycle=True)
 
-            common = _compare_solutions(lightcone1.light_cone_solution, lightcone2.light_cone_solution)
+            common = _compare_solutions(lightcone1.light_cone_solution,
+                                        lightcone2.light_cone_solution)
 
             if (common > max_overlap):
-                testPass = False
+                test_pass = False
                 break
             else:
-                maxCommon = max(maxCommon, common)
+                max_common = max(max_common, common)
 
-        if testPass:
-            uniqueSeeds.append({'master':newSeed, 'recycle':newRecycleSeed})
+        if test_pass:
+            unique_seeds.append({'master':new_seed,
+                                 'recycle':new_recycle_seed})
             fails = 0
-            recycleFails = 0
+            recycle_fails = 0
 
         else:
             if recycle:
-                recycleFails += 1
+                recycle_fails += 1
             else:
                 fails += 1
 
-            if (recycleFails >= failures):
-                sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+failDigits+"d, %"+failDigits+"d.\n") % \
-                                     (len(uniqueSeeds), fails, recycleFails))
+            if (recycle_fails >= failures):
+                sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+fail_digits+"d, %"+fail_digits+"d.\n") % \
+                                 (len(unique_seeds), fails, recycle_fails))
                 fails += 1
-                mylog.info("Max recycled failures reached with master seed %d." % newSeed)
+                mylog.info("Max recycled failures reached with master seed %d." % \
+                           new_seed)
                 master = None
             if (fails >= failures):
-                sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+failDigits+"d, %"+failDigits+"d.\n") % \
-                                     (len(uniqueSeeds), fails, recycleFails))
+                sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+fail_digits+"d, %"+fail_digits+"d.\n") % \
+                                 (len(unique_seeds), fails, recycle_fails))
                 mylog.error("Max consecutive failures reached.")
                 break
 
-    mylog.info("Created %d unique solutions." % len(uniqueSeeds))
-    mylog.info("Maximum common volume is %.2e." % maxCommon)
-    _write_seed_file(uniqueSeeds, filename)
-    return uniqueSeeds
+    mylog.info("Created %d unique solutions." % len(unique_seeds))
+    mylog.info("Maximum common volume is %.2e." % max_common)
+    _write_seed_file(unique_seeds, filename)
+    return unique_seeds
 
 def _compare_solutions(solution1, solution2):
     "Calculate common volume between two light cone solutions."
@@ -154,12 +210,14 @@ def _compare_solutions(solution1, solution2):
         mylog.error("Cannot compare light cone solutions with unequal numbers of slices.")
         return -1
 
-    commonVolume = 0.0
-    totalVolume = 0.0
+    my_volume = 0.0
+    total_volume = 0.0
 
     # Check that solution volumes are the same.
-    if((solution1[0]['box_depth_fraction'] * solution1[0]['box_width_fraction']**2) !=
-       (solution2[0]['box_depth_fraction'] * solution2[0]['box_width_fraction']**2)):
+    if((solution1[0]['box_depth_fraction'] *
+        solution1[0]['box_width_fraction']**2) !=
+       (solution2[0]['box_depth_fraction'] *
+        solution2[0]['box_width_fraction']**2)):
         mylog.error("Light cone solutions do not have equal volumes, will use the smaller one.")
 
     for q in range(len(solution1)):
@@ -185,17 +243,20 @@ def _compare_solutions(solution1, solution2):
             cube2[w] = [solution2[q]['projection_center'][w] - 0.5 * width,
                         solution2[q]['projection_center'][w] + 0.5 * width]
 
-        totalVolume += min(volume1, volume2)
-        commonVolume += common_volume(cube1, cube2, periodic=na.array([[0, 1], [0, 1], [0, 1]]))
+        total_volume += min(volume1, volume2)
+        my_volume += common_volume(cube1, cube2,
+                                   periodic=na.array([[0, 1],
+                                                      [0, 1],
+                                                      [0, 1]]))
 
-    return (commonVolume/totalVolume)
+    return (my_volume / total_volume)
 
 def _read_seed_file(filename):
     "Read list of random seeds from a file."
 
     mylog.info("Reading random seed list from %s." % filename)
 
-    seedList = []
+    seed_list = []
 
     lines = file(filename)
     for line in lines:
@@ -203,20 +264,20 @@ def _read_seed_file(filename):
             line = line.strip()
             onLine = line.split(',')
             if (len(onLine) == 1):
-                seedList.append({'master':onLine[0], 'recycle':None})
+                seed_list.append({'master':onLine[0], 'recycle':None})
             else:
-                seedList.append({'master':onLine[0], 'recycle':onLine[1]})
+                seed_list.append({'master':onLine[0], 'recycle':onLine[1]})
 
-    return seedList
+    return seed_list
 
 @parallel_root_only
-def _write_seed_file(seedList, filename):
+def _write_seed_file(seed_list, filename):
     "Write list of random seeds to a file."
 
     mylog.info("Writing random seed list to %s." % filename)
 
     f = open(filename, 'w')
-    for seed in seedList:
+    for seed in seed_list:
         if seed['recycle'] is None:
             f.write("%s\n" % seed['master'])
         else:
