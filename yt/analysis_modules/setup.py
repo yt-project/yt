@@ -17,7 +17,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("hierarchy_subset")
     config.add_subpackage("level_sets")
     config.add_subpackage("light_ray")
-    config.add_subpackage("light_cone")
     config.add_subpackage("radial_column_density")
     config.add_subpackage("simulation_handler")
     config.add_subpackage("spectral_integrator")
