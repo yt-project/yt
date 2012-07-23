@@ -5,7 +5,7 @@ Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
+  Copyright (C) 2008-2012 Britton Smith.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -23,82 +23,96 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-try:
-    from mpi4py import MPI
-    parallel_light_ray = True
-    my_rank = MPI.COMM_WORLD.rank
-    my_size = MPI.COMM_WORLD.size
-except ImportError:
-    parallel_light_ray = False
-    my_rank = 0
-    my_size = 1
-
 import copy
 import h5py
 import numpy as na
 
 from yt.funcs import *
 
-from yt.analysis_modules.simulation_handler.enzo_simulation import \
-    EnzoSimulation
+from yt.analysis_modules.cosmology.cosmology_splice import \
+     CosmologySplice
 from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
-    HaloProfiler
+     HaloProfiler
 from yt.convenience import load
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    only_on_root, \
+    parallel_objects, \
+    parallel_root_only
 
-class LightRay(EnzoSimulation):
-    def __init__(self, enzo_parameter_file, final_redshift, initial_redshift, 
-                 deltaz_min=0.0, use_minimum_datasets=True, 
-                 minimum_coherent_box_fraction=0.0, **kwargs):
+class LightRay(CosmologySplice):
+    def __init__(self, parameter_filename, simulation_type,
+                 near_redshift, far_redshift,
+                 use_minimum_datasets=True, deltaz_min=0.0,
+                 minimum_coherent_box_fraction=0.0,
+                 time_data=True, redshift_data=True):
         """
-        Create a LightRay object.  A light ray is much like a light cone, in that 
-        it stacks together multiple datasets in order to extend a redshift interval.  
-        Unlike a light cone, which does randomly oriented projections for each dataset, 
-        a light ray consists of randomly oriented single rays.  The purpose of these 
-        is to create synthetic QSO lines of sight.
+        Create a LightRay object.  A light ray is much like a light cone,
+        in that it stacks together multiple datasets in order to extend a
+        redshift interval.  Unlike a light cone, which does randomly
+        oriented projections for each dataset, a light ray consists of
+        randomly oriented single rays.  The purpose of these is to create
+        synthetic QSO lines of sight.
 
-        Once the LightRay object is set up, use LightRay.make_light_ray to begin making 
-        rays.  Different randomizations can be created with a single object by providing 
-        different random seeds to make_light_ray.
+        Once the LightRay object is set up, use LightRay.make_light_ray to
+        begin making rays.  Different randomizations can be created with a
+        single object by providing different random seeds to make_light_ray.
 
-        :param enzo_parameter_file (string): path to simulation parameter file.
-        :param final_redshift (float): lower bound of the ray redshift interval.
-        :param initial_redshift (float): upper bound of the ray redshift interval.
-        :param deltaz_min (float): minimum delta z between consecutive datasets.
-        Default: 0.0.
-        :param use_minimum_datasets (bool): if True, the minimum number of datasets is 
-        used to connect the initial and final redshift.  If false, the light ray 
-        solution will contain as many entries as possible within the redshift interval.  
-        Default: True.
-        minimum_coherent_box_fraction (float): used with use_minimum_datasets set to False, 
-        this parameter specifies the fraction of the total box size to be traversed before 
-        rerandomizing the projection axis and center.  This was invented to allow light cones 
-        with thin slices to sample coherent large scale structure, but in practice does not 
-        work so well.  It is not very clear what this will do to a light ray.  Default: 0.0.
+        Parameters
+        ----------
+        parameter_filename : string
+            The simulation parameter file.
+        simulation_type : string
+            The simulation type.
+        near_redshift : float
+            The near (lowest) redshift for the light ray.
+        far_redshift : float
+            The far (highest) redshift for the light ray.
+        use_minimum_datasets : bool
+            If True, the minimum number of datasets is used to connect the
+            initial and final redshift.  If false, the light ray solution
+            will contain as many entries as possible within the redshift
+            interval.
+            Default: True.
+        deltaz_min : float
+            Specifies the minimum :math:`\Delta z` between consecutive
+            datasets in the returned list.
+            Default: 0.0.
+        minimum_coherent_box_fraction : float
+            Used with use_minimum_datasets set to False, this parameter
+            specifies the fraction of the total box size to be traversed
+            before rerandomizing the projection axis and center.  This
+            was invented to allow light rays with thin slices to sample
+            coherent large scale structure, but in practice does not work
+            so well.  Try setting this parameter to 1 and see what happens.
+            Default: 0.0.
+        time_data : bool
+            Whether or not to include time outputs when gathering
+            datasets for time series.
+            Default: True.
+        redshift_data : bool
+            Whether or not to include redshift outputs when gathering
+            datasets for time series.
+            Default: True.
+
         """
 
-        EnzoSimulation.__init__(self, enzo_parameter_file, 
-                                initial_redshift=initial_redshift,
-                                final_redshift=final_redshift, links=True,
-                                enzo_parameters={'CosmologyComovingBoxSize':float}, 
-                                **kwargs)
-
-        self.deltaz_min = deltaz_min
+        self.near_redshift = near_redshift
+        self.far_redshift = far_redshift
         self.use_minimum_datasets = use_minimum_datasets
+        self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
-        self.dtype = '>f8'
 
         self.light_ray_solution = []
         self._data = {}
 
-        # Don't use box coherence with maximum dataset depths.
-        if self.use_minimum_datasets and self.minimum_coherent_box_fraction > 0:
-            mylog.info("Setting minimum_coherent_box_fraction to 0 with minimal light ray.")
-            self.minimum_coherent_box_fraction = 0
-
         # Get list of datasets for light ray solution.
+        CosmologySplice.__init__(self, parameter_filename, simulation_type)
         self.light_ray_solution = \
-            self.create_cosmology_splice(minimal=self.use_minimum_datasets,
-                                         deltaz_min=self.deltaz_min)
+          self.create_cosmology_splice(self.near_redshift, self.far_redshift,
+                                       minimal=self.use_minimum_datasets,
+                                       deltaz_min=self.deltaz_min,
+                                       time_data=time_data,
+                                       redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -107,199 +121,285 @@ class LightRay(EnzoSimulation):
         na.random.seed(seed)
 
         # For box coherence, keep track of effective depth travelled.
-        boxFractionUsed = 0.0
+        box_fraction_used = 0.0
 
         for q in range(len(self.light_ray_solution)):
             if (q == len(self.light_ray_solution) - 1):
-                z_next = self.final_redshift
+                z_next = self.near_redshift
             else:
                 z_next = self.light_ray_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
-            self.light_ray_solution[q]['TraversalBoxFraction'] = \
+            self.light_ray_solution[q]['traversal_box_fraction'] = \
                 self.cosmology.ComovingRadialDistance(\
                 z_next, self.light_ray_solution[q]['redshift']) * \
-                self.enzoParameters['CosmologyHubbleConstantNow'] / \
-                self.enzoParameters['CosmologyComovingBoxSize']
+                self.simulation.hubble_constant / \
+                self.simulation.box_size
 
-            # Simple error check to make sure more than 100% of box depth 
+            # Simple error check to make sure more than 100% of box depth
             # is never required.
-            if (self.light_ray_solution[q]['TraversalBoxFraction'] > 1.0):
-                mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % 
+            if (self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
+                mylog.error("Warning: box fraction required to go from z = %f to %f is %f" %
                             (self.light_ray_solution[q]['redshift'], z_next,
-                             self.light_ray_solution[q]['TraversalBoxFraction']))
-                mylog.error("Full box delta z is %f, but it is %f to the next data dump." % 
+                             self.light_ray_solution[q]['traversal_box_fraction']))
+                mylog.error("Full box delta z is %f, but it is %f to the next data dump." %
                             (self.light_ray_solution[q]['deltazMax'],
                              self.light_ray_solution[q]['redshift']-z_next))
 
             # Get dataset axis and center.
-            # If using box coherence, only get start point and vector if 
-            # enough of the box has been used, 
-            # or if boxFractionUsed will be greater than 1 after this slice.
+            # If using box coherence, only get start point and vector if
+            # enough of the box has been used,
+            # or if box_fraction_used will be greater than 1 after this slice.
             if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-                    (boxFractionUsed > self.minimum_coherent_box_fraction) or \
-                    (boxFractionUsed + self.light_ray_solution[q]['TraversalBoxFraction'] > 1.0):
-                # Random star point
+                    (box_fraction_used >
+                     self.minimum_coherent_box_fraction) or \
+                    (box_fraction_used +
+                     self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
+                # Random start point
                 self.light_ray_solution[q]['start'] = na.random.random(3)
                 theta = na.pi * na.random.random()
                 phi = 2 * na.pi * na.random.random()
-                boxFractionUsed = 0.0
+                box_fraction_used = 0.0
             else:
                 # Use end point of previous segment and same theta and phi.
-                self.light_ray_solution[q]['start'] = self.light_ray_solution[q-1]['end'][:]
+                self.light_ray_solution[q]['start'] = \
+                  self.light_ray_solution[q-1]['end'][:]
 
-            self.light_ray_solution[q]['end'] = self.light_ray_solution[q]['start'] + \
-                self.light_ray_solution[q]['TraversalBoxFraction'] * \
+            self.light_ray_solution[q]['end'] = \
+              self.light_ray_solution[q]['start'] + \
+                self.light_ray_solution[q]['traversal_box_fraction'] * \
                 na.array([na.cos(phi) * na.sin(theta),
                           na.sin(phi) * na.sin(theta),
                           na.cos(theta)])
-            boxFractionUsed += self.light_ray_solution[q]['TraversalBoxFraction']
+            box_fraction_used += \
+              self.light_ray_solution[q]['traversal_box_fraction']
 
         if filename is not None:
-            self._write_light_ray_solution(filename, 
-                                           extra_info={'enzo_parameter_file':self.enzo_parameter_file, 
-                                                       'RandomSeed':seed,
-                                                       'initial_redshift':self.initial_redshift, 
-                                                       'final_redshift':self.final_redshift})
+            self._write_light_ray_solution(filename,
+                extra_info={'parameter_filename':self.parameter_filename,
+                            'random_seed':seed,
+                            'far_redshift':self.far_redshift,
+                            'near_redshift':self.near_redshift})
 
-    def make_light_ray(self, seed=None, fields=None, 
+    def make_light_ray(self, seed=None, fields=None,
                        solution_filename=None, data_filename=None,
-                       get_nearest_galaxy=False, get_los_velocity=False, 
-                       halo_mass_field='TotalMassMsun_200', **kwargs):
+                       get_los_velocity=False,
+                       get_nearest_halo=False,
+                       nearest_halo_fields=None,
+                       halo_profiler_parameters=None,
+                       njobs=1, dynamic=False):
         """
-        Create a light ray and get field values for each lixel.  A light ray consists of 
-        a list of field values for cells intersected by the ray and the path length of 
-        the ray through those cells.  Light ray data can be written out to an hdf5 file.
+        Create a light ray and get field values for each lixel.  A light
+        ray consists of a list of field values for cells intersected by
+        the ray and the path length of the ray through those cells.
+        Light ray data can be written out to an hdf5 file.
 
-        :param seed (int): seed for the random number generator.  Default: None.
-        :param fields (list): a list of fields for which to get data.  Default: None.
-        :param solution_filename (string): path to a text file where the trajectories of each 
-        subray is written out.  Default: None.
-        :param data_filename (string): path to output file for ray data.  Default: None.
-        :param get_nearest_galaxy (bool): if True, the HaloProfiler will be used to calculate 
-        the distance and mass of the nearest halo for each point in the ray.  This option 
-        requires additional information to be included.  See below for an example.  
-        Default: False.
-        :param get_los_velocity (bool): if True, the line of sight velocity is calculated for 
-        each point in the ray.  Default: False.
+        Parameters
+        ----------
+        seed : int
+            Seed for the random number generator.
+            Default: None.
+        fields : list
+            A list of fields for which to get data.
+            Default: None.
+        solution_filename : string
+            Path to a text file where the trajectories of each
+            subray is written out.
+            Default: None.
+        data_filename : string
+            Path to output file for ray data.
+            Default: None.
+        get_los_velocity : bool
+            If True, the line of sight velocity is calculated for
+            each point in the ray.
+            Default: False.
+        get_nearest_halo : bool
+            If True, the HaloProfiler will be used to calculate the
+            distance and mass of the nearest halo for each point in the
+            ray.  This option requires additional information to be
+            included.  See below for an example.
+            Default: False.
+        nearest_halo_fields : list
+            A list of fields to be calculated for the halos nearest to
+            every lixel in the ray.
+            Default: None.
+        halo_profiler_parameters: dict
+            A dictionary of parameters to be passed to the HaloProfiler
+            to create the appropriate data used to get properties for
+            the nearest halos.
+            Default: None.
+        njobs : int
+            The number of parallel jobs over which the slices for the
+            halo mask will be split.  Choose -1 for one processor per
+            individual slice and 1 to have all processors work together
+            on each projection.
+            Default: 1
+        dynamic : bool
+            If True, use dynamic load balancing to create the projections.
+            Default: False.
 
-        GETTING THE NEAREST GALAXIES
-        The light ray tool will use the HaloProfiler to calculate the distance and mass 
-        of the nearest halo to that pixel.  In order to do this, four additional keyword 
-        arguments must be supplied to tell the HaloProfiler what to do.
+        Getting the Nearest Galaxies
+        ----------------------------
+        The light ray tool will use the HaloProfiler to calculate the
+        distance and mass of the nearest halo to that pixel.  In order
+        to do this, a dictionary called halo_profiler_parameters is used
+        to pass instructions to the HaloProfiler.  This dictionary has
+        three additional keywords.
 
-        :param halo_profiler_kwargs (dict): a dictionary of standard HaloProfiler keyword 
-        arguments and values to be given to the HaloProfiler.
-               EXAMPLE: halo_profiler_kwargs = {'halo_list_format': {'id':0, 
-                                                                     'center':[4, 5, 6]},
-                                                                     'TotalMassMsun':1},
-                                                'halo_list_file': 'HopAnalysis.out'}
+        halo_profiler_kwargs : dict
+            A dictionary of standard HaloProfiler keyword
+            arguments and values to be given to the HaloProfiler.
 
-        :param halo_profiler_actions (list): a list of actions to be performed by the 
-        HaloProfiler.  Each item in the list should be a dictionary with the following 
-        entries: "function", "args", and "kwargs", for the function to be performed, 
-        the arguments supplied to that function, and the keyword arguments.
-               EXAMPLE: halo_profiler_actions = [{'function': make_profiles,
-                                                  'args': None,
-                                                  'kwargs': {'filename': 'VirializedHalos.out'}},
-                                                 {'function': add_halo_filter,
-                                                  'args': VirialFilter,
-                                                  'kwargs': {'overdensity_field': 'ActualOverdensity',
-                                                             'virial_overdensity': 200,
-                                                             'virial_filters': [['TotalMassMsun','>=','1e14']],
-                                                             'virial_quantities': ['TotalMassMsun','RadiusMpc']}}]
+        halo_profiler_actions : list
+            A list of actions to be performed by the HaloProfiler.
+            Each item in the list should be a dictionary with the following
+            entries: "function", "args", and "kwargs", for the function to
+            be performed, the arguments supplied to that function, and the
+            keyword arguments.
 
-        :param halo_list (string): 'all' to use the full halo list, or 'filtered' to use 
-        the filtered halo list created after calling make_profiles.
-               EXAMPLE: halo_list = 'filtered'
+        halo_list : string
+            'all' to use the full halo list, or 'filtered' to use the
+            filtered halo list created after calling make_profiles.
 
-        :param halo_mass_field (string): the field from the halo list to use for mass.  
-        Default: 'TotalMassMsun_200'.
+        Examples
+        --------
+
+        from yt.mods import *
+        from yt.analysis_modules.halo_profiler.api import *
+        from yt.analysis_modules.cosmology.light_ray.api import LightRay
+
+        halo_profiler_kwargs = {'halo_list_file': 'HopAnalysis.out'}
+
+        halo_profiler_actions = []
+        # Add a virial filter.
+        halo_profiler_actions.append({'function': add_halo_filter,
+                                      'args': VirialFilter,
+                                      'kwargs': {'overdensity_field': 'ActualOverdensity',
+                                                 'virial_overdensity': 200,
+                                                 'virial_filters': \
+                                                     [['TotalMassMsun','>=','1e14']],
+                                                 'virial_quantities': \
+                                                     ['TotalMassMsun','RadiusMpc']}})
+        # Make the profiles.
+        halo_profiler_actions.append({'function': make_profiles,
+                                      'args': None,
+                                      'kwargs': {'filename': 'VirializedHalos.out'}})
+
+        halo_list = 'filtered'
+
+        halo_profiler_parameters = dict(halo_profiler_kwargs=halo_profiler_kwargs,
+                                        halo_profiler_actions=halo_profiler_actions,
+                                        halo_list=halo_list)
+
+        my_ray = LightRay('simulation.par', 'Enzo', 0., 0.1,
+                          use_minimum_datasets=True,
+                          time_data=False)
+
+        my_ray.make_light_ray(seed=12345,
+                              solution_filename='solution.txt',
+                              data_filename='my_ray.h5',
+                              fields=['Temperature', 'Density'],
+                              get_nearest_halo=True,
+                              nearest_halo_fields=['TotalMassMsun_100',
+                                                   'RadiusMpc_100'],
+                              halo_profiler_parameters=halo_profiler_parameters,
+                              get_los_velocity=True)
+
         """
+
+        if halo_profiler_parameters is None:
+            halo_profiler_parameters = {}
+        if nearest_halo_fields is None:
+            nearest_halo_fields = []
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed, filename=solution_filename)
 
         # Initialize data structures.
         self._data = {}
-        data = []
         if fields is None: fields = []
         all_fields = [field for field in fields]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
-        if get_nearest_galaxy:
-            all_fields.extend(['x', 'y', 'z', 'nearest_galaxy', 'nearest_galaxy_mass'])
+        if get_nearest_halo:
+            all_fields.extend(['x', 'y', 'z', 'nearest_halo'])
+            all_fields.extend(['nearest_halo_%s' % field \
+                               for field in nearest_halo_fields])
             fields.extend(['x', 'y', 'z'])
         if get_los_velocity:
-            all_fields.extend(['x-velocity', 'y-velocity', 'z-velocity', 'los_velocity'])
+            all_fields.extend(['x-velocity', 'y-velocity',
+                               'z-velocity', 'los_velocity'])
             fields.extend(['x-velocity', 'y-velocity', 'z-velocity'])
 
-        todo = na.arange(my_rank, len(self.light_ray_solution), my_size)
-        for index in todo:
-            segment = self.light_ray_solution[index]
-            mylog.info("Proc %04d: creating ray segment at z = %f." % 
-                       (my_rank, segment['redshift']))
-            if segment['next'] is None:
-                next_redshift = self.final_redshift
+        all_ray_storage = {}
+        for my_storage, my_segment in parallel_objects(self.light_ray_solution,
+                                                       storage=all_ray_storage,
+                                                       njobs=njobs, dynamic=dynamic):
+            mylog.info("Creating ray segment at z = %f." %
+                       my_segment['redshift'])
+            if my_segment['next'] is None:
+                next_redshift = self.near_redshift
             else:
-                next_redshift = segment['next']['redshift']
+                next_redshift = my_segment['next']['redshift']
 
-            mylog.info("Getting segment at z = %s: %s to %s." % 
-                       (segment['redshift'], segment['start'], segment['end']))
+            mylog.info("Getting segment at z = %s: %s to %s." %
+                       (my_segment['redshift'], my_segment['start'],
+                        my_segment['end']))
 
-            if get_nearest_galaxy:
-                halo_list = self._get_halo_list(segment['filename'], **kwargs)
+            if get_nearest_halo:
+                halo_list = self._get_halo_list(my_segment['filename'],
+                                                **halo_profiler_parameters)
 
             # Load dataset for segment.
-            pf = load(segment['filename'])
+            pf = load(my_segment['filename'])
 
             # Break periodic ray into non-periodic segments.
-            sub_segments = periodic_ray(segment['start'], segment['end'])
+            sub_segments = periodic_ray(my_segment['start'], my_segment['end'])
 
             # Prepare data structure for subsegment.
             sub_data = {}
-            sub_data['segment_redshift'] = segment['redshift']
+            sub_data['segment_redshift'] = my_segment['redshift']
             for field in all_fields:
-                sub_data[field] = na.array([], dtype=self.dtype)
+                sub_data[field] = na.array([])
 
             # Get data for all subsegments in segment.
             for sub_segment in sub_segments:
-                mylog.info("Getting subsegment: %s to %s." % 
+                mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
                 sub_ray = pf.h.ray(sub_segment[0], sub_segment[1])
-                sub_data['dl'] = na.concatenate([sub_data['dl'], 
-                                                 (sub_ray['dts'] * 
-                                                  vector_length(sub_segment[0], 
+                sub_data['dl'] = na.concatenate([sub_data['dl'],
+                                                 (sub_ray['dts'] *
+                                                  vector_length(sub_segment[0],
                                                                 sub_segment[1]))])
                 for field in fields:
-                    sub_data[field] = na.concatenate([sub_data[field], 
+                    sub_data[field] = na.concatenate([sub_data[field],
                                                       (sub_ray[field])])
 
                 if get_los_velocity:
                     line_of_sight = sub_segment[1] - sub_segment[0]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
-                    sub_vel = na.array([sub_ray['x-velocity'], 
+                    sub_vel = na.array([sub_ray['x-velocity'],
                                         sub_ray['y-velocity'],
                                         sub_ray['z-velocity']])
-                    sub_data['los_velocity'] = na.concatenate([sub_data['los_velocity'], 
-                                                               (na.rollaxis(sub_vel, 1) * 
-                                                                line_of_sight).sum(axis=1)])
+                    sub_data['los_velocity'] = \
+                      na.concatenate([sub_data['los_velocity'],
+                                      (na.rollaxis(sub_vel, 1) *
+                                       line_of_sight).sum(axis=1)])
                     del sub_vel
 
                 sub_ray.clear_data()
                 del sub_ray
 
             # Get redshift for each lixel.  Assume linear relation between l and z.
-            sub_data['dredshift'] = (segment['redshift'] - next_redshift) * \
-                (sub_data['dl'] / vector_length(segment['start'], segment['end']))
-            sub_data['redshift'] = segment['redshift'] \
+            sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
+                (sub_data['dl'] / vector_length(my_segment['start'], my_segment['end']))
+            sub_data['redshift'] = my_segment['redshift'] \
                 - sub_data['dredshift'].cumsum() + sub_data['dredshift']
 
             # Calculate distance to nearest object on halo list for each lixel.
-            if get_nearest_galaxy:
-                sub_data['nearest_galaxy'], sub_data['nearest_galaxy_mass'] = \
-                    self._get_nearest_galaxy_distance(sub_data, halo_list,
-                                                      halo_mass_field=halo_mass_field)
-                sub_data['nearest_galaxy'] *= pf.units['mpccm']
+            if get_nearest_halo:
+                sub_data.update(self._get_nearest_halo_properties(sub_data, halo_list,
+                                fields=nearest_halo_fields))
+                sub_data['nearest_halo'] *= pf.units['mpccm']
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()
@@ -307,52 +407,31 @@ class LightRay(EnzoSimulation):
                 sub_data[field] = sub_data[field][sub_dl_nonzero]
             del sub_dl_nonzero
 
-            # Convert dl to Mpc comoving.
+            # Convert dl to cm.
             sub_data['dl'] *= pf.units['cm']
 
-            # Add segment to list.
-            data.append(sub_data)
+            # Add to storage.
+            my_storage.result = sub_data
 
             pf.h.clear_all_data()
             del pf
 
-        if parallel_light_ray:
-            MPI.COMM_WORLD.Barrier()
-            if my_rank == 0:
-                for proc in range(1, my_size):
-                    buf = MPI.COMM_WORLD.recv(source=proc, tag=0)
-                    data += buf
-            else:
-                MPI.COMM_WORLD.send(data, dest=0, tag=0)
-                del data
-            MPI.COMM_WORLD.Barrier()
+        # Reconstruct ray data from parallel_objects storage.
+        all_data = [my_data for my_data in all_ray_storage.values()]
+        # This is now a list of segments where each one is a dictionary
+        # with all the fields.
+        all_data.sort(key=lambda a:a['segment_redshift'], reverse=True)
+        # Flatten the list into a single dictionary containing fields
+        # for the whole ray.
+        all_data = _flatten_dict_list(all_data, exceptions=['segment_redshift'])
 
-        if my_rank == 0:
-            data.sort(key=lambda a:a['segment_redshift'], reverse=True)
-            data = self._flatten_ray_data(data, exceptions=['segment_redshift'])
+        if data_filename is not None:
+            self._write_light_ray(data_filename, all_data)
 
-            if data_filename is not None:
-                self._write_light_ray(data_filename, data)
+        self._data = all_data
+        return all_data
 
-            self._data = data
-            return data
-
-    def _flatten_ray_data(self, data, exceptions=None):
-        "Flatten the list of dicts into one dict."
-
-        if exceptions is None: exceptions = []
-        new_data = {}
-        for datum in data:
-            for field in [field for field in datum.keys() 
-                          if field not in exceptions]:
-                if new_data.has_key(field):
-                    new_data[field] = na.concatenate([new_data[field], datum[field]])
-                else:
-                    new_data[field] = na.copy(datum[field])
-
-        return new_data                
-
-    def _get_halo_list(self, dataset, halo_profiler_kwargs=None, 
+    def _get_halo_list(self, dataset, halo_profiler_kwargs=None,
                        halo_profiler_actions=None, halo_list='all'):
         "Load a list of halos for the dataset."
 
@@ -376,45 +455,53 @@ class LightRay(EnzoSimulation):
         del hp
         return return_list
 
-    def _get_nearest_galaxy_distance(self, data, halo_list, 
-                                     halo_mass_field='TotalMassMsun_200'):
+    def _get_nearest_halo_properties(self, data, halo_list, fields=None):
         """
         Calculate distance to nearest object in halo list for each lixel in data.
         Return list of distances and masses of nearest objects.
         """
 
+        if fields is None: fields = []
+
         # Create position array from halo list.
         halo_centers = na.array(map(lambda halo: halo['center'], halo_list))
-        halo_mass = na.array(map(lambda halo: halo[halo_mass_field], halo_list))
+        halo_field_values = dict([(field, na.array(map(lambda halo: halo[field],
+                                                       halo_list))) \
+                                  for field in fields])
 
         nearest_distance = na.zeros(data['x'].shape)
-        nearest_mass = na.zeros(data['x'].shape)
+        field_data = dict([(field, na.zeros(data['x'].shape)) \
+                           for field in fields])
         for index in xrange(nearest_distance.size):
-            nearest = na.argmin(periodic_distance(na.array([data['x'][index], 
+            nearest = na.argmin(periodic_distance(na.array([data['x'][index],
                                                             data['y'][index],
-                                                            data['z'][index]]), 
+                                                            data['z'][index]]),
                                                   halo_centers))
-            nearest_distance[index] = periodic_distance(na.array([data['x'][index], 
+            nearest_distance[index] = periodic_distance(na.array([data['x'][index],
                                                                   data['y'][index],
-                                                                  data['z'][index]]), 
+                                                                  data['z'][index]]),
                                                         halo_centers[nearest])
-            nearest_mass[index] = halo_mass[nearest]
+            for field in fields:
+                field_data[field][index] = halo_field_values[field][nearest]
 
-        return (nearest_distance, nearest_mass)
+        return_data = {'nearest_halo': nearest_distance}
+        for field in fields:
+            return_data['nearest_halo_%s' % field] = field_data[field]
+        return return_data
 
+    @parallel_root_only
     def _write_light_ray(self, filename, data):
         "Write light ray data to hdf5 file."
 
         mylog.info("Saving light ray data to %s." % filename)
         output = h5py.File(filename, 'w')
         for field in data.keys():
-            output.create_dataset(field, data=data[field], dtype=self.dtype)
+            output.create_dataset(field, data=data[field])
         output.close()
 
+    @parallel_root_only
     def _write_light_ray_solution(self, filename, extra_info=None):
         "Write light ray solution to a file."
-
-        if my_rank != 0: return
 
         mylog.info("Writing light ray solution to %s." % filename)
         f = open(filename, 'w')
@@ -422,13 +509,27 @@ class LightRay(EnzoSimulation):
             for par, val in extra_info.items():
                 f.write("%s = %s\n" % (par, val))
         f.write("\nSegment Redshift dl/box    Start x       y             z             End x         y             z            Dataset\n")
-        for q, segment in enumerate(self.light_ray_solution):
+        for q, my_segment in enumerate(self.light_ray_solution):
             f.write("%04d    %.6f %.6f % .10f % .10f % .10f % .10f % .10f % .10f %s\n" % \
-                        (q, segment['redshift'], segment['TraversalBoxFraction'],
-                         segment['start'][0], segment['start'][1], segment['start'][2],
-                         segment['end'][0], segment['end'][1], segment['end'][2], 
-                         segment['filename']))
+                        (q, my_segment['redshift'], my_segment['traversal_box_fraction'],
+                         my_segment['start'][0], my_segment['start'][1], my_segment['start'][2],
+                         my_segment['end'][0], my_segment['end'][1], my_segment['end'][2],
+                         my_segment['filename']))
         f.close()
+
+def _flatten_dict_list(data, exceptions=None):
+    "Flatten the list of dicts into one dict."
+
+    if exceptions is None: exceptions = []
+    new_data = {}
+    for datum in data:
+        for field in [field for field in datum.keys()
+                      if field not in exceptions]:
+            if field in new_data:
+                new_data[field] = na.concatenate([new_data[field], datum[field]])
+            else:
+                new_data[field] = na.copy(datum[field])
+    return new_data
 
 def vector_length(start, end):
     "Calculate vector length."

@@ -56,6 +56,7 @@ class LightCone(CosmologySplice):
                  image_resolution_in_arcseconds=60.0,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
+                 time_data=True, redshift_data=True,
                  set_parameters=None,
                  output_dir='LC', output_prefix='LightCone'):
         """
@@ -93,6 +94,14 @@ class LightCone(CosmologySplice):
             practice does not work so well.  Try setting this parameter to 1 and
             see what happens.
             Default: 0.0.
+        time_data : bool
+            Whether or not to include time outputs when gathering
+            datasets for time series.
+            Default: True.
+        redshift_data : bool
+            Whether or not to include redshift outputs when gathering
+            datasets for time series.
+            Default: True.
         set_parameters : dict
             Dictionary of parameters to attach to pf.parameters.
             Default: None.
@@ -145,7 +154,9 @@ class LightCone(CosmologySplice):
         self.light_cone_solution = \
           self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                        minimal=self.use_minimum_datasets,
-                                       deltaz_min=self.deltaz_min)
+                                       deltaz_min=self.deltaz_min,
+                                       time_data=time_data,
+                                       redshift_data=redshift_data)
 
     def calculate_light_cone_solution(self, seed=None, filename=None):
         r"""Create list of projections to be added together to make the light cone.
@@ -162,6 +173,7 @@ class LightCone(CosmologySplice):
         filename : string
             If given, a text file detailing the solution will be written out.
             Default: None.
+
         """
 
         # Don't use box coherence with maximum projection depths.
@@ -377,6 +389,7 @@ class LightCone(CosmologySplice):
         dynamic : bool
             If True, use dynamic load balancing to create the projections.
             Default: False.
+
         """
 
         # Clear projection stack.

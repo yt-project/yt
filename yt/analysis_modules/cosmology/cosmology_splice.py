@@ -48,7 +48,8 @@ class CosmologySplice(object):
             OmegaLambdaNow=self.simulation.omega_lambda)
 
     def create_cosmology_splice(self, near_redshift, far_redshift,
-                                minimal=True, deltaz_min=0.0):
+                                minimal=True, deltaz_min=0.0,
+                                time_data=True, redshift_data=True):
         r"""Create list of datasets capable of spanning a redshift
         interval.
 
@@ -75,6 +76,14 @@ class CosmologySplice(object):
             in the returned
             list.
             Default: 0.0.
+        time_data : bool
+            Whether or not to include time outputs when gathering
+            datasets for time series.
+            Default: True.
+        redshift_data : bool
+            Whether or not to include redshift outputs when gathering
+            datasets for time series.
+            Default: True.
 
         Examples
         --------
@@ -83,18 +92,28 @@ class CosmologySplice(object):
 
         """
 
+        if time_data and redshift_data:
+            self.splice_outputs = self.simulation.all_outputs
+        elif time_data:
+            self.splice_outputs = self.simulation.all_time_outputs
+        elif redshift_data:
+            self.splice_outputs = self.simulation.all_redshift_outputs
+        else:
+            mylog.error('Both time_data and redshift_data are False.')
+            return
+
         # Link datasets in list with pointers.
         # This is used for connecting datasets together.
-        for i, output in enumerate(self.simulation.all_outputs):
+        for i, output in enumerate(self.splice_outputs):
             if i == 0:
                 output['previous'] = None
-                output['next'] = self.simulation.all_outputs[i + 1]
-            elif i == len(self.simulation.all_outputs) - 1:
-                output['previous'] = self.simulation.all_outputs[i - 1]
+                output['next'] = self.splice_outputs[i + 1]
+            elif i == len(self.splice_outputs) - 1:
+                output['previous'] = self.splice_outputs[i - 1]
                 output['next'] = None
             else:
-                output['previous'] = self.simulation.all_outputs[i - 1]
-                output['next'] = self.simulation.all_outputs[i + 1]
+                output['previous'] = self.splice_outputs[i - 1]
+                output['next'] = self.splice_outputs[i + 1]
 
         # Calculate maximum delta z for each data dump.
         self._calculate_deltaz_max()
@@ -117,9 +136,9 @@ class CosmologySplice(object):
                 # For first data dump, choose closest to desired redshift.
                 if (len(cosmology_splice) == 0):
                     # Sort data outputs by proximity to current redsfhit.
-                    self.simulation.all_outputs.sort(key=lambda obj:na.fabs(z - \
+                    self.splice_outputs.sort(key=lambda obj:na.fabs(z - \
                         obj['redshift']))
-                    cosmology_splice.append(self.simulation.all_outputs[0])
+                    cosmology_splice.append(self.splice_outputs[0])
 
                 # Move forward from last slice in stack until z > z_max.
                 else:
@@ -144,10 +163,10 @@ class CosmologySplice(object):
         # Make light ray using maximum number of datasets (minimum spacing).
         else:
             # Sort data outputs by proximity to current redsfhit.
-            self.simulation.all_outputs.sort(key=lambda obj:na.fabs(far_redshift -
+            self.splice_outputs.sort(key=lambda obj:na.fabs(far_redshift -
                                                                     obj['redshift']))
             # For first data dump, choose closest to desired redshift.
-            cosmology_splice.append(self.simulation.all_outputs[0])
+            cosmology_splice.append(self.splice_outputs[0])
 
             nextOutput = cosmology_splice[-1]['next']
             while (nextOutput is not None):
@@ -166,7 +185,7 @@ class CosmologySplice(object):
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." %
                    (len(cosmology_splice), far_redshift, near_redshift))
 
-        self.simulation.all_outputs.sort(key=lambda obj: obj['time'])
+        self.splice_outputs.sort(key=lambda obj: obj['time'])
         return cosmology_splice
 
     def plan_cosmology_splice(self, near_redshift, far_redshift,
@@ -237,7 +256,7 @@ class CosmologySplice(object):
 
         target_distance = self.simulation.box_size
 
-        for output in self.simulation.all_outputs:
+        for output in self.splice_outputs:
             z = output['redshift']
 
             # Calculate delta z that corresponds to the length of the box
@@ -277,7 +296,7 @@ class CosmologySplice(object):
         target_distance = self.simulation.box_size / \
           self.simulation.domain_dimensions[0]
 
-        for output in self.simulation.all_outputs:
+        for output in self.splice_outputs:
             z = output['redshift']
 
             # Calculate delta z that corresponds to the length of a
