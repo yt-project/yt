@@ -56,6 +56,22 @@ MPL_SUPP_CXXFLAGS=""
 # arguments.  For instance, "-j4"
 MAKE_PROCS=""
 
+# Make sure we are NOT being run as root
+if [[ $EUID -eq 0 ]]; then
+   echo "******************************************************"
+   echo "*                                                    *"
+   echo "*                                                    *"
+   echo "*  IT IS A BAD IDEA TO RUN THIS SCRIPT AS ROOT!!!!   *"
+   echo "*                                                    *"
+   echo "*                                                    *"
+   echo "******************************************************"
+   echo
+   echo "If you really want to do this, you must manually edit"
+   echo "the script to re-enable root-level installation.  Sorry!"
+   exit 1
+fi
+# ...
+
 #------------------------------------------------------------------------------#
 #                                                                              #
 # Okay, the script starts here.  Feel free to play with it, but hopefully      #
