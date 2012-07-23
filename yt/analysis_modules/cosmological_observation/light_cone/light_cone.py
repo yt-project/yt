@@ -29,7 +29,7 @@ import numpy as na
 import os
 
 from yt.funcs import *
-from yt.analysis_modules.cosmology.cosmology_splice import \
+from yt.analysis_modules.cosmological_observation.cosmology_splice import \
      CosmologySplice
 from yt.convenience import \
      load

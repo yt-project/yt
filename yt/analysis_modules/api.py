@@ -34,6 +34,13 @@ from .absorption_spectrum.api import \
 from .coordinate_transformation.api import \
     spherical_regrid
 
+from .cosmological_observation.api import \
+    CosmologySplice, \
+    LightCone, \
+    find_unique_solutions, \
+    project_unique_light_cones, \
+    LightRay
+
 from .halo_finding.api import \
     Halo, \
     HOPHalo, \
