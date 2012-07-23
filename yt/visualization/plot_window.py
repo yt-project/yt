@@ -663,21 +663,21 @@ class PWViewerMPL(PWViewer):
             name = str(self.pf.parameter_filename)
         elif name[-4:] == '.png':
             v.save(name)
-        else:
-            axis = axis_names[self.data_source.axis]
-            if 'Slice' in self.data_source.__class__.__name__:
-                type = 'Slice'
-            if 'Proj' in self.data_source.__class__.__name__:
-                type = 'Projection'
-            if 'Cutting' in self.data_source.__class__.__name__:
-                type = 'OffAxisSlice'
-            for k,v in self.plots.iteritems():
-                if axis:
-                    n = "%s_%s_%s_%s" % (name, type, axis, k)
-                else:
-                    # for cutting planes
-                    n = "%s_%s_%s" % (name, type, k)
-                v.save(n)
+            return
+        axis = axis_names[self.data_source.axis]
+        if 'Slice' in self.data_source.__class__.__name__:
+            type = 'Slice'
+        if 'Proj' in self.data_source.__class__.__name__:
+            type = 'Projection'
+        if 'Cutting' in self.data_source.__class__.__name__:
+            type = 'OffAxisSlice'
+        for k,v in self.plots.iteritems():
+            if axis:
+                n = "%s_%s_%s_%s" % (name, type, axis, k)
+            else:
+                # for cutting planes
+                n = "%s_%s_%s" % (name, type, k)
+            v.save(n)
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
