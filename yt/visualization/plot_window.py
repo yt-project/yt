@@ -127,10 +127,13 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
         width = (width, width)
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
-    if center == None:
-        v, center = pf.h.find_max("Density")
-    elif center == "center" or center == "c":
-        center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+    if isinstance(center,str):
+        if center.lower() == 'm' or center.lower() == 'max':
+            v, center = pf.h.find_max("Density")
+        elif center.lower() == "center" or center.lower() == "c":
+            center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+        else:
+            raise RuntimeError('center keyword \"%s\" not recognized'%center)
     bounds = [center[x_dict[axis]]-width[0]/2,
               center[x_dict[axis]]+width[0]/2,
               center[y_dict[axis]]-width[1]/2,
@@ -148,11 +151,14 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
         width = (width, width)
     Wx, Wy = width
     width = na.array((Wx/pf[unit], Wy/pf[unit]))
-    if center == None:
-        v, center = pf.h.find_max("Density")
-    elif center == "center" or center == "c":
-        center = (pf.domain_left_edge + pf.domain_right_edge) / 2
-    
+    if isinstance(center,str):
+        if center.lower() == 'm' or center.lower() == 'max':
+            v, center = pf.h.find_max("Density")
+        elif center.lower() == "c" or center.lower() == "center":
+            center = (pf.domain_left_edge + pf.domain_right_edge) / 2
+        else:
+            raise RuntimeError('center keyword \"%s\" not recognized'%center)
+
     # Transforming to the cutting plane coordinate system
     center = na.array(center)
     center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
@@ -230,11 +236,13 @@ class PlotWindow(object):
             if self.oblique == False:
                 self._frb = FixedResolutionBuffer(self.data_source, 
                                                   bounds, self.buff_size, 
-                                                  self.antialias, periodic=self._periodic)
+                                                  self.antialias, 
+                                                  periodic=self._periodic)
             else:
                 self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
                                                          bounds, self.buff_size, 
-                                                         self.antialias, periodic=self._periodic)
+                                                         self.antialias, 
+                                                         periodic=self._periodic)
         except:
             raise RuntimeError("Failed to repixelize.")
         if old_fields is None:
@@ -571,7 +579,8 @@ class PWViewerMPL(PWViewer):
                 xc = self.pf.domain_left_edge[x_dict[axis_index]]
                 yc = self.pf.domain_left_edge[y_dict[axis_index]]
             else:
-                raise RuntimeError('origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
+                raise RuntimeError(
+                    'origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
             
             extent = [self.xlim[i] - xc for i in (0,1)]
             extent.extend([self.ylim[i] - yc for i in (0,1)])
@@ -580,19 +589,21 @@ class PWViewerMPL(PWViewer):
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
                                           self._colormaps[f], zlim = (self.zmin,self.zmax))
             
-            cb = matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
+            self.plots[f].cb = \
+                matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
 
-            try:
+            if self.oblique == False:
                 labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
                           r'\/\/('+md['unit'].encode('string-escape')+r')}$' for i in (0,1)]
-            except IndexError:
+            else:
                 labels = [r'$\rm{Image\/x}\/\/\rm{('+md['unit'].encode('string-escape')+r')}$',
                           r'$\rm{Image\/y}\/\/\rm{('+md['unit'].encode('string-escape')+r')}$']
                 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
 
-            cb.set_label(r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
+            self.plots[f].cb.set_label(
+                r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$')
 
             self.run_callbacks(f)
 
@@ -660,7 +671,7 @@ class PWViewerMPL(PWViewer):
             v.save(n)
 
 class SlicePlot(PWViewerMPL):
-    def __init__(self, pf, axis, fields, center=None, width=None, origin='center-window'):
+    def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -710,7 +721,7 @@ class SlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self,slice,bounds,origin=origin)
 
 class ProjectionPlot(PWViewerMPL):
-    def __init__(self, pf, axis, fields, center=None, width=None,
+    def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'),
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
         
@@ -765,7 +776,7 @@ class ProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
 
 class OffAxisSlicePlot(PWViewerMPL):
-    def __init__(self, pf, normal, fields, center=None, width=None, north_vector=None):
+    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), north_vector=None):
         r"""Creates an off axis slice plot from a parameter file
 
         Given a pf object, a normal vector defining a slicing plane, and
