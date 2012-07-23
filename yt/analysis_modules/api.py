@@ -95,9 +95,6 @@ from .level_sets.api import \
     recursive_bottom_clumps, \
     clump_list_sort
 
-#from .light_ray.api import \
-#    LightRay
-
 from .radial_column_density.api import \
     RadialColumnDensity
 
