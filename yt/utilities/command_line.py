@@ -134,7 +134,7 @@ _common_options = dict(
                    help="Field to weight projections with"),
     cmap    = dict(long="--colormap",
                    action="store", type=str,
-                   dest="cmap", default="jet",
+                   dest="cmap", default="algae",
                    help="Colormap name"),
     zlim    = dict(short="-z", long="--zlim",
                    action="store", type=float,
@@ -1161,7 +1161,7 @@ class YTPlotCmd(YTCommand):
                 time = pf.current_time*pf['Time']*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
-            plt.set_cmap(args.field,args.cmap)
+            plt.set_cmap(args.field, args.cmap)
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)
             if not os.path.isdir(args.output): os.makedirs(args.output)

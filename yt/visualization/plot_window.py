@@ -31,6 +31,7 @@ import types
 from functools import wraps
 
 import numpy as na
+from ._mpl_imports import *
 from .color_maps import yt_colormaps, is_colormap
 from .image_writer import \
     write_image, apply_colormap
@@ -41,7 +42,6 @@ from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
-from ._mpl_imports import *
 
 from yt.funcs import *
 from yt.utilities.lib import write_png_to_string
@@ -595,7 +595,6 @@ class PWViewerMPL(PWViewer):
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
-            
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
 
