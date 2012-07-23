@@ -31,3 +31,6 @@ from .light_cone.api import \
     LightCone, \
     find_unique_solutions, \
     project_unique_light_cones
+
+from .light_ray.api import \
+    LightRay
