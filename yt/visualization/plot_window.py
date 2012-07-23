@@ -586,6 +586,7 @@ class PWViewerMPL(PWViewer):
 
             if f in self.plots.keys():
                 zlim = (self.plots[f].zmin,self.plots[f].zmax)
+                matplotlib.pyplot.close(self.plots[f].axes.figure)
             else:
                 zlim = (None,None)
 
