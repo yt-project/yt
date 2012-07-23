@@ -424,8 +424,6 @@ class PWViewer(PlotWindow):
         setup = kwargs.pop("setup", True)
         PlotWindow.__init__(self, *args,**kwargs)
         self._colormaps = defaultdict(lambda: 'algae')
-        self.zmin = None
-        self.zmax = None
         self.setup_callbacks()
         self._callbacks = []
         self._field_transform = {}
@@ -489,8 +487,8 @@ class PWViewer(PlotWindow):
             the new maximum of the colormap scale
 
         """
-        self.zmin = zmin
-        self.zmax = zmax
+        self.plots[field].zmin = zmin
+        self.plots[field].zmax = zmax
 
     def setup_callbacks(self):
         for key in callback_registry:
@@ -586,8 +584,16 @@ class PWViewerMPL(PWViewer):
             extent.extend([self.ylim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
 
+            if f in self.plots.keys():
+                zlim = (self.plots[f].zmin,self.plots[f].zmax)
+            else:
+                zlim = (None,None)
+
+            #Hardcoding this for now.
+            size = (9,8)
+
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
-                                          self._colormaps[f], zlim = (self.zmin,self.zmax))
+                                          self._colormaps[f], size, zlim)
             
             self.plots[f].cb = \
                 matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
@@ -655,20 +661,23 @@ class PWViewerMPL(PWViewer):
         """
         if name == None:
             name = str(self.pf.parameter_filename)
-        axis = axis_names[self.data_source.axis]
-        if 'Slice' in self.data_source.__class__.__name__:
-            type = 'Slice'
-        if 'Proj' in self.data_source.__class__.__name__:
-            type = 'Projection'
-        if 'Cutting' in self.data_source.__class__.__name__:
-            type = 'OffAxisSlice'
-        for k,v in self.plots.iteritems():
-            if axis:
-                n = "%s_%s_%s_%s" % (name, type, axis, k)
-            else:
-                # for cutting planes
-                n = "%s_%s_%s" % (name, type, k)
-            v.save(n)
+        elif name[-4:] == '.png':
+            v.save(name)
+        else:
+            axis = axis_names[self.data_source.axis]
+            if 'Slice' in self.data_source.__class__.__name__:
+                type = 'Slice'
+            if 'Proj' in self.data_source.__class__.__name__:
+                type = 'Projection'
+            if 'Cutting' in self.data_source.__class__.__name__:
+                type = 'OffAxisSlice'
+            for k,v in self.plots.iteritems():
+                if axis:
+                    n = "%s_%s_%s_%s" % (name, type, axis, k)
+                else:
+                    # for cutting planes
+                    n = "%s_%s_%s" % (name, type, k)
+                v.save(n)
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
@@ -998,23 +1007,29 @@ class PlotMPL(object):
     def __init__(self, field, size):
         self._plot_valid = True
         self.figure = matplotlib.pyplot.figure(figsize=size,frameon=True)
+        # Hardcoding the axis dimensions for now
         self.axes = self.figure.add_axes((.07,.10,.8,.8))
         self.cax = self.figure.add_axes((.86,.10,.04,.8))
 
     def save(self,name):
-        print "saving plot %s.png" % name
-        self.figure.savefig('%s.png' % name)
+        if name[-4:] == '.png':
+            suffix = ''
+        else:
+            suffix = '.png'
+        print "saving plot %s"%name+suffix
+        self.figure.savefig('%s'%name+suffix)
 
 class WindowPlotMPL(PlotMPL):
-    def __init__(self, data, extent, field_transform, cmap, size=(9,8), zlim = (None, None)):
+    def __init__(self, data, extent, field_transform, cmap, size, zlim):
+        self.zmin, self.zmax = zlim
         PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent, field_transform, zlim, cmap)
+        self.__init_image(data, extent, field_transform, cmap)
 
-    def __init_image(self, data, extent, field_transform, zlim, cmap):
+    def __init_image(self, data, extent, field_transform, cmap):
         if (field_transform.name == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (field_transform.name == 'linear'):
             norm = matplotlib.colors.Normalize()
         self.image = self.axes.imshow(data, origin='lower', extent = extent,
-                                      norm = norm, vmin = zlim[0], vmax = zlim[1],
-                                      cmap = cmap)
+                                      norm = norm, vmin = self.zmin, 
+                                      vmax = self.zmax, cmap = cmap)
