@@ -1140,11 +1140,11 @@ class YTPlotCmd(YTCommand):
 
         unit = args.unit
         if unit is None:
-            unit = '1'
-        width = args.width
-        if width is None:
-            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
-        width /= pf[unit]
+            unit = 'unitary'
+        if args.width is None:
+            width = (1.0, 'unitary')
+        else:
+            width = (args.width, args.unit)
 
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)

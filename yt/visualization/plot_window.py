@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
-import matplotlib.pyplot
+import matplotlib.figure
 import cStringIO
 import types
 from functools import wraps
@@ -41,6 +41,7 @@ from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
+from ._mpl_imports import *
 
 from yt.funcs import *
 from yt.utilities.lib import write_png_to_string
@@ -586,7 +587,6 @@ class PWViewerMPL(PWViewer):
 
             if f in self.plots.keys():
                 zlim = (self.plots[f].zmin,self.plots[f].zmax)
-                matplotlib.pyplot.close(self.plots[f].axes.figure)
             else:
                 zlim = (None,None)
 
@@ -596,8 +596,8 @@ class PWViewerMPL(PWViewer):
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
             
-            self.plots[f].cb = \
-                matplotlib.pyplot.colorbar(self.plots[f].image,cax = self.plots[f].cax)
+            self.plots[f].cb = self.plots[f].figure.colorbar(
+                self.plots[f].image, cax = self.plots[f].cax)
 
             if self.oblique == False:
                 labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
@@ -885,8 +885,6 @@ class PWViewerExtJS(PWViewer):
         if self._contour_info is None and self._vector_info is None:
             return write_png_to_string(img)
         from matplotlib.figure import Figure
-        from yt.visualization._mpl_imports import \
-            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
         vi, vj, vn = img.shape
 
@@ -1007,18 +1005,29 @@ class PlotMPL(object):
     figure = None
     def __init__(self, field, size):
         self._plot_valid = True
-        self.figure = matplotlib.pyplot.figure(figsize=size,frameon=True)
+        self.figure = matplotlib.figure.Figure(figsize = size, frameon = True)
         # Hardcoding the axis dimensions for now
         self.axes = self.figure.add_axes((.07,.10,.8,.8))
         self.cax = self.figure.add_axes((.86,.10,.04,.8))
 
-    def save(self,name):
+    def save(self, name, canvas = None):
         if name[-4:] == '.png':
             suffix = ''
         else:
             suffix = '.png'
-        print "saving plot %s"%name+suffix
-        self.figure.savefig('%s'%name+suffix)
+        fn = "%s%s" % (name, suffix)
+        mylog.info("Saving plot %s", fn)
+        if canvas is None:
+            if suffix == ".png":
+                canvas = FigureCanvasAgg(self.figure)
+            elif suffix == ".pdf":
+                canvas = FigureCanvasPdf(self.figure)
+            elif suffix in (".eps", ".ps"):
+                canvas = FigureCanvasPS
+            else:
+                mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+                canvas = FigureCanvasAgg(self.figure)
+        canvas.print_figure(fn)
 
 class WindowPlotMPL(PlotMPL):
     def __init__(self, data, extent, field_transform, cmap, size, zlim):
