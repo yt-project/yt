@@ -91,7 +91,11 @@ class CallbackWrapper(object):
         self._figure = window_plot.figure
         if len(self._axes.images) > 0:
             self.image = self._axes.images[0]
-        self._period = frb.pf.domain_width
+        if frb.axis < 3:
+            DD = frb.pf.domain_width
+            xax = x_dict[frb.axis]
+            yax = y_dict[frb.axis]
+            self._period = (DD[xax], DD[yax])
         self.pf = frb.pf
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
@@ -660,7 +664,7 @@ class PWViewerMPL(PWViewer):
 
         """
         if name == None:
-            name = str(self.pf.parameter_filename)
+            name = str(self.pf)
         elif name[-4:] == '.png':
             v.save(name)
             return
