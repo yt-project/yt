@@ -59,7 +59,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         parameter_filename : str
             The simulation parameter file.
-        
+
         Examples
         --------
         >>> from yt.mods import *
@@ -68,7 +68,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         """
         SimulationTimeSeries.__init__(self, parameter_filename)
-        
+
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None, time_units='1',
                         initial_redshift=None, final_redshift=None,
@@ -320,7 +320,8 @@ class EnzoSimulation(SimulationTimeSeries):
             self.domain_dimensions = na.array([self.parameters["TopGridDimensions"],1,1])
 
         if self.parameters["ComovingCoordinates"]:
-            cosmo_attr = {'omega_lambda': 'CosmologyOmegaLambdaNow',
+            cosmo_attr = {'box_size': 'CosmologyComovingBoxSize',
+                          'omega_lambda': 'CosmologyOmegaLambdaNow',
                           'omega_matter': 'CosmologyOmegaMatterNow',
                           'hubble_constant': 'CosmologyHubbleConstantNow',
                           'initial_redshift': 'CosmologyInitialRedshift',
@@ -507,7 +508,7 @@ class EnzoSimulation(SimulationTimeSeries):
                             glob.glob(os.path.join(self.parameters['GlobalDir'],
                                                    "%s*" % self.parameters['RedshiftDumpDir']))
         time_outputs = []
-        mylog.info("Checking %d potential time outputs." % 
+        mylog.info("Checking %d potential time outputs." %
                    len(potential_outputs))
 
         for output in potential_outputs:
@@ -537,7 +538,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
         r"""Get datasets at or near to given values.
-        
+
         Parameters
         ----------
         key: str
@@ -554,11 +555,11 @@ class EnzoSimulation(SimulationTimeSeries):
             The list of outputs from which to choose.  If None,
             self.all_outputs is used.
             Default: None.
-        
+
         Examples
         --------
         >>> datasets = es.get_outputs_by_key('redshift', [0, 1, 2], tolerance=0.1)
-        
+
         """
 
         values = ensure_list(values)
@@ -578,7 +579,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _get_outputs_by_redshift(self, redshifts, tolerance=None, outputs=None):
         r"""Get datasets at or near to given redshifts.
-        
+
         Parameters
         ----------
         redshifts: array_like
@@ -592,11 +593,11 @@ class EnzoSimulation(SimulationTimeSeries):
             The list of outputs from which to choose.  If None,
             self.all_outputs is used.
             Default: None.
-        
+
         Examples
         --------
         >>> datasets = es.get_outputs_by_redshift([0, 1, 2], tolerance=0.1)
-        
+
         """
 
         return self._get_outputs_by_key('redshift', redshifts, tolerance=tolerance,
@@ -605,7 +606,7 @@ class EnzoSimulation(SimulationTimeSeries):
     def _get_outputs_by_time(self, times, tolerance=None, outputs=None,
                              time_units='1'):
         r"""Get datasets at or near to given times.
-        
+
         Parameters
         ----------
         times: array_like
@@ -622,14 +623,27 @@ class EnzoSimulation(SimulationTimeSeries):
         time_units : str
             The units of the list of times.
             Default: '1' (code units).
-        
+
         Examples
         --------
         >>> datasets = es.get_outputs_by_time([600, 500, 400], tolerance=10.)
-        
+
         """
 
         times = na.array(times) / self.time_units[time_units]
         return self._get_outputs_by_key('time', times, tolerance=tolerance,
                                         outputs=outputs)
 
+    def _write_cosmology_outputs(self, filename, outputs, start_index,
+                                 decimals=3):
+        r"""Write cosmology output parameters for a cosmology splice.
+        """
+
+        mylog.info("Writing redshift output list to %s." % filename)
+        f = open(filename, 'w')
+        for q, output in enumerate(outputs):
+            z_string = "%%s[%%d] = %%.%df" % decimals
+            f.write(("CosmologyOutputRedshift[%d] = %."
+                     + str(decimals) + "f\n") %
+                    ((q + start_index), output['redshift']))
+        f.close()
