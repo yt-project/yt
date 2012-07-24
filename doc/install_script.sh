@@ -57,7 +57,8 @@ MPL_SUPP_CXXFLAGS=""
 MAKE_PROCS=""
 
 # Make sure we are NOT being run as root
-if [[ $EUID -eq 0 ]]; then
+if [[ $EUID -eq 0 ]]
+then
    echo "******************************************************"
    echo "*                                                    *"
    echo "*                                                    *"
@@ -70,7 +71,17 @@ if [[ $EUID -eq 0 ]]; then
    echo "the script to re-enable root-level installation.  Sorry!"
    exit 1
 fi
-# ...
+if [[ ${DEST_DIR%/} == /usr/local ]] 
+then
+   echo "******************************************************"
+   echo "*                                                    *"
+   echo "*                                                    *"
+   echo "*  THIS SCRIPT WILL NOT INSTALL TO /usr/local !!!!   *"
+   echo "*                                                    *"
+   echo "*                                                    *"
+   echo "******************************************************"
+   exit 1
+fi
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -107,7 +118,8 @@ function host_specific
         echo " *                                        *"
         echo " ******************************************"
         echo
-        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "IF YOU CHOOSE TO PROCEED:"
+        echo "YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
         return
@@ -142,7 +154,7 @@ function host_specific
         echo "   $ module swap PE-pgi PE-gnu"
         echo
     fi
-    if [ "${MYHOSTLONG%%ranger.tacc.utexas.edu}" != "${MYHOSTLONG}" ]
+    if [ "${MYHOSTLONG%%ranger}" != "${MYHOSTLONG}" ]
     then
         echo "Looks like you're on Ranger."
         echo
@@ -153,13 +165,6 @@ function host_specific
         echo "   $ module swap pgi gcc"
         echo "   $ module load mvapich2"
         echo
-    fi
-    if [ "${MYHOST##honest}" != "${MYHOST}" ]
-    then
-        echo "Looks like you're on Abe."
-        echo "We're going to have to set some supplemental environment"
-		echo "variables to get this to work..."
-		MPL_SUPP_LDFLAGS="${MPL_SUPP_LDFLAGS} -L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
     if [ "${MYHOST##steele}" != "${MYHOST}" ]
     then
@@ -195,6 +200,23 @@ function host_specific
         echo
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
+        echo
+    fi
+    if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
+    then
+        echo "Looks like you're on an Ubuntu-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * libssl-dev"
+        echo "  * build-essential"
+        echo "  * libncurses5"
+        echo "  * libncurses5-dev"
+        echo "  * zip"
+        echo
+        echo "You can accomplish this by executing:"
+        echo
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip"
         echo
     fi
     if [ ! -z "${CFLAGS}" ]
@@ -379,7 +401,7 @@ echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d
 echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72a7dbd496a5590828131c5f046ddead695e5cba79343b8c205148d1  h5py-2.0.1.tar.gz' > h5py-2.0.1.tar.gz.sha512
 echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
 echo 'ffc5c9e0c8c8ea66479abd467e442419bd1c867e6dbd180be6a032869467955dc570cfdf1388452871303a440738f302d3227ab7728878c4a114cfc45d29d23c  ipython-0.12.tar.gz' > ipython-0.12.tar.gz.sha512
-echo 'e748b66a379ee1e7963b045c3737670acf6aeeff1ebed679f427e74b642faa77404c2d5bbddb922339f009c229d0af1ae77cc43eab290e50af6157a6406d833f  libpng-1.2.43.tar.gz' > libpng-1.2.43.tar.gz.sha512
+echo 'dbefad00fa34f4f21dca0f1e92e95bd55f1f4478fa0095dcf015b4d06f0c823ff11755cd777e507efaf1c9098b74af18f613ec9000e5c3a5cc1c7554fb5aefb8  libpng-1.5.12.tar.gz' > libpng-1.5.12.tar.gz.sha512
 echo 'f5ab95c29ef6958096970265a6079f0eb8c43a500924346c4a6c6eb89d9110eeeb6c34a53715e71240e82ded2b76a7b8d5a9b05a07baa000b2926718264ad8ff  matplotlib-1.1.0.tar.gz' > matplotlib-1.1.0.tar.gz.sha512
 echo 'ec7416729f99f5eef6700507e740552e771d6dd8863f757311538d7d67a0eecd3426381bd42a7ddbf0771bdde8bba5cb943f60031ae3567d6a3dcac738facda8  mercurial-2.2.2.tar.gz' > mercurial-2.2.2.tar.gz.sha512
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
@@ -393,7 +415,7 @@ echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.7.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_ytproject bzip2-1.0.5.tar.gz
-[ $INST_PNG -eq 1 ] && get_ytproject libpng-1.2.43.tar.gz
+[ $INST_PNG -eq 1 ] && get_ytproject libpng-1.5.12.tar.gz
 [ $INST_FTYPE -eq 1 ] && get_ytproject freetype-2.4.4.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_ytproject sqlite-autoconf-3070500.tar.gz
 [ $INST_PYX -eq 1 ] && get_ytproject PyX-0.11.1.tar.gz
@@ -456,11 +478,11 @@ fi
 
 if [ $INST_PNG -eq 1 ]
 then
-    if [ ! -e libpng-1.2.43/done ]
+    if [ ! -e libpng-1.5.12/done ]
     then
-        [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
+        [ ! -e libpng-1.5.12 ] && tar xfz libpng-1.5.12.tar.gz
         echo "Installing PNG"
-        cd libpng-1.2.43
+        cd libpng-1.5.12
         ( ./configure CPPFLAGS=-I${DEST_DIR}/include CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
