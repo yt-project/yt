@@ -39,10 +39,10 @@ from yt.utilities.definitions import \
     axis_names, inv_axis_names, x_dict, y_dict
 from .plot_types import \
     FixedResolutionPlot, \
-    SlicePlot, \
-    SlicePlotNaturalNeighbor, \
-    ProjectionPlot, \
-    ProjectionPlotNaturalNeighbor, \
+    PCSlicePlot, \
+    PCSlicePlotNaturalNeighbor, \
+    PCProjectionPlot, \
+    PCProjectionPlotNaturalNeighbor, \
     CuttingPlanePlot, \
     ParticlePlot, \
     ProfilePlot, \
@@ -360,7 +360,7 @@ class PlotCollection(object):
         collection.
 
         This function will generate a `yt.data_objects.api.AMRSliceBase` from the given
-        parameters.  This slice then gets passed to a `yt.visualization.plot_types.SlicePlot`, and
+        parameters.  This slice then gets passed to a `yt.visualization.plot_types.PCSlicePlot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the slice is displayed, as well as
         how the slice is generated.
@@ -400,7 +400,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.SlicePlot`
+        plot : `yt.visualization.plot_types.PCSlicePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -433,7 +433,7 @@ class PlotCollection(object):
             if field_parameters is None: field_parameters = {}
             obj = self.pf.hierarchy.slice(axis, coord, field,
                             center=center, **field_parameters)
-        p = self._add_plot(SlicePlot(
+        p = self._add_plot(PCSlicePlot(
                          obj, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -707,7 +707,7 @@ class PlotCollection(object):
 
         This function will generate a `yt.data_objects.api.AMRProjBase` from the given
         parameters.  This projection then gets passed to a
-        `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot is added to the
+        `yt.visualization.plot_types.PCProjectionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
         slice is displayed, as well as how the slice is generated.
 
@@ -754,7 +754,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.ProjectionPlot`
+        plot : `yt.visualization.plot_types.PCProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -786,7 +786,7 @@ class PlotCollection(object):
             obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                          source = data_source, center=center,
                                          **field_parameters)
-        p = self._add_plot(ProjectionPlot(obj, field,
+        p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]
@@ -801,7 +801,7 @@ class PlotCollection(object):
 
         This function will generate a rectangular prism region and supply it to
         a`yt.data_objects.api.AMRProjBase` from the given parameters.  This projection
-        then gets passed to a `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot
+        then gets passed to a `yt.visualization.plot_types.PCProjectionPlot`, and the resultant plot
         is added to the current collection.  Various parameters allow control
         of the way the slice is displayed, as well as how the slice is
         generated.  The center is used as the center of the thin projection.
@@ -843,7 +843,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.ProjectionPlot`
+        plot : `yt.visualization.plot_types.PCProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -880,7 +880,7 @@ class PlotCollection(object):
         obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                      source = region, center=center,
                                      **field_parameters)
-        p = self._add_plot(ProjectionPlot(obj, field,
+        p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]

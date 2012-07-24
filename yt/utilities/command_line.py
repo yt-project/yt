@@ -134,7 +134,7 @@ _common_options = dict(
                    help="Field to weight projections with"),
     cmap    = dict(long="--colormap",
                    action="store", type=str,
-                   dest="cmap", default="jet",
+                   dest="cmap", default="algae",
                    help="Colormap name"),
     zlim    = dict(short="-z", long="--zlim",
                    action="store", type=float,
@@ -1140,11 +1140,11 @@ class YTPlotCmd(YTCommand):
 
         unit = args.unit
         if unit is None:
-            unit = '1'
-        width = args.width
-        if width is None:
-            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
-        width /= pf[unit]
+            unit = 'unitary'
+        if args.width is None:
+            width = (1.0, 'unitary')
+        else:
+            width = (args.width, args.unit)
 
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)
@@ -1161,7 +1161,7 @@ class YTPlotCmd(YTCommand):
                 time = pf.current_time*pf['Time']*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
-            plt.set_cmap(args.field,args.cmap)
+            plt.set_cmap(args.field, args.cmap)
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)
             if not os.path.isdir(args.output): os.makedirs(args.output)

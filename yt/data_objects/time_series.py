@@ -109,7 +109,8 @@ class TimeSeriesData(object):
     def __len__(self):
         return len(self._pre_outputs)
 
-    def piter(self, storage = None, dynamic = False):
+    def piter(self, storage = None):
+        dynamic = False
         if self.parallel == False:
             njobs = 1
         else:
