@@ -998,10 +998,10 @@ class YTLoadCmd(YTCommand):
         import yt.mods
 
         import IPython
-        if IPython.__version__.startswith("0.10"):
+        from distutils import version
+        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11") or \
-             IPython.__version__.startswith("0.12"):
+        else:
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
