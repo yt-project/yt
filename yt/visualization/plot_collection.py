@@ -62,10 +62,6 @@ def concatenate_pdfs(output_fn, input_fns):
         outfile.addPage(infile.getPage(0))
     outfile.write(open(output_fn, "wb"))
 
-def _fix_axis(axis):
-    return inv_axis_names.get(axis, axis)
-
-
 class ImageCollection(object):
     def __init__(self, pf, name):
         self.pf = pf
@@ -424,7 +420,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_slice("Density", 'x')
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if center == None:
             center = self.c
         if coord == None:
@@ -497,7 +493,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_particles(0, 1.0)
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         LE = self.pf.domain_left_edge.copy()
         RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
@@ -778,7 +774,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_projection("Density", 'x', "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -867,7 +863,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_thin_projection("Density", 0, 0.1, "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -1460,7 +1456,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_ortho_ray(0, (0.5, 0.5), "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
         data_source = self.pf.h.ortho_ray(axis, coords, field,

@@ -695,8 +695,9 @@ class SlicePlot(PWViewerMPL):
         pf : `StaticOutput`
              This is the parameter file object corresponding to the
              simulation output to be plotted.
-        axis : int
-             An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
+        axis : int or one of 'x', 'y', 'z'
+             An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
+             or the axis name itself
         fields : string
              The name of the field(s) to be plotted.
         center : two or three-element vector of sequence floats, 'c', or 'center'
@@ -725,6 +726,7 @@ class SlicePlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
         slice = pf.h.slice(axis,center[axis],fields=fields)
         PWViewerMPL.__init__(self,slice,bounds,origin=origin)
@@ -746,8 +748,9 @@ class ProjectionPlot(PWViewerMPL):
         pf : `StaticOutput`
             This is the parameter file object corresponding to the
             simulation output to be plotted.
-        axis : int
-            An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
+        axis : int or one of 'x', 'y', 'z'
+             An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
+             or the axis name itself
         fields : string
             The name of the field(s) to be plotted.
         center : A two or three-element vector of sequence floats, 'c', or 'center'
@@ -780,6 +783,7 @@ class ProjectionPlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
