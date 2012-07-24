@@ -71,7 +71,7 @@ then
    echo "the script to re-enable root-level installation.  Sorry!"
    exit 1
 fi
-if [ "$DEST_DIR" = "/usr/local" ] || [ "$DEST_DIR" = "/usr/local/" ]
+if [[ ${DEST_DIR%/} == /usr/local ]] 
 then
    echo "******************************************************"
    echo "*                                                    *"
