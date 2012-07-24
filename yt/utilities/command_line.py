@@ -1302,12 +1302,6 @@ class YTGUICmd(YTCommand):
     def __call__(self, args):
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
-            print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
         if args.port == 0:
             # This means, choose one at random.  We do this by binding to a
             # socket and allowing the OS to choose the port for that socket.
@@ -1323,20 +1317,10 @@ class YTGUICmd(YTCommand):
             except ValueError:
                 print "Please try a number next time."
                 return 1
-        fn = "reason-js-20120623.zip"
-        reasonjs_path = os.path.join(os.environ["YT_DEST"], "src", fn)
-        if not os.path.isfile(reasonjs_path):
-            print
-            print "*** You are missing the Reason support files. You ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
-            print "***                                               ***"
-            print "*** FOR INSTANCE:                                 ***"
-            print
-            print "cd %s" % os.path.join(os.environ["YT_DEST"], "src")
-            print "wget http://yt-project.org/dependencies/reason-js-20120623.zip"
-            print
+        from yt.gui.reason.utils import get_reasonjs_path
+        try:
+            reasonjs_path = get_reasonjs_path()
+        except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.utilities.bottle as bottle
