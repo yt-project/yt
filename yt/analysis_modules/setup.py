@@ -9,7 +9,7 @@ def configuration(parent_package='', top_path=None):
     #config.make_svn_version_py()
     config.add_subpackage("absorption_spectrum")
     config.add_subpackage("coordinate_transformation")
-    config.add_subpackage("cosmology")
+    config.add_subpackage("cosmological_observation")
     config.add_subpackage("halo_finding")
     config.add_subpackage("halo_mass_function")
     config.add_subpackage("halo_merger_tree")
