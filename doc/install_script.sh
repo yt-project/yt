@@ -57,7 +57,8 @@ MPL_SUPP_CXXFLAGS=""
 MAKE_PROCS=""
 
 # Make sure we are NOT being run as root
-if [[ $EUID -eq 0 ]]; then
+if [[ $EUID -eq 0 ]]
+then
    echo "******************************************************"
    echo "*                                                    *"
    echo "*                                                    *"
@@ -70,7 +71,17 @@ if [[ $EUID -eq 0 ]]; then
    echo "the script to re-enable root-level installation.  Sorry!"
    exit 1
 fi
-# ...
+if [ "$DEST_DIR" = "/usr/local" ] || [ "$DEST_DIR" = "/usr/local/" ]
+then
+   echo "******************************************************"
+   echo "*                                                    *"
+   echo "*                                                    *"
+   echo "*  THIS SCRIPT WILL NOT INSTALL TO /usr/local !!!!   *"
+   echo "*                                                    *"
+   echo "*                                                    *"
+   echo "******************************************************"
+   exit 1
+fi
 
 #------------------------------------------------------------------------------#
 #                                                                              #
