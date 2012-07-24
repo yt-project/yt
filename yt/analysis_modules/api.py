@@ -105,9 +105,6 @@ from .level_sets.api import \
 from .radial_column_density.api import \
     RadialColumnDensity
 
-from .simulation_handler.api import \
-    EnzoSimulation
-
 from .spectral_integrator.api import \
     SpectralFrequencyIntegrator, \
     create_table_from_textfiles
