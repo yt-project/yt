@@ -105,7 +105,7 @@ class TimeSeriesData(object):
         if isinstance(o, types.StringTypes):
             o = load(o)
         return o
-        
+
     def __len__(self):
         return len(self._pre_outputs)
 
@@ -118,7 +118,7 @@ class TimeSeriesData(object):
             else: njobs = self.parallel
         return parallel_objects(self, njobs=njobs, storage=storage,
                                 dynamic=dynamic)
-        
+
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
         return_values = {}
@@ -227,7 +227,7 @@ class SimulationTimeSeries(TimeSeriesData):
         # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
         self.print_key_parameters()
-        
+
         # Get all possible datasets.
         self._get_all_outputs()
 
@@ -249,9 +249,9 @@ class SimulationTimeSeries(TimeSeriesData):
             mylog.info("Parameters: %-25s = %s", a, v)
         if hasattr(self, "cosmological_simulation") and \
            getattr(self, "cosmological_simulation"):
-            for a in ["omega_lambda", "omega_matter",
-                      "hubble_constant", "initial_redshift",
-                      "final_redshift"]:
+            for a in ["box_size", "omega_lambda",
+                      "omega_matter", "hubble_constant",
+                      "initial_redshift", "final_redshift"]:
                 if not hasattr(self, a):
                     mylog.error("Missing %s in parameter file definition!", a)
                     continue
