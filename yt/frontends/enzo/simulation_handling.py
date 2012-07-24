@@ -279,7 +279,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 except ValueError:
                     pcast = str
                 else:
-                    if any("." in v or "e+" in v or "e-" in v for v in vals):
+                    if any("." in v or "e" in v for v in vals):
                         pcast = float
                     elif v == "inf":
                         pcast = str
