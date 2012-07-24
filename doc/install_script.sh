@@ -107,7 +107,8 @@ function host_specific
         echo " *                                        *"
         echo " ******************************************"
         echo
-        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "IF YOU CHOOSE TO PROCEED:"
+        echo "YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
         return
@@ -142,7 +143,7 @@ function host_specific
         echo "   $ module swap PE-pgi PE-gnu"
         echo
     fi
-    if [ "${MYHOSTLONG%%ranger.tacc.utexas.edu}" != "${MYHOSTLONG}" ]
+    if [ "${MYHOSTLONG%%ranger}" != "${MYHOSTLONG}" ]
     then
         echo "Looks like you're on Ranger."
         echo
@@ -153,13 +154,6 @@ function host_specific
         echo "   $ module swap pgi gcc"
         echo "   $ module load mvapich2"
         echo
-    fi
-    if [ "${MYHOST##honest}" != "${MYHOST}" ]
-    then
-        echo "Looks like you're on Abe."
-        echo "We're going to have to set some supplemental environment"
-		echo "variables to get this to work..."
-		MPL_SUPP_LDFLAGS="${MPL_SUPP_LDFLAGS} -L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
     if [ "${MYHOST##steele}" != "${MYHOST}" ]
     then
@@ -195,6 +189,23 @@ function host_specific
         echo
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
+        echo
+    fi
+    if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
+    then
+        echo "Looks like you're on an Ubuntu-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * libssl-dev"
+        echo "  * build-essential"
+        echo "  * libncurses5"
+        echo "  * libncurses5-dev"
+        echo "  * zip"
+        echo
+        echo "You can accomplish this by executing:"
+        echo
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip"
         echo
     fi
     if [ ! -z "${CFLAGS}" ]
