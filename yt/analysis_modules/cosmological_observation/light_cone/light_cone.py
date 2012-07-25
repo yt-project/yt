@@ -344,7 +344,8 @@ class LightCone(CosmologySplice):
             del halo_mask_cube
 
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False,
-                           node=None, save_stack=True, save_slice_images=False,
+                           node=None, save_stack=True, save_final_image=True,
+                           save_slice_images=False,
                            cmap_name='algae', photon_field=False,
                            njobs=1, dynamic=False):
         r"""Create projections for light cone, then add them together.
@@ -368,6 +369,9 @@ class LightCone(CosmologySplice):
         save_stack : bool
             if True, the light cone data including each individual
             slice is written to an hdf5 file.
+            Default: True.
+        save_final_image : book
+            if True, save an image of the final light cone projection.
             Default: True.
         save_slice_images : bool
             save images for each individual projection slice.
@@ -481,7 +485,7 @@ class LightCone(CosmologySplice):
 
 
         # Write image.
-        if save_slice_images:
+        if save_final_image:
             only_on_root(write_image, na.log10(light_cone_projection),
                          "%s_%s.png" % (filename, field), cmap_name=cmap_name)
 
