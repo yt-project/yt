@@ -266,7 +266,7 @@ class LightRay(CosmologySplice):
 
         from yt.mods import *
         from yt.analysis_modules.halo_profiler.api import *
-        from yt.analysis_modules.cosmology.light_ray.api import LightRay
+        from yt.analysis_modules.cosmological_analysis.light_ray.api import LightRay
 
         halo_profiler_kwargs = {'halo_list_file': 'HopAnalysis.out'}
 
