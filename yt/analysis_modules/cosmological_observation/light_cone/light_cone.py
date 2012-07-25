@@ -370,7 +370,7 @@ class LightCone(CosmologySplice):
             if True, the light cone data including each individual
             slice is written to an hdf5 file.
             Default: True.
-        save_final_image : book
+        save_final_image : bool
             if True, save an image of the final light cone projection.
             Default: True.
         save_slice_images : bool
