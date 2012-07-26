@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import inspect, functools, weakref
+import inspect, functools, weakref, glob, types
 
 from yt.funcs import *
 from yt.convenience import load
@@ -144,6 +144,9 @@ class TimeSeriesData(object):
 
     @classmethod
     def from_filenames(cls, filename_list, parallel = True):
+        if isinstance(filename_list, types.StringTypes):
+            filename_list = glob.glob(filename_list)
+            filename_list.sort()
         obj = cls(filename_list[:], parallel = parallel)
         return obj
 
