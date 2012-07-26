@@ -665,9 +665,8 @@ class PWViewerMPL(PWViewer):
         """
         if name == None:
             name = str(self.pf)
-        elif name[-4:] == '.png':
-            v.save(name)
-            return
+        elif name.endswith('.png'):
+            return v.save(name)
         axis = axis_names[self.data_source.axis]
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'
@@ -675,13 +674,15 @@ class PWViewerMPL(PWViewer):
             type = 'Projection'
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k,v in self.plots.iteritems():
+        names = []
+        for k, v in self.plots.iteritems():
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
             else:
                 # for cutting planes
                 n = "%s_%s_%s" % (name, type, k)
-            v.save(n)
+            names.append(v.save(n))
+        return names
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
@@ -1035,6 +1036,7 @@ class PlotMPL(object):
                 mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
                 canvas = FigureCanvasAgg(self.figure)
         canvas.print_figure(fn)
+        return fn
 
 class WindowPlotMPL(PlotMPL):
     def __init__(self, data, extent, field_transform, cmap, size, zlim):

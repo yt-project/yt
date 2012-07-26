@@ -95,6 +95,7 @@ class RegressionTestRunner(object):
         self.results = RegressionTestStorage(results_id, path=results_path)
         self.plot_list = {}
         self.passed_tests = {}
+        self.test_messages = {}
         self.plot_tests = plot_tests
 
     def run_all_tests(self):
@@ -133,31 +134,32 @@ class RegressionTestRunner(object):
         if self.plot_tests:
             self.plot_list[test.name] = test.plot()
         self.results[test.name] = test.result
-        success, msg = self._compare(test)
+        success, msg, exc = self._compare(test)
         if self.old_results is None:
             print "NO OLD RESULTS"
         else:
             if success == True: print "SUCCEEDED"
             else: print "FAILED", msg
         self.passed_tests[test.name] = success
+        self.test_messages[test.name] = msg
         if self.watcher is not None:
             if success == True:
                 self.watcher.addSuccess(test.name)
             else:
-                self.watcher.addFailure(test.name, msg)
+                self.watcher.addFailure(test.name, exc)
 
     def _compare(self, test):
         if self.old_results is None:
-            return (True, "New Test")
+            return (True, "", "New Test")
         try:
             old_result = self.old_results[test.name]
         except FileNotExistException:
             return (False, sys.exc_info())
         try:
             test.compare(old_result)
-        except RegressionTestException, exc:
-            return (False, sys.exc_info())
-        return (True, "Pass")
+        except RegressionTestException as exc:
+            return (False, repr(exc), sys.exc_info())
+        return (True, "", "Pass")
 
     def run_tests_from_file(self, filename):
         for line in open(filename):
