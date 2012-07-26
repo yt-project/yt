@@ -703,7 +703,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Parameters
         ---------
-        axes = array_like
+        axes : array_like
             A list of the axes to project along, using the usual 0,1,2
             convention. Default=[0,1,2]
         halo_list : {'filtered', 'all'}
