@@ -135,7 +135,8 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
         Array of shape (N,M,3) or (N,M,4), to be written.  If it is not already
         a uint8 array, it will be scaled and converted to uint8.
     filename : string
-        Filename to save to
+        Filename to save to.  If None, PNG contents will be returned as a
+        string.
     max_val : float, optional
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
@@ -153,7 +154,10 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
     if transpose:
         for channel in range(bitmap_array.shape[2]):
             bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
-    au.write_png(bitmap_array.copy(), filename)
+    if filename is not None:
+        au.write_png(bitmap_array.copy(), filename)
+    else:
+        return au.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):

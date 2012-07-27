@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import __builtin__
 import numpy as na
 
 from yt.funcs import *
@@ -382,18 +383,48 @@ class Camera(ParallelAnalysisInterface):
         if num_threads is None:
             num_threads=get_num_threads()
         image = self.new_image()
-
         args = self.get_sampler_args(image)
-
         sampler = self.get_sampler(args)
-
         self.initialize_source()
-
         image = self._render(double_check, num_threads, image, sampler)
-
         self.save_image(fn, clip_ratio, image)
-
         return image
+
+    def show(self, clip_ratio = None):
+        r"""This will take a snapshot and display the resultant image in the
+        IPython notebook.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will snapshot and send the resultant
+        image to the IPython notebook for display.
+
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
+
+        Parameters
+        ----------
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
+
+        Examples
+        --------
+
+        >>> cam.show()
+
+        """
+        if "__IPYTHON__" in dir(__builtin__):
+            from IPython.core.displaypub import publish_display_data
+            image = self.snapshot()
+            if clip_ratio is not None: clip_ratio *= image.std()
+            data = write_bitmap(image, None, clip_ratio)
+            publish_display_data(
+                'yt.visualization.volume_rendering.camera.Camera',
+                {'image/png' : data}
+            )
+        else:
+            raise YTNotInsideNotebook
+
 
     def set_default_light_dir(self):
         self.light_dir = [1.,1.,1.]
@@ -781,17 +812,11 @@ class HEALpixCamera(Camera):
         if num_threads is None:
             num_threads=get_num_threads()
         image = self.new_image()
-
         args = self.get_sampler_args(image)
-
         sampler = self.get_sampler(args)
-
         self.volume.initialize_source()
-
         image = self._render(double_check, num_threads, image, sampler)
-
         self.save_image(fn, clim, image)
-
         return image
 
     def save_image(self, fn, clim, image):
