@@ -202,12 +202,15 @@ class ContourCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        print x0, x1, y0, y1
+        
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        
         plot._axes.hold(True)
+        
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
+        
         dy = (xx1 - xx0) / (x1-x0)
         dx = (yy1 - yy0) / (y1-y0)
         #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
@@ -230,19 +233,22 @@ class ContourCallback(PlotCallback):
             AllX |= xlim
             AllY |= ylim
         wI = (AllX & AllY)
+
         xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(self.factor*1j),\
                           0:numPoints_y:numPoints_y/(self.factor*1j)]
         xi = xi/xi.max()*(x1 - x0)
         yi = yi/yi.max()*(y1 - y0)
+
         x = (XShifted[wI]-x0)*dx 
         y = (YShifted[wI]-y0)*dy
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
+
         zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
-        print z.min(), z.max(), na.nanmin(z), na.nanmax(z)
-        print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
+
         xi = xi/(x1 - x0)*dx + xx0
         yi = yi/(y1 - y0)*dx + yy0
+
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
