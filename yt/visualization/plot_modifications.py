@@ -50,7 +50,11 @@ class PlotCallback(object):
         pass
 
     def convert_to_plot(self, plot, coord, offset = True):
+        # coord should be a 2 x ncoord array-like datatype.
         ncoord = na.array(coord).shape[1]
+
+        # Convert the data and plot limits to tiled numpy arrays so that
+        # convert_to_plot is automatically vectorized.
 
         x0 = na.tile(plot.xlim[0],ncoord)
         x1 = na.tile(plot.xlim[1],ncoord)
@@ -62,12 +66,13 @@ class PlotCallback(object):
         yy0 = na.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = na.tile(plot._axes.get_ylim()[1],ncoord)
         
+        # We need a special case for when we are only given one coordinate.
         if na.array(coord).shape == (2,):
             return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            return ((coord[:][0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (coord[:][1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+            return ((coord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (coord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def pixel_scale(self,plot):
         x0, x1 = plot.xlim
@@ -858,9 +863,22 @@ class HopParticleCallback(PlotCallback):
 
             (px,py) = self.convert_to_plot(plot,(halo["particle_position_%s" % xi],
                                                  halo["particle_position_%s" % yi]))
+            
+            # Need to get the plot limits and set the hold state before scatter
+            # and then restore the limits and turn off the hold state afterwards
+            # because scatter will automatically adjust the plot window which we
+            # do not want
+            
+            xlim = plot._axes.get_xlim()
+            ylim = plot._axes.get_ylim()
+            plot._axes.hold(True)
 
             plot._axes.scatter(px, py, edgecolors="None",
                 s=self.p_size, c='black', alpha=self.alpha)
+            
+            plot._axes.set_xlim(xlim)
+            plot._axes.set_ylim(ylim)
+            plot._axes.hold(False)
 
 
 class CoordAxesCallback(PlotCallback):
