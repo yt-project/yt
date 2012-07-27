@@ -1725,16 +1725,13 @@ class PlotCollectionIPython(PlotCollection):
 
         >>> pc.save()
         """
-        from matplotlib.backends.backend_svg import \
-            FigureCanvasSVG
-        from IPython.zmq.pylab.backend_payload import \
-            add_plot_payload
+        from ._mpl_imports import FigureCanvasAgg
         from IPython.zmq.pylab.backend_inline import \
-            send_svg_canvas
+            send_figure
         if basename is None: basename = str(self.pf)
         for plot in self.plots:
-            canvas = FigureCanvasSVG(plot._figure)
-            send_svg_canvas(canvas)
+            canvas = FigureCanvasAgg(plot._figure)
+            send_figure(plot._figure)
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):

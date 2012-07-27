@@ -42,6 +42,7 @@ from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
+from yt.config import ytcfg
 
 from yt.funcs import *
 from yt.utilities.lib import write_png_to_string
@@ -52,6 +53,12 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
+
+try:
+    from IPython.zmq.pylab.backend_inline import \
+                send_figure
+except ImportError:
+    pass
 
 def invalidate_data(f):
     @wraps(f)
@@ -683,6 +690,41 @@ class PWViewerMPL(PWViewer):
                 n = "%s_%s_%s" % (name, type, k)
             names.append(v.save(n))
         return names
+
+    def _send_zmq(self):
+        for k, v in sorted(self.plots.iteritems()):
+            canvas = FigureCanvasAgg(v.figure)
+            send_figure(v.figure)
+
+    def show(self):
+        r"""This will send any existing plots to the IPython notebook.
+        function name.
+
+        If yt is being run from within an IPython notebook, and it is able to
+        determine this, this function will send any existing plots to the
+        notebook for display.
+
+        A common way of signalling this is to create an IPython profile that
+        has in its 00 startup script this code:
+
+        .. code-block:: python
+
+           from yt.config import ytcfg
+           ytcfg["yt","ipython_notebook"] = "True"
+
+        If not running in the notebook, this will raise NotImplementedError.
+
+        Examples
+        --------
+
+        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
+        >>> slc.show()
+
+        """
+        if ytcfg.getboolean("yt", "ipython_notebook"):
+            self._send_zmq()
+        else:
+            raise NotImplementedError
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
