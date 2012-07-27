@@ -52,10 +52,24 @@ class PlotCallback(object):
     def convert_to_plot(self, plot, coord, offset = True):
         x0, x1 = plot.xlim
         xx0, xx1 = plot._axes.get_xlim()
+        
         y0, y1 = plot.ylim
         yy0, yy1 = plot._axes.get_ylim()
+        
         return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                 (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+
+    def pixel_scale(self,plot):
+        x0, x1 = plot.xlim
+        xx0, xx1 = plot._axes.get_xlim()
+        dx = (xx0 - xx1)/(x1 - x0)
+        
+        y0, y1 = plot.ylim
+        yy0, yy1 = plot._axes.get_ylim()
+        dy = (yy0 - yy1)/(y1 - y0)
+
+        return (dx,dy)
+
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
@@ -777,13 +791,6 @@ class HopCircleCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
             if size < self.min_size or size > self.max_size: continue
@@ -793,10 +800,13 @@ class HopCircleCallback(PlotCallback):
                        plot.data.center)[plot.data.axis] > \
                    self.width:
                 continue
-            radius = halo.maximum_radius() * dx
+            
+            radius = halo.maximum_radius() * self.pixel_scale(plot)[0]
             center = halo.center_of_mass()
-            center_x = (center[xi] - x0)*dx
-            center_y = (center[yi] - y0)*dy
+            
+            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+
+            (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
             cir = Circle((center_x, center_y), radius, fill=False)
             plot._axes.add_patch(cir)
             if self.annotate:
