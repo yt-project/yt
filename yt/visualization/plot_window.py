@@ -697,19 +697,12 @@ class PWViewerMPL(PWViewer):
         r"""This will send any existing plots to the IPython notebook.
         function name.
 
-        If yt is being run from within an IPython notebook, and it is able to
+        If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
         notebook for display.
 
-        A common way of signalling this is to create an IPython profile that
-        has in its 00 startup script this code:
-
-        .. code-block:: python
-
-           from yt.config import ytcfg
-           ytcfg["yt","ipython_notebook"] = "True"
-
-        If not running in the notebook, this will raise NotImplementedError.
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
 
         Examples
         --------
