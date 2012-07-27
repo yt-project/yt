@@ -28,6 +28,7 @@ import base64
 import matplotlib.figure
 import cStringIO
 import types
+import __builtin__
 from functools import wraps
 
 import numpy as na
@@ -53,12 +54,6 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
-
-try:
-    from IPython.zmq.pylab.backend_inline import \
-                send_figure
-except ImportError:
-    pass
 
 def invalidate_data(f):
     @wraps(f)
@@ -692,6 +687,8 @@ class PWViewerMPL(PWViewer):
         return names
 
     def _send_zmq(self):
+        from IPython.zmq.pylab.backend_inline import \
+                    send_figure
         for k, v in sorted(self.plots.iteritems()):
             canvas = FigureCanvasAgg(v.figure)
             send_figure(v.figure)
@@ -721,10 +718,10 @@ class PWViewerMPL(PWViewer):
         >>> slc.show()
 
         """
-        if ytcfg.getboolean("yt", "ipython_notebook"):
+        if "__IPYTHON__" in dir(__builtin__):
             self._send_zmq()
         else:
-            raise YTNotDeclaredInsideNotebook
+            raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):

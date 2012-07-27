@@ -101,6 +101,10 @@ class NoStoppingCondition(YTException):
         return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
             self.pf
 
+class YTNotInsideNotebook(YTException):
+    def __str__(self):
+        return "This function only works from within an IPython Notebook."
+
 class YTNotDeclaredInsideNotebook(YTException):
     def __str__(self):
         return "You have not declared yourself to be inside the IPython" + \
