@@ -243,7 +243,6 @@ class ContourCallback(PlotCallback):
         print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
         xi = xi/(x1 - x0)*dx + xx0
         yi = yi/(y1 - y0)*dx + yy0
-        pdb.set_trace()
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
