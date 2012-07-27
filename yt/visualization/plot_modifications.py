@@ -50,14 +50,24 @@ class PlotCallback(object):
         pass
 
     def convert_to_plot(self, plot, coord, offset = True):
-        x0, x1 = plot.xlim
-        xx0, xx1 = plot._axes.get_xlim()
+        ncoord = na.array(coord).shape[1]
+
+        x0 = na.tile(plot.xlim[0],ncoord)
+        x1 = na.tile(plot.xlim[1],ncoord)
+        xx0 = na.tile(plot._axes.get_xlim()[0],ncoord)
+        xx1 = na.tile(plot._axes.get_xlim()[1],ncoord)
         
-        y0, y1 = plot.ylim
-        yy0, yy1 = plot._axes.get_ylim()
+        y0 = na.tile(plot.ylim[0],ncoord)
+        y1 = na.tile(plot.ylim[1],ncoord)
+        yy0 = na.tile(plot._axes.get_ylim()[0],ncoord)
+        yy1 = na.tile(plot._axes.get_ylim()[1],ncoord)
         
-        return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+        if na.array(coord).shape == (2,):
+            return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+        else:
+            return ((coord[:][0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (coord[:][1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def pixel_scale(self,plot):
         x0, x1 = plot.xlim
@@ -818,7 +828,7 @@ class HopCircleCallback(PlotCallback):
 
 class HopParticleCallback(PlotCallback):
     _type_name = "hop_particles"
-    def __init__(self, hop_output, max_number, p_size=1.0,
+    def __init__(self, hop_output, max_number=None, p_size=1.0,
                 min_size=20, alpha=0.2):
         """
         annotate_hop_particles(hop_output, max_number, p_size=1.0,
@@ -836,67 +846,22 @@ class HopParticleCallback(PlotCallback):
         self.alpha = alpha
     
     def __call__(self,plot):
-        if self.max_number < 1: return
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        xf = axis_names[x_dict[plot.data.axis]]
-        yf = axis_names[y_dict[plot.data.axis]]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        (dx,dy) = self.pixel_scale(plot)
+
+        (xi, yi) = (x_names[plot.data.axis], y_names[plot.data.axis])
+
         # now we loop over the haloes
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
+
             if size < self.min_size: continue
-            colors = na.ones(size)
-            plot._axes.hold(True)
-            px = (halo["particle_position_%s" % xf] - x0)*dx
-            py = (halo["particle_position_%s" % yf] - y0)*dy
+
+            (px,py) = self.convert_to_plot(plot,(halo["particle_position_%s" % xi],
+                                                 halo["particle_position_%s" % yi]))
+
             plot._axes.scatter(px, py, edgecolors="None",
                 s=self.p_size, c='black', alpha=self.alpha)
-            plot._axes.set_xlim(xx0,xx1)
-            plot._axes.set_ylim(yy0,yy1)
-            plot._axes.hold(False)
 
-class VobozCircleCallback(PlotCallback):
-    _type_name = "voboz_circle"
-    def __init__(self, voboz_output, max_number=None,
-                 annotate=False, min_size=20, font_size=8, print_halo_size=False):
-        self.axis = axis
-        self.voboz_output = voboz_output
-        self.max_number = max_number
-        self.annotate = annotate
-        self.min_size = min_size
-        self.font_size = font_size
-        self.print_halo_size = print_halo_size
-
-    def __call__(self, plot):
-        from matplotlib.patches import Circle
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        for i,halo in enumerate(self.voboz_output[:self.max_number]):
-            if (len(halo.particles) >= self.min_size):
-                radius = halo.maximum_radius * dx
-                center = halo.center_of_mass
-                center_x = (center[xi] - x0)*dx
-                center_y = (center[yi] - y0)*dy
-                #print "voboz center = (%f,%f)" % (center[xi],center[yi])
-                #print "voboz radius = %f" % halo.maximum_radius
-                cir = Circle((center_x, center_y), radius, fill=False)
-                plot._axes.add_patch(cir)
-                if self.annotate:
-                    if self.print_halo_size:
-                        plot._axes.text(center_x, center_y, "%s" % len(halo.particles),
-                        fontsize=self.font_size)
-                    else:
-                        plot._axes.text(center_x, center_y, "%s" % i,
-                        fontsize=self.font_size)
 
 class CoordAxesCallback(PlotCallback):
     _type_name = "coord_axes"
