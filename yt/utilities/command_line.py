@@ -753,6 +753,86 @@ class YTHopCmd(YTCommand):
         else: fn = args.output
         hop_list.write_out(fn)
 
+class YTHubRegisterCmd(YTCommand):
+    name = "hub_register"
+    description = \
+        """
+        Register a user on the Hub: http://hub.yt-project.org/
+        """
+    def __call__(self, args):
+        # We need these pieces of information:
+        #   1. Name
+        #   2. Email
+        #   3. Username
+        #   4. Password (and password2)
+        #   5. (optional) URL
+        #   6. "Secret" key to make it epsilon harder for spammers
+        if ytcfg.get("yt","hub_api_key") != "":
+            print "You seem to already have an API key for the hub in"
+            print "~/.yt/config .  Delete this if you want to force a"
+            print "new user registration."
+        print "Awesome!  Let's start by registering a new user for you."
+        print "Here's the URL, for reference: http://hub.yt-project.org/ "
+        print
+        print "As always, bail out with Ctrl-C at any time."
+        print
+        print "What username would you like to go by?"
+        print
+        username = raw_input("Username? ")
+        if len(username) == 0: sys.exit(1)
+        print
+        print "To start out, what's your name?"
+        print
+        name = raw_input("Name? ")
+        if len(name) == 0: sys.exit(1)
+        print
+        print "And your email address?"
+        print
+        email = raw_input("Email? ")
+        if len(email) == 0: sys.exit(1)
+        print
+        print "Please choose a password:"
+        print 
+        while 1:
+            password1 = getpass.getpass("Password? ")
+            password2 = getpass.getpass("Confirm? ")
+            if len(password1) == 0: continue
+            if password1 == password2: break
+            print "Sorry, they didn't match!  Let's try again."
+            print
+        print
+        print "Would you like a URL displayed for your user?"
+        print "Leave blank if no."
+        print
+        url = raw_input("URL? ")
+        print
+        print "Okay, press enter to register.  You should receive a welcome"
+        print "message at %s when this is complete." % email
+        print
+        loki = raw_input()
+        data = dict(name = name, email = email, username = username,
+                    password = password1, password2 = password2, 
+                    url = url, zap = "rowsdower")
+        data = urllib.urlencode(data)
+        hub_url = "https://hub.yt-project.org/create_user"
+        req = urllib2.Request(hub_url, data)
+        try:
+            status = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as exc:
+            if exc.code == 400:
+                print "Sorry, the Hub couldn't create your user."
+                print "You can't register duplicate users, which is the most"
+                print "common cause of this error.  All values for username,"
+                print "name, and email must be unique in our system."
+                sys.exit(1)
+        except urllib2.URLError as exc:
+            print "Something has gone wrong.  Here's the error message."
+            raise exc
+        print
+        print "SUCCESS!"
+        print
+
+
 class YTHubSubmitCmd(YTCommand):
     name = "hub_submit"
     args = (
@@ -998,10 +1078,10 @@ class YTLoadCmd(YTCommand):
         import yt.mods
 
         import IPython
-        if IPython.__version__.startswith("0.10"):
+        from distutils import version
+        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11") or \
-             IPython.__version__.startswith("0.12"):
+        else:
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
@@ -1302,12 +1382,6 @@ class YTGUICmd(YTCommand):
     def __call__(self, args):
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
-            print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
         if args.port == 0:
             # This means, choose one at random.  We do this by binding to a
             # socket and allowing the OS to choose the port for that socket.
@@ -1323,20 +1397,10 @@ class YTGUICmd(YTCommand):
             except ValueError:
                 print "Please try a number next time."
                 return 1
-        fn = "reason-js-20120623.zip"
-        reasonjs_path = os.path.join(os.environ["YT_DEST"], "src", fn)
-        if not os.path.isfile(reasonjs_path):
-            print
-            print "*** You are missing the Reason support files. You ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
-            print "***                                               ***"
-            print "*** FOR INSTANCE:                                 ***"
-            print
-            print "cd %s" % os.path.join(os.environ["YT_DEST"], "src")
-            print "wget http://yt-project.org/dependencies/reason-js-20120623.zip"
-            print
+        from yt.gui.reason.utils import get_reasonjs_path
+        try:
+            reasonjs_path = get_reasonjs_path()
+        except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.utilities.bottle as bottle

@@ -42,6 +42,7 @@ from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.delaunay.triangulate import Triangulation as triang
+from yt.config import ytcfg
 
 from yt.funcs import *
 from yt.utilities.lib import write_png_to_string
@@ -52,6 +53,12 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
+
+try:
+    from IPython.zmq.pylab.backend_inline import \
+                send_figure
+except ImportError:
+    pass
 
 def invalidate_data(f):
     @wraps(f)
@@ -91,7 +98,11 @@ class CallbackWrapper(object):
         self._figure = window_plot.figure
         if len(self._axes.images) > 0:
             self.image = self._axes.images[0]
-        self._period = frb.pf.domain_width
+        if frb.axis < 3:
+            DD = frb.pf.domain_width
+            xax = x_dict[frb.axis]
+            yax = y_dict[frb.axis]
+            self._period = (DD[xax], DD[yax])
         self.pf = frb.pf
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
@@ -660,10 +671,9 @@ class PWViewerMPL(PWViewer):
 
         """
         if name == None:
-            name = str(self.pf.parameter_filename)
-        elif name[-4:] == '.png':
-            v.save(name)
-            return
+            name = str(self.pf)
+        elif name.endswith('.png'):
+            return v.save(name)
         axis = axis_names[self.data_source.axis]
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'
@@ -671,13 +681,50 @@ class PWViewerMPL(PWViewer):
             type = 'Projection'
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k,v in self.plots.iteritems():
+        names = []
+        for k, v in self.plots.iteritems():
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
             else:
                 # for cutting planes
                 n = "%s_%s_%s" % (name, type, k)
-            v.save(n)
+            names.append(v.save(n))
+        return names
+
+    def _send_zmq(self):
+        for k, v in sorted(self.plots.iteritems()):
+            canvas = FigureCanvasAgg(v.figure)
+            send_figure(v.figure)
+
+    def show(self):
+        r"""This will send any existing plots to the IPython notebook.
+        function name.
+
+        If yt is being run from within an IPython notebook, and it is able to
+        determine this, this function will send any existing plots to the
+        notebook for display.
+
+        A common way of signalling this is to create an IPython profile that
+        has in its 00 startup script this code:
+
+        .. code-block:: python
+
+           from yt.config import ytcfg
+           ytcfg["yt","ipython_notebook"] = "True"
+
+        If not running in the notebook, this will raise NotImplementedError.
+
+        Examples
+        --------
+
+        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
+        >>> slc.show()
+
+        """
+        if ytcfg.getboolean("yt", "ipython_notebook"):
+            self._send_zmq()
+        else:
+            raise NotImplementedError
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
@@ -695,8 +742,9 @@ class SlicePlot(PWViewerMPL):
         pf : `StaticOutput`
              This is the parameter file object corresponding to the
              simulation output to be plotted.
-        axis : int
-             An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
+        axis : int or one of 'x', 'y', 'z'
+             An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
+             or the axis name itself
         fields : string
              The name of the field(s) to be plotted.
         center : two or three-element vector of sequence floats, 'c', or 'center'
@@ -725,6 +773,7 @@ class SlicePlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
         slice = pf.h.slice(axis,center[axis],fields=fields)
         PWViewerMPL.__init__(self,slice,bounds,origin=origin)
@@ -746,8 +795,9 @@ class ProjectionPlot(PWViewerMPL):
         pf : `StaticOutput`
             This is the parameter file object corresponding to the
             simulation output to be plotted.
-        axis : int
-            An int corresponding to the axis to slice along.  (0=x, 1=y, 2=z)
+        axis : int or one of 'x', 'y', 'z'
+             An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
+             or the axis name itself
         fields : string
             The name of the field(s) to be plotted.
         center : A two or three-element vector of sequence floats, 'c', or 'center'
@@ -780,6 +830,7 @@ class ProjectionPlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
@@ -1027,6 +1078,14 @@ class PlotMPL(object):
                 mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
                 canvas = FigureCanvasAgg(self.figure)
         canvas.print_figure(fn)
+        return fn
+
+    def _repr_png_(self):
+        canvas = FigureCanvasAgg(self.figure)
+        f = cStringIO.StringIO()
+        canvas.print_figure(f)
+        f.seek(0)
+        return f.read()
 
 class WindowPlotMPL(PlotMPL):
     def __init__(self, data, extent, field_transform, cmap, size, zlim):

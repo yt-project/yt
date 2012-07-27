@@ -9,6 +9,7 @@ distribute_setup.use_setuptools()
 
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils import log
+from distutils import version
 
 REASON_FILES = []
 REASON_DIRS = [
@@ -39,10 +40,19 @@ for subdir in REASON_DIRS:
 # Verify that we have Cython installed
 try:
     import Cython
+    if version.LooseVersion(Cython.__version__) < version.LooseVersion('0.16'):
+        needs_cython = True
+    else:
+        needs_cython = False
 except ImportError as e:
+    needs_cython = True
+
+if needs_cython:
     print "Cython is a build-time requirement for the source tree of yt."
     print "Please either install yt from a provided, release tarball,"
-    print "or install Cython (version 0.15 or higher)."
+    print "or install Cython (version 0.16 or higher)."
+    print "You may be able to accomplish this by typing:"
+    print "     pip install -U Cython"
     sys.exit(1)
 
 ######

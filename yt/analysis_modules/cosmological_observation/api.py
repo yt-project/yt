@@ -1,12 +1,8 @@
 """
-API for lightcone
+API for cosmology analysis.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
+Affiliation: Michigan State University
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
@@ -28,13 +24,13 @@ License:
 
 """
 
-from .halo_mask import \
-    light_cone_halo_mask, \
-    light_cone_halo_map
+from .cosmology_splice import \
+    CosmologySplice
 
-from .light_cone import \
-    LightCone
+from .light_cone.api import \
+    LightCone, \
+    find_unique_solutions, \
+    project_unique_light_cones
 
-from .unique_solution import \
-    project_unique_light_cones, \
-    find_unique_solutions
+from .light_ray.api import \
+    LightRay
