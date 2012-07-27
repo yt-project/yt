@@ -28,6 +28,7 @@ import base64
 import matplotlib.figure
 import cStringIO
 import types
+import __builtin__
 from functools import wraps
 
 import numpy as na
@@ -53,12 +54,6 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
-
-try:
-    from IPython.zmq.pylab.backend_inline import \
-                send_figure
-except ImportError:
-    pass
 
 def invalidate_data(f):
     @wraps(f)
@@ -692,6 +687,8 @@ class PWViewerMPL(PWViewer):
         return names
 
     def _send_zmq(self):
+        from IPython.zmq.pylab.backend_inline import \
+                    send_figure
         for k, v in sorted(self.plots.iteritems()):
             canvas = FigureCanvasAgg(v.figure)
             send_figure(v.figure)
@@ -700,19 +697,12 @@ class PWViewerMPL(PWViewer):
         r"""This will send any existing plots to the IPython notebook.
         function name.
 
-        If yt is being run from within an IPython notebook, and it is able to
+        If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
         notebook for display.
 
-        A common way of signalling this is to create an IPython profile that
-        has in its 00 startup script this code:
-
-        .. code-block:: python
-
-           from yt.config import ytcfg
-           ytcfg["yt","ipython_notebook"] = "True"
-
-        If not running in the notebook, this will raise NotImplementedError.
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
 
         Examples
         --------
@@ -721,10 +711,10 @@ class PWViewerMPL(PWViewer):
         >>> slc.show()
 
         """
-        if ytcfg.getboolean("yt", "ipython_notebook"):
+        if "__IPYTHON__" in dir(__builtin__):
             self._send_zmq()
         else:
-            raise NotImplementedError
+            raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
