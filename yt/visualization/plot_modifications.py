@@ -747,17 +747,13 @@ class SphereCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        radius = self.radius * dx
-        center_x = (self.center[xi] - x0)*dx
-        center_y = (self.center[yi] - y0)*dy
-        # origin = lower?  not sure why center_y and center_x are reversed
+        
+        radius = self.radius * self.pixel_scale(plot)[0]
+
+        (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+
+        (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
+        
         cir = Circle((center_x, center_y), radius, **self.circle_args)
         plot._axes.add_patch(cir)
         if self.text is not None:
