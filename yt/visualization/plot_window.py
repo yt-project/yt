@@ -724,7 +724,7 @@ class PWViewerMPL(PWViewer):
         if ytcfg.getboolean("yt", "ipython_notebook"):
             self._send_zmq()
         else:
-            raise NotImplementedError
+            raise YTNotDeclaredInsideNotebook
 
 class SlicePlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
