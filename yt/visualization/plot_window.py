@@ -1038,6 +1038,13 @@ class PlotMPL(object):
         canvas.print_figure(fn)
         return fn
 
+    def _repr_png_(self):
+        canvas = FigureCanvasAgg(self.figure)
+        f = cStringIO.StringIO()
+        canvas.print_figure(f)
+        f.seek(0)
+        return f.read()
+
 class WindowPlotMPL(PlotMPL):
     def __init__(self, data, extent, field_transform, cmap, size, zlim):
         self.zmin, self.zmax = zlim
