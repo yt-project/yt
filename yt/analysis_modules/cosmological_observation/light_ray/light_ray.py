@@ -579,14 +579,8 @@ def periodic_ray(start, end, left=None, right=None):
     this_end = na.copy(end)
     t = 0.0
     tolerance = 1e-6
-
+    
     while t < 1.0 - tolerance:
-        nearest = na.array([close[q]([this_end[q], wall[q]]) \
-                                for q in range(start.size)])
-        dt = ((nearest - this_start) / vector)[bound].min()
-        now = this_start + vector * dt
-        segments.append([na.copy(this_start), na.copy(now)])
-        this_start = na.copy(now)
         hit_left = (this_start <= left) & (vector < 0)
         if (hit_left).any():
             this_start[hit_left] += dim[hit_left]
@@ -595,6 +589,13 @@ def periodic_ray(start, end, left=None, right=None):
         if (hit_right).any():
             this_start[hit_right] -= dim[hit_right]
             this_end[hit_right] -= dim[hit_right]
+
+        nearest = na.array([close[q]([this_end[q], wall[q]]) \
+                                for q in range(start.size)])
+        dt = ((nearest - this_start) / vector)[bound].min()
+        now = this_start + vector * dt
+        segments.append([na.copy(this_start), na.copy(now)])
+        this_start = na.copy(now)
         t += dt
 
     return segments
