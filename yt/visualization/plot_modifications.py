@@ -240,8 +240,10 @@ class ContourCallback(PlotCallback):
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
         
-        dy = (xx1 - xx0) / (x1-x0)
+        # Multiply by dx and dy to go from data->plot
         dx = (yy1 - yy0) / (y1-y0)
+        dy = (xx1 - xx0) / (x1-x0)
+
         #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
         #Now makes a copy of the position fields "px" and "py" and adds the
         #appropriate shift to the coppied field.  
@@ -261,22 +263,23 @@ class ContourCallback(PlotCallback):
             YShifted[ylim] += shift * dom_y
             AllX |= xlim
             AllY |= ylim
+        # At this point XShifted and YShifted are the shifted arrays of
+        # position data in data coordinates
         wI = (AllX & AllY)
 
-        xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(self.factor*1j),\
-                          0:numPoints_y:numPoints_y/(self.factor*1j)]
-        xi = xi/xi.max()*(x1 - x0)
-        yi = yi/yi.max()*(y1 - y0)
+        # We want xi, yi in plot coordinates
+        xi, yi = na.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),\
+                          yy0:yy1:numPoints_y/(self.factor*1j)]
 
-        x = (XShifted[wI]-x0)*dx 
-        y = (YShifted[wI]-y0)*dy
+        # This converts XShifted and YShifted into plot coordinates
+        x = (XShifted[wI]-x0)*dx + xx0
+        y = (YShifted[wI]-y0)*dy + yy0
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
 
+        # Both the input and output from the triangulator are in plot
+        # coordinates
         zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
-
-        xi = xi/(x1 - x0)*dx + xx0
-        yi = yi/(y1 - y0)*dx + yy0
 
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
