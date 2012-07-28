@@ -241,8 +241,8 @@ class ContourCallback(PlotCallback):
         numPoints_y = plot.image._A.shape[1]
         
         # Multiply by dx and dy to go from data->plot
-        dx = (yy1 - yy0) / (y1-y0)
-        dy = (xx1 - xx0) / (x1-x0)
+        dx = (xx1 - xx0) / (x1-x0)
+        dy = (yy1 - yy0) / (y1-y0)
 
         #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
         #Now makes a copy of the position fields "px" and "py" and adds the
