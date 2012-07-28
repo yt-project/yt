@@ -297,8 +297,7 @@ class Camera(ParallelAnalysisInterface):
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                na.array(self.width),
-                self.transfer_function, self.sub_samples)
+                na.array(self.width), self.sub_samples)
         return args
 
     def get_sampler(self, args):
@@ -1537,20 +1536,12 @@ class ProjectionCamera(Camera):
             pass
 
     def get_sampler_args(self, image):
-        width = self.width[2]
-        north_vector = self.orienter.unit_vectors[0]
-        east_vector = self.orienter.unit_vectors[1]
-        normal_vector = self.orienter.unit_vectors[2]
-
-        back_center= self.center - 0.5*width * normal_vector
-        rotp = na.concatenate([na.linalg.pinv(self.orienter.unit_vectors).ravel('F'),
-                               back_center])
-
-        args = (rotp, normal_vector * width, back_center,
-            (-width/2, width/2, -width/2, width/2),
-            image, north_vector, east_vector,
-            na.array([width, width, width], dtype='float64'),
-            self.sub_samples)
+        rotp = na.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        args = (rotp, self.box_vectors[2], self.back_center,
+            (-self.width[0]/2, self.width[0]/2,
+             -self.width[1]/2, self.width[1]/2),
+            image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
+                na.array(self.width), self.sub_samples)
         return args
 
     def finalize_image(self,image):
