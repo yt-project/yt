@@ -51,7 +51,10 @@ class PlotCallback(object):
 
     def convert_to_plot(self, plot, coord, offset = True):
         # coord should be a 2 x ncoord array-like datatype.
-        ncoord = na.array(coord).shape[1]
+        try:
+            ncoord = na.array(coord).shape[1]
+        except IndexError:
+            ncoord = 1
 
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
