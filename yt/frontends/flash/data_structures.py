@@ -373,7 +373,7 @@ class FLASHStaticOutput(StaticOutput):
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = na.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
-        self.min_level = self.parameters["lrefine_min"] -1
+        self.min_level = self.parameters.get("lrefine_min", 1) - 1
 
         # Determine domain dimensions
         try:
