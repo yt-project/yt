@@ -205,7 +205,7 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     _type_name = "contour"
-    def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
+    def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args = None):
         """
         annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
@@ -220,11 +220,9 @@ class ContourCallback(PlotCallback):
         self.ncont = ncont
         self.field = field
         self.factor = factor
-        self.take_log = take_log
         from yt.utilities.delaunay.triangulate import Triangulation as triang
         self.triang = triang
-        if self.take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
-        if clim is not None: self.ncont = na.linspace(clim[0], clim[1], ncont)
+        self.clim = clim
         if plot_args is None: plot_args = {'colors':'k'}
         self.plot_args = plot_args
 
@@ -275,12 +273,18 @@ class ContourCallback(PlotCallback):
         x = (XShifted[wI]-x0)*dx + xx0
         y = (YShifted[wI]-y0)*dy + yy0
         z = plot.data[self.field][wI]
-        if self.take_log: z=na.log10(z)
+        if plot.pf.field_info[self.field].take_log: z=na.log10(z)
 
         # Both the input and output from the triangulator are in plot
         # coordinates
         zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
-
+        
+        if plot.pf.field_info[self.field].take_log and self.clim is not None: 
+            self.clim = (na.log10(self.clim[0]), na.log10(self.clim[1]))
+        
+        if self.clim is not None: 
+            self.ncont = na.linspace(self.clim[0], self.clim[1], ncont)
+        
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
