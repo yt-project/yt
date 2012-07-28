@@ -297,7 +297,7 @@ class Camera(ParallelAnalysisInterface):
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                na.array(self.width), self.sub_samples)
+                na.array(self.width), self.transfer_function, self.sub_samples)
         return args
 
     def get_sampler(self, args):
