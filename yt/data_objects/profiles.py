@@ -960,6 +960,51 @@ class Profile2D(ProfileND):
                       storage.used)
         # We've binned it!
 
+class Profile3D(ProfileND):
+    def __init__(self, data_source,
+                 x_field, x_n, x_min, x_max, x_log,
+                 y_field, y_n, y_min, y_max, y_log,
+                 z_field, z_n, z_min, z_max, z_log):
+        super(Profile2D, self).__init__(data_source)
+        # X
+        self.x_field = x_field
+        self.x_log = x_log
+        self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
+        # Y
+        self.y_field = y_field
+        self.y_log = y_log
+        self.y_bins = self._get_bins(y_min, y_max, y_n, y_log)
+        # Z
+        self.z_field = z_field
+        self.z_log = z_log
+        self.z_bins = self._get_bins(z_min, z_max, z_n, z_log)
+
+        self.size = (self.x_bins.size - 1,
+                     self.y_bins.size - 1,
+                     self.z_bins.size - 1)
+
+        self.bin_fields = (self.x_field, self.y_field, self.z_field)
+        self.bounds = ((self.x_bins[0], self.x_bins[-1]),
+                       (self.y_bins[0], self.y_bins[-1]),
+                       (self.z_bins[0], self.z_bins[-1]))
+
+        self.x = self.x_bins
+        self.y = self.y_bins
+        self.z = self.z_bins
+
+    def _bin_grid(self, grid, fields, field_info, storage):
+        rv = self._get_data(grid, fields, field_info)
+        if rv is None: return
+        fdata, wdata, (bf_x, bf_y, bf_z) = rv
+        bin_ind_x = na.digitize(bf_x, self.x_bins) - 1
+        bin_ind_y = na.digitize(bf_y, self.y_bins) - 1
+        bin_ind_z = na.digitize(bf_z, self.z_bins) - 1
+        new_bin_profile3d(bin_ind_x, bin_ind_y, bin_ind_z, wdata, fdata,
+                      storage.weight_values, storage.values,
+                      storage.mvalues, storage.qvalues,
+                      storage.used)
+        # We've binned it!
+
 def create_profile(data_source, fields, n):
     if len(fields) == 1:
         cls = Profile1D
