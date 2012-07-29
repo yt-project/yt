@@ -914,21 +914,10 @@ class Profile1D(ProfileND):
         self.x_log = x_log
         self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
 
-    @property
-    def size(self):
-        return (self.x_bins.size - 1,)
-
-    @property
-    def bin_fields(self):
-        return (self.x_field,)
-
-    @property
-    def bounds(self):
-        return ((self.x_bins[0], self.x_bins[-1]),)
-
-    @property
-    def x(self):
-        return self.x_bins
+        self.size = (self.x_bins.size - 1,)
+        self.bin_fields = (self.x_field,)
+        self.bounds = ((self.x_bins[0], self.x_bins[-1]),)
+        self.x = self.x_bins
 
     def _bin_grid(self, grid, fields, field_info, storage):
         fdata, wdata, (bf_x,) = self._get_data(grid, fields, field_info)
@@ -951,26 +940,13 @@ class Profile2D(ProfileND):
         self.y_log = y_log
         self.y_bins = self._get_bins(y_min, y_max, y_n, y_log)
 
-    @property
-    def size(self):
-        return (self.x_bins.size - 1, self.y_bins.size - 1)
+        self.size = (self.x_bins.size - 1, self.y_bins.size - 1)
 
-    @property
-    def bin_fields(self):
-        return (self.x_field, self.y_field)
-
-    @property
-    def bounds(self):
-        return ((self.x_bins[0], self.x_bins[-1]),
-                (self.y_bins[0], self.y_bins[-1]))
-
-    @property
-    def x(self):
-        return self.x_bins
-
-    @property
-    def y(self):
-        return self.y_bins
+        self.bin_fields = (self.x_field, self.y_field)
+        self.bounds = ((self.x_bins[0], self.x_bins[-1]),
+                       (self.y_bins[0], self.y_bins[-1]))
+        self.x = self.x_bins
+        self.y = self.y_bins
 
     def _bin_grid(self, grid, fields, field_info, storage):
         rv = self._get_data(grid, fields, field_info)
