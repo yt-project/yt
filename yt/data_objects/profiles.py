@@ -32,7 +32,7 @@ from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
-from yt.utilities.lib import new_bin_profile1d
+from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 
@@ -860,9 +860,11 @@ class ProfileND(ParallelAnalysisInterface):
         # This also will fill _field_data
         # FIXME: Add parallelism and combining std stuff
         if weight is not None:
-            temp_storage.values /= temp_storage.weight_values[:,None]
+            temp_storage.values /= temp_storage.weight_values[...,None]
+        blank = ~temp_storage.used
         for i, field in enumerate(fields):
             self.field_data[field] = temp_storage.values[...,i]
+            self.field_data[field][blank] = 0.0
         
     def _bin_grid(self, grid, fields, field_info, storage):
         raise NotImplementedError
@@ -898,15 +900,18 @@ class ProfileND(ParallelAnalysisInterface):
     def __getitem__(self, key):
         return self.field_data[key]
 
+    def _get_bins(self, mi, ma, n, take_log):
+        if take_log:
+            return na.logspace(na.log10(mi), na.log10(ma), n+1)
+        else:
+            return na.linspace(mi, ma, n+1)
+
 class Profile1D(ProfileND):
-    def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log = True):
+    def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log):
         super(Profile1D, self).__init__(data_source)
         self.x_field = x_field
         self.x_log = x_log
-        if x_log:
-            self.x_bins = na.logspace(na.log10(x_min), na.log10(x_max), x_n+1)
-        else:
-            self.x_bins = na.linspace(x_min, x_max, x_n+1)
+        self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
 
     @property
     def size(self):
@@ -928,6 +933,49 @@ class Profile1D(ProfileND):
         fdata, wdata, (bf_x,) = self._get_data(grid, fields, field_info)
         bin_ind = na.digitize(bf_x, self.x_bins) - 1
         new_bin_profile1d(bin_ind, wdata, fdata,
+                      storage.weight_values, storage.values,
+                      storage.mvalues, storage.qvalues,
+                      storage.used)
+        # We've binned it!
+
+class Profile2D(ProfileND):
+    def __init__(self, data_source,
+                 x_field, x_n, x_min, x_max, x_log,
+                 y_field, y_n, y_min, y_max, y_log):
+        super(Profile2D, self).__init__(data_source)
+        self.x_field = x_field
+        self.x_log = x_log
+        self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
+        self.y_field = y_field
+        self.y_log = y_log
+        self.y_bins = self._get_bins(y_min, y_max, y_n, y_log)
+
+    @property
+    def size(self):
+        return (self.x_bins.size - 1, self.y_bins.size - 1)
+
+    @property
+    def bin_fields(self):
+        return (self.x_field, self.y_field)
+
+    @property
+    def bounds(self):
+        return ((self.x_bins[0], self.x_bins[-1]),
+                (self.y_bins[0], self.y_bins[-1]))
+
+    @property
+    def x(self):
+        return self.x_bins
+
+    @property
+    def y(self):
+        return self.y_bins
+
+    def _bin_grid(self, grid, fields, field_info, storage):
+        fdata, wdata, (bf_x, bf_y) = self._get_data(grid, fields, field_info)
+        bin_ind_x = na.digitize(bf_x, self.x_bins) - 1
+        bin_ind_y = na.digitize(bf_y, self.y_bins) - 1
+        new_bin_profile2d(bin_ind_x, bin_ind_y, wdata, fdata,
                       storage.weight_values, storage.values,
                       storage.mvalues, storage.qvalues,
                       storage.used)
