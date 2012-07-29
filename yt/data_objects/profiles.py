@@ -983,3 +983,23 @@ class Profile2D(ProfileND):
                       storage.mvalues, storage.qvalues,
                       storage.used)
         # We've binned it!
+
+def create_profile(data_source, fields, n):
+    if len(fields) == 1:
+        cls = Profile1D
+    elif len(fields) == 2:
+        cls = Profile2D
+    elif len(fields) == 3:
+        cls = Profile3D # Will fail now
+    else:
+        raise NotImplementedError
+    if not iterable(n):
+        n = [n] * len(fields)
+    ex = data_source.quantities["Extrema"](fields)
+    logs = [data_source.pf.field_info[f].take_log for f in fields]
+    args = [data_source]
+    for f, n, (mi, ma), l in zip(fields, n, ex, logs):
+        args += [f, n, mi, ma, l] 
+    obj = cls(*args)
+    return obj
+
