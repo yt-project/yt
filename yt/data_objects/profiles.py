@@ -886,6 +886,7 @@ class ProfileND(ParallelAnalysisInterface):
         # We want to make sure that our fields are within the bounds of the
         # binning
         filter, bin_fields = self._filter(bin_fields, pointI)
+        if not na.any(filter): return None
         arr = na.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
             arr[:,i] = grid[field][filter]
@@ -972,7 +973,9 @@ class Profile2D(ProfileND):
         return self.y_bins
 
     def _bin_grid(self, grid, fields, field_info, storage):
-        fdata, wdata, (bf_x, bf_y) = self._get_data(grid, fields, field_info)
+        rv = self._get_data(grid, fields, field_info)
+        if rv is None: return
+        fdata, wdata, (bf_x, bf_y) = rv
         bin_ind_x = na.digitize(bf_x, self.x_bins) - 1
         bin_ind_y = na.digitize(bf_y, self.y_bins) - 1
         new_bin_profile2d(bin_ind_x, bin_ind_y, wdata, fdata,
