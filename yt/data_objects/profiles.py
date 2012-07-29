@@ -861,7 +861,7 @@ class ProfileND(ParallelAnalysisInterface):
         # FIXME: Add parallelism and combining std stuff
         if weight is not None:
             temp_storage.values /= temp_storage.weight_values[:,None]
-        for i,field in enumerate(fields):
+        for i, field in enumerate(fields):
             self.field_data[field] = temp_storage.values[...,i]
         
     def _bin_grid(self, grid, fields, field_info, storage):
@@ -888,9 +888,9 @@ class ProfileND(ParallelAnalysisInterface):
         for i, field in enumerate(fields):
             arr[:,i] = grid[field][filter]
         if field_info.weight is not None:
-            weight_data = na.ones(grid.ActiveDimensions, dtype="float64")
+            weight_data = grid[field_info.weight]
         else:
-            weight_data = na.ones(grid.ActiveDimensions)
+            weight_data = na.ones(grid.ActiveDimensions, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into 
         return arr, weight_data, bin_fields
