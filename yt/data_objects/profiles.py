@@ -32,16 +32,9 @@ from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
+from yt.utilities.lib import new_bin_profile1d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-
-_field_mapping = {
-    "total_mass": ("CellMassMsun", "ParticleMassMsun"),
-    "hybrid_radius": ("RadiusCode", "ParticleRadiusCode"),
-                 }
-
-class EmptyProfileData(Exception):
-    pass
+    ParallelAnalysisInterface, parallel_objects
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -67,7 +60,6 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._data_source = data_source
         self.pf = data_source.pf
         self.field_data = YTFieldData()
-        self._pdata = {}
         self._lazy_reader = lazy_reader
 
     @property
@@ -99,7 +91,7 @@ class BinnedProfile(ParallelAnalysisInterface):
             #pbar.update(gi)
             try:
                 args = self._get_bins(grid, check_cut=True)
-            except EmptyProfileData:
+            except YTEmptyProfileData:
                 # No bins returned for this grid, so forget it!
                 continue
             for field in fields:
@@ -183,25 +175,24 @@ class BinnedProfile(ParallelAnalysisInterface):
     def __setitem__(self, key, value):
         self.field_data[key] = value
 
-    def _get_field(self, source, this_field, check_cut):
+    def _get_field(self, source, field, check_cut):
         # This is where we will iterate to get all contributions to a field
         # which is how we will implement hybrid particle/cell fields
         # but...  we default to just the field.
         data = []
-        for field in _field_mapping.get(this_field, (this_field,)):
-            pointI = None
-            if check_cut:
-                # This conditional is so that we can have variable-length
-                # particle fields.  Note that we can't apply the
-                # is_fully_enclosed to baryon fields, because child cells get
-                # in the way.
-                if field in self.pf.field_info \
-                    and self.pf.field_info[field].particle_type:
-                    if not self._data_source._is_fully_enclosed(source):
-                        pointI = self._data_source._get_particle_indices(source)
-                else:
-                    pointI = self._data_source._get_point_indices(source)
-            data.append(source[field][pointI].ravel().astype('float64'))
+        pointI = None
+        if check_cut:
+            # This conditional is so that we can have variable-length
+            # particle fields.  Note that we can't apply the
+            # is_fully_enclosed to baryon fields, because child cells get
+            # in the way.
+            if field in self.pf.field_info \
+                and self.pf.field_info[field].particle_type:
+                if not self._data_source._is_fully_enclosed(source):
+                    pointI = self._data_source._get_particle_indices(source)
+            else:
+                pointI = self._data_source._get_point_indices(source)
+        data.append(source[field][pointI].ravel().astype('float64'))
         return na.concatenate(data, axis=0)
 
     def _fix_pickle(self):
@@ -290,7 +281,7 @@ class BinnedProfile1D(BinnedProfile):
     def _get_bins(self, source, check_cut=False):
         source_data = self._get_field(source, self.bin_field, check_cut)
         if source_data.size == 0: # Nothing for us here.
-            raise EmptyProfileData()
+            raise YTEmptyProfileData()
         # Truncate at boundaries.
         if self.end_collect:
             mi = na.ones_like(source_data).astype('bool')
@@ -299,7 +290,7 @@ class BinnedProfile1D(BinnedProfile):
                &  (source_data < self._bins.max()))
         sd = source_data[mi]
         if sd.size == 0:
-            raise EmptyProfileData()
+            raise YTEmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization
         bin_indices = na.digitize(sd, self._bins)
         if self.end_collect: #limit the range of values to 0 and n_bins-1
@@ -467,7 +458,7 @@ class BinnedProfile2D(BinnedProfile):
         source_data_x = self._get_field(source, self.x_bin_field, check_cut)
         source_data_y = self._get_field(source, self.y_bin_field, check_cut)
         if source_data_x.size == 0:
-            raise EmptyProfileData()
+            raise YTEmptyProfileData()
 
         if self.end_collect:
             mi = na.arange(source_data_x.size)
@@ -479,7 +470,7 @@ class BinnedProfile2D(BinnedProfile):
         sd_x = source_data_x[mi]
         sd_y = source_data_y[mi]
         if sd_x.size == 0 or sd_y.size == 0:
-            raise EmptyProfileData()
+            raise YTEmptyProfileData()
 
         bin_indices_x = na.digitize(sd_x, self._x_bins) - 1
         bin_indices_y = na.digitize(sd_y, self._y_bins) - 1
@@ -582,47 +573,6 @@ def fix_bounds(upper, lower, logit):
     if logit: return na.log10(upper), na.log10(lower)
     return upper, lower
 
-class BinnedProfile2DInlineCut(BinnedProfile2D):
-    def __init__(self, data_source,
-                 x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
-                 y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
-                 lazy_reader=False, end_collect=False):
-        lazy_reader = False
-        self.indices = data_source["Ones"].astype("bool")
-        BinnedProfile2D.__init__(self, data_source,
-                 x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
-                 y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
-                 lazy_reader, end_collect)
-
-    @preserve_source_parameters
-    def _bin_field(self, source, field, weight, accumulation,
-                   args, check_cut=False):
-        source_data = self._get_field(source, field, check_cut)
-        if weight: weight_data = self._get_field(source, weight, check_cut)
-        else: weight_data = na.ones(source_data.shape, dtype='float64')
-        self.total_stuff = source_data.sum()
-        binned_field = self._get_empty_field()
-        weight_field = self._get_empty_field()
-        used_field = self._get_empty_field()
-        mi = args[0]
-        bin_indices_x = args[1][self.indices].ravel().astype('int64')
-        bin_indices_y = args[2][self.indices].ravel().astype('int64')
-        source_data = source_data[mi][self.indices]
-        weight_data = weight_data[mi][self.indices]
-        nx = bin_indices_x.size
-        #mylog.debug("Binning %s / %s times", source_data.size, nx)
-        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
-                     weight_field, binned_field, used_field)
-        if accumulation: # Fix for laziness
-            if not iterable(accumulation):
-                raise SyntaxError("Accumulation needs to have length 2")
-            if accumulation[0]:
-                binned_field = na.add.accumulate(binned_field, axis=0)
-            if accumulation[1]:
-                binned_field = na.add.accumulate(binned_field, axis=1)
-        return binned_field, weight_field, used_field.astype('bool')
-
-        
 class BinnedProfile3D(BinnedProfile):
     """
     A 'Profile' produces either a weighted (or unweighted) average
@@ -725,7 +675,7 @@ class BinnedProfile3D(BinnedProfile):
         source_data_y = self._get_field(source, self.y_bin_field, check_cut)
         source_data_z = self._get_field(source, self.z_bin_field, check_cut)
         if source_data_x.size == 0:
-            raise EmptyProfileData()
+            raise YTEmptyProfileData()
         if self.end_collect:
             mi = na.arange(source_data_x.size)
         else:
@@ -739,7 +689,7 @@ class BinnedProfile3D(BinnedProfile):
         sd_y = source_data_y[mi]
         sd_z = source_data_z[mi]
         if sd_x.size == 0 or sd_y.size == 0 or sd_z.size == 0:
-            raise EmptyProfileData()
+            raise YTEmptyProfileData()
 
         bin_indices_x = na.digitize(sd_x, self._x_bins) - 1
         bin_indices_y = na.digitize(sd_y, self._y_bins) - 1
@@ -857,25 +807,128 @@ class BinnedProfile3D(BinnedProfile):
         self._data_source.hierarchy.save_data(values, "/Profiles", name,
                                               set_attr, force=force)
 
-class StoredBinnedProfile3D(BinnedProfile3D):
-    def __init__(self, pf, name):
+class ProfileFieldInfo(object):
+    def __init__(self, weight, accumulation, fractional):
         """
-        Given a *pf* parameterfile and the *name* of a stored profile, retrieve
-        it into a read-only data structure.
+        Weight is either the name of a field or None.  Accumulation is None,
+        'x' or 'y'.  Fractional is True or False.  We make no effort to decide
+        if the combination is reasonable.
         """
-        self.field_data = YTFieldData()
-        prof_arr = pf.h.get_data("/Profiles", name)
-        if prof_arr is None: raise KeyError("No such array")
-        for ax in 'xyz':
-            for base in ['%s_bin_field', '_%s_log']:
-                setattr(self, base % ax, prof_arr.getAttr(base % ax))
-        for ax in 'xyz':
-            fn = getattr(self, '%s_bin_field' % ax)
-            self.field_data[fn] = prof_arr.getAttr('%s_bin_values' % ax)
-        shape = prof_arr.getAttr('shape')
-        for fn, fd in zip(prof_arr.getAttr('field_order'),
-                          prof_arr.read().transpose()):
-            self.field_data[fn] = fd.reshape(shape)
+        self.weight = weight
+        self.accumulation = accumulation
+        self.fractional = fractional
 
-    def add_fields(self, *args, **kwargs):
-        raise RuntimeError("Sorry, you can't add to a stored profile.")
+    def __str__(self):
+        return "Field Spec: weight :%s, accumulation: %s, fractional: %s" % (
+                    self.weight, self.accumulation, self.fractional)
+
+class ProfileFieldAccumulator(object):
+    def __init__(self, n_fields, size):
+        shape = size + (n_fields,)
+        self.values = na.zeros(shape, dtype="float64")
+        self.mvalues = na.zeros(shape, dtype="float64")
+        self.qvalues = na.zeros(shape, dtype="float64")
+        self.used = na.zeros(size, dtype='bool')
+        self.weight_values = na.zeros(size, dtype="float64")
+
+class ProfileND(ParallelAnalysisInterface):
+    def __init__(self, data_source):
+        self.data_source = data_source
+        self.pf = data_source.pf
+        self.field_data = YTFieldData()
+        self.field_spec = {}
+
+    def add_fields(self, fields, weight = None, accumulation = False,
+                   fractional = False):
+        # We can share an instance of ProfileFieldInfo between all the fields
+        # here-defined
+        pfi = ProfileFieldInfo(weight, accumulation, fractional)
+        if weight in fields:
+            raise RuntimeError
+        for field in fields:
+            if field in self.field_spec:
+                raise YTDuplicateFieldInProfile(field, pfi,
+                        self.field_spec[field])
+            self.field_spec[field] = pfi
+        temp_storage = ProfileFieldAccumulator(len(fields), self.size)
+        for g in parallel_objects(self.data_source._grids):
+            self._bin_grid(g, fields, pfi, temp_storage)
+        self._finalize_storage(fields, weight, temp_storage)
+
+    def _finalize_storage(self, fields, weight, temp_storage):
+        # We use our main comm here
+        # This also will fill _field_data
+        # FIXME: Add parallelism and combining std stuff
+        if weight is not None:
+            temp_storage.values /= temp_storage.weight_values[:,None]
+        for i,field in enumerate(fields):
+            self.field_data[field] = temp_storage.values[...,i]
+        
+    def _bin_grid(self, grid, fields, field_info, storage):
+        raise NotImplementedError
+
+    def _filter(self, bin_fields, cut_points):
+        # cut_points is initially just the points inside our region
+        # we also want to apply a filtering based on min/max
+        filter = na.zeros(bin_fields[0].shape, dtype='bool')
+        filter[cut_points] = True
+        for (mi, ma), data in zip(self.bounds, bin_fields):
+            filter &= (data > mi)
+            filter &= (data < ma)
+        return filter, [data[filter] for data in bin_fields]
+        
+    def _get_data(self, grid, fields, field_info):
+        # Now we ask our source which values to include
+        pointI = self.data_source._get_point_indices(grid)
+        bin_fields = [grid[bf] for bf in self.bin_fields]
+        # We want to make sure that our fields are within the bounds of the
+        # binning
+        filter, bin_fields = self._filter(bin_fields, pointI)
+        arr = na.zeros((bin_fields[0].size, len(fields)), dtype="float64")
+        for i, field in enumerate(fields):
+            arr[:,i] = grid[field][filter]
+        if field_info.weight is not None:
+            weight_data = na.ones(grid.ActiveDimensions, dtype="float64")
+        else:
+            weight_data = na.ones(grid.ActiveDimensions)
+        weight_data = weight_data[filter]
+        # So that we can pass these into 
+        return arr, weight_data, bin_fields
+
+    def __getitem__(self, key):
+        return self.field_data[key]
+
+class Profile1D(ProfileND):
+    def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log = True):
+        super(Profile1D, self).__init__(data_source)
+        self.x_field = x_field
+        self.x_log = x_log
+        if x_log:
+            self.x_bins = na.logspace(na.log10(x_min), na.log10(x_max), x_n+1)
+        else:
+            self.x_bins = na.linspace(x_min, x_max, x_n+1)
+
+    @property
+    def size(self):
+        return (self.x_bins.size - 1,)
+
+    @property
+    def bin_fields(self):
+        return (self.x_field,)
+
+    @property
+    def bounds(self):
+        return ((self.x_bins[0], self.x_bins[-1]),)
+
+    @property
+    def x(self):
+        return self.x_bins
+
+    def _bin_grid(self, grid, fields, field_info, storage):
+        fdata, wdata, (bf_x,) = self._get_data(grid, fields, field_info)
+        bin_ind = na.digitize(bf_x, self.x_bins) - 1
+        new_bin_profile1d(bin_ind, wdata, fdata,
+                      storage.weight_values, storage.values,
+                      storage.mvalues, storage.qvalues,
+                      storage.used)
+        # We've binned it!

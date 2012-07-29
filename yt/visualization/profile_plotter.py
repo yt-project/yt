@@ -36,7 +36,6 @@ from yt.utilities.lib import \
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
-from .plot_types import ProfilePlot, PhasePlot
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.logger import ytLogger as mylog
 

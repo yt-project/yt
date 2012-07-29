@@ -45,7 +45,7 @@ from particle_io import \
     particle_handler_registry
 
 from profiles import \
-    EmptyProfileData, \
+    YTEmptyProfileData, \
     BinnedProfile, \
     BinnedProfile1D, \
     BinnedProfile2D, \

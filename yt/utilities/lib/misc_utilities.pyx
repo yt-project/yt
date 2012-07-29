@@ -31,6 +31,34 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
+def new_bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=2] bsource,
+                  np.ndarray[np.float64_t, ndim=1] wresult,
+                  np.ndarray[np.float64_t, ndim=2] bresult,
+                  np.ndarray[np.float64_t, ndim=2] mresult,
+                  np.ndarray[np.float64_t, ndim=2] qresult,
+                  np.ndarray[np.uint8_t, ndim=1, cast=True] used):
+    cdef int n, fi, bin
+    cdef np.float64_t wval, bval, oldwr
+    cdef int nb = bins_x.shape[0]
+    cdef int nf = bsource.shape[1]
+    for n in range(nb):
+        bin = bins_x[n]
+        wval = wsource[n]
+        oldwr = wresult[bin]
+        wresult[bin] += wval
+        for fi in range(nf):
+            bval = bsource[n,fi]
+            # qresult has to have the previous wresult
+            qresult[bin,fi] += (oldwr * wval * (bval - mresult[bin])**2) / \
+                (oldwr + wval)
+            bresult[bin,fi] += wval*bval
+            # mresult needs the new wresult
+            mresult[bin,fi] += wval * (bval - mresult[bin]) / wresult[bin]
+        used[bin] = 1
+    return
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

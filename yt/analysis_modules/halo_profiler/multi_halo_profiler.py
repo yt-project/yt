@@ -34,7 +34,7 @@ from yt.utilities.math_utils import periodic_dist
 from yt.convenience import \
     load
 from yt.data_objects.profiles import \
-    BinnedProfile1D, EmptyProfileData
+    BinnedProfile1D, YTEmptyProfileData
 from yt.analysis_modules.halo_finding.api import *
 from .halo_filters import \
     VirialFilter
@@ -589,8 +589,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                                                 r_min, halo['r_max'],
                                                 log_space=True, lazy_reader=True,
                                                 end_collect=True)
-            except EmptyProfileData:
-                mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
+            except YTEmptyProfileData:
+                mylog.error("Caught YTEmptyProfileData exception, returning None for this halo.")
                 return None
             # Figure out which fields to add simultaneously
             field_groupings = defaultdict(lambda: defaultdict(list))
