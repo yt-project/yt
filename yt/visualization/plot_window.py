@@ -676,7 +676,6 @@ class PWViewerMPL(PWViewer):
         elif name.endswith('.png'):
             return v.save(name)
         axis = axis_names[self.data_source.axis]
-        weight = None
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'
         if 'Proj' in self.data_source.__class__.__name__:
