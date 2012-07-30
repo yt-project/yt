@@ -676,10 +676,12 @@ class PWViewerMPL(PWViewer):
         elif name.endswith('.png'):
             return v.save(name)
         axis = axis_names[self.data_source.axis]
+        weight = None
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'
         if 'Proj' in self.data_source.__class__.__name__:
             type = 'Projection'
+            weight = self.data_source.weight_field
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         names = []
@@ -689,6 +691,8 @@ class PWViewerMPL(PWViewer):
             else:
                 # for cutting planes
                 n = "%s_%s_%s" % (name, type, k)
+            if weight:
+                n += "_%s" % (weight)
             names.append(v.save(n))
         return names
 
