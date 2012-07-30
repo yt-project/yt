@@ -793,7 +793,7 @@ class HEALpixCamera(Camera):
 
         return image
 
-    def save_image(self, fn, clim, image):
+    def save_image(self, fn, clim, image, label=None):
         if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
@@ -807,7 +807,11 @@ class HEALpixCamera(Camera):
             ax = fig.add_subplot(1,1,1,projection='hammer')
             implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
-            cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+
+            if label == None:
+                cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+            else:
+                cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[%s]$" % units)
             if clim is not None: cb.set_clim(*clim)
             ax.xaxis.set_ticks(())
             ax.yaxis.set_ticks(())
