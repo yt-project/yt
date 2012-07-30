@@ -544,8 +544,10 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
-        if ds._type_name in ("slice", "cutting") or \
-           (ds._type_name == "proj" and ds.weight_field is not None):
+        if ds._type_name in ("slice", "cutting"):
+            units = pf.field_info[field].get_units()
+        if ds._type_name == "proj" and (ds.weight_field is not None or 
+                                        ds.proj_style == "mip"):
             units = pf.field_info[field].get_units()
         elif ds._type_name == "proj":
             units = pf.field_info[field].get_projected_units()
@@ -768,9 +770,9 @@ class SlicePlot(PWViewerMPL):
         
         """
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
-        slice = pf.h.slice(axis,center[axis],fields=fields)
-        PWViewerMPL.__init__(self,slice,bounds,origin=origin)
+        (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
+        slc = pf.h.slc(axis, center[axis], fields=fields)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin)
 
 class ProjectionPlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'),
@@ -869,7 +871,6 @@ class OffAxisSlicePlot(PWViewerMPL):
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
-
 
 _metadata_template = """
 %(pf)s<br>
