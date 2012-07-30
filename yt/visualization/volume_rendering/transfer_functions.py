@@ -611,7 +611,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             this is the maximum for that subset
         alpha : list of floats, optional
             The alpha value height for each Gaussian.  If not supplied, it is
-            calculated as the logspace between -2.0 and 0.0.
+            set as 1.0 everywhere.
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
@@ -639,7 +639,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             if mi is None: mi = col_bounds[0] + dist/(10.0*N)
             if ma is None: ma = col_bounds[1] - dist/(10.0*N)
         if w is None: w = 0.001 * (ma-mi)/N
-        if alpha is None: alpha = na.logspace(-3.0, 0.0, N)
+        if alpha is None: alpha = na.ones(N, dtype="float64")
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 

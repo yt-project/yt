@@ -54,8 +54,8 @@ class PlotCallback(object):
         xx0, xx1 = plot._axes.get_xlim()
         y0, y1 = plot.ylim
         yy0, yy1 = plot._axes.get_ylim()
-        return ((coord[0]-x0)/(x1-x0)*(xx0-xx1) - xx0,
-                (coord[0]-x0)/(x1-x0)*(xx0-xx1) - xx0)
+        return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"

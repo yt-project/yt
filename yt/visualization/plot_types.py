@@ -527,7 +527,7 @@ class FixedResolutionPlot(VMPlot):
     def setup_domain_edges(self, *args, **kwargs):
         return
 
-class SlicePlot(VMPlot):
+class PCSlicePlot(VMPlot):
     _type_name = "Slice"
 
     def show_velocity(self, factor = 16, bv_radius = None):
@@ -574,10 +574,10 @@ class NNVMPlot:
         return buff.transpose()
 
 
-class SlicePlotNaturalNeighbor(NNVMPlot, SlicePlot):
+class PCSlicePlotNaturalNeighbor(NNVMPlot, PCSlicePlot):
     _type_name = "NNSlice"
 
-class ProjectionPlot(VMPlot):
+class PCProjectionPlot(VMPlot):
 
     _type_name = "Projection"
 
@@ -589,10 +589,10 @@ class ProjectionPlot(VMPlot):
         if self.data._weight is not None:
             self.prefix += "_%s" % (self.data._weight)
 
-class ProjectionPlotNaturalNeighbor(NNVMPlot, ProjectionPlot):
+class PCProjectionPlotNaturalNeighbor(NNVMPlot, PCProjectionPlot):
     _type_name = "NNProj"
 
-class CuttingPlanePlot(SlicePlot):
+class CuttingPlanePlot(PCSlicePlot):
 
     _type_name = "CuttingPlane"
     def _get_buff(self, width=None):

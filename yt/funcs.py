@@ -31,6 +31,7 @@ from math import floor, ceil
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.utilities.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from collections import defaultdict
@@ -561,4 +562,5 @@ def get_num_threads():
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
         
-
+def fix_axis(axis):
+    return inv_axis_names.get(axis, axis)
