@@ -929,7 +929,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         width = (1.0, 'unitary')
         from yt.visualization.plot_window import \
             PWViewerMPL, GetBoundsAndCenter
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
         pw = PWViewerMPL(self, bounds)
         return pw
 
