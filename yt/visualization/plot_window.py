@@ -771,7 +771,7 @@ class SlicePlot(PWViewerMPL):
         """
         axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
-        slc = pf.h.slc(axis, center[axis], fields=fields)
+        slc = pf.h.slice(axis, center[axis], fields=fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
 
 class ProjectionPlot(PWViewerMPL):
