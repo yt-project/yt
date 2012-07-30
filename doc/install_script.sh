@@ -728,31 +728,20 @@ function print_afterword
     echo "environment."
     echo
     echo "    $ source $DEST_DIR/bin/activate"
-    echo "    (yt)$ "
     echo
     echo "This modifies the environment variables YT_DEST, PATH, PYTHONPATH, and"
-    echo "LD_LIBRARY_PATH to match your new yt install. But don't worry - as soon"
-    echo "as you are done you can run 'deactivate' to return to your previous"
-    echo "shell environment.  If you use csh, just append .csh to the above."
+    echo "LD_LIBRARY_PATH to match your new yt install.  If you use csh, just"
+    echo "append .csh to the above."
     echo
-    echo "For interactive data analysis and visualization, we recommend running"
-    echo "the IPython interface, which will become more fully featured with time:"
+    echo "To get started with yt, check out the orientation:"
     echo
-    echo "    $DEST_DIR/bin/iyt"
+    echo "    http://yt-project.org/doc/orientation/"
     echo
-    echo "For command line analysis run:"
+    echo "or just activate your environment and run 'yt serve' to bring up the"
+    echo "yt GUI."
     echo
-    echo "    $DEST_DIR/bin/yt"
-    echo
-    echo "To bootstrap a development environment for yt, run:"
-    echo 
-    echo "    $DEST_DIR/bin/yt bootstrap_dev"
-    echo
-    echo "Note of interest: this installation will use the directory:"
+    echo "The source for yt is located at:"
     echo "    $YT_DIR"
-    echo "as the source for all the YT code.  This means you probably shouldn't"
-    echo "delete it, but on the plus side, any changes you make there are"
-    echo "automatically propagated."
     if [ $INST_HG -eq 1 ]
     then
       echo
@@ -775,6 +764,9 @@ function print_afterword
     echo "For support, see the website and join the mailing list:"
     echo
     echo "    http://yt-project.org/"
+    echo "    http://yt-project.org/data/      (Sample data)"
+    echo "    http://yt-project.org/doc/       (Docs)"
+    echo
     echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
     echo
     echo "========================================================================"
