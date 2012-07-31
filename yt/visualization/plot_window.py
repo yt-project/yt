@@ -522,7 +522,7 @@ class PWViewer(PlotWindow):
             xc, yc, zc = -999, -999, -999
         else:
             center[x_dict[self._frb.axis]] = 0.5 * (
-                self.xlim[1] + self.xlim[1])
+                self.xlim[0] + self.xlim[1])
             center[y_dict[self._frb.axis]] = 0.5 * (
                 self.ylim[0] + self.ylim[1])
             xc, yc, zc = center
