@@ -127,10 +127,15 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     if width == None:
         width = (pf.domain_width[x_dict[axis]],
                  pf.domain_width[y_dict[axis]])
-    elif iterable(width) and isinstance(width[1],str):
-        w,unit = width
-        width = w
-    if not iterable(width):
+    elif iterable(width): 
+        if isinstance(width[1],str):
+            w,unit = width
+            width = w
+        elif isinstance(width[1],tuple):
+            wx,unitx = width[0]
+            wy,unity = width[1]
+            width = (wx/pf[unitx],wy/pf[unity])
+    else:
         width = (width, width)
     Wx, Wy = width
     width = (Wx/pf[unit], Wy/pf[unit])
@@ -733,7 +738,7 @@ class PWViewerMPL(PWViewer):
             raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
-    def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'), origin='center-window'):
+    def __init__(self, pf, axis, fields, center='c', width=None, origin='center-window'):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -758,10 +763,25 @@ class SlicePlot(PWViewerMPL):
              the image centers on the location of the maximum density
              cell.  If set to 'c' or 'center', the plot is centered on
              the middle of the domain.
-	width : tuple or a float
-             A tuple containing the width of image and the string key of
-             the unit: (width, 'unit').  If set to a float, code units
-             are assumed
+	width : tuple or a float.
+             Width can have four different formats to support windows with variable 
+             x and y widths.  They are:
+             
+             ==================================     =======================
+             format                                 example                
+             ==================================     =======================
+             (float, string)                        (10,'kpc')
+             ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+             float                                  0.2
+             (float, float)                         (0.2, 0.3)
+             ==================================     =======================
+             
+             For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs 
+             wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
+             that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
+             the y axis.  In the other two examples, code units are assumed, for example
+             (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
+             in code units.  
 	origin : string
              The location of the origin of the plot coordinate system.
              Currently, can be set to three options: 'left-domain', corresponding
@@ -785,7 +805,7 @@ class SlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
 
 class ProjectionPlot(PWViewerMPL):
-    def __init__(self, pf, axis, fields, center='c', width=(1,'unitary'),
+    def __init__(self, pf, axis, fields, center='c', width=None,
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
         
@@ -811,10 +831,25 @@ class ProjectionPlot(PWViewerMPL):
             the image centers on the location of the maximum density
             cell.  If set to 'c' or 'center', the plot is centered on
             the middle of the domain.
-        width : A tuple or a float
-            A tuple containing the width of image and the string key of
-            the unit: (width, 'unit').  If set to a float, code units
-            are assumed
+	width : tuple or a float.
+             Width can have four different formats to support windows with variable 
+             x and y widths.  They are:
+             
+             ==================================     =======================
+             format                                 example                
+             ==================================     =======================
+             (float, string)                        (10,'kpc')
+             ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+             float                                  0.2
+             (float, float)                         (0.2, 0.3)
+             ==================================     =======================
+             
+             For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs 
+             wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
+             that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
+             the y axis.  In the other two examples, code units are assumed, for example
+             (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
+             in code units.
         origin : A string
             The location of the origin of the plot coordinate system.
             Currently, can be set to three options: 'left-domain', corresponding
