@@ -208,9 +208,13 @@ def _Pressure(field, data):
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Entropy(field, data):
-    return kboltz  * data["Temperature"] / \
-           (data["NumberDensity"]**(data.pf["Gamma"] - 1.0))
-add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{2}",
+    if data.has_field_parameter("mu"):
+        mw = mh*data.get_field_parameter("mu")
+    else :
+        mw = mh
+    return kboltz * data["Temperature"] / \
+           ((data["Density"]/mw)**(data.pf["Gamma"] - 1.0))
+add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
 
 def _Height(field, data):
