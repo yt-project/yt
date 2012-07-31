@@ -522,7 +522,7 @@ class PWViewer(PlotWindow):
             xc, yc, zc = -999, -999, -999
         else:
             center[x_dict[self._frb.axis]] = 0.5 * (
-                self.xlim[0] + self.xlim[1])
+                self.xlim[1] + self.xlim[1])
             center[y_dict[self._frb.axis]] = 0.5 * (
                 self.ylim[0] + self.ylim[1])
             xc, yc, zc = center
@@ -588,7 +588,7 @@ class PWViewerMPL(PWViewer):
             else:
                 raise RuntimeError(
                     'origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
-            
+
             extent = [self.xlim[i] - xc for i in (0,1)]
             extent.extend([self.ylim[i] - yc for i in (0,1)])
             extent = [el*self.pf[md['unit']] for el in extent]
@@ -598,8 +598,14 @@ class PWViewerMPL(PWViewer):
             else:
                 zlim = (None,None)
 
-            #Hardcoding this for now.
-            size = (9,8)
+            aspect = (self.xlim[1] - self.xlim[0])/(self.ylim[1]-self.ylim[0])
+
+            # This sets the size of the figure, and defaults to making one of the dimensions smaller.
+            # This should protect against giant images in the case of a very large aspect ratio.
+            if aspect > 1.0:
+                size = (10.0, 10.0/aspect)
+            else:
+                size = (10.0*aspect, 10.0)
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
@@ -1057,7 +1063,7 @@ class PlotMPL(object):
         self.figure = matplotlib.figure.Figure(figsize = size, frameon = True)
         # Hardcoding the axis dimensions for now
         self.axes = self.figure.add_axes((.07,.10,.8,.8))
-        self.cax = self.figure.add_axes((.86,.10,.04,.8))
+        self.cax = self.figure.add_axes((.87,.10,.04,.8))
 
     def save(self, name, canvas = None):
         if name[-4:] == '.png':
@@ -1076,7 +1082,7 @@ class PlotMPL(object):
             else:
                 mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
                 canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(fn)
+        canvas.print_figure(fn, bbox_inches='tight')
         return fn
 
     def _repr_png_(self):
