@@ -432,6 +432,7 @@ cdef struct VolumeRenderAccumulator:
     kdtree_utils.kdtree *star_list
     np.float64_t *light_dir
     np.float64_t *light_rgba
+    int grey_opacity
 
 
 cdef class ProjectionSampler(ImageSampler):
@@ -528,7 +529,7 @@ cdef void volume_render_sampler(
             dvs[j] = offset_interpolate(vc.dims, dp,
                     vc.data[j] + offset)
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, 
-                vri.fits, vri.field_table_ids)
+                vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
             dp[j] += ds[j]
 
@@ -567,7 +568,7 @@ cdef void volume_render_gradient_sampler(
         FIT_eval_transfer_with_light(dt, dvs, grad, 
                 vri.light_dir, vri.light_rgba,
                 im.rgba, vri.n_fits, 
-                vri.fits, vri.field_table_ids)
+                vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
             dp[j] += ds[j]
     free(grad)
@@ -659,7 +660,7 @@ cdef void volume_render_stars_sampler(
         for i in range(3):
             pos[i] += local_dds[i]
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
-                          vri.field_table_ids)
+                          vri.field_table_ids, vri.grey_opacity)
         for i in range(vc.n_fields):
             dvs[i] += slopes[i]
 
@@ -690,6 +691,7 @@ cdef class VolumeRenderSampler(ImageSampler):
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
         assert(self.vra.n_fits <= 6)
+        self.vra.grey_opacity = tf_obj.grey_opacity
         self.vra.n_samples = n_samples
         self.my_field_tables = []
         for i in range(self.vra.n_fits):
@@ -755,6 +757,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
         assert(self.vra.n_fits <= 6)
+        self.vra.grey_opacity = tf_obj.grey_opacity
         self.vra.n_samples = n_samples
         self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
         self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)

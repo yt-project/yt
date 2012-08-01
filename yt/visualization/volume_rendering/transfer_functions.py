@@ -333,7 +333,7 @@ class MultiVariateTransferFunction(object):
             self.field_table_ids[c] = table_id
 
 class ColorTransferFunction(MultiVariateTransferFunction):
-    def __init__(self, x_bounds, nbins=256):
+    def __init__(self, x_bounds, nbins=256, grey_opacity = False):
         r"""A complete set of transfer functions for standard color-mapping.
 
         This is the best and easiest way to set up volume rendering.  It
@@ -350,6 +350,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         nbins : int
             How many bins to calculate; in betwee, linear interpolation is
             used, so low values are typically fine.
+        grey_opacity : bool
+            Should opacity be calculated on a channel-by-channel basis, or
+            overall?  Useful for opaque renderings.
         """
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
@@ -360,6 +363,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.blue = TransferFunction(x_bounds, nbins)
         self.alpha = TransferFunction(x_bounds, nbins)
         self.funcs = (self.red, self.green, self.blue, self.alpha)
+        self.grey_opacity = grey_opacity
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
@@ -560,9 +564,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
-        r *= alpha
-        g *= alpha
-        b *= alpha    
+        if self.grey_opacity:
+            r *= alpha
+            g *= alpha
+            b *= alpha    
         self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha)))
@@ -639,7 +644,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             if mi is None: mi = col_bounds[0] + dist/(10.0*N)
             if ma is None: ma = col_bounds[1] - dist/(10.0*N)
         if w is None: w = 0.001 * (ma-mi)/N
-        if alpha is None: alpha = na.ones(N, dtype="float64")
+        if alpha is None and self.grey_opacity:
+            alpha = na.ones(N, dtype="float64")
+        elif alpha is None and not self.grey_opacity:
+            alpha = na.logspace(-3, 0, N)
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 
