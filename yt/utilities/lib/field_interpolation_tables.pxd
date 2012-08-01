@@ -50,7 +50,7 @@ cdef inline void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
               int field_id, int weight_field_id, int weight_table_id) nogil:
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
-    fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
+    fit.dbin = (fit.bounds[1] - fit.bounds[0])/(fit.nbins-1)
     fit.idbin = 1.0/fit.dbin
     # Better not pull this out from under us, yo
     fit.values = values
@@ -65,8 +65,9 @@ cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                                        np.float64_t dvs[6]) nogil:
     cdef np.float64_t bv, dy, dd, tf, rv
     cdef int bin_id
-    if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
+    if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
+    bin_id = iclip(bin_id, 0, fit.nbins-2)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
     bv = fit.values[bin_id]
     dy = fit.values[bin_id + 1] - bv
