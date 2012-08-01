@@ -564,10 +564,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
-        if self.grey_opacity:
-            r *= alpha
-            g *= alpha
-            b *= alpha    
         self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha)))
@@ -585,7 +581,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             scale_mult = 1.0
         else:
             scale_mult = scale_func(tomap,0.0,1.0)
-        print scale_mult 
         self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
         self.green.y[rel0:rel1]= cc[:,1]*scale_mult
         self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
