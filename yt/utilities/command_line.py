@@ -1222,7 +1222,7 @@ class YTPlotCmd(YTCommand):
         if unit is None:
             unit = 'unitary'
         if args.width is None:
-            width = (1.0, 'unitary')
+            width = None
         else:
             width = (args.width, args.unit)
 
