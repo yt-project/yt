@@ -149,7 +149,7 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     bounds = [center[x_dict[axis]]-width[0]/2,
               center[x_dict[axis]]+width[0]/2,
               center[y_dict[axis]]-width[1]/2,
-              center[y_dict[axis]]+width[1]/2] 
+              center[y_dict[axis]]+width[1]/2]
     return (bounds,center)
 
 def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
