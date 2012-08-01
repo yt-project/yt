@@ -130,7 +130,7 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
     elif iterable(width): 
         if isinstance(width[1],str):
             w,unit = width
-            width = w
+            width = (w, w)
         elif isinstance(width[1],tuple):
             wx,unitx = width[0]
             wy,unity = width[1]
