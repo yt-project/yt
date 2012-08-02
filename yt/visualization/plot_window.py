@@ -550,7 +550,7 @@ class PWViewer(PlotWindow):
         pf = self.pf
         if ds._type_name in ("slice", "cutting"):
             units = pf.field_info[field].get_units()
-        if ds._type_name == "proj" and (ds.weight_field is not None or 
+        elif ds._type_name == "proj" and (ds.weight_field is not None or 
                                         ds.proj_style == "mip"):
             units = pf.field_info[field].get_units()
         elif ds._type_name == "proj":
