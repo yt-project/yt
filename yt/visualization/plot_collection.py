@@ -885,8 +885,7 @@ class PlotCollection(object):
     def add_profile_object(self, data_source, fields,
                            weight="CellMassMsun", accumulation=False,
                            x_bins=128, x_log=True, x_bounds=None,
-                           lazy_reader=True, id=None,
-                           figure=None, axes=None):
+                           id=None, figure=None, axes=None):
         r"""From an existing object, create a 1D, binned profile.
 
         This function will accept an existing `YTDataContainer` source and from that,
@@ -923,11 +922,6 @@ class PlotCollection(object):
             If specified, the boundary values for the binning.  If unspecified,
             the min/max from the data_source will be used.  (Non-zero min/max
             in case of log-spacing.)
-        lazy_reader : boolean, optional
-            If this is false, all of the data will be read into memory before
-            any processing occurs.  It defaults to true, and grids are binned
-            on a one-by-one basis.  Note that parallel computation requires
-            this to be true.
         id : int, optional
             If specified, this will be the "semi-unique id" of the resultant
             plot.  This should not be set.
@@ -958,13 +952,11 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                            fields[0], non_zero = x_log,
-                            lazy_reader=lazy_reader)[0]
+                            fields[0], non_zero = x_log)[0]
         else:
             x_min, x_max = x_bounds
         profile = BinnedProfile1D(data_source,
-                                  x_bins, fields[0], x_min, x_max, x_log,
-                                  lazy_reader)
+                                  x_bins, fields[0], x_min, x_max, x_log)
         if len(fields) > 1:
             profile.add_fields(fields[1:], weight=weight, accumulation=accumulation)
         if id is None: id = self._get_new_id()
@@ -975,8 +967,7 @@ class PlotCollection(object):
     def add_profile_sphere(self, radius, unit, fields, center = None,
                            weight="CellMassMsun", accumulation=False,
                            x_bins=128, x_log=True, x_bounds=None,
-                           lazy_reader=True, id=None,
-                           figure=None, axes=None):
+                           id=None, figure=None, axes=None):
         r"""From a description of a sphere, create a 1D, binned profile.
 
         This function will accept the radius of a sphere, and from that it will
@@ -1016,11 +1007,6 @@ class PlotCollection(object):
             If specified, the boundary values for the binning.  If unspecified,
             the min/max from the data_source will be used.  (Non-zero min/max
             in case of log-spacing.)
-        lazy_reader : boolean, optional
-            If this is false, all of the data will be read into memory before
-            any processing occurs.  It defaults to true, and grids are binned
-            on a one-by-one basis.  Note that parallel computation requires
-            this to be true.
         id : int, optional
             If specified, this will be the "semi-unique id" of the resultant
             plot.  This should not be set.
@@ -1055,7 +1041,7 @@ class PlotCollection(object):
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r)
         p = self.add_profile_object(sphere, fields, weight, accumulation,
-                           x_bins, x_log, x_bounds, lazy_reader, id,
+                           x_bins, x_log, x_bounds, id,
                            figure=figure, axes=axes)
         p["Width"] = radius
         p["Unit"] = unit
@@ -1066,8 +1052,7 @@ class PlotCollection(object):
                                weight="CellMassMsun", accumulation=False,
                                x_bins=128, x_log=True, x_bounds=None,
                                y_bins=128, y_log=True, y_bounds=None,
-                               lazy_reader=True, id=None,
-                               axes = None, figure = None,
+                               id=None, axes = None, figure = None,
                                fractional=False):
         r"""From an existing object, create a 2D, binned profile.
 
@@ -1119,11 +1104,6 @@ class PlotCollection(object):
             If specified, the boundary values for the binning.  If unspecified,
             the min/max from the data_source will be used.  (Non-zero min/max
             in case of log-spacing.)
-        lazy_reader : boolean, optional
-            If this is false, all of the data will be read into memory before
-            any processing occurs.  It defaults to true, and grids are binned
-            on a one-by-one basis.  Note that parallel computation requires
-            this to be true.
         id : int, optional
             If specified, this will be the "semi-unique id" of the resultant
             plot.  This should not be set.
@@ -1160,20 +1140,17 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                                    fields[0], non_zero = x_log,
-                                    lazy_reader=lazy_reader)[0]
+                                    fields[0], non_zero = x_log)[0]
         else:
             x_min, x_max = x_bounds
         if y_bounds is None:
             y_min, y_max = data_source.quantities["Extrema"](
-                                    fields[1], non_zero = y_log,
-                                    lazy_reader=lazy_reader)[0]
+                                    fields[1], non_zero = y_log)[0]
         else:
             y_min, y_max = y_bounds
         profile = BinnedProfile2D(data_source,
                                   x_bins, fields[0], x_min, x_max, x_log,
-                                  y_bins, fields[1], y_min, y_max, y_log,
-                                  lazy_reader)
+                                  y_bins, fields[1], y_min, y_max, y_log)
         # This will add all the fields to the profile object
         if len(fields)>2:
             profile.add_fields(fields[2:], weight=weight,
@@ -1189,8 +1166,7 @@ class PlotCollection(object):
                          weight="CellMassMsun", accumulation=False,
                          x_bins=128, x_log=True, x_bounds=None,
                          y_bins=128, y_log=True, y_bounds=None,
-                         lazy_reader=True, id=None,
-                         axes = None, figure = None,
+                         id=None, axes = None, figure = None,
                          fractional=False):
         r"""From a description of a sphere, create a 2D, binned profile.
 
@@ -1245,11 +1221,6 @@ class PlotCollection(object):
             If specified, the boundary values for the binning.  If unspecified,
             the min/max from the data_source will be used.  (Non-zero min/max
             in case of log-spacing.)
-        lazy_reader : boolean, optional
-            If this is false, all of the data will be read into memory before
-            any processing occurs.  It defaults to true, and grids are binned
-            on a one-by-one basis.  Note that parallel computation requires
-            this to be true.
         id : int, optional
             If specified, this will be the "semi-unique id" of the resultant
             plot.  This should not be set.
@@ -1290,7 +1261,7 @@ class PlotCollection(object):
                              weight, accumulation,
                              x_bins, x_log, x_bounds,
                              y_bins, y_log, y_bounds,
-                             lazy_reader, id, axes=axes, figure=figure, fractional=fractional)
+                             id, axes=axes, figure=figure, fractional=fractional)
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None

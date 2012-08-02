@@ -63,7 +63,7 @@ def analysis_task(params = None):
 @analysis_task(('field',))
 def MaximumValue(params, data_object):
     v = data_object.quantities["MaxLocation"](
-            params.field, lazy_reader=True)[0]
+            params.field)[0]
     return v
 
 @analysis_task()
