@@ -25,7 +25,7 @@ License:
 
 from collections import defaultdict
 
-import yt.utilities.amr_utils as au
+import yt.utilities.lib as au
 import exceptions
 import cPickle
 

@@ -33,6 +33,15 @@ class YTException(Exception):
 
 # Data access exceptions:
 
+class YTOutputNotIdentified(YTException):
+    def __init__(self, args, kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+    def __str__(self):
+        return "Supplied %s %s, but could not load!" % (
+            self.args, self.kwargs)
+
 class YTSphereTooSmall(YTException):
     def __init__(self, pf, radius, smallest_cell):
         YTException.__init__(self, pf)
@@ -48,3 +57,56 @@ class YTAxesNotOrthogonalError(YTException):
 
     def __str__(self):
         return "The supplied axes are not orthogonal.  %s" % (self.axes)
+
+class YTNoDataInObjectError(YTException):
+    def __init__(self, obj):
+        self.obj_type = getattr(obj, "_type_name", "")
+
+    def __str__(self):
+        s = "The object requested has no data included in it."
+        if self.obj_type == "slice":
+            s += "  It may lie on a grid face.  Try offsetting slightly."
+        return s
+
+class YTSimulationNotIdentified(YTException):
+    def __init__(self, sim_type):
+        YTException.__init__(self)
+        self.sim_type = sim_type
+
+    def __str__(self):
+        return "Simulation time-series type %s not defined." % self.sim_type
+
+class AmbiguousOutputs(YTException):
+    def __init__(self, pf):
+        YTException.__init__(self, pf)
+
+    def __str__(self):
+        return "Simulation %s has both dtDataDump and CycleSkipDataDump set.  Unable to calculate datasets." % \
+            self.pf
+
+class MissingParameter(YTException):
+    def __init__(self, pf, parameter):
+        YTException.__init__(self, pf)
+        self.parameter = parameter
+
+    def __str__(self):
+        return "Parameter file %s is missing %s parameter." % \
+            (self.pf, self.parameter)
+
+class NoStoppingCondition(YTException):
+    def __init__(self, pf):
+        YTException.__init__(self, pf)
+
+    def __str__(self):
+        return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
+            self.pf
+
+class YTNotInsideNotebook(YTException):
+    def __str__(self):
+        return "This function only works from within an IPython Notebook."
+
+class YTNotDeclaredInsideNotebook(YTException):
+    def __str__(self):
+        return "You have not declared yourself to be inside the IPython" + \
+               "Notebook.  Do so with this command:\n\n" + \
+               "ytcfg['yt','ipython_notebook'] = 'True'"

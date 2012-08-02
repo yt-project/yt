@@ -295,6 +295,7 @@ class EnzoFOFMergerTree(object):
             Maximum number of child halos each leaf can have.
         """
         self.halonum = halonum
+        self.max_children = max_children
         self.output_numbers = sorted(self.relationships, reverse=True)
         self.levels = {}
         trunk = self.output_numbers[0]
@@ -376,7 +377,7 @@ class EnzoFOFMergerTree(object):
                 print "--> Most massive progenitor == Halo %d" % \
                       (br.progenitor)
                 for i,c in enumerate(br.children):
-                    if i > max_child: break
+                    if i > self.max_children: break
                     print "-->    Halo %8.8d :: fraction = %g" % (c[0], c[1])
 
     def write_dot(self, filename=None):

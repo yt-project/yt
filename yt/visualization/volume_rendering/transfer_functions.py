@@ -61,6 +61,8 @@ class TransferFunction(object):
         self.x_bounds = x_bounds
         self.x = na.linspace(x_bounds[0], x_bounds[1], nbins).astype('float64')
         self.y = na.zeros(nbins, dtype='float64')
+        self.grad_field = -1
+        self.light_source_v = self.light_source_c = na.zeros(3, 'float64')
 
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
@@ -87,7 +89,7 @@ class TransferFunction(object):
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         """
         vals = height * na.exp(-(self.x - location)**2.0/width)
-        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, na.inf)
 
     def add_line(self, start, stop):
         r"""Add a line between two points to the transmission function.
@@ -120,7 +122,7 @@ class TransferFunction(object):
         # not satisfy our bounding box arguments
         vals = slope * (self.x - x0) + y0
         vals[~((self.x >= x0) & (self.x <= x1))] = 0.0
-        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, na.inf)
 
     def add_step(self, start, stop, value):
         r"""Adds a step function to the transfer function.
@@ -154,7 +156,7 @@ class TransferFunction(object):
         """
         vals = na.zeros(self.x.shape, 'float64')
         vals[(self.x >= start) & (self.x <= stop)] = value
-        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, na.inf)
 
     def add_filtered_planck(self, wavelength, trans):
         vals = na.zeros(self.x.shape, 'float64')
@@ -220,6 +222,9 @@ class TransferFunction(object):
         pylab.xlim(*self.x_bounds)
         pylab.ylim(0.0, 1.0)
         pylab.draw()
+        
+    def clear(self):
+        self.y[:]=0.0
 
 class MultiVariateTransferFunction(object):
     def __init__(self):
@@ -239,6 +244,8 @@ class MultiVariateTransferFunction(object):
         self.weight_field_ids = [-1] * 6 # This correlates 
         self.field_table_ids = [0] * 6
         self.weight_table_ids = [-1] * 6
+        self.grad_field = -1
+        self.light_source_v = self.light_source_c = na.zeros(3, 'float64')
 
     def add_field_table(self, table, field_id, weight_field_id = -1,
                         weight_table_id = -1):
@@ -326,7 +333,7 @@ class MultiVariateTransferFunction(object):
             self.field_table_ids[c] = table_id
 
 class ColorTransferFunction(MultiVariateTransferFunction):
-    def __init__(self, x_bounds, nbins=256):
+    def __init__(self, x_bounds, nbins=256, grey_opacity = False):
         r"""A complete set of transfer functions for standard color-mapping.
 
         This is the best and easiest way to set up volume rendering.  It
@@ -343,6 +350,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         nbins : int
             How many bins to calculate; in betwee, linear interpolation is
             used, so low values are typically fine.
+        grey_opacity : bool
+            Should opacity be calculated on a channel-by-channel basis, or
+            overall?  Useful for opaque renderings.
         """
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
@@ -353,6 +363,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.blue = TransferFunction(x_bounds, nbins)
         self.alpha = TransferFunction(x_bounds, nbins)
         self.funcs = (self.red, self.green, self.blue, self.alpha)
+        self.grey_opacity = grey_opacity
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
@@ -389,6 +400,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
+        alpha = height[3]
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
 
@@ -552,9 +564,27 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
-        self.add_gaussian(v, w, [r,g,b,alpha])
+        self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug("Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha)))
+
+    def map_to_colormap(self, mi, ma, scale=1.0, colormap="gist_stern",
+            scale_func=None):
+        rel0 = int(self.nbins*(mi - self.x_bounds[0])/(self.x_bounds[1] -
+            self.x_bounds[0]))
+        rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
+            self.x_bounds[0]))
+        tomap = na.linspace(0.,1.,num=rel1-rel0)
+        cmap = get_cmap(colormap)
+        cc = cmap(tomap)*scale
+        if scale_func is None:
+            scale_mult = 1.0
+        else:
+            scale_mult = scale_func(tomap,0.0,1.0)
+        self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
+        self.green.y[rel0:rel1]= cc[:,1]*scale_mult
+        self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
+        self.alpha.y[rel0:rel1]= cc[:,3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
@@ -581,7 +611,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             this is the maximum for that subset
         alpha : list of floats, optional
             The alpha value height for each Gaussian.  If not supplied, it is
-            calculated as the logspace between -2.0 and 0.0.
+            set as 1.0 everywhere.
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
@@ -609,7 +639,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             if mi is None: mi = col_bounds[0] + dist/(10.0*N)
             if ma is None: ma = col_bounds[1] - dist/(10.0*N)
         if w is None: w = 0.001 * (ma-mi)/N
-        if alpha is None: alpha = na.logspace(-3.0, 0.0, N)
+        if alpha is None and self.grey_opacity:
+            alpha = na.ones(N, dtype="float64")
+        elif alpha is None and not self.grey_opacity:
+            alpha = na.logspace(-3, 0, N)
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 
@@ -621,6 +654,11 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             image[:,:,i] = (vals[:,None] * 255).astype('uint8')
         image = image[::-1,:,:]
         return image
+            
+    def clear(self):
+        for f in self.funcs:
+            f.clear()
+
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
     def __init__(self, x_bounds = (-1e60, 1e60), n_fields = 1):

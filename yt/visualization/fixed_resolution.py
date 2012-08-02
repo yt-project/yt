@@ -33,6 +33,7 @@ import numpy as na
 import weakref
 
 class FixedResolutionBuffer(object):
+    _exclude_fields = ('pz','pdz','dx','x','y','z')
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         r"""
@@ -112,10 +113,16 @@ class FixedResolutionBuffer(object):
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
+    def keys(self):
+        return self.data.keys()
+    
+    def __delitem__(self, item):
+        del self.data[item]
+    
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
-        mylog.info("Making a fixed resolution buffer of %d by %d" % \
-            (self.buff_size[0], self.buff_size[1]))
+        mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
+            (item, self.buff_size[0], self.buff_size[1]))
         buff = _MPL.Pixelize(self.data_source['px'],
                              self.data_source['py'],
                              self.data_source['pdx'],
@@ -132,7 +139,7 @@ class FixedResolutionBuffer(object):
         self.data[item] = val
 
     def _get_data_source_fields(self):
-        exclude = self.data_source._key_fields + ['pz','pdz','x','y','z']
+        exclude = self.data_source._key_fields + list(self._exclude_fields)
         for f in self.data_source.fields:
             if f not in exclude:
                 self[f]
@@ -214,21 +221,23 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename_prefix, fields = None, clobber=False):
+    def export_fits(self, filename_prefix, fields = None, clobber=False,
+                    other_keys=None, gzip_file=False, units="1"):
+
         """
         This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filenames are
-        *filename_prefix* plus an underscore plus the name of the field. If 
-        clobber is set to True, this will overwrite any existing FITS file.
+        or all the fields already in the object.  The output filename is
+        *filename_prefix*. If clobber is set to True, this will overwrite any
+        existing FITS file.
 
         This requires the *pyfits* module, which is a standalone module
         provided by STSci to interface with FITS-format files.
         """
-        r"""Export a set of pixelized fields to a set of fits files.
+        r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filenames are
-        the specified prefix plus an underscore plus the name of the field.
+        or all the fields already in the object.  The output filename is the
+        the specified prefix.
 
         Parameters
         ----------
@@ -238,21 +247,90 @@ class FixedResolutionBuffer(object):
             These fields will be pixelized and output.
         clobber : boolean
             If the file exists, this governs whether we will overwrite.
+        other_keys : dictionary, optional
+            A set of header keys and values to write into the FITS header.
+        gzip_file : boolean, optional
+            gzip the file after writing, default False
+        units : string, optional
+            the length units that the coordinates are written in, default '1'
         """
+        
         import pyfits
+        from os import system
+        
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
         if fields is None: 
             fields = [field for field in self.data_source.fields 
                       if field not in extra_fields]
+
+        nx, ny = self.buff_size
+        dx = (self.bounds[1]-self.bounds[0])/nx*self.pf[units]
+        dy = (self.bounds[3]-self.bounds[2])/ny*self.pf[units]
+        xmin = self.bounds[0]*self.pf[units]
+        ymin = self.bounds[2]*self.pf[units]
+        simtime = self.pf.current_time
+
+        hdus = []
+
+        first = True
+        
         for field in fields:
-            hdu = pyfits.PrimaryHDU(self[field])
+
+            if (first) :
+                hdu = pyfits.PrimaryHDU(self[field])
+                first = False
+            else :
+                hdu = pyfits.ImageHDU(self[field])
+                
             if self.data_source.has_key('weight_field'):
                 weightname = self.data_source._weight
                 if weightname is None: weightname = 'None'
                 field = field +'_'+weightname
-            hdu.writeto("%s_%s.fits" % (filename_prefix, field),clobber=clobber)
 
+            hdu.header.update("Field", field)
+            hdu.header.update("Time", simtime)
+
+            hdu.header.update('WCSNAMEP', "PHYSICAL")            
+            hdu.header.update('CTYPE1P', "LINEAR")
+            hdu.header.update('CTYPE2P', "LINEAR")
+            hdu.header.update('CRPIX1P', 0.5)
+            hdu.header.update('CRPIX2P', 0.5)
+            hdu.header.update('CRVAL1P', xmin)
+            hdu.header.update('CRVAL2P', ymin)
+            hdu.header.update('CDELT1P', dx)
+            hdu.header.update('CDELT2P', dy)
+                    
+            hdu.header.update('CTYPE1', "LINEAR")
+            hdu.header.update('CTYPE2', "LINEAR")                                
+            hdu.header.update('CUNIT1', units)
+            hdu.header.update('CUNIT2', units)
+            hdu.header.update('CRPIX1', 0.5)
+            hdu.header.update('CRPIX2', 0.5)
+            hdu.header.update('CRVAL1', xmin)
+            hdu.header.update('CRVAL2', ymin)
+            hdu.header.update('CDELT1', dx)
+            hdu.header.update('CDELT2', dy)
+
+            if (other_keys is not None) :
+
+                for k,v in other_keys.items() :
+
+                    hdu.header.update(k,v)
+
+            hdus.append(hdu)
+
+            del hdu
+            
+        hdulist = pyfits.HDUList(hdus)
+
+        hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)
+        
+        if (gzip_file) :
+            clob = ""
+            if (clobber) : clob = "-f"
+            system("gzip "+clob+" %s.fits" % (filename_prefix))
+        
     def open_in_ds9(self, field, take_log=True):
         """
         This will open a given field in the DS9 viewer.

@@ -27,7 +27,7 @@ import numpy as na
 
 from yt.funcs import *
 import _colormap_data as cmd
-import yt.utilities.amr_utils as au
+import yt.utilities.lib as au
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -116,7 +116,7 @@ def multi_image_composite(fn, red_channel, blue_channel,
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
 
-def write_bitmap(bitmap_array, filename, max_val = None):
+def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
@@ -135,7 +135,8 @@ def write_bitmap(bitmap_array, filename, max_val = None):
         Array of shape (N,M,3) or (N,M,4), to be written.  If it is not already
         a uint8 array, it will be scaled and converted to uint8.
     filename : string
-        Filename to save to
+        Filename to save to.  If None, PNG contents will be returned as a
+        string.
     max_val : float, optional
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
@@ -150,7 +151,13 @@ def write_bitmap(bitmap_array, filename, max_val = None):
         s1, s2 = bitmap_array.shape[:2]
         alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
         bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
-    au.write_png(bitmap_array.copy(), filename)
+    if transpose:
+        for channel in range(bitmap_array.shape[2]):
+            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
+    if filename is not None:
+        au.write_png(bitmap_array.copy(), filename)
+    else:
+        return au.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
@@ -329,7 +336,8 @@ def splat_points(image, points_x, points_y,
     return im
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
-                    title=None, limits=None, take_log=True, var_fig_size=False):
+                     title=None, limits=None, take_log=True, var_fig_size=False,
+                     cmap='algae'):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
@@ -359,6 +367,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     var_fig_size : boolean
         If we want the resolution (and size) of the output image to scale 
         with the resolution of the image array.  
+    cmap : string
+        The name of the colormap.
 
     Examples
     --------
@@ -369,27 +379,25 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          title="Offaxis Projection", limits=(1e-3,1e-5), 
                          take_log=True)
     """
-    import pylab as pl
-
-    # If there are limits, then clip the data before plotting
-    if limits is not None:
-        data = na.clip(data, limits[0], limits[1])
+    import matplotlib
+    from ._mpl_imports import *
 
     # If this is rendered as log, then apply now.
     if take_log:
-        data = na.log10(data)
-        if limits is not None:
-            limits = na.log10(limits)
-
+        norm = matplotlib.colors.LogNorm()
+    else:
+        norm = matplotlib.colors.Normalize()
+    
+    if limits is None:
+        limits = [None, None]
 
     # Create the figure and paint the data on
-    fig = pl.figure()
+    fig = matplotlib.figure.Figure()
     ax = fig.add_subplot(111)
-    cax = ax.imshow(data)
+    fig.tight_layout()
 
-    # If there are limits, apply them to the colormap
-    if limits is not None:
-        cax.set_clim=limits
+    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap)
+    
     if title:
         ax.set_title(title)
 
@@ -405,12 +413,96 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
     # If we want the resolution of the image to scale with the resolution
     # of the image array. we increase the dpi value accordingly
+    
     if var_fig_size:
         N = data.shape[0]
         mag_factor = N/480.
-        pl.savefig(filename, dpi=100*mag_factor)
+        dpi = 100*mag_factor
     else:
-        pl.savefig(filename)
+        dpi = None
 
-    pl.clf()
-    pl.close()
+    if filename[-4:] == '.png':
+        suffix = ''
+    else:
+        suffix = '.png'
+        filename = "%s%s" % (filename, suffix)
+    mylog.info("Saving plot %s", fn)
+    if suffix == ".png":
+        canvas = FigureCanvasAgg(fig)
+    elif suffix == ".pdf":
+        canvas = FigureCanvasPdf(fig)
+    elif suffix in (".eps", ".ps"):
+        canvas = FigureCanvasPS
+    else:
+        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+        canvas = FigureCanvasAgg(fig)
+    canvas.print_figure(filename)
+    return filename
+
+
+def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
+
+    """
+    This will export a FITS image of a floating point array. The output filename is
+    *filename_prefix*. If clobber is set to True, this will overwrite any existing
+    FITS file.
+    
+    This requires the *pyfits* module, which is a standalone module
+    provided by STSci to interface with FITS-format files.
+    """
+    r"""Write out a floating point array directly to a FITS file, optionally
+    adding coordinates. 
+        
+    Parameters
+    ----------
+    image : array_like
+        This is an (unscaled) array of floating point values, shape (N,N,) to save
+        in a FITS file.
+    filename_prefix : string
+        This prefix will be prepended to every FITS file name.
+    clobber : boolean
+        If the file exists, this governs whether we will overwrite.
+    coords : dictionary, optional
+        A set of header keys and values to write to the FITS header to set up
+        a coordinate system. 
+    gzip_file : boolean, optional
+        gzip the file after writing, default False
+    """
+    
+    import pyfits
+    from os import system
+    
+    if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
+    
+    hdu = pyfits.PrimaryHDU(image)
+
+    if (coords is not None) :
+
+        hdu.header.update('WCSNAMEP', "PHYSICAL")
+        hdu.header.update('CTYPE1P', "LINEAR")
+        hdu.header.update('CTYPE2P', "LINEAR")
+        hdu.header.update('CRPIX1P', 0.5)
+        hdu.header.update('CRPIX2P', 0.5)
+        hdu.header.update('CRVAL1P', coords["xmin"])
+        hdu.header.update('CRVAL2P', coords["ymin"])
+        hdu.header.update('CDELT1P', coords["dx"])
+        hdu.header.update('CDELT2P', coords["dy"])
+        
+        hdu.header.update('CTYPE1', "LINEAR")
+        hdu.header.update('CTYPE2', "LINEAR")
+        hdu.header.update('CUNIT1', coords["units"])
+        hdu.header.update('CUNIT2', coords["units"])
+        hdu.header.update('CRPIX1', 0.5)
+        hdu.header.update('CRPIX2', 0.5)
+        hdu.header.update('CRVAL1', coords["xmin"])
+        hdu.header.update('CRVAL2', coords["ymin"])
+        hdu.header.update('CDELT1', coords["dx"])
+        hdu.header.update('CDELT2', coords["dy"])
+
+    hdu.writeto("%s.fits" % (filename_prefix), clobber=clobber)
+
+    if (gzip_file) :
+        clob = ""
+        if (clobber) : clob="-f"
+        system("gzip "+clob+" %s.fits" % (filename_prefix))
+    

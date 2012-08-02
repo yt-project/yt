@@ -34,6 +34,13 @@ from .absorption_spectrum.api import \
 from .coordinate_transformation.api import \
     spherical_regrid
 
+from .cosmological_observation.api import \
+    CosmologySplice, \
+    LightCone, \
+    find_unique_solutions, \
+    project_unique_light_cones, \
+    LightRay
+
 from .halo_finding.api import \
     Halo, \
     HOPHalo, \
@@ -69,8 +76,7 @@ from .halo_merger_tree.api import \
 from .halo_profiler.api import \
     VirialFilter, \
     HaloProfiler, \
-    FakeProfile, \
-    shift_projections
+    FakeProfile
 
 from .hierarchy_subset.api import \
     ConstructedRootGrid, \
@@ -96,21 +102,8 @@ from .level_sets.api import \
     recursive_bottom_clumps, \
     clump_list_sort
 
-#from .light_ray.api import \
-#    LightRay
-
-from .light_cone.api import \
-    LightCone, \
-    light_cone_halo_mask, \
-    light_cone_halo_map, \
-    find_unique_solutions, \
-    project_unique_light_cones
-
 from .radial_column_density.api import \
     RadialColumnDensity
-
-from .simulation_handler.api import \
-    EnzoSimulation
 
 from .spectral_integrator.api import \
     SpectralFrequencyIntegrator, \

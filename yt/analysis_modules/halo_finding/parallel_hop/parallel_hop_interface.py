@@ -388,7 +388,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             self.pos[self.psize:, 2] = self.zpos_pad
             del self.xpos_pad, self.ypos_pad, self.zpos_pad
             gc.collect()
-            self.kdtree = cKDTree(self.pos, leafsize = 32)
+            self.kdtree = cKDTree(self.pos, leafsize = 64)
         self.__max_memory()
         yt_counters("init kd tree")
 
@@ -613,66 +613,73 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         chain_map = defaultdict(set)
         for i in xrange(max(self.chainID)+1):
             chain_map[i].add(i)
-        if self.tree == 'F':
+        yt_counters("preconnect kd tree search.")
+        if self.tree == 'C':
+            nn = self.nMerge + 2
+            rv = self.kdtree.chainHOP_preconnect(
+                self.chainID, self.density, self.densest_in_chain,
+                self.is_inside, self.search_again,
+                self.peakthresh, self.saddlethresh, nn, self.nMerge,
+                chain_map)
+            self.search_again = rv.astype("bool")
+            yt_counters("preconnect kd tree search.")
+        elif self.tree == 'F':
             # Plus 2 because we're looking for that neighbor, but only keeping 
             # nMerge + 1 neighbor tags, skipping ourselves.
             fKD.dist = na.empty(self.nMerge+2, dtype='float64')
             fKD.tags = na.empty(self.nMerge+2, dtype='int64')
             # We can change this here to make the searches faster.
             fKD.nn = self.nMerge + 2
-        elif self.tree == 'C':
-            nn = self.nMerge + 2
-        yt_counters("preconnect kd tree search.")
-        for i in xrange(self.size):
-            # Don't consider this particle if it's not part of a chain.
-            if self.chainID[i] < 0: continue
-            chainID_i = self.chainID[i]
-            # If this particle is in the padding, don't make a connection.
-            if not self.is_inside[i]: continue
-            # Find this particle's chain max_dens.
-            part_max_dens = self.densest_in_chain[chainID_i]
-            # We're only connecting >= peakthresh chains now.
-            if part_max_dens < self.peakthresh: continue
-            # Loop over nMerge closest nearest neighbors.
-            if self.tree == 'F':
-                fKD.qv = fKD.pos[:, i]
-                find_nn_nearest_neighbors()
-                NNtags = fKD.tags[:] - 1
-            elif self.tree == 'C':
-                qv = self.pos[i, :]
-                NNtags = self.kdtree.query(qv, nn)[1]
-            same_count = 0
-            for j in xrange(int(self.nMerge+1)):
-                thisNN = NNtags[j+1] # Don't consider ourselves at NNtags[0]
-                thisNN_chainID = self.chainID[thisNN]
-                # If our neighbor is in the same chain, move on.
-                # Move on if these chains are already connected:
-                if chainID_i == thisNN_chainID or \
-                        thisNN_chainID in chain_map[chainID_i]:
-                    same_count += 1
-                    continue
-                # Everything immediately below is for
-                # neighboring particles with a chainID. 
-                if thisNN_chainID >= 0:
-                    # Find thisNN's chain's max_dens.
-                    thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
-                    # We're only linking peakthresh chains
-                    if thisNN_max_dens < self.peakthresh: continue
-                    # Calculate the two groups boundary density.
-                    boundary_density = (self.density[thisNN] + self.density[i]) / 2.
-                    # Don't connect if the boundary is too low.
-                    if boundary_density < self.saddlethresh: continue
-                    # Mark these chains as related.
-                    chain_map[thisNN_chainID].add(chainID_i)
-                    chain_map[chainID_i].add(thisNN_chainID)
-            if same_count == self.nMerge + 1:
-                # All our neighbors are in the same chain already, so 
-                # we don't need to search again.
-                self.search_again[i] = False
-        try:
-            del NNtags
-        except UnboundLocalError:
-            pass
+            for i in xrange(self.size):
+                # Don't consider this particle if it's not part of a chain.
+                if self.chainID[i] < 0: continue
+                chainID_i = self.chainID[i]
+                # If this particle is in the padding, don't make a connection.
+                if not self.is_inside[i]: continue
+                # Find this particle's chain max_dens.
+                part_max_dens = self.densest_in_chain[chainID_i]
+                # We're only connecting >= peakthresh chains now.
+                if part_max_dens < self.peakthresh: continue
+                # Loop over nMerge closest nearest neighbors.
+                if self.tree == 'F':
+                    fKD.qv = fKD.pos[:, i]
+                    find_nn_nearest_neighbors()
+                    NNtags = fKD.tags[:] - 1
+                elif self.tree == 'C':
+                    qv = self.pos[i, :]
+                    NNtags = self.kdtree.query(qv, nn)[1]
+                same_count = 0
+                for j in xrange(int(self.nMerge+1)):
+                    thisNN = NNtags[j+1] # Don't consider ourselves at NNtags[0]
+                    thisNN_chainID = self.chainID[thisNN]
+                    # If our neighbor is in the same chain, move on.
+                    # Move on if these chains are already connected:
+                    if chainID_i == thisNN_chainID or \
+                            thisNN_chainID in chain_map[chainID_i]:
+                        same_count += 1
+                        continue
+                    # Everything immediately below is for
+                    # neighboring particles with a chainID. 
+                    if thisNN_chainID >= 0:
+                        # Find thisNN's chain's max_dens.
+                        thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
+                        # We're only linking peakthresh chains
+                        if thisNN_max_dens < self.peakthresh: continue
+                        # Calculate the two groups boundary density.
+                        boundary_density = (self.density[thisNN] + self.density[i]) / 2.
+                        # Don't connect if the boundary is too low.
+                        if boundary_density < self.saddlethresh: continue
+                        # Mark these chains as related.
+                        chain_map[thisNN_chainID].add(chainID_i)
+                        chain_map[chainID_i].add(thisNN_chainID)
+                if same_count == self.nMerge + 1:
+                    # All our neighbors are in the same chain already, so 
+                    # we don't need to search again.
+                    self.search_again[i] = False
+            try:
+                del NNtags
+            except UnboundLocalError:
+                pass
         yt_counters("preconnect kd tree search.")
         # Recursively jump links until we get to a chain whose densest
         # link is to itself. At that point we've found the densest chain
@@ -680,7 +687,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("preconnect pregrouping.")
         final_chain_map = na.empty(max(self.chainID)+1, dtype='int64')
         removed = 0
-        for i in xrange(max(self.chainID)+1):
+        for i in xrange(self.chainID.max()+1):
             j = chain_count - i - 1
             densest_link = self._recurse_preconnected_links(chain_map, j)
             final_chain_map[j] = densest_link

@@ -37,6 +37,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.utilities.minimal_representation import \
+    MinimalStaticOutput
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -85,8 +87,11 @@ class StaticOutput(object):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
+        self.min_level = 0
+
         self._parse_parameter_file()
         self._set_units()
+        self._set_derived_attrs()
 
         # Because we need an instantiated class to check the pf's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -98,6 +103,10 @@ class StaticOutput(object):
         self.print_key_parameters()
 
         self.create_field_info()
+
+    def _set_derived_attrs(self):
+        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+        self.domain_width = self.domain_right_edge - self.domain_left_edge
 
     def __reduce__(self):
         args = (self._hash(),)
@@ -114,6 +123,13 @@ class StaticOutput(object):
             return hashlib.md5(s).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+
+    @property
+    def _mrep(self):
+        return MinimalStaticOutput(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -150,6 +166,7 @@ class StaticOutput(object):
             if vv < max_nu and vv > 1.0:
                 good_u = unit
                 max_nu = v*self[unit]
+        if good_u is None : good_u = 'cm'
         return good_u
 
     def has_key(self, key):

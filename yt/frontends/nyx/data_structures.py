@@ -43,8 +43,9 @@ from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-from yt.utilities.amr_utils import get_box_grids_level
-from yt.utilities.definitions import mpc_conversion
+from yt.utilities.lib import get_box_grids_level
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 
 from .definitions import parameter_type_dict, nyx_to_enzo_dict, \
                          fab_header_pattern, nyx_particle_field_names
@@ -723,9 +724,8 @@ class NyxStaticOutput(StaticOutput):
                                        self.domain_left_edge).max()
 
         # time
-        seconds = self.time_units["s"]
-        self.time_units["days"] = seconds / (3600 * 24.0)
-        self.time_units["years"] = seconds / (3600 * 24.0 * 365)
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.time_units["s"] / sec_conversion[unit]
 
         # not the most useful right now, but someday
         for key in nyx_particle_field_names:

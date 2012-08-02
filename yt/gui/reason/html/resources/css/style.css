@@ -1,0 +1,81 @@
+
+p {
+    margin:5px;
+}
+.pf_icon {
+    background-image:url(../images/blockdevice_tab.png) !important;
+}
+.data_object {
+    background-image:url(../images/3d_tab.png) !important;
+}
+.graph { 
+    background-image:url(../images/graph_tab.png) !important; //add ../images to tabs
+}
+.console { 
+    background-image:url(../images/console_tab.png) !important;
+}
+.doubleleftarrow { 
+    background-image:url(../images/double_left_sm.png) !important;
+}
+.singleleftarrow { 
+    background-image:url(../images/single_left_sm.png) !important;
+}
+.doubleuparrow { 
+    background-image:url(../images/double_up_sm.png) !important;
+}
+.singleuparrow { 
+    background-image:url(../images/single_up_sm.png) !important;
+}
+.doublerightarrow { 
+    background-image:url(../images/double_right_sm.png) !important;
+}
+.singlerightarrow { 
+    background-image:url(../images/single_right_sm.png) !important;
+}
+.doubledownarrow { 
+    background-image:url(../images/double_down_sm.png) !important;
+}
+.singledownarrow { 
+    background-image:url(../images/single_down_sm.png) !important;
+}
+.upload { 
+    background-image:url(../images/upload.png) !important;
+}
+
+.inputLine {
+    font-family: monospace;
+    font-size: 120%;
+}
+
+.logentry .x-grid-cell {
+    font-family: monospace;
+    font-size: 120%;
+}
+
+tr.codeview td, tr.codeview pre {
+    padding-left: 20px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.cell_waiting {
+    background-color: #FF0000;
+}
+
+.pfdisplay {
+    font-family: monospace;
+    font-size: 120%;
+}
+
+table.pftable td, table.pftable th {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+div.XTKscene {
+    background-color:#000;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden !important;
+}

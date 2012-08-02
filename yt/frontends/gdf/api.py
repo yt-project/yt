@@ -1,13 +1,14 @@
 """
-API for yt.frontends.chombo
+API for yt.frontends.gdf
 
+Author: Samuel W. Skillman <samskillman@gmail.com>
+Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.Chombotools.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -39,5 +40,3 @@ from .fields import \
 
 from .io import \
       IOHandlerGDFHDF5
-
-

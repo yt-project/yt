@@ -36,52 +36,26 @@ from yt.config import ytcfg
 from yt.utilities.definitions import \
     x_dict, y_dict
 import yt.utilities.logger
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     QuadTree, merge_quadtrees
 
-exe_name = os.path.basename(sys.executable)
-# At import time, we determined whether or not we're being run in parallel.
-if exe_name in \
-        ["mpi4py", "embed_enzo",
-         "python"+sys.version[:3]+"-mpi"] \
-    or "--parallel" in sys.argv or '_parallel' in dir(sys) \
-    or any(["ipengine" in arg for arg in sys.argv]):
+parallel_capable = ytcfg.getboolean("yt", "__parallel")
+
+# Set up translation table and import things
+if parallel_capable:
     from mpi4py import MPI
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
-    if parallel_capable:
-        mylog.info("Global parallel computation enabled: %s / %s",
-                   MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-        ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
-        ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel"] = "True"
-        if exe_name == "embed_enzo" or \
-            ("_parallel" in dir(sys) and sys._parallel == True):
-            ytcfg["yt","inline"] = "True"
-        # I believe we do not need to turn this off manually
-        #ytcfg["yt","StoreParameterFiles"] = "False"
-        # Now let's make sure we have the right options set.
-        if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("yt","LogFile"):
-                ytcfg["yt","LogFile"] = "False"
-                yt.utilities.logger.disable_file_logging()
-        yt.utilities.logger.uncolorize_logging()
-        # Even though the uncolorize function already resets the format string,
-        # we reset it again so that it includes the processor.
-        f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
-                                            yt.utilities.logger.ufstring))
-        if len(yt.utilities.logger.rootLogger.handlers) > 0:
-            yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
-        if ytcfg.getboolean("yt", "parallel_traceback"):
-            sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
+    yt.utilities.logger.uncolorize_logging()
+    # Even though the uncolorize function already resets the format string,
+    # we reset it again so that it includes the processor.
+    f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
+                                        yt.utilities.logger.ufstring))
+    if len(yt.utilities.logger.rootLogger.handlers) > 0:
+        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+    if ytcfg.getboolean("yt", "parallel_traceback"):
+        sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
-
-else:
-    parallel_capable = False
-
-# Set up translation table
-if parallel_capable:
     dtype_names = dict(
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
@@ -124,6 +98,8 @@ class ObjectIterator(object):
             gs = getattr(pobj, attr)
         else:
             gs = getattr(pobj._data_source, attr)
+        if len(gs) == 0:
+            raise YTNoDataInObjectError(pobj)
         if hasattr(gs[0], 'proc_num'):
             # This one sort of knows about MPI, but not quite
             self._objs = [g for g in gs if g.proc_num ==
@@ -180,6 +156,9 @@ def parallel_simple_proxy(func):
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
+        if hasattr(self, "dont_wrap"):
+            if func.func_name in self.dont_wrap:
+                return func(self, *args, **kwargs)
         if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         comm = _get_comm((self,))
@@ -282,7 +261,7 @@ def parallel_root_only(func):
                 all_clear = 0
         else:
             all_clear = None
-        all_clear = comm.mpi_bcast_pickled(all_clear)
+        all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
     return func
@@ -311,7 +290,7 @@ class ProcessorPool(object):
         if size is None:
             size = len(self.available_ranks)
         if len(self.available_ranks) < size:
-            print 'Not enough resources available'
+            print 'Not enough resources available', size, self.available_ranks
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
@@ -338,15 +317,103 @@ class ProcessorPool(object):
         for wg in self.workgroups:
             self.free_workgroup(wg)
 
+    @classmethod
+    def from_sizes(cls, sizes):
+        sizes = ensure_list(sizes)
+        pool = cls()
+        rank = pool.comm.rank
+        for i,size in enumerate(sizes):
+            if iterable(size):
+                size, name = size
+            else:
+                name = "workgroup_%02i" % i
+            pool.add_workgroup(size, name = name)
+        for wg in pool.workgroups:
+            if rank in wg.ranks: workgroup = wg
+        return pool, workgroup
+
+    def __getitem__(self, key):
+        for wg in self.workgroups:
+            if wg.name == key: return wg
+        raise KeyError(key)
+
 class ResultsStorage(object):
     slots = ['result', 'result_id']
     result = None
     result_id = None
 
-def parallel_objects(objects, njobs, storage = None):
+def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
+                     dynamic = False):
+    r"""This function dispatches components of an iterable to different
+    processors.
+
+    The parallel_objects function accepts an iterable, *objects*, and based on
+    the number of jobs requested and number of available processors, decides
+    how to dispatch individual objects to processors or sets of processors.
+    This can implicitly include multi-level parallelism, such that the
+    processor groups assigned each object can be composed of several or even
+    hundreds of processors.  *storage* is also available, for collation of
+    results at the end of the iteration loop.
+
+    Calls to this function can be nested.
+
+    This should not be used to iterate over parameter files --
+    :class:`~yt.data_objects.time_series.TimeSeriesData` provides a much nicer
+    interface for that.
+
+    Parameters
+    ----------
+    objects : iterable
+        The list of objects to dispatch to different processors.
+    njobs : int
+        How many jobs to spawn.  By default, one job will be dispatched for
+        each available processor.
+    storage : dict
+        This is a dictionary, which will be filled with results during the
+        course of the iteration.  The keys will be the parameter file
+        indices and the values will be whatever is assigned to the *result*
+        attribute on the storage during iteration.
+    barrier : bool
+        Should a barier be placed at the end of iteration?
+    dynamic : bool
+        This governs whether or not dynamic load balancing will be enabled.
+        This requires one dedicated processor; if this is enabled with a set of
+        128 processors available, only 127 will be available to iterate over
+        objects as one will be load balancing the rest.
+
+
+    Examples
+    --------
+    Here is a simple example of iterating over a set of centers and making
+    slice plots centered at each.
+
+    >>> for c in parallel_objects(centers):
+    ...     SlicePlot(pf, "x", "Density", center = c).save()
+    ...
+
+    Here's an example of calculating the angular momentum vector of a set of
+    spheres, but with a set of four jobs of multiple processors each.  Note
+    that we also store the results.
+
+    >>> storage = {}
+    >>> for sto, c in parallel_objects(centers, njobs=4, storage=storage):
+    ...     sp = pf.h.sphere(c, (100, "kpc"))
+    ...     sto.result = sp.quantities["AngularMomentumVector"]()
+    ...
+    >>> for sphere_id, L in sorted(storage.items()):
+    ...     print c[sphere_id], L
+    ...
+
+    """
+    if dynamic:
+        from .task_queue import dynamic_parallel_objects
+        for my_obj in dynamic_parallel_objects(objects, njobs=njobs,
+                                               storage=storage):
+            yield my_obj
+        return
+    
     if not parallel_capable:
         njobs = 1
-        mylog.warn("parallel_objects() is being used when parallel_capable is false. The loop is not being run in parallel. This may not be what was expected.")
     my_communicator = communication_system.communicators[-1]
     my_size = my_communicator.size
     if njobs <= 0:
@@ -366,7 +433,11 @@ def parallel_objects(objects, njobs, storage = None):
     obj_ids = na.arange(len(objects))
 
     to_share = {}
-    for result_id, obj in zip(obj_ids, objects)[my_new_id::njobs]:
+    # If our objects object is slice-aware, like time series data objects are,
+    # this will prevent intermediate objects from being created.
+    oiter = itertools.izip(obj_ids[my_new_id::njobs],
+                           objects[my_new_id::njobs])
+    for result_id, obj in oiter:
         if storage is not None:
             rstore = ResultsStorage()
             rstore.result_id = result_id
@@ -374,12 +445,15 @@ def parallel_objects(objects, njobs, storage = None):
             to_share[rstore.result_id] = rstore.result
         else:
             yield obj
-    communication_system.communicators.pop()
+    if parallel_capable:
+        communication_system.pop()
     if storage is not None:
         # Now we have to broadcast it
         new_storage = my_communicator.par_combine_object(
                 to_share, datatype = 'dict', op = 'join')
         storage.update(new_storage)
+    if barrier:
+        my_communicator.barrier()
 
 class CommunicationSystem(object):
     communicators = []
@@ -413,6 +487,9 @@ class CommunicationSystem(object):
         self.communicators.pop()
         self._update_parallel_state(self.communicators[-1])
 
+def _reconstruct_communicator():
+    return communication_system.communicators[-1]
+
 class Communicator(object):
     comm = None
     _grids = None
@@ -426,6 +503,11 @@ class Communicator(object):
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
     """
+
+    def __reduce__(self):
+        # We don't try to reconstruct any of the properties of the communicator
+        # or the processors.  In general, we don't want to.
+        return (_reconstruct_communicator, ())
 
     def barrier(self):
         if not self._distributed: return
@@ -525,13 +607,30 @@ class Communicator(object):
         raise NotImplementedError
 
     @parallel_passthrough
-    def mpi_bcast_pickled(self, data):
-        data = self.comm.bcast(data, root=0)
-        return data
+    def mpi_bcast(self, data, root = 0):
+        # The second check below makes sure that we know how to communicate
+        # this type of array. Otherwise, we'll pickle it.
+        if isinstance(data, na.ndarray) and \
+                get_mpi_type(data.dtype) is not None:
+            if self.comm.rank == root:
+                info = (data.shape, data.dtype)
+            else:
+                info = ()
+            info = self.comm.bcast(info, root=root)
+            if self.comm.rank != root:
+                data = na.empty(info[0], dtype=info[1])
+            mpi_type = get_mpi_type(info[1])
+            self.comm.Bcast([data, mpi_type], root = root)
+            return data
+        else:
+            # Use pickled methods.
+            data = self.comm.bcast(data, root = root)
+            return data
 
     def preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
+        if len(fields) == 0: return
         mylog.debug("Preloading %s from %s grids", fields, len(grids))
         if not self._distributed: return
         io_handler.preload(grids, fields)
@@ -665,13 +764,17 @@ class Communicator(object):
         return buf
 
     @parallel_passthrough
-    def merge_quadtree_buffers(self, qt):
+    def merge_quadtree_buffers(self, qt, merge_style):
         # This is a modified version of pairwise reduction from Lisandro Dalcin,
         # in the reductions demo of mpi4py
         size = self.comm.size
         rank = self.comm.rank
 
         mask = 1
+
+        buf = qt.tobuffer()
+        print "PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape
+        sys.exit()
 
         args = qt.get_args() # Will always be the same
         tgd = na.array([args[0], args[1]], dtype='int64')
@@ -690,8 +793,8 @@ class Communicator(object):
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2])
-                    qto.frombuffer(*buf)
-                    merge_quadtrees(qt, qto)
+                    qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
+                    merge_quadtrees(qt, qto, style = merge_style)
                     del qto
                     #self.send_quadtree(target, qt, tgd, args)
             mask <<= 1
@@ -710,7 +813,7 @@ class Communicator(object):
         self.refined = buf[0]
         if rank != 0:
             qt = QuadTree(tgd, args[2])
-            qt.frombuffer(*buf)
+            qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 
 
@@ -753,6 +856,16 @@ class Communicator(object):
         self.comm.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
                                   (tmp_recv, (rsize, roff), MPI.CHAR))
         return recv
+
+    def probe_loop(self, tag, callback):
+        while 1:
+            st = MPI.Status()
+            self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
+            try:
+                callback(st)
+            except StopIteration:
+                mylog.debug("Probe loop ending.")
+                break
 
 communication_system = CommunicationSystem()
 if parallel_capable:

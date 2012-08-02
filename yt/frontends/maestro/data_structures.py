@@ -46,7 +46,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
-    mpc_conversion
+    mpc_conversion, sec_conversion
 
 from .definitions import \
     maestro2enzoDict, \
@@ -532,9 +532,8 @@ class MaestroStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
         for key in yt2maestroFieldsDict:
             self.conversion_factors[key] = 1.0
 

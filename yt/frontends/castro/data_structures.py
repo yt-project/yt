@@ -38,8 +38,9 @@ from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
-from yt.utilities.definitions import mpc_conversion
-from yt.utilities.amr_utils import get_box_grids_level
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
+from yt.utilities.lib import get_box_grids_level
 
 from .definitions import \
     castro2enzoDict, \
@@ -713,8 +714,8 @@ class CastroStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365 * 3600 * 24.0)
-        self.time_units['days']  = seconds / (3600 * 24.0)
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = seconds / sec_conversion[unit]
         for key in yt2castroFieldsDict:
             self.conversion_factors[key] = 1.0
         for key in castro_particle_field_names:

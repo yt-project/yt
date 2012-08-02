@@ -1,0 +1,39 @@
+Here is info from Erik Tollerud about the IRATE data format.
+
+The bitbucket project is at https://bitbucket.org/eteq/irate-format
+and I've posted a copy of the docs at
+http://www.physics.uci.edu/~etolleru/irate-docs/ , in particular
+http://www.physics.uci.edu/~etolleru/irate-docs/formatspec.html ,
+which details the actual requirements for data to fit in the format.
+As far as I can tell, the following steps are needed to make GDF fit
+inside the IRATE format:
+
+*move everything except "/simulation_parameters" into a group named "/GridData"
+
+*rename "/simulation_parameters" to "SimulationParameters"
+
+*remove the 'field_types' group (this is not absolutely necessary, but
+the convention we had in mind for IRATE is that the dataset names
+themselves (e.g. the datasets like /data/gridxxxxxx/density)  serve as
+the field definitions.
+
+* The unit information that's in 'field_types' should then be
+attributes in either "/GridData" or "/GridData/data" following the
+naming scheme e.g. "densityunitcgs" following the unit form given in
+the IRATE doc and an additional attribute e.g. "densityunitname"
+should be added with the human-readable name of the unit. This unit
+information can also live at the dataset level, but it probably makes
+more sense to put it instead at the higher level (IRATE supports both
+ways of doing it)
+
+* The Cosmology group (as defined in the IRATE specification) must be
+added - for simulations that are not technically "cosmological", you
+can just use one of the default cosmologies (WMAP7 is a reasonable
+choice - there's a function in the IRATE tools that automatically
+takes care of all the details for this).
+
+* optional: redo all the group names to follow the CamelCase
+convention - that's what we've been using elsewhere in IRATE.  This is
+an arbitrary choice, but it would be nice for it to be consistent
+throughout the format.
+

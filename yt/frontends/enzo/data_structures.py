@@ -47,7 +47,8 @@ from yt.data_objects.static_output import \
     StaticOutput
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-from yt.utilities.definitions import mpc_conversion
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
 
@@ -354,6 +355,11 @@ class EnzoHierarchy(AMRHierarchy):
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
         except:
             return False
+        hash = f["/"].attrs.get("hash", None)
+        if hash != self.parameter_file._hash():
+            mylog.info("Binary hierarchy does not match: recreating")
+            f.close()
+            return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
         self.grid_right_edge[:] = f["/RightEdges"][:]
@@ -390,6 +396,7 @@ class EnzoHierarchy(AMRHierarchy):
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
         except IOError:
             return
+        f["/"].attrs["hash"] = self.parameter_file._hash()
         f.create_dataset("/LeftEdges", data=self.grid_left_edge)
         f.create_dataset("/RightEdges", data=self.grid_right_edge)
         parents, procs, levels = [], [], []
@@ -462,31 +469,26 @@ class EnzoHierarchy(AMRHierarchy):
                     field_list = field_list.union(gf)
         else:
             field_list = None
-        field_list = self.comm.mpi_bcast_pickled(field_list)
+        field_list = self.comm.mpi_bcast(field_list)
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
             starter = na.random.randint(0, 20)
             random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            # We also add in a bit to make sure that some of the grids have
+            # particles
+            gwp = self.grid_particle_count > 0
+            if na.any(gwp) and not na.any(gwp[(random_sample,)]):
+                # We just add one grid.  This is not terribly efficient.
+                first_grid = na.where(gwp)[0][0]
+                random_sample.resize((21,))
+                random_sample[-1] = first_grid
+                mylog.debug("Added additional grid %s", first_grid)
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
-            random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
+            random_sample = na.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
@@ -888,9 +890,8 @@ class EnzoStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self["Time"] / sec_conversion[unit]
 
     def _setup_comoving_units(self):
         z = self["CosmologyCurrentRedshift"]

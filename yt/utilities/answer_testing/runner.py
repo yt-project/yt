@@ -27,8 +27,8 @@ import matplotlib
 import os, shelve, cPickle, sys, imp, tempfile
 
 from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
-import yt.utilities.cmdln as cmdln
 from yt.funcs import *
+from yt.utilities.command_line import YTCommand
 from .xunit import Xunit
 
 from output_tests import test_registry, MultipleOutputTest, \
@@ -95,6 +95,7 @@ class RegressionTestRunner(object):
         self.results = RegressionTestStorage(results_id, path=results_path)
         self.plot_list = {}
         self.passed_tests = {}
+        self.test_messages = {}
         self.plot_tests = plot_tests
 
     def run_all_tests(self):
@@ -133,31 +134,32 @@ class RegressionTestRunner(object):
         if self.plot_tests:
             self.plot_list[test.name] = test.plot()
         self.results[test.name] = test.result
-        success, msg = self._compare(test)
+        success, msg, exc = self._compare(test)
         if self.old_results is None:
             print "NO OLD RESULTS"
         else:
             if success == True: print "SUCCEEDED"
             else: print "FAILED", msg
         self.passed_tests[test.name] = success
+        self.test_messages[test.name] = msg
         if self.watcher is not None:
             if success == True:
                 self.watcher.addSuccess(test.name)
             else:
-                self.watcher.addFailure(test.name, msg)
+                self.watcher.addFailure(test.name, exc)
 
     def _compare(self, test):
         if self.old_results is None:
-            return (True, "New Test")
+            return (True, "", "New Test")
         try:
             old_result = self.old_results[test.name]
         except FileNotExistException:
             return (False, sys.exc_info())
         try:
             test.compare(old_result)
-        except RegressionTestException, exc:
-            return (False, sys.exc_info())
-        return (True, "Pass")
+        except RegressionTestException as exc:
+            return (False, repr(exc), sys.exc_info())
+        return (True, "", "Pass")
 
     def run_tests_from_file(self, filename):
         for line in open(filename):
@@ -169,98 +171,22 @@ class RegressionTestRunner(object):
             print "Running '%s'" % (test_name)
             self.run_test(line.strip())
 
-class EnzoTestRunnerCommands(cmdln.Cmdln):
-    name = "enzo_tests"
+def _load_modules(test_modules):
+    for fn in test_modules:
+        if fn.endswith(".py"): fn = fn[:-3]
+        print "Loading module %s" % (fn)
+        mname = os.path.basename(fn)
+        f, filename, desc = imp.find_module(mname, [os.path.dirname(fn)])
+        project = imp.load_module(mname, f, filename, desc)
 
-    def _load_modules(self, test_modules):
-        for fn in test_modules:
-            if fn.endswith(".py"): fn = fn[:-3]
-            print "Loading module %s" % (fn)
-            mname = os.path.basename(fn)
-            f, filename, desc = imp.find_module(mname, [os.path.dirname(fn)])
-            project = imp.load_module(mname, f, filename, desc)
-
-    def _update_io_log(self, opts, kwargs):
-        if opts.datasets is None or len(opts.datasets) == 0: return
-        f = tempfile.NamedTemporaryFile()
-        kwargs['io_log'] = f.name
-        for d in opts.datasets:
-            fn = os.path.expanduser(d)
-            print "Registered dataset %s" % fn
-            f.write("DATASET WRITTEN %s\n" % fn)
-        f.flush()
-        f.seek(0)
-        return f
-
-    @cmdln.option("-f", "--dataset", action="append",
-                  help="override the io_log and add this to the new one",
-                  dest="datasets")
-    @cmdln.option("-p", "--results-path", action="store",
-                  help="which directory should results be stored in",
-                  dest="results_path", default=".")
-    def do_store(self, subcmd, opts, name, *test_modules):
-        """
-        ${cmd_name}: Run and store a new dataset.
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        sys.path.insert(0, ".")
-        self._load_modules(test_modules)
-        kwargs = {}
-        f = self._update_io_log(opts, kwargs)
-        test_runner = RegressionTestRunner(name,
-                results_path = opts.results_path,
-                **kwargs)
-        test_runner.run_all_tests()
-
-    @cmdln.option("-o", "--output", action="store",
-                  help="output results to file",
-                  dest="outputfile", default=None)
-    @cmdln.option("-p", "--results-path", action="store",
-                  help="which directory should results be stored in",
-                  dest="results_path", default=".")
-    @cmdln.option("-n", "--nose", action="store_true",
-                  help="run through nose with xUnit testing",
-                  dest="run_nose", default=False)
-    @cmdln.option("-f", "--dataset", action="append",
-                  help="override the io_log and add this to the new one",
-                  dest="datasets")
-    def do_compare(self, subcmd, opts, reference, comparison, *test_modules):
-        """
-        ${cmd_name}: Compare a reference dataset against a new dataset.  The
-        new dataset will be run regardless of whether it exists or not.
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        if comparison == "__CURRENT__":
-            import pkg_resources
-            yt_provider = pkg_resources.get_provider("yt")
-            path = os.path.dirname(yt_provider.module_path)
-            from yt.utilities.command_line import _get_hg_version
-            comparison = _get_hg_version(path)[:12]
-            print "Setting comparison to: %s" % (comparison)
-        sys.path.insert(0, ".")
-        self._load_modules(test_modules)
-        kwargs = {}
-        f = self._update_io_log(opts, kwargs)
-        test_runner = RegressionTestRunner(comparison, reference,
-                            results_path=opts.results_path,
-                            **kwargs)
-        if opts.run_nose:
-            test_runner.watcher = Xunit()
-        results = test_runner.run_all_tests()
-        if opts.run_nose:
-            test_runner.watcher.report()
-        if opts.outputfile is not None:
-            f = open(str(opts.outputfile), "w")
-            for testname, success in sorted(results.items()):
-                f.write("%s %s\n" % (testname.ljust(100), success))
-
-def run_main():
-    etrc = EnzoTestRunnerCommands()
-    sys.exit(etrc.main())
-
-if __name__ == "__main__":
-    run_main()
+def _update_io_log(opts, kwargs):
+    if opts.datasets is None or len(opts.datasets) == 0: return
+    f = tempfile.NamedTemporaryFile()
+    kwargs['io_log'] = f.name
+    for d in opts.datasets:
+        fn = os.path.expanduser(d)
+        print "Registered dataset %s" % fn
+        f.write("DATASET WRITTEN %s\n" % fn)
+    f.flush()
+    f.seek(0)
+    return f

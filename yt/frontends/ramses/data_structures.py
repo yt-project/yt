@@ -41,8 +41,8 @@ except ImportError:
     _ramses_reader = None
 from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from yt.utilities.definitions import \
-    mpc_conversion
-from yt.utilities.amr_utils import \
+    mpc_conversion, sec_conversion
+from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
@@ -125,6 +125,23 @@ class RAMSESHierarchy(AMRHierarchy):
     def _detect_fields(self):
         self.field_list = self.tree_proxy.field_names[:]
     
+    def _setup_field_list(self):
+        if self.parameter_file.use_particles:
+            # We know which particle fields will exist -- pending further
+            # changes in the future.
+            for field in art_particle_field_names:
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D,
+                # 2D and 3D fields.
+                self.pf.field_info.add_field(field, NullFunc,
+                                             convert_function=cf,
+                                             take_log=False, particle_type=True)
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -301,9 +318,6 @@ class RAMSESStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = self.parameters['unit_t']
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
         self.conversion_factors["Density"] = self.parameters['unit_d']
         vel_u = self.parameters['unit_l'] / self.parameters['unit_t']
         self.conversion_factors["x-velocity"] = vel_u
@@ -313,6 +327,8 @@ class RAMSESStaticOutput(StaticOutput):
     def _setup_nounits_units(self):
         for unit in mpc_conversion.keys():
             self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
 
     def _parse_parameter_file(self):
         # hardcoded for now

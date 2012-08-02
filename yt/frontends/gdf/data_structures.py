@@ -1,12 +1,15 @@
 """
-Data structures for Chombo.
+Data structures for GDF.
 
+Author: Samuel W. Skillman <samskillman@gmail.com>
+Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
+  All Rights Reserved.
 
   This file is part of yt.
 
@@ -34,11 +37,18 @@ from yt.data_objects.hierarchy import \
            AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
+from yt.utilities.definitions import \
+    sec_conversion
 
 from .fields import GDFFieldInfo, KnownGDFFields
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 import pdb
+
+def _get_convert(fname):
+    def _conv(data):
+        return data.convert(fname)
+    return _conv
 
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
@@ -76,7 +86,7 @@ class GDFHierarchy(AMRHierarchy):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self._fhandle = h5py.File(self.hierarchy_filename)
+        self._fhandle = h5py.File(self.hierarchy_filename,'r')
         AMRHierarchy.__init__(self,pf,data_style)
 
         self._fhandle.close()
@@ -94,31 +104,31 @@ class GDFHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         self.num_grids = self._fhandle['/grid_parent_id'].shape[0]
-        
+       
     def _parse_hierarchy(self):
         f = self._fhandle 
-        
-        # this relies on the first Group in the H5 file being
-        # 'Chombo_global'
-        levels = f.listnames()[1:]
         dxs=[]
         self.grids = na.empty(self.num_grids, dtype='object')
-        for i, grid in enumerate(f['data'].keys()):
-            self.grids[i] = self.grid(i, self, f['grid_level'][i],
-                                      f['grid_left_index'][i],
-                                      f['grid_dimensions'][i])
-            self.grids[i]._level_id = f['grid_level'][i]
+        levels = (f['grid_level'][:]).copy()
+        glis = (f['grid_left_index'][:]).copy()
+        gdims = (f['grid_dimensions'][:]).copy()
+        for i in range(levels.shape[0]):
+            self.grids[i] = self.grid(i, self, levels[i],
+                                      glis[i],
+                                      gdims[i])
+            self.grids[i]._level_id = levels[i]
 
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-            dx = dx/self.parameter_file.refine_by**(f['grid_level'][i])
+            dx = dx/self.parameter_file.refine_by**(levels[i])
             dxs.append(dx)
         dx = na.array(dxs)
-        self.grid_left_edge = self.parameter_file.domain_left_edge + dx*f['grid_left_index'][:]
-        self.grid_dimensions = f['grid_dimensions'][:].astype("int32")
+        self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
+        self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = f['grid_particle_count'][:]
-
+        del levels, glis, gdims
+ 
     def _populate_grid_objects(self):
         for g in self.grids:
             g._prepare_grid()
@@ -129,9 +139,6 @@ class GDFHierarchy(AMRHierarchy):
             for g1 in g.Children:
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
-
-    def _setup_unknown_fields(self):
-        pass
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
@@ -165,13 +172,25 @@ class GDFStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['cm'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
+
         # This should be improved.
         self._handle = h5py.File(self.parameter_filename, "r")
         for field_name in self._handle["/field_types"]:
-            self.units[field_name] = self._handle["/field_types/%s" % field_name].attrs['field_to_cgs']
+            current_field = self._handle["/field_types/%s" % field_name]
+            try:
+                self.units[field_name] = current_field.attrs['field_to_cgs']
+            except:
+                self.units[field_name] = 1.0
+            try:
+                current_fields_unit = current_field.attrs['field_units'][0]
+            except:
+                current_fields_unit = ""
+            self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
+                   units=current_fields_unit, projected_units="", 
+                   convert_function=_get_convert(field_name))
+
         self._handle.close()
         del self._handle
         
@@ -181,7 +200,9 @@ class GDFStaticOutput(StaticOutput):
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
         self.domain_dimensions = sp["domain_dimensions"][:]
-        self.refine_by = sp["refine_by"]
+        refine_by = sp["refine_by"]
+        if refine_by is None: refine_by = 2
+        self.refine_by = refine_by 
         self.dimensionality = sp["dimensionality"]
         self.current_time = sp["current_time"]
         self.unique_identifier = sp["unique_identifier"]
@@ -198,6 +219,7 @@ class GDFStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+        self.parameters['Time'] = 1.0 # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()
         del self._handle

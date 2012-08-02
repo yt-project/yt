@@ -38,7 +38,8 @@ from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
-from yt.utilities.definitions import mpc_conversion
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
@@ -88,7 +89,7 @@ class OrionGrid(AMRGridPatch):
         h.grid_left_edge[self.id,:] = self.LeftEdge[:]
         h.grid_right_edge[self.id,:] = self.RightEdge[:]
         #self.Time = h.gridTimes[self.id,0]
-        #self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        self.NumberOfParticles = 0 # these will be read in later
         self.field_indexes = h.field_indexes
         self.Children = h.gridTree[self.id]
         pIDs = h.gridReverseTree[self.id]
@@ -122,13 +123,59 @@ class OrionHierarchy(AMRHierarchy):
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.directory = pf.fullpath
         self.data_style = data_style
-        #self._setup_classes()
 
         self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self,pf, self.data_style)
         self._populate_hierarchy()
-        
+        self._read_particles()
+
+    def _read_particles(self):
+        """
+        reads in particles and assigns them to grids. Will search for
+        Star particles, then sink particles if no star particle file
+        is found, and finally will simply note that no particles are
+        found if neither works. To add a new Orion particle type,
+        simply add it to the if/elif/else block.
+
+        """
+        self.grid_particle_count = na.zeros(len(self.grids))
+
+        for particle_filename in ["StarParticles", "SinkParticles"]:
+            fn = os.path.join(self.pf.fullplotdir, particle_filename)
+            if os.path.exists(fn): self._read_particle_file(fn)
+
+    def _read_particle_file(self, fn):
+        """actually reads the orion particle data file itself.
+
+        """
+        if not os.path.exists(fn): return
+        with open(fn, 'r') as f:
+            lines = f.readlines()
+            self.num_stars = int(lines[0].strip()[0])
+            for line in lines[1:]:
+                particle_position_x = float(line.split(' ')[1])
+                particle_position_y = float(line.split(' ')[2])
+                particle_position_z = float(line.split(' ')[3])
+                coord = [particle_position_x, particle_position_y, particle_position_z]
+                # for each particle, determine which grids contain it
+                # copied from object_finding_mixin.py
+                mask=na.ones(self.num_grids)
+                for i in xrange(len(coord)):
+                    na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                    na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                ind = na.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = na.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
+        return True
+                
     def readGlobalHeader(self,filename,paranoid_read):
         """
         read the global header file for an Orion plotfile output.
@@ -309,7 +356,7 @@ class OrionHierarchy(AMRHierarchy):
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
         self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
-        self.grid_levels = self.grid_levels.reshape((self.num_grids,1))
+        self.grid_levels = na.array(self.grid_levels.reshape((self.num_grids,1)),dtype='int32')
         grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
         self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
         self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
@@ -456,7 +503,8 @@ class OrionStaticOutput(StaticOutput):
         castro = any(("castro." in line for line in open(pfn)))
         nyx = any(("nyx." in line for line in open(pfn)))
         maestro = os.path.exists(os.path.join(pname, "job_info"))
-        orion = (not castro) and (not maestro) and (not nyx)
+        really_orion = any(("geometry.prob_lo" in line for line in open(pfn)))
+        orion = (not castro) and (not maestro) and (not nyx) and really_orion
         return orion
         
     def _parse_parameter_file(self):
@@ -489,6 +537,7 @@ class OrionStaticOutput(StaticOutput):
                 param, vals = map(strip,map(rstrip,line.split("=")))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
+                continue
             if orion2enzoDict.has_key(param):
                 paramName = orion2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
@@ -509,7 +558,7 @@ class OrionStaticOutput(StaticOutput):
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
-        self.domain_dimensions = self.parameters["TopGridDimensions"]
+        self.domain_dimensions = na.array(self.parameters["TopGridDimensions"],dtype='int32')
         self.refine_by = self.parameters["RefineBy"]
 
         if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):
@@ -574,9 +623,8 @@ class OrionStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
         for key in yt2orionFieldsDict:
             self.conversion_factors[key] = 1.0
 

@@ -27,7 +27,7 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from yt.utilities.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
+from yt.utilities.lib import PartitionedGrid, ProtoPrism, GridFace, \
     grid_points_in_volume, find_grids_in_inclined_box
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_root_only
@@ -41,7 +41,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 class HomogenizedVolume(ParallelAnalysisInterface):
     bricks = None
     def __init__(self, fields = "Density", source = None, pf = None,
-                 log_fields = None, no_ghost = False):
+                 log_fields = None, no_ghost = False,
+                 max_level = 48):
         # Typically, initialized as hanging off a hierarchy.  But, not always.
         ParallelAnalysisInterface.__init__(self)
         self.no_ghost = no_ghost
@@ -54,6 +55,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         else:
             log_fields = [self.pf.field_info[field].take_log
                          for field in self.fields]
+        self.max_level = max_level
         self.log_fields = log_fields
 
     def traverse(self, back_point, front_point, image):
@@ -84,13 +86,18 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         PP = ProtoPrism(grid.id, grid.LeftEdge, grid.RightEdge, GF)
 
         pgs = []
+        cm = grid.child_mask.copy()
+        if grid.Level > self.max_level:
+            return pgs
+        elif grid.Level == self.max_level:
+            cm[:] = 1
         for P in PP.sweep(0):
-            sl = P.get_brick(grid.LeftEdge, grid.dds, grid.child_mask)
+            sl = P.get_brick(grid.LeftEdge, grid.dds, cm)
             if len(sl) == 0: continue
             dd = [d[sl[0][0]:sl[0][1]+1,
                     sl[1][0]:sl[1][1]+1,
                     sl[2][0]:sl[2][1]+1].copy() for d in vcds]
-            pgs.append(PartitionedGrid(grid.id, len(self.fields), dd,
+            pgs.append(PartitionedGrid(grid.id, dd,
                         P.LeftEdge, P.RightEdge, sl[-1]))
         return pgs
 

@@ -35,7 +35,8 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
-from .color_maps import yt_colormaps
+from .color_maps import yt_colormaps, is_colormap
+from yt.utilities.exceptions import YTNoDataInObjectError
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -231,7 +232,10 @@ class RavenPlot(object):
                 cmap = yt_colormaps[str(cmap)]
             elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
-        self.cmap = cmap
+        if not is_colormap(cmap) and cmap is not None:
+            raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
+        else:
+            self.cmap = cmap
         
     def __setitem__(self, item, val):
         self.im[item] = val
@@ -290,6 +294,17 @@ class RavenPlot(object):
         for c in callback_registry.values():
             if not hasattr(c, '_type_name'): continue
             self.modify[c._type_name] = c
+
+    def _pretty_name(self):
+        width = self.im.get("Width", "NA")
+        unit = self.im.get("Unit", "NA")
+        field = self.axis_names.get("Z", self.axis_names.get("Field1"))
+        if hasattr(self.data, "_data_source"):
+            data = self.data._data_source
+        else:
+            data = self.data
+        return "%s: %s (%s %s) %s" % (self._type_name,
+            field, width, unit, data)
 
 class VMPlot(RavenPlot):
     _antialias = True
@@ -376,6 +391,8 @@ class VMPlot(RavenPlot):
 
     def _redraw_image(self, *args):
         buff = self._get_buff()
+        if self[self.axis_names["Z"]].size == 0:
+            raise YTNoDataInObjectError(self.data)
         mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
                     na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),
@@ -487,6 +504,7 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.colorbar.set_label(str(data_label), **self.label_kws)
 
+
 class FixedResolutionPlot(VMPlot):
 
     # This is a great argument in favor of changing the name
@@ -509,7 +527,7 @@ class FixedResolutionPlot(VMPlot):
     def setup_domain_edges(self, *args, **kwargs):
         return
 
-class SlicePlot(VMPlot):
+class PCSlicePlot(VMPlot):
     _type_name = "Slice"
 
     def show_velocity(self, factor = 16, bv_radius = None):
@@ -556,10 +574,10 @@ class NNVMPlot:
         return buff.transpose()
 
 
-class SlicePlotNaturalNeighbor(NNVMPlot, SlicePlot):
+class PCSlicePlotNaturalNeighbor(NNVMPlot, PCSlicePlot):
     _type_name = "NNSlice"
 
-class ProjectionPlot(VMPlot):
+class PCProjectionPlot(VMPlot):
 
     _type_name = "Projection"
 
@@ -571,10 +589,10 @@ class ProjectionPlot(VMPlot):
         if self.data._weight is not None:
             self.prefix += "_%s" % (self.data._weight)
 
-class ProjectionPlotNaturalNeighbor(NNVMPlot, ProjectionPlot):
+class PCProjectionPlotNaturalNeighbor(NNVMPlot, PCProjectionPlot):
     _type_name = "NNProj"
 
-class CuttingPlanePlot(SlicePlot):
+class CuttingPlanePlot(PCSlicePlot):
 
     _type_name = "CuttingPlane"
     def _get_buff(self, width=None):

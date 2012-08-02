@@ -40,7 +40,7 @@ from yt.utilities.physical_constants import \
     mh
 from yt.funcs import *
 
-import yt.utilities.amr_utils as amr_utils
+import yt.utilities.lib as amr_utils
 
 EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = EnzoFieldInfo.add_field
@@ -51,7 +51,7 @@ add_enzo_field = KnownEnzoFields.add_field
 _speciesList = ["HI", "HII", "Electron",
                 "HeI", "HeII", "HeIII",
                 "H2I", "H2II", "HM",
-                "DI", "DII", "HDI", "Metal", "PreShock"]
+                "DI", "DII", "HDI", "Metal", "MetalSNIa", "PreShock"]
 _speciesMass = {"HI": 1.0, "HII": 1.0, "Electron": 1.0,
                 "HeI": 4.0, "HeII": 4.0, "HeIII": 4.0,
                 "H2I": 2.0, "H2II": 2.0, "HM": 1.0,
@@ -224,7 +224,10 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum",
-                   "Bx", "By", "Bz", "Dust_Temperature"]
+                   "Bx", "By", "Bz", "Dust_Temperature",
+                   "HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss", "PhotoGamma",
+                   "RadAccel1", "RadAccel2", "RadAccel3", "SN_Colour",
+                   "Ray_Segments"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -247,11 +250,39 @@ for field in ['Bx','By','Bz']:
     f._units=r"\mathrm{Gau\ss}"
     f.take_log=False
 
+def _convertRadiation(data):
+    return 1.0/data.convert("Time")
+for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
+    f = KnownEnzoFields[field]
+    f._convert_function = _convertRadiation
+    f._units=r"\rm{s}^{-1}"
+    f.take_log=True
+
+KnownEnzoFields["PhotoGamma"]._convert_function = _convertRadiation
+KnownEnzoFields["PhotoGamma"]._units = r"\rm{eV} \rm{s}^{-1}"
+KnownEnzoFields["PhotoGamma"].take_log = True
+
+def _convertRadiationAccel(data):
+    return data.convert("cm") / data.convert("Time")**2
+for dim in range(1,4):
+    f = KnownEnzoFields["RadAccel%d" % dim]
+    f._convert_function = _convertRadiationAccel
+    f._units=r"\rm{cm}\ \rm{s}^{-2}"
+    f.take_log=False
+def _RadiationAccelerationMagnitude(field, data):
+    return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
+             data["RadAccel3"]**2 )**(1.0/2.0)
+add_field("RadiationAcceleration", 
+          function=_RadiationAccelerationMagnitude,
+          validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
+          display_name="Radiation\ Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
+
 # Now we override
 
 def _convertDensity(data):
     return data.convert("Density")
-for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
+for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
+        ["SN_Colour"]:
     KnownEnzoFields[field]._units = r"\rm{g}/\rm{cm}^3"
     KnownEnzoFields[field]._projected_units = r"\rm{g}/\rm{cm}^2"
     KnownEnzoFields[field]._convert_function=_convertDensity
@@ -262,6 +293,16 @@ add_enzo_field("Dark_Matter_Density", function=NullFunc,
                       ValidateSpatial(0)],
           display_name = "Dark\ Matter\ Density",
           not_in_all = True)
+
+def _Dark_Matter_Mass(field, data):
+    return data['Dark_Matter_Density'] * data["CellVolume"]
+add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
+          validators=ValidateDataField("Dark_Matter_Density"),
+          display_name="Dark\ Matter\ Mass", units=r"\rm{g}")
+add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
+          convert_function=_convertCellMassMsun,
+          validators=ValidateDataField("Dark_Matter_Density"),
+          display_name="Dark\ Matter\ Mass", units=r"M_{\odot}")
 
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
 KnownEnzoFields["Temperature"].units = r"K"
@@ -313,6 +354,46 @@ def _dmpdensity(field, data):
     return blank
 add_field("dm_density", function=_dmpdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _cic_particle_field(field, data):
+    """
+    Create a grid field for particle quantities weighted by particle mass, 
+    using cloud-in-cell deposit.
+    """
+    particle_field = field.name[4:]
+    top = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return top
+    particle_field_data = data[particle_field] * data['particle_mass']
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                           data["particle_position_y"].astype(na.float64),
+                           data["particle_position_z"].astype(na.float64),
+                           particle_field_data.astype(na.float32),
+                           na.int64(data.NumberOfParticles),
+                           top, na.array(data.LeftEdge).astype(na.float64),
+                           na.array(data.ActiveDimensions).astype(na.int32), 
+                           na.float64(data['dx']))
+    del particle_field_data
+
+    bottom = na.zeros(data.ActiveDimensions, dtype='float32')
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                           data["particle_position_y"].astype(na.float64),
+                           data["particle_position_z"].astype(na.float64),
+                           data["particle_mass"].astype(na.float32),
+                           na.int64(data.NumberOfParticles),
+                           bottom, na.array(data.LeftEdge).astype(na.float64),
+                           na.array(data.ActiveDimensions).astype(na.int32), 
+                           na.float64(data['dx']))
+    top[bottom == 0] = 0.0
+    bnz = bottom.nonzero()
+    top[bnz] /= bottom[bnz]
+    return top
+
+add_field('cic_particle_velocity_x', function=_cic_particle_field,
+          take_log=False, validators=[ValidateSpatial(0)])
+add_field('cic_particle_velocity_y', function=_cic_particle_field,
+          take_log=False, validators=[ValidateSpatial(0)])
+add_field('cic_particle_velocity_z', function=_cic_particle_field,
+          take_log=False, validators=[ValidateSpatial(0)])
 
 def _star_field(field, data):
     """
