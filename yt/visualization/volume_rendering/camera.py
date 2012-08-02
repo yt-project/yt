@@ -823,14 +823,14 @@ class HEALpixCamera(Camera):
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
-            phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
+            phi, theta = na.mgrid[0.0:2*na.pi:800j, 0:na.pi:800j]
             pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
             image *= self.radius * self.pf['cm']
             img = na.log10(image[:,0,0][pixi]).reshape((800,800))
 
             fig = matplotlib.figure.Figure((10, 5))
             ax = fig.add_subplot(1,1,1,projection='hammer')
-            implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+            implot = ax.imshow(img, extent=(-na.pi,na.pi,-na.pi/2,na.pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
             cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
             if clim is not None: cb.set_clim(*clim)
@@ -1490,7 +1490,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         for g in pf.h.grids:
             if "temp_weightfield" in g.keys():
                 del g["temp_weightfield"]
-    return image
+    return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
                         take_log = True, resolution=512):
@@ -1504,7 +1504,8 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     ax = fig.add_subplot(1,1,1,projection='aitoff')
     if take_log: func = na.log10
     else: func = lambda a: a
-    implot = ax.imshow(func(img), extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+    implot = ax.imshow(func(img), extent=(-na.pi,na.pi,-na.pi/2,na.pi/2),
+                       clip_on=False, aspect=0.5)
     cb = fig.colorbar(implot, orientation='horizontal')
     cb.set_label(label)
     ax.xaxis.set_ticks(())
