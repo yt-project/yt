@@ -1460,6 +1460,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         vs2 = vs.copy()
         for i in range(3):
             vs[:,:,i] = (vs2 * rotation[:,i]).sum(axis=2)
+    else:
+        vs += 1e-8
     positions = na.ones((nv, 1, 3), dtype='float64', order='C') * center
     dx = min(g.dds.min() for g in pf.h.find_point(center)[0])
     positions += inner_radius * dx * vs
