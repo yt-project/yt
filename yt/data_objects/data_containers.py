@@ -202,7 +202,11 @@ class YTDataContainer(object):
         Returns a single field.  Will add if necessary.
         """
         if key not in self.field_data:
-            self.get_data(key)
+            if key in self._container_fields:
+                self.field_data[key] = self._generate_container_field(key)
+                return self.field_data[key]
+            else:
+                self.get_data(key)
         f = self._determine_fields(key)[0]
         return self.field_data[f]
 
@@ -226,7 +230,7 @@ class YTDataContainer(object):
     def _generate_field(self, field):
         ftype, fname = field
         if fname in self._container_fields:
-            return self._generate_container_field(field)
+            return self_generate_container_field(field)
         elif fname not in self.pf.field_info:
             raise KeyError(field)
         elif self.pf.field_info[fname].particle_type:
@@ -370,6 +374,9 @@ class YTDataContainer(object):
         fields = ensure_list(fields)
         explicit_fields = []
         for field in fields:
+            if field in self._container_fields:
+                explicit_fields.append((field, field))
+                continue
             if isinstance(field, types.TupleType):
                 if len(field) != 2 or \
                    not isinstance(field[0], types.StringTypes) or \

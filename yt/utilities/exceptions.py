@@ -68,6 +68,14 @@ class YTNoDataInObjectError(YTException):
             s += "  It may lie on a grid face.  Try offsetting slightly."
         return s
 
+class YTFieldNotFound(YTException):
+    def __init__(self, fname, pf):
+        self.fname = fname
+        self.pf = pf
+
+    def __str__(self):
+        return "Could not find field '%s' in %s." % (self.fname, self.pf)
+
 class YTFieldTypeNotFound(YTException):
     def __init__(self, fname):
         self.fname = fname

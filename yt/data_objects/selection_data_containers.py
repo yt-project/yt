@@ -245,6 +245,8 @@ class YTSliceBase(YTSelectionContainer2D):
         self.field_data.clear()
 
     def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         if field == "px":
             return self._current_chunk.fcoords[:,x_dict[self.axis]]
         elif field == "py":
@@ -451,6 +453,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         return frb
 
     def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         if field == "px":
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
