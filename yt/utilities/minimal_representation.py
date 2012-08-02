@@ -99,6 +99,8 @@ class MinimalRepresentation(object):
         for i in metadata:
             if isinstance(metadata[i], na.ndarray):
                 metadata[i] = metadata[i].tolist()
+            elif hasattr(metadata[i], 'dtype'):
+                metadata[i] = na.asscalar(metadata[i])
         metadata['obj_type'] = self.type
         if len(chunks) == 0:
             chunk_info = {'chunks': []}
