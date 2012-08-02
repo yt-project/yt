@@ -203,9 +203,13 @@ def _Pressure(field, data):
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Entropy(field, data):
-    return kboltz  * data["Temperature"] / \
-           (data["NumberDensity"]**(data.pf["Gamma"] - 1.0))
-add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{2}",
+    if data.has_field_parameter("mu"):
+        mw = mh*data.get_field_parameter("mu")
+    else :
+        mw = mh
+    return kboltz * data["Temperature"] / \
+           ((data["Density"]/mw)**(data.pf["Gamma"] - 1.0))
+add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
 
 def _Height(field, data):
@@ -536,16 +540,16 @@ def _ParticleSpecificAngularMomentum(field, data):
     r_vec = coords - na.reshape(center,new_shape)
     v_vec = na.array([xv,yv,zv], dtype='float64')
     return na.cross(r_vec, v_vec, axis=0)
-add_field("ParticleSpecificAngularMomentum",
-          function=_ParticleSpecificAngularMomentum, particle_type=True,
-          convert_function=_convertSpecificAngularMomentum, vector_field=True,
-          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
+#add_field("ParticleSpecificAngularMomentum",
+#          function=_ParticleSpecificAngularMomentum, particle_type=True,
+#          convert_function=_convertSpecificAngularMomentum, vector_field=True,
+#          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
     return data.convert("mpc")/1e5
-add_field("ParticleSpecificAngularMomentumKMSMPC",
-          function=_ParticleSpecificAngularMomentum, particle_type=True,
-          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
-          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
+#add_field("ParticleSpecificAngularMomentumKMSMPC",
+#          function=_ParticleSpecificAngularMomentum, particle_type=True,
+#          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
+#          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
 def _ParticleSpecificAngularMomentumX(field, data):
     if data.has_field_parameter("bulk_velocity"):
@@ -588,15 +592,15 @@ for ax in 'XYZ':
 
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
-add_field("ParticleAngularMomentum",
-          function=_ParticleAngularMomentum, units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
-          particle_type=True, validators=[ValidateParameter('center')])
+#add_field("ParticleAngularMomentum",
+#          function=_ParticleAngularMomentum, units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
+#          particle_type=True, validators=[ValidateParameter('center')])
 def _ParticleAngularMomentumMSUNKMSMPC(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentumKMSMPC"]
-add_field("ParticleAngularMomentumMSUNKMSMPC",
-          function=_ParticleAngularMomentumMSUNKMSMPC,
-          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}",
-          particle_type=True, validators=[ValidateParameter('center')])
+#add_field("ParticleAngularMomentumMSUNKMSMPC",
+#          function=_ParticleAngularMomentumMSUNKMSMPC,
+#          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}",
+#          particle_type=True, validators=[ValidateParameter('center')])
 
 def _ParticleAngularMomentumX(field, data):
     return data["CellMass"] * data["ParticleSpecificAngularMomentumX"]

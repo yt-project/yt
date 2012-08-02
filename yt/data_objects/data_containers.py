@@ -604,6 +604,26 @@ class YTSelectionContainer2D(YTSelectionContainer):
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
 
+    def to_pw(self):
+        r"""Create a :class:`~yt.visualization.plot_window.PlotWindow` from this
+        object.
+ 
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        axis = self.axis
+        center = self.get_field_parameter("center")
+        if center is None:
+            center = (self.pf.domain_right_edge
+                    + self.pf.domain_left_edge)/2.0
+        width = (1.0, 'unitary')
+        from yt.visualization.plot_window import \
+            PWViewerMPL, GetBoundsAndCenter
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds)
+        return pw
+
     _okay_to_serialize = True
 
     def _store_fields(self, fields, node_name = None, force = False):
@@ -1274,6 +1294,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             elif isinstance(item.data, AMRData):
                 level_masks.append(force_array(item.data._get_cut_mask(grid),
                     grid.ActiveDimensions))
+                end += 1
             else:
                 mylog.error("Item in the boolean construction unidentified.")
         # Now we do the logic on our level_mask.

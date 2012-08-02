@@ -39,10 +39,10 @@ from yt.utilities.definitions import \
     axis_names, inv_axis_names, x_dict, y_dict
 from .plot_types import \
     FixedResolutionPlot, \
-    SlicePlot, \
-    SlicePlotNaturalNeighbor, \
-    ProjectionPlot, \
-    ProjectionPlotNaturalNeighbor, \
+    PCSlicePlot, \
+    PCSlicePlotNaturalNeighbor, \
+    PCProjectionPlot, \
+    PCProjectionPlotNaturalNeighbor, \
     CuttingPlanePlot, \
     ParticlePlot, \
     ProfilePlot, \
@@ -61,10 +61,6 @@ def concatenate_pdfs(output_fn, input_fns):
         infile = PdfFileReader(open(fn, 'rb'))
         outfile.addPage(infile.getPage(0))
     outfile.write(open(output_fn, "wb"))
-
-def _fix_axis(axis):
-    return inv_axis_names.get(axis, axis)
-
 
 class ImageCollection(object):
     def __init__(self, pf, name):
@@ -360,7 +356,7 @@ class PlotCollection(object):
         collection.
 
         This function will generate a `yt.data_objects.api.YTSliceBase` from the given
-        parameters.  This slice then gets passed to a `yt.visualization.plot_types.SlicePlot`, and
+        parameters.  This slice then gets passed to a `yt.visualization.plot_types.PCSlicePlot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the slice is displayed, as well as
         how the slice is generated.
@@ -400,7 +396,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.SlicePlot`
+        plot : `yt.visualization.plot_types.PCSlicePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -424,7 +420,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_slice("Density", 'x')
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if center == None:
             center = self.c
         if coord == None:
@@ -433,7 +429,7 @@ class PlotCollection(object):
             if field_parameters is None: field_parameters = {}
             obj = self.pf.hierarchy.slice(axis, coord, field,
                             center=center, **field_parameters)
-        p = self._add_plot(SlicePlot(
+        p = self._add_plot(PCSlicePlot(
                          obj, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -497,7 +493,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_particles(0, 1.0)
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         LE = self.pf.domain_left_edge.copy()
         RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
@@ -707,7 +703,7 @@ class PlotCollection(object):
 
         This function will generate a `yt.data_objects.api.YTOverlapProjBase` from the given
         parameters.  This projection then gets passed to a
-        `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot is added to the
+        `yt.visualization.plot_types.PCProjectionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
         slice is displayed, as well as how the slice is generated.
 
@@ -754,7 +750,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.ProjectionPlot`
+        plot : `yt.visualization.plot_types.PCProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -778,7 +774,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_projection("Density", 'x', "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -786,7 +782,7 @@ class PlotCollection(object):
             obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                          source = data_source, center=center,
                                          **field_parameters)
-        p = self._add_plot(ProjectionPlot(obj, field,
+        p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]
@@ -801,7 +797,7 @@ class PlotCollection(object):
 
         This function will generate a rectangular prism region and supply it to
         a`yt.data_objects.api.YTOverlapProjBase` from the given parameters.  This projection
-        then gets passed to a `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot
+        then gets passed to a `yt.visualization.plot_types.PCProjectionPlot`, and the resultant plot
         is added to the current collection.  Various parameters allow control
         of the way the slice is displayed, as well as how the slice is
         generated.  The center is used as the center of the thin projection.
@@ -843,7 +839,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.ProjectionPlot`
+        plot : `yt.visualization.plot_types.PCProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -867,7 +863,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_thin_projection("Density", 0, 0.1, "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -880,7 +876,7 @@ class PlotCollection(object):
         obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                      source = region, center=center,
                                      **field_parameters)
-        p = self._add_plot(ProjectionPlot(obj, field,
+        p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]
@@ -1460,7 +1456,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_ortho_ray(0, (0.5, 0.5), "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
         data_source = self.pf.h.ortho_ray(axis, coords, field,
@@ -1729,16 +1725,13 @@ class PlotCollectionIPython(PlotCollection):
 
         >>> pc.save()
         """
-        from matplotlib.backends.backend_svg import \
-            FigureCanvasSVG
-        from IPython.zmq.pylab.backend_payload import \
-            add_plot_payload
+        from ._mpl_imports import FigureCanvasAgg
         from IPython.zmq.pylab.backend_inline import \
-            send_svg_canvas
+            send_figure
         if basename is None: basename = str(self.pf)
         for plot in self.plots:
-            canvas = FigureCanvasSVG(plot._figure)
-            send_svg_canvas(canvas)
+            canvas = FigureCanvasAgg(plot._figure)
+            send_figure(plot._figure)
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):

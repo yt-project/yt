@@ -1,5 +1,5 @@
 """
-API for simulation_handler
+API for lightcone
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -28,5 +28,9 @@ License:
 
 """
 
-from .enzo_simulation import \
-    EnzoSimulation
+from .light_cone import \
+    LightCone
+
+from .unique_solution import \
+    project_unique_light_cones, \
+    find_unique_solutions
