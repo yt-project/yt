@@ -691,7 +691,7 @@ cdef class VolumeRenderSampler(ImageSampler):
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
         assert(self.vra.n_fits <= 6)
-        self.vra.grey_opacity = tf_obj.grey_opacity
+        self.vra.grey_opacity = getattr(tf_obj, "grey_opacity", 0)
         self.vra.n_samples = n_samples
         self.my_field_tables = []
         for i in range(self.vra.n_fits):
@@ -757,7 +757,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
         assert(self.vra.n_fits <= 6)
-        self.vra.grey_opacity = tf_obj.grey_opacity
+        self.vra.grey_opacity = getattr(tf_obj, "grey_opacity", 0)
         self.vra.n_samples = n_samples
         self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
         self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)
