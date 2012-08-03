@@ -606,6 +606,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
+            if os.path.exists(filename): os.remove(filename)
             if filename.endswith('.h5'):
                 profile.write_out_h5(filename)
             else:
