@@ -230,7 +230,7 @@ class YTDataContainer(object):
     def _generate_field(self, field):
         ftype, fname = field
         if fname in self._container_fields:
-            return self_generate_container_field(field)
+            return self._generate_container_field(field)
         elif fname not in self.pf.field_info:
             raise KeyError(field)
         elif self.pf.field_info[fname].particle_type:
