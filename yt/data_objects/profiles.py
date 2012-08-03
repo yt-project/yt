@@ -170,10 +170,8 @@ class BinnedProfile1D(BinnedProfile):
         We accept a *data_source*, which will be binned into *n_bins*
         by the field *bin_field* between the *lower_bound* and the
         *upper_bound*.  These bins may or may not be equally divided
-        in *log_space*, and the *lazy_reader* flag controls whether we
-        use a memory conservative approach. If *end_collect* is True,
-        take all values outside the given bounds and store them in the
-        0 and *n_bins*-1 values.
+        in *log_space*. If *end_collect* is True, take all values outside
+        the given bounds and store them in the 0 and *n_bins*-1 values.
         """
         BinnedProfile.__init__(self, data_source)
         self.bin_field = bin_field
@@ -206,7 +204,6 @@ class BinnedProfile1D(BinnedProfile):
                    args, check_cut=False):
         mi, inv_bin_indices = args # Args has the indices to use as input
         # check_cut is set if source != self._data_source
-        # (i.e., lazy_reader)
         source_data = self._get_field(source, field, check_cut)
         if weight: weight_data = self._get_field(source, weight, check_cut)
         else: weight_data = na.ones(source_data.shape, dtype='float64')
@@ -341,10 +338,9 @@ class BinnedProfile2D(BinnedProfile):
         into *y_n_bins* by the field *y_bin_field* between the
         *y_lower_bound* and the *y_upper_bound*.  These bins may or
         may not be equally divided in log-space as specified by
-        *x_log* and *y_log*, and the *lazy_reader* flag controls
-        whether we use a memory conservative approach. If
-        *end_collect* is True, take all values outside the given
-        bounds and store them in the 0 and *n_bins*-1 values.
+        *x_log* and *y_log*. If *end_collect* is True, take all
+        values outside the given bounds and store them in the 0 and
+        *n_bins*-1 values.
         """
         BinnedProfile.__init__(self, data_source)
         self.x_bin_field = x_bin_field
@@ -576,11 +572,9 @@ class BinnedProfile3D(BinnedProfile):
     We accept a *data_source*, which will be binned into
     *(x,y,z)_n_bins* by the field *(x,y,z)_bin_field* between the
     *(x,y,z)_lower_bound* and the *(x,y,z)_upper_bound*.  These bins may or
-    may not be equally divided in log-space as specified by
-    *(x,y,z)_log*, and the *lazy_reader* flag controls
-    whether we use a memory conservative approach. If
-    *end_collect* is True, take all values outside the given
-    bounds and store them in the 0 and *n_bins*-1 values.
+    may not be equally divided in log-space as specified by *(x,y,z)_log*. 
+    If *end_collect* is True, take all values outside the given bounds and
+    store them in the 0 and *n_bins*-1 values.
     """
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
