@@ -1236,7 +1236,7 @@ class YTPlotCmd(YTCommand):
                 plt = SlicePlot(pf, ax, args.field, center=center,
                                 width=width)
             if args.grids:
-                plt.draw_grids()
+                plt.annotate_grids()
             if args.time: 
                 time = pf.current_time*pf['Time']*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
