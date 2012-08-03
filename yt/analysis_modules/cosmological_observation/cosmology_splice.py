@@ -184,7 +184,23 @@ class CosmologySplice(object):
 
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." %
                    (len(cosmology_splice), far_redshift, near_redshift))
-
+        
+        # change the 'next' and 'previous' pointers to point to the correct outputs for the created
+        # splice
+        for i, output in enumerate(cosmology_splice):
+            if len(cosmology_splice) == 1:
+                output['previous'] = None
+                output['next'] = None
+            elif i == 0:
+                output['previous'] = None
+                output['next'] = cosmology_splice[i + 1]
+            elif i == len(cosmology_splice) - 1:
+                output['previous'] = cosmology_splice[i - 1]
+                output['next'] = None
+            else:
+                output['previous'] = cosmology_splice[i - 1]
+                output['next'] = cosmology_splice[i + 1]
+        
         self.splice_outputs.sort(key=lambda obj: obj['time'])
         return cosmology_splice
 
