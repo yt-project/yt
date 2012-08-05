@@ -213,10 +213,11 @@ function host_specific
         echo "  * libncurses5"
         echo "  * libncurses5-dev"
         echo "  * zip"
+        echo "  * uuid-dev"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev"
         echo
     fi
     if [ ! -z "${CFLAGS}" ]
