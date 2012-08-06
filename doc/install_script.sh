@@ -201,6 +201,12 @@ function host_specific
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
         echo
+        OSX_VERSION=`sw_vers -productVersion`
+        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+        then
+            MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
+            MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
+        fi
     fi
     if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
     then
