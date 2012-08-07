@@ -9,9 +9,9 @@ FORTHON=Forthon
 endif
 
 fKD: fKD.f90 fKD.v fKD_source.f90
-#	Forthon --compile_first fKD_source --no2underscores --with-numpy -g fKD fKD.f90 fKD_source.f90
+#	Forthon --compile_first fKD_source --no2underscores -g fKD fKD.f90 fKD_source.f90
 	@echo "Using $(FORTHON) ($(FORTHON_EXE))"
-	$(FORTHON) -F gfortran --compile_first fKD_source --no2underscores --with-numpy --fopt "-O3" fKD fKD_source.f90
+	$(FORTHON) -F gfortran --compile_first fKD_source --no2underscores --fopt "-O3" fKD fKD_source.f90
 
 clean:
 	rm -rf build fKDpy.a fKDpy.so
