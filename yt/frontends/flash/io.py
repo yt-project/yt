@@ -141,25 +141,6 @@ class IOHandlerFLASH(BaseIOHandler):
         del _particles
         return particles
 
-    """
-    def _select_particles(self, grid, field):
-        f = self._handle
-        npart = f["/tracer particles"].shape[0]
-        total_selected = 0
-        start = 0
-        stride = 1e6
-        blki = self._particle_fields["particle_blk"]
-        bi = grid.id - grid._id_offset
-        fi = self._particle_fields[field]
-        tr = []
-        while start < npart:
-            end = min(start + stride - 1, npart)
-            gi = f["/tracer particles"][start:end,blki] == bi
-            tr.append(f["/tracer particles"][gi,fi])
-            start = end
-        return na.concatenate(tr)
-    """
-
     def _read_data_set(self, grid, field):
         f = self._handle
         if field in self._particle_fields:
