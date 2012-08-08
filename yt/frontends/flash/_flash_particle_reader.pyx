@@ -12,50 +12,34 @@ cdef particles_validator_region(np.ndarray[np.float64_t, ndim=1] x,
                                 np.ndarray[np.float64_t, ndim=1] DLE,
                                 np.ndarray[np.float64_t, ndim=1] DRE) :
 
-    cdef np.ndarray[np.uint8_t, cast=True, ndim=1] idxs
-    cdef np.ndarray[np.uint8_t, cast=True, ndim=1] idxx
-    cdef np.ndarray[np.uint8_t, cast=True, ndim=1] idxy
-    cdef np.ndarray[np.uint8_t, cast=True, ndim=1] idxz
-    
-    cdef np.ndarray[np.float64_t, ndim=1] xx
-    cdef np.ndarray[np.float64_t, ndim=1] yy
-    cdef np.ndarray[np.float64_t, ndim=1] zz
+    cdef np.ndarray[np.uint8_t, cast=True, ndim=1] mask
+    cdef int i, ax
 
-    cdef np.ndarray[np.float64_t, ndim=1] DW
-
-    idxs = np.zeros(x.shape[0], 'bool')
-    idxx = np.zeros(x.shape[0], 'bool')
-    idxy = np.zeros(x.shape[0], 'bool')
-    idxz = np.zeros(x.shape[0], 'bool')
-
-    xx = np.zeros(x.shape[0], 'float64')
-    yy = np.zeros(x.shape[0], 'float64')
-    zz = np.zeros(x.shape[0], 'float64')
+    mask = np.zeros(x.shape[0], 'bool')
 
     DW = np.zeros(3, 'float64')
 
-    xx = x
-    yy = y
-    zz = z
-
-    if periodic == 1 : 
-
+    if periodic == 1: 
         DW = DRE - DLE
-        xx[x < left_edge[0]] = x + DW[0]
-        xx[x > right_edge[0]] = x - DW[0]
-        yy[y < left_edge[1]] = y + DW[1]
-        yy[y > right_edge[1]] = y - DW[1]
-        zz[z < left_edge[2]] = z + DW[2]
-        zz[z > right_edge[2]] = z - DW[2]
 
-    idxx = np.logical_and(xx >= left_edge[0], xx <= right_edge[0])
-    idxy = np.logical_and(yy >= left_edge[1], yy <= right_edge[1])
-    idxz = np.logical_and(zz >= left_edge[2], zz <= right_edge[2])
+    cdef np.float64_t pos[3]
+    cdef int inside
+    for i in range(x.shape[0]):
+        pos[0] = x[i]
+        pos[1] = y[i]
+        pos[2] = z[i]
+        inside = 1
+        for ax in range(3):
+            if pos[ax] < left_edge[ax]: pos[ax] += DW[ax]
+            if pos[ax] > right_edge[ax]: pos[ax] -= DW[ax]
+        for ax in range(3):
+            if pos[ax] < left_edge[ax] or pos[ax] > right_edge[ax]:
+                inside = 0
+                break
+        if inside == 1:
+            mask[i] = 1
 
-    idxs = np.logical_and(idxx, idxy)
-    idxs = np.logical_and(idxz, idxs)
-
-    return idxs
+    return mask
 
 cdef particles_validator_sphere(np.ndarray[np.float64_t, ndim=1] x,
                                 np.ndarray[np.float64_t, ndim=1] y, 
