@@ -458,10 +458,15 @@ class PWViewer(PlotWindow):
             Log on/off.
 
         """
-        if log:
-            self._field_transform[field] = log_transform
+        if field == 'all':
+            fields = self.plots.keys()
         else:
-            self._field_transform[field] = linear_transform
+            fields = [field]
+        for field in fields:
+            if log:
+                self._field_transform[field] = log_transform
+            else:
+                self._field_transform[field] = linear_transform
 
     @invalidate_plot
     def set_transform(self, field, name):
@@ -472,34 +477,70 @@ class PWViewer(PlotWindow):
     @invalidate_plot
     def set_cmap(self, field, cmap_name):
         """set the colormap for one of the fields
-        
+
         Parameters
         ----------
         field : string
-            the field to set a transform
+            the field to set the colormap
+            if field == 'all', applies to all plots.
         cmap_name : string
             name of the colormap
 
         """
-        self._colorbar_valid = False
-        self._colormaps[field] = cmap_name
+
+        if field is 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in fields:
+            self._colorbar_valid = False
+            self._colormaps[field] = cmap_name
 
     @invalidate_plot
-    def set_zlim(self, field, zmin, zmax):
+    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
         """set the scale of the colormap
-        
+
         Parameters
         ----------
         field : string
-            the field to set a transform
+            the field to set a colormap scale
+            if field == 'all', applies to all plots.
         zmin : float
-            the new minimum of the colormap scale
+            the new minimum of the colormap scale. If 'min', will
+            set to the minimum value in the current view.
         zmax : float
-            the new maximum of the colormap scale
+            the new maximum of the colormap scale. If 'max', will
+            set to the maximum value in the current view.
+
+        Keyword Parameters
+        ------------------
+        dyanmic_range : float (default: None)
+            The dynamic range of the image.
+            If zmin == None, will set zmin = zmax / dynamic_range
+            If zmax == None, will set zmax = zmin * dynamic_range
+            When dynamic_range is specified, defaults to setting
+            zmin = zmax / dynamic_range.
 
         """
-        self.plots[field].zmin = zmin
-        self.plots[field].zmax = zmax
+        if field is 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in fields:
+            myzmin = zmin
+            myzmax = zmax
+            if zmin == 'min':
+                myzmin = self.plots[field].image._A.min()
+            if zmax == 'max':
+                myzmax = self.plots[field].image._A.max()
+            if dynamic_range is not None:
+                if zmax is None:
+                    myzmax = myzmin * dynamic_range
+                else:
+                    myzmin = myzmax / dynamic_range
+
+            self.plots[field].zmin = myzmin
+            self.plots[field].zmax = myzmax
 
     def setup_callbacks(self):
         for key in callback_registry:
@@ -512,7 +553,7 @@ class PWViewer(PlotWindow):
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__init__.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
-        
+
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
         mi = fval.min()
@@ -651,25 +692,32 @@ class PWViewerMPL(PWViewer):
     @invalidate_plot
     def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
-        
+
         Parameters
         ----------
         field : string
             the field to set a transform
+            if field == 'all', applies to all plots.
         cmap_name : string
             name of the colormap
 
         """
-        self._colorbar_valid = False
-        self._colormaps[field] = cmap
-        if isinstance(cmap, types.StringTypes):
-            if str(cmap) in yt_colormaps:
-                cmap = yt_colormaps[str(cmap)]
-            elif hasattr(matplotlib.cm, cmap):
-                cmap = getattr(matplotlib.cm, cmap)
-        if not is_colormap(cmap) and cmap is not None:
-            raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
-        self.plots[field].image.set_cmap(cmap)
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+
+        for field in fields:
+            self._colorbar_valid = False
+            self._colormaps[field] = cmap
+            if isinstance(cmap, types.StringTypes):
+                if str(cmap) in yt_colormaps:
+                    cmap = yt_colormaps[str(cmap)]
+                elif hasattr(matplotlib.cm, cmap):
+                    cmap = getattr(matplotlib.cm, cmap)
+            if not is_colormap(cmap) and cmap is not None:
+                raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
+            self.plots[field].image.set_cmap(cmap)
 
     def save(self,name=None):
         """saves the plot to disk.
@@ -762,7 +810,7 @@ class SlicePlot(PWViewerMPL):
              the image centers on the location of the maximum density
              cell.  If set to 'c' or 'center', the plot is centered on
              the middle of the domain.
-	width : tuple or a float.
+        width : tuple or a float.
              Width can have four different formats to support windows with variable 
              x and y widths.  They are:
              
@@ -781,7 +829,7 @@ class SlicePlot(PWViewerMPL):
              the y axis.  In the other two examples, code units are assumed, for example
              (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
              in code units.  
-	origin : string
+        origin : string
              The location of the origin of the plot coordinate system.
              Currently, can be set to three options: 'left-domain', corresponding
              to the bottom-left hand corner of the simulation domain, 'center-domain',
@@ -830,7 +878,7 @@ class ProjectionPlot(PWViewerMPL):
             the image centers on the location of the maximum density
             cell.  If set to 'c' or 'center', the plot is centered on
             the middle of the domain.
-	width : tuple or a float.
+        width : tuple or a float.
              Width can have four different formats to support windows with variable 
              x and y widths.  They are:
              
