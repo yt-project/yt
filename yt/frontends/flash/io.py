@@ -30,77 +30,6 @@ from yt.frontends.flash import _flash_particle_reader
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-def particles_validator_region(x, y, z, args) :
-
-    left_edge = args[0]
-    right_edge = args[1]
-    periodic = args[2]
-    DLE = args[3]
-    DRE = args[4]
-
-    xx = x
-    yy = y
-    zz = z
-
-    if periodic == 1 : 
-
-        DW = DRE - DLE
-        xx[x < left_edge[0]] = x + DW[0]
-        xx[x > right_edge[0]] = x - DW[0]
-        yy[y < left_edge[1]] = y + DW[1]
-        yy[y > right_edge[1]] = y - DW[1]
-        zz[z < left_edge[2]] = z + DW[2]
-        zz[z > right_edge[2]] = z - DW[2]
-
-    idxx = na.logical_and(xx >= left_edge[0], xx <= right_edge[0])
-    idxy = na.logical_and(yy >= left_edge[1], yy <= right_edge[1])
-    idxz = na.logical_and(zz >= left_edge[2], zz <= right_edge[2])
-
-    idxs = na.logical_and(idxx, idxy)
-    idxs = na.logical_and(idxz, idxs)
-
-    return idxs
-
-def particles_validator_sphere(x, y, z, args) :
-    
-    center = args[0]
-    radius = args[1]
-    periodic = args[2]
-    DLE = args[3]
-    DRE = args[4]
-
-    xx = na.abs(x-center[0])
-    yy = na.abs(y-center[1])
-    zz = na.abs(z-center[2])
-
-    if periodic == 1 : 
-
-        DW = DRE - DLE
-
-        xx = na.minimum(xx,DW[0]-xx)
-        yy = na.minimum(yy,DW[1]-yy)
-        zz = na.minimum(zz,DW[2]-zz)
-
-    r = na.sqrt(xx*xx+yy*yy+zz*zz)
-
-    return r <= radius
-
-def particles_validator_disk(x, y, z, args) :
-    
-    center = args[0]
-    normal = args[1]
-    radius = args[2]
-    height = args[3]
-
-    d = -na.dot(normal*center)
-
-    ph = na.abs(x*normal[0] + y*normal[1] + z*normal[2] + d)
-    pd2 = (x-center[0])**2+(y-center[1])**2+(z-center[2])**2
-
-    pr = na.sqrt(pd2-ph*ph)
-
-    return na.logical_and(pr <= radius, ph <= height)
-
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = True
     _data_style = "flash_hdf5"
@@ -121,27 +50,6 @@ class IOHandlerFLASH(BaseIOHandler):
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
-        """
-        f = self._handle
-        particles = []
-        _particles = f["/tracer particles"][:,:]
-        fx = self._particle_fields["particle_posx"]
-        fy = self._particle_fields["particle_posy"]
-        fz = self._particle_fields["particle_posz"]
-        posx = _particles[:,fx]
-        posy = _particles[:,fy]
-        posz = _particles[:,fz]
-        if type == 0 :
-            idxs = particles_validator_region(posx,posy,posz,args)
-        elif type == 1 :
-            idxs = particles_validator_sphere(posx,posy,posz,args)
-        elif type == 2 :
-            idxs = particles_validator_disk(posx,posy,posz,args)
-        for field in fields_to_read :
-            fi = self._particle_fields[field]
-            particles.append(_particles[idxs,fi])
-        del _particles
-        """
         fx = self._particle_fields["particle_posx"]
         fy = self._particle_fields["particle_posy"]
         fz = self._particle_fields["particle_posz"]
