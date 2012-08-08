@@ -30,7 +30,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 def particles_validator_region(x, y, z, args) :
-    
+
     left_edge = args[0]
     right_edge = args[1]
     periodic = args[2]
@@ -55,7 +55,7 @@ def particles_validator_region(x, y, z, args) :
     idxy = na.logical_and(yy >= left_edge[1], yy <= right_edge[1])
     idxz = na.logical_and(zz >= left_edge[2], zz <= right_edge[2])
 
-    idxs = na.logical_and(idxx, idyy)
+    idxs = na.logical_and(idxx, idxy)
     idxs = na.logical_and(idxz, idxs)
 
     return idxs
@@ -101,7 +101,7 @@ def particles_validator_disk(x, y, z, args) :
     return na.logical_and(pr <= radius, ph <= height)
 
 class IOHandlerFLASH(BaseIOHandler):
-    _particle_reader = False
+    _particle_reader = True
     _data_style = "flash_hdf5"
 
     def __init__(self, pf, *args, **kwargs):
@@ -121,13 +121,14 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
         f = self._handle
-        _particles = []
+        particles = []
+        _particles = f["/tracer particles"][:,:]
         fx = self._particle_fields["particle_posx"]
         fy = self._particle_fields["particle_posy"]
         fz = self._particle_fields["particle_posz"]
-        posx = f["/tracer particles"][:,fx]
-        posy = f["/tracer particles"][:,fy]
-        posz = f["/tracer particles"][:,fz]
+        posx = _particles[:,fx]
+        posy = _particles[:,fy]
+        posz = _particles[:,fz]
         if type == 0 :
             idxs = particles_validator_region(posx,posy,posz,args)
         elif type == 1 :
@@ -136,8 +137,9 @@ class IOHandlerFLASH(BaseIOHandler):
             idxs = particles_validator_disk(posx,posy,posz,args)
         for field in fields_to_read :
             fi = self._particle_fields[field]
-            _particles.append(f["/tracer particles"][idxs,fi])
-        return _particles
+            particles.append(_particles[idxs,fi])
+        del _particles
+        return particles
 
     """
     def _select_particles(self, grid, field):
