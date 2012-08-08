@@ -50,12 +50,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("answer_testing")
     config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
-    # The two fKDpy.so entries below are for different versions of
-    # Forthon, which build the fKDpy.so object in different places
-    # depending on version. The newest versions (0.8.10+) uses the 
-    # build/lib*/ directory.
     config.add_data_files(('kdtree', ['kdtree/fKDpy.so']))
-    config.add_data_files(('kdtree', ['kdtree/build/lib*/fKDpy.so']))
     config.add_subpackage("spatial")
     config.add_subpackage("grid_data_format")
     config.add_subpackage("parallel_tools")
