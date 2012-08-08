@@ -3,6 +3,9 @@ cimport numpy as np
 cimport cython
 import h5py
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef particles_validator_region(np.ndarray[np.float64_t, ndim=1] x,
                                 np.ndarray[np.float64_t, ndim=1] y,
                                 np.ndarray[np.float64_t, ndim=1] z,
@@ -17,10 +20,10 @@ cdef particles_validator_region(np.ndarray[np.float64_t, ndim=1] x,
 
     mask = np.zeros(x.shape[0], 'bool')
 
-    DW = np.zeros(3, 'float64')
+    cdef np.ndarray[np.float64_t, ndim=1] DW = np.zeros(3, 'float64')
 
     if periodic == 1: 
-        DW = DRE - DLE
+        DW[:] = DRE - DLE
 
     cdef np.float64_t pos[3]
     cdef int inside
