@@ -66,7 +66,7 @@ class EnzoGrid(AMRGridPatch):
     Class representing a single Enzo Grid instance.
     """
 
-    __slots__ = []
+    __slots__ = ["NumberOfActiveParticles"]
     def __init__(self, id, hierarchy):
         """
         Returns an instance of EnzoGrid with *id*, associated with
@@ -458,6 +458,8 @@ class EnzoHierarchy(GridGeometryHandler):
     def _populate_grid_objects(self):
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
+            g.NumberOfActiveParticles = \
+                self.grid_active_particle_count[g.id - g._id_offset,0]
             g._setup_dx()
             g.set_filename(f[0])
             #if g.Parent is not None: g._guess_properties_from_parent()

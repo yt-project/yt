@@ -54,6 +54,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
+    def _read_particle_selection_by_type(self, chunks, selector, fields):
+        raise NotImplementedError
+            
+
     def _read_particle_selection(self, chunks, selector, fields):
         last = None
         rv = {}
@@ -61,8 +65,11 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         # Now we have to do something unpleasant
         dobj = chunks[0].dobj
         if any((ftype != "all" for ftype, fname in fields)):
-           return self._read_particle_selection_by_type(
-                    chunks, selector, fields)
+            type_fields = [(ftype, fname) for ftype, fname in fields
+                           if ftype != all]
+            rv.update(self._read_particle_selection_by_type(
+                      chunks, selector, fields))
+            if len(rv) == len(fields): return rv
         mylog.debug("First pass: counting particles.")
         xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
         size = 0
