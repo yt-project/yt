@@ -299,6 +299,7 @@ class EnzoHierarchy(GridGeometryHandler):
             nap = []
         else:
             active_particles = False
+            nap = None
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
@@ -320,7 +321,7 @@ class EnzoHierarchy(GridGeometryHandler):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
         pbar.finish()
-        self._fill_arrays(ei, si, LE, RE, np)
+        self._fill_arrays(ei, si, LE, RE, np, nap)
         temp_grids = na.empty(self.num_grids, dtype='object')
         temp_grids[:] = self.grids
         self.grids = temp_grids
@@ -332,7 +333,7 @@ class EnzoHierarchy(GridGeometryHandler):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
         self.grid_active_particle_count = na.zeros((self.num_grids,1), 'int32')
 
-    def _fill_arrays(self, ei, si, LE, RE, np, nap = None):
+    def _fill_arrays(self, ei, si, LE, RE, np, nap):
         self.grid_dimensions.flat[:] = ei
         self.grid_dimensions -= na.array(si, self.float_type)
         self.grid_dimensions += 1
@@ -341,7 +342,6 @@ class EnzoHierarchy(GridGeometryHandler):
         self.grid_particle_count.flat[:] = np
         if nap is not None:
             self.grid_active_particle_count.flat[:] = nap
-
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -464,10 +464,32 @@ class EnzoHierarchy(GridGeometryHandler):
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
+    def _detect_active_particle_fields(self):
+        gs = self.grids[self.grid_active_particle_count.flat > 0]
+        grids = sorted((g for g in gs), key = lambda a: a.filename)
+        handle = last = None
+        ap_list = self.parameter_file.parameters["AppendActiveParticleType"]
+        _fields = dict((ap, []) for ap in ap_list)
+        fields = []
+        for g in grids:
+            # We inspect every grid, for now, until we have a list of
+            # attributes in a defined location.
+            if last != g.filename:
+                if handle is not None: handle.close()
+                handle = h5py.File(g.filename)
+            node = handle["/Grid%08i/ActiveParticles/" % g.id]
+            for ptype in (str(p) for p in node):
+                for field in (str(f) for f in node[ptype]):
+                    _fields[ptype].append(field)
+                fields += [(ptype, field) for field in _fields.pop(ptype)]
+            if len(_fields) == 0: break
+        if handle is not None: handle.close()
+        return set(fields)
+
     def _detect_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
-        if self.comm.rank == 0 or self.comm.rank == None:
+        if self.comm.rank in (0, None):
             field_list = self.get_data("/", "DataFields")
             if field_list is None:
                 mylog.info("Gathering a field list (this may take a moment.)")
@@ -482,6 +504,9 @@ class EnzoHierarchy(GridGeometryHandler):
                         continue
                     mylog.debug("Grid %s has: %s", grid.id, gf)
                     field_list = field_list.union(gf)
+            if "AppendActiveParticleType" in self.parameter_file.parameters:
+                ap_fields = self._detect_active_particle_fields()
+                field_list = field_list.union(ap_fields)
         else:
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
@@ -842,7 +867,12 @@ class EnzoStaticOutput(StaticOutput):
                 vals = pcast(vals[0])
             else:
                 vals = na.array([pcast(i) for i in vals if i != "-99999"])
-            self.parameters[param] = vals
+            if param.startswith("Append") and param not in self.parameters:
+                self.parameters[param] = []
+            if param.startswith("Append"):
+                self.parameters[param].append(vals)
+            else:
+                self.parameters[param] = vals
         for p, v in self._parameter_override.items():
             self.parameters[p] = v
         for p, v in self._conversion_override.items():
