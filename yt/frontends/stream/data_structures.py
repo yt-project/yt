@@ -296,7 +296,8 @@ class StreamDictFieldHandler(dict):
     @property
     def all_fields(self): return self[0].keys()
 
-def load_uniform_grid(data, domain_dimensions, domain_size_in_cm):
+def load_uniform_grid(data, domain_dimensions, domain_size_in_cm,
+                      sim_time=0.0, number_of_particles=0):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -316,13 +317,18 @@ def load_uniform_grid(data, domain_dimensions, domain_size_in_cm):
         This is the domain dimensions of the grid
     domain_size_in_cm : float
         The size of the domain, in centimeters
-
+    sim_time : float, optional
+        The simulation time in seconds
+    number_of_particles : int, optional
+        If particle fields are included, set this to the number of particles
+        
     Examples
     --------
 
     >>> arr = na.random.random((256, 256, 256))
     >>> data = dict(Density = arr)
     >>> pf = load_uniform_grid(data, [256, 256, 256], 3.08e24)
+                
     """
     sfh = StreamDictFieldHandler()
     sfh.update({0:data})
@@ -354,7 +360,7 @@ def load_uniform_grid(data, domain_dimensions, domain_size_in_cm):
         grid_dimensions,
         grid_levels,
         na.array([-1], dtype='int64'),
-        na.zeros(1, dtype='int64').reshape((1,1)),
+        number_of_particles*na.ones(1, dtype='int64').reshape((1,1)),
         na.zeros(1).reshape((1,1)),
         sfh,
     )
@@ -365,7 +371,7 @@ def load_uniform_grid(data, domain_dimensions, domain_size_in_cm):
     handler.refine_by = 2
     handler.dimensionality = 3
     handler.domain_dimensions = domain_dimensions
-    handler.simulation_time = 0.0
+    handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
     spf = StreamStaticOutput(handler)
