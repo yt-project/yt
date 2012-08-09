@@ -43,6 +43,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_data_set(self, grid, field):
         handle = h5py.File(grid.filename)
         tr = handle["/Grid%08i/%s" % (grid.id, field)][:]
+        handle.close()
         return tr.swapaxes(0, 2)
 
     def _read_field_names(self, grid):
@@ -64,85 +65,81 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             raise NotImplementedError("Sorry, but you'll have to manually " +
                     "discriminate without a particle_type field")
         mylog.debug("First pass: counting particles.")
-        last = chunks[0].objs[0].filename
-        handle = h5py.File(last)
         xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
         size = 0
+        pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
         for chunk in chunks:
+            data = self._read_chunk_data(chunk, pfields, True)
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
-                if last != g.filename:
-                    last = g.filename
-                    handle = h5py.File(last)
-                base = handle["/Grid%08i" % g.id]
-                x, y, z = (base["particle_position_%s" %
-                            ax][:].astype("float64") for ax in 'xyz')
+                x, y, z = (data[g.id].pop("particle_position_%s" % ax)
+                           for ax in 'xyz')
                 size += g.count_particles(selector, x, y, z)
-            handle.close()
-        last = chunks[0].objs[0].filename
-        handle = h5py.File(last)
+        read_fields = fields[:]
         for field in fields:
             # TODO: figure out dataset types
             rv[field] = na.empty(size, dtype='float64')
+        for pfield in pfields:
+            if pfield not in fields: read_fields.append(pfield)
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
+            data = self._read_chunk_data(chunk, read_fields, True)
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
-                if last != g.filename:
-                    last = g.filename
-                    handle = h5py.File(last)
-                base = handle["/Grid%08i" % g.id]
-                x, y, z = (base["particle_position_%s" %
-                            ax][:].astype("float64") for ax in 'xyz')
+                x, y, z = (data[g.id]["particle_position_%s" % ax]
+                           for ax in 'xyz')
                 mask = g.select_particles(selector, x, y, z)
                 if mask is None: continue
                 for field in fields:
                     ftype, fname = field
-                    ds = handle["/Grid%08i/%s" % (g.id, fname)]
-                    data = ds[self._base][mask]
-                    data 
-                    rv[field][ind:ind+data.size] = data
-                ind += data.size
-            handle.close()
+                    gdata = data[g.id].pop(fname)[mask]
+                    rv[field][ind:ind+gdata.size] = gdata
+                ind += gdata.size
         return rv
         
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        last = None
         rv = {}
         if any((ftype != "gas" for ftype, fname in fields)):
             raise NotImplementedError
-
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        last = chunks[0].objs[0].filename
-        handle = h5py.File(last)
         for field in fields:
             ftype, fname = field
-            ds = handle["/Grid%08i/%s" % (chunks[0].objs[0].id, fname)]
             fsize = size
-            rv[field] = na.empty(fsize, dtype=ds.dtype)
+            rv[field] = na.empty(fsize, dtype="float64")
         ind = 0
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
         for chunk in chunks:
+            data = self._read_chunk_data(chunk, fields)
             for g in chunk.objs:
-                if last != g.filename:
-                    last = g.filename
-                    handle = h5py.File(last)
                 mask = g.select(selector)
                 if mask is None: continue
                 for field in fields:
                     ftype, fname = field
-                    ds = handle["/Grid%08i/%s" % (g.id, fname)]
-                    data = ds[self._base].swapaxes(0,2)[mask]
-                    rv[field][ind:ind+data.size] = data
-                ind += data.size
-            handle.close()
+                    gdata = data[g.id].pop(fname).swapaxes(0,2)[mask]
+                    rv[field][ind:ind+gdata.size] = gdata
+                ind += gdata.size
+                data.pop(g.id)
         return rv
+
+    def _read_chunk_data(self, chunk, fields, filter_particles = False):
+        data = {}
+        grids_by_file = defaultdict(list)
+        for g in chunk.objs:
+            if filter_particles and g.NumberOfParticles == 0: continue
+            grids_by_file[g.filename].append(g.id)
+        sets = [fname for ftype, fname in fields]
+        for filename in grids_by_file:
+            nodes = grids_by_file[filename]
+            nodes.sort()
+            data.update(hdf5_light_reader.ReadMultipleGrids(
+                filename, nodes, sets))
+        return data
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"

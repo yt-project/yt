@@ -452,7 +452,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             inspected += 1
             if field not in self.pf.field_dependencies: continue
             fd = self.pf.field_dependencies[field]
-            requested = self._determine_fields(fd.requested)
+            requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
         # We now split up into readers for the types of fields

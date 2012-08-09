@@ -614,6 +614,7 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     if (file_id < 0) {
         PyErr_Format(_hdf5ReadError,
                  "ReadMultipleGrids: Unable to open %s", filename);
+        H5Eprint(stderr);
         goto _fail;
     }
 
