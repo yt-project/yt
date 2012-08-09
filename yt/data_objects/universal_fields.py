@@ -217,50 +217,181 @@ def _Entropy(field, data):
 add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
 
-def _Height(field, data):
-    # We take the dot product of the radius vector with the height-vector
+
+
+### spherical coordinates: r (radius)
+def _sph_r(field, data):
     center = data.get_field_parameter("center")
-    r_vec = na.array([data["x"] - center[0],
-                      data["y"] - center[1],
-                      data["z"] - center[2]])
-    h_vec = na.array(data.get_field_parameter("height_vector"))
-    h_vec = h_vec / na.sqrt(h_vec[0]**2.0+
-                            h_vec[1]**2.0+
-                            h_vec[2]**2.0)
-    height = r_vec[0,:] * h_vec[0] \
-           + r_vec[1,:] * h_vec[1] \
-           + r_vec[2,:] * h_vec[2]
-    return na.abs(height)
+      
+    coords = na.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The spherical coordinates radius is simply the magnitude of the
+    ## coords vector.
+
+    return na.sqrt(na.sum(coords**2,axis=-1))
+
+def _Convert_sph_r_CGS(data):
+   return data.convert("cm")
+
+add_field("sph_r", function=_sph_r,
+         validators=[ValidateParameter("center")],
+         convert_function = _Convert_sph_r_CGS, units=r"\rm{cm}")
+
+
+### spherical coordinates: theta (angle with respect to normal)
+def _sph_theta(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = na.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The angle (theta) with respect to the normal (J), is the arccos
+    ## of the dot product of the normal with the normalized coords
+    ## vector.
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    J = na.tile(normal,tile_shape)
+
+    JdotCoords = na.sum(J*coords,axis=-1)
+    
+    return na.arccos( JdotCoords / na.sqrt(na.sum(coords**2,axis=-1)) )
+
+add_field("sph_theta", function=_sph_theta,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+
+### spherical coordinates: phi (angle in the plane perpendicular to the normal)
+def _sph_phi(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = na.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+    
+    ## We have freedom with respect to what axis (xprime) to define
+    ## the disk angle. Here I've chosen to use the axis that is
+    ## perpendicular to the normal and the y-axis. When normal ==
+    ## y-hat, then set xprime = z-hat. With this definition, when
+    ## normal == z-hat (as is typical), then xprime == x-hat.
+    ##
+    ## The angle is then given by the arctan of the ratio of the
+    ## yprime-component and the xprime-component of the coords vector.
+
+    xprime = na.cross([0.0,1.0,0.0],normal)
+    if na.sum(xprime) == 0: xprime = na.array([0.0, 0.0, 1.0])
+    yprime = na.cross(normal,xprime)
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    Jx = na.tile(xprime,tile_shape)
+    Jy = na.tile(yprime,tile_shape)
+    
+    Px = na.sum(Jx*coords,axis=-1)
+    Py = na.sum(Jy*coords,axis=-1)
+    
+    return na.arctan2(Py,Px)
+
+add_field("sph_phi", function=_sph_phi,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+
+
+### cylindrical coordinates: R (radius in the cylinder's plane)
+def _cyl_R(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+      
+    coords = na.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The cross product of the normal (J) with the coords vector
+    ## gives a vector of magnitude equal to the cylindrical radius.
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    J = na.tile(normal,tile_shape)
+
+    JcrossCoords = na.cross(J,coords)
+    return na.sqrt(na.sum(JcrossCoords**2,axis=-1))
+
+def _Convert_cyl_R_CGS(data):
+   return data.convert("cm")
+
+add_field("cyl_R", function=_cyl_R,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")],
+         convert_function = _Convert_cyl_R_CGS, units=r"\rm{cm}")
+
+
+### cylindrical coordinates: z (height above the cylinder's plane)
+def _cyl_z(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = na.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The dot product of the normal (J) with the coords vector gives
+    ## the cylindrical height.
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    J = na.tile(normal,tile_shape)
+
+    return na.sum(J*coords,axis=-1)  
+
+def _Convert_cyl_z_CGS(data):
+   return data.convert("cm")
+
+add_field("cyl_z", function=_cyl_z,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")],
+         convert_function = _Convert_cyl_z_CGS, units=r"\rm{cm}")
+
+
+### cylindrical coordinates: theta (angle in the cylinder's plane)
+### [This is identical to the spherical coordinate's 'phi' angle.]
+def _cyl_theta(field, data):
+    return data['sph_phi']
+
+add_field("cyl_theta", function=_cyl_theta,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+
+### The old field DiskAngle is the same as the spherical coordinates'
+### 'theta' angle. I'm keeping DiskAngle for backwards compatibility.
+def _DiskAngle(field, data):
+    return data['sph_theta']
+
+add_field("DiskAngle", function=_DiskAngle,
+          take_log=False,
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("normal")],
+          display_field=False)
+
+
+### The old field Height is the same as the cylindrical coordinates' z
+### field. I'm keeping Height for backwards compatibility.
+def _Height(field, data):
+    return data['cyl_z']
+
 def _convertHeight(data):
     return data.convert("cm")
 def _convertHeightAU(data):
     return data.convert("au")
 add_field("Height", function=_Height,
           convert_function=_convertHeight,
-          validators=[ValidateParameter("height_vector")],
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("normal")],
           units=r"cm", display_field=False)
 add_field("HeightAU", function=_Height,
           convert_function=_convertHeightAU,
-          validators=[ValidateParameter("height_vector")],
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("normal")],
           units=r"AU", display_field=False)
 
-def _DiskAngle(field, data):
-    # We make both r_vec and h_vec into unit vectors
-    center = data.get_field_parameter("center")
-    r_vec = na.array([data["x"] - center[0],
-                      data["y"] - center[1],
-                      data["z"] - center[2]])
-    r_vec = r_vec/na.sqrt((r_vec**2.0).sum(axis=0))
-    h_vec = na.array(data.get_field_parameter("height_vector"))
-    dp = r_vec[0,:] * h_vec[0] \
-       + r_vec[1,:] * h_vec[1] \
-       + r_vec[2,:] * h_vec[2]
-    return na.arccos(dp)
-add_field("DiskAngle", function=_DiskAngle,
-          take_log=False,
-          validators=[ValidateParameter("height_vector"),
-                      ValidateParameter("center")],
-          display_field=False)
 
 def _DynamicalTime(field, data):
     """

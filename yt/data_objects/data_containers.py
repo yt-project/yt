@@ -3074,7 +3074,7 @@ class AMRCylinderBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
-        self.set_field_parameter("height_vector", self._norm_vec)
+        self.set_field_parameter("normal", self._norm_vec)
         self._height = fix_length(height, self.pf)
         self._radius = fix_length(radius, self.pf)
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
