@@ -471,10 +471,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                         fluids, self, self._current_chunk)
         self.field_data.update(read_fluids)
 
-        print "READING GENNING", particles
         read_particles, gen_particles = self.hierarchy._read_particle_fields(
                                         particles, self, self._current_chunk)
-        print "BACK", read_particles, gen_particles
         self.field_data.update(read_particles)
         fields_to_generate = gen_fluids + gen_particles
         index = 0

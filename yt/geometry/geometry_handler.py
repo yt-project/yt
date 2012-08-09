@@ -109,6 +109,11 @@ class GeometryHandler(ParallelAnalysisInterface):
             # it.
             ff = self.parameter_file.field_info.pop(field, None)
             if field not in known_fields:
+                if isinstance(field, types.TupleType) and \
+                   field[0] in self.parameter_file.particle_types:
+                    particle_type = True
+                else:
+                    particle_type = False
                 rootloginfo("Adding unknown field %s to list of fields", field)
                 cf = None
                 if self.parameter_file.has_key(field):
@@ -121,7 +126,7 @@ class GeometryHandler(ParallelAnalysisInterface):
                 # will allow the same field detection mechanism to work for 1D, 2D
                 # and 3D fields.
                 self.pf.field_info.add_field(
-                        field, NullFunc,
+                        field, NullFunc, particle_type = particle_type,
                         convert_function=cf, take_log=False, units=r"Unknown")
             else:
                 mylog.debug("Adding known field %s to list of fields", field)
