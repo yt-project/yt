@@ -28,6 +28,7 @@ import h5py
 
 from yt.utilities.io_handler import \
     BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
@@ -87,3 +88,26 @@ class IOHandlerFLASH(BaseIOHandler):
         tr = f["/%s" % field][grid.id - grid._id_offset].transpose()[sl]
         return tr.astype("float64")
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
+        f = self._handle
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = na.empty(size, dtype=f["/%s" % fname].dtype)
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [f2 for f1, f2 in fields], ng)
+        for field in fields:
+            ftype, fname = field
+            ds = f["/%s" % fname]
+            ind = 0
+            for chunk in chunks:
+                for g in chunk.objs:
+                    mask = g.select(selector) # caches
+                    if mask is None: continue
+                    data = ds[g.id - g._id_offset,:,:,:].transpose()[mask]
+                    rv[field][ind:ind+data.size] = data
+                    ind += data.size
+        return rv

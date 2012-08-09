@@ -57,6 +57,10 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
+    @property
+    def filename(self):
+        return None
+
 class FLASHHierarchy(GridGeometryHandler):
 
     grid = FLASHGrid
@@ -182,7 +186,7 @@ class FLASHHierarchy(GridGeometryHandler):
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
-        AMRHierarchy._setup_derived_fields(self)
+        super(FLASHHierarchy, self)._setup_derived_fields()
         [self.parameter_file.conversion_factors[field] 
          for field in self.field_list]
         for field in self.field_list:
