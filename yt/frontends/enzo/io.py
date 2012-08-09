@@ -60,10 +60,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         chunks = list(chunks)
         # Now we have to do something unpleasant
         dobj = chunks[0].dobj
-        if "particle_type" not in dobj.pf.h.field_list and \
-           any((ftype != "all" for ftype, fname in fields)):
-            raise NotImplementedError("Sorry, but you'll have to manually " +
-                    "discriminate without a particle_type field")
+        if any((ftype != "all" for ftype, fname in fields)):
+           return self._read_particle_selection_by_type(
+                    chunks, selector, fields)
         mylog.debug("First pass: counting particles.")
         xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
         size = 0
@@ -93,7 +92,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                            for ax in 'xyz')
                 mask = g.select_particles(selector, x, y, z)
                 if mask is None: continue
-                for field in fields:
+                for field in set(fields):
                     ftype, fname = field
                     gdata = data[g.id].pop(fname)[mask]
                     rv[field][ind:ind+gdata.size] = gdata

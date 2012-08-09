@@ -294,6 +294,11 @@ class EnzoHierarchy(GridGeometryHandler):
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
+        if self.parameter_file.parameters["VersionNumber"] > 2.0:
+            active_particles = True
+            nap = []
+        else:
+            active_particles = False
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
@@ -305,6 +310,9 @@ class EnzoHierarchy(GridGeometryHandler):
             fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             np.append(int(_next_token_line("NumberOfParticles", f)[0]))
+            if active_particles:
+                ta = int(_next_token_line( "NumberOfActiveParticles", f)[0])
+                nap.append(ta)
             if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
             for line in f:
                 if len(line) < 2: break
@@ -320,13 +328,20 @@ class EnzoHierarchy(GridGeometryHandler):
         self._store_binary_hierarchy()
         t2 = time.time()
 
-    def _fill_arrays(self, ei, si, LE, RE, np):
+    def _initialize_grid_arrays(self):
+        super(EnzoHierarchy, self)._initialize_grid_arrays()
+        self.grid_active_particle_count = na.zeros((self.num_grids,1), 'int32')
+
+    def _fill_arrays(self, ei, si, LE, RE, np, nap = None):
         self.grid_dimensions.flat[:] = ei
         self.grid_dimensions -= na.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE
         self.grid_particle_count.flat[:] = np
+        if nap is not None:
+            self.grid_active_particle_count.flat[:] = nap
+
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
