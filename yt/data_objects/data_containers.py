@@ -231,9 +231,8 @@ class YTDataContainer(object):
         ftype, fname = field
         if fname in self._container_fields:
             return self._generate_container_field(field)
-        elif fname not in self.pf.field_info:
-            raise KeyError(field)
-        elif self.pf.field_info[fname].particle_type:
+        finfo = self._get_field_info(*field)
+        if finfo.particle_type:
             return self._generate_particle_field(field)
         else:
             return self._generate_fluid_field(field)
@@ -275,7 +274,8 @@ class YTDataContainer(object):
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            self.pf.field_info[fname].check_available(gen_obj)
+            finfo = self._get_field_info(*field)
+            finfo.check_available(gen_obj)
         except NeedsGridType, ngt_exception:
             if ngt_exception.ghost_zones != 0:
                 raise NotImplementedError
@@ -294,7 +294,7 @@ class YTDataContainer(object):
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
-            rv = self.pf.field_info[fname](gen_obj)
+            rv = self._get_field_info(*field)(gen_obj)
         return rv
 
     def _count_particles(self, ftype):
@@ -364,11 +364,12 @@ class YTDataContainer(object):
                        for i in self._con_args])
         return s
 
-    def _get_field_info(self, fname):
-        if fname not in self.pf.field_info:
-            raise YTFieldNotFound(fname, self.pf)
-        finfo = self.pf.field_info[fname]
-        return finfo
+    def _get_field_info(self, ftype, fname):
+        if (ftype, fname) in self.pf.field_info:
+            return self.pf.field_info[(ftype, fname)]
+        if fname in self.pf.field_info:
+           return self.pf.field_info[fname]
+        raise YTFieldNotFound((fname, ftype), self.pf)
 
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
@@ -383,11 +384,11 @@ class YTDataContainer(object):
                    not isinstance(field[1], types.StringTypes):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
-                finfo = self._get_field_info(fname)
+                finfo = self._get_field_info(ftype, fname)
                 explicit_fields.append(field)
             else:
                 fname = field
-                finfo = self._get_field_info(fname)
+                finfo = self._get_field_info("unknown", fname)
                 if finfo.particle_type:
                     ftype = "all"
                 else:
@@ -458,7 +459,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         for ftype, fname in fields_to_get:
-            if self.pf.field_info[fname].particle_type:
+            finfo = self._get_field_info(ftype, fname)
+            if finfo.particle_type:
                 particles.append((ftype, fname))
             else:
                 fluids.append((ftype, fname))
@@ -469,8 +471,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                         fluids, self, self._current_chunk)
         self.field_data.update(read_fluids)
 
+        print "READING GENNING", particles
         read_particles, gen_particles = self.hierarchy._read_particle_fields(
                                         particles, self, self._current_chunk)
+        print "BACK", read_particles, gen_particles
         self.field_data.update(read_particles)
         fields_to_generate = gen_fluids + gen_particles
         index = 0

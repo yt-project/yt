@@ -306,7 +306,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         fields_to_return = {}
         fields_to_read, fields_to_generate = [], []
         for ftype, fname in fields:
-            if fname in self.field_list:
+            if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
             else:
                 fields_to_generate.append((ftype, fname))
