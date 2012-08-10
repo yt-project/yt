@@ -156,32 +156,7 @@ def _TotalMass(data):
 def _combTotalMass(data, total_mass):
     return total_mass.sum()
 add_quantity("TotalMass", function=_TotalMass,
-             combine_function=_combTotalMass, n_ret = 1)
-
-def _TotalGasMass(data):
-    """
-    This function takes no arguments and returns the sum of cell
-    masses in the object.
-    """
-    baryon_mass = data["CellMassMsun"].sum()
-    return [baryon_mass]
-def _combTotalGasMass(data, baryon_mass):
-    return baryon_mass.sum()
-add_quantity("TotalGasMass", function=_TotalGasMass,
-             combine_function=_combTotalGasMass, n_ret = 1)
-                
-def _MatterMass(data):
-    """
-    This function takes no arguments and returns the array sum of cell masses
-    and particle masses.
-    """
-    cellvol = data["CellVolume"]
-    matter_rho = data["Matter_Density"]
-    return cellvol, matter_rho 
-def _combMatterMass(data, cellvol, matter_rho):
-    return cellvol*matter_rho
-add_quantity("MatterMass", function=_MatterMass,
-	     combine_function=_combMatterMass, n_ret=2)
+             combine_function=_combTotalMass, n_ret=1)
 
 def _CenterOfMass(data, use_cells=True, use_particles=False):
     """
