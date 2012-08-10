@@ -201,6 +201,12 @@ function host_specific
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
         echo
+        OSX_VERSION=`sw_vers -productVersion`
+        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+        then
+            MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
+            MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
+        fi
     fi
     if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
     then
@@ -411,6 +417,7 @@ echo '42021737c93cea513116e6051cff9b803e3f25d6019c74370b42f4c91d1af73e94ac2b7ace
 echo 'fb3cf421b2dc48c31956b3e3ee4ab6ebc743deec3bf626c2238a1996c8c51be87260bd6aa662793a1f0c34dcda9b3146763777bb162dfad6fec4ca7acc403b2e  zeromq-2.2.0.tar.gz' > zeromq-2.2.0.tar.gz.sha512
 echo 'd761b492352841cdc125d9f0c99ee6d6c435812472ea234728b7f0fb4ad1048e1eec9b399df2081fbc926566f333f7780fedd0ce23255a6633fe5c60ed15a6af  pyzmq-2.1.11.tar.gz' > pyzmq-2.1.11.tar.gz.sha512
 echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254bc76b9b3b14b4aab7c3e1135858f68abc5636daedf2f01f9b8a3cf  tornado-2.2.tar.gz' > tornado-2.2.tar.gz.sha512
+echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ade5e8db944ecde6bfb111211ab218aa414ee90aafbb81f1491b3b93  Forthon-0.8.10.tar.gz' > Forthon-0.8.10.tar.gz.sha512
 
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.7.tar.gz
@@ -431,6 +438,7 @@ get_ytproject ipython-0.13.tar.gz
 get_ytproject h5py-2.0.1.tar.gz
 get_ytproject Cython-0.16.tar.gz
 get_ytproject reason-js-20120623.zip
+get_ytproject Forthon-0.8.10.tar.gz
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -668,6 +676,7 @@ fi
 do_setup_py ipython-0.13
 do_setup_py h5py-2.0.1
 do_setup_py Cython-0.16
+do_setup_py Forthon-0.8.10
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"

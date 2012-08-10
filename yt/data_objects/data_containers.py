@@ -871,9 +871,12 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
         height : height specifier
-            This will be the height of the FRB, by default it is equal to width.
+            This will be the physical height of the FRB, by default it is equal
+            to width.  Note that this will not make any corrections to
+            resolution for the aspect ratio.
         resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
+            The number of pixels on a side of the final FRB.  If iterable, this
+            will be the width then the height.
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
