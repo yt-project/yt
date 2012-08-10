@@ -867,13 +867,13 @@ class ProjectionPlot(PWViewerMPL):
         This is a very simple way of creating a projection plot.
         
         >>> pf = load('galaxy0030/galaxy0030')
-        >>> p = ProjectionPlot(pf,2,'Density','c',(20,'kpc'))
+        >>> p = ProjectionPlot(pf, 'z', 'Density', 'c', (20,'kpc'))
         >>> p.save('sliceplot')
         
         """
         axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
-        proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
+        proj = pf.h.proj(fields, axis, weight_field=weight_field,max_level=max_level,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
 
 class OffAxisSlicePlot(PWViewerMPL):

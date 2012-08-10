@@ -779,7 +779,7 @@ class PlotCollection(object):
         if center == None:
             center = self.c
         if obj is None:
-            obj = self.pf.hierarchy.proj(axis, field, weight_field,
+            obj = self.pf.hierarchy.proj(field, axis, weight_field,
                                          source = data_source, center=center,
                                          **field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
@@ -873,7 +873,7 @@ class PlotCollection(object):
         LE[axis] -= thickness/2.0
         RE[axis] += thickness/2.0
         region = self.pf.h.region(center, LE, RE)
-        obj = self.pf.hierarchy.proj(axis, field, weight_field,
+        obj = self.pf.hierarchy.proj(field, axis, weight_field,
                                      source = region, center=center,
                                      **field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
@@ -1363,7 +1363,7 @@ class PlotCollection(object):
         angular momentum vector.
 
         >>> pf = load("RD0005-mine/RedshiftOutput0005")
-        >>> proj = pf.h.proj(0, "Density")
+        >>> proj = pf.h.proj("Density", 0)
         >>> frb = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (512, 512))
         >>> p = pc.add_fixed_resolution_plot(frb, "Density")
         """
@@ -1823,7 +1823,7 @@ def matplotlib_widget(data_source, field, npix):
     --------
 
     >>> pf = load("DD0030/DD0030")
-    >>> p = pf.h.proj(0, "Density")
+    >>> p = pf.h.proj("Density", "z")
     >>> matplotlib_widget(p, "Density", 1024)
 
     """

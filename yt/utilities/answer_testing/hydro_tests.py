@@ -37,7 +37,7 @@ class TestProjection(YTStaticOutputTest):
     def run(self):
         # First we get our flattened projection -- this is the
         # Density, px, py, pdx, and pdy
-        proj = self.pf.h.proj(self.axis, self.field,
+        proj = self.pf.h.proj(self.field, self.axis, 
                               weight_field=self.weight_field)
         # Now let's stick it in a buffer
         pixelized_proj = self.pixelize(proj, self.field)

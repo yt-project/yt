@@ -802,7 +802,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    projections.append(self.pf.h.proj(w, hp['field'],
+                    projections.append(self.pf.h.proj(hp['field'], w,
                                                       weight_field=hp['weight_field'],
                                                       source=region, center=halo['center'],
                                                       serialize=False))

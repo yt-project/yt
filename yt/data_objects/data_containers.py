@@ -586,7 +586,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         Examples
         --------
 
-        >>> proj = pf.h.proj(0, "Density")
+        >>> proj = pf.h.proj("Density", 0)
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
         >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
         """

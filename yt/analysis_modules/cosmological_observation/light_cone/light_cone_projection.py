@@ -82,7 +82,7 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
         these_field_cuts.append(cut_mask)
 
     # Make projection.
-    proj = lightConeSlice['object'].h.proj(lightConeSlice['projection_axis'], field,
+    proj = lightConeSlice['object'].h.proj(field, lightConeSlice['projection_axis'], 
                                            weight_field, center=region_center,
                                            field_cuts=these_field_cuts, node_name=node_name)
 

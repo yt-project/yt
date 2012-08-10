@@ -153,7 +153,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
-    def __init__(self, axis, field, weight_field = None,
+    def __init__(self, field, axis, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,
@@ -177,12 +177,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
         Parameters
         ----------
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
         field : string
             This is the field which will be "projected" along the axis.  If
             multiple are specified (in a list) they will all be projected in
             the first pass.
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
         weight_field : string
             If supplied, the field being projected will be multiplied by this
             weight value before being integrated, and at the conclusion of the
@@ -217,7 +217,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         --------
 
         >>> pf = load("RedshiftOutput0005")
-        >>> qproj = pf.h.quad_proj(0, "Density")
+        >>> qproj = pf.h.proj("Density", 0)
         >>> print qproj["Density"]
         """
         YTSelectionContainer2D.__init__(self, axis, field, pf, node_name = None, **kwargs)
@@ -484,7 +484,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "overlap_proj"
     _con_args = ('axis', 'field', 'weight_field')
-    def __init__(self, axis, field, weight_field = None,
+    def __init__(self, field, axis, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
                  preload_style=None, serialize=True, **kwargs):
@@ -503,12 +503,12 @@ class YTOverlapProjBase(YTSelectionContainer2D):
 
         Parameters
         ----------
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
         field : string
             This is the field which will be "projected" along the axis.  If
             multiple are specified (in a list) they will all be projected in
             the first pass.
+        axis : int or axis
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
         weight_field : string
             If supplied, the field being projected will be multiplied by this
             weight value before being integrated, and at the conclusion of the
@@ -543,7 +543,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
         --------
 
         >>> pf = load("RedshiftOutput0005")
-        >>> proj = pf.h.proj(0, "Density")
+        >>> proj = pf.h.proj("Density", "x")
         >>> print proj["Density"]
         """
         YTSelectionContainer2D.__init__(self, axis, field, pf, node_name = None, **kwargs)

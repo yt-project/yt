@@ -81,7 +81,7 @@ class FixedResolutionBuffer(object):
         To make a projection and then several images, you can generate a
         single FRB and then access multiple fields:
 
-        >>> proj = pf.h.proj(0, "Density")
+        >>> proj = pf.h.proj("Density", "y")
         >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                         (1024, 1024))
         >>> print frb1["Density"].max()
