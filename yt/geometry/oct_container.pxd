@@ -31,7 +31,7 @@ cdef struct Oct:
     np.int64_t local_ind
     np.int64_t domain       # (opt) addl int index
     np.int64_t pos[3]       # position in ints
-    np.uint8_t level
+    np.int8_t level
     Oct *children[2][2][2]
     Oct *parent
 

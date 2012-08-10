@@ -85,9 +85,11 @@ class RAMSESDomainFile(object):
         f = open(self.hydro_fn, "rb")
         fpu.skip(f, 6)
         # It goes: level, CPU, 8-variable
-        hydro_offset = na.zeros(self.amr_header['nlevelmax'], dtype='int64')
+        min_level = self.pf.min_level
+        n_levels = self.amr_header['nlevelmax'] - min_level
+        hydro_offset = na.zeros(n_levels, dtype='int64')
         hydro_offset -= 1
-        level_count = na.zeros(self.amr_header['nlevelmax'], dtype='int64')
+        level_count = na.zeros(n_levels, dtype='int64')
         for level in range(self.amr_header['nlevelmax']):
             for cpu in range(self.amr_header['nboundary'] +
                              self.amr_header['ncpu']):
@@ -96,9 +98,9 @@ class RAMSESDomainFile(object):
                 hvals = fpu.read_attrs(f, header)
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
-                if cpu + 1 == self.domain_id:
-                    hydro_offset[level] = f.tell()
-                    level_count[level] = hvals['file_ncache']
+                if cpu + 1 == self.domain_id and level >= min_level:
+                    hydro_offset[level - min_level] = f.tell()
+                    level_count[level - min_level] = hvals['file_ncache']
                 fpu.skip(f, 8 * self.nvar)
         self._hydro_offset = hydro_offset
         self._level_count = level_count
@@ -125,7 +127,7 @@ class RAMSESDomainFile(object):
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
         self.amr_offset = f.tell()
-        self.local_oct_count = hvals['numbl'][:, self.domain_id - 1].sum()
+        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
 
     def _read_amr(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
@@ -139,8 +141,8 @@ class RAMSESDomainFile(object):
         f = cStringIO.StringIO()
         f.write(fb.read())
         f.seek(0)
-        mylog.debug("Reading domain AMR % 4i (%0.3e)",
-            self.domain_id, self.local_oct_count)
+        mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
+            self.domain_id, self.local_oct_count, self.ngridbound)
         def _ng(c, l):
             if c < self.amr_header['ncpu']:
                 ng = self.amr_header['numbl'][l, c]
@@ -148,6 +150,8 @@ class RAMSESDomainFile(object):
                 ng = self.ngridbound[c - self.amr_header['ncpu'] +
                                 self.amr_header['nboundary']*l]
             return ng
+        min_level = self.pf.min_level
+        total = 0
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
             for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
@@ -155,16 +159,13 @@ class RAMSESDomainFile(object):
                 ng = _ng(cpu, level)
                 if ng == 0: continue
                 ind = fpu.read_vector(f, "I").astype("int64")
-                #print level, cpu, ind.min(), ind.max(), ind.size
                 fpu.skip(f, 2)
                 pos = na.empty((ng, 3), dtype='float64')
                 pos[:,0] = fpu.read_vector(f, "d")
                 pos[:,1] = fpu.read_vector(f, "d")
                 pos[:,2] = fpu.read_vector(f, "d")
                 #pos *= self.pf.domain_width
-                print pos.min(), pos.max()
                 #pos += self.parameter_file.domain_left_edge
-                #print pos.min(), pos.max()
                 fpu.skip(f, 31)
                 #parents = fpu.read_vector(f, "I")
                 #fpu.skip(f, 6)
@@ -178,9 +179,12 @@ class RAMSESDomainFile(object):
                 #for i in range(8):
                 #    rmap[:,i] = fpu.read_vector(f, "I")
                 # We don't want duplicate grids.
-                if cpu + 1 >= self.domain_id: 
+                # Note that we're adding *grids*, not individual cells.
+                if level >= min_level and cpu + 1 >= self.domain_id: 
                     assert(pos.shape[0] == ng)
-                    oct_handler.add(cpu + 1, level, ng, pos, 
+                    if cpu + 1 == self.domain_id:
+                        total += ng
+                    oct_handler.add(cpu + 1, level - min_level, ng, pos, 
                                     self.domain_id)
 
     def select(self, selector):
@@ -227,6 +231,7 @@ class RAMSESDomainSubset(object):
         fields = [f for ft, f in fields]
         tr = {}
         filled = pos = 0
+        min_level = self.domain.pf.min_level
         for field in fields:
             tr[field] = na.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.hydro_offset):
@@ -247,7 +252,8 @@ class RAMSESDomainSubset(object):
                         #print "Reading %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
                         temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            oct_handler.fill_level(self.domain.domain_id, level,
+            oct_handler.fill_level(self.domain.domain_id,
+                                   level - min_level,
                                    tr, temp, self.mask, level_offset)
             #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
         #print "DONE (%s) %s of %s" % (self.domain.domain_id, filled,
@@ -275,7 +281,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         #this merely allocates space for the oct tree
         #and nothing else
         self.oct_handler = RAMSESOctreeContainer(
-            self.domains[0].amr_header['nx'],
+            self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
         mylog.debug("Allocating %s octs", total_octs)
@@ -285,6 +291,8 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         #this actually reads every oct and loads it into the octree
         for dom in self.domains:
             dom._read_amr(self.oct_handler)
+        #for dom in self.domains:
+        #    self.oct_handler.check(dom.domain_id)
 
     def _detect_fields(self):
         # TODO: Add additional fields
@@ -399,7 +407,13 @@ class RAMSESStaticOutput(StaticOutput):
         for i in range(11): read_rhs(float)
         f.readline()
         read_rhs(str)
-        # Now we read the hilber indices
+        # This next line deserves some comment.  We specify a min_level that
+        # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
+        # one-indexed, but it also does refer to the *oct* dimensions -- so
+        # this means that a levelmin of 1 would have *1* oct in it.  So a
+        # levelmin of 2 would have 8 octs at the root mesh level.
+        self.min_level = rheader['levelmin'] - 1
+        # Now we read the hilbert indices
         self.hilbert_indices = {}
         if rheader['ordering type'] == "hilbert":
             f.readline() # header
@@ -409,8 +423,9 @@ class RAMSESStaticOutput(StaticOutput):
         self.parameters.update(rheader)
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_left_edge = na.zeros(3, dtype='float64')
-        self.domain_dimensions = na.ones(3, dtype='int32') * 3
-        self.domain_right_edge = na.ones(3, dtype='float64') * self.domain_dimensions
+        self.domain_dimensions = na.ones(3, dtype='int32') * \
+                        2**(self.min_level+1)
+        self.domain_right_edge = na.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
         mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
@@ -419,7 +434,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"]
-        self.max_level = rheader['levelmax']
+        self.max_level = rheader['levelmax'] - rheader['levelmin']
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

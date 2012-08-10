@@ -172,6 +172,7 @@ cdef class SelectorObject:
             for j in range(octree.nn[1]):
                 pos[2] = octree.DLE[2] + dds[2]/2.0
                 for k in range(octree.nn[2]):
+                    if octree.root_mesh[i][j][k] == NULL: continue
                     self.recursively_select_octs(
                         octree.root_mesh[i][j][k],
                         pos, dds, mask)
@@ -390,6 +391,7 @@ cdef class SphereSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         cdef np.float64_t box_center, relcenter, closest, dist, edge
+        return 1
         cdef int id
         if (left_edge[0] <= self.center[0] <= right_edge[0] and
             left_edge[1] <= self.center[1] <= right_edge[1] and
