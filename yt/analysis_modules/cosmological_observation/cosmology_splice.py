@@ -37,10 +37,11 @@ class CosmologySplice(object):
     cosmological distance.
     """
 
-    def __init__(self, parameter_filename, simulation_type):
+    def __init__(self, parameter_filename, simulation_type, find_outputs=False):
         self.parameter_filename = parameter_filename
         self.simulation_type = simulation_type
-        self.simulation = simulation(parameter_filename, simulation_type)
+        self.simulation = simulation(parameter_filename, simulation_type, 
+                                     find_outputs=find_outputs)
 
         self.cosmology = Cosmology(
             HubbleConstantNow=(100.0 * self.simulation.hubble_constant),
