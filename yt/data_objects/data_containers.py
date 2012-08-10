@@ -99,7 +99,7 @@ class YTDataContainer(object):
             if hasattr(cls, "_type_name") and not cls._skip_add:
                 data_object_registry[cls._type_name] = cls
 
-    def __init__(self, pf, fields, **kwargs):
+    def __init__(self, pf, field_parameters):
         """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
@@ -111,19 +111,15 @@ class YTDataContainer(object):
             self.hierarchy = pf.hierarchy
         self.hierarchy.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
-        if fields == None: fields = []
-        self.fields = ensure_list(fields)[:]
         self.field_data = YTFieldData()
-        self.field_parameters = {}
-        self.__set_default_field_parameters()
-        self._cut_masks = {}
-        self._point_indices = {}
-        self._vc_data = {}
-        for key, val in kwargs.items():
+        if field_parameters is None: field_parameters = {}
+        self._set_default_field_parameters()
+        for key, val in field_parameters.items():
             mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
-    def __set_default_field_parameters(self):
+    def _set_default_field_parameters(self):
+        self.field_parameters = {}
         self.set_field_parameter("center",na.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
@@ -179,15 +175,6 @@ class YTDataContainer(object):
         """
         self.field_data.clear()
 
-    def clear_cache(self):
-        """
-        Clears out all cache, freeing memory.
-        """
-        for _cm in self._cut_masks: del _cm
-        for _pi in self._point_indices: del _pi
-        for _field in self._vc_data:
-            for _vc in _field: del _vc
-
     def has_key(self, key):
         """
         Checks if a data field already exists.
@@ -214,17 +201,12 @@ class YTDataContainer(object):
         """
         Sets a field to be some other value.
         """
-        if key not in self.fields: self.fields.append(key)
         self.field_data[key] = val
 
     def __delitem__(self, key):
         """
         Deletes a field
         """
-        try:
-            del self.fields[self.fields.index(key)]
-        except ValueError:
-            pass
         del self.field_data[key]
 
     def _generate_field(self, field):
@@ -528,8 +510,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
-    def __init__(self, pf, fields, **kwargs):
-        super(YTSelectionContainer1D, self).__init__(pf, fields, **kwargs)
+    def __init__(self, pf, field_parameters):
+        super(YTSelectionContainer1D, self).__init__(
+            pf, field_parameters)
         self._grids = None
         self._sortkey = None
         self._sorted = {}
@@ -541,16 +524,16 @@ class YTSelectionContainer2D(YTSelectionContainer):
     thus does not have as many actions as the 3-D data types.
     """
     _spatial = False
-    def __init__(self, axis, fields, pf=None, **kwargs):
+    def __init__(self, axis, pf, field_parameters):
         """
         Prepares the YTSelectionContainer2D, normal to *axis*.  If *axis* is 4, we are not
         aligned with any axis.
         """
         ParallelAnalysisInterface.__init__(self)
         self.axis = axis
-        super(YTSelectionContainer2D, self).__init__(pf, fields, **kwargs)
-        self.field = ensure_list(fields)[0]
-        self.set_field_parameter("axis",axis)
+        super(YTSelectionContainer2D, self).__init__(
+            pf, field_parameters)
+        self.set_field_parameter("axis", axis)
         
     def _convert_field_name(self, field):
         return field
@@ -633,42 +616,6 @@ class YTSelectionContainer2D(YTSelectionContainer):
         pw = PWViewerMPL(self, bounds)
         return pw
 
-    _okay_to_serialize = True
-
-    def _store_fields(self, fields, node_name = None, force = False):
-        fields = ensure_list(fields)
-        if node_name is None: node_name = self._gen_node_name()
-        for field in fields:
-            #mylog.debug("Storing %s in node %s",
-                #self._convert_field_name(field), node_name)
-            self.hierarchy.save_data(self[field], node_name,
-                self._convert_field_name(field), force = force,
-                passthrough = True)
-
-    def _obtain_fields(self, fields, node_name = None):
-        if not self._okay_to_serialize: return
-        fields = ensure_list(fields)
-        if node_name is None: node_name = self._gen_node_name()
-        for field in fields:
-            #mylog.debug("Trying to obtain %s from node %s",
-                #self._convert_field_name(field), node_name)
-            fdata=self.hierarchy.get_data(node_name, 
-                self._convert_field_name(field))
-            if fdata is not None:
-                #mylog.debug("Got %s from node %s", field, node_name)
-                self[field] = fdata[:]
-        return True
-
-    def _deserialize(self, node_name = None):
-        if not self._okay_to_serialize: return
-        self._obtain_fields(self._key_fields, node_name)
-        self._obtain_fields(self.fields, node_name)
-
-    def _serialize(self, node_name = None, force = False):
-        if not self._okay_to_serialize: return
-        self._store_fields(self._key_fields, node_name, force)
-        self._store_fields(self.fields, node_name, force)
-
 class YTSelectionContainer3D(YTSelectionContainer):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
@@ -677,14 +624,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
     """
     _spatial = False
     _num_ghost_zones = 0
-    def __init__(self, center, fields, pf = None, **kwargs):
+    def __init__(self, center, pf = None, field_parameters = None):
         """
         Returns an instance of YTSelectionContainer3D, or prepares one.  Usually only
         used as a base class.  Note that *center* is supplied, but only used
         for fields and quantities that require it.
         """
         ParallelAnalysisInterface.__init__(self)
-        super(YTSelectionContainer3D, self).__init__(pf, fields, **kwargs)
+        super(YTSelectionContainer3D, self).__init__(pf, field_parameters)
         self._set_center(center)
         self.coords = None
         self._grids = None

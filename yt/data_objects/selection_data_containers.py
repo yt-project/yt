@@ -52,7 +52,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
-    def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
+    def __init__(self, axis, coords, pf=None, field_parameters = None):
         """
         This is an orthogonal ray cast through the entire domain, at a specific
         coordinate.
@@ -74,7 +74,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         fields : list of strings, optional
             If you want the object to pre-retrieve a set of fields, supply them
             here.  This is not necessary.
-        kwargs : dict of items
+        field_parameters : dict of items
             Any additional values are passed as field parameters that can be
             accessed by generated fields.
 
@@ -85,7 +85,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
         >>> print oray["Density"]
         """
-        YTSelectionContainer1D.__init__(self, pf, fields, **kwargs)
+        super(YTOrthoRayBase, self).__init__(pf, field_parameters)
         self.axis = axis
         self.px_ax = x_dict[self.axis]
         self.py_ax = y_dict[self.axis]
@@ -102,7 +102,7 @@ class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     sort_by = 't'
-    def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
+    def __init__(self, start_point, end_point, pf=None, field_parameters = None):
         """
         This is an arbitrarily-aligned ray cast through the entire domain, at a
         specific coordinate.
@@ -123,7 +123,7 @@ class YTRayBase(YTSelectionContainer1D):
         fields : list of strings, optional
             If you want the object to pre-retrieve a set of fields, supply them
             here.  This is not necessary.
-        kwargs : dict of items
+        field_parameters : dict of items
             Any additional values are passed as field parameters that can be
             accessed by generated fields.
 
@@ -134,7 +134,7 @@ class YTRayBase(YTSelectionContainer1D):
         >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
         >>> print ray["Density"], ray["t"], ray["dts"]
         """
-        YTSelectionContainer1D.__init__(self, pf, fields, **kwargs)
+        super(YTRayBase, self).__init__(pf, field_parameters)
         self.start_point = na.array(start_point, dtype='float64')
         self.end_point = na.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
@@ -170,8 +170,8 @@ class YTSliceBase(YTSelectionContainer2D):
     _con_args = ('axis', 'coord')
     _container_fields = ("px", "py", "pdx", "pdy")
 
-    def __init__(self, axis, coord, fields = None, center=None, pf=None,
-                 node_name = False, **kwargs):
+    def __init__(self, axis, coord, center=None, pf=None,
+                 field_parameters = None):
         """
         This is a data object corresponding to a slice through the simulation
         domain.
@@ -190,16 +190,10 @@ class YTSliceBase(YTSelectionContainer2D):
         coord : float
             The coordinate along the axis at which to slice.  This is in
             "domain" coordinates.
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
         center : array_like, optional
             The 'center' supplied to fields that use it.  Note that this does
             not have to have `coord` as one value.  Strictly optional.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        kwargs : dict of items
+        field_parameters : dict of items
             Any additional values are passed as field parameters that can be
             accessed by generated fields.
 
@@ -210,12 +204,9 @@ class YTSliceBase(YTSelectionContainer2D):
         >>> slice = pf.h.slice(0, 0.25)
         >>> print slice["Density"]
         """
-        YTSelectionContainer2D.__init__(self, axis, fields, pf, **kwargs)
+        YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self._set_center(center)
         self.coord = coord
-        if node_name is not False:
-            if node_name is True: self._deserialize()
-            else: self._deserialize(node_name)
 
     def reslice(self, coord):
         """
@@ -277,8 +268,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _con_args = ('normal', 'center')
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
 
-    def __init__(self, normal, center, fields = None, node_name = None,
-                 north_vector = None, **kwargs):
+    def __init__(self, normal, center, pf = None,
+                 north_vector = None, field_parameters = None):
         """
         This is a data object corresponding to an oblique slice through the
         simulation domain.
@@ -300,10 +291,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         fields : list of strings, optional
             If you want the object to pre-retrieve a set of fields, supply them
             here.  This is not necessary.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        kwargs : dict of items
+        field_parameters : dict of items
             Any additional values are passed as field parameters that can be
             accessed by generated fields.
 
@@ -322,7 +310,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
         >>> print cp["Density"]
         """
-        YTSelectionContainer2D.__init__(self, 4, fields, **kwargs)
+        YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
         self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
@@ -340,19 +328,10 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         self.set_field_parameter('cp_x_vec',self._x_vec)
         self.set_field_parameter('cp_y_vec',self._y_vec)
         self.set_field_parameter('cp_z_vec',self._norm_vec)
-        if node_name is not False:
-            if node_name is True: self._deserialize()
-            else: self._deserialize(node_name)
 
     @property
     def normal(self):
         return self._norm_vec
-
-    def _gen_node_name(self):
-        cen_name = ("%s" % (self.center,)).replace(" ","_")[1:-1]
-        L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
-        return "%s/c%s_L%s" % \
-            (self._top_node, cen_name, L_name)
 
     def to_frb(self, width, resolution):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
@@ -399,6 +378,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
         frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
         return frb
+
     def to_frb(self, width, resolution, height=None):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
@@ -502,8 +482,8 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     _top_node = "/FixedResCuttingPlanes"
     _type_name = "fixed_res_cutting"
     _con_args = ('normal', 'center', 'width', 'dims')
-    def __init__(self, normal, center, width, dims, fields = None,
-                 node_name = None, **kwargs):
+    def __init__(self, normal, center, width, dims, pf = None,
+                 node_name = None, field_parameters = None):
         """
         The fixed resolution Cutting Plane slices at an oblique angle,
         where we use the *normal* vector at the *center* to define the
@@ -513,7 +493,7 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         #
         # Taken from Cutting Plane
         #
-        YTSelectionContainer2D.__init__(self, 4, fields, **kwargs)
+        YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
         self._set_center(center)
         self.width = width
         self.dims = dims
@@ -641,17 +621,14 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
-    def get_data(self, fields = None):
+    def get_data(self, fields):
         """
         Iterates over the list of fields and generates/reads them all.
         """
         self._get_list_of_grids()
         if not self.has_key('pdx'):
             self._generate_coords()
-        if fields == None:
-            fields_to_get = self.fields[:]
-        else:
-            fields_to_get = ensure_list(fields)
+        fields_to_get = ensure_list(fields)
         temp_data = {}
         _size = self.dims * self.dims
         for field in fields_to_get:
@@ -659,8 +636,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
-            if not self._vc_data.has_key(field):
-                self._vc_data[field] = {}
             self[field] = na.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
@@ -916,7 +891,7 @@ class YTSphereBase(YTSelectionContainer3D):
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
-    def __init__(self, center, radius, fields = None, pf = None, **kwargs):
+    def __init__(self, center, radius, pf = None, field_parameters = None):
         """A sphere f points defined by a *center* and a *radius*.
 
         Parameters
@@ -932,7 +907,7 @@ class YTSphereBase(YTSelectionContainer3D):
         >>> c = [0.5,0.5,0.5]
         >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
         """
-        YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
+        super(YTSphereBase, self).__init__(center, pf, field_parameters)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.pf)
         if radius < self.hierarchy.get_smallest_dx():

@@ -245,9 +245,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self._max_level = max_level
         self._weight = weight_field
         self.preload_style = preload_style
-        self._deserialize(node_name)
         self._refresh_data()
-        if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
 
     @property
     def _mrep(self):
@@ -260,24 +258,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if field == "weight_field": return "weight_field_%s" % self._weight
         if field in self._key_fields: return field
         return "%s_%s" % (field, self._weight)
-
-    def _initialize_source(self, source = None):
-        if source is None:
-            source = self.pf.h.all_data()
-            self._check_region = False
-            #self._okay_to_serialize = (not check)
-        else:
-            self._distributed = False
-            self._okay_to_serialize = False
-            self._check_region = True
-        self.source = source
-        if self._field_cuts is not None:
-            # Override if field cuts are around; we don't want to serialize!
-            self._check_region = True
-            self._okay_to_serialize = False
-        if self._node_name is not None:
-            self._node_name = "%s/%s" % (self._top_node,self._node_name)
-            self._okay_to_serialize = True
 
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
@@ -301,9 +281,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             convs[:] = 1.0
         return dls, convs
 
-    def get_data(self, fields = None):
-        if fields is None: fields = ensure_list(self.fields)[:]
-        else: fields = ensure_list(fields)
+    def get_data(self, fields):
+        fields = ensure_list(fields)
         # We need a new tree for every single set of fields we add
         self._obtain_fields(fields, self._node_name)
         fields = [f for f in fields if f not in self.field_data]
@@ -722,9 +701,8 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                 raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
-    def get_data(self, fields = None):
-        if fields is None: fields = ensure_list(self.fields)[:]
-        else: fields = ensure_list(fields)
+    def get_data(self, fields):
+        fields = ensure_list(fields)
         self._obtain_fields(fields, self._node_name)
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
@@ -916,13 +894,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, fields=None):
+    def get_data(self, fields):
         if self._grids is None:
             self._get_list_of_grids()
-        if fields is None:
-            fields = self.fields[:]
-        else:
-            fields = ensure_list(fields)
+        fields = ensure_list(fields)
         obtain_fields = []
         for field in fields:
             if self.field_data.has_key(field): continue
@@ -960,7 +935,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         else: # Can't find the field, try as it might
             raise KeyError(field)
 
-    def flush_data(self, field=None):
+    def flush_data(self, fields=None):
         """
         Any modifications made to the data in this object are pushed back
         to the originating grids, except the cells where those grids are both
@@ -968,12 +943,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         """
         self._get_list_of_grids()
         # We don't generate coordinates here.
-        if field == None:
-            fields_to_get = self.fields[:]
-        else:
-            fields_to_get = ensure_list(field)
         for grid in self._grids:
-            self._flush_data_to_grid(grid, fields_to_get)
+            self._flush_data_to_grid(grid, ensure_list(fields))
 
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
@@ -1055,13 +1026,10 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         # We reverse the order to ensure that coarse grids are first
         self._grids = self._grids[::-1]
 
-    def get_data(self, field=None):
+    def get_data(self, field):
         self._get_list_of_grids()
         # We don't generate coordinates here.
-        if field == None:
-            fields_to_get = self.fields[:]
-        else:
-            fields_to_get = ensure_list(field)
+        fields_to_get = ensure_list(field)
         fields_to_get = [f for f in fields_to_get if f not in self.field_data]
         # Note that, thanks to some trickery, we have different dimensions
         # on the field than one might think from looking at the dx and the
@@ -1157,8 +1125,8 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
     _top_node = "/Projections"
     _type_name = "fixed_res_proj"
     _con_args = ('axis', 'field', 'weight_field')
-    def __init__(self, axis, level, left_edge, dims,
-                 fields = None, pf=None, **kwargs):
+    def __init__(self, axis, level, left_edge, dims, pf=None,
+                 field_parameters = None):
         """
         This is a data structure that projects grids, but only to fixed (rather
         than variable) resolution.
@@ -1185,10 +1153,7 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
         dims : array of ints
             The dimensions of the projection (which, in concert with the
             left_edge, serves to define its right edge.)
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        kwargs : dict of items
+        field_parameters : dict of items
             Any additional values are passed as field parameters that can be
             accessed by generated fields.
 
@@ -1199,7 +1164,7 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
         >>> fproj = pf.h.fixed_res_proj(1, [0, 0, 0], [64, 64, 64], ["Density"])
         >>> print fproj["Density"]
         """
-        YTSelectionContainer2D.__init__(self, axis, fields, pf, **kwargs)
+        YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self.left_edge = na.array(left_edge)
         self.level = level
         self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
@@ -1241,17 +1206,14 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
         self['pdy'] = self.dds[yax]
 
     #@time_execution
-    def get_data(self, fields = None):
+    def get_data(self, fields):
         """
         Iterates over the list of fields and generates/reads them all.
         """
         self._get_list_of_grids()
         if not self.has_key('pdx'):
             self._generate_coords()
-        if fields == None:
-            fields_to_get = [f for f in self.fields if f not in self._key_fields]
-        else:
-            fields_to_get = ensure_list(fields)
+        fields_to_get = ensure_list(fields)
         if len(fields_to_get) == 0: return
         temp_data = {}
         for field in fields_to_get:
