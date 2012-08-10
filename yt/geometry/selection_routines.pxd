@@ -30,7 +30,7 @@ cdef struct Oct
 cdef class SelectorObject:
     cdef void recursively_select_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
-                        np.ndarray[np.uint8_t, ndim=1] mask,
+                        np.ndarray[np.uint8_t, ndim=2] mask,
                         int level = ?)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil

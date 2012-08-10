@@ -217,7 +217,12 @@ class RAMSESDomainSubset(object):
                                         self.cell_count)
 
     def fwidth(self, dobj):
-        pass
+        base_dx = 1.0/self.domain.pf.domain_dimensions
+        coords = na.empty((self.cell_count, 3), dtype="float64")
+        dds = (2**self.ires(dobj))
+        for i in range(3):
+            coords[:,i] = base_dx[i] / dds
+        return coords
 
     def ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
@@ -230,7 +235,7 @@ class RAMSESDomainSubset(object):
         all_fields = self.domain.pf.h.field_list
         fields = [f for ft, f in fields]
         tr = {}
-        filled = pos = 0
+        filled = pos = total = 0
         min_level = self.domain.pf.min_level
         for field in fields:
             tr[field] = na.zeros(self.cell_count, 'float64')
@@ -252,11 +257,11 @@ class RAMSESDomainSubset(object):
                         #print "Reading %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
                         temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            oct_handler.fill_level(self.domain.domain_id, level,
+            filled = oct_handler.fill_level(self.domain.domain_id, level,
                                    tr, temp, self.mask, level_offset)
-            print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
-        print "DONE (%s) %s of %s" % (self.domain.domain_id, filled,
-        self.cell_count)
+            total += filled
+            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
+        #print "DONE (%s) %s of %s" % (self.domain.domain_id, total, self.cell_count)
         return tr
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):

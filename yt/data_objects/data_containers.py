@@ -358,7 +358,7 @@ class YTDataContainer(object):
         explicit_fields = []
         for field in fields:
             if field in self._container_fields:
-                explicit_fields.append((field, field))
+                explicit_fields.append(field)
                 continue
             if isinstance(field, types.TupleType):
                 if len(field) != 2 or \

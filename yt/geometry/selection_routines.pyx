@@ -162,7 +162,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
         cdef int i, j, k, n
-        cdef np.ndarray[np.uint8_t, ndim=1] mask = np.zeros(octree.nocts, dtype='uint8')
+        cdef np.ndarray[np.uint8_t, ndim=2] mask = np.zeros((octree.nocts, 8), dtype='uint8')
         cdef np.float64_t pos[3], dds[3]
         for i in range(3):
             dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
@@ -186,7 +186,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef void recursively_select_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
-                        np.ndarray[np.uint8_t, ndim=1] mask,
+                        np.ndarray[np.uint8_t, ndim=2] mask,
                         int level = 0):
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res
@@ -199,10 +199,11 @@ cdef class SelectorObject:
             RE[i] = pos[i] + dds[i]/2.0
         #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
         res = self.select_grid(LE, RE)
+        cdef int eterm[3] 
+        eterm[0] = eterm[1] = eterm[2] = 0
         if res == 0:
-            mask[root.local_ind] = 0
+            for i in range(8): mask[root.local_ind,i] = 0
             return
-        mask[root.local_ind] = 1
         # Now we visit all our children
         spos[0] = pos[0] - sdds[0]/2.0
         for i in range(2):
@@ -214,6 +215,9 @@ cdef class SelectorObject:
                     if ch != NULL:
                         self.recursively_select_octs(
                             ch, spos, sdds, mask, level + 1)
+                    else:
+                        mask[root.local_ind, ((k*2)+j)*2+i] = \
+                            self.select_cell(spos, sdds, eterm)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
             spos[0] += sdds[0]

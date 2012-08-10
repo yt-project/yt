@@ -440,7 +440,7 @@ class PWViewer(PlotWindow):
         self._callbacks = []
         self._field_transform = {}
         for field in self._frb.data.keys():
-            finfo = self.data_source._get_field_info(field)
+            finfo = self.data_source._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
             else:
@@ -550,13 +550,15 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
+        field = self.data_source._determine_fields(field)[0]
+        finfo = self.data_source._get_field_info(*field)
         if ds._type_name in ("slice", "cutting"):
-            units = pf.field_info[field].get_units()
+            units = finfo.get_units()
         if ds._type_name == "proj" and (ds.weight_field is not None or 
                                         ds.proj_style == "mip"):
-            units = pf.field_info[field].get_units()
+            units = finfo.get_units()
         elif ds._type_name == "proj":
-            units = pf.field_info[field].get_projected_units()
+            units = finfo.get_projected_units()
         else:
             units = ""
         if strip_mathml:
@@ -628,10 +630,11 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
 
+            ftype, fname = f
             if md['units'] == None or md['units'] == '':
-                label = r'$\rm{'+f.encode('string-escape')+r'}$'
+                label = r'$\rm{'+fname.encode('string-escape')+r'}$'
             else:
-                label = r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$'
+                label = r'$\rm{'+fname.encode('string-escape')+r'}\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
 
@@ -698,6 +701,7 @@ class PWViewerMPL(PWViewer):
             type = 'OffAxisSlice'
         names = []
         for k, v in self.plots.iteritems():
+            if isinstance(k, types.TupleType): k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
             else:
