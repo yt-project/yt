@@ -67,7 +67,7 @@ class FieldInfoContainer(dict): # Resistance has utility
 
     def __missing__(self, key):
         if self.fallback is None:
-            raise KeyError("No field named %s" % key)
+            raise KeyError("No field named %s" % (key,))
         return self.fallback[key]
 
     @classmethod

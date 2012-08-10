@@ -140,7 +140,8 @@ class FixedResolutionBuffer(object):
 
     def _get_data_source_fields(self):
         exclude = self.data_source._key_fields + list(self._exclude_fields)
-        for f in self.data_source.fields:
+        fields = self.data_source.field_data.keys()
+        for f in fields:
             if f not in exclude:
                 self[f]
 

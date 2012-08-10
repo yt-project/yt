@@ -252,12 +252,11 @@ class RAMSESDomainSubset(object):
                         #print "Reading %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
                         temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            oct_handler.fill_level(self.domain.domain_id,
-                                   level - min_level,
+            oct_handler.fill_level(self.domain.domain_id, level,
                                    tr, temp, self.mask, level_offset)
-            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
-        #print "DONE (%s) %s of %s" % (self.domain.domain_id, filled,
-        #self.cell_count)
+            print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
+        print "DONE (%s) %s of %s" % (self.domain.domain_id, filled,
+        self.cell_count)
         return tr
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):

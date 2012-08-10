@@ -177,8 +177,8 @@ cdef class SelectorObject:
                         octree.root_mesh[i][j][k],
                         pos, dds, mask)
                     pos[2] += dds[2]
-                pos[2] += dds[2]
-            pos[2] += dds[2]
+                pos[1] += dds[2]
+            pos[0] += dds[2]
         return mask.astype("bool")
 
     @cython.boundscheck(False)

@@ -440,7 +440,8 @@ class PWViewer(PlotWindow):
         self._callbacks = []
         self._field_transform = {}
         for field in self._frb.data.keys():
-            if self.pf.field_info[field].take_log:
+            finfo = self.data_source._get_field_info(field)
+            if finfo.take_log:
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
@@ -801,7 +802,8 @@ class SlicePlot(PWViewerMPL):
         """
         axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
-        slc = pf.h.slice(axis, center[axis], fields=fields)
+        slc = pf.h.slice(axis, center[axis])
+        slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
 
 class ProjectionPlot(PWViewerMPL):

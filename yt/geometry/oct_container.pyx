@@ -413,4 +413,4 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             if o.children[i][j][k] != NULL: continue
                             if o.level == level:
                                 dest[local_filled] = source[o.ind,((k*2)+j)*2+i]
-                            local_filled += 1
+                                local_filled += 1
