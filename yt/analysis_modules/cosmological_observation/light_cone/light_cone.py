@@ -57,7 +57,7 @@ class LightCone(CosmologySplice):
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
-                 set_parameters=None,
+                 find_outputs=False, set_parameters=None,
                  output_dir='LC', output_prefix='LightCone'):
         """
         Initialize a LightCone object.
@@ -102,6 +102,10 @@ class LightCone(CosmologySplice):
             Whether or not to include redshift outputs when gathering
             datasets for time series.
             Default: True.
+        find_outputs : bool
+            Whether or not to search for parameter files in the current 
+            directory.
+            Default: False.
         set_parameters : dict
             Dictionary of parameters to attach to pf.parameters.
             Default: None.
@@ -150,7 +154,8 @@ class LightCone(CosmologySplice):
             only_on_root(os.mkdir, self.output_dir)
 
         # Calculate light cone solution.
-        CosmologySplice.__init__(self, parameter_filename, simulation_type)
+        CosmologySplice.__init__(self, parameter_filename, simulation_type,
+                                 find_outputs=find_outputs)
         self.light_cone_solution = \
           self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                        minimal=self.use_minimum_datasets,

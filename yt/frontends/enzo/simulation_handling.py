@@ -67,7 +67,8 @@ class EnzoSimulation(SimulationTimeSeries):
         >>> print es.all_outputs
 
         """
-        SimulationTimeSeries.__init__(self, parameter_filename, find_outputs=find_outputs)
+        SimulationTimeSeries.__init__(self, parameter_filename, 
+                                      find_outputs=find_outputs)
 
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None, time_units='1',
@@ -401,10 +402,10 @@ class EnzoSimulation(SimulationTimeSeries):
             self.all_time_outputs.append(output)
             index += 1
 
-    def _get_all_outputs(self, find_outputs=False):
+    def _get_all_outputs(self):
         "Get all potential datasets and combine into a time-sorted list."
 
-        if find_outputs or \
+        if self.find_outputs or \
             (self.parameters['dtDataDump'] > 0 and \
              self.parameters['CycleSkipDataDump'] > 0):
             mylog.info("Simulation %s has both dtDataDump and CycleSkipDataDump set." % self.parameter_filename )
