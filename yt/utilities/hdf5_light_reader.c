@@ -582,13 +582,14 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     // Format arguments
 
     char *filename = NULL;
+    char *suffix = "";
     PyObject *grid_ids = NULL;
     PyObject *set_names = NULL;
     Py_ssize_t num_sets = 0;
     Py_ssize_t num_grids = 0;
 
-    if (!PyArg_ParseTuple(args, "sOO",
-            &filename, &grid_ids, &set_names))
+    if (!PyArg_ParseTuple(args, "sOO|s",
+            &filename, &grid_ids, &set_names, &suffix))
         return PyErr_Format(_hdf5ReadError,
                "ReadMultipleGrids: Invalid parameters.");
 
@@ -604,7 +605,7 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     file_id = grid_node = 0;
     int i, n;
     long id;
-    char grid_node_name[13]; // Grid + 8 + \0
+    char grid_node_name[256]; // Grid + 8 + \0
 
     /* Similar to the way Enzo does it, we're going to set the file access
        property to store bigger bits in RAM. */
@@ -621,11 +622,12 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     for(i = 0; i < num_grids; i++) {
         grid_key = PyList_GetItem(grid_ids, i);
         id = PyInt_AsLong(grid_key);
-        sprintf(grid_node_name, "Grid%08li", id);
+        sprintf(grid_node_name, "Grid%08li%s", id, suffix);
         grid_data = PyDict_New(); // New reference
         PyDict_SetItem(grids_dict, grid_key, grid_data);
         grid_node = H5Gopen(file_id, grid_node_name);
         if (grid_node < 0) {
+              H5Eprint(stderr);
               PyErr_Format(_hdf5ReadError,
                   "ReadHDF5DataSet: Error opening (%s, %s)",
                   filename, grid_node_name);

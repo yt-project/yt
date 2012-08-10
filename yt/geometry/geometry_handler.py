@@ -322,7 +322,8 @@ class GeometryHandler(ParallelAnalysisInterface):
                     fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
-            conv_factor = self.pf.field_info[fname]._convert_function(self)
+            finfo = dobj._get_field_info(*field)
+            conv_factor = finfo._convert_function(self)
             na.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         return fields_to_return, fields_to_generate

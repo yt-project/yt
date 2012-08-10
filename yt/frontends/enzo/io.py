@@ -55,27 +55,61 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
     def _read_particle_selection_by_type(self, chunks, selector, fields):
-        raise NotImplementedError
-            
+        # Active particles don't have the particle_ prefix.
+        rv = {}
+        ptypes = list(set([ftype for ftype, fname in fields]))
+        fields = list(set(fields))
+        if len(ptypes) > 1: raise NotImplementedError
+        pfields = [(ptypes[0], "position_%s" % ax) for ax in 'xyz']
+        size = 0
+        for chunk in chunks:
+            data = self._read_chunk_data(chunk, pfields, 'active', 
+                        "/ActiveParticles/%s" % ptypes[0])
+            for g in chunk.objs:
+                if g.NumberOfActiveParticles == 0: continue
+                x, y, z = (data[g.id].pop(fn) for ft, fn in pfields)
+                size += g.count_particles(selector, x, y, z)
+        read_fields = fields[:]
+        for field in fields:
+            # TODO: figure out dataset types
+            rv[field] = na.empty(size, dtype='float64')
+        for pfield in pfields:
+            if pfield not in fields: read_fields.append(pfield)
+        ind = 0
+        for chunk in chunks:
+            data = self._read_chunk_data(chunk, read_fields, 'active',
+                        "/ActiveParticles/%s" % ptypes[0])
+            for g in chunk.objs:
+                if g.NumberOfActiveParticles == 0: continue
+                x, y, z = (data[g.id][fn] for ft, fn in pfields)
+                mask = g.select_particles(selector, x, y, z)
+                if mask is None: continue
+                for field in set(fields):
+                    ftype, fname = field
+                    gdata = data[g.id].pop(fname)[mask]
+                    rv[field][ind:ind+gdata.size] = gdata
+                ind += gdata.size
+                data.pop(g.id)
+        return rv
 
     def _read_particle_selection(self, chunks, selector, fields):
         last = None
         rv = {}
         chunks = list(chunks)
         # Now we have to do something unpleasant
-        dobj = chunks[0].dobj
         if any((ftype != "all" for ftype, fname in fields)):
             type_fields = [(ftype, fname) for ftype, fname in fields
                            if ftype != all]
             rv.update(self._read_particle_selection_by_type(
-                      chunks, selector, fields))
+                      chunks, selector, type_fields))
             if len(rv) == len(fields): return rv
+            fields = [f for f in fields if f not in rv]
         mylog.debug("First pass: counting particles.")
         xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
         size = 0
         pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
         for chunk in chunks:
-            data = self._read_chunk_data(chunk, pfields, True)
+            data = self._read_chunk_data(chunk, pfields, 'any')
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 x, y, z = (data[g.id].pop("particle_position_%s" % ax)
@@ -92,7 +126,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
-            data = self._read_chunk_data(chunk, read_fields, True)
+            data = self._read_chunk_data(chunk, read_fields, 'any')
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 x, y, z = (data[g.id]["particle_position_%s" % ax]
@@ -133,18 +167,23 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 data.pop(g.id)
         return rv
 
-    def _read_chunk_data(self, chunk, fields, filter_particles = False):
+    def _read_chunk_data(self, chunk, fields, filter_particles = False,
+                         suffix = ""):
         data = {}
         grids_by_file = defaultdict(list)
         for g in chunk.objs:
-            if filter_particles and g.NumberOfParticles == 0: continue
+            if filter_particles == 'any' and g.NumberOfParticles == 0:
+                continue
+            elif filter_particles == 'active' and \
+                 g.NumberOfActiveParticles == 0:
+                continue
             grids_by_file[g.filename].append(g.id)
         sets = [fname for ftype, fname in fields]
         for filename in grids_by_file:
             nodes = grids_by_file[filename]
             nodes.sort()
             data.update(hdf5_light_reader.ReadMultipleGrids(
-                filename, nodes, sets))
+                filename, nodes, sets, suffix))
         return data
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
