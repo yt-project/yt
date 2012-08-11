@@ -235,7 +235,7 @@ class RAMSESDomainSubset(object):
         all_fields = self.domain.pf.h.field_list
         fields = [f for ft, f in fields]
         tr = {}
-        filled = pos = total = 0
+        filled = pos = level_offset = 0
         min_level = self.domain.pf.min_level
         for field in fields:
             tr[field] = na.zeros(self.cell_count, 'float64')
@@ -243,7 +243,6 @@ class RAMSESDomainSubset(object):
             if offset == -1: continue
             content.seek(offset)
             nc = self.domain.level_count[level]
-            level_offset = 0
             temp = {}
             for field in all_fields:
                 temp[field] = na.empty((nc, 8), dtype="float64")
@@ -257,11 +256,10 @@ class RAMSESDomainSubset(object):
                         #print "Reading %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
                         temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            filled = oct_handler.fill_level(self.domain.domain_id, level,
+            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
                                    tr, temp, self.mask, level_offset)
-            total += filled
-            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, filled)
-        #print "DONE (%s) %s of %s" % (self.domain.domain_id, total, self.cell_count)
+            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, level_offset)
+        #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
         return tr
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):

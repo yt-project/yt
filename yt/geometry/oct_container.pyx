@@ -382,18 +382,18 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int n
         cdef int i, j, k, ii
         cdef int local_pos, local_filled
+        cdef np.float64_t val
         for key in dest_fields:
             local_filled = 0
             dest = dest_fields[key]
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                for i in range(2):
-                    for j in range(2):
-                        for k in range(2):
-                            ii = ((k*2)+j)*2+i
-                            if mask[n + dom.offset,ii] == 0: continue
-                            if o.level == level:
-                                dest[local_filled] = source[o.ind,((k*2)+j)*2+i]
-                                local_filled += 1
+                if o.level != level: continue
+                for i in range(8):
+                    if mask[n + dom.offset, i] == 0: continue
+                    val = source[o.ind,((k*2)+j)*2+i]
+                    dest[local_filled + offset] = val
+                    assert(val != 0.0)
+                    local_filled += 1
         return local_filled
