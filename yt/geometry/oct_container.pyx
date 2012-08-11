@@ -288,28 +288,29 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def icoords(self, int domain_id,
-                np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
-                np.int64_t cell_count):
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                np.int64_t cell_count,
+                np.ndarray[np.int64_t, ndim=1] level_counts):
         # Wham, bam, it's a scam
-        cdef np.int64_t i, j, k, oi, ci, n
+        cdef np.int64_t i, j, k, oi, ci, n, ii, level
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
         n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
-
-        ci = 0
         for oi in range(cur.n):
-            if mask[oi + cur.offset] == 0: continue
             o = &cur.my_octs[oi]
+            if o.level != level: continue
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
-                        if o.children[i][j][k] != NULL: continue
+                        ii = ((k*2)+j)*2+i
+                        if mask[oi + cur.offset, ii] == 0: continue
+                        ci = level_counts[o.level]
                         coords[ci, 0] = (o.pos[0] << 1) + i
                         coords[ci, 1] = (o.pos[1] << 1) + j
                         coords[ci, 2] = (o.pos[2] << 1) + k
-                        ci += 1
+                        level_counts[o.level] += 1
         return coords
 
     @cython.boundscheck(False)
@@ -317,7 +318,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     @cython.cdivision(True)
     def ires(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                np.int64_t cell_count):
+                np.int64_t cell_count,
+                np.ndarray[np.int64_t, ndim=1] level_counts):
         # Wham, bam, it's a scam
         cdef np.int64_t i, j, k, oi, ci, n
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
@@ -329,17 +331,33 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for i in range(8):
-                if mask[oi + cur.offset, i]:
-                    levels[ci] = o.level
-                    ci += 1
+                if mask[oi + cur.offset, i] == 0: continue
+                ci = level_counts[o.level]
+                levels[ci] = o.level
+                level_counts[o.level] += 1
         return levels
+
+    def count_levels(self, int max_level, int domain_id,
+                     np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef np.ndarray[np.int64_t, ndim=1] level_count
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        cdef int oi, i
+        level_count = np.zeros(max_level, 'int64')
+        for oi in range(cur.n):
+            o = &cur.my_octs[oi]
+            for i in range(8):
+                if mask[oi + cur.offset, i] == 0: continue
+                level_count[o.level] += 1
+        return level_count
 
     #@cython.boundscheck(False)
     #@cython.wraparound(False)
     #@cython.cdivision(True)
     def fcoords(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                np.int64_t cell_count):
+                np.int64_t cell_count,
+                np.ndarray[np.int64_t, ndim=1] level_counts):
         # Wham, bam, it's a scam
         cdef np.int64_t i, j, k, oi, ci, n, ii
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
@@ -354,12 +372,13 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             # position.  Note that the positions will also all be offset by
             # dx/2.0.  This is also for *oct grids*, not cells.
             base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-        ci = 0
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for i in range(3):
                 # This gives the *grid* width for this level
                 dx[i] = base_dx[i] / (1 << o.level)
+                # o.pos is the *grid* index, so pos[i] is the center of the
+                # first cell in the grid
                 pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
                 dx[i] = dx[i] / 2.0 # This is now the *offset* 
             for i in range(2):
@@ -367,10 +386,11 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[oi + cur.offset, ii] == 0: continue
+                        ci = level_counts[o.level]
                         coords[ci, 0] = pos[0] + dx[0] * i
                         coords[ci, 1] = pos[1] + dx[1] * j
                         coords[ci, 2] = pos[2] + dx[2] * k
-                        ci += 1
+                        level_counts[o.level] += 1
         return coords
 
     def fill_level(self, int domain, int level, dest_fields, source_fields,
@@ -392,7 +412,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 if o.level != level: continue
                 for i in range(8):
                     if mask[n + dom.offset, i] == 0: continue
-                    val = source[o.ind,((k*2)+j)*2+i]
+                    val = source[o.ind, i]
                     dest[local_filled + offset] = val
                     assert(val != 0.0)
                     local_filled += 1

@@ -207,26 +207,34 @@ class RAMSESDomainSubset(object):
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
         self.cell_count = cell_count
+        level_counts = self.oct_handler.count_levels(
+            self.domain.pf.max_level, self.domain.domain_id, mask)
+        level_counts[1:] = level_counts[:-1]
+        level_counts[0] = 0
+        self.level_counts = na.add.accumulate(level_counts)
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.cell_count)
+                                        self.cell_count,
+                                        self.level_counts.copy())
 
     def fcoords(self, dobj):
         return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.cell_count)
+                                        self.cell_count,
+                                        self.level_counts.copy())
 
     def fwidth(self, dobj):
         base_dx = 1.0/self.domain.pf.domain_dimensions
-        coords = na.empty((self.cell_count, 3), dtype="float64")
+        widths = na.empty((self.cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))
         for i in range(3):
-            coords[:,i] = base_dx[i] / dds
-        return coords
+            widths[:,i] = 2.0*base_dx[i] / dds
+        return widths
 
     def ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.cell_count)
+                                     self.cell_count,
+                                     self.level_counts.copy())
 
     def fill(self, content, fields):
         # Here we get a copy of the file, which we skip through and read the

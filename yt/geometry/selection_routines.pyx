@@ -202,7 +202,8 @@ cdef class SelectorObject:
         cdef int eterm[3] 
         eterm[0] = eterm[1] = eterm[2] = 0
         if res == 0:
-            for i in range(8): mask[root.local_ind,i] = 0
+            for i in range(8):
+                mask[root.local_ind,i] = 0
             return
         # Now we visit all our children
         spos[0] = pos[0] - sdds[0]/2.0
