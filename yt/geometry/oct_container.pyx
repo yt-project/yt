@@ -343,7 +343,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
         cdef int oi, i
-        level_count = np.zeros(max_level, 'int64')
+        level_count = np.zeros(max_level+1, 'int64')
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for i in range(8):
