@@ -331,7 +331,6 @@ class SimulationTimeSeries(TimeSeriesData):
         self.parameter_filename = parameter_filename
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
-        self.find_outputs = find_outputs
         self.parameters = {}
 
         # Set some parameter defaults.
@@ -346,7 +345,7 @@ class SimulationTimeSeries(TimeSeriesData):
         self.print_key_parameters()
 
         # Get all possible datasets.
-        self._get_all_outputs()
+        self._get_all_outputs(find_outputs=find_outputs)
 
     def __repr__(self):
         return self.parameter_filename
