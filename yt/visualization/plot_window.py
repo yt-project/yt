@@ -879,7 +879,7 @@ class ProjectionPlot(PWViewerMPL):
         """
         axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
-        proj = pf.h.proj(fields, axis, weight_field=weight_field,max_level=max_level,center=center)
+        proj = pf.h.proj(fields, axis, weight_field=weight_field, center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
 
 class OffAxisSlicePlot(PWViewerMPL):

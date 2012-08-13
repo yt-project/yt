@@ -149,15 +149,13 @@ class YTStreamlineBase(YTSelectionContainer1D):
 
 
 class YTQuadTreeProjBase(YTSelectionContainer2D):
-    _top_node = "/Projections"
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
+    _container_fields = ('px', 'py', 'pdx', 'pdy')
     def __init__(self, field, axis, weight_field = None,
-                 max_level = None, center = None, pf = None,
-                 source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,
-                 style = "integrate", **kwargs):
+                 center = None, pf = None, data_source=None, 
+                 style = "integrate", field_parameters = None):
         """
         This is a data object corresponding to a line integral through the
         simulation domain.
@@ -220,7 +218,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         >>> qproj = pf.h.proj("Density", 0)
         >>> print qproj["Density"]
         """
-        YTSelectionContainer2D.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self.proj_style = style
         if style == "mip":
             self.func = na.max
@@ -231,21 +229,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             raise NotImplementedError(style)
         self.weight_field = weight_field
-        self._field_cuts = field_cuts
-        self.serialize = serialize
         self._set_center(center)
         if center is not None: self.set_field_parameter('center',center)
-        self._node_name = node_name
-        self._initialize_source(source)
-        self._grids = self.source._grids
-        if max_level == None:
-            max_level = self.hierarchy.max_level
-        if self.source is not None:
-            max_level = min(max_level, self.source.grid_levels.max())
-        self._max_level = max_level
-        self._weight = weight_field
-        self.preload_style = preload_style
-        self._refresh_data()
+        if data_source is None: data_source = self.pf.h.all_data()
+        self.data_source = data_source
+        self.weight_field = weight_field
+        self.get_data(field)
 
     @property
     def _mrep(self):
@@ -254,63 +243,38 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def hub_upload(self):
         self._mrep.upload()
 
-    def _convert_field_name(self, field):
-        if field == "weight_field": return "weight_field_%s" % self._weight
-        if field in self._key_fields: return field
-        return "%s_%s" % (field, self._weight)
-
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
         return QuadTree(na.array([xd,yd], dtype='int64'), nvals,
                         style = self.proj_style)
 
-    def _get_dls(self, grid, fields):
+    def _get_conv(self, fields):
         # Place holder for a time when maybe we will not be doing just
         # a single dx for every field.
-        dls = []
-        convs = []
-        for field in fields + [self._weight]:
-            if field is None: continue
-            dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
-            convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
-        dls = na.array(dls)
-        convs = na.array(convs)
-        if self.proj_style == "mip":
-            dls[:] = 1.0
-            convs[:] = 1.0
-        return dls, convs
+        convs = na.empty(len(fields), dtype="float64")
+        fields = self._determine_fields(fields)
+        for i, field in enumerate(fields):
+            fi = self._get_field_info(*field)
+            convs[i] = (self.pf.units[fi.projection_conversion])
+        return convs
 
-    def get_data(self, fields):
-        fields = ensure_list(fields)
+    def get_data(self, fields = None):
+        fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
-        self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
+        chunk_fields = fields[:]
+        if self.weight_field is not None:
+            chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
-        coord_data = []
-        field_data = []
-        dxs = []
-        # We do this here, but I am not convinced it should be done here
-        # It is probably faster, as it consolidates IO, but if we did it in
-        # _project_level, then it would be more memory conservative
-        if self.preload_style == 'all':
-            dependencies = self.get_dependencies(fields, ghost_zones = False)
-            mylog.debug("Preloading %s grids and getting %s",
-                            len(self.source._get_grid_objs()),
-                            dependencies)
-            self.comm.preload([g for g in self._get_grid_objs()],
-                          dependencies, self.hierarchy.io)
-        # By changing the remove-from-tree method to accumulate, we can avoid
-        # having to do this by level, and instead do it by CPU file
-        for level in range(0, self._max_level+1):
-            if self.preload_style == 'level':
-                self.comm.preload([g for g in self._get_grid_objs()
-                                 if g.Level == level],
-                              self.get_dependencies(fields), self.hierarchy.io)
-            self._add_level_to_tree(tree, level, fields)
-            mylog.debug("End of projecting level level %s, memory usage %0.3e",
-                        level, get_memory_usage()/1024.)
+        # We do this once
+        for chunk in self.data_source.chunks(None, "io"):
+            continue
+            self._initialize_chunk(chunk, tree)
+        # This needs to be parallel_objects-ified
+        for chunk in self.data_source.chunks(chunk_fields, "io"): 
+            mylog.debug("Adding chunk (%s) to tree", chunk.size)
+            self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
@@ -318,145 +282,59 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             merge_style = 1
         else:
             raise NotImplementedError
-        buf = list(tree.tobuffer())
-        del tree
-        new_buf = [buf.pop(0)]
-        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
-        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
-        tree = self._get_tree(len(fields))
-        tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
-        coord_data, field_data, weight_data, dxs = [], [], [], []
-        for level in range(0, self._max_level + 1):
-            npos, nvals, nwvals = tree.get_all_from_level(level, False)
-            coord_data.append(npos)
-            if self._weight is not None: nvals /= nwvals[:,None]
-            field_data.append(nvals)
-            weight_data.append(nwvals)
-            gs = self.source.select_grids(level)
-            if len(gs) > 0:
-                ds = gs[0].dds[0]
-            else:
-                ds = 0.0
-            dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
-        coord_data = na.concatenate(coord_data, axis=0).transpose()
-        field_data = na.concatenate(field_data, axis=0).transpose()
-        if self._weight is None:
-            dls, convs = self._get_dls(self._grids[0], fields)
-            field_data *= convs[:,None]
-        weight_data = na.concatenate(weight_data, axis=0).transpose()
-        dxs = na.concatenate(dxs, axis=0).transpose()
-        # We now convert to half-widths and center-points
-        data = {}
-        data['pdx'] = dxs
+        # TODO: Add the combine operation
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
-        data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
-        data['weight_field'] = weight_data
-        del coord_data
-        data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
-        data['fields'] = field_data
+        px, py, pdx, pdy, nvals, nwvals = tree.get_all(False)
+
+        na.multiply(px, self.pf.domain_width[x_dict[self.axis]], px)
+        na.add(px, ox, px)
+        na.multiply(pdx, self.pf.domain_width[x_dict[self.axis]], pdx)
+
+        na.multiply(py, self.pf.domain_width[y_dict[self.axis]], py)
+        na.add(py, oy, py)
+        na.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
+
+        if self.weight_field is not None:
+            na.divide(nvals, nwvals[:,None], nvals)
+        if self.weight_field is None:
+            convs = self._get_conv(fields)
+            nvals *= convs[None,:]
+        # We now convert to half-widths and center-points
+        data = {}
+        data['px'] = px
+        data['py'] = py
+        data['weight_field'] = nwvals
+        data['pdx'] = pdx
+        data['pdy'] = pdy
+        data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
+            mylog.debug("Setting field %s", field)
             self[field] = field_data[fi].ravel()
-            if self.serialize: self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
-    def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
-        # We build up the fields to add
-        if self._weight is None or fields is None:
-            weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
-            if zero_out: weight_data[grid.child_indices] = 0
-            masked_data = [fd.astype('float64') * weight_data
-                           for fd in self._get_data_from_grid(grid, fields)]
-            wdl = 1.0
+    def _handle_chunk(self, chunk, fields, tree):
+        if self.proj_style == "mip":
+            dl = 1.0
         else:
-            fields_to_get = list(set(fields + [self._weight]))
-            field_data = dict(zip(
-                fields_to_get, self._get_data_from_grid(grid, fields_to_get)))
-            weight_data = field_data[self._weight].copy().astype('float64')
-            if zero_out: weight_data[grid.child_indices] = 0
-            masked_data  = [field_data[field].copy().astype('float64') * weight_data
-                                for field in fields]
-            del field_data
-            wdl = dls[-1]
-        full_proj = [self.func(field, axis=self.axis) * dl
-                     for field, dl in zip(masked_data, dls)]
-        weight_proj = self.func(weight_data, axis=self.axis) * wdl
-        if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
-            used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.logical_or.reduce(used_data, self.axis)
+            dl = chunk.fwidth[:, self.axis]
+        v = na.empty((chunk.size, len(fields)), dtype="float64")
+        for i in range(len(fields)):
+            v[:,i] = chunk[fields[i]] * dl
+        if self.weight_field is not None:
+            w = chunk[self.weight_field]
+            na.multiply(v, w[:,None], v)
+            na.multiply(w, dl, w)
         else:
-            used_data = na.array([1.0], dtype='bool')
-            used_points = slice(None)
-        xind, yind = [arr[used_points].ravel()
-                      for arr in na.indices(full_proj[0].shape)]
-        start_index = grid.get_global_startindex()
-        xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
-        ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
-        to_add = na.array([d[used_points].ravel() for d in full_proj], order='F')
-        tree.add_array_to_tree(grid.Level, xpoints, ypoints,
-                    to_add, weight_proj[used_points].ravel())
-
-    def _add_level_to_tree(self, tree, level, fields):
-        grids_to_project = [g for g in self._get_grid_objs()
-                            if g.Level == level]
-        grids_to_initialize = [g for g in self._grids if (g.Level == level)]
-        zero_out = (level != self._max_level)
-        pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids_to_project))
-        if len(grids_to_initialize) == 0: return
-        pbar = get_pbar('Initializing tree % 2i / % 2i' \
-                          % (level, self._max_level), len(grids_to_initialize))
-        start_index = na.empty(2, dtype="int64")
-        dims = na.empty(2, dtype="int64")
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
-        for pi, grid in enumerate(grids_to_initialize):
-            dims[0] = grid.ActiveDimensions[xax]
-            dims[1] = grid.ActiveDimensions[yax]
-            ind = grid.get_global_startindex()
-            start_index[0] = ind[xax]
-            start_index[1] = ind[yax]
-            tree.initialize_grid(level, start_index, dims)
-            pbar.update(pi)
-            grid.clear_data()
-        pbar.finish()
-        if len(grids_to_project) > 0:
-            dls, convs = self._get_dls(grids_to_project[0], fields)
-            pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                              % (level, self._max_level), len(grids_to_project))
-            for pi, grid in enumerate(grids_to_project):
-                self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
-                pbar.update(pi)
-                grid.clear_data()
-            pbar.finish()
-        return
-
-    def _get_points_in_region(self, grid):
-        pointI = self.source._get_point_indices(grid, use_child_mask=False)
-        point_mask = na.zeros(grid.ActiveDimensions)
-        point_mask[pointI] = 1.0
-        if self._field_cuts is not None:
-            for cut in self._field_cuts:
-                point_mask *= eval(cut)
-        return point_mask
-
-    def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        if self._check_region:
-            bad_points = self._get_points_in_region(grid)
-        else:
-            bad_points = 1.0
-        return [grid[field] * bad_points for field in fields]
-
-    def _gen_node_name(self):
-        return  "%s/%s" % \
-            (self._top_node, self.axis)
-
+            w = na.ones(chunk.size, dtype="float64")
+        icoords = chunk.icoords
+        i1 = icoords[:,0]
+        i2 = icoords[:,1]
+        ilevel = chunk.ires
+        tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
 class YTOverlapProjBase(YTSelectionContainer2D):
     _top_node = "/Projections"

@@ -367,7 +367,6 @@ class YTDataContainer(object):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self._get_field_info(ftype, fname)
-                explicit_fields.append(field)
             else:
                 fname = field
                 finfo = self._get_field_info("unknown", fname)
@@ -444,7 +443,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             finfo = self._get_field_info(ftype, fname)
             if finfo.particle_type:
                 particles.append((ftype, fname))
-            else:
+            elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that

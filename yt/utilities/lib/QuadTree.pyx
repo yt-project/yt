@@ -281,8 +281,7 @@ cdef class QuadTree:
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def add_array_to_tree(self, int level,
-            np.ndarray[np.int64_t, ndim=1] pxs,
+    def add_array_to_tree(self, int level, np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals,
@@ -307,12 +306,12 @@ cdef class QuadTree:
             np.ndarray[np.int64_t, ndim=1] level,
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals):
-        cdef int np = pxs.shape[0]
+        cdef int ps = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
         cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
         cdef cnp.int64_t pos[2]
-        for p in range(np):
+        for p in range(ps):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
@@ -337,23 +336,32 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def get_all_from_level(self, int level, int count_only = 0):
+    def get_all(self, int count_only = 0):
         cdef int i, j, vi
         cdef int total = 0
         vals = []
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
-                total += self.count_at_level(self.root_nodes[i][j], level, 0)
+                total += self.count(self.root_nodes[i][j])
         if count_only: return total
         # Allocate our array
-        cdef np.ndarray[np.int64_t, ndim=2] npos
+        cdef np.ndarray[np.float64_t, ndim=1] opx
+        cdef np.ndarray[np.float64_t, ndim=1] opy
+        cdef np.ndarray[np.float64_t, ndim=1] opdx
+        cdef np.ndarray[np.float64_t, ndim=1] opdy
         cdef np.ndarray[np.float64_t, ndim=2] nvals
         cdef np.ndarray[np.float64_t, ndim=1] nwvals
-        npos = np.zeros( (total, 2), dtype='int64')
+        opx = np.zeros(total, dtype='float64')
+        opy = np.zeros(total, dtype='float64')
+        opdx = np.zeros(total, dtype='float64')
+        opdy = np.zeros(total, dtype='float64')
         nvals = np.zeros( (total, self.nvals), dtype='float64')
         nwvals = np.zeros( total, dtype='float64')
         cdef np.int64_t curpos = 0
-        cdef np.int64_t *pdata = <np.int64_t *> npos.data
+        cdef np.float64_t *px = <np.float64_t *> opx.data
+        cdef np.float64_t *py = <np.float64_t *> opy.data
+        cdef np.float64_t *pdx = <np.float64_t *> opdx.data
+        cdef np.float64_t *pdy = <np.float64_t *> opdy.data
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
         cdef np.float64_t wtoadd
@@ -363,37 +371,32 @@ cdef class QuadTree:
             for j in range(self.top_grid_dims[1]):
                 for vi in range(self.nvals): vtoadd[vi] = 0.0
                 wtoadd = 0.0
-                curpos += self.fill_from_level(self.root_nodes[i][j],
-                    level, curpos, pdata, vdata, wdata, vtoadd, wtoadd, 0)
-        return npos, nvals, nwvals
+                curpos += self.fill(self.root_nodes[i][j],
+                    curpos, px, py, pdx, pdy, vdata, wdata, vtoadd, wtoadd, 0)
+        return opx, opy, opdx, opdy, nvals, nwvals
 
-    cdef int count_at_level(self, QuadTreeNode *node, int level, int cur_level):
+    cdef int count(self, QuadTreeNode *node):
         cdef int i, j
-        # We only really return a non-zero, calculated value if we are at the
-        # level in question.
-        if cur_level == level:
-            # We return 1 if there are no finer points at this level and zero
-            # if there are
-            return (node.children[0][0] == NULL)
-        if node.children[0][0] == NULL: return 0
         cdef int count = 0
+        if node.children[0][0] == NULL: return 1
         for i in range(2):
             for j in range(2):
-                count += self.count_at_level(node.children[i][j], level,
-                                             cur_level + 1)
+                count += self.count(node.children[i][j])
         return count
 
-    cdef int fill_from_level(self, QuadTreeNode *node, int level,
-                              np.int64_t curpos,
-                              np.int64_t *pdata,
-                              np.float64_t *vdata,
-                              np.float64_t *wdata,
-                              np.float64_t *vtoadd,
-                              np.float64_t wtoadd,
-                              int cur_level):
+    cdef int fill(self, QuadTreeNode *node, 
+                        np.int64_t curpos,
+                        np.float64_t *px,
+                        np.float64_t *py,
+                        np.float64_t *pdx,
+                        np.float64_t *pdy,
+                        np.float64_t *vdata,
+                        np.float64_t *wdata,
+                        np.float64_t *vtoadd,
+                        np.float64_t wtoadd,
+                        np.int64_t level):
         cdef int i, j, n
-        if cur_level == level:
-            if node.children[0][0] != NULL: return 0
+        if node.children[0][0] == NULL:
             if self.merged == -1:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = fmax(node.val[i], vtoadd[i])
@@ -402,10 +405,13 @@ cdef class QuadTree:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = node.val[i] + vtoadd[i]
                 wdata[curpos] = node.weight_val + wtoadd
-            pdata[curpos * 2] = node.pos[0]
-            pdata[curpos * 2 + 1] = node.pos[1]
+            pdx[curpos] = 1.0 / (self.top_grid_dims[0]*2**level)
+            pdy[curpos] = 1.0 / (self.top_grid_dims[1]*2**level)
+            px[curpos] = (0.5 + node.pos[0]) * pdx[curpos]
+            py[curpos] = (0.5 + node.pos[1]) * pdy[curpos]
+            pdx[curpos] /= 2.0
+            pdy[curpos] /= 2.0
             return 1
-        if node.children[0][0] == NULL: return 0
         cdef np.int64_t added = 0
         if self.merged == 1:
             for i in range(self.nvals):
@@ -419,9 +425,9 @@ cdef class QuadTree:
                 if self.merged == -1:
                     for n in range(self.nvals):
                         vtoadd[n] = node.val[n]
-                added += self.fill_from_level(node.children[i][j],
-                        level, curpos + added, pdata, vdata, wdata,
-                        vtoadd, wtoadd, cur_level + 1)
+                added += self.fill(node.children[i][j],
+                        curpos + added, px, py, pdx, pdy, vdata, wdata,
+                        vtoadd, wtoadd, level + 1)
         if self.merged == 1:
             for i in range(self.nvals):
                 vtoadd[i] -= node.val[i]
