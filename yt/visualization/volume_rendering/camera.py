@@ -1495,7 +1495,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
-                        take_log = True, resolution=512):
+                        take_log = True, resolution=512, cmin=None, cmax=None):
     import matplotlib.figure
     import matplotlib.backends.backend_agg
     if rotation is None: rotation = na.eye(3).astype("float64")
@@ -1507,7 +1507,7 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     if take_log: func = na.log10
     else: func = lambda a: a
     implot = ax.imshow(func(img), extent=(-na.pi,na.pi,-na.pi/2,na.pi/2),
-                       clip_on=False, aspect=0.5)
+                       clip_on=False, aspect=0.5, vmin=cmin, vmax=cmax)
     cb = fig.colorbar(implot, orientation='horizontal')
     cb.set_label(label)
     ax.xaxis.set_ticks(())
