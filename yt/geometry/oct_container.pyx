@@ -268,9 +268,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     if cont.n_assigned >= cont.n:
                         raise AssertionError
                     next = &cont.my_octs[cont.n_assigned]
-                    cont.n_assigned += 1
                     cur.children[ind[0]][ind[1]][ind[2]] = next
                     next.local_ind = cont.offset + cont.n_assigned
+                    cont.n_assigned += 1
                     next.parent = cur
                     for i in range(3):
                         next.pos[i] = ind[i] + (cur.pos[i] << 1)
@@ -305,7 +305,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[oi + cur.offset, ii] == 0: continue
+                        if mask[o.local_ind, ii] == 0: continue
                         ci = level_counts[o.level]
                         coords[ci, 0] = (o.pos[0] << 1) + i
                         coords[ci, 1] = (o.pos[1] << 1) + j
@@ -337,6 +337,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 level_counts[o.level] += 1
         return levels
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def count_levels(self, int max_level, int domain_id,
                      np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
         cdef np.ndarray[np.int64_t, ndim=1] level_count
@@ -347,13 +350,13 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for i in range(8):
-                if mask[oi + cur.offset, i] == 0: continue
+                if mask[o.local_ind, i] == 0: continue
                 level_count[o.level] += 1
         return level_count
 
-    #@cython.boundscheck(False)
-    #@cython.wraparound(False)
-    #@cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fcoords(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count,
@@ -385,7 +388,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[oi + cur.offset, ii] == 0: continue
+                        if mask[o.local_ind, ii] == 0: continue
                         ci = level_counts[o.level]
                         coords[ci, 0] = pos[0] + dx[0] * i
                         coords[ci, 1] = pos[1] + dx[1] * j
@@ -393,6 +396,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         level_counts[o.level] += 1
         return coords
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
         cdef np.ndarray[np.float64_t, ndim=2] source
@@ -410,10 +416,11 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             for n in range(dom.n):
                 o = &dom.my_octs[n]
                 if o.level != level: continue
-                for i in range(8):
-                    if mask[n + dom.offset, i] == 0: continue
-                    val = source[o.ind, i]
-                    dest[local_filled + offset] = val
-                    assert(val != 0.0)
-                    local_filled += 1
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            ii = ((k*2)+j)*2+i
+                            if mask[o.local_ind, ii] == 0: continue
+                            dest[local_filled + offset] = source[o.ind, ii]
+                            local_filled += 1
         return local_filled

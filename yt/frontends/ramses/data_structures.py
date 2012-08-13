@@ -224,11 +224,12 @@ class RAMSESDomainSubset(object):
                                         self.level_counts.copy())
 
     def fwidth(self, dobj):
+        # Recall domain_dimensions is the number of cells, not octs
         base_dx = 1.0/self.domain.pf.domain_dimensions
         widths = na.empty((self.cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))
         for i in range(3):
-            widths[:,i] = 2.0*base_dx[i] / dds
+            widths[:,i] = base_dx[i] / dds
         return widths
 
     def ires(self, dobj):

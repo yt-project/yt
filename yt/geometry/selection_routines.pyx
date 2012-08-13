@@ -164,8 +164,10 @@ cdef class SelectorObject:
         cdef int i, j, k, n
         cdef np.ndarray[np.uint8_t, ndim=2] mask = np.zeros((octree.nocts, 8), dtype='uint8')
         cdef np.float64_t pos[3], dds[3]
+        # This dds is the oct-width
         for i in range(3):
             dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
+        # Pos is the center of the octs
         pos[0] = octree.DLE[0] + dds[0]/2.0
         for i in range(octree.nn[0]):
             pos[1] = octree.DLE[1] + dds[1]/2.0
@@ -189,11 +191,12 @@ cdef class SelectorObject:
                         np.ndarray[np.uint8_t, ndim=2] mask,
                         int level = 0):
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
-        cdef int i, j, k, res
+        cdef int i, j, k, res, ii
         cdef Oct *ch
-        # Remember that pos is the *center* of the oct!
-        # So, let's check each corner
+        # Remember that pos is the *center* of the oct, and dds is the oct
+        # width.  So to get to the edges, we add/subtract half of dds.
         for i in range(3):
+            # sdds is the cell width
             sdds[i] = dds[i]/2.0
             LE[i] = pos[i] - dds[i]/2.0
             RE[i] = pos[i] + dds[i]/2.0
@@ -205,19 +208,22 @@ cdef class SelectorObject:
             for i in range(8):
                 mask[root.local_ind,i] = 0
             return
-        # Now we visit all our children
+        # Now we visit all our children.  We subtract off sdds for the first
+        # pass because we center it on the first cell.
         spos[0] = pos[0] - sdds[0]/2.0
         for i in range(2):
             spos[1] = pos[1] - sdds[1]/2.0
             for j in range(2):
                 spos[2] = pos[2] - sdds[2]/2.0
                 for k in range(2):
+                    ii = ((k*2)+j)*2+i
                     ch = root.children[i][j][k]
                     if ch != NULL:
+                        mask[root.local_ind, ii] = 0
                         self.recursively_select_octs(
                             ch, spos, sdds, mask, level + 1)
                     else:
-                        mask[root.local_ind, ((k*2)+j)*2+i] = \
+                        mask[root.local_ind, ii] = \
                             self.select_cell(spos, sdds, eterm)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
