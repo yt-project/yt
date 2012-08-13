@@ -48,6 +48,8 @@ from yt.utilities.data_point_utilities import CombineGrids,\
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 from .field_info_container import\
     NeedsGridType,\
@@ -269,24 +271,27 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree = self._get_tree(len(fields))
         # We do this once
         for chunk in self.data_source.chunks(None, "io"):
-            continue
             self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
-        for chunk in self.data_source.chunks(chunk_fields, "io"): 
+        for chunk in parallel_objects(self.data_source.chunks(
+                chunk_fields, "io")): 
             mylog.debug("Adding chunk (%s) to tree", chunk.size)
             self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
+            op = "max"
         elif self.proj_style == "integrate":
             merge_style = 1
+            op = "sum"
         else:
             raise NotImplementedError
         # TODO: Add the combine operation
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
         px, py, pdx, pdy, nvals, nwvals = tree.get_all(False)
-
+        nvals = self.comm.mpi_allreduce(nvals, op=op)
+        nwvals = self.comm.mpi_allreduce(nwvals, op=op)
         na.multiply(px, self.pf.domain_width[x_dict[self.axis]], px)
         na.add(px, ox, px)
         na.multiply(pdx, self.pf.domain_width[x_dict[self.axis]], pdx)
@@ -309,12 +314,20 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         data['pdy'] = pdy
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
-        field_data = na.vsplit(data.pop('fields'), len(fields))
+        fd = data['fields']
+        field_data = na.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             mylog.debug("Setting field %s", field)
             self[field] = field_data[fi].ravel()
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
+
+    def _initialize_chunk(self, chunk, tree):
+        icoords = chunk.icoords
+        i1 = icoords[:,0]
+        i2 = icoords[:,1]
+        ilevel = chunk.ires
+        tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.proj_style == "mip":
