@@ -89,6 +89,7 @@ class IOHandlerFLASH(BaseIOHandler):
         return tr.astype("float64")
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
         if any((ftype != "gas" for ftype, fname in fields)):
             raise NotImplementedError
         f = self._handle

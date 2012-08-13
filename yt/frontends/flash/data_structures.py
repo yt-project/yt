@@ -28,11 +28,14 @@ import stat
 import numpy as na
 import weakref
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.definitions import \
@@ -202,6 +205,13 @@ class FLASHHierarchy(GridGeometryHandler):
                 
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
+
+    def _chunk_io(self, dobj):
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        # We'll take the max of 128 and the number of processors
+        nl = max(16, ytcfg.getint("yt", "__topcomm_parallel_size"))
+        for gs in list_chunks(gobjs, nl):
+            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs))
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
@@ -435,5 +445,3 @@ class FLASHStaticOutput(StaticOutput):
         except:
             pass
         return False
-
-

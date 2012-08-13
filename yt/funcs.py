@@ -565,3 +565,13 @@ def get_num_threads():
         
 def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
+
+
+# This is a modification of:
+# http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
+def list_chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    ty = int(ceil(float(len(l))/n))
+    for i in xrange(0, n):
+        yield l[i*ty:(i+1)*ty]
