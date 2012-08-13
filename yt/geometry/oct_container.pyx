@@ -151,7 +151,7 @@ cdef class OctreeContainer:
                 cur = cur.next
             o = &cur.my_octs[oi - cur.offset]
             for i in range(8):
-                count[o.domain - 1] += mask[oi,((k*2)+j)*2+i]
+                count[o.domain - 1] += mask[oi,i]
         return count
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
@@ -237,7 +237,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             if cur == NULL:
                 if curlevel != 0:
                     raise RuntimeError
-                assert(cont.n_assigned < cont.n)
                 cur = &cont.my_octs[cont.n_assigned]
                 cur.local_ind = cont.offset + cont.n_assigned
                 cur.parent = NULL
@@ -247,7 +246,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 cont.n_assigned += 1
                 self.nocts += 1
                 self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
-                assert(cur.level == curlevel)
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
             for level in range(curlevel):
@@ -265,8 +263,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 # Check if it has not been allocated
                 next = cur.children[ind[0]][ind[1]][ind[2]]
                 if next == NULL:
-                    if cont.n_assigned >= cont.n:
-                        raise AssertionError
                     next = &cont.my_octs[cont.n_assigned]
                     cur.children[ind[0]][ind[1]][ind[2]] = next
                     next.local_ind = cont.offset + cont.n_assigned
@@ -276,7 +272,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         next.pos[i] = ind[i] + (cur.pos[i] << 1)
                     next.level = level + 1
                     self.nocts += 1
-                    assert(next.level == curlevel)
                 cur = next
             cur.domain = curdom
             if local == 1:
@@ -300,7 +295,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         coords = np.empty((cell_count, 3), dtype="int64")
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
-            if o.level != level: continue
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
