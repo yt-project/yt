@@ -393,6 +393,7 @@ class SpectrumBuilder(object):
         dt = na.maximum(dt, 0.0)
         # Remove young stars
         sub = dt >= self.min_age
+        if len(sub) == 0: return
         self.star_metal = self.star_metal[sub]
         dt = dt[sub]
         self.star_creation_time = self.star_creation_time[sub]

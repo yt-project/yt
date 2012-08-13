@@ -788,7 +788,7 @@ class HEALpixCamera(Camera):
         return image
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0, clim = None):
+                 num_threads = 0, clim = None, label = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -815,10 +815,10 @@ class HEALpixCamera(Camera):
         sampler = self.get_sampler(args)
         self.volume.initialize_source()
         image = self._render(double_check, num_threads, image, sampler)
-        self.save_image(fn, clim, image)
+        self.save_image(fn, clim, image, label = label)
         return image
 
-    def save_image(self, fn, clim, image):
+    def save_image(self, fn, clim, image, label = None):
         if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
@@ -832,7 +832,11 @@ class HEALpixCamera(Camera):
             ax = fig.add_subplot(1,1,1,projection='hammer')
             implot = ax.imshow(img, extent=(-na.pi,na.pi,-na.pi/2,na.pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
-            cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+
+            if label == None:
+                cb.set_label("Projected %s" % self.fields[0])
+            else:
+                cb.set_label(label)
             if clim is not None: cb.set_clim(*clim)
             ax.xaxis.set_ticks(())
             ax.yaxis.set_ticks(())

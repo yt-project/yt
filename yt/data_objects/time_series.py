@@ -320,7 +320,7 @@ class SimulationTimeSeries(TimeSeriesData):
                 simulation_time_series_registry[code_name] = cls
                 mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
-    def __init__(self, parameter_filename):
+    def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.
         Principally consists of a *parameter_filename*.
@@ -345,7 +345,7 @@ class SimulationTimeSeries(TimeSeriesData):
         self.print_key_parameters()
 
         # Get all possible datasets.
-        self._get_all_outputs()
+        self._get_all_outputs(find_outputs=find_outputs)
 
     def __repr__(self):
         return self.parameter_filename

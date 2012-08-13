@@ -112,7 +112,7 @@ def projload(pf, axis, weight_field = None):
     f.close()
     return proj
 
-def simulation(parameter_filename, simulation_type):
+def simulation(parameter_filename, simulation_type, find_outputs=False):
     """
     Loads a simulation time series object of the specified
     simulation type.
@@ -121,5 +121,6 @@ def simulation(parameter_filename, simulation_type):
     if simulation_type not in simulation_time_series_registry:
         raise YTSimulationNotIdentified(simulation_type)
 
-    return simulation_time_series_registry[simulation_type](parameter_filename)
+    return simulation_time_series_registry[simulation_type](parameter_filename, 
+                                                            find_outputs=find_outputs)
 
