@@ -211,7 +211,7 @@ class FLASHHierarchy(GridGeometryHandler):
         # We'll take the max of 128 and the number of processors
         nl = max(16, ytcfg.getint("yt", "__topcomm_parallel_size"))
         for gs in list_chunks(gobjs, nl):
-            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs))
+            yield YTDataChunk(dobj, "io", gs, self._count_selection)
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy

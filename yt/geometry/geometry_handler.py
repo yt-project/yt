@@ -379,7 +379,13 @@ class YTDataChunk(object):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
-        self.data_size = data_size
+        self._data_size = data_size
+
+    @property
+    def data_size(self):
+        if callable(self._data_size):
+            self._data_size = self._data_size(self.dobj, self.objs)
+        return self._data_size
 
     _fcoords = None
     @property
