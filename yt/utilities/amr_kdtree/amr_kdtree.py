@@ -43,7 +43,9 @@ class Tree(object):
     _id_offset = None
     min_level = None
     max_level = None
-    def __init__(self, pf, left=None, right=None, 
+    comm_rank = 0
+    comm_size = 1
+    def __init__(self, pf, comm_rank, comm_size, left=None, right=None, 
             min_level=None, max_level=None):
 
         self.pf = pf
@@ -57,11 +59,13 @@ class Tree(object):
         if max_level is None: max_level = pf.h.max_level
         self.min_level = min_level
         self.max_level = max_level
+        self.comm_rank = comm_rank
+        self.comm_size = comm_size
         self.trunk = Node(None, None, None,
                 left, right, None, 1)
         self.build()
 
-    def build(self, grids = None):
+    def add_grids(self, grids):
         lvl_range = range(self.min_level, self.max_level)
         if grids is None:
             level_iter = self.pf.hierarchy.get_levels()
@@ -75,16 +79,19 @@ class Tree(object):
                 gres = na.array([g.RightEdge for g in grids])
                 gids = na.array([g.id for g in grids])
 
-                add_grids(self.trunk, gles, gres, gids)
+                add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
                 del gles, gres, gids, grids
         else:
             gles = na.array([g.LeftEdge for g in grids])
             gres = na.array([g.RightEdge for g in grids])
             gids = na.array([g.id for g in grids])
 
-            add_grids(self.trunk, gles, gres, gids)
+            add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
             del gles, gres, gids, grids
 
+
+    def build(self, grids = None):
+        self.add_grids(grids)
 
     def check_tree(self):
         for node in depth_traverse(self):
@@ -105,6 +112,7 @@ class Tree(object):
         vol = kd_sum_volume(self.trunk)
         mylog.debug('AMRKDTree volume = %e' % vol)
         kd_node_check(self.trunk)
+
 
 class AMRKDTree(HomogenizedVolume):
     current_vcds = []
@@ -149,7 +157,7 @@ class AMRKDTree(HomogenizedVolume):
             self.re = na.array(re)
 
         print 'Building tree with le,re ', self.le, self.re
-        self.tree = Tree(pf, self.le, self.re, min_level=min_level, max_level=max_level)
+        self.tree = Tree(pf, self.comm.rank, self.comm.size, self.le, self.re, min_level=min_level, max_level=max_level)
 
     def initialize_source(self):
         if self._initialized : return
