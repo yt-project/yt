@@ -52,20 +52,20 @@ known_ramses_fields = [
 ]
 
 for f in known_ramses_fields:
-    if f not in RAMSESFieldInfo:
-        add_field(f, function=lambda a,b: None, take_log=True,
+    if f not in KnownRAMSESFields:
+        add_ramses_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)])
 
 def _convertDensity(data):
     return data.convert("Density")
-RAMSESFieldInfo["Density"]._units = r"\rm{g}/\rm{cm}^3"
-RAMSESFieldInfo["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
-RAMSESFieldInfo["Density"]._convert_function=_convertDensity
+KnownRAMSESFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
+KnownRAMSESFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+KnownRAMSESFields["Density"]._convert_function=_convertDensity
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
-    f = RAMSESFieldInfo["%s-velocity" % ax]
+    f = KnownRAMSESFields["%s-velocity" % ax]
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
@@ -83,8 +83,7 @@ known_ramses_particle_fields = [
 ]
 
 for f in known_ramses_particle_fields:
-    if f not in RAMSESFieldInfo:
-        add_field(f, function=NullFunc, take_log=True,
+    if f not in KnownRAMSESFields:
+        add_ramses_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)],
                   particle_type = True)
-
