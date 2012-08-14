@@ -29,6 +29,7 @@ import numpy as na
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+import yt.utilities.fortran_utils as fpu
 import cStringIO
 
 class IOHandlerRAMSES(BaseIOHandler):
@@ -38,7 +39,6 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
-        n = 0
         tr = dict((f, na.empty(size, dtype='float64')) for f in fields)
         cp = 0
         for chunk in chunks:
@@ -57,44 +57,36 @@ class IOHandlerRAMSES(BaseIOHandler):
                 cp += subset.cell_count
         return tr
 
-    def _read_data_set(self, grid, field):
-        tr = na.zeros(grid.ActiveDimensions, dtype='float64')
-        filled = na.zeros(grid.ActiveDimensions, dtype='int32')
-        to_fill = grid.ActiveDimensions.prod()
-        grids = [grid]
-        l_delta = 0
-        varindex = self.ramses_tree.field_ind[field]
-        while to_fill > 0 and len(grids) > 0:
-            next_grids = []
-            for g in grids:
-                to_fill -= self.ramses_tree.read_grid(varindex, field,
-                        grid.get_global_startindex(), grid.ActiveDimensions,
-                        tr, filled, g.Level, 2**l_delta, g.locations)
-                next_grids += g.Parent
-            grids = next_grids
-            l_delta += 1
+    def _read_particle_selection(self, chunks, selector, fields):
+        size = 0
+        masks = {}
+        for chunk in chunks:
+            for subset in chunk.objs:
+                # We read the whole thing, then feed it back to the selector
+                offsets = []
+                f = open(subset.domain.part_fn, "rb")
+                foffsets = subset.domain.particle_field_offsets
+                selection = {}
+                for ax in 'xyz':
+                    field = "particle_position_%s" % ax
+                    f.seek(foffsets[field])
+                    selection[ax] = fpu.read_vector(f, 'd')
+                mask = selector.select_points(selection['x'],
+                            selection['y'], selection['z'])
+                if mask is None: continue
+                size += mask.sum()
+                masks[id(subset)] = mask
+        # Now our second pass
+        tr = dict((f, na.empty(size, dtype="float64")) for f in fields)
+        for chunk in chunks:
+            for subset in chunk.objs:
+                f = open(subset.domain.part_fn, "rb")
+                mask = masks.pop(id(subset), None)
+                if mask is None: continue
+                for ftype, fname in fields:
+                    offsets.append((foffsets[fname], (ftype,fname)))
+                for offset, field in sorted(offsets):
+                    f.seek(offset)
+                    tr[field] = fpu.read_vector(f, 'd')[mask]
         return tr
 
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid, field)[sl]
-
-    def preload(self, grids, sets):
-        if len(grids) == 0: return
-        domain_keys = defaultdict(list)
-        pf_field_list = grids[0].pf.h.field_list
-        sets = [dset for dset in list(sets) if dset in pf_field_list]
-        exc = self._read_exception
-        for g in grids:
-            domain_keys[g.domain].append(g)
-        for domain, grids in domain_keys.items():
-            mylog.debug("Starting read of domain %s (%s)", domain, sets)
-            for field in sets:
-                for g in grids:
-                    self.queue[g.id][field] = self._read_data_set(g, field)
-                print "Clearing", field, domain
-                self.ramses_tree.clear_tree(field, domain - 1)
-        mylog.debug("Finished read of %s", sets)
-
-    def modify(self, data): return data
