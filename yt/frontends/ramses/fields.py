@@ -25,6 +25,8 @@ License:
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
+    NullFunc, \
+    TranslationFunc, \
     FieldInfo, \
     ValidateParameter, \
     ValidateDataField, \
@@ -67,4 +69,22 @@ for ax in ['x','y','z']:
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
+
+known_ramses_particle_fields = [
+    "particle_position_x",
+    "particle_position_y",
+    "particle_position_z",
+    "particle_velocity_x",
+    "particle_velocity_y",
+    "particle_velocity_z",
+    "particle_mass",
+    "particle_identifier",
+    "particle_refinement_level",
+]
+
+for f in known_ramses_particle_fields:
+    if f not in RAMSESFieldInfo:
+        add_field(f, function=NullFunc, take_log=True,
+                  validators = [ValidateDataField(f)],
+                  particle_type = True)
 

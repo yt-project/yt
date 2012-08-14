@@ -68,6 +68,7 @@ class RAMSESDomainFile(object):
         for t in ['grav', 'hydro', 'part', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._read_amr_header()
+        self._read_particle_header()
 
     _hydro_offset = None
     _level_count = None
@@ -105,6 +106,41 @@ class RAMSESDomainFile(object):
         self._hydro_offset = hydro_offset
         self._level_count = level_count
         return self._hydro_offset
+
+    def _read_particle_header(self):
+        f = open(self.part_fn, "rb")
+        hvals = {}
+        attrs = ( ('ncpu', 1, 'I'),
+                  ('ndim', 1, 'I'),
+                  ('npart', 1, 'I') )
+        hvals.update(fpu.read_attrs(f, attrs))
+        fpu.read_vector(f, 'I')
+
+        attrs = ( ('nstar_tot', 1, 'I'),
+                  ('mstar_tot', 1, 'd'),
+                  ('mstar_lost', 1, 'd'),
+                  ('nsink', 1, 'I') )
+        hvals.update(fpu.read_attrs(f, attrs))
+        self.particle_header = hvals
+        self.local_particle_count = hvals['npart']
+        particle_fields = [
+                ("particle_position_x", "d"),
+                ("particle_position_y", "d"),
+                ("particle_position_z", "d"),
+                ("particle_velocity_x", "d"),
+                ("particle_velocity_y", "d"),
+                ("particle_velocity_z", "d"),
+                ("particle_mass", "d"),
+                ("particle_identifier", "I"),
+                ("particle_refinement_level", "I")]
+        if hvals["nstar_tot"] > 0:
+            particle_fields += [("particle_age", "d"),
+                                ("particle_metallicity", "d")]
+        field_offsets = {particle_fields[0][0]: f.tell()}
+        for field, vtype in particle_fields[1:]:
+            fpu.skip(f, 1)
+            field_offsets[field] = f.tell()
+        self.particle_field_offsets = field_offsets
 
     def _read_amr_header(self):
         hvals = {}
@@ -241,7 +277,7 @@ class RAMSESDomainSubset(object):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.field_list
+        all_fields = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
         filled = pos = level_offset = 0
@@ -307,26 +343,12 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         # TODO: Add additional fields
-        self.field_list = ( "Density", "x-velocity", "y-velocity",
+        self.fluid_field_list = ( "Density", "x-velocity", "y-velocity",
 	                        "z-velocity", "Pressure", "Metallicity" )
+        self.particle_field_list = tuple(
+            self.domains[0].particle_field_offsets.keys())
+        self.field_list = self.fluid_field_list + self.particle_field_list
     
-    def _setup_field_list(self):
-        if self.parameter_file.use_particles:
-            # We know which particle fields will exist -- pending further
-            # changes in the future.
-            for field in art_particle_field_names:
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-                # Note that we call add_field on the field_info directly.  This
-                # will allow the same field detection mechanism to work for 1D,
-                # 2D and 3D fields.
-                self.pf.field_info.add_field(field, NullFunc,
-                                             convert_function=cf,
-                                             take_log=False, particle_type=True)
-
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         super(RAMSESGeometryHandler, self)._setup_classes(dd)
