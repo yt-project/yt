@@ -24,8 +24,6 @@ License:
 """
 
 from yt.mods import *
-from os import environ
-from os import mkdir
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 
@@ -47,36 +45,64 @@ class DomainDecomposer(ParallelAnalysisInterface):
         return data_source
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
-    def __init__(self, pf, num_readers = 1, num_writers = None, 
-            outbase=None,particle_mass=-1.0,overwrite=False,
-            left_edge = None, right_edge = None):
+    def __init__(self, ts, num_readers = 1, num_writers = None, 
+            outbase=None,particle_mass=-1.0,dm_type=1):
         ParallelAnalysisInterface.__init__(self)
         # No subvolume support
-        self.pf = pf
-        self.hierarchy = pf.h
+        #we assume that all of the snapshots in the time series
+        #use the same domain info as the first snapshots
+        if not isinstance(ts,TimeSeriesData):
+            ts = TimeSeriesData([ts])
+        self.ts = ts
+        self.dm_type = dm_type
+        if self.comm.size > 1: 
+            self.comm.barrier()            
+        tpf = ts.__iter__().next()
+        dd = tpf.h.all_data()
+        print 'total particles: ',
+        total_particles = na.sum(dd['particle_type']==dm_type).astype('int64')
+        print total_particles
+        self.total_particles = -1
+        self.hierarchy = tpf.h
+        self.particle_mass = particle_mass 
+        self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
+        data_source = tpf.h.all_data()
+        if outbase is None:
+            outbase = str(tpf)+'_rockstar'
+        self.outbase = outbase        
         if num_writers is None:
             num_writers = self.comm.size - num_readers -1
         self.num_readers = num_readers
         self.num_writers = num_writers
-        self.particle_mass = particle_mass 
-        self.overwrite = overwrite
-        if left_edge is None:
-            left_edge = pf.domain_left_edge
-        if right_edge is None:
-            right_edge = pf.domain_right_edge
-        self.le = left_edge
-        self.re = right_edge
         if self.num_readers + self.num_writers + 1 != self.comm.size:
             print '%i reader + %i writers != %i mpi'%\
                     (self.num_readers, self.num_writers, self.comm.size)
             raise RuntimeError
+<<<<<<< local
+        if self.comm.size > 1:
+            print 'creating MPI workgroups'
+            self.pool = ProcessorPool()
+            self.pool.add_workgroup(1, name = "server")
+            self.pool.add_workgroup(num_readers, name = "readers")
+            self.pool.add_workgroup(num_writers, name = "writers")
+            for wg in self.pool.workgroups:
+                if self.comm.rank in wg.ranks: self.workgroup = wg
+=======
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         data_source = self.pf.h.all_data()
+>>>>>>> other
         self.handler = rockstar_interface.RockstarInterface(
+<<<<<<< local
+                self.ts, data_source)
+
+    def __del__(self):
+        self.pool.free_all()
+=======
                 self.pf, data_source)
         if outbase is None:
             outbase = str(self.pf)+'_rockstar'
         self.outbase = outbase        
+>>>>>>> other
 
     def _get_hosts(self):
         if self.comm.size == 1 or self.workgroup.name == "server":
@@ -92,6 +118,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.port = str(self.port)
 
     def run(self, block_ratio = 1,**kwargs):
+<<<<<<< local
+=======
         """
         
         """
@@ -104,17 +132,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.pool.add_workgroup(self.num_writers, name = "writers")
             for wg in self.pool.workgroups:
                 if self.comm.rank in wg.ranks: self.workgroup = wg
+>>>>>>> other
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
-        #because rockstar *always* write to exactly the same
-        #out_0.list filename we make a directory for it
-        #to sit inside so it doesn't get accidentally
-        #overwritten 
-        if self.workgroup.name == "server":
-            if not os.path.exists(self.outbase):
-                os.mkdir(self.outbase)
         self.handler.setup_rockstar(self.server_address, self.port,
+                    len(self.ts), self.total_particles, self.dm_type,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
@@ -123,6 +146,13 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     outbase = self.outbase,
                     particle_mass = float(self.particle_mass),
                     **kwargs)
+        #because rockstar *always* write to exactly the same
+        #out_0.list filename we make a directory for it
+        #to sit inside so it doesn't get accidentally
+        #overwritten 
+        if self.workgroup.name == "server":
+            if not os.path.exists(self.outbase):
+                os.mkdir(self.outbase)
         if self.comm.size == 1:
             self.handler.call_rockstar()
         else:
@@ -137,11 +167,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 self.handler.start_client()
             self.pool.free_all()
         self.comm.barrier()
-        #quickly rename the out_0.list 
+        self.pool.free_all()
     
     def halo_list(self,file_name='out_0.list'):
         """
         Reads in the out_0.list file and generates RockstarHaloList
         and RockstarHalo objects.
         """
-        return RockstarHaloList(self.pf,self.outbase+'/%s'%file_name)
+        tpf = self.ts[0]
+        return RockstarHaloList(tpf,file_name)
