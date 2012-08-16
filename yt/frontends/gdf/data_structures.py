@@ -8,7 +8,7 @@ Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
+  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.
   All Rights Reserved.
 
   This file is part of yt.
@@ -79,7 +79,7 @@ class GDFGrid(AMRGridPatch):
 class GDFHierarchy(AMRHierarchy):
 
     grid = GDFGrid
-    
+
     def __init__(self, pf, data_style='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
         self.data_style = data_style
@@ -96,7 +96,7 @@ class GDFHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         self.field_list = self._fhandle['field_types'].keys()
-    
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -104,14 +104,17 @@ class GDFHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         self.num_grids = self._fhandle['/grid_parent_id'].shape[0]
-       
+
     def _parse_hierarchy(self):
-        f = self._fhandle 
-        dxs=[]
+        f = self._fhandle
+        dxs = []
         self.grids = na.empty(self.num_grids, dtype='object')
         levels = (f['grid_level'][:]).copy()
         glis = (f['grid_left_index'][:]).copy()
         gdims = (f['grid_dimensions'][:]).copy()
+        active_dims = ~((na.max(gdims, axis=0) == 1) &
+                        (self.parameter_file.domain_dimensions == 1))
+
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i, self, levels[i],
                                       glis[i],
@@ -120,7 +123,7 @@ class GDFHierarchy(AMRHierarchy):
 
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-            dx = dx/self.parameter_file.refine_by**(levels[i])
+            dx[active_dims] = dx[active_dims]/self.parameter_file.refine_by**(levels[i])
             dxs.append(dx)
         dx = na.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
@@ -128,7 +131,7 @@ class GDFHierarchy(AMRHierarchy):
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = f['grid_particle_count'][:]
         del levels, glis, gdims
- 
+
     def _populate_grid_objects(self):
         for g in self.grids:
             g._prepare_grid()
@@ -153,13 +156,13 @@ class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
-    
+
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
-        
+
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
@@ -190,12 +193,12 @@ class GDFStaticOutput(StaticOutput):
             except:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
-                   units=current_fields_unit, projected_units="", 
+                   units=current_fields_unit, projected_units="",
                    convert_function=_get_convert(field_name))
 
         self._handle.close()
         del self._handle
-        
+
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
         sp = self._handle["/simulation_parameters"].attrs
@@ -204,7 +207,7 @@ class GDFStaticOutput(StaticOutput):
         self.domain_dimensions = sp["domain_dimensions"][:]
         refine_by = sp["refine_by"]
         if refine_by is None: refine_by = 2
-        self.refine_by = refine_by 
+        self.refine_by = refine_by
         self.dimensionality = sp["dimensionality"]
         self.current_time = sp["current_time"]
         self.unique_identifier = sp["unique_identifier"]
@@ -225,7 +228,7 @@ class GDFStaticOutput(StaticOutput):
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()
         del self._handle
-            
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
@@ -238,4 +241,4 @@ class GDFStaticOutput(StaticOutput):
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
-        
+
