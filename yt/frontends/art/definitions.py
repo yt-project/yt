@@ -26,13 +26,10 @@ License:
 """
 
 art_particle_field_names = [
-'particle_age',
 'particle_index',
 'particle_mass',
 'particle_mass_initial',
-'particle_creation_time',
-'particle_metallicity1',
-'particle_metallicity2',
+'particle_age',
 'particle_metallicity',
 'particle_position_x',
 'particle_position_y',
@@ -40,4 +37,18 @@ art_particle_field_names = [
 'particle_velocity_x',
 'particle_velocity_y',
 'particle_velocity_z',
-'particle_type']
+'particle_type',
+'star_position_x',
+'star_position_y',
+'star_position_z',
+'star_velocity_x',
+'star_velocity_y',
+'star_velocity_z',
+'star_age',
+'star_mass',
+'star_mass_initial',
+'star_creation_time',
+'star_metallicity1',
+'star_metallicity2',
+'star_metallicity',
+]

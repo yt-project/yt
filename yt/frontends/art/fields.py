@@ -34,8 +34,6 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, mass_hydrogen_cgs
 import yt.utilities.lib as amr_utils
 
 KnownARTFields = FieldInfoContainer()
@@ -170,32 +168,27 @@ KnownARTFields["PotentialOld"]._convert_function=_convertPotentialOld
 ####### Derived fields
 
 def _temperature(field, data):
-    cd = data.pf.conversion_factors["Density"]
-    cg = data.pf.conversion_factors["GasEnergy"]
-    ct = data.pf.tr
     dg = data["GasEnergy"].astype('float64')
+    dg /= data.pf.conversion_factors["GasEnergy"]
     dd = data["Density"].astype('float64')
-    di = dd==0.0
+    dd /= data.pf.conversion_factors["Density"]
+    tr = dg/dd*data.pf.tr
+    #ghost cells have zero density?
+    tr[na.isnan(tr)] = 0.0
     #dd[di] = -1.0
-    tr = dg/dd
-    #tr[na.isnan(tr)] = 0.0
     #if data.id==460:
-    #    import pdb;pdb.set_trace()
-    tr /= data.pf.conversion_factors["GasEnergy"]
-    tr *= data.pf.conversion_factors["Density"]
-    tr *= data.pf.tr
     #tr[di] = -1.0 #replace the zero-density points with zero temp
     #print tr.min()
     #assert na.all(na.isfinite(tr))
     return tr
 def _converttemperature(data):
-    x = data.pf.conversion_factors["Temperature"]
+    #x = data.pf.conversion_factors["Temperature"]
     x = 1.0
     return x
 add_field("Temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
 ARTFieldInfo["Temperature"]._units = r"\mathrm{K}"
 ARTFieldInfo["Temperature"]._projected_units = r"\mathrm{K}"
-ARTFieldInfo["Temperature"]._convert_function=_converttemperature
+#ARTFieldInfo["Temperature"]._convert_function=_converttemperature
 
 def _metallicity_snII(field, data):
     tr  = data["MetalDensitySNII"] / data["Density"]
@@ -242,7 +235,7 @@ ARTFieldInfo["z-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
 def _metal_density(field, data):
     tr  = data["MetalDensitySNIa"]
-    tr += data["MetalDensitySNII"]
+    tr = data["MetalDensitySNII"]
     return tr
 add_field("Metal_Density", function=_metal_density, units = r"\mathrm{K}",take_log=True)
 ARTFieldInfo["Metal_Density"]._units = r""
@@ -254,17 +247,44 @@ ARTFieldInfo["Metal_Density"]._projected_units = r""
 #Derived particle fields
 
 def mass_dm(field, data):
+    tr = na.ones(data.ActiveDimensions, dtype='float32')
     idx = data["particle_type"]<5
     #make a dumb assumption that the mass is evenly spread out in the grid
     #must return an array the shape of the grid cells
-    tr  = data["Ones"] #create a grid in the right size
     if na.sum(idx)>0:
-        tr /= na.prod(tr.shape) #divide by the volume
-        tr *= na.sum(data['particle_mass'][idx]) #Multiply by total contaiend mass
+        tr /= na.prod(data['CellVolumeCode']*data.pf['mpchcm']**3.0) #divide by the volume
+        tr *= na.sum(data['particle_mass'][idx])*data.pf['Msun'] #Multiply by total contaiend mass
+        print tr.shape
         return tr
     else:
-        return tr*0.0
+        return tr*1e-9
 
-add_field("particle_cell_mass_dm", function=mass_dm,
-          validators=[ValidateSpatial(0)])
+add_field("particle_cell_mass_dm", function=mass_dm, units = r"\mathrm{M_{sun}}",
+        validators=[ValidateSpatial(0)],        
+        take_log=False,
+        projection_conversion="1")
 
+def _spdensity(field, data):
+    grid_mass = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.star_mass.shape[0] ==0 : return grid_mass 
+    amr_utils.CICDeposit_3(data.star_position_x,
+                           data.star_position_y,
+                           data.star_position_z,
+                           data.star_mass.astype('float32'),
+                           data.star_mass.shape[0],
+                           grid_mass, 
+                           na.array(data.LeftEdge).astype(na.float64),
+                           na.array(data.ActiveDimensions).astype(na.int32), 
+                           na.float64(data['dx']))
+    return grid_mass 
+
+#add_field("star_density", function=_spdensity,
+#          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _simple_density(field,data):
+    mass = na.sum(data.star_mass)
+    volume = data['dx']*data.ActiveDimensions.prod().astype('float64')
+    return mass/volume
+
+add_field("star_density", function=_simple_density,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
