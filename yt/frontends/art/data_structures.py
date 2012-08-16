@@ -1074,7 +1074,7 @@ class ARTStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         if "10MpcBox" in args[0]:
             return True
-        return os.path.exists("%s.hierarchy" % args[0])
+        return False
 
 def particle_assignment(grids,this_grid, 
                                   pos,
