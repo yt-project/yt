@@ -964,16 +964,16 @@ class StereoPairCamera(Camera):
         delta = delta.astype('int')
         eresolution = resolution[0]+delta
         left_camera = Camera(le_c, le_norm, oc.width,
-                             eresolution, oc.transfer_function, north_vector=up,
-                             volume=oc.volume, fields=oc.fields, 
-                             log_fields=oc.log_fields,
-                             sub_samples=oc.sub_samples, pf=oc.pf)
+                     eresolution, oc.transfer_function, north_vector=up,
+                     volume=oc.volume, fields=oc.fields, 
+                     log_fields=oc.log_fields,
+                     sub_samples=oc.sub_samples, pf=oc.pf)
         left_camera.trim = [-delta,0]
         right_camera = Camera(re_c, re_norm, oc.width,
-                             eresolution, oc.transfer_function, north_vector=up,
-                             volume=oc.volume, fields=oc.fields, 
-                             log_fields=oc.log_fields,
-                             sub_samples=oc.sub_samples, pf=oc.pf)
+                     eresolution, oc.transfer_function, north_vector=up,
+                     volume=oc.volume, fields=oc.fields, 
+                     log_fields=oc.log_fields,
+                     sub_samples=oc.sub_samples, pf=oc.pf)
         right_camera.trim = [0,-delta]
         return (left_camera, right_camera)
 
