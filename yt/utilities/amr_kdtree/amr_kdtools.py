@@ -76,11 +76,13 @@ def add_grids(node, gles, gres, gids, rank, size):
         else:
             less_ids = gles[:,node.split.dim] < node.split.pos
             if len(less_ids) > 0:
-                add_grids(node.left, gles[less_ids], gres[less_ids], gids[less_ids], rank, size)
+                add_grids(node.left, gles[less_ids], gres[less_ids], 
+                          gids[less_ids], rank, size)
 
             greater_ids = gres[:,node.split.dim] > node.split.pos
             if len(greater_ids) > 0:
-                add_grids(node.right, gles[greater_ids], gres[greater_ids], gids[greater_ids], rank, size)
+                add_grids(node.right, gles[greater_ids], gres[greater_ids], 
+                          gids[greater_ids], rank, size)
 
 def insert_grids(node, gles, gres, grid_ids, rank, size):
     if should_i_build(node, rank, size):
@@ -113,11 +115,13 @@ def split_grids(node, gles, gres, grid_ids, rank, size):
 
     # Populate Left Node
     #print 'Inserting left node', node.left_edge, node.right_edge
-    insert_grids(node.left, gles[less_ids], gres[less_ids], grid_ids[less_ids], rank, size)
+    insert_grids(node.left, gles[less_ids], gres[less_ids],
+                 grid_ids[less_ids], rank, size)
 
     # Populate Right Node
     #print 'Inserting right node', node.left_edge, node.right_edge
-    insert_grids(node.right, gles[greater_ids], gres[greater_ids], grid_ids[greater_ids], rank, size)
+    insert_grids(node.right, gles[greater_ids], gres[greater_ids],
+                 grid_ids[greater_ids], rank, size)
 
     del less_ids, greater_ids
     return
@@ -138,9 +142,11 @@ def divide(node, split):
     # Create a Split
     node.split = split
     node.left = Node(node, None, None,
-            node.left_edge, new_right(node, split), node.grid, _lchild_id(node.id))
+            node.left_edge, new_right(node, split), node.grid,
+                     _lchild_id(node.id))
     node.right = Node(node, None, None,
-            new_left(node, split), node.right_edge, node.grid, _rchild_id(node.id))
+            new_left(node, split), node.right_edge, node.grid,
+                      _rchild_id(node.id))
     return
 
 def kd_sum_volume(node):
