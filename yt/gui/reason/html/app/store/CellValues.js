@@ -33,7 +33,8 @@ Ext.define('Reason.store.CellValues', {
     extend: 'Ext.data.Store',
     id: 'cellvalues',
     fields: ['input', 'output', 'raw_input', 'executiontime', 
-        { name: 'image_data', type: 'string', defaultValue: '' }
+        { name: 'image_data', type: 'string', defaultValue: '' },
+        'result_id',
     ],
     data: [],
 });

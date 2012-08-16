@@ -28,6 +28,7 @@ License:
 from .bottle_mods import PayloadHandler
 import base64
 import types
+import os
 
 def load_script(filename):
     contents = open(filename).read()
@@ -53,6 +54,7 @@ def deliver_image(im):
                'output': '',
                'input': '',
                'raw_input': '',
+               'result_id': None,
                'image_data':img_data}
     ph.add_payload(payload)
 
@@ -81,3 +83,27 @@ def get_list_of_datasets():
                         type = "parameter_file",
                         varname = pf_varname, field_list = field_list) )
     return rv
+
+def get_reasonjs_path():
+    fn = "reason-js-20120623.zip"
+    if "YT_DEST" not in os.environ:
+        print
+        print "*** You must set the environment variable YT_DEST ***"
+        print "*** to point to the installation location!        ***"
+        print
+        raise IOError
+    reasonjs_path = os.path.join(os.environ["YT_DEST"], "src", fn)
+    if not os.path.isfile(reasonjs_path):
+        print
+        print "*** You are missing the Reason support files. You ***"
+        print "*** You can get these by either rerunning the     ***"
+        print "*** install script installing, or downloading     ***"
+        print "*** them manually.                                ***"
+        print "***                                               ***"
+        print "*** FOR INSTANCE:                                 ***"
+        print
+        print "cd %s" % os.path.join(os.environ["YT_DEST"], "src")
+        print "wget http://yt-project.org/dependencies/reason-js-20120623.zip"
+        print
+        raise IOError
+    return reasonjs_path

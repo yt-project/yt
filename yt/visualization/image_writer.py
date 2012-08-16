@@ -135,7 +135,8 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
         Array of shape (N,M,3) or (N,M,4), to be written.  If it is not already
         a uint8 array, it will be scaled and converted to uint8.
     filename : string
-        Filename to save to
+        Filename to save to.  If None, PNG contents will be returned as a
+        string.
     max_val : float, optional
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
@@ -153,7 +154,10 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
     if transpose:
         for channel in range(bitmap_array.shape[2]):
             bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
-    au.write_png(bitmap_array.copy(), filename)
+    if filename is not None:
+        au.write_png(bitmap_array.copy(), filename)
+    else:
+        return au.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
@@ -332,7 +336,8 @@ def splat_points(image, points_x, points_y,
     return im
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
-                    title=None, limits=None, take_log=True, var_fig_size=False):
+                     title=None, limits=None, take_log=True, var_fig_size=False,
+                     cmap='algae'):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
@@ -362,6 +367,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     var_fig_size : boolean
         If we want the resolution (and size) of the output image to scale 
         with the resolution of the image array.  
+    cmap : string
+        The name of the colormap.
 
     Examples
     --------
@@ -372,24 +379,25 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          title="Offaxis Projection", limits=(1e-3,1e-5), 
                          take_log=True)
     """
-    import pylab as pl
+    import matplotlib
+    from ._mpl_imports import *
 
     # If this is rendered as log, then apply now.
     if take_log:
-        data = na.log10(data)
-        if limits is not None:
-            limits = na.log10(limits)
-
+        norm = matplotlib.colors.LogNorm()
+    else:
+        norm = matplotlib.colors.Normalize()
+    
+    if limits is None:
+        limits = [None, None]
 
     # Create the figure and paint the data on
-    fig = pl.figure()
+    fig = matplotlib.figure.Figure()
     ax = fig.add_subplot(111)
+    fig.tight_layout()
 
-    if limits is not None:
-        cax = ax.imshow(data, vmin=limits[0], vmax=limits[1])
-    else:
-        cax = ax.imshow(data)
-
+    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap)
+    
     if title:
         ax.set_title(title)
 
@@ -405,15 +413,32 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
     # If we want the resolution of the image to scale with the resolution
     # of the image array. we increase the dpi value accordingly
+    
     if var_fig_size:
         N = data.shape[0]
         mag_factor = N/480.
-        pl.savefig(filename, dpi=100*mag_factor)
+        dpi = 100*mag_factor
     else:
-        pl.savefig(filename)
+        dpi = None
 
-    pl.clf()
-    pl.close()
+    if filename[-4:] == '.png':
+        suffix = ''
+    else:
+        suffix = '.png'
+        filename = "%s%s" % (filename, suffix)
+    mylog.info("Saving plot %s", fn)
+    if suffix == ".png":
+        canvas = FigureCanvasAgg(fig)
+    elif suffix == ".pdf":
+        canvas = FigureCanvasPdf(fig)
+    elif suffix in (".eps", ".ps"):
+        canvas = FigureCanvasPS
+    else:
+        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+        canvas = FigureCanvasAgg(fig)
+    canvas.print_figure(filename)
+    return filename
+
 
 def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
 

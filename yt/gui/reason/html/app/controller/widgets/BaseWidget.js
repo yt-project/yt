@@ -49,7 +49,6 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
         var args = {};
         var control = this;
         function ev() {
-            console.log("Inside ... " + templateName);
             var myArgs = arguments;
             Ext.each(arguments, function(v, i) {
                 args["a" + i] = myArgs[i];
@@ -70,11 +69,9 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
             ww.query(id)[0].on(conf);
         };
         Ext.each(this.executionTriggers, function(trigger) {
-            /*console.log(trigger[0] + " " + trigger[1] + " " + trigger[2], trigger[3]);*/
             ef.call(this, trigger[0], trigger[1], trigger[2], trigger[3]);
         }, this);
         Ext.each(this.widgetTriggers, function(trigger) {
-            console.log(trigger[0], trigger[1], trigger[2]);
             conf = {scope:this}
             conf[trigger[1]] = this[trigger[2]];
             ww.query(trigger[0])[0].on(conf);
@@ -91,12 +88,10 @@ Ext.define('Reason.controller.widgets.BaseWidget', {
     },
 
     activateKeyMap: function() {
-        console.log("Activating key map.");
         this.keyMap.enable();
     },
 
     deactivateKeyMap: function() {
-        console.log("Deactivating key map.");
         this.keyMap.disable();
     },
 

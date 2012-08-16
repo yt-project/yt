@@ -28,6 +28,7 @@ ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
+from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
 import urllib, urllib2, base64
 
@@ -133,7 +134,7 @@ _common_options = dict(
                    help="Field to weight projections with"),
     cmap    = dict(long="--colormap",
                    action="store", type=str,
-                   dest="cmap", default="jet",
+                   dest="cmap", default="algae",
                    help="Colormap name"),
     zlim    = dict(short="-z", long="--zlim",
                    action="store", type=float,
@@ -147,7 +148,7 @@ _common_options = dict(
                    help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
                    action="store", type=float,
-                   dest="width", default=1.0,
+                   dest="width", default=None,
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type=str,
@@ -752,6 +753,86 @@ class YTHopCmd(YTCommand):
         else: fn = args.output
         hop_list.write_out(fn)
 
+class YTHubRegisterCmd(YTCommand):
+    name = "hub_register"
+    description = \
+        """
+        Register a user on the Hub: http://hub.yt-project.org/
+        """
+    def __call__(self, args):
+        # We need these pieces of information:
+        #   1. Name
+        #   2. Email
+        #   3. Username
+        #   4. Password (and password2)
+        #   5. (optional) URL
+        #   6. "Secret" key to make it epsilon harder for spammers
+        if ytcfg.get("yt","hub_api_key") != "":
+            print "You seem to already have an API key for the hub in"
+            print "~/.yt/config .  Delete this if you want to force a"
+            print "new user registration."
+        print "Awesome!  Let's start by registering a new user for you."
+        print "Here's the URL, for reference: http://hub.yt-project.org/ "
+        print
+        print "As always, bail out with Ctrl-C at any time."
+        print
+        print "What username would you like to go by?"
+        print
+        username = raw_input("Username? ")
+        if len(username) == 0: sys.exit(1)
+        print
+        print "To start out, what's your name?"
+        print
+        name = raw_input("Name? ")
+        if len(name) == 0: sys.exit(1)
+        print
+        print "And your email address?"
+        print
+        email = raw_input("Email? ")
+        if len(email) == 0: sys.exit(1)
+        print
+        print "Please choose a password:"
+        print 
+        while 1:
+            password1 = getpass.getpass("Password? ")
+            password2 = getpass.getpass("Confirm? ")
+            if len(password1) == 0: continue
+            if password1 == password2: break
+            print "Sorry, they didn't match!  Let's try again."
+            print
+        print
+        print "Would you like a URL displayed for your user?"
+        print "Leave blank if no."
+        print
+        url = raw_input("URL? ")
+        print
+        print "Okay, press enter to register.  You should receive a welcome"
+        print "message at %s when this is complete." % email
+        print
+        loki = raw_input()
+        data = dict(name = name, email = email, username = username,
+                    password = password1, password2 = password2, 
+                    url = url, zap = "rowsdower")
+        data = urllib.urlencode(data)
+        hub_url = "https://hub.yt-project.org/create_user"
+        req = urllib2.Request(hub_url, data)
+        try:
+            status = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as exc:
+            if exc.code == 400:
+                print "Sorry, the Hub couldn't create your user."
+                print "You can't register duplicate users, which is the most"
+                print "common cause of this error.  All values for username,"
+                print "name, and email must be unique in our system."
+                sys.exit(1)
+        except urllib2.URLError as exc:
+            print "Something has gone wrong.  Here's the error message."
+            raise exc
+        print
+        print "SUCCESS!"
+        print
+
+
 class YTHubSubmitCmd(YTCommand):
     name = "hub_submit"
     args = (
@@ -767,6 +848,14 @@ class YTHubSubmitCmd(YTCommand):
 
     def __call__(self, args):
         import imp
+        api_key = ytcfg.get("yt","hub_api_key")
+        url = ytcfg.get("yt","hub_url")
+        if api_key == '':
+            print
+            print "You must create an API key before uploading."
+            print "https://data.yt-project.org/getting_started.html"
+            print
+            sys.exit(1)
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
         uu = ui.ui()
@@ -860,12 +949,14 @@ class YTHubSubmitCmd(YTCommand):
                         bb_username, bb_username, bb_repo_name)
             cedit.config.addsource(uu, repo, "default", bb_url)
             commands.push(uu, repo, bb_url)
+            # Now we reset
+            bb_url = "https://bitbucket.org/%s/%s" % (
+                        bb_username, bb_repo_name)
         if bb_url.startswith("bb://"):
             bb_username, bb_repo_name = bb_url.split("/")[-2:]
-            bb_url = "https://%s@bitbucket.org/%s/%s" % (
-                bb_username, bb_username, bb_repo_name)
+            bb_url = "https://bitbucket.org/%s/%s" % (
+                bb_username, bb_repo_name)
         # Now we can submit
-        import xml.etree.ElementTree as etree
         print
         print "Okay.  Now we're ready to submit to the Hub."
         print "Remember, you can go to the Hub at any time at"
@@ -873,40 +964,27 @@ class YTHubSubmitCmd(YTCommand):
         print
         print "(Especially if you don't have a user yet!  We can wait.)"
         print
-        hub_username = raw_input("What is your Hub username? ")
-        hub_password = getpass.getpass("What is your Hub password? ")
-        data = urllib.urlencode(dict(fn = "list",
-                                     username=hub_username,
-                                     password=hub_password))
-        req = urllib2.Request(uri, data)
-        rv = urllib2.urlopen(req).read()
-        try:
-            cats = etree.fromstring(rv)
-        except:
-            print "I think you entered your password wrong.  Please check!"
-            return
 
-        categories = {}
-
-        for cat in cats.findall("./cate"):
-            cat_id = int(cat.findall("id")[0].text)
-            cat_name = cat.findall("name")[0].text
-            categories[cat_id] = cat_name
-
-        print
-        for i, n in sorted(categories.items()):
-            print "%i. %s" % (i, n)
-        print
-        cat_id = int(raw_input("Which category number does your script fit into? "))
+        categories = {
+            1: "News",
+            2: "Documents",
+            3: "Simulation Management",
+            4: "Data Management",
+            5: "Analysis and Visualization",
+            6: "Paper Repositories",
+            7: "Astrophysical Utilities",
+            8: "yt Scripts"
+        }
+        cat_id = -1
+        while cat_id not in categories:
+            print
+            for i, n in sorted(categories.items()):
+                print "%i. %s" % (i, n)
+            print
+            cat_id = int(raw_input("Which category number does your script fit into? "))
         print
         print "What is the title of your submission? (Usually a repository name) "
         title = raw_input("Title? ")
-        print
-        print "What tags should be applied to this submission?  Separate with commas."
-        print "(e.g., enzo, flash, gadget, ramses, nyx, yt, visualization, analysis,"
-        print " utility, cosmology)"
-        print
-        tags = raw_input("Tags? ")
         print
         print "Give us a very brief summary of the project -- enough to get someone"
         print "interested enough to click the link and see what it's about.  This"
@@ -914,17 +992,18 @@ class YTHubSubmitCmd(YTCommand):
         print
         summary = raw_input("Summary? ")
         print
+        print "Is there a URL that you'd like to point the image to?  Just hit"
+        print "enter if no."
+        print
+        image_url = raw_input("Image URL? ").strip()
+        print
         print "Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out."
         print
         loki = raw_input()
 
-        data = urllib.urlencode(dict(fn = "post",
-                                     username=hub_username, password=hub_password,
-                                     url = bb_url, category = cat_id, title = title,
-                                     content = summary, tags = tags))
-        req = urllib2.Request(uri, data)
-        rv = urllib2.urlopen(req).read()
-        print rv
+        mpd = MinimalProjectDescription(title, bb_url, summary, 
+                categories[cat_id], image_url)
+        mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
     name = "instinfo"
@@ -999,10 +1078,10 @@ class YTLoadCmd(YTCommand):
         import yt.mods
 
         import IPython
-        if IPython.__version__.startswith("0.10"):
+        from distutils import version
+        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11") or \
-             IPython.__version__.startswith("0.12"):
+        else:
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
@@ -1134,25 +1213,39 @@ class YTPlotCmd(YTCommand):
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = na.array(center)
-        pc=PlotCollection(pf, center=center)
         if args.axis == 4:
             axes = range(3)
         else:
             axes = [args.axis]
+
+        unit = args.unit
+        if unit is None:
+            unit = 'unitary'
+        if args.width is None:
+            width = None
+        else:
+            width = (args.width, args.unit)
+
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)
-            if args.projection: pc.add_projection(args.field, ax,
-                                    weight_field=args.weight, center=center)
-            else: pc.add_slice(args.field, ax, center=center)
-            if args.grids: pc.plots[-1].modify["grids"]()
+            if args.projection:
+                plt = ProjectionPlot(pf, ax, args.field, center=center,
+                                     width=width,
+                                     weight_field=args.weight)
+            else:
+                plt = SlicePlot(pf, ax, args.field, center=center,
+                                width=width)
+            if args.grids:
+                plt.annotate_grids()
             if args.time: 
                 time = pf.current_time*pf['Time']*pf['years']
-                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
-        pc.set_width(args.width, args.unit)
-        pc.set_cmap(args.cmap)
-        if args.zlim: pc.set_zlim(*args.zlim)
-        if not os.path.isdir(args.output): os.makedirs(args.output)
-        pc.save(os.path.join(args.output,"%s" % (pf)))
+                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+
+            plt.set_cmap(args.field, args.cmap)
+            if args.zlim:
+                plt.set_zlim(args.field,*args.zlim)
+            if not os.path.isdir(args.output): os.makedirs(args.output)
+            plt.save(os.path.join(args.output,"%s" % (pf)))
 
 class YTRenderCmd(YTCommand):
         
@@ -1289,12 +1382,6 @@ class YTGUICmd(YTCommand):
     def __call__(self, args):
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
-            print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
         if args.port == 0:
             # This means, choose one at random.  We do this by binding to a
             # socket and allowing the OS to choose the port for that socket.
@@ -1310,20 +1397,10 @@ class YTGUICmd(YTCommand):
             except ValueError:
                 print "Please try a number next time."
                 return 1
-        fn = "reason-js-20120623.zip"
-        reasonjs_path = os.path.join(os.environ["YT_DEST"], "src", fn)
-        if not os.path.isfile(reasonjs_path):
-            print
-            print "*** You are missing the Reason support files. You ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
-            print "***                                               ***"
-            print "*** FOR INSTANCE:                                 ***"
-            print
-            print "cd %s" % os.path.join(os.environ["YT_DEST"], "src")
-            print "wget http://yt-project.org/dependencies/reason-js-20120623.zip"
-            print
+        from yt.gui.reason.utils import get_reasonjs_path
+        try:
+            reasonjs_path = get_reasonjs_path()
+        except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.utilities.bottle as bottle

@@ -12,10 +12,3 @@ All of the pre-built HTML files, accessible with any web browser, are available
 in the build/ directory, as well as at:
 
 http://yt-project.org/doc/index.html
-
-You can also download a copy of the documentation and unzip it right here:
-
-wget http://yt-project.org/doc/download.zip
-unzip download.zip
-
-Then open index.html with your favorite web browser, and be off!

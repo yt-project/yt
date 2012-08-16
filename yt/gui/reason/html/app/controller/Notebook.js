@@ -31,7 +31,7 @@ License:
 
 Ext.define('Reason.controller.Notebook', {
     extend: 'Ext.app.Controller',
-    stores: [ 'CellValues' ],
+    stores: [ 'CellValues' , 'Requests'],
     views: ['Notebook', 'CellView'],
     refs: [
         { ref: 'inputLine',
@@ -72,34 +72,47 @@ Ext.define('Reason.controller.Notebook', {
         this.callParent(arguments);
     },
 
+    addRequest: function(request_id, command) {
+        this.getRequestsStore().add({
+            request_id: request_id, command: command,
+        });
+    },
+
     addCell: function(cell) {
         this.application.fireEvent("wipeinput");
         this.application.fireEvent("allowinput");
+        if (cell['result_id'] != null) {
+            var ind = this.getRequestsStore().find(
+                'request_id', cell['result_id']);
+            if (ind != -1) {
+                var rec = this.getRequestsStore().removeAt(ind);
+            }
+            reason.pending.update([this.getRequestsStore().count()]);
+        }
+        if (cell['hide'] == true) { return; }
         this.getCellValuesStore().add({
             input: cell['input'],
             output: cell['output'],
             raw_input: cell['raw_input'],
             image_data: cell['image_data'],
             executiontime: cell['executiontime'],
+            result_id: cell['result_id'],
         });
         this.application.fireEvent("scrolltobottom");
     },
 
     loadScript: function(payload) {
-        console.log("Loading script ...");
         this.getInputLine().setValue(payload['value']);
         this.getInputLine()._lock = true;
     },
 
     executeCell: function(line) {
         this.application.fireEvent("blockinput");
-        console.log("Asked to execute " + line);
         reason.server.execute(line, false);
     },
 
     scrollToBottom: function() {
         var i = this.getCellValuesStore().getCount();
-        console.log("Scrolling to bottom: " + i);
         this.getCellDisplay().getView().focusRow(i-1);
     },
     

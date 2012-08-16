@@ -113,10 +113,16 @@ class FixedResolutionBuffer(object):
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
+    def keys(self):
+        return self.data.keys()
+    
+    def __delitem__(self, item):
+        del self.data[item]
+    
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
-        mylog.info("Making a fixed resolution buffer of %d by %d" % \
-            (self.buff_size[0], self.buff_size[1]))
+        mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
+            (item, self.buff_size[0], self.buff_size[1]))
         buff = _MPL.Pixelize(self.data_source['px'],
                              self.data_source['py'],
                              self.data_source['pdx'],

@@ -36,6 +36,7 @@ ytcfgDefaults = dict(
     suppressstreamlogging = 'False',
     loglevel = '20',
     inline = 'False',
+    numthreads = '-1',
     __withinreason = 'False',
     __parallel = 'False',
     __global_parallel_rank = '0',
@@ -52,8 +53,9 @@ ytcfgDefaults = dict(
     pasteboard_repo = '',
     test_storage_dir = '/does/not/exist',
     enzo_db = '',
-    hub_url = 'https://data.yt-project.org/upload',
+    hub_url = 'https://hub.yt-project.org/upload',
     hub_api_key = '',
+    ipython_notebook = 'False',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

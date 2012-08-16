@@ -1,5 +1,5 @@
 """
-API for halo_finding
+API for lightcone
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -28,21 +28,9 @@ License:
 
 """
 
-from halo_objects import \
-    Halo, \
-    HOPHalo, \
-    parallelHOPHalo, \
-    LoadedHalo, \
-    FOFHalo, \
-    HaloList, \
-    HOPHaloList, \
-    FOFHaloList, \
-    parallelHOPHaloList, \
-    LoadedHaloList, \
-    GenericHaloFinder, \
-    parallelHF, \
-    HOPHaloFinder, \
-    FOFHaloFinder, \
-    HaloFinder, \
-    LoadHaloes, \
-    LoadTextHaloes
+from .light_cone import \
+    LightCone
+
+from .unique_solution import \
+    project_unique_light_cones, \
+    find_unique_solutions

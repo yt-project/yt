@@ -126,7 +126,9 @@ if __name__ == "__main__":
     failures = 0
     passes = 1
     for test_name, result in sorted(rtr.passed_tests.items()):
-        print "TEST %s: %s" % (test_name, result)
+        if not result:
+            print "TEST %s: %s" % (test_name, result)
+            print "    %s" % rtr.test_messages[test_name]
         if result: passes += 1
         else: failures += 1
     print "Number of passes  : %s" % passes

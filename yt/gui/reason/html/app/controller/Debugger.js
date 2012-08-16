@@ -31,7 +31,7 @@ License:
 
 Ext.define('Reason.controller.Debugger', {
     extend: 'Ext.app.Controller',
-    stores: ['WidgetTypes', 'WidgetInstances'],
+    stores: ['WidgetTypes', 'WidgetInstances', 'Requests'],
 
     getWidget: function(widgetId) {
         this.getWidgetInstancesStore().find(

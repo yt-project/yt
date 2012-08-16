@@ -34,6 +34,8 @@ from yt.data_objects.time_series import \
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
+from yt.utilities.definitions import \
+    sec_conversion
 from yt.utilities.exceptions import \
     AmbiguousOutputs, \
     MissingParameter, \
@@ -46,7 +48,7 @@ class EnzoSimulation(SimulationTimeSeries):
     r"""Class for creating TimeSeriesData object from an Enzo
     simulation parameter file.
     """
-    def __init__(self, parameter_filename):
+    def __init__(self, parameter_filename, find_outputs=False):
         r"""Initialize an Enzo Simulation object.
 
         Upon creation, the parameter file is parsed and the time and redshift
@@ -57,7 +59,15 @@ class EnzoSimulation(SimulationTimeSeries):
 
         parameter_filename : str
             The simulation parameter file.
-        
+        find_outputs : bool
+            If True, subdirectories within the GlobalDir directory are
+            searched one by one for datasets.  Time and redshift
+            information are gathered by temporarily instantiating each
+            dataset.  This can be used when simulation data was created
+            in a non-standard way, making it difficult to guess the
+            corresponding time and redshift information.
+            Default: False.
+
         Examples
         --------
         >>> from yt.mods import *
@@ -65,14 +75,15 @@ class EnzoSimulation(SimulationTimeSeries):
         >>> print es.all_outputs
 
         """
-        SimulationTimeSeries.__init__(self, parameter_filename)
-        
+        SimulationTimeSeries.__init__(self, parameter_filename,
+                                      find_outputs=find_outputs)
+
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None, time_units='1',
                         initial_redshift=None, final_redshift=None,
                         initial_cycle=None, final_cycle=None,
                         times=None, redshifts=None, tolerance=None,
-                        find_outputs=False, parallel=True):
+                        parallel=True):
 
         """
         Instantiate a TimeSeriesData object for a set of outputs.
@@ -143,14 +154,6 @@ class EnzoSimulation(SimulationTimeSeries):
             given the requested times or redshifts.  If None, the
             nearest output is always taken.
             Default: None.
-        find_outputs : bool
-            If True, subdirectories within the GlobalDir directory are
-            searched one by one for datasets.  Time and redshift
-            information are gathered by temporarily instantiating each
-            dataset.  This can be used when simulation data was created
-            in a non-standard way, making it difficult to guess the
-            corresponding time and redshift information.
-            Default: False.
         parallel : bool/int
             If True, the generated TimeSeriesData will divide the work
             such that a single processor works on each dataset.  If an
@@ -183,63 +186,60 @@ class EnzoSimulation(SimulationTimeSeries):
             mylog.error('An initial or final redshift has been given for a noncosmological simulation.')
             return
 
-        if find_outputs:
-            my_outputs = self._find_outputs()
+        if time_data and redshift_data:
+            my_all_outputs = self.all_outputs
+        elif time_data:
+            my_all_outputs = self.all_time_outputs
+        elif redshift_data:
+            my_all_outputs = self.all_redshift_outputs
+        else:
+            mylog.error('Both time_data and redshift_data are False.')
+            return
+
+        # Apply selection criteria to the set.
+        if times is not None:
+            my_outputs = self._get_outputs_by_time(times, tolerance=tolerance,
+                                                   outputs=my_all_outputs,
+                                                   time_units=time_units)
+
+        elif redshifts is not None:
+            my_outputs = self._get_outputs_by_redshift(redshifts, tolerance=tolerance,
+                                                       outputs=my_all_outputs)
+
+        elif initial_cycle is not None or final_cycle is not None:
+            if initial_cycle is None:
+                initial_cycle = 0
+            else:
+                initial_cycle = max(initial_cycle, 0)
+            if final_cycle is None:
+                final_cycle = self.parameters['StopCycle']
+            else:
+                final_cycle = min(final_cycle, self.parameters['StopCycle'])
+            my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
+                                                 self.parameters['CycleSkipDataDump'])):
+                                        (final_cycle /  self.parameters['CycleSkipDataDump'])+1]
 
         else:
-            if time_data and redshift_data:
-                my_all_outputs = self.all_outputs
-            elif time_data:
-                my_all_outputs = self.all_time_outputs
-            elif redshift_data:
-                my_all_outputs = self.all_redshift_outputs
+            if initial_time is not None:
+                my_initial_time = initial_time / self.time_units[time_units]
+            elif initial_redshift is not None:
+                my_initial_time = self.enzo_cosmology.ComputeTimeFromRedshift(initial_redshift) / \
+                    self.enzo_cosmology.TimeUnits
             else:
-                mylog.error('Both time_data and redshift_data are False.')
-                return
+                my_initial_time = self.initial_time
 
-            if times is not None:
-                my_outputs = self._get_outputs_by_time(times, tolerance=tolerance,
-                                                       outputs=my_all_outputs,
-                                                       time_units=time_units)
-
-            elif redshifts is not None:
-                my_outputs = self._get_outputs_by_redshift(redshifts, tolerance=tolerance,
-                                                           outputs=my_all_outputs)
-
-            elif initial_cycle is not None or final_cycle is not None:
-                if initial_cycle is None:
-                    initial_cycle = 0
-                else:
-                    initial_cycle = max(initial_cycle, 0)
-                if final_cycle is None:
-                    final_cycle = self.parameters['StopCycle']
-                else:
-                    final_cycle = min(final_cycle, self.parameters['StopCycle'])
-                my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
-                                                     self.parameters['CycleSkipDataDump'])):
-                                            (final_cycle /  self.parameters['CycleSkipDataDump'])+1]
-
+            if final_time is not None:
+                my_final_time = final_time / self.time_units[time_units]
+            elif final_redshift is not None:
+                my_final_time = self.enzo_cosmology.ComputeTimeFromRedshift(final_redshift) / \
+                    self.enzo_cosmology.TimeUnits
             else:
-                if initial_time is not None:
-                    my_initial_time = initial_time / self.time_units[time_units]
-                elif initial_redshift is not None:
-                    my_initial_time = self.enzo_cosmology.ComputeTimeFromRedshift(initial_redshift) / \
-                        self.enzo_cosmology.TimeUnits
-                else:
-                    my_initial_time = self.initial_time
+                my_final_time = self.final_time
 
-                if final_time is not None:
-                    my_final_time = final_time / self.time_units[time_units]
-                elif final_redshift is not None:
-                    my_final_time = self.enzo_cosmology.ComputeTimeFromRedshift(final_redshift) / \
-                        self.enzo_cosmology.TimeUnits
-                else:
-                    my_final_time = self.final_time
-                    
-                my_times = na.array(map(lambda a:a['time'], my_all_outputs))
-                my_indices = na.digitize([my_initial_time, my_final_time], my_times)
-                if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
-                my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
+            my_times = na.array(map(lambda a:a['time'], my_all_outputs))
+            my_indices = na.digitize([my_initial_time, my_final_time], my_times)
+            if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
+            my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
 
         TimeSeriesData.__init__(self, outputs=[output['filename'] for output in my_outputs],
                                 parallel=parallel)
@@ -275,7 +275,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 except ValueError:
                     pcast = str
                 else:
-                    if any("." in v or "e+" in v or "e-" in v for v in vals):
+                    if any("." in v or "e" in v for v in vals):
                         pcast = float
                     elif v == "inf":
                         pcast = str
@@ -316,7 +316,8 @@ class EnzoSimulation(SimulationTimeSeries):
             self.domain_dimensions = na.array([self.parameters["TopGridDimensions"],1,1])
 
         if self.parameters["ComovingCoordinates"]:
-            cosmo_attr = {'omega_lambda': 'CosmologyOmegaLambdaNow',
+            cosmo_attr = {'box_size': 'CosmologyComovingBoxSize',
+                          'omega_lambda': 'CosmologyOmegaLambdaNow',
                           'omega_matter': 'CosmologyOmegaMatterNow',
                           'hubble_constant': 'CosmologyHubbleConstantNow',
                           'initial_redshift': 'CosmologyInitialRedshift',
@@ -349,6 +350,7 @@ class EnzoSimulation(SimulationTimeSeries):
         for output in self.all_redshift_outputs:
             output['time'] = self.enzo_cosmology.ComputeTimeFromRedshift(output['redshift']) / \
                 self.enzo_cosmology.TimeUnits
+        self.all_redshift_outputs.sort(key=lambda obj:obj['time'])
 
     def _calculate_time_outputs(self):
         "Calculate time outputs and their redshifts if cosmological."
@@ -396,27 +398,32 @@ class EnzoSimulation(SimulationTimeSeries):
             self.all_time_outputs.append(output)
             index += 1
 
-    def _get_all_outputs(self):
+    def _get_all_outputs(self, find_outputs=False):
         "Get all potential datasets and combine into a time-sorted list."
 
-        if self.parameters['dtDataDump'] > 0 and \
-            self.parameters['CycleSkipDataDump'] > 0:
+        # Create the set of outputs from which further selection will be done.
+        if find_outputs:
+            self._find_outputs()
+
+        elif self.parameters['dtDataDump'] > 0 and \
+          self.parameters['CycleSkipDataDump'] > 0:
             mylog.info("Simulation %s has both dtDataDump and CycleSkipDataDump set." % self.parameter_filename )
             mylog.info("    Unable to calculate datasets.  Attempting to search in the current directory")
-            self.all_time_outputs = self._find_outputs()
+            self._find_outputs()
 
-        # Get all time or cycle outputs.
-        elif self.parameters['CycleSkipDataDump'] > 0:
-            self._calculate_cycle_outputs()
         else:
-            self._calculate_time_outputs()
+            # Get all time or cycle outputs.
+            if self.parameters['CycleSkipDataDump'] > 0:
+                self._calculate_cycle_outputs()
+            else:
+                self._calculate_time_outputs()
 
-        # Calculate times for redshift outputs.
-        self._calculate_redshift_dump_times()
+            # Calculate times for redshift outputs.
+            self._calculate_redshift_dump_times()
 
-        self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
-        if self.parameters['CycleSkipDataDump'] <= 0:
-            self.all_outputs.sort(key=lambda obj:obj['time'])
+            self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
+            if self.parameters['CycleSkipDataDump'] <= 0:
+                self.all_outputs.sort(key=lambda obj:obj['time'])
 
         mylog.info("Total datasets: %d." % len(self.all_outputs))
 
@@ -488,10 +495,8 @@ class EnzoSimulation(SimulationTimeSeries):
                 / self.hubble_constant / (1 + self.initial_redshift)**1.5
         self.time_units['1'] = 1.
         self.time_units['seconds'] = self.parameters['TimeUnits']
-        self.time_units['years'] = self.time_units['seconds'] / (365*3600*24.0)
-        self.time_units['days']  = self.time_units['seconds'] / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.parameters['TimeUnits'] / sec_conversion[unit]
 
     def _find_outputs(self):
         """
@@ -500,14 +505,32 @@ class EnzoSimulation(SimulationTimeSeries):
         """
 
         # look for time outputs.
-        potential_outputs = glob.glob(os.path.join(self.parameters['GlobalDir'],
-                                                   "%s*" % self.parameters['DataDumpDir'])) + \
-                            glob.glob(os.path.join(self.parameters['GlobalDir'],
-                                                   "%s*" % self.parameters['RedshiftDumpDir']))
-        time_outputs = []
-        mylog.info("Checking %d potential time outputs." % 
+        potential_time_outputs = \
+          glob.glob(os.path.join(self.parameters['GlobalDir'],
+                                 "%s*" % self.parameters['DataDumpDir']))
+        self.all_time_outputs = \
+          self._check_for_outputs(potential_time_outputs)
+        self.all_time_outputs.sort(key=lambda obj: obj['time'])
+
+        # look for redshift outputs.
+        potential_redshift_outputs = \
+          glob.glob(os.path.join(self.parameters['GlobalDir'],
+                                 "%s*" % self.parameters['RedshiftDumpDir']))
+        self.all_redshift_outputs = \
+          self._check_for_outputs(potential_redshift_outputs)
+        self.all_redshift_outputs.sort(key=lambda obj: obj['time'])
+
+        self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
+        self.all_outputs.sort(key=lambda obj: obj['time'])
+        mylog.info("Located %d total outputs." % len(self.all_outputs))
+
+    def _check_for_outputs(self, potential_outputs):
+        r"""Check a list of files to see if they are valid datasets."""
+
+        mylog.info("Checking %d potential outputs." %
                    len(potential_outputs))
 
+        my_outputs = []
         for output in potential_outputs:
             if self.parameters['DataDumpDir'] in output:
                 dir_key = self.parameters['DataDumpDir']
@@ -523,19 +546,18 @@ class EnzoSimulation(SimulationTimeSeries):
                 try:
                     pf = load(filename)
                     if pf is not None:
-                        time_outputs.append({'filename': filename, 'time': pf.current_time})
+                        my_outputs.append({'filename': filename,
+                                           'time': pf.current_time})
                         if pf.cosmological_simulation:
-                            time_outputs[-1]['redshift'] = pf.current_redshift
+                            my_outputs[-1]['redshift'] = pf.current_redshift
                 except YTOutputNotIdentified:
                     mylog.error('Failed to load %s' % filename)
 
-        mylog.info("Located %d time outputs." % len(time_outputs))
-        time_outputs.sort(key=lambda obj: obj['time'])
-        return time_outputs
+        return my_outputs
 
     def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
         r"""Get datasets at or near to given values.
-        
+
         Parameters
         ----------
         key: str
@@ -552,11 +574,11 @@ class EnzoSimulation(SimulationTimeSeries):
             The list of outputs from which to choose.  If None,
             self.all_outputs is used.
             Default: None.
-        
+
         Examples
         --------
         >>> datasets = es.get_outputs_by_key('redshift', [0, 1, 2], tolerance=0.1)
-        
+
         """
 
         values = ensure_list(values)
@@ -576,7 +598,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _get_outputs_by_redshift(self, redshifts, tolerance=None, outputs=None):
         r"""Get datasets at or near to given redshifts.
-        
+
         Parameters
         ----------
         redshifts: array_like
@@ -590,11 +612,11 @@ class EnzoSimulation(SimulationTimeSeries):
             The list of outputs from which to choose.  If None,
             self.all_outputs is used.
             Default: None.
-        
+
         Examples
         --------
         >>> datasets = es.get_outputs_by_redshift([0, 1, 2], tolerance=0.1)
-        
+
         """
 
         return self._get_outputs_by_key('redshift', redshifts, tolerance=tolerance,
@@ -603,7 +625,7 @@ class EnzoSimulation(SimulationTimeSeries):
     def _get_outputs_by_time(self, times, tolerance=None, outputs=None,
                              time_units='1'):
         r"""Get datasets at or near to given times.
-        
+
         Parameters
         ----------
         times: array_like
@@ -620,14 +642,27 @@ class EnzoSimulation(SimulationTimeSeries):
         time_units : str
             The units of the list of times.
             Default: '1' (code units).
-        
+
         Examples
         --------
         >>> datasets = es.get_outputs_by_time([600, 500, 400], tolerance=10.)
-        
+
         """
 
         times = na.array(times) / self.time_units[time_units]
         return self._get_outputs_by_key('time', times, tolerance=tolerance,
                                         outputs=outputs)
 
+    def _write_cosmology_outputs(self, filename, outputs, start_index,
+                                 decimals=3):
+        r"""Write cosmology output parameters for a cosmology splice.
+        """
+
+        mylog.info("Writing redshift output list to %s." % filename)
+        f = open(filename, 'w')
+        for q, output in enumerate(outputs):
+            z_string = "%%s[%%d] = %%.%df" % decimals
+            f.write(("CosmologyOutputRedshift[%d] = %."
+                     + str(decimals) + "f\n") %
+                    ((q + start_index), output['redshift']))
+        f.close()

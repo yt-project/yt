@@ -1,15 +1,17 @@
-"""
-API for simulation_handler
+/**********************************************************************
+A store for outstanding requests
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
+Author: Cameron Hummels <chummels@gmail.com>
+Affiliation: Columbia
+Author: Jeffrey S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,8 +27,12 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+***********************************************************************/
 
-"""
+Ext.define('Reason.store.Requests', {
+    extend: 'Ext.data.Store',
+    id: 'requestsstore',
+    fields: ['request_id', 'command'],
+    data: [],
+});
 
-from .enzo_simulation import \
-    EnzoSimulation
