@@ -24,6 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as na
+from yt.funcs import *
 from yt.utilities.lib import kdtree_get_choices
 from yt.utilities.parallel_tools.parallel_analysis_interface import _get_comm
 
@@ -57,16 +58,12 @@ class Split(object):
         self.pos = pos
 
 def should_i_build(node, rank, size):
-    #print 'start', node.id, rank, size
     if (node.id < size) or (node.id >= 2*size):
-        #print 'end0', node.id, rank, size, True
         return True
     else:
         if node.id - size == rank:
-            #print 'end1', node.id, rank, size, True
             return True
         else:
-            #print 'end3', node.id, rank, size, False
             return False
 
 def add_grids(node, gles, gres, gids, rank, size):
@@ -93,7 +90,6 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
             if na.all(gles[0] <= node.left_edge) and \
                     na.all(gres[0] >= node.right_edge):
                 node.grid = grid_ids[0]
-                #print 'Created a node using grid %i with le, re' % node.grid, node.left_edge, node.right_edge
                 assert(node.grid is not None)
                 return
 
@@ -202,16 +198,26 @@ def step_depth(current, previous):
 
     return current, previous
 
-def depth_traverse(tree):
+def depth_traverse(tree, max_node=None):
     '''
     Yields a depth-first traversal of the kd tree always going to
     the left child before the right.
     '''
     current = tree.trunk
     previous = None
-    while current is not None:
-        yield current
-        current, previous = step_depth(current, previous)
+    if max_node is None:
+        while current is not None:
+            yield current
+            current, previous = step_depth(current, previous)
+    else:
+        while current is not None:
+            yield current
+            current, previous = step_depth(current, previous)
+            if current is None: break
+            if current.id >= max_node:
+                current = current.parent
+                previous = current.right
+
 
 def breadth_traverse(tree):
     '''
@@ -283,4 +289,36 @@ def step_viewpoint(current, previous, viewpoint):
             current = current.parent
 
     return current, previous
+
+
+def receive_and_reduce(comm, incoming_rank, image, add_to_front):
+    mylog.debug( 'Receiving image from %04i' % incoming_rank)
+    #mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
+    arr2 = comm.recv_array(incoming_rank, incoming_rank).reshape(
+        (image.shape[0], image.shape[1], image.shape[2]))
+    
+    if add_to_front:
+        front = arr2
+        back = image
+    else:
+        front = image
+        back = arr2
+
+    ta = 1.0 - na.sum(front,axis=2)
+    ta[ta<0.0] = 0.0
+    for i in range(3):
+        # This is the new way: alpha corresponds to opacity of a given
+        # slice.  Previously it was ill-defined, but represented some
+        # measure of emissivity.
+        image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
+    return image
+
+def send_to_parent(comm, outgoing_rank, image):
+    mylog.debug( 'Sending image to %04i' % outgoing_rank)
+    comm.send_array(image.ravel(), outgoing_rank, tag=comm.rank) 
+
+def scatter_image(comm, root, image):
+    mylog.debug( 'Scatterming from %04i' % root)
+    image = comm.mpi_bcast(image, root=root)
+    return image
 

@@ -26,7 +26,8 @@ License:
 from yt.funcs import *
 import numpy as na
 from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
-        depth_traverse, viewpoint_traverse, add_grids
+        depth_traverse, viewpoint_traverse, add_grids, \
+        receive_and_reduce, send_to_parent, scatter_image 
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
@@ -156,8 +157,10 @@ class AMRKDTree(HomogenizedVolume):
         else:
             self.re = na.array(re)
 
-        print 'Building tree with le,re ', self.le, self.re
-        self.tree = Tree(pf, self.comm.rank, self.comm.size, self.le, self.re, min_level=min_level, max_level=max_level)
+        mylog.debug('Building AMRKDTree')
+        self.tree = Tree(pf, self.comm.rank, self.comm.size, 
+                         self.le, self.re, min_level=min_level,
+                         max_level=max_level)
 
     def initialize_source(self):
         if self._initialized : return
@@ -177,6 +180,53 @@ class AMRKDTree(HomogenizedVolume):
             for node in viewpoint_traverse(self.tree, viewpoint):
                 if kd_is_leaf(node) and node.grid is not None:
                     yield self.get_brick_data(node)
+
+    def get_node(self, nodeid):
+        path = na.binary_repr(nodeid)
+        depth = 1
+        temp = self.tree.trunk
+        for depth in range(1,len(path)):
+            if path[depth] == '0':
+                temp = temp.left
+            else:
+                temp = temp.right
+        assert(temp is not None)
+        return temp
+
+    def get_reduce_owners(self):
+        owners = {}
+        for bottom_id in range(self.comm.size, 2*self.comm.size):
+            temp = self.get_node(bottom_id)
+            owners[temp.id] = temp.id - self.comm.size
+            while temp is not None:
+                if temp.parent is None: break
+                if temp == temp.parent.right:
+                    break
+                temp = temp.parent
+                owners[temp.id] = owners[temp.left.id]
+        return owners                
+
+    def reduce_tree_images(self, image, viewpoint):
+        if self.comm.size <= 1: return image
+        myrank = self.comm.rank
+        nprocs = self.comm.size
+        owners = self.get_reduce_owners()
+        node = self.get_node(nprocs + myrank)
+
+        while True:
+            if owners[node.parent.id] == myrank:
+                split = node.parent.split
+                left_in_front = viewpoint[split.dim] < node.parent.split.pos
+                add_to_front = left_in_front == (node == node.parent.right)
+                image = receive_and_reduce(self.comm, owners[node.parent.right.id], 
+                                  image, add_to_front)
+                if node.parent.id == 1: break
+                else: node = node.parent
+            else:
+                send_to_parent(self.comm, owners[node.parent.id], image)
+                break
+        image = scatter_image(self.comm, owners[1], image)
+        return image
 
     def get_brick_data(self, node):
         if node.data is not None: return node.data
@@ -212,6 +262,7 @@ class AMRKDTree(HomogenizedVolume):
         node.data = brick
         if not self._initialized: self.brick_dimensions.append(dims)
         return brick
+
 
 if __name__ == "__main__":
     from yt.mods import *

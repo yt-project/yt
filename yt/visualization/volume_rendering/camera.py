@@ -318,7 +318,9 @@ class Camera(ParallelAnalysisInterface):
         return sampler
 
     def finalize_image(self, image):
-        pass
+        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
+        image = self.volume.reduce_tree_images(image, view_pos)
+        return image
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
@@ -337,7 +339,7 @@ class Camera(ParallelAnalysisInterface):
 
         pbar.finish()
         image = sampler.aimage
-        self.finalize_image(image)
+        image = self.finalize_image(image)
         return image
 
     def save_image(self, fn, clip_ratio, image):
