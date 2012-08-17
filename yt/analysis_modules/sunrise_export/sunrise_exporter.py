@@ -41,8 +41,6 @@ import yt.utilities.lib as amr_utils
 from yt.data_objects.universal_fields import add_field
 from yt.mods import *
 
-debug = True
-
 def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
         debug=False,dd=None,**kwargs):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
@@ -95,7 +93,7 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
     #Create a list of the star particle properties in PARTICLE_DATA
     #Include ID, parent-ID, position, velocity, creation_mass, 
     #formation_time, mass, age_m, age_l, metallicity, L_bol
-    particle_data = prepare_star_particles(pf,star_particle_type,fle=fle,fre=fre,
+    particle_data,nstars = prepare_star_particles(pf,star_particle_type,fle=fle,fre=fre,
                                            dd=dd,**kwargs)
 
     #Create the refinement hilbert octree in GRIDSTRUCTURE
@@ -109,7 +107,7 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     create_fits_file(pf,fn, refinement,output,particle_data,fle,fre)
 
-    return fle,fre,ile,ire,dd,nleaf
+    return fle,fre,ile,ire,dd,nleaf,nstars
 
 def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
                                         halo_list,domains_list=None,**kwargs):
@@ -193,7 +191,7 @@ def domains_from_halos(pf,halo_list,frvir=0.15):
     domains_halos  = [d[2] for d in domains_list]
     return domains_list
 
-def prepare_octree(pf,ile,start_level=0,debug=False,dd=None,center=None):
+def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     add_fields() #add the metal mass field that sunrise wants
     fields = ["CellMassMsun","TemperatureTimesCellMassMsun", 
               "MetalMass","CellVolumeCode"]
@@ -278,6 +276,7 @@ def prepare_octree(pf,ile,start_level=0,debug=False,dd=None,center=None):
     #for the next spot, so we're off by 1
     print 'took %1.2e seconds'%(time.time()-start_time)
     print 'refinement tree # of cells %i, # of leaves %i'%(pos.refined_pos,pos.output_pos) 
+    print 'first few entries :',refined[:12]
     output  = output[:pos.output_pos]
     refined = refined[:pos.refined_pos] 
     levels = levels[:pos.refined_pos] 
@@ -298,7 +297,8 @@ def print_oct(data,nd=None,nc=None):
     txt  = '%1i '
     txt += '%1.3f '*3+'- '
     txt += '%1.3f '*3
-    print txt%((l,)+tuple(fle)+tuple(fre))
+    if l<2:
+        print txt%((l,)+tuple(fle)+tuple(fre))
 
 def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the grids[grid_index]
                             pos, #the output hydro data position and refinement position
@@ -316,16 +316,18 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
         debug(vars())
     child_grid_index = grid.child_indices[cell_index[0],cell_index[1],cell_index[2]]
     #record the refinement state
-    refined[pos.refined_pos] = child_grid_index!=-1
     levels[pos.output_pos]  = level
+    is_leaf = (child_grid_index==-1) and (level>0)
+    refined[pos.refined_pos] = not is_leaf #True is oct, False is leaf
     pos.refined_pos+= 1 
-    if child_grid_index == -1 and level>=0: #never subdivide if we are on a superlevel
+    if is_leaf: #never subdivide if we are on a superlevel
         #then we have hit a leaf cell; write it out
         for field_index in range(grid.fields.shape[0]):
             output[pos.output_pos,field_index] = \
                     grid.fields[field_index,cell_index[0],cell_index[1],cell_index[2]]
         pos.output_pos+= 1 
     else:
+        assert child_grid_index>-1
         #find the grid we descend into
         #then find the eight cells we break up into
         subgrid = grids[child_grid_index]
@@ -338,18 +340,18 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
             #denote each of the 8 octs
             if level < 0:
                 subgrid = grid #we don't actually descend if we're a superlevel
-                child_ile = cell_index + vertex*2**(-level)
+                child_ile = cell_index + na.array(vertex)*2**(-level)
             else:
                 child_ile = subgrid_ile+na.array(vertex)
                 child_ile = child_ile.astype('int')
+
             RecurseOctreeDepthFirstHilbert(child_ile,pos,
-                    subgrid,hilbert_child,output,refined,levels,grids,level+1,
-                    debug=debug,tracker=tracker)
+                subgrid,hilbert_child,output,refined,levels,grids,level+1,
+                debug=debug,tracker=tracker)
 
 
 
 def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
-
     #first create the grid structure
     structure = pyfits.Column("structure", format="B", array=refined.astype("bool"))
     cols = pyfits.ColDefs([structure])
@@ -495,11 +497,15 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
                           dd=None):
     if dd is None:
         dd = pf.h.all_data()
-    idx = dd["particle_type"] == star_type
+    idxst = dd["particle_type"] == star_type
+
+    #make sure we select more than a single particle
+    assert na.sum(idxst)>0
     if pos is None:
         pos = na.array([dd["particle_position_%s" % ax]
                         for ax in 'xyz']).transpose()
-    idx = idx & na.all(pos>fle,axis=1) & na.all(pos<fre,axis=1)
+    idx = idxst & na.all(pos>fle,axis=1) & na.all(pos<fre,axis=1)
+    assert na.sum(idx)>0
     pos = pos[idx]*pf['kpc'] #unitary units -> kpc
     if age is None:
         age = dd["particle_age"][idx]*pf['years'] # seconds->years
@@ -546,7 +552,10 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     cols = pyfits.ColDefs(col_list)
     pd_table = pyfits.new_table(cols)
     pd_table.name = "PARTICLEDATA"
-    return pd_table
+    
+    #make sure we have nonzero particle number
+    assert pd_table.data.shape[0]>0
+    return pd_table,na.sum(idx)
 
 
 def add_fields():
