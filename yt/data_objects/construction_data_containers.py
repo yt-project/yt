@@ -353,7 +353,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
     _top_node = "/Projections"
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "overlap_proj"
-    _con_args = ('axis', 'field', 'weight_field')
+    _con_args = ('axis', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,

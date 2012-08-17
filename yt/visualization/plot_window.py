@@ -1086,9 +1086,11 @@ class PWViewerExtJS(PWViewer):
 
     @invalidate_data
     def set_current_field(self, field):
+        field = self.data_source._determine_fields(field)[0]
         self._current_field = field
         self._frb[field]
-        if self.pf.field_info[field].take_log:
+        finfo = self.data_source._get_field_info(*field)
+        if finfo.take_log:
             self._field_transform[field] = log_transform
         else:
             self._field_transform[field] = linear_transform

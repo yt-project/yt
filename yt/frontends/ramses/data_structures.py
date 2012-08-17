@@ -343,10 +343,10 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         # TODO: Add additional fields
-        self.fluid_field_list = ( "Density", "x-velocity", "y-velocity",
-	                        "z-velocity", "Pressure", "Metallicity" )
-        self.particle_field_list = tuple(
-            self.domains[0].particle_field_offsets.keys())
+        self.fluid_field_list = [ "Density", "x-velocity", "y-velocity",
+	                        "z-velocity", "Pressure", "Metallicity" ]
+        self.particle_field_list = \
+            self.domains[0].particle_field_offsets.keys()
         self.field_list = self.fluid_field_list + self.particle_field_list
     
     def _setup_classes(self):

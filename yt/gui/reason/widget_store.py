@@ -73,7 +73,7 @@ class WidgetStore(dict):
             center = na.array(center)
         axis = inv_axis_names[axis.lower()]
         coord = center[axis]
-        sl = pf.h.slice(axis, coord, center = center, periodic = True)
+        sl = pf.h.slice(axis, coord, center = center)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), setup = False)
@@ -92,7 +92,7 @@ class WidgetStore(dict):
     def create_proj(self, pf, axis, field, weight):
         if weight == "None": weight = None
         axis = inv_axis_names[axis.lower()]
-        proj = pf.h.proj(field, axis, weight_field=weight, periodic = True)
+        proj = pf.h.proj(field, axis, weight_field=weight)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
