@@ -153,7 +153,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
 class YTQuadTreeProjBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
-    _con_args = ('axis', 'field', 'weight_field')
+    _con_args = ('axis', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy')
     def __init__(self, field, axis, weight_field = None,
                  center = None, pf = None, data_source=None, 
