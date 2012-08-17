@@ -47,6 +47,61 @@ class DomainDecomposer(ParallelAnalysisInterface):
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None, 
             outbase=None,particle_mass=-1.0,dm_type=1):
+        r"""Spawns the Rockstar Halo finder, distributes dark matter
+        particles and finds halos.
+
+        The halo finder requires dark matter particles of a fixed size.
+        Rockstar has three main processes: reader, writer, and the 
+        server which coordinates reader/writer processes.
+
+        Parameters
+        ----------
+        ts   : TimeSeriesData, StaticOutput
+            This is the data source containing the DM particles. Because 
+            halo IDs may change from one snapshot to the next, the only
+            way to keep a consistent halo ID across time is to feed 
+            Rockstar a set of snapshots, ie, via TimeSeriesData.
+        num_readers: int
+            The number of reader can be increased from the default
+            of 1 in the event that a single snapshot is split among
+            many files. This can help in cases where performance is
+            IO-limited. Default is 1.
+        num_writers: int
+            The number of writers determines the number of processing threads
+            as well as the number of threads writing output data.
+            The default is set comm.size-num_readers-1.
+        outbase: str
+            This is where the out*list files that Rockstar makes should be
+            placed. Default is str(pf)+'_rockstar'.
+        particle_mass: float
+            This sets the DM particle mass used in Rockstar.
+        dm_type: 1
+            In order to exclude stars and other particle types, define
+            the dm_type. Default is 1, as Enzo has the DM particle type=1.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        To use the script below you must run it using MPI:
+        mpirun -np 3 python test_rockstar.py --parallel
+
+        test_rockstar.py:
+
+        from mpi4py import MPI
+        from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
+        from yt.mods import *
+        import sys
+
+        files = glob.glob('/u/cmoody3/data/a*')
+        files.sort()
+        ts = TimeSeriesData.from_filenames(files)
+        pm = 7.81769027e+11
+        rh = RockstarHaloFinder(ts, particle_mass=pm)
+        rh.run()
+        """
         ParallelAnalysisInterface.__init__(self)
         # No subvolume support
         #we assume that all of the snapshots in the time series
@@ -76,7 +131,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             #we need readers+writers+1 server = comm size        
             raise RuntimeError
         if self.comm.size > 1:
-            print 'creating MPI workgroups'
+            mylog.debug('creating MPI workgroups')
             self.pool = ProcessorPool()
             self.pool.add_workgroup(1, name = "server")
             self.pool.add_workgroup(num_readers, name = "readers")
@@ -117,7 +172,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.pool.add_workgroup(self.num_writers, name = "writers")
             for wg in self.pool.workgroups:
                 if self.comm.rank in wg.ranks: self.workgroup = wg
->>>>>>> other
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()

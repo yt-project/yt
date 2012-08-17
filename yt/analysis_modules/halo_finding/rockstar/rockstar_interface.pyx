@@ -284,10 +284,6 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
         pi += npart
     num_p[0] = tnpart
     TOTAL_PARTICLES = tnpart
-    print_rockstar_settings()
-    print 1.0/(1.0+pf.current_redshift)
-    print "Block #%i | Particles %i | Grids %i"%\
-            ( block, pi, len(grids))
 
 cdef class RockstarInterface:
 
@@ -335,7 +331,6 @@ cdef class RockstarInterface:
         FILE_FORMAT = "GENERIC"
         OUTPUT_FORMAT = "ASCII"
         NUM_SNAPS = num_snaps
-        print 'NUM_SNAPS=%i'%num_snaps
         NUM_READERS = num_readers
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
@@ -351,11 +346,9 @@ cdef class RockstarInterface:
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
             #workaround is to make a new directory
-            print 'using %s as outbase'%outbase
             OUTBASE = outbase 
 
         if particle_mass < 0:
-            print "Assuming single-mass particle."
             particle_mass = tpf.h.grids[0]["ParticleMassMsun"][0] / h0
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
