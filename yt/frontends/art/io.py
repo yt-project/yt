@@ -122,7 +122,6 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
-        import pdb; pdb.set_trace()
         if field == 'particle_index':
             return grid.particle_id
         if field == 'particle_type':
