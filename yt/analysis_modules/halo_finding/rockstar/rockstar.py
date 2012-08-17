@@ -59,9 +59,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.comm.barrier()            
         tpf = ts.__iter__().next()
         dd = tpf.h.all_data()
-        print 'total particles: ',
         total_particles = na.sum(dd['particle_type']==dm_type).astype('int64')
-        print total_particles
         self.total_particles = -1
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
@@ -75,10 +73,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.num_readers = num_readers
         self.num_writers = num_writers
         if self.num_readers + self.num_writers + 1 != self.comm.size:
-            print '%i reader + %i writers != %i mpi'%\
-                    (self.num_readers, self.num_writers, self.comm.size)
+            #we need readers+writers+1 server = comm size        
             raise RuntimeError
-<<<<<<< local
         if self.comm.size > 1:
             print 'creating MPI workgroups'
             self.pool = ProcessorPool()
@@ -87,22 +83,13 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.pool.add_workgroup(num_writers, name = "writers")
             for wg in self.pool.workgroups:
                 if self.comm.rank in wg.ranks: self.workgroup = wg
-=======
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         data_source = self.pf.h.all_data()
->>>>>>> other
         self.handler = rockstar_interface.RockstarInterface(
-<<<<<<< local
                 self.ts, data_source)
 
     def __del__(self):
         self.pool.free_all()
-=======
-                self.pf, data_source)
-        if outbase is None:
-            outbase = str(self.pf)+'_rockstar'
-        self.outbase = outbase        
->>>>>>> other
 
     def _get_hosts(self):
         if self.comm.size == 1 or self.workgroup.name == "server":
@@ -118,8 +105,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.port = str(self.port)
 
     def run(self, block_ratio = 1,**kwargs):
-<<<<<<< local
-=======
         """
         
         """
