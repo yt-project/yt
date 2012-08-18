@@ -418,6 +418,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return local_filled
 
 cdef class ParticleOctreeContainer(OctreeContainer):
+    cdef ParticleArrays *first_sd
+    cdef ParticleArrays *last_sd
 
     def __dealloc__(self):
         cdef i, j, k
@@ -426,7 +428,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 for k in range(self.nn[2]):
                     self.visit_free(self.root_mesh[i][j][k])
 
-    cdef visit_free(self, Oct *o):
+    cdef void visit_free(self, Oct *o):
         cdef int i, j, k
         for i in range(2):
             for j in range(2):
@@ -444,11 +446,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int count, i
 
     cdef Oct* allocate_oct(self):
+        self.nocts += 1
         cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
         cdef ParticleArrays *sd = <ParticleArrays*> \
             malloc(sizeof(ParticleArrays))
         cdef int i, j, k
-        my_oct.ind = my_oct.local_ind = my_oct.domain = -1
+        my_oct.local_ind = my_oct.domain = -1
+        my_oct.ind = self.nocts - 1
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
         my_oct.sd = sd
@@ -457,13 +461,31 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 for k in range(2):
                     my_oct.children[i][j][k] = NULL
         my_oct.parent = NULL
+        if self.first_sd == NULL:
+            self.first_sd = sd
+        if self.last_sd != NULL:
+            self.last_sd.next = sd
+        self.last_sd = sd
+        sd.oct = my_oct
+        sd.next = NULL
         sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
         sd.pos[0] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         sd.pos[1] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         sd.pos[2] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         sd.domain_id = <np.int64_t *> malloc(sizeof(np.int64_t) * 32)
+        for i in range(32):
+            sd.pos[0][i] = sd.pos[1][i] = sd.pos[2][i] = 0.0
+            sd.domain_id[i] = -1
         sd.np = 0
         return my_oct
+
+    def linearly_count(self):
+        cdef np.int64_t total = 0
+        cdef ParticleArrays *c = self.first_sd
+        while c != NULL:
+            total += 1
+            c = c.next
+        return total
 
     def add(self, np.ndarray[np.float64_t, ndim=2] pos, np.int64_t domain_id):
         cdef int no = pos.shape[0]
@@ -505,7 +527,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             cur.sd.domain_id[pi] = domain_id
             cur.sd.np += 1
 
-    cdef refine_oct(self, Oct *o, np.float64_t pos[3]):
+    cdef void refine_oct(self, Oct *o, np.float64_t pos[3]):
         cdef int i, j, k, m, ind[3]
         cdef Oct *noct
         for i in range(2):
