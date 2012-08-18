@@ -649,9 +649,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             scale_mult = 1.0
         else:
             scale_mult = scale_func(tomap,0.0,1.0)
-        self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
-        self.green.y[rel0:rel1]= cc[:,1]*scale_mult
-        self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
+        self.red.y[rel0:rel1]  = scale*cc[:,0]*scale_mult
+        self.green.y[rel0:rel1]= scale*cc[:,1]*scale_mult
+        self.blue.y[rel0:rel1] = scale*cc[:,2]*scale_mult
         self.alpha.y[rel0:rel1]= scale*cc[:,3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
