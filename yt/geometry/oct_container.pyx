@@ -419,6 +419,27 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 cdef class ParticleOctreeContainer(OctreeContainer):
 
+    def __dealloc__(self):
+        cdef i, j, k
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    self.visit_free(self.root_mesh[i][j][k])
+
+    cdef visit_free(self, Oct *o):
+        cdef int i, j, k
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if o.children[i][j][k] == NULL: continue
+                    self.visit_free(o.children[i][j][k])
+        if o.sd.np >= 0:
+            for i in range(3):
+                free(o.sd.pos[i])
+            free(o.sd.domain_id)
+            free(o.sd.pos)
+        free(o)
+
     def allocate_domains(self, domain_counts):
         cdef int count, i
 
@@ -440,10 +461,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         sd.pos[0] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         sd.pos[1] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         sd.pos[2] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
+        sd.domain_id = <np.int64_t *> malloc(sizeof(np.int64_t) * 32)
         sd.np = 0
         return my_oct
 
-    def add(self, np.ndarray[np.float64_t, ndim=2] pos):
+    def add(self, np.ndarray[np.float64_t, ndim=2] pos, np.int64_t domain_id):
         cdef int no = pos.shape[0]
         cdef int p, i, level
         cdef np.float64_t dds[3], cp[3], pp[3]
@@ -480,6 +502,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             pi = cur.sd.np
             for i in range(3):
                 cur.sd.pos[i][pi] = pp[i]
+            cur.sd.domain_id[pi] = domain_id
             cur.sd.np += 1
 
     cdef refine_oct(self, Oct *o, np.float64_t pos[3]):
@@ -503,9 +526,35 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             k = noct.sd.np
             for i in range(3):
                 noct.sd.pos[i][k] = o.sd.pos[i][m]
+            noct.sd.domain_id[k] = o.sd.domain_id[k]
             noct.sd.np += 1
         o.sd.np = -1
         for i in range(3):
             free(o.sd.pos[i])
+        free(o.sd.domain_id)
         free(o.sd.pos)
 
+    def recursively_count(self):
+        cdef int i, j, k
+        cdef np.int64_t counts[128]
+        for i in range(128): counts[i] = 0
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    if self.root_mesh[i][j][k] != NULL:
+                        self.visit(self.root_mesh[i][j][k], counts)
+        level_counts = {}
+        for i in range(128):
+            if counts[i] == 0: break
+            level_counts[i] = counts[i]
+        return level_counts
+        
+    cdef visit(self, Oct *o, np.int64_t *counts, level = 0):
+        cdef int i, j, k
+        counts[level] += 1
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if o.children[i][j][k] != NULL:
+                        self.visit(o.children[i][j][k], counts, level + 1)
+        return
