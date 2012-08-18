@@ -31,7 +31,7 @@ from libc.string cimport memcpy
 from cpython.string cimport PyString_FromStringAndSize
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -299,7 +299,7 @@ def add_points_to_image(
     cdef int np = px.shape[0]
     cdef int xs = buffer.shape[0]
     cdef int ys = buffer.shape[1]
-    cdef int v 
+    cdef int v
     v = iclip(<int>(pv * 255), 0, 255)
     for pi in range(np):
         j = <int> (xs * px[pi])
@@ -307,8 +307,8 @@ def add_points_to_image(
         for k in range(3):
             buffer[i, j, k] = 0
     return
-    for i in range(xs):
-        for j in range(ys):
-            for k in range(3):
-                v = buffer[i, j, k]
-                buffer[i, j, k] = iclip(v, 0, 255)
+    #for i in range(xs):
+    #    for j in range(ys):
+    #        for k in range(3):
+    #            v = buffer[i, j, k]
+    #            buffer[i, j, k] = iclip(v, 0, 255)

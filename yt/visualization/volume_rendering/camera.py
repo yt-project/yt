@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import __builtin__
 import numpy as na
 
 from yt.funcs import *
@@ -50,10 +51,7 @@ from yt.utilities.lib import \
     pixelize_healpix, arr_fisheye_vectors
 
 class Camera(ParallelAnalysisInterface):
-    _pylab = None
-    _tf_figure = None
-    _render_figure = None
-
+    _sampler_object = VolumeRenderSampler
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
@@ -236,6 +234,9 @@ class Camera(ParallelAnalysisInterface):
         self.back_center =  center - 0.5*width[2]*unit_vectors[2]
         self.front_center = center + 0.5*width[2]*unit_vectors[2]         
 
+    def update_view_from_matrix(self, mat):
+        pass
+
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
 
@@ -299,8 +300,7 @@ class Camera(ParallelAnalysisInterface):
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                na.array(self.width),
-                self.transfer_function, self.sub_samples)
+                na.array(self.width), self.transfer_function, self.sub_samples)
         return args
 
     def get_sampler(self, args):
@@ -316,11 +316,13 @@ class Camera(ParallelAnalysisInterface):
             sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
                     light_rgba=self.light_rgba)
         else:
-            sampler = VolumeRenderSampler(*args)
+            sampler = self._sampler_object(*args)
         return sampler
 
     def finalize_image(self, image):
-        pass
+        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
+        image = self.volume.reduce_tree_images(image, view_pos)
+        return image
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
@@ -332,14 +334,14 @@ class Camera(ParallelAnalysisInterface):
                         raise RuntimeError
 
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
-        for brick in self.volume.traverse(view_pos, self.front_center, image):
+        for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
 
         pbar.finish()
         image = sampler.aimage
-        self.finalize_image(image)
+        image = self.finalize_image(image)
         return image
 
     def show_tf(self):
@@ -429,19 +431,51 @@ class Camera(ParallelAnalysisInterface):
         image : array
             An (N,M,3) array of the final returned values, in float64 form.
         """
+        if num_threads is None:
+            num_threads=get_num_threads()
         image = self.new_image()
-
         args = self.get_sampler_args(image)
-
         sampler = self.get_sampler(args)
-
         self.initialize_source()
-
         image = self._render(double_check, num_threads, image, sampler)
-
         self.save_image(fn, clip_ratio, image)
-
         return image
+
+    def show(self, clip_ratio = None):
+        r"""This will take a snapshot and display the resultant image in the
+        IPython notebook.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will snapshot and send the resultant
+        image to the IPython notebook for display.
+
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
+
+        Parameters
+        ----------
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
+
+        Examples
+        --------
+
+        >>> cam.show()
+
+        """
+        if "__IPYTHON__" in dir(__builtin__):
+            from IPython.core.displaypub import publish_display_data
+            image = self.snapshot()
+            if clip_ratio is not None: clip_ratio *= image.std()
+            data = write_bitmap(image, None, clip_ratio)
+            publish_display_data(
+                'yt.visualization.volume_rendering.camera.Camera',
+                {'image/png' : data}
+            )
+        else:
+            raise YTNotInsideNotebook
+
 
     def set_default_light_dir(self):
         self.light_dir = [1.,1.,1.]
@@ -645,28 +679,34 @@ data_object_registry["camera"] = Camera
 class InteractiveCamera(Camera):
     frames = []
 
-    def snapshot(self, fn = None, clip_ratio = None, enhance=True):
+    def snapshot(self, fn = None, clip_ratio = None):
+        import matplotlib.pylab as pylab
+        pylab.figure(2)
+        self.transfer_function.show()
+        pylab.draw()
         im = Camera.snapshot(self, fn, clip_ratio)
-        self.show(im, enhance)
+        pylab.figure(1)
+        pylab.imshow(im / im.max())
+        pylab.draw()
         self.frames.append(im)
-        
+
     def rotation(self, theta, n_steps, rot_vector=None):
         for frame in Camera.rotation(self, theta, n_steps, rot_vector):
             if frame is not None:
                 self.frames.append(frame)
-                
+
     def zoomin(self, final, n_steps):
         for frame in Camera.zoomin(self, final, n_steps):
             if frame is not None:
                 self.frames.append(frame)
-                
+
     def clear_frames(self):
         del self.frames
         self.frames = []
-        
+
     def save(self,fn):
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black')
-        
+
     def save_frames(self, basename, clip_ratio=None):
         for i, frame in enumerate(self.frames):
             fn = basename + '_%04i.png'%i
@@ -803,7 +843,7 @@ class HEALpixCamera(Camera):
         return image
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0, clim = None):
+                 num_threads = 0, clim = None, label = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -823,35 +863,35 @@ class HEALpixCamera(Camera):
         image : array
             An (N,M,3) array of the final returned values, in float64 form.
         """
+        if num_threads is None:
+            num_threads=get_num_threads()
         image = self.new_image()
-
         args = self.get_sampler_args(image)
-
         sampler = self.get_sampler(args)
-
         self.volume.initialize_source()
-
         image = self._render(double_check, num_threads, image, sampler)
-
-        self.save_image(fn, clim, image)
-
+        self.save_image(fn, clim, image, label = label)
         return image
 
-    def save_image(self, fn, clim, image):
+    def save_image(self, fn, clim, image, label = None):
         if self.comm.rank is 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
-            phi, theta = na.mgrid[0.0:2*pi:800j, 0:pi:800j]
+            phi, theta = na.mgrid[0.0:2*na.pi:800j, 0:na.pi:800j]
             pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
             image *= self.radius * self.pf['cm']
             img = na.log10(image[:,0,0][pixi]).reshape((800,800))
 
             fig = matplotlib.figure.Figure((10, 5))
             ax = fig.add_subplot(1,1,1,projection='hammer')
-            implot = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+            implot = ax.imshow(img, extent=(-na.pi,na.pi,-na.pi/2,na.pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
-            cb.set_label(r"$\mathrm{log}\/\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
+
+            if label == None:
+                cb.set_label("Projected %s" % self.fields[0])
+            else:
+                cb.set_label(label)
             if clim is not None: cb.set_clim(*clim)
             ax.xaxis.set_ticks(())
             ax.yaxis.set_ticks(())
@@ -1132,7 +1172,7 @@ class MosaicCamera(Camera):
         offxy = zip(offx.ravel(), offy.ravel())
 
         for sto, xy in parallel_objects(offxy, self.procs_per_wg, storage = my_storage, 
-                                        dynamic=True, broadcast=False):
+                                        dynamic=True):
             self.volume = self.build_volume(self.volume, self.fields, self.log_fields, 
                                    self.l_max, self.no_ghost, 
                                    self.tree_type, self.le, self.re)
@@ -1631,6 +1671,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         vs2 = vs.copy()
         for i in range(3):
             vs[:,:,i] = (vs2 * rotation[:,i]).sum(axis=2)
+    else:
+        vs += 1e-8
     positions = na.ones((nv, 1, 3), dtype='float64', order='C') * center
     dx = min(g.dds.min() for g in pf.h.find_point(center)[0])
     positions += inner_radius * dx * vs
@@ -1661,10 +1703,10 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         for g in pf.h.grids:
             if "temp_weightfield" in g.keys():
                 del g["temp_weightfield"]
-    return image
+    return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
-                        take_log = True, resolution=512):
+                        take_log = True, resolution=512, cmin=None, cmax=None):
     import matplotlib.figure
     import matplotlib.backends.backend_agg
     if rotation is None: rotation = na.eye(3).astype("float64")
@@ -1675,7 +1717,8 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     ax = fig.add_subplot(1,1,1,projection='aitoff')
     if take_log: func = na.log10
     else: func = lambda a: a
-    implot = ax.imshow(func(img), extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
+    implot = ax.imshow(func(img), extent=(-na.pi,na.pi,-na.pi/2,na.pi/2),
+                       clip_on=False, aspect=0.5, vmin=cmin, vmax=cmax)
     cb = fig.colorbar(implot, orientation='horizontal')
     cb.set_label(label)
     ax.xaxis.set_ticks(())
@@ -1732,20 +1775,12 @@ class ProjectionCamera(Camera):
             pass
 
     def get_sampler_args(self, image):
-        width = self.width[2]
-        north_vector = self.orienter.unit_vectors[0]
-        east_vector = self.orienter.unit_vectors[1]
-        normal_vector = self.orienter.unit_vectors[2]
-
-        back_center= self.center - 0.5*width * normal_vector
-        rotp = na.concatenate([na.linalg.pinv(self.orienter.unit_vectors).ravel('F'),
-                               back_center])
-
-        args = (rotp, normal_vector * width, back_center,
-            (-width/2, width/2, -width/2, width/2),
-            image, north_vector, east_vector,
-            na.array([width, width, width], dtype='float64'),
-            self.sub_samples)
+        rotp = na.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        args = (rotp, self.box_vectors[2], self.back_center,
+            (-self.width[0]/2, self.width[0]/2,
+             -self.width[1]/2, self.width[1]/2),
+            image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
+                na.array(self.width), self.sub_samples)
         return args
 
     def finalize_image(self,image):
@@ -1814,6 +1849,9 @@ class ProjectionCamera(Camera):
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0):
 
+        if num_threads is None:
+            num_threads=get_num_threads()
+
         fields = [self.field]
         resolution = self.resolution
 
@@ -1835,7 +1873,7 @@ class ProjectionCamera(Camera):
 data_object_registry["projection_camera"] = ProjectionCamera
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, num_threads = 0, 
+                        field, weight = None, 
                         volume = None, no_ghost = False, interpolated = False):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
@@ -1897,7 +1935,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
             field, weight=weight, pf=pf, volume=volume,
             no_ghost=no_ghost, interpolated=interpolated)
-    image = projcam.snapshot(num_threads=num_threads)
+    image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
     del projcam

@@ -27,7 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 cimport libc.stdlib as stdlib
 
 #cdef inline int imax(int i0, int i1):

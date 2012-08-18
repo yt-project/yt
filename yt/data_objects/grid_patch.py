@@ -144,7 +144,7 @@ class AMRGridPatch(object):
             else:
                 self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError, field
+            raise exceptions.KeyError(field)
 
     def has_key(self, key):
         return (key in self.field_data)

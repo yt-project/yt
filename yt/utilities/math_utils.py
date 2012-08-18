@@ -623,6 +623,46 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
     return na.array(result)
 
 def get_rotation_matrix(theta, rot_vector):
+    """
+    Given an angle theta and a 3D vector rot_vector, this routine
+    computes the rotation matrix corresponding to rotating theta
+    radians about rot_vector.
+
+    Parameters
+    ----------
+    theta : scalar
+        The angle in radians.
+
+    rot_vector : array_like
+        The axis of rotation.  Must be 3D.
+
+    Returns 
+    ------- 
+    rot_matrix : ndarray 
+         A new 3x3 2D array.  This is the representation of a 
+         rotation of theta radians about rot_vector in the simulation 
+         box coordinate frame
+
+    See Also
+    --------
+    ortho_find
+
+    Examples
+    --------
+    >>> a = [0,1,0]
+    >>> theta = 0.785398163  # pi/4
+    >>> rot = mu.get_rotation_matrix(theta,a)
+    >>> rot
+    array([[ 0.70710678,  0.        ,  0.70710678],
+           [ 0.        ,  1.        ,  0.        ],
+           [-0.70710678,  0.        ,  0.70710678]])
+    >>> na.dot(rot,a)
+    array([ 0.,  1.,  0.])
+    # since a is an eigenvector by construction
+    >>> na.dot(rot,[1,0,0])
+    array([ 0.70710678,  0.        , -0.70710678])
+    """
+
     ux = rot_vector[0]
     uy = rot_vector[1]
     uz = rot_vector[2]

@@ -49,25 +49,52 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def convert_to_pixels(self, plot, coord, offset = True):
-        if plot.xlim is not None:
-            x0, x1 = plot.xlim
+    def convert_to_plot(self, plot, coord, offset = True):
+        # coord should be a 2 x ncoord array-like datatype.
+        try:
+            ncoord = na.array(coord).shape[1]
+        except IndexError:
+            ncoord = 1
+
+        # Convert the data and plot limits to tiled numpy arrays so that
+        # convert_to_plot is automatically vectorized.
+
+        x0 = na.tile(plot.xlim[0],ncoord)
+        x1 = na.tile(plot.xlim[1],ncoord)
+        xx0 = na.tile(plot._axes.get_xlim()[0],ncoord)
+        xx1 = na.tile(plot._axes.get_xlim()[1],ncoord)
+        
+        y0 = na.tile(plot.ylim[0],ncoord)
+        y1 = na.tile(plot.ylim[1],ncoord)
+        yy0 = na.tile(plot._axes.get_ylim()[0],ncoord)
+        yy1 = na.tile(plot._axes.get_ylim()[1],ncoord)
+        
+        # We need a special case for when we are only given one coordinate.
+        if na.array(coord).shape == (2,):
+            return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            x0, x1 = plot._axes.get_xlim()
-        if plot.ylim is not None:
-            y0, y1 = plot.ylim
-        else:
-            y0, y1 = plot._axes.get_ylim()
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        dx = width / (x1-x0)
-        dy = height / (y1-y0)
-        return ((coord[0] - int(offset)*x0)*dx,
-                (coord[1] - int(offset)*y0)*dy)
+            return ((coord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (coord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+
+    def pixel_scale(self,plot):
+        x0, x1 = plot.xlim
+        xx0, xx1 = plot._axes.get_xlim()
+        dx = (xx0 - xx1)/(x1 - x0)
+        
+        y0, y1 = plot.ylim
+        yy0, yy1 = plot._axes.get_ylim()
+        dy = (yy0 - yy1)/(y1 - y0)
+
+        return (dx,dy)
+
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         """
+        annotate_velocity(factor=16, scale=None, scale_units=None, normalize=False):
+        
         Adds a 'quiver' plot of velocity to the plot, skipping all but
         every *factor* datapoint. *scale* is the data units per arrow
         length unit using *scale_units* (see
@@ -100,6 +127,8 @@ class MagFieldCallback(PlotCallback):
     _type_name = "magnetic_field"
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         """
+        annotate_magnetic_field(factor=16, scale=None, scale_units=None, normalize=False):
+
         Adds a 'quiver' plot of magnetic field to the plot, skipping all but
         every *factor* datapoint. *scale* is the data units per arrow
         length unit using *scale_units* (see
@@ -126,8 +155,10 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False):
         """
+        annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+
         Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
         from the associated data, skipping every *factor* datapoints
         *scale* is the data units per arrow length unit using *scale_units* 
@@ -164,8 +195,8 @@ class QuiverCallback(PlotCallback):
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
-        X = na.mgrid[0:plot.image._A.shape[0]-1:ny*1j]# + 0.5*factor
-        Y = na.mgrid[0:plot.image._A.shape[1]-1:nx*1j]# + 0.5*factor
+        X,Y = na.meshgrid(na.linspace(xx0,xx1,nx,endpoint=True),
+                          na.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
             nn = na.sqrt(pixX**2 + pixY**2)
             pixX /= nn
@@ -177,9 +208,12 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     _type_name = "contour"
-    def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
+    def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args = None):
         """
+        annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
+                         plot_args = None):
+
         Add contours in *field* to the plot.  *ncont* governs the number of
         contours generated, *factor* governs the number of points used in the
         interpolation, *take_log* governs how it is contoured and *clim* gives
@@ -189,25 +223,28 @@ class ContourCallback(PlotCallback):
         self.ncont = ncont
         self.field = field
         self.factor = factor
-        self.take_log = take_log
         from yt.utilities.delaunay.triangulate import Triangulation as triang
         self.triang = triang
-        if self.take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
-        if clim is not None: self.ncont = na.linspace(clim[0], clim[1], ncont)
+        self.clim = clim
         if plot_args is None: plot_args = {'colors':'k'}
         self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        print x0, x1, y0, y1
+        
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        
         plot._axes.hold(True)
+        
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
-        dy = plot.image._A.shape[0] / (x1-x0)
-        dx = plot.image._A.shape[1] / (y1-y0)
+        
+        # Multiply by dx and dy to go from data->plot
+        dx = (xx1 - xx0) / (x1-x0)
+        dy = (yy1 - yy0) / (y1-y0)
+
         #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
         #Now makes a copy of the position fields "px" and "py" and adds the
         #appropriate shift to the coppied field.  
@@ -227,16 +264,30 @@ class ContourCallback(PlotCallback):
             YShifted[ylim] += shift * dom_y
             AllX |= xlim
             AllY |= ylim
+        # At this point XShifted and YShifted are the shifted arrays of
+        # position data in data coordinates
         wI = (AllX & AllY)
-        xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(self.factor*1j),\
-                          0:numPoints_y:numPoints_y/(self.factor*1j)]
-        x = (XShifted[wI]-x0)*dx 
-        y = (YShifted[wI]-y0)*dy
+
+        # We want xi, yi in plot coordinates
+        xi, yi = na.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),\
+                          yy0:yy1:numPoints_y/(self.factor*1j)]
+
+        # This converts XShifted and YShifted into plot coordinates
+        x = (XShifted[wI]-x0)*dx + xx0
+        y = (YShifted[wI]-y0)*dy + yy0
         z = plot.data[self.field][wI]
-        if self.take_log: z=na.log10(z)
+        if plot.pf.field_info[self.field].take_log: z=na.log10(z)
+
+        # Both the input and output from the triangulator are in plot
+        # coordinates
         zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
-        print z.min(), z.max(), na.nanmin(z), na.nanmax(z)
-        print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
+        
+        if plot.pf.field_info[self.field].take_log and self.clim is not None: 
+            self.clim = (na.log10(self.clim[0]), na.log10(self.clim[1]))
+        
+        if self.clim is not None: 
+            self.ncont = na.linspace(self.clim[0], self.clim[1], ncont)
+        
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -246,6 +297,8 @@ class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
     def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
         """
+        annotate_grids(alpha=1.0, min_pix=1, annotate=False, periodic=True)
+
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
         *annotate* puts the grid id in the corner of the grid.  (Not so great in projections...)
@@ -259,10 +312,13 @@ class GridBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        width, height = plot.image._A.shape
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        dx = (xx1-xx0)/(x1-x0)
-        dy = (yy1-yy0)/(y1-y0)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
@@ -280,16 +336,18 @@ class GridBoundaryCallback(PlotCallback):
             right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
             right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
             verts = na.array(
-                    [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                     (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
+                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
+                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
             visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
                        ( right_edge_px - left_edge_px > self.min_pix )
             verts=verts.transpose()[visible,:,:]
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
+            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width) + xx0
+            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height) + yy0
             grid_collection = matplotlib.collections.PolyCollection(
-                    verts, facecolors="none",
-                           edgecolors=edgecolors)
+                verts, facecolors="none",
+                edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
             if self.annotate:
@@ -305,6 +363,11 @@ class StreamlineCallback(PlotCallback):
                  start_at_xedge=False, start_at_yedge=False,
                  plot_args=None):
         """
+        annotate_streamlines(field_x, field_y, factor=6.0, nx=16, ny=16,
+                             xstart=(0,1), ystart=(0,1), nsample=256,
+                             start_at_xedge=False, start_at_yedge=False,
+                             plot_args=None):
+
         Add streamlines to any plot, using the *field_x* and *field_y*
         from the associated data, using *nx* and *ny* starting points
         that are bounded by *xstart* and *ystart*.  To begin
@@ -397,6 +460,7 @@ def get_smallest_appropriate_unit(v, pf):
         if vv < max_nu and vv > 1.0:
             good_u = unit
             max_nu = v*pf[unit]
+    if good_u is None : good_u = 'cm'
     return good_u
 
 class UnitBoundaryCallback(PlotCallback):
@@ -463,6 +527,8 @@ class LinePlotCallback(PlotCallback):
     _type_name = "line"
     def __init__(self, x, y, plot_args = None):
         """
+        annotate_line(x, y, plot_args = None)
+
         Over plot *x* and *y* with *plot_args* fed into the plot.
         """
         PlotCallback.__init__(self)
@@ -481,6 +547,8 @@ class ImageLineCallback(LinePlotCallback):
 
     def __init__(self, p1, p2, data_coords=False, plot_args = None):
         """
+        annotate_image_line(p1, p2, data_coords=False, plot_args = None)
+
         Plot from *p1* to *p2* (image plane coordinates)
         with *plot_args* fed into the plot.
         """
@@ -497,8 +565,8 @@ class ImageLineCallback(LinePlotCallback):
         plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
         kwargs = self.plot_args.copy()
         if self.data_coords and len(plot.image._A.shape) == 2:
-            p1 = self.convert_to_pixels(plot, self.p1)
-            p2 = self.convert_to_pixels(plot, self.p2)
+            p1 = self.convert_to_plot(plot, self.p1)
+            p2 = self.convert_to_plot(plot, self.p2)
         else:
             p1, p2 = self.p1, self.p2
             if not self.data_coords:
@@ -521,6 +589,8 @@ class CuttingQuiverCallback(PlotCallback):
     _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
         """
+        annotate_cquiver(field_x, field_y, factor)
+
         Get a quiver plot on top of a cutting plane, using *field_x* and
         *field_y*, skipping every *factor* datapoint in the discretization.
         """
@@ -563,6 +633,8 @@ class ClumpContourCallback(PlotCallback):
     _type_name = "clumps"
     def __init__(self, clumps, plot_args = None):
         """
+        annotate_clumps(clumps, plot_args = None)
+
         Take a list of *clumps* and plot them as a set of contours.
         """
         self.clumps = clumps
@@ -610,10 +682,14 @@ class ArrowCallback(PlotCallback):
     _type_name = "arrow"
     def __init__(self, pos, code_size, plot_args = None):
         """
+        annotate_arrow(pos, code_size, plot_args = None)
+
         This adds an arrow pointing at *pos* with size *code_size* in code
         units.  *plot_args* is a dict fed to matplotlib with arrow properties.
         """
         self.pos = pos
+        if not iterable(code_size):
+            code_size = (code_size, code_size)
         self.code_size = code_size
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
@@ -621,8 +697,8 @@ class ArrowCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
-        x, y = self.convert_to_pixels(plot, self.pos)
-        dx, dy = self.convert_to_pixels(plot, self.code_size, False)
+        x, y = self.convert_to_plot(plot, self.pos)
+        dx, dy = self.convert_to_plot(plot, self.code_size, False)
         arrow = Arrow(x, y, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
 
@@ -630,21 +706,31 @@ class PointAnnotateCallback(PlotCallback):
     _type_name = "point"
     def __init__(self, pos, text, text_args = None):
         """
+        annotate_point(pos, text, text_args = None)
+
         This adds *text* at position *pos*, where *pos* is in code-space.
         *text_args* is a dict fed to the text placement code.
         """
         self.pos = pos
         self.text = text
+        if text_args is None: text_args = {}
         self.text_args = text_args
 
     def __call__(self, plot):
-        x,y = self.convert_to_pixels(plot, self.pos)
+
+
+        width,height = plot.image._A.shape
+        x,y = self.convert_to_plot(plot, self.pos)
+        x,y = x/width,y/height
+
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
     _type_name = "marker"
     def __init__(self, pos, marker='x', plot_args=None):
         """
+        annotate_marker(pos, marker='x', plot_args=None)
+
         Adds text *marker* at *pos* in code-arguments.  *plot_args* is a dict
         that will be forwarded to the plot command.
         """
@@ -658,7 +744,7 @@ class MarkerAnnotateCallback(PlotCallback):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
-        x,y = self.convert_to_pixels(plot, pos)
+        x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
         plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
         plot._axes.hold(False)
@@ -668,6 +754,9 @@ class SphereCallback(PlotCallback):
     def __init__(self, center, radius, circle_args = None,
                  text = None, text_args = None):
         """
+        annotate_sphere(center, radius, circle_args = None,
+                        text = None, text_args = None)
+        
         A sphere centered at *center* in code units with radius *radius* in
         code units will be created, with optional *circle_args*, *text*, and
         *text_args*.
@@ -683,17 +772,13 @@ class SphereCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        radius = self.radius * dx
-        center_x = (self.center[xi] - x0)*dx
-        center_y = (self.center[yi] - y0)*dy
-        # origin = lower?  not sure why center_y and center_x are reversed
+        
+        radius = self.radius * self.pixel_scale(plot)[0]
+
+        (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+
+        (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
+        
         cir = Circle((center_x, center_y), radius, **self.circle_args)
         plot._axes.add_patch(cir)
         if self.text is not None:
@@ -707,6 +792,11 @@ class HopCircleCallback(PlotCallback):
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False, width=None):
         """
+        annotate_hop_circles(hop_output, max_number=None,
+                             annotate=False, min_size=20, max_size=10000000,
+                             font_size=8, print_halo_size=False,
+                             print_halo_mass=False, width=None)
+
         Accepts a :class:`yt.HopList` *hop_output* and plots up to
         *max_number* (None for unlimited) halos as circles.
         """
@@ -722,13 +812,6 @@ class HopCircleCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
             if size < self.min_size or size > self.max_size: continue
@@ -738,10 +821,13 @@ class HopCircleCallback(PlotCallback):
                        plot.data.center)[plot.data.axis] > \
                    self.width:
                 continue
-            radius = halo.maximum_radius() * dx
+            
+            radius = halo.maximum_radius() * self.pixel_scale(plot)[0]
             center = halo.center_of_mass()
-            center_x = (center[xi] - x0)*dx
-            center_y = (center[yi] - y0)*dy
+            
+            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+
+            (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
             cir = Circle((center_x, center_y), radius, fill=False)
             plot._axes.add_patch(cir)
             if self.annotate:
@@ -757,9 +843,12 @@ class HopCircleCallback(PlotCallback):
 
 class HopParticleCallback(PlotCallback):
     _type_name = "hop_particles"
-    def __init__(self, hop_output, max_number, p_size=1.0,
+    def __init__(self, hop_output, max_number=None, p_size=1.0,
                 min_size=20, alpha=0.2):
         """
+        annotate_hop_particles(hop_output, max_number, p_size=1.0,
+                               min_size=20, alpha=0.2):
+
         Adds particle positions for the members of each halo as identified
         by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
         larger than *min_size* are plotted with *p_size* pixels per particle; 
@@ -772,67 +861,35 @@ class HopParticleCallback(PlotCallback):
         self.alpha = alpha
     
     def __call__(self,plot):
-        if self.max_number < 1: return
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        xf = axis_names[x_dict[plot.data.axis]]
-        yf = axis_names[y_dict[plot.data.axis]]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        (dx,dy) = self.pixel_scale(plot)
+
+        (xi, yi) = (x_names[plot.data.axis], y_names[plot.data.axis])
+
         # now we loop over the haloes
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
+
             if size < self.min_size: continue
-            colors = na.ones(size)
+
+            (px,py) = self.convert_to_plot(plot,(halo["particle_position_%s" % xi],
+                                                 halo["particle_position_%s" % yi]))
+            
+            # Need to get the plot limits and set the hold state before scatter
+            # and then restore the limits and turn off the hold state afterwards
+            # because scatter will automatically adjust the plot window which we
+            # do not want
+            
+            xlim = plot._axes.get_xlim()
+            ylim = plot._axes.get_ylim()
             plot._axes.hold(True)
-            px = (halo["particle_position_%s" % xf] - x0)*dx
-            py = (halo["particle_position_%s" % yf] - y0)*dy
+
             plot._axes.scatter(px, py, edgecolors="None",
                 s=self.p_size, c='black', alpha=self.alpha)
-            plot._axes.set_xlim(xx0,xx1)
-            plot._axes.set_ylim(yy0,yy1)
+            
+            plot._axes.set_xlim(xlim)
+            plot._axes.set_ylim(ylim)
             plot._axes.hold(False)
 
-class VobozCircleCallback(PlotCallback):
-    _type_name = "voboz_circle"
-    def __init__(self, voboz_output, max_number=None,
-                 annotate=False, min_size=20, font_size=8, print_halo_size=False):
-        self.axis = axis
-        self.voboz_output = voboz_output
-        self.max_number = max_number
-        self.annotate = annotate
-        self.min_size = min_size
-        self.font_size = font_size
-        self.print_halo_size = print_halo_size
-
-    def __call__(self, plot):
-        from matplotlib.patches import Circle
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        for i,halo in enumerate(self.voboz_output[:self.max_number]):
-            if (len(halo.particles) >= self.min_size):
-                radius = halo.maximum_radius * dx
-                center = halo.center_of_mass
-                center_x = (center[xi] - x0)*dx
-                center_y = (center[yi] - y0)*dy
-                #print "voboz center = (%f,%f)" % (center[xi],center[yi])
-                #print "voboz radius = %f" % halo.maximum_radius
-                cir = Circle((center_x, center_y), radius, fill=False)
-                plot._axes.add_patch(cir)
-                if self.annotate:
-                    if self.print_halo_size:
-                        plot._axes.text(center_x, center_y, "%s" % len(halo.particles),
-                        fontsize=self.font_size)
-                    else:
-                        plot._axes.text(center_x, center_y, "%s" % i,
-                        fontsize=self.font_size)
 
 class CoordAxesCallback(PlotCallback):
     _type_name = "coord_axes"
@@ -905,6 +962,8 @@ class TextLabelCallback(PlotCallback):
     _type_name = "text"
     def __init__(self, pos, text, data_coords=False, text_args = None):
         """
+        annotate_text(pos, text, data_coords=False, text_args = None)
+
         Accepts a position in (0..1, 0..1) of the image, some text and
         optionally some text arguments. If data_coords is True,
         position will be in code units instead of image coordinates.
@@ -922,7 +981,7 @@ class TextLabelCallback(PlotCallback):
                 pos = (self.pos[x_dict[plot.data.axis]],
                        self.pos[y_dict[plot.data.axis]])
             else: pos = self.pos
-            x,y = self.convert_to_pixels(plot, pos)
+            x,y = self.convert_to_plot(plot, pos)
         else:
             x, y = self.pos
             if not self.data_coords:
@@ -937,6 +996,10 @@ class ParticleCallback(PlotCallback):
                  ptype=None, stars_only=False, dm_only=False,
                  minimum_mass=None, alpha=1.0):
         """
+        annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
+                           ptype=None, stars_only=False, dm_only=False,
+                           minimum_mass=None, alpha=1.0)
+
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
         pixels per particle, and *col* governs the color.  *ptype* will
@@ -982,7 +1045,7 @@ class ParticleCallback(PlotCallback):
             gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
-        px, py = self.convert_to_pixels(plot,
+        px, py = self.convert_to_plot(plot,
                     [reg[field_x][gg][::self.stride],
                      reg[field_y][gg][::self.stride]])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
@@ -1011,8 +1074,10 @@ class ParticleCallback(PlotCallback):
 
 class TitleCallback(PlotCallback):
     _type_name = "title"
-    def __init__(self, title="Plot"):
+    def __init__(self, title):
         """
+        annotate_title(title)
+
         Accepts a *title* and adds it to the plot
         """
         PlotCallback.__init__(self)

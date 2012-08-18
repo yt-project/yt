@@ -871,9 +871,12 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
         height : height specifier
-            This will be the height of the FRB, by default it is equal to width.
+            This will be the physical height of the FRB, by default it is equal
+            to width.  Note that this will not make any corrections to
+            resolution for the aspect ratio.
         resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
+            The number of pixels on a side of the final FRB.  If iterable, this
+            will be the width then the height.
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
@@ -912,6 +915,26 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                   center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
+
+    def to_pw(self):
+        r"""Create a :class:`~yt.visualization.plot_window.PlotWindow` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        axis = self.axis
+        center = self.get_field_parameter("center")
+        if center is None:
+            center = (self.pf.domain_right_edge
+                    + self.pf.domain_left_edge)/2.0
+        width = (1.0, 'unitary')
+        from yt.visualization.plot_window import \
+            PWViewerMPL, GetBoundsAndCenter
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds)
+        return pw
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
         """
@@ -1103,17 +1126,27 @@ class AMRSliceBase(AMR2DData):
         mask = self.__cut_mask_child_mask(grid)[sl]
         cm = na.where(mask.ravel()== 1)
         cmI = na.indices((nx,ny))
-        xind = cmI[0,:].ravel()
-        xpoints = na.ones(cm[0].shape, 'float64')
-        xpoints *= xind[cm]*dx+(grid.LeftEdge[xaxis] + 0.5*dx)
-        yind = cmI[1,:].ravel()
-        ypoints = na.ones(cm[0].shape, 'float64')
-        ypoints *= yind[cm]*dy+(grid.LeftEdge[yaxis] + 0.5*dy)
-        zpoints = na.ones(xpoints.shape, 'float64') * self.coord
-        dx = na.ones(xpoints.shape, 'float64') * dx/2.0
-        dy = na.ones(xpoints.shape, 'float64') * dy/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx, dy]).swapaxes(0,1)
-        return t
+        ind = cmI[0, :].ravel()   # xind
+        npoints = cm[0].shape
+        # create array of "npoints" ones that will be reused later
+        points = na.ones(npoints, 'float64')
+        # calculate xpoints array
+        t = points * ind[cm] * dx + (grid.LeftEdge[xaxis] + 0.5 * dx)
+        # calculate ypoints array
+        ind = cmI[1, :].ravel()   # yind
+        del cmI   # no longer needed 
+        t = na.vstack( (t, points * ind[cm] * dy + \
+                (grid.LeftEdge[yaxis] + 0.5 * dy))
+            )
+        del ind, cm   # no longer needed
+        # calculate zpoints array
+        t = na.vstack((t, points * self.coord))
+        # calculate dx array
+        t = na.vstack((t, points * dx * 0.5))
+        # calculate dy array
+        t = na.vstack((t, points * dy * 0.5))
+        # return [xpoints, ypoints, zpoints, dx, dy] as (5, npoints) array
+        return t.swapaxes(0, 1)
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
@@ -1586,7 +1619,7 @@ class AMRQuadTreeProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,
+                 preload_style=None, serialize=True,
                  style = "integrate", **kwargs):
         """
         This is a data object corresponding to a line integral through the
@@ -1634,9 +1667,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             region of a grid out.  They can be of the form "grid['Temperature']
             > 100" for instance.
         preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
+            Either 'level', 'all', or None (default).  Defines how grids are
+            loaded -- either level by level, or all at once.  Only applicable
+            during parallel runs.
         serialize : bool, optional
             Whether we should store this projection in the .yt file or not.
         kwargs : dict of items
@@ -1763,11 +1796,20 @@ class AMRQuadTreeProjBase(AMR2DData):
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
+            op = "max"
         elif self.proj_style == "integrate":
             merge_style = 1
+            op = "sum"
         else:
             raise NotImplementedError
-        tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        #tree = self.comm.merge_quadtree_buffers(tree, merge_style=merge_style)
+        buf = list(tree.tobuffer())
+        del tree
+        new_buf = [buf.pop(0)]
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
+        tree = self._get_tree(len(fields))
+        tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
         coord_data, field_data, weight_data, dxs = [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
@@ -1785,7 +1827,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         field_data = na.concatenate(field_data, axis=0).transpose()
         if self._weight is None:
             dls, convs = self._get_dls(self._grids[0], fields)
-            field_data *= convs
+            field_data *= convs[:,None]
         weight_data = na.concatenate(weight_data, axis=0).transpose()
         dxs = na.concatenate(dxs, axis=0).transpose()
         # We now convert to half-widths and center-points
@@ -1810,7 +1852,7 @@ class AMRQuadTreeProjBase(AMR2DData):
 
     def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
         # We build up the fields to add
-        if self._weight is None:
+        if self._weight is None or fields is None:
             weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data = [fd.astype('float64') * weight_data
@@ -1831,7 +1873,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         weight_proj = self.func(weight_data, axis=self.axis) * wdl
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+            used_points = na.logical_or.reduce(used_data, self.axis)
         else:
             used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
@@ -1847,16 +1889,33 @@ class AMRQuadTreeProjBase(AMR2DData):
     def _add_level_to_tree(self, tree, level, fields):
         grids_to_project = [g for g in self._get_grid_objs()
                             if g.Level == level]
-        if len(grids_to_project) == 0: return
-        dls, convs = self._get_dls(grids_to_project[0], fields)
+        grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
-        pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids_to_project))
-        for pi, grid in enumerate(grids_to_project):
-            self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+        if len(grids_to_initialize) == 0: return
+        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+                          % (level, self._max_level), len(grids_to_initialize))
+        start_index = na.empty(2, dtype="int64")
+        dims = na.empty(2, dtype="int64")
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        for pi, grid in enumerate(grids_to_initialize):
+            dims[0] = grid.ActiveDimensions[xax]
+            dims[1] = grid.ActiveDimensions[yax]
+            ind = grid.get_global_startindex()
+            start_index[0] = ind[xax]
+            start_index[1] = ind[yax]
+            tree.initialize_grid(level, start_index, dims)
             pbar.update(pi)
-            grid.clear_data()
         pbar.finish()
+        if len(grids_to_project) > 0:
+            dls, convs = self._get_dls(grids_to_project[0], fields)
+            pbar = get_pbar('Projecting  level % 2i / % 2i ' \
+                              % (level, self._max_level), len(grids_to_project))
+            for pi, grid in enumerate(grids_to_project):
+                self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
+                pbar.update(pi)
+                grid.clear_data()
+            pbar.finish()
         return
 
     def _get_points_in_region(self, grid):
@@ -2448,6 +2507,8 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
+        if len(self._grids) == 0:
+            raise YTNoDataInObjectError(self)
         points = []
         if not fields:
             fields_to_get = self.fields[:]
@@ -2634,13 +2695,16 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         verts = []
         samples = []
+        pb = get_pbar("Extracting ", len(list(self._get_grid_objs())))
         for i, g in enumerate(self._get_grid_objs()):
+            pb.update(i)
             my_verts = self._extract_isocontours_from_grid(
                             g, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
+        pb.finish()
         verts = na.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         verts = verts.transpose()
@@ -3555,8 +3619,8 @@ class AMRCoveringGridBase(AMR3DData):
         fields : array_like, optional
             A list of fields that you'd like pre-generated for your object
 
-        Example
-        -------
+        Examples
+        --------
         cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
                                   right_edge=[1.0, 1.0, 1.0],
                                   dims=[128, 128, 128])
@@ -3974,6 +4038,7 @@ class AMRBooleanRegionBase(AMR3DData):
                         break
                 level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
                     grid), grid.ActiveDimensions))
+                end += 1
             elif isinstance(item.data, AMRData):
                 level_masks.append(force_array(item.data._get_cut_mask(grid),
                     grid.ActiveDimensions))

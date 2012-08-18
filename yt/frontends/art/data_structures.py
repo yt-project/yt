@@ -42,7 +42,7 @@ from yt.data_objects.field_info_container import \
 from .fields import \
     ARTFieldInfo, add_art_field, KnownARTFields
 from yt.utilities.definitions import \
-    mpc_conversion
+    mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
 import yt.utilities.lib as amr_utils
@@ -53,8 +53,8 @@ except ImportError:
     _ramses_reader = None
 
 from yt.utilities.physical_constants import \
-    mass_hydrogen_cgs
-    
+    mass_hydrogen_cgs, sec_per_Gyr
+
 from yt.frontends.art.definitions import art_particle_field_names
 
 from yt.frontends.art.io import _read_child_mask_level
@@ -356,7 +356,6 @@ class ARTHierarchy(AMRHierarchy):
         
 
         if self.pf.file_particle_data:
-            #import pdb; pdb.set_trace()
             lspecies = self.pf.parameters['lspecies']
             wspecies = self.pf.parameters['wspecies']
             Nrow     = self.pf.parameters['Nrow']
@@ -381,6 +380,7 @@ class ARTHierarchy(AMRHierarchy):
                     npb = clspecies[self.pf.only_particle_type+1]
             np = npb-npa
             self.pf.particle_position   = self.pf.particle_position[npa:npb]
+            #do NOT correct by an offset of 1.0
             #self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
             self.pf.particle_position  /= self.pf.domain_dimensions #to unitary units (comoving)
@@ -432,12 +432,6 @@ class ARTHierarchy(AMRHierarchy):
             for j,np in enumerate(nparticles):
                 mylog.debug('found %i of particle type %i'%(j,np))
             
-            if self.pf.single_particle_mass:
-                #cast all particle masses to the same mass
-                cast_type = self.pf.single_particle_type
-                
-
-            
             self.pf.particle_star_index = i
             
             do_stars = (self.pf.only_particle_type is None) or \
@@ -452,13 +446,14 @@ class ARTHierarchy(AMRHierarchy):
                     pbar = get_pbar("Stellar Ages        ",n)
                     sages  = \
                         b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
-                    sages *= 1.0e9
-                    sages *= 365*24*3600 #to seconds
+                    sages *= sec_per_Gyr #from Gyr to seconds
                     sages = self.pf.current_time-sages
                     self.pf.particle_age[-nstars:] = sages
                     pbar.finish()
                     self.pf.particle_metallicity1[-nstars:] = metallicity1
                     self.pf.particle_metallicity2[-nstars:] = metallicity2
+                    #self.pf.particle_metallicity1 *= 0.0199 
+                    #self.pf.particle_metallicity2 *= 0.0199 
                     self.pf.particle_mass_initial[-nstars:] = imass*um
                     self.pf.particle_mass[-nstars:] = mass*um
 
@@ -467,32 +462,23 @@ class ARTHierarchy(AMRHierarchy):
             pos = self.pf.particle_position
             #particle indices travel with the particle positions
             #pos = na.vstack((na.arange(pos.shape[0]),pos.T)).T 
-            #if type(self.pf.grid_particles) == type(5):
-            #    max_level = min(max_level,self.pf.grid_particles)
+            if type(self.pf.grid_particles) == type(5):
+                particle_level = min(self.pf.max_level,self.pf.grid_particles)
+            else:
+                particle_level = 2
             grid_particle_count = na.zeros((len(grids),1),dtype='int64')
-            
-            #grid particles at the finest level, removing them once gridded
-            #pbar = get_pbar("Gridding Particles ",init)
-            #assignment = amr_utils.assign_particles_to_cells(
-            #        self.grid_levels.ravel().astype('int32'),
-            #        self.grid_left_edge.astype('float32'),
-            #        self.grid_right_edge.astype('float32'),
-            #        pos[:,0].astype('float32'),
-            #        pos[:,1].astype('float32'),
-            #        pos[:,2].astype('float32'))
-            #pbar.finish()
 
             pbar = get_pbar("Gridding Particles ",init)
             assignment,ilists = amr_utils.assign_particles_to_cell_lists(
                     self.grid_levels.ravel().astype('int32'),
-                    2, #only bother gridding particles to level 2
+                    na.zeros(len(pos[:,0])).astype('int32')-1,
+                    particle_level, #dont grid particles past this
                     self.grid_left_edge.astype('float32'),
                     self.grid_right_edge.astype('float32'),
                     pos[:,0].astype('float32'),
                     pos[:,1].astype('float32'),
                     pos[:,2].astype('float32'))
             pbar.finish()
-            
             
             pbar = get_pbar("Filling grids ",init)
             for gidx,(g,ilist) in enumerate(zip(grids,ilists)):
@@ -601,19 +587,19 @@ class ARTStaticOutput(StaticOutput):
                  file_particle_header=None, 
                  file_particle_data=None,
                  file_star_data=None,
-                 discover_particles=False,
+                 discover_particles=True,
                  use_particles=True,
                  limit_level=None,
                  only_particle_type = None,
                  grid_particles=False,
                  single_particle_mass=False,
                  single_particle_type=0):
-        import yt.frontends.ramses._ramses_reader as _ramses_reader
         
-        
-        dirn = os.path.dirname(filename)
+        #dirn = os.path.dirname(filename)
         base = os.path.basename(filename)
         aexp = base.split('_')[2].replace('.d','')
+        if not aexp.startswith('a'):
+            aexp = '_'+aexp
         
         self.file_particle_header = file_particle_header
         self.file_particle_data = file_particle_data
@@ -625,22 +611,30 @@ class ARTStaticOutput(StaticOutput):
         if limit_level is None:
             self.limit_level = na.inf
         else:
+            limit_level = int(limit_level)
             mylog.info("Using maximum level: %i",limit_level)
             self.limit_level = limit_level
         
+        def repu(x):
+            for i in range(5):
+                x=x.replace('__','_')
+            return x    
         if discover_particles:
             if file_particle_header is None:
                 loc = filename.replace(base,'PMcrd%s.DAT'%aexp)
+                loc = repu(loc)
                 if os.path.exists(loc):
                     self.file_particle_header = loc
                     mylog.info("Discovered particle header: %s",os.path.basename(loc))
             if file_particle_data is None:
                 loc = filename.replace(base,'PMcrs0%s.DAT'%aexp)
+                loc = repu(loc)
                 if os.path.exists(loc):
                     self.file_particle_data = loc
                     mylog.info("Discovered particle data:   %s",os.path.basename(loc))
             if file_star_data is None:
                 loc = filename.replace(base,'stars_%s.dat'%aexp)
+                loc = repu(loc)
                 if os.path.exists(loc):
                     self.file_star_data = loc
                     mylog.info("Discovered stellar data:    %s",os.path.basename(loc))
@@ -716,7 +710,7 @@ class ARTStaticOutput(StaticOutput):
         self.conversion_factors["Mass"] = self.parameters["aM0"] * 1.98892e33
         self.conversion_factors["Density"] = self.rho0*(aexpn**-3.0)
         self.conversion_factors["GasEnergy"] = self.rho0*self.v0**2*(aexpn**-5.0)
-        self.conversion_factors["Temperature"] = tr
+        #self.conversion_factors["Temperature"] = tr 
         self.conversion_factors["Potential"] = 1.0
         self.cosmological_simulation = True
         
@@ -725,11 +719,8 @@ class ARTStaticOutput(StaticOutput):
             # Add on the 1e5 to get to cm/s
             self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
         seconds = self.t0
-        self.time_units['Gyr']   = 1.0/(1.0e9*365*3600*24.0)
-        self.time_units['Myr']   = 1.0/(1.0e6*365*3600*24.0)
-        self.time_units['years'] = 1.0/(365*3600*24.0)
-        self.time_units['days']  = 1.0 / (3600*24.0)
-
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
         #we were already in seconds, go back in to code units
         #self.current_time /= self.t0 
@@ -826,7 +817,7 @@ class ARTStaticOutput(StaticOutput):
         # integrand_arr = integrand(spacings)
         # self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
         # self.current_time *= self.hubble_time
-        self.current_time = b2t(self.current_time_raw)*1.0e9*365*3600*24         
+        self.current_time = b2t(self.current_time_raw) * sec_per_Gyr
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 
@@ -949,6 +940,14 @@ class ARTStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        return False # We make no effort to auto-detect ART data
-
+        """
+        Defined for Daniel Ceverino's file naming scheme.
+        This could differ for other formats.
+        """
+        fn = ("%s" % (os.path.basename(args[0])))
+        f = ("%s" % args[0])
+        if fn.endswith(".d") and fn.startswith('10Mpc') and\
+                os.path.exists(f): 
+                return True
+        return False
 

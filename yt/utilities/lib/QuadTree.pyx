@@ -30,7 +30,7 @@ cimport numpy as np
 cimport numpy as cnp
 cimport cython
 
-from stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
 from fp_utils cimport fmax
 
@@ -251,7 +251,7 @@ cdef class QuadTree:
     cdef void add_to_position(self,
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
-                 np.float64_t weight_val):
+                 np.float64_t weight_val, skip = 0):
         cdef int i, j, L
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
@@ -265,6 +265,7 @@ cdef class QuadTree:
             i = (pos[0] >= fac*(2*node.pos[0]+1))
             j = (pos[1] >= fac*(2*node.pos[1]+1))
             node = node.children[i][j]
+        if skip == 1: return
         self.combine(node, val, weight_val, self.nvals)
             
     @cython.cdivision(True)
@@ -276,14 +277,14 @@ cdef class QuadTree:
         j = <np.int64_t> (pos[1] / self.po2[level])
         return self.root_nodes[i][j]
         
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def add_array_to_tree(self, int level,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.float64_t, ndim=2] pvals,
-            np.ndarray[np.float64_t, ndim=1] pweight_vals):
+            np.ndarray[np.float64_t, ndim=1] pweight_vals,
+            int skip = 0):
         cdef int np = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
@@ -293,15 +294,22 @@ cdef class QuadTree:
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
-            self.add_to_position(level, pos, vals, pweight_vals[p])
+            self.add_to_position(level, pos, vals, pweight_vals[p], skip)
         return
 
-    def add_grid_to_tree(self, int level,
-                         np.ndarray[np.int64_t, ndim=1] start_index,
-                         np.ndarray[np.float64_t, ndim=2] pvals,
-                         np.ndarray[np.float64_t, ndim=2] wvals,
-                         np.ndarray[np.int32_t, ndim=2] cm):
-        pass
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def initialize_grid(self, int level,
+                        cnp.ndarray[np.int64_t, ndim=1] start_index, 
+                        cnp.ndarray[np.int64_t, ndim=1] dims):
+        # We assume that start_index is indices 0 and 1 of ourself
+        cdef int i, j
+        cdef cnp.int64_t pos[2]
+        for i in range(dims[0]):
+            pos[0] = i + start_index[0]
+            for j in range(dims[1]):
+                pos[1] = j + start_index[1]
+                self.add_to_position(level, pos, NULL, 0.0, 1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

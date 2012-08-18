@@ -98,8 +98,8 @@ from yt.frontends.gdf.api import \
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
 
-from yt.frontends.maestro.api import \
-    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
+#from yt.frontends.maestro.api import \
+#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
@@ -118,7 +118,7 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, ProjectionPlot
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

@@ -28,7 +28,7 @@ cimport numpy as np
 cimport cython
 cimport kdtree_utils
 cimport healpix_interface
-from stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
@@ -80,8 +80,12 @@ cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
     cdef public object RightEdge
-    cdef int parent_grid_id
+    cdef public int parent_grid_id
     cdef VolumeContainer *container
+    cdef kdtree_utils.kdtree *star_list
+    cdef np.float64_t star_er
+    cdef np.float64_t star_sigma_num
+    cdef np.float64_t star_coeff
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -90,7 +94,8 @@ cdef class PartitionedGrid:
                   int parent_grid_id, data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
-                  np.ndarray[np.int64_t, ndim=1] dims):
+                  np.ndarray[np.int64_t, ndim=1] dims,
+		  star_kdtree_container star_tree = None):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
         self.container = NULL
@@ -113,6 +118,16 @@ cdef class PartitionedGrid:
         for i in range(n_fields):
             tdata = data[i]
             c.data[i] = <np.float64_t *> tdata.data
+        if star_tree is None:
+            self.star_list = NULL
+        else:
+            self.set_star_tree(star_tree)
+
+    def set_star_tree(self, star_kdtree_container star_tree):
+        self.star_list = star_tree.tree
+        self.star_sigma_num = 2.0*star_tree.sigma**2.0
+        self.star_er = 2.326 * star_tree.sigma
+        self.star_coeff = star_tree.coeff
 
     def __dealloc__(self):
         # The data fields are not owned by the container, they are owned by us!
@@ -120,6 +135,90 @@ cdef class PartitionedGrid:
         if self.container == NULL: return
         if self.container.data != NULL: free(self.container.data)
         free(self.container)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def integrate_streamline(self, pos, np.float64_t h, mag):
+        cdef np.float64_t cmag[1]
+        cdef np.float64_t k1[3], k2[3], k3[3], k4[3]
+        cdef np.float64_t newpos[3], oldpos[3]
+        for i in range(3):
+            newpos[i] = oldpos[i] = pos[i]
+        self.get_vector_field(newpos, k1, cmag)
+        for i in range(3):
+            newpos[i] = oldpos[i] + 0.5*k1[i]*h
+
+        if not (self.LeftEdge[0] < newpos[0] and newpos[0] < self.RightEdge[0] and \
+                self.LeftEdge[1] < newpos[1] and newpos[1] < self.RightEdge[1] and \
+                self.LeftEdge[2] < newpos[2] and newpos[2] < self.RightEdge[2]):
+            if mag is not None:
+                mag[0] = cmag[0]
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k2, cmag)
+        for i in range(3):
+            newpos[i] = oldpos[i] + 0.5*k2[i]*h
+
+        if not (self.LeftEdge[0] <= newpos[0] and newpos[0] <= self.RightEdge[0] and \
+                self.LeftEdge[1] <= newpos[1] and newpos[1] <= self.RightEdge[1] and \
+                self.LeftEdge[2] <= newpos[2] and newpos[2] <= self.RightEdge[2]):
+            if mag is not None:
+                mag[0] = cmag[0]
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k3, cmag)
+        for i in range(3):
+            newpos[i] = oldpos[i] + k3[i]*h
+
+        if not (self.LeftEdge[0] <= newpos[0] and newpos[0] <= self.RightEdge[0] and \
+                self.LeftEdge[1] <= newpos[1] and newpos[1] <= self.RightEdge[1] and \
+                self.LeftEdge[2] <= newpos[2] and newpos[2] <= self.RightEdge[2]):
+            if mag is not None:
+                mag[0] = cmag[0]
+            for i in range(3):
+                pos[i] = newpos[i]
+            return
+
+        self.get_vector_field(newpos, k4, cmag)
+
+        for i in range(3):
+            pos[i] = oldpos[i] + h*(k1[i]/6.0 + k2[i]/3.0 + k3[i]/3.0 + k4[i]/6.0)
+
+        if mag is not None:
+            for i in range(3):
+                newpos[i] = pos[i]
+            self.get_vector_field(newpos, k4, cmag)
+            mag[0] = cmag[0]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void get_vector_field(self, np.float64_t pos[3],
+                               np.float64_t *vel, np.float64_t *vel_mag):
+        cdef np.float64_t dp[3]
+        cdef int ci[3]
+        cdef VolumeContainer *c = self.container # convenience
+
+        for i in range(3):
+            ci[i] = (int)((pos[i]-self.LeftEdge[i])/c.dds[i])
+            dp[i] = (pos[i] - ci[i]*c.dds[i] - self.LeftEdge[i])/c.dds[i]
+
+        cdef int offset = ci[0] * (c.dims[1] + 1) * (c.dims[2] + 1) \
+                          + ci[1] * (c.dims[2] + 1) + ci[2]
+
+        vel_mag[0] = 0.0
+        for i in range(3):
+            vel[i] = offset_interpolate(c.dims, dp, c.data[i] + offset)
+            vel_mag[0] += vel[i]*vel[i]
+        vel_mag[0] = np.sqrt(vel_mag[0])
+        if vel_mag[0] != 0.0:
+            for i in range(3):
+                vel[i] /= vel_mag[0]
 
 cdef struct ImageContainer:
     np.float64_t *vp_pos, *vp_dir, *center, *image,
@@ -336,6 +435,7 @@ cdef struct VolumeRenderAccumulator:
     kdtree_utils.kdtree *star_list
     np.float64_t *light_dir
     np.float64_t *light_rgba
+    int grey_opacity
 
 
 cdef class ProjectionSampler(ImageSampler):
@@ -432,7 +532,7 @@ cdef void volume_render_sampler(
             dvs[j] = offset_interpolate(vc.dims, dp,
                     vc.data[j] + offset)
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, 
-                vri.fits, vri.field_table_ids)
+                vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
             dp[j] += ds[j]
 
@@ -472,7 +572,7 @@ cdef void volume_render_gradient_sampler(
         FIT_eval_transfer_with_light(dt, dvs, grad, 
                 vri.light_dir, vri.light_rgba,
                 im.rgba, vri.n_fits, 
-                vri.fits, vri.field_table_ids)
+                vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
             dp[j] += ds[j]
     free(grad)
@@ -564,7 +664,7 @@ cdef void volume_render_stars_sampler(
         for i in range(3):
             pos[i] += local_dds[i]
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
-                          vri.field_table_ids)
+                          vri.field_table_ids, vri.grey_opacity)
         for i in range(vc.n_fields):
             dvs[i] += slopes[i]
 
@@ -595,6 +695,7 @@ cdef class VolumeRenderSampler(ImageSampler):
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
         assert(self.vra.n_fits <= 6)
+        self.vra.grey_opacity = getattr(tf_obj, "grey_opacity", 0)
         self.vra.n_samples = n_samples
         self.my_field_tables = []
         for i in range(self.vra.n_fits):
@@ -630,8 +731,8 @@ cdef class VolumeRenderSampler(ImageSampler):
 
     def __dealloc__(self):
         return
-        free(self.vra.fits)
-        free(self.vra)
+        #free(self.vra.fits)
+        #free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -660,6 +761,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
             malloc(sizeof(FieldInterpolationTable) * 6)
         self.vra.n_fits = tf_obj.n_field_tables
         assert(self.vra.n_fits <= 6)
+        self.vra.grey_opacity = getattr(tf_obj, "grey_opacity", 0)
         self.vra.n_samples = n_samples
         self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
         self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)
@@ -689,10 +791,10 @@ cdef class LightSourceRenderSampler(ImageSampler):
 
     def __dealloc__(self):
         return
-        free(self.vra.fits)
-        free(self.vra)
-        free(self.light_dir)
-        free(self.light_rgba)
+        #free(self.vra.fits)
+        #free(self.vra)
+        #free(self.light_dir)
+        #free(self.light_rgba)
 
 
 cdef class GridFace:
@@ -1041,11 +1143,11 @@ def pixelize_healpix(long nside,
             results[thetai, phii] = values[ipix]
             count[i, j] += 1
     return results, count
-    for i in range(ntheta):
-        for j in range(nphi):
-            if count[i,j] > 0:
-                results[i,j] /= count[i,j]
-    return results, count
+    #for i in range(ntheta):
+    #    for j in range(nphi):
+    #        if count[i,j] > 0:
+    #            results[i,j] /= count[i,j]
+    #return results, count
 
 def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
                         long nside,

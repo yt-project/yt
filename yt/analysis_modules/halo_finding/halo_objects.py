@@ -78,7 +78,7 @@ class Halo(object):
 
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
-        bulk_vel=None, tasks=None, rms_vel=None):
+        bulk_vel=None, tasks=None, rms_vel=None, supp=None):
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
@@ -101,6 +101,11 @@ class Halo(object):
         self.rms_vel = rms_vel
         self.bin_count = None
         self.overdensity = None
+        # A supplementary data dict.
+        if supp is None:
+            self.supp = {}
+        else:
+            self.supp = supp
 
     def center_of_mass(self):
         r"""Calculate and return the center of mass.
@@ -409,7 +414,7 @@ class Halo(object):
         period = self.pf.domain_right_edge - \
             self.pf.domain_left_edge
         cm = self.pf["cm"]
-        thissize = max(self.size, self.indices.size)
+        thissize = self.get_size()
         rho_crit = rho_crit_now * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
@@ -525,7 +530,7 @@ class Halo(object):
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = na.arctan(e0_vector[1] / e0_vector[0])
         RZ = get_rotation_matrix(-t1, (0, 0, 1)).transpose()
-        r1 = (e0_vector * rz).sum(axis = 1)
+        r1 = (e0_vector * RZ).sum(axis = 1)
         # find the t2 angle needed to rotate about y axis to align e0 to x
         t2 = na.arctan(-r1[2] / r1[0])
         RY = get_rotation_matrix(-t2, (0, 1, 0)).transpose()
@@ -801,7 +806,7 @@ class LoadedHalo(Halo):
 
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
-        e1_vec=None, tilt=None):
+        e1_vec=None, tilt=None, supp=None):
 
         self.pf = pf
         self.gridsize = (self.pf.domain_right_edge - \
@@ -827,6 +832,11 @@ class LoadedHalo(Halo):
         self.particle_mask = None
         self.ds_sort = None
         self.indices = na.array([])  # Never used for a LoadedHalo.
+        # A supplementary data dict.
+        if supp is None:
+            self.supp = {}
+        else:
+            self.supp = supp
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,
@@ -989,6 +999,54 @@ class LoadedHalo(Halo):
         cen = self.center_of_mass()
         r = self.maximum_radius()
         return self.pf.h.sphere(cen, r)
+
+class TextHalo(LoadedHalo):
+    def __init__(self, pf, id, size=None, CoM=None,
+
+        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
+        rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
+        e1_vec=None, tilt=None, supp=None):
+
+        self.pf = pf
+        self.gridsize = (self.pf.domain_right_edge - \
+            self.pf.domain_left_edge)
+        self.id = id
+        self.size = size
+        self.CoM = CoM
+        self.max_dens_point = max_dens_point
+        self.group_total_mass = group_total_mass
+        self.max_radius = max_radius
+        self.bulk_vel = bulk_vel
+        self.rms_vel = rms_vel
+        self.mag_A = mag_A
+        self.mag_B = mag_B
+        self.mag_C = mag_C
+        self.e1_vec = e1_vec
+        self.tilt = tilt
+        self.bin_count = None
+        self.overdensity = None
+        self.indices = na.array([])  # Never used for a LoadedHalo.
+        # A supplementary data dict.
+        if supp is None:
+            self.supp = {}
+        else:
+            self.supp = supp
+
+    def __getitem__(self, key):
+        # We'll just pull it from the sphere.
+        return self.get_sphere()[key]
+
+    def maximum_density(self):
+        r"""Undefined for text halos."""
+        return -1
+    
+    def maximum_density_location(self):
+        r"""Undefined, default to CoM"""
+        return self.center_of_mass()
+    
+    def get_size(self):
+        # Have to just get it from the sphere.
+        return self["particle_position_x"].size
 
 
 class HaloList(object):
@@ -1513,6 +1571,42 @@ class LoadedHaloList(HaloList):
             locations.append(temp)
         lines.close()
         return locations
+
+class TextHaloList(HaloList):
+    _name = "Text"
+
+    def __init__(self, pf, fname, columns, comment):
+        ParallelAnalysisInterface.__init__(self)
+        self.pf = pf
+        self._groups = []
+        self._retrieve_halos(fname, columns, comment)
+
+    def _retrieve_halos(self, fname, columns, comment):
+        # First get the halo particulars.
+        lines = file(fname)
+        halo = 0
+        base_set = ['x', 'y', 'z', 'r']
+        keys = columns.keys()
+        extra = (len(keys) > 4)
+        for line in lines:
+            # Skip commented lines.
+            if line[0] == comment: continue
+            line = line.split()
+            x = float(line[columns['x']])
+            y = float(line[columns['y']])
+            z = float(line[columns['z']])
+            r = float(line[columns['r']])
+            cen = na.array([x, y, z])
+            # Now we see if there's anything else.
+            if extra:
+                temp_dict = {}
+                for key in columns:
+                    if key not in base_set:
+                        val = float(line[columns[key]])
+                        temp_dict[key] = val
+            self._groups.append(TextHalo(self.pf, halo,
+                CoM = cen, max_radius = r, supp = temp_dict))
+            halo += 1
 
 
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
@@ -2497,3 +2591,39 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
         """
         self.basename = basename
         LoadedHaloList.__init__(self, pf, self.basename)
+
+class LoadTextHaloes(GenericHaloFinder, TextHaloList):
+    def __init__(self, pf, filename, columns, comment = "#"):
+        r"""Load a text file of halos.
+        
+        Like LoadHaloes, but when all that is available is a plain
+        text file. This assumes the text file has the 3-positions of halos
+        along with a radius. The halo objects created are spheres.
+
+        Parameters
+        ----------
+        fname : String
+            The name of the text file to read in.
+        
+        columns : dict
+            A dict listing the column name : column number pairs for data
+            in the text file. It is zero-based (like Python).
+            An example is {'x':0, 'y':1, 'z':2, 'r':3, 'm':4}.
+            Any column name outside of ['x', 'y', 'z', 'r'] will be attached
+            to each halo object in the supplementary dict 'supp'. See
+            example.
+        
+        comment : String
+            If the first character of a line is equal to this, the line is
+            skipped. Default = "#".
+
+        Examples
+        --------
+        >>> pf = load("data0005")
+        >>> halos = LoadTextHaloes(pf, "list.txt",
+            {'x':0, 'y':1, 'z':2, 'r':3, 'm':4},
+            comment = ";")
+        >>> halos[0].supp['m']
+            3.28392048e14
+        """
+        TextHaloList.__init__(self, pf, filename, columns, comment)

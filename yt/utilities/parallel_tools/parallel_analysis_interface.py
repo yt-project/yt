@@ -98,6 +98,8 @@ class ObjectIterator(object):
             gs = getattr(pobj, attr)
         else:
             gs = getattr(pobj._data_source, attr)
+        if len(gs) == 0:
+            raise YTNoDataInObjectError(pobj)
         if hasattr(gs[0], 'proc_num'):
             # This one sort of knows about MPI, but not quite
             self._objs = [g for g in gs if g.proc_num ==
@@ -341,11 +343,72 @@ class ResultsStorage(object):
     result_id = None
 
 def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
-                     dynamic = False, broadcast=True):
+                     dynamic = False):
+    r"""This function dispatches components of an iterable to different
+    processors.
+
+    The parallel_objects function accepts an iterable, *objects*, and based on
+    the number of jobs requested and number of available processors, decides
+    how to dispatch individual objects to processors or sets of processors.
+    This can implicitly include multi-level parallelism, such that the
+    processor groups assigned each object can be composed of several or even
+    hundreds of processors.  *storage* is also available, for collation of
+    results at the end of the iteration loop.
+
+    Calls to this function can be nested.
+
+    This should not be used to iterate over parameter files --
+    :class:`~yt.data_objects.time_series.TimeSeriesData` provides a much nicer
+    interface for that.
+
+    Parameters
+    ----------
+    objects : iterable
+        The list of objects to dispatch to different processors.
+    njobs : int
+        How many jobs to spawn.  By default, one job will be dispatched for
+        each available processor.
+    storage : dict
+        This is a dictionary, which will be filled with results during the
+        course of the iteration.  The keys will be the parameter file
+        indices and the values will be whatever is assigned to the *result*
+        attribute on the storage during iteration.
+    barrier : bool
+        Should a barier be placed at the end of iteration?
+    dynamic : bool
+        This governs whether or not dynamic load balancing will be enabled.
+        This requires one dedicated processor; if this is enabled with a set of
+        128 processors available, only 127 will be available to iterate over
+        objects as one will be load balancing the rest.
+
+
+    Examples
+    --------
+    Here is a simple example of iterating over a set of centers and making
+    slice plots centered at each.
+
+    >>> for c in parallel_objects(centers):
+    ...     SlicePlot(pf, "x", "Density", center = c).save()
+    ...
+
+    Here's an example of calculating the angular momentum vector of a set of
+    spheres, but with a set of four jobs of multiple processors each.  Note
+    that we also store the results.
+
+    >>> storage = {}
+    >>> for sto, c in parallel_objects(centers, njobs=4, storage=storage):
+    ...     sp = pf.h.sphere(c, (100, "kpc"))
+    ...     sto.result = sp.quantities["AngularMomentumVector"]()
+    ...
+    >>> for sphere_id, L in sorted(storage.items()):
+    ...     print c[sphere_id], L
+    ...
+
+    """
     if dynamic:
         from .task_queue import dynamic_parallel_objects
         for my_obj in dynamic_parallel_objects(objects, njobs=njobs,
-                                               storage=storage, broadcast=broadcast):
+                                               storage=storage):
             yield my_obj
         return
     
@@ -708,6 +771,10 @@ class Communicator(object):
         rank = self.comm.rank
 
         mask = 1
+
+        buf = qt.tobuffer()
+        print "PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape
+        sys.exit()
 
         args = qt.get_args() # Will always be the same
         tgd = na.array([args[0], args[1]], dtype='int64')

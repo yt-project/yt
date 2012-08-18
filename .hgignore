@@ -16,7 +16,6 @@ yt/utilities/lib/FixedInterpolator.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
 yt/utilities/lib/geometry_utils.c
-yt/utilities/lib/grid_traversal.c
 yt/utilities/lib/Interpolators.c
 yt/utilities/lib/kdtree.c
 yt/utilities/lib/misc_utilities.c
@@ -26,6 +25,9 @@ yt/utilities/lib/PointsInVolume.c
 yt/utilities/lib/QuadTree.c
 yt/utilities/lib/RayIntegrators.c
 yt/utilities/lib/VolumeIntegrator.c
+yt/utilities/lib/grid_traversal.c
+yt/utilities/lib/marching_cubes.c
+yt/utilities/lib/png_writer.h
 syntax: glob
 *.pyc
 .*.swp

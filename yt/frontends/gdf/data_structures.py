@@ -37,6 +37,8 @@ from yt.data_objects.hierarchy import \
            AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 
 from .fields import GDFFieldInfo, KnownGDFFields
 from yt.data_objects.field_info_container import \
@@ -170,11 +172,10 @@ class GDFStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['cm'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in mpc_conversion.keys():
+            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
         # This should be improved.
         self._handle = h5py.File(self.parameter_filename, "r")
