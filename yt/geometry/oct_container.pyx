@@ -443,12 +443,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         sd.np = 0
         return my_oct
 
-    def add(self, int curdom, np.ndarray[np.float64_t, ndim=2] pos):
+    def add(self, np.ndarray[np.float64_t, ndim=2] pos):
         cdef int no = pos.shape[0]
-        cdef int p, i
+        cdef int p, i, level
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef int ind[3]
         for p in range(no):
+            level = 0
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
@@ -460,7 +461,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
                 for i in range(3):
                     cur.pos[i] = ind[i] # root level
-            while cur.sd.np >= 0:
+            if cur.sd.np == 32:
+                self.refine_oct(cur, cp)
+            while cur.sd.np < 0:
                 for i in range(3):
                     dds[i] = dds[i] / 2.0
                     if cp[i] > pp[i]:
@@ -470,6 +473,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         ind[i] = 1
                         cp[i] += dds[i]/2.0
                 cur = cur.children[ind[0]][ind[1]][ind[2]]
+                level += 1
                 if cur.sd.np == 32:
                     self.refine_oct(cur, cp)
             # Now we copy in our particle 
@@ -491,16 +495,17 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     o.children[i][j][k] = noct
         for m in range(32):
             for i in range(3):
-                if o.sd.pos[m][i] < pos[i]:
+                if o.sd.pos[i][m] < pos[i]:
                     ind[i] = 0
                 else:
                     ind[i] = 1
             noct = o.children[ind[0]][ind[1]][ind[2]]
             k = noct.sd.np
             for i in range(3):
-                noct.sd.pos[i][k] = o.sd.pos[i][k]
+                noct.sd.pos[i][k] = o.sd.pos[i][m]
             noct.sd.np += 1
         o.sd.np = -1
         for i in range(3):
             free(o.sd.pos[i])
         free(o.sd.pos)
+
