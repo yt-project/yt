@@ -312,6 +312,7 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front):
         # measure of emissivity.
         image[:,:,i  ] = image[:,:,i] + ta*arr2[:,:,i]
     image[:,:,3] = image[:,:,3] + ta*arr2[:,:,3]
+    return image
 
 def send_to_parent(comm, outgoing_rank, image):
     mylog.debug( 'Sending image to %04i' % outgoing_rank)
