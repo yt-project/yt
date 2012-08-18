@@ -25,6 +25,8 @@ License:
 
 cimport numpy as np
 
+cdef struct ParticleArrays
+
 cdef struct Oct
 cdef struct Oct:
     np.int64_t ind          # index
@@ -32,6 +34,7 @@ cdef struct Oct:
     np.int64_t domain       # (opt) addl int index
     np.int64_t pos[3]       # position in ints
     np.int8_t level
+    ParticleArrays *sd
     Oct *children[2][2][2]
     Oct *parent
 
@@ -53,3 +56,8 @@ cdef class OctreeContainer:
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
+
+cdef struct ParticleArrays:
+    np.float64_t **pos
+    np.int64_t *domain_id
+    np.int64_t np

@@ -54,7 +54,7 @@ cdef OctAllocationContainer *allocate_octs(
         oct = &n_cont.my_octs[n]
         oct.parent = NULL
         oct.ind = oct.domain = -1
-        oct.local_ind = -1
+        oct.local_ind = n + n_cont.offset
         oct.level = -1
         for i in range(2):
             for j in range(2):
@@ -238,7 +238,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 if curlevel != 0:
                     raise RuntimeError
                 cur = &cont.my_octs[cont.n_assigned]
-                cur.local_ind = cont.offset + cont.n_assigned
                 cur.parent = NULL
                 cur.level = 0
                 for i in range(3):
@@ -265,7 +264,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 if next == NULL:
                     next = &cont.my_octs[cont.n_assigned]
                     cur.children[ind[0]][ind[1]][ind[2]] = next
-                    next.local_ind = cont.offset + cont.n_assigned
                     cont.n_assigned += 1
                     next.parent = cur
                     for i in range(3):
@@ -418,3 +416,91 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             dest[local_filled + offset] = source[o.ind, ii]
                             local_filled += 1
         return local_filled
+
+cdef class ParticleOctreeContainer(OctreeContainer):
+
+    def allocate_domains(self, domain_counts):
+        cdef int count, i
+
+    cdef Oct* allocate_oct(self):
+        cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
+        cdef ParticleArrays *sd = <ParticleArrays*> \
+            malloc(sizeof(ParticleArrays))
+        cdef int i, j, k
+        my_oct.ind = my_oct.local_ind = my_oct.domain = -1
+        my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
+        my_oct.level = -1
+        my_oct.sd = sd
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    my_oct.children[i][j][k] = NULL
+        my_oct.parent = NULL
+        sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
+        sd.pos[0] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
+        sd.pos[1] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
+        sd.pos[2] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
+        sd.np = 0
+        return my_oct
+
+    def add(self, int curdom, np.ndarray[np.float64_t, ndim=2] pos):
+        cdef int no = pos.shape[0]
+        cdef int p, i
+        cdef np.float64_t dds[3], cp[3], pp[3]
+        cdef int ind[3]
+        for p in range(no):
+            for i in range(3):
+                pp[i] = pos[p, i]
+                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                cp[i] = (ind[i] + 0.5) * dds[i]
+            cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
+            if cur == NULL:
+                cur = self.allocate_oct()
+                self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
+                for i in range(3):
+                    cur.pos[i] = ind[i] # root level
+            while cur.sd.np >= 0:
+                for i in range(3):
+                    dds[i] = dds[i] / 2.0
+                    if cp[i] > pp[i]:
+                        ind[i] = 0
+                        cp[i] -= dds[i] / 2.0
+                    else:
+                        ind[i] = 1
+                        cp[i] += dds[i]/2.0
+                cur = cur.children[ind[0]][ind[1]][ind[2]]
+                if cur.sd.np == 32:
+                    self.refine_oct(cur, cp)
+            # Now we copy in our particle 
+            pi = cur.sd.np
+            for i in range(3):
+                cur.sd.pos[i][pi] = pp[i]
+            cur.sd.np += 1
+
+    cdef refine_oct(self, Oct *o, np.float64_t pos[3]):
+        cdef int i, j, k, m, ind[3]
+        cdef Oct *noct
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    noct = self.allocate_oct()
+                    noct.pos[0] = o.pos[0] << 1 + i
+                    noct.pos[1] = o.pos[1] << 1 + j
+                    noct.pos[2] = o.pos[2] << 1 + k
+                    o.children[i][j][k] = noct
+        for m in range(32):
+            for i in range(3):
+                if o.sd.pos[m][i] < pos[i]:
+                    ind[i] = 0
+                else:
+                    ind[i] = 1
+            noct = o.children[ind[0]][ind[1]][ind[2]]
+            k = noct.sd.np
+            for i in range(3):
+                noct.sd.pos[i][k] = o.sd.pos[i][k]
+            noct.sd.np += 1
+        o.sd.np = -1
+        for i in range(3):
+            free(o.sd.pos[i])
+        free(o.sd.pos)
