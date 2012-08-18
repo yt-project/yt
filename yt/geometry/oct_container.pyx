@@ -420,6 +420,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef ParticleArrays *first_sd
     cdef ParticleArrays *last_sd
+    cdef Oct** oct_list
 
     def __dealloc__(self):
         cdef i, j, k
@@ -445,14 +446,23 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def allocate_domains(self, domain_counts):
         cdef int count, i
 
+    def finalize(self):
+        self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
+        cdef i = 0
+        cdef ParticleArrays *c = self.first_sd
+        while c != NULL:
+            self.oct_list[i] = c.oct
+            c = c.next
+            i += 1
+
     cdef Oct* allocate_oct(self):
         self.nocts += 1
         cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
         cdef ParticleArrays *sd = <ParticleArrays*> \
             malloc(sizeof(ParticleArrays))
         cdef int i, j, k
-        my_oct.local_ind = my_oct.domain = -1
-        my_oct.ind = self.nocts - 1
+        my_oct.ind = my_oct.domain = -1
+        my_oct.local_ind = self.nocts - 1
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
         my_oct.sd = sd
@@ -483,6 +493,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef np.int64_t total = 0
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
+            assert(c.oct.local_ind == total)
             total += 1
             c = c.next
         return total
