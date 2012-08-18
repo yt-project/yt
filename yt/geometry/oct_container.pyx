@@ -493,7 +493,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef np.int64_t total = 0
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
-            assert(c.oct.local_ind == total)
             total += 1
             c = c.next
         return total
@@ -503,6 +502,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int p, i, level
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef int ind[3]
+        self.max_domain = max(self.max_domain, domain_id)
         for p in range(no):
             level = 0
             for i in range(3):
@@ -591,3 +591,21 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     if o.children[i][j][k] != NULL:
                         self.visit(o.children[i][j][k], counts, level + 1)
         return
+
+    def domain_identify(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef int i, oi, m
+        cdef Oct *o
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] dmask
+        dmask = np.zeros(self.max_domain+1, dtype='uint8')
+        for oi in range(self.nocts):
+            m = 0
+            o = self.oct_list[oi]
+            if o.sd.np <= 0: continue
+            for i in range(8):
+                if mask[oi, i] == 1:
+                    m = 1
+                    break
+            if m == 0: continue
+            for i in range(o.sd.np):
+                dmask[o.sd.domain_id[i]] = 1
+        return dmask.astype("bool")
