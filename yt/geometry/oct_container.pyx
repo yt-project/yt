@@ -437,10 +437,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     if o.children[i][j][k] == NULL: continue
                     self.visit_free(o.children[i][j][k])
         if o.sd.np >= 0:
-            for i in range(3):
-                free(o.sd.pos[i])
+            if o.sd.pos != NULL:
+                for i in range(3):
+                    free(o.sd.pos[i])
+                free(o.sd.pos)
             free(o.sd.domain_id)
-            free(o.sd.pos)
         free(o)
 
     def allocate_domains(self, domain_counts):
@@ -452,6 +453,12 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
             self.oct_list[i] = c.oct
+            if c.np >= 0:
+                for j in range(3):
+                    free(c.pos[j])
+                free(c.pos)
+                c.pos = NULL
+                # We should also include a shortening of the domain IDs here
             c = c.next
             i += 1
 
