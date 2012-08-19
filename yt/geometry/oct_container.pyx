@@ -485,11 +485,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.last_sd = sd
         sd.oct = my_oct
         sd.next = NULL
-        sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
-        sd.pos[0] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
-        sd.pos[1] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
-        sd.pos[2] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         sd.domain_id = <np.int64_t *> malloc(sizeof(np.int64_t) * 32)
+        sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
+        for i in range(3):
+            sd.pos[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
         for i in range(32):
             sd.pos[0][i] = sd.pos[1][i] = sd.pos[2][i] = 0.0
             sd.domain_id[i] = -1
