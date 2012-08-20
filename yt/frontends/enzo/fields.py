@@ -171,16 +171,16 @@ add_field("Gas_Energy", function=_Gas_Energy,
 # We set up fields for both TotalEnergy and Total_Energy in the known fields
 # lists.  Note that this does not mean these will be the used definitions.
 add_enzo_field("TotalEnergy", function=NullFunc,
-          display_name = "\mathrm{Total}\/\mathrm{Energy}",
+          display_name = "\rm{Total}\/\rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 add_enzo_field("Total_Energy", function=NullFunc,
-          display_name = "\mathrm{Total}\/\mathrm{Energy}",
+          display_name = "\rm{Total}\/\rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Total_Energy(field, data):
     return data["TotalEnergy"] / _convertEnergy(data)
 add_field("Total_Energy", function=_Total_Energy,
-          display_name = "\mathrm{Total}\/\mathrm{Energy}",
+          display_name = "\rm{Total}\/\rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _NumberDensity(field, data):
@@ -247,7 +247,7 @@ def _convertBfield(data):
 for field in ['Bx','By','Bz']:
     f = KnownEnzoFields[field]
     f._convert_function=_convertBfield
-    f._units=r"\mathrm{Gau\ss}"
+    f._units=r"\rm{Gauss}"
     f.take_log=False
 
 def _convertRadiation(data):
@@ -447,14 +447,14 @@ def _StarCreationTime(field, data):
     return data['star_creation_time']
 def _ConvertEnzoTimeYears(data):
     return data.pf.time_units['years']
-add_field('StarCreationTimeYears', units=r"\mathrm{yr}",
+add_field('StarCreationTimeYears', units=r"\rm{yr}",
           function=_StarCreationTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
 
 def _StarDynamicalTime(field, data):
     return data['star_dynamical_time']
-add_field('StarDynamicalTimeYears', units=r"\mathrm{yr}",
+add_field('StarDynamicalTimeYears', units=r"\rm{yr}",
           function=_StarDynamicalTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
@@ -466,7 +466,7 @@ def _StarAge(field, data):
         data.pf.current_time - \
         data['StarCreationTimeYears'][with_stars]
     return star_age
-add_field('StarAgeYears', units=r"\mathrm{yr}",
+add_field('StarAgeYears', units=r"\rm{yr}",
           function=_StarAge,
           projection_conversion="1")
 
@@ -476,20 +476,12 @@ def _IsStarParticle(field, data):
 add_field('IsStarParticle', function=_IsStarParticle,
           particle_type = True)
 
-def _convertBfield(data): 
-    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
-for field in ['Bx','By','Bz']:
-    f = KnownEnzoFields[field]
-    f._convert_function=_convertBfield
-    f._units=r"\mathrm{Gauss}"
-    f.take_log=False
-
 def _Bmag(field, data):
     """ magnitude of bvec
     """
     return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gauss}")
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\rm{Gauss}")
 
 # Particle functions
 
@@ -645,17 +637,3 @@ def _yvel(field, data):
 add_enzo_1d_field("z-velocity", function=_zvel)
 add_enzo_1d_field("y-velocity", function=_yvel)
 
-def _convertBfield(data): 
-    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
-for field in ['Bx','By','Bz']:
-    f = KnownEnzoFields[field]
-    f._convert_function=_convertBfield
-    f._units=r"\mathrm{Gauss}"
-    f.take_log=False
-
-def _Bmag(field, data):
-    """ magnitude of bvec
-    """
-    return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
-
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gauss}")

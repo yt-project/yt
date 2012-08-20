@@ -548,12 +548,13 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
         Parameters
         ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
+        height : height specifier
+            This will be the physical height of the FRB, by default it is equal
+            to width.  Note that this will not make any corrections to
+            resolution for the aspect ratio.
         resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
+            The number of pixels on a side of the final FRB.  If iterable, this
+            will be the width then the height.
         height : height specifier
             This will be the height of the FRB, by default it is equal to width.
         center : array-like of floats, optional

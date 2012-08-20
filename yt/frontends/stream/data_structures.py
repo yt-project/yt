@@ -40,6 +40,8 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.lib import \
     get_box_grids_level
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 
 from .fields import \
     StreamFieldInfo, \
@@ -288,3 +290,95 @@ class StreamStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False
+
+class StreamDictFieldHandler(dict):
+
+    @property
+    def all_fields(self): return self[0].keys()
+
+def load_uniform_grid(data, domain_dimensions, domain_size_in_cm,
+                      sim_time=0.0, number_of_particles=0):
+    r"""Load a uniform grid of data into yt as a
+    :class:`~yt.frontends.stream.data_structures.StreamHandler`.
+
+    This should allow a uniform grid of data to be loaded directly into yt and
+    analyzed as would any others.  This comes with several caveats:
+        * Units will be incorrect unless the data has already been converted to
+          cgs.
+        * Some functions may behave oddly, and parallelism will be
+          disappointing or non-existent in most cases.
+        * Particles may be difficult to integrate.
+
+    Parameters
+    ----------
+    data : dict
+        This is a dict of numpy arrays, where the keys are the field names.
+    domain_dimensiosn : array_like
+        This is the domain dimensions of the grid
+    domain_size_in_cm : float
+        The size of the domain, in centimeters
+    sim_time : float, optional
+        The simulation time in seconds
+    number_of_particles : int, optional
+        If particle fields are included, set this to the number of particles
+        
+    Examples
+    --------
+
+    >>> arr = na.random.random((256, 256, 256))
+    >>> data = dict(Density = arr)
+    >>> pf = load_uniform_grid(data, [256, 256, 256], 3.08e24)
+                
+    """
+    sfh = StreamDictFieldHandler()
+    sfh.update({0:data})
+    domain_dimensions = na.array(domain_dimensions)
+    if na.unique(domain_dimensions).size != 1:
+        print "We don't support variably sized domains yet."
+        raise RuntimeError
+    domain_left_edge = na.zeros(3, 'float64')
+    domain_right_edge = na.ones(3, 'float64')
+    grid_left_edges = na.zeros(3, "int64").reshape((1,3))
+    grid_right_edges = na.array(domain_dimensions, "int64").reshape((1,3))
+
+    grid_levels = na.array([0], dtype='int32').reshape((1,1))
+    grid_dimensions = grid_right_edges - grid_left_edges
+
+    grid_left_edges  = grid_left_edges.astype("float64")
+    grid_left_edges /= domain_dimensions*2**grid_levels
+    grid_left_edges *= domain_right_edge - domain_left_edge
+    grid_left_edges += domain_left_edge
+
+    grid_right_edges  = grid_right_edges.astype("float64")
+    grid_right_edges /= domain_dimensions*2**grid_levels
+    grid_right_edges *= domain_right_edge - domain_left_edge
+    grid_right_edges += domain_left_edge
+
+    handler = StreamHandler(
+        grid_left_edges,
+        grid_right_edges,
+        grid_dimensions,
+        grid_levels,
+        na.array([-1], dtype='int64'),
+        number_of_particles*na.ones(1, dtype='int64').reshape((1,1)),
+        na.zeros(1).reshape((1,1)),
+        sfh,
+    )
+
+    handler.name = "UniformGridData"
+    handler.domain_left_edge = domain_left_edge
+    handler.domain_right_edge = domain_right_edge
+    handler.refine_by = 2
+    handler.dimensionality = 3
+    handler.domain_dimensions = domain_dimensions
+    handler.simulation_time = sim_time
+    handler.cosmology_simulation = 0
+
+    spf = StreamStaticOutput(handler)
+    spf.units["cm"] = domain_size_in_cm
+    spf.units['1'] = 1.0
+    spf.units["unitary"] = 1.0
+    box_in_mpc = domain_size_in_cm / mpc_conversion['cm']
+    for unit in mpc_conversion.keys():
+        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+    return spf
