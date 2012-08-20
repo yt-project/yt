@@ -43,7 +43,8 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
+from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields, \
+    CylindricalFLASHFieldInfo
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField
 
@@ -215,7 +216,7 @@ class FLASHHierarchy(GridGeometryHandler):
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
-    _fieldinfo_fallback = FLASHFieldInfo
+    #_fieldinfo_fallback = FLASHFieldInfo # Now a property
     _fieldinfo_known = KnownFLASHFields
     _handle = None
     
@@ -406,10 +407,19 @@ class FLASHStaticOutput(StaticOutput):
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
 
+        self.dimensionality = dimensionality
+
+        self.geometry = self.parameters["geometry"]
+        if self.geometry == "cartesian":
+            self._setup_cartesian_coordinates()
+        elif self.geometry == "cylindrical":
+            self._setup_cylindrical_coordinates()
+        else:
+            raise YTGeometryNotSupported(self.geometry)
+
         nblockx = self.parameters["nblockx"]
         nblocky = self.parameters["nblocky"]
         nblockz = self.parameters["nblockz"]
-        self.dimensionality = dimensionality
         self.domain_dimensions = \
             na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
         try:
@@ -430,6 +440,24 @@ class FLASHStaticOutput(StaticOutput):
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+
+    def _setup_cartesian_coordinates(self):
+        pass
+
+    def _setup_cylindrical_coordinates(self):
+        if self.dimensionality == 2:
+            self.domain_left_edge[2] = 0.0
+            self.domain_right_edge[2] = 2.0 * na.pi
+
+    @property
+    def _fieldinfo_fallback(self):
+        geom = self.parameters.get("geometry", "cartesian")
+        if geom == "cartesian":
+            return FLASHFieldInfo
+        elif geom == "cylindrical":
+            return CylindricalFLASHFieldInfo
+        else:
+            raise RuntimeError
 
     def __del__(self):
         self._handle.close()

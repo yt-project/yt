@@ -125,3 +125,10 @@ class YTNotDeclaredInsideNotebook(YTException):
         return "You have not declared yourself to be inside the IPython" + \
                "Notebook.  Do so with this command:\n\n" + \
                "ytcfg['yt','ipython_notebook'] = 'True'"
+
+class YTGeometryNotSupported(YTException):
+    def __init__(self, geom):
+        self.geom = geom
+
+    def __str__(self):
+        return "We don't currently support %s geometry" % self.geom

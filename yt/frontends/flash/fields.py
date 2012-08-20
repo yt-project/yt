@@ -36,11 +36,15 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     kboltz
+import numpy as na
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
 FLASHFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = FLASHFieldInfo.add_field
+
+CylindricalFLASHFieldInfo = FieldInfoContainer.create_with_fallback(FLASHFieldInfo)
+add_cyl_field = CylindricalFLASHFieldInfo.add_field
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #
@@ -254,3 +258,51 @@ def _GasEnergy(fields, data) :
 
 add_field("GasEnergy", function=_GasEnergy, 
           units=r"\rm{ergs}/\rm{g}")
+
+def _unknown_coord(field, data):
+    raise RuntimeError
+add_cyl_field("dx", function=_unknown_coord)
+add_cyl_field("dy", function=_unknown_coord)
+
+def _dr(field, data):
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+add_cyl_field('dr', function=_dr, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _dz(field, data):
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+add_cyl_field('dz', function=_dz,
+          display_field=False, validators=[ValidateSpatial(0)])
+
+def _dtheta(field, data):
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
+add_cyl_field('dtheta', function=_dtheta,
+          display_field=False, validators=[ValidateSpatial(0)])
+
+def _coordR(field, data):
+    dim = data.ActiveDimensions[0]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+            +0.5) * data['dr'] + data.LeftEdge[0]
+add_cyl_field('r', function=_coordR, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _coordZ(field, data):
+    dim = data.ActiveDimensions[1]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+            +0.5) * data['dz'] + data.LeftEdge[1]
+add_cyl_field('z', function=_coordZ, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _coordTheta(field, data):
+    dim = data.ActiveDimensions[2]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[2])[None,:,None]
+            +0.5) * data['dtheta'] + data.LeftEdge[2]
+add_cyl_field('z', function=_coordZ, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _CylindricalVolume(field, data):
+    return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
+add_cyl_field("CellVolume", function=_CylindricalVolume)
