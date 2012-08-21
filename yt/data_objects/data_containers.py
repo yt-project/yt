@@ -574,7 +574,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
         """
         
-        if self.pf.geometry == "cylindrical" and self.axis == 1:
+        if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
+            (self.pf.geometry == "polar" and self.axis == 2):
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
             frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
