@@ -28,6 +28,8 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
+from yt.utilities.lib.misc_utilities import \
+    pixelize_cylinder
 import _MPL
 import numpy as na
 import weakref
@@ -368,6 +370,30 @@ class FixedResolutionBuffer(object):
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv
 
+class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
+
+    def __init__(self, data_source, radius, buff_size, antialias = True) :
+
+        self.data_source = data_source
+        self.pf = data_source.pf
+        self.radius = radius
+        self.buff_size = buff_size
+        self.antialias = antialias
+        self.data = {}
+        
+        h = getattr(data_source, "hierarchy", None)
+        if h is not None:
+            h.plots.append(weakref.proxy(self))
+
+    def __getitem__(self, item) :
+        if item in self.data: return self.data[item]
+        buff = pixelize_cylinder(self.data_source["r"], self.data_source["dr"],
+                                 self.data_source["theta"], self.data_source["dtheta"],
+                                 self.buff_size, self.data_source[item].astype("float64"),
+                                 self.radius)
+        self[item] = buff
+        return buff
+        
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
     This object is a subclass of :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`

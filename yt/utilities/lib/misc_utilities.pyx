@@ -26,6 +26,7 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
+cimport libc.math as math
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -334,3 +335,51 @@ def obtain_rvec(data):
                     rg[2,i,j,k] = zg[i,j,k] - c[2]
         return rg
 
+@cython.cdivision(True)
+def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
+                      np.ndarray[np.float64_t, ndim=1] dradius,
+                      np.ndarray[np.float64_t, ndim=1] theta,
+                      np.ndarray[np.float64_t, ndim=1] dtheta,
+                      int buff_size,
+                      np.ndarray[np.float64_t, ndim=1] field,
+                      np.float64_t rmax=-1.0) :
+
+    cdef np.ndarray[np.float64_t, ndim=2] img
+    cdef np.float64_t x, y, dx, dy, r0, theta0
+    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef int i, pi, pj
+    
+    if rmax < 0.0 :
+        imax = radius.argmax()
+        rmax = radius[imax] + dradius[imax]
+          
+    img = np.zeros((buff_size, buff_size))
+    extents = [-rmax, rmax] * 2
+    dx = (extents[1] - extents[0]) / img.shape[0]
+    dy = (extents[3] - extents[2]) / img.shape[1]
+      
+    dthetamin = dx / rmax
+      
+    for i in range(radius.shape[0]):
+
+        r0 = radius[i]
+        theta0 = theta[i]
+        dr_i = dradius[i]
+        dtheta_i = dtheta[i]
+
+        theta_i = theta0 - dtheta_i
+        while theta_i < theta0 + dtheta_i:
+            r_i = r0 - dr_i
+            while r_i < r0 + dr_i:
+                if rmax <= r_i:
+                    r_i += 0.5*dx 
+                    continue
+                x = r_i * math.cos(theta_i)
+                y = r_i * math.sin(theta_i)
+                pi = <int>((x + rmax)/dx)
+                pj = <int>((y + rmax)/dy)
+                img[pi, pj] = field[i]
+                r_i += 0.5*dx 
+            theta_i += dthetamin
+
+    return img
