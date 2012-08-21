@@ -573,6 +573,13 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
         >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
         """
+        
+        if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
+            (self.pf.geometry == "polar" and self.axis == 2):
+            from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
+            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
+            return frb
+        
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
