@@ -303,7 +303,7 @@ def _coordTheta(field, data):
     return (na.ones(data.ActiveDimensions, dtype='float64')
                    * na.arange(data.ActiveDimensions[2])[None,:,None]
             +0.5) * data['dtheta'] + data.LeftEdge[2]
-add_cyl_field('z', function=_coordZ, display_field=False,
+add_cyl_field('theta', function=_coordTheta, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _CylindricalVolume(field, data):
