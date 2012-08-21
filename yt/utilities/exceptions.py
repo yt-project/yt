@@ -132,3 +132,7 @@ class YTGeometryNotSupported(YTException):
 
     def __str__(self):
         return "We don't currently support %s geometry" % self.geom
+
+class YTCoordinateNotImplemented(YTException):
+    def __str__(self):
+        return "This coordinate is not implemented for this geometry type."

@@ -37,6 +37,7 @@ import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     kboltz
 import numpy as na
+from yt.utilities.exceptions import *
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -260,9 +261,11 @@ add_field("GasEnergy", function=_GasEnergy,
           units=r"\rm{ergs}/\rm{g}")
 
 def _unknown_coord(field, data):
-    raise RuntimeError
+    raise YTCoordinateNotImplemented
 add_cyl_field("dx", function=_unknown_coord)
 add_cyl_field("dy", function=_unknown_coord)
+add_cyl_field("x", function=_unknown_coord)
+add_cyl_field("y", function=_unknown_coord)
 
 def _dr(field, data):
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]

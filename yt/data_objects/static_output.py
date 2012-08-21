@@ -52,6 +52,7 @@ class StaticOutput(object):
     default_fluid_type = "gas"
     fluid_types = ("gas",)
     particle_types = ("all",)
+    geometry = "cartesian"
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
