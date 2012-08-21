@@ -1086,3 +1086,23 @@ class TitleCallback(PlotCallback):
     def __call__(self,plot):
         plot._axes.set_title(self.title)
 
+
+class FlashRayDataCallback(PlotCallback):
+    _type_name = "flash_ray_data"
+    def __init__(self, pf, cmap_name='hot'):
+        self.ray_data = pf._handle["RayData"][:]
+        self.ray_data.sort(kind='mergesort')
+        self.cmap_name = cmap_name
+
+    def __call__(self, plot):
+        coords = self.ray_data[:,1:3]
+        power = self.ray_data[:,4]
+        power /= power.max()
+        cx, cy = self.convert_to_plot(plot, coords.T)
+        coords[:,0], coords[:,1] = cx, cy
+        cmap = matplotlib.cm.get_cmap(self.cmap_name)
+
+        plot._axes.hold(True)
+        lc = matplotlib.collections.LineCollection([coords], colors=cmap(power))
+        plot._axes.add_collection(lc)
+        plot._axes.hold(False)
