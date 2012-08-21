@@ -445,7 +445,8 @@ class EnzoHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
-            if g.Parent is not None: g._guess_properties_from_parent()
+            if ytcfg.getboolean("yt","reconstruct_hierarchy"):
+                if g.Parent is not None: g._guess_properties_from_parent()
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
