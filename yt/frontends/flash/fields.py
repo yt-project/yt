@@ -47,6 +47,9 @@ add_field = FLASHFieldInfo.add_field
 CylindricalFLASHFieldInfo = FieldInfoContainer.create_with_fallback(FLASHFieldInfo)
 add_cyl_field = CylindricalFLASHFieldInfo.add_field
 
+PolarFLASHFieldInfo = FieldInfoContainer.create_with_fallback(FLASHFieldInfo)
+add_pol_field = PolarFLASHFieldInfo.add_field
+
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #
 # dens gas mass density (g/cc) --
@@ -309,3 +312,40 @@ add_cyl_field('theta', function=_coordTheta, display_field=False,
 def _CylindricalVolume(field, data):
     return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
 add_cyl_field("CellVolume", function=_CylindricalVolume)
+
+## Polar fields
+
+add_pol_field("dx", function=_unknown_coord)
+add_pol_field("dy", function=_unknown_coord)
+add_pol_field("x", function=_unknown_coord)
+add_pol_field("y", function=_unknown_coord)
+
+def _dr(field, data):
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+add_pol_field('dr', function=_dr, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _dtheta(field, data):
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+add_pol_field('dtheta', function=_dtheta,
+          display_field=False, validators=[ValidateSpatial(0)])
+
+def _coordR(field, data):
+    dim = data.ActiveDimensions[0]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+            +0.5) * data['dr'] + data.LeftEdge[0]
+add_pol_field('r', function=_coordR, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _coordTheta(field, data):
+    dim = data.ActiveDimensions[2]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+            +0.5) * data['dtheta'] + data.LeftEdge[1]
+add_pol_field('theta', function=_coordTheta, display_field=False,
+          validators=[ValidateSpatial(0)])
+
+def _CylindricalVolume(field, data):
+    return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
+add_pol_field("CellVolume", function=_CylindricalVolume)

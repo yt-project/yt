@@ -44,7 +44,7 @@ from yt.utilities.io_handler import \
     io_registry
 
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields, \
-    CylindricalFLASHFieldInfo
+    CylindricalFLASHFieldInfo, PolarFLASHFieldInfo
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField
 
@@ -408,6 +408,8 @@ class FLASHStaticOutput(StaticOutput):
             self._setup_cartesian_coordinates()
         elif self.geometry == "cylindrical":
             self._setup_cylindrical_coordinates()
+        elif self.geometry == "polar":
+            self._setup_polar_coordinates()
         else:
             raise YTGeometryNotSupported(self.geometry)
 
@@ -443,6 +445,9 @@ class FLASHStaticOutput(StaticOutput):
             self.domain_left_edge[2] = 0.0
             self.domain_right_edge[2] = 2.0 * na.pi
 
+    def _setup_polar_coordinates(self):
+        pass
+
     @property
     def _fieldinfo_fallback(self):
         geom = self.parameters.get("geometry", "cartesian")
@@ -450,6 +455,8 @@ class FLASHStaticOutput(StaticOutput):
             return FLASHFieldInfo
         elif geom == "cylindrical":
             return CylindricalFLASHFieldInfo
+        elif geom == "polar":
+            return PolarFLASHFieldInfo
         else:
             raise RuntimeError
 
