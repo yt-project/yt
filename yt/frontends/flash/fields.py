@@ -158,14 +158,24 @@ add_flash_field("temp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("temp"),
                 units=r"\rm{K}")
 add_flash_field("tele", function=NullFunc, take_log=True,
-                convert_function=_get_convert("tele"),
+                units = r"\rm{K}")
+add_flash_field("trad", function=NullFunc, take_log=True,
                 units = r"\rm{K}")
 add_flash_field("pres", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pres"),
                 units=r"\rm{erg}\//\/\rm{cm}^{3}")
+add_flash_field("pele", function=NullFunc, take_log=True,
+                display_name="Electron Pressure",
+                units=r"\rm{J}/\rm{cm}^3")
+add_flash_field("prad", function=NullFunc, take_log=True,
+                units = r"\rm{J}/\rm{cm}^3")
 add_flash_field("pden", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pden"),
                 units=r"\rm{g}/\rm{cm}^3")
+add_flash_field("depo", function=NullFunc, take_log=True,
+                units = r"\rm{ergs}/\rm{g}")
+add_flash_field("ye", function=NullFunc, take_log=True,
+                units = r"\rm{ergs}/\rm{g}")
 add_flash_field("magx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("magx"),
                 units = r"\mathrm{Gau\ss}")
@@ -195,6 +205,8 @@ add_flash_field("gpol", function=NullFunc, take_log=False,
                 units = r"\rm{ergs\//\/g}")
 add_flash_field("flam", function=NullFunc, take_log=False,
                 convert_function=_get_convert("flam"))
+add_flash_field("absr", function=NullFunc, take_log=False,
+                display_name="Absorption Coefficient")
 
 for f,v in translation_dict.items():
     if v not in KnownFLASHFields:
@@ -349,3 +361,24 @@ add_pol_field('theta', function=_coordTheta, display_field=False,
 def _CylindricalVolume(field, data):
     return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
 add_pol_field("CellVolume", function=_CylindricalVolume)
+
+
+## Derived FLASH Fields
+def _nele(field, data):
+    return data['ye'] * data['dens'] * data['sumy'] * 6.022E23
+add_field('nele', function=_nele, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+add_field('edens', function=_nele, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+
+def _nion(field, data):
+    return data['dens'] * data['sumy'] * 6.022E23
+add_field('nion', function=_nion, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+
+
+def _abar(field, data):
+    return 1.0 / data['sumy']
+add_field('abar', function=_abar, take_log=False)
+
+
+def _velo(field, data):
+    return (data['velx']**2 + data['vely']**2 + data['velz']**2)**0.5
+add_field ('velo', function=_velo, take_log=True, units=r"\rm{cm}/\rm{s}")
