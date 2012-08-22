@@ -1089,20 +1089,35 @@ class TitleCallback(PlotCallback):
 
 class FlashRayDataCallback(PlotCallback):
     _type_name = "flash_ray_data"
-    def __init__(self, pf, cmap_name='hot'):
+    def __init__(self, pf, cmap_name='bone', sample=None):
+        """
+        annotate_flash_ray_data(pf, cmap_name='bone', sample=None)
+
+        Accepts a *pf* and adds ray trace data to the plot.  *cmap_name* is the
+        name of the color map ('bone', 'jet', 'hot', etc).  *sample* dictates 
+        the amount of down sampling to do to prevent all of the rays from being 
+        plotted.  This may be None (plot all rays, default), an integer (step size), 
+        or a slice object.
+        """
         self.ray_data = pf._handle["RayData"][:]
-        self.ray_data.sort(kind='mergesort')
+        idx = self.ray_data[:,0].argsort(kind="mergesort")
+        self.ray_data = self.ray_data[idx]
         self.cmap_name = cmap_name
+        self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
 
     def __call__(self, plot):
+        tags = self.ray_data[:,0]
         coords = self.ray_data[:,1:3]
         power = self.ray_data[:,4]
         power /= power.max()
         cx, cy = self.convert_to_plot(plot, coords.T)
         coords[:,0], coords[:,1] = cx, cy
+        splitidx = na.argwhere(0 < (tags[1:] - tags[:-1])) + 1
+        coords = na.split(coords, splitidx.flat)[self.sample]
+        power = na.split(power, splitidx.flat)[self.sample]
         cmap = matplotlib.cm.get_cmap(self.cmap_name)
 
         plot._axes.hold(True)
-        lc = matplotlib.collections.LineCollection([coords], colors=cmap(power))
+        lc = matplotlib.collections.LineCollection(coords, colors=[cmap(p.max()) for p in power])
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
