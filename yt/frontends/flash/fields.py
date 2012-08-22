@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk, John ZuHone.  All Rights Reserved.
+  Copyright (C) 2010-2012 Matthew Turk, John ZuHone, Anthony Scopatz.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -157,6 +157,8 @@ add_flash_field("particle_mass", function=NullFunc, take_log=False,
 add_flash_field("temp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("temp"),
                 units=r"\rm{K}")
+add_flash_field("tion", function=NullFunc, take_log=True,
+                units=r"\rm{K}")
 add_flash_field("tele", function=NullFunc, take_log=True,
                 units = r"\rm{K}")
 add_flash_field("trad", function=NullFunc, take_log=True,
@@ -164,11 +166,24 @@ add_flash_field("trad", function=NullFunc, take_log=True,
 add_flash_field("pres", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pres"),
                 units=r"\rm{erg}\//\/\rm{cm}^{3}")
+add_flash_field("pion", function=NullFunc, take_log=True,
+                display_name="Ion Pressure",
+                units=r"\rm{J}/\rm{cm}^3")
 add_flash_field("pele", function=NullFunc, take_log=True,
-                display_name="Electron Pressure",
+                display_name="Electron Pressure, P_e",
                 units=r"\rm{J}/\rm{cm}^3")
 add_flash_field("prad", function=NullFunc, take_log=True,
+                display_name="Radiation Pressure",
                 units = r"\rm{J}/\rm{cm}^3")
+add_flash_field("eion", function=NullFunc, take_log=True,
+                display_name="Ion Internal Energy",
+                units=r"\rm{J}")
+add_flash_field("eele", function=NullFunc, take_log=True,
+                display_name="Electron Internal Energy",
+                units=r"\rm{J}")
+add_flash_field("erad", function=NullFunc, take_log=True,
+                display_name="Radiation Internal Energy",
+                units=r"\rm{J}")
 add_flash_field("pden", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pden"),
                 units=r"\rm{g}/\rm{cm}^3")
@@ -207,6 +222,31 @@ add_flash_field("flam", function=NullFunc, take_log=False,
                 convert_function=_get_convert("flam"))
 add_flash_field("absr", function=NullFunc, take_log=False,
                 display_name="Absorption Coefficient")
+add_flash_field("emis", function=NullFunc, take_log=False,
+                display_name="Emissivity")
+add_flash_field("cond", function=NullFunc, take_log=False,
+                display_name="Conductivity")
+add_flash_field("dfcf", function=NullFunc, take_log=False,
+                display_name="Diffusion Equation Scalar")
+add_flash_field("fllm", function=NullFunc, take_log=False,
+                display_name="Flux Limit")
+add_flash_field("pipe", function=NullFunc, take_log=False,
+                display_name="P_i/P_e")
+add_flash_field("tite", function=NullFunc, take_log=False,
+                display_name="T_i/T_e")
+add_flash_field("dbgs", function=NullFunc, take_log=False,
+                display_name="Debug for Shocks")
+add_flash_field("cham", function=NullFunc, take_log=False,
+                display_name="Chamber Material Fraction")
+add_flash_field("targ", function=NullFunc, take_log=False,
+                display_name="Target Material Fraction")
+add_flash_field("sumy", function=NullFunc, take_log=False)
+add_flash_field("mgdc", function=NullFunc, take_log=False)
+
+for i in range(1, 1000):
+    add_flash_field("r{0:03}".format(i), function=NullFunc, take_log=False,
+        display_name="Energy Group {0}".format(i))
+
 
 for f,v in translation_dict.items():
     if v not in KnownFLASHFields:
