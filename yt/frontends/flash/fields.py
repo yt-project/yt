@@ -241,7 +241,8 @@ add_flash_field("cham", function=NullFunc, take_log=False,
 add_flash_field("targ", function=NullFunc, take_log=False,
                 display_name="Target Material Fraction")
 add_flash_field("sumy", function=NullFunc, take_log=False)
-add_flash_field("mgdc", function=NullFunc, take_log=False)
+add_flash_field("mgdc", function=NullFunc, take_log=False,
+                display_name="Emission Minus Absorption Diffusion Terms")
 
 for i in range(1, 1000):
     add_flash_field("r{0:03}".format(i), function=NullFunc, take_log=False,
