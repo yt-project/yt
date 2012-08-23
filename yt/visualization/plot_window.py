@@ -667,10 +667,12 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
 
+            field_name = self.data_source.pf.field_info[f].display_name
+
             if md['units'] == None or md['units'] == '':
-                label = r'$\rm{'+f.encode('string-escape')+r'}$'
+                label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
             else:
-                label = r'$\rm{'+f.encode('string-escape')+r'}\/\/('+md['units']+r')$'
+                label = r'$\rm{'+field_name.encode('string-escape')+r'}\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
 
