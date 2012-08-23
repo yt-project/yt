@@ -563,7 +563,8 @@ class PWViewer(PlotWindow):
         ----------
         unit_name : string
             A unit, available for conversion in the parameter file, that the
-            image extents will be displayed in.
+            image extents will be displayed in.  If set to None, any previous
+            units will be reset.
 
         Raises
         ------
@@ -577,12 +578,15 @@ class PWViewer(PlotWindow):
         >>> p.show()
         >>> p.set_axes_unit("kpc")
         >>> p.show()
+        >>> p.set_axes_unit(None)
+        >>> p.show()
         """
         # blind except because it could be in conversion_factors or units
         try:
             self.pf[unit_name]
         except KeyError: 
-            raise YTUnitNotRecognized(unit_name)
+            if unit_name is not None:
+                raise YTUnitNotRecognized(unit_name)
         self._unit = unit_name
 
     def get_metadata(self, field, strip_mathml = True, return_string = True):
