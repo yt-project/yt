@@ -554,13 +554,47 @@ class PWViewer(PlotWindow):
             callback.__doc__ = CallbackMaker.__init__.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    _unit = None
+    @invalidate_plot
+    def set_axes_unit(self, unit_name):
+        r"""Set the unit for display on the x and y axes of the image.
+
+        Parameters
+        ----------
+        unit_name : string
+            A unit, available for conversion in the parameter file, that the
+            image extents will be displayed in.
+
+        Raises
+        ------
+        YTUnitNotRecognized
+            If the unit is not known, this will be raised.
+
+        Examples
+        --------
+
+        >>> p = ProjectionPlot(pf, "y", "Density")
+        >>> p.show()
+        >>> p.set_axes_unit("kpc")
+        >>> p.show()
+        """
+        # blind except because it could be in conversion_factors or units
+        try:
+            self.pf[unit_name]
+        except KeyError: 
+            raise YTUnitNotRecognized(unit_name)
+        self._unit = unit_name
+
     def get_metadata(self, field, strip_mathml = True, return_string = True):
         fval = self._frb[field]
         mi = fval.min()
         ma = fval.max()
         x_width = self.xlim[1] - self.xlim[0]
         y_width = self.ylim[1] - self.ylim[0]
-        unit = get_smallest_appropriate_unit(x_width, self.pf)
+        if self._unit is None:
+            unit = get_smallest_appropriate_unit(x_width, self.pf)
+        else:
+            unit = self._unit
         units = self.get_field_units(field, strip_mathml)
         center = getattr(self._frb.data_source, "center", None)
         if center is None or self._frb.axis == 4:
