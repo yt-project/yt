@@ -201,6 +201,7 @@ def configuration(parent_package='',top_path=None):
                           "yt/utilities/lib/kdtree.h",
                           "yt/utilities/lib/FixedInterpolator.h",
                           "yt/utilities/lib/fixed_interpolator.pxd",
+                          "yt/utilities/lib/field_interpolation_tables.pxd",
                           ]
           )
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

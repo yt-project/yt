@@ -208,9 +208,13 @@ def _Pressure(field, data):
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Entropy(field, data):
-    return kboltz  * data["Temperature"] / \
-           (data["NumberDensity"]**(data.pf["Gamma"] - 1.0))
-add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{2}",
+    if data.has_field_parameter("mu"):
+        mw = mh*data.get_field_parameter("mu")
+    else :
+        mw = mh
+    return kboltz * data["Temperature"] / \
+           ((data["Density"]/mw)**(data.pf["Gamma"] - 1.0))
+add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
 
 def _Height(field, data):
@@ -383,6 +387,36 @@ add_field("CellVolumeMpc", units=r"\rm{Mpc}^3",
 add_field("CellVolume", units=r"\rm{cm}^3",
           function=_CellVolume,
           convert_function=_ConvertCellVolumeCGS)
+
+def _ChandraEmissivity(field, data):
+    logT0 = na.log10(data["Temperature"]) - 7
+    return ((data["NumberDensity"].astype('float64')**2.0) \
+            *(10**(-0.0103*logT0**8 \
+                   +0.0417*logT0**7 \
+                   -0.0636*logT0**6 \
+                   +0.1149*logT0**5 \
+                   -0.3151*logT0**4 \
+                   +0.6655*logT0**3 \
+                   -1.1256*logT0**2 \
+                   +1.0026*logT0**1 \
+                   -0.6984*logT0) \
+              +data["Metallicity"]*10**(0.0305*logT0**11 \
+                                        -0.0045*logT0**10 \
+                                        -0.3620*logT0**9 \
+                                        +0.0513*logT0**8 \
+                                        +1.6669*logT0**7 \
+                                        -0.3854*logT0**6 \
+                                        -3.3604*logT0**5 \
+                                        +0.4728*logT0**4 \
+                                        +4.5774*logT0**3 \
+                                        -2.3661*logT0**2 \
+                                        -1.6667*logT0**1 \
+                                        -0.2193*logT0)))
+def _convertChandraEmissivity(data):
+    return 1.0 #1.0e-23*0.76**2
+add_field("ChandraEmissivity", function=_ChandraEmissivity,
+          convert_function=_convertChandraEmissivity,
+          projection_conversion="1")
 
 def _XRayEmissivity(field, data):
     return ((data["Density"].astype('float64')**2.0) \

@@ -871,9 +871,12 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             units of the simulation, or a tuple of the (value, unit) style.
             This will be the width of the FRB.
         height : height specifier
-            This will be the height of the FRB, by default it is equal to width.
+            This will be the physical height of the FRB, by default it is equal
+            to width.  Note that this will not make any corrections to
+            resolution for the aspect ratio.
         resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
+            The number of pixels on a side of the final FRB.  If iterable, this
+            will be the width then the height.
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
@@ -912,6 +915,26 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                   center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
+
+    def to_pw(self):
+        r"""Create a :class:`~yt.visualization.plot_window.PlotWindow` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        axis = self.axis
+        center = self.get_field_parameter("center")
+        if center is None:
+            center = (self.pf.domain_right_edge
+                    + self.pf.domain_left_edge)/2.0
+        width = (1.0, 'unitary')
+        from yt.visualization.plot_window import \
+            PWViewerMPL, GetBoundsAndCenter
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds)
+        return pw
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
         """
@@ -1804,7 +1827,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         field_data = na.concatenate(field_data, axis=0).transpose()
         if self._weight is None:
             dls, convs = self._get_dls(self._grids[0], fields)
-            field_data *= convs
+            field_data *= convs[:,None]
         weight_data = na.concatenate(weight_data, axis=0).transpose()
         dxs = na.concatenate(dxs, axis=0).transpose()
         # We now convert to half-widths and center-points

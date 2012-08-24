@@ -37,10 +37,11 @@ class CosmologySplice(object):
     cosmological distance.
     """
 
-    def __init__(self, parameter_filename, simulation_type):
+    def __init__(self, parameter_filename, simulation_type, find_outputs=False):
         self.parameter_filename = parameter_filename
         self.simulation_type = simulation_type
-        self.simulation = simulation(parameter_filename, simulation_type)
+        self.simulation = simulation(parameter_filename, simulation_type, 
+                                     find_outputs=find_outputs)
 
         self.cosmology = Cosmology(
             HubbleConstantNow=(100.0 * self.simulation.hubble_constant),
@@ -184,7 +185,23 @@ class CosmologySplice(object):
 
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." %
                    (len(cosmology_splice), far_redshift, near_redshift))
-
+        
+        # change the 'next' and 'previous' pointers to point to the correct outputs for the created
+        # splice
+        for i, output in enumerate(cosmology_splice):
+            if len(cosmology_splice) == 1:
+                output['previous'] = None
+                output['next'] = None
+            elif i == 0:
+                output['previous'] = None
+                output['next'] = cosmology_splice[i + 1]
+            elif i == len(cosmology_splice) - 1:
+                output['previous'] = cosmology_splice[i - 1]
+                output['next'] = None
+            else:
+                output['previous'] = cosmology_splice[i - 1]
+                output['next'] = cosmology_splice[i + 1]
+        
         self.splice_outputs.sort(key=lambda obj: obj['time'])
         return cosmology_splice
 

@@ -107,15 +107,9 @@ class FLASHHierarchy(AMRHierarchy):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
         # We only go up to ND for 2D datasets
-        if (f["/bounding box"][:,:,0].shape[1] == ND) :
-            #FLASH 2/3 2D data
-            self.grid_left_edge[:,:ND] = f["/bounding box"][:,:,0]
-            self.grid_right_edge[:,:ND] = f["/bounding box"][:,:,1]
-        else:
-            self.grid_left_edge[:,:] = f["/bounding box"][:,:,0]
-            self.grid_right_edge[:,:] = f["/bounding box"][:,:,1]
-            
-
+        self.grid_left_edge[:,:ND] = f["/bounding box"][:,:ND,0]
+        self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
+        
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']

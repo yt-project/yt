@@ -50,7 +50,7 @@ cdef inline void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
               int field_id, int weight_field_id, int weight_table_id) nogil:
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
-    fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
+    fit.dbin = (fit.bounds[1] - fit.bounds[0])/(fit.nbins-1)
     fit.idbin = 1.0/fit.dbin
     # Better not pull this out from under us, yo
     fit.values = values
@@ -65,8 +65,9 @@ cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                                        np.float64_t dvs[6]) nogil:
     cdef np.float64_t bv, dy, dd, tf, rv
     cdef int bin_id
-    if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
+    if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
+    bin_id = iclip(bin_id, 0, fit.nbins-2)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
     bv = fit.values[bin_id]
     dy = fit.values[bin_id + 1] - bv
@@ -80,7 +81,7 @@ cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
 cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
                             np.float64_t *rgba, int n_fits,
                             FieldInterpolationTable fits[6],
-                            int field_table_ids[6]) nogil:
+                            int field_table_ids[6], int grey_opacity) nogil:
     cdef int i, fid, use
     cdef np.float64_t ta, tf, ttot, istorage[6], trgba[6], dot_prod
     for i in range(6): istorage[i] = 0.0
@@ -91,11 +92,15 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
-    ttot = trgba[0] + trgba[1] + trgba[2]
-    ta = fmax(1.0 - dt*ttot, 0.0)
-    for i in range(3):
-        #ta = 1.0-dt*fmax(trgba[i], 0.0))
-        rgba[i] = (1.0-ta)*trgba[i] + ta*rgba[i]
+    if grey_opacity == 1:
+        ttot = trgba[0] + trgba[1] + trgba[2]
+        ta = fmax(1.0 - dt*ttot, 0.0)
+        for i in range(3):
+            rgba[i] = (1.0-ta)*trgba[i] + ta*rgba[i]
+    else:
+        for i in range(3):
+            ta = fmax(1.0-dt*trgba[i], 0.0)
+            rgba[i] = dt*trgba[i] + ta*rgba[i]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -104,7 +109,7 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         np.float64_t *grad, np.float64_t *l_dir, np.float64_t *l_rgba,
         np.float64_t *rgba, int n_fits,
         FieldInterpolationTable fits[6],
-        int field_table_ids[6]) nogil:
+        int field_table_ids[6], int grey_opacity) nogil:
     cdef int i, fid, use
     cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
     dot_prod = 0.0
@@ -119,7 +124,12 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
-    ta = fmax(1.0-dt*(trgba[0] + trgba[1] + trgba[2]), 0.0)
-    for i in range(3):
-        rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
+    if grey_opacity == 1:
+        ta = fmax(1.0-dt*(trgba[0] + trgba[1] + trgba[2]), 0.0)
+        for i in range(3):
+            rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
+    else:
+        for i in range(3):
+            ta = fmax(1.0-dt*trgba[i], 0.0)
+            rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
 

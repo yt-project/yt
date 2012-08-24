@@ -44,7 +44,8 @@ class LightRay(CosmologySplice):
                  near_redshift, far_redshift,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
-                 time_data=True, redshift_data=True):
+                 time_data=True, redshift_data=True,
+                 find_outputs=False):
         """
         Create a LightRay object.  A light ray is much like a light cone,
         in that it stacks together multiple datasets in order to extend a
@@ -93,6 +94,10 @@ class LightRay(CosmologySplice):
             Whether or not to include redshift outputs when gathering
             datasets for time series.
             Default: True.
+        find_outputs : bool
+            Whether or not to search for parameter files in the current 
+            directory.
+            Default: False.
 
         """
 
@@ -106,7 +111,8 @@ class LightRay(CosmologySplice):
         self._data = {}
 
         # Get list of datasets for light ray solution.
-        CosmologySplice.__init__(self, parameter_filename, simulation_type)
+        CosmologySplice.__init__(self, parameter_filename, simulation_type,
+                                 find_outputs=find_outputs)
         self.light_ray_solution = \
           self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                        minimal=self.use_minimum_datasets,
@@ -579,7 +585,7 @@ def periodic_ray(start, end, left=None, right=None):
     this_end = na.copy(end)
     t = 0.0
     tolerance = 1e-6
-    
+
     while t < 1.0 - tolerance:
         hit_left = (this_start <= left) & (vector < 0)
         if (hit_left).any():
@@ -594,6 +600,8 @@ def periodic_ray(start, end, left=None, right=None):
                                 for q in range(start.size)])
         dt = ((nearest - this_start) / vector)[bound].min()
         now = this_start + vector * dt
+        close_enough = na.abs(now - nearest) < 1e-10
+        now[close_enough] = nearest[close_enough]
         segments.append([na.copy(this_start), na.copy(now)])
         this_start = na.copy(now)
         t += dt
