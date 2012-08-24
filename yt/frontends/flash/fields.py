@@ -36,7 +36,7 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     kboltz
-import numpy as na
+import numpy as np
 from yt.utilities.exceptions import *
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
@@ -324,40 +324,40 @@ add_cyl_field("x", function=_unknown_coord)
 add_cyl_field("y", function=_unknown_coord)
 
 def _dr(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_cyl_field('dr', function=_dr, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_cyl_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _dtheta(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_cyl_field('dtheta', function=_dtheta,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordR(field, data):
     dim = data.ActiveDimensions[0]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[0])[:,None,None]
             +0.5) * data['dr'] + data.LeftEdge[0]
 add_cyl_field('r', function=_coordR, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordZ(field, data):
     dim = data.ActiveDimensions[1]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[1])[None,:,None]
             +0.5) * data['dz'] + data.LeftEdge[1]
 add_cyl_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordTheta(field, data):
     dim = data.ActiveDimensions[2]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[2])[None,None,:]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[2])[None,None,:]
             +0.5) * data['dtheta'] + data.LeftEdge[2]
 add_cyl_field('theta', function=_coordTheta, display_field=False,
           validators=[ValidateSpatial(0)])
@@ -374,27 +374,27 @@ add_pol_field("x", function=_unknown_coord)
 add_pol_field("y", function=_unknown_coord)
 
 def _dr(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_pol_field('dr', function=_dr, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dtheta(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_pol_field('dtheta', function=_dtheta,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordR(field, data):
     dim = data.ActiveDimensions[0]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[0])[:,None,None]
             +0.5) * data['dr'] + data.LeftEdge[0]
 add_pol_field('r', function=_coordR, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordTheta(field, data):
     dim = data.ActiveDimensions[2]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[1])[None,:,None]
             +0.5) * data['dtheta'] + data.LeftEdge[1]
 add_pol_field('theta', function=_coordTheta, display_field=False,
           validators=[ValidateSpatial(0)])

@@ -29,7 +29,7 @@ import json
 import logging, threading
 import sys
 import urllib, urllib2
-import numpy as na
+import numpy as np
 
 from yt.utilities.bottle import \
     server_names, debug, route, run, request, ServerAdapter, response
@@ -134,7 +134,7 @@ class PayloadHandler(object):
         bp['binary'] = []
         for bkey in bkeys:
             bdata = bp.pop(bkey) # Get the binary data
-            if isinstance(bdata, na.ndarray):
+            if isinstance(bdata, np.ndarray):
                 bdata = bdata.tostring()
             bpserver = BinaryDelivery(bdata, bkey)
             self.binary_payloads.append(bpserver)

@@ -24,7 +24,7 @@ License:
 """
 
 import struct
-import numpy as na
+import numpy as np
 import os
 
 def read_attrs(f, attrs):
@@ -106,7 +106,7 @@ def read_vector(f, d):
         print "fmt = '%s' ; ss = %s ; ds = %s" % (fmt, ss, ds)
         raise RuntimeError
     count = ss / ds
-    tr = na.fromstring(f.read(na.dtype(d).itemsize*count), d, count)
+    tr = np.fromstring(f.read(np.dtype(d).itemsize*count), d, count)
     vec = struct.unpack(fmt, f.read(struct.calcsize(fmt)))
     assert(vec[-1] == ss)
     return tr

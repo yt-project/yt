@@ -27,7 +27,7 @@ import exceptions
 import pdb
 import weakref
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from yt.utilities.definitions import x_dict, y_dict
@@ -83,11 +83,11 @@ class AMRGridPatch(object):
         if self.Parent == None:
             left = self.LeftEdge - self.pf.domain_left_edge
             start_index = left / self.dds
-            return na.rint(start_index).astype('int64').ravel()
+            return np.rint(start_index).astype('int64').ravel()
 
         pdx = self.Parent.dds
         start_index = (self.Parent.get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent.LeftEdge) / pdx)
+                       np.rint((self.LeftEdge - self.Parent.LeftEdge) / pdx)
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
@@ -188,15 +188,15 @@ class AMRGridPatch(object):
                 if self.pf.field_info[field].particle_type and \
                    self.NumberOfParticles == 0:
                     # because this gets upcast to float
-                    self[field] = na.array([],dtype='int64')
+                    self[field] = np.array([],dtype='int64')
                     return self.field_data[field]
                 try:
                     temp = self.hierarchy.io.pop(self, field)
-                    self[field] = na.multiply(temp, conv_factor, temp)
+                    self[field] = np.multiply(temp, conv_factor, temp)
                 except self.hierarchy.io._read_exception, exc:
                     if field in self.pf.field_info:
                         if self.pf.field_info[field].not_in_all:
-                            self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
+                            self[field] = np.zeros(self.ActiveDimensions, dtype='float64')
                         else:
                             raise
                     else: raise
@@ -213,14 +213,14 @@ class AMRGridPatch(object):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE - LE) / self.ActiveDimensions)
+            self.dds = np.array((RE - LE) / self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     @property
     def _corners(self):
-        return na.array([ # Unroll!
+        return np.array([ # Unroll!
             [self.LeftEdge[0],  self.LeftEdge[1],  self.LeftEdge[2]],
             [self.RightEdge[0], self.LeftEdge[1],  self.LeftEdge[2]],
             [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
@@ -245,9 +245,9 @@ class AMRGridPatch(object):
         x = x_dict[axis]
         y = y_dict[axis]
         cond = self.RightEdge[x] >= LE[:,x]
-        cond = na.logical_and(cond, self.LeftEdge[x] <= RE[:,x])
-        cond = na.logical_and(cond, self.RightEdge[y] >= LE[:,y])
-        cond = na.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
+        cond = np.logical_and(cond, self.LeftEdge[x] <= RE[:,x])
+        cond = np.logical_and(cond, self.RightEdge[y] >= LE[:,y])
+        cond = np.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
         return cond
 
     def __repr__(self):
@@ -286,19 +286,19 @@ class AMRGridPatch(object):
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
 
     def __len__(self):
-        return na.prod(self.ActiveDimensions)
+        return np.prod(self.ActiveDimensions)
 
     def find_max(self, field):
         """ Returns value, index of maximum value of *field* in this grid. """
         coord1d = (self[field] * self.child_mask).argmax()
-        coord = na.unravel_index(coord1d, self[field].shape)
+        coord = np.unravel_index(coord1d, self[field].shape)
         val = self[field][coord]
         return val, coord
 
     def find_min(self, field):
         """ Returns value, index of minimum value of *field* in this grid. """
         coord1d = (self[field] * self.child_mask).argmin()
-        coord = na.unravel_index(coord1d, self[field].shape)
+        coord = np.unravel_index(coord1d, self[field].shape)
         val = self[field][coord]
         return val, coord
 
@@ -377,8 +377,8 @@ class AMRGridPatch(object):
     def __fill_child_mask(self, child, mask, tofill):
         rf = self.pf.refine_by
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
-        startIndex = na.maximum(0, cgi / rf - gi)
-        endIndex = na.minimum((cgi + child.ActiveDimensions) / rf - gi,
+        startIndex = np.maximum(0, cgi / rf - gi)
+        endIndex = np.minimum((cgi + child.ActiveDimensions) / rf - gi,
                               self.ActiveDimensions)
         endIndex += (startIndex == endIndex)
         mask[startIndex[0]:endIndex[0],
@@ -391,7 +391,7 @@ class AMRGridPatch(object):
         thus, where higher resolution data is available).
 
         """
-        self._child_mask = na.ones(self.ActiveDimensions, 'bool')
+        self._child_mask = np.ones(self.ActiveDimensions, 'bool')
         for child in self.Children:
             self.__fill_child_mask(child, self._child_mask, 0)
         if self.OverlappingSiblings is not None:
@@ -406,7 +406,7 @@ class AMRGridPatch(object):
         and otherwise has the ID of the grid that resides there.
 
         """
-        self._child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
+        self._child_index_mask = np.zeros(self.ActiveDimensions, 'int32') - 1
         for child in self.Children:
             self.__fill_child_mask(child, self._child_index_mask,
                                    child.id)
@@ -433,8 +433,8 @@ class AMRGridPatch(object):
         Creates self.coords, which is of dimensions (3, ActiveDimensions)
 
         """
-        ind = na.indices(self.ActiveDimensions)
-        left_shaped = na.reshape(self.LeftEdge, (3, 1, 1, 1))
+        ind = np.indices(self.ActiveDimensions)
+        left_shaped = np.reshape(self.LeftEdge, (3, 1, 1, 1))
         self['x'], self['y'], self['z'] = (ind + 0.5) * self.dds + left_shaped
 
     child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
@@ -470,7 +470,7 @@ class AMRGridPatch(object):
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True, no_ghost=False):
-        new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+        new_field = np.zeros(self.ActiveDimensions + 1, dtype='float64')
 
         if no_ghost:
             of = self[field]
@@ -482,9 +482,9 @@ class AMRGridPatch(object):
             new_field[1:,:-1,1:] += of
             new_field[1:,1:,:-1] += of
             new_field[1:,1:,1:] += of
-            na.multiply(new_field, 0.125, new_field)
+            np.multiply(new_field, 0.125, new_field)
             if self.pf.field_info[field].take_log:
-                new_field = na.log10(new_field)
+                new_field = np.log10(new_field)
 
             new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
             new_field[:,:, 0]  = 2.0*new_field[:,:,1] - new_field[:,:,2]
@@ -494,31 +494,31 @@ class AMRGridPatch(object):
             new_field[0,:,:]  = 2.0*new_field[1,:,:] - new_field[2,:,:]
 
             if self.pf.field_info[field].take_log:
-                na.power(10.0, new_field, new_field)
+                np.power(10.0, new_field, new_field)
         else:
             cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
-            na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
-            na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
-            na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
-            na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
-            na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
-            na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
-            na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
-            na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
-            na.multiply(new_field, 0.125, new_field)
+            np.add(new_field, cg[field][1: ,1: ,1: ], new_field)
+            np.add(new_field, cg[field][:-1,1: ,1: ], new_field)
+            np.add(new_field, cg[field][1: ,:-1,1: ], new_field)
+            np.add(new_field, cg[field][1: ,1: ,:-1], new_field)
+            np.add(new_field, cg[field][:-1,1: ,:-1], new_field)
+            np.add(new_field, cg[field][1: ,:-1,:-1], new_field)
+            np.add(new_field, cg[field][:-1,:-1,1: ], new_field)
+            np.add(new_field, cg[field][:-1,:-1,:-1], new_field)
+            np.multiply(new_field, 0.125, new_field)
 
         return new_field
 
     def icoords(self, dobj):
         mask = self.select(dobj.selector)
-        if mask is None: return na.empty((0,3), dtype='int64')
+        if mask is None: return np.empty((0,3), dtype='int64')
         coords = convert_mask_to_indices(mask, mask.sum())
         coords += self.get_global_startindex()[None, :]
         return coords
 
     def fcoords(self, dobj):
         mask = self.select(dobj.selector)
-        if mask is None: return na.empty((0,3), dtype='float64')
+        if mask is None: return np.empty((0,3), dtype='float64')
         coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
         coords += 0.5
         coords *= self.dds[None, :]
@@ -527,16 +527,16 @@ class AMRGridPatch(object):
 
     def fwidth(self, dobj):
         mask = self.select(dobj.selector)
-        if mask is None: return na.empty((0,3), dtype='float64')
-        coords = na.empty((mask.sum(), 3), dtype='float64')
+        if mask is None: return np.empty((0,3), dtype='float64')
+        coords = np.empty((mask.sum(), 3), dtype='float64')
         for axis in range(3):
             coords[:,axis] = self.dds[axis]
         return coords
 
     def ires(self, dobj):
         mask = self.select(dobj.selector)
-        if mask is None: return na.empty(0, dtype='int64')
-        coords = na.empty(mask.sum(), dtype='int64')
+        if mask is None: return np.empty(0, dtype='int64')
+        coords = np.empty(mask.sum(), dtype='int64')
         coords[:] = self.Level
         return coords
 

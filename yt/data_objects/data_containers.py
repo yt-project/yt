@@ -30,7 +30,7 @@ import types
 
 data_object_registry = {}
 
-import numpy as na
+import numpy as np
 import weakref
 import shelve
 from contextlib import contextmanager
@@ -56,9 +56,9 @@ def force_array(item, shape):
         return item
     except AttributeError:
         if item:
-            return na.ones(shape, dtype='bool')
+            return np.ones(shape, dtype='bool')
         else:
-            return na.zeros(shape, dtype='bool')
+            return np.zeros(shape, dtype='bool')
 
 def restore_field_information_state(func):
     """
@@ -120,14 +120,14 @@ class YTDataContainer(object):
 
     def _set_default_field_parameters(self):
         self.field_parameters = {}
-        self.set_field_parameter("center",na.zeros(3,dtype='float64'))
-        self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
+        self.set_field_parameter("center",np.zeros(3,dtype='float64'))
+        self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
 
     def _set_center(self, center):
         if center is None:
             pass
-        elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
-            center = na.array(center)
+        elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
+            center = np.array(center)
         elif center in ("c", "center"):
             center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
@@ -135,7 +135,7 @@ class YTDataContainer(object):
         elif center.startswith("max_"):
             center = self.pf.h.find_max(center[4:])[1]
         else:
-            center = na.array(center, dtype='float64')
+            center = np.array(center, dtype='float64')
         self.center = center
         self.set_field_parameter('center', center)
 
@@ -230,7 +230,7 @@ class YTDataContainer(object):
         try:
             self.pf.field_info[fname].check_available(gen_obj)
         except NeedsGridType, ngt_exception:
-            rv = na.empty(self.size, dtype="float64")
+            rv = np.empty(self.size, dtype="float64")
             ind = 0
             ngz = ngt_exception.ghost_zones
             for io_chunk in self.chunks([], "io"):
@@ -262,7 +262,7 @@ class YTDataContainer(object):
             if ngt_exception.ghost_zones != 0:
                 raise NotImplementedError
             size = self._count_particles(ftype)
-            rv = na.empty(size, dtype="float64")
+            rv = np.empty(size, dtype="float64")
             ind = 0
             for io_chunk in self.chunks([], "io"):
                 for i,chunk in enumerate(self.chunks(field, "spatial")):
@@ -311,7 +311,7 @@ class YTDataContainer(object):
         field_order += [field for field in fields if field not in field_order]
         fid = open(filename,"w")
         fid.write("\t".join(["#"] + field_order + ["\n"]))
-        field_data = na.array([self.field_data[field] for field in field_order])
+        field_data = np.array([self.field_data[field] for field in field_order])
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
@@ -571,7 +571,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
         >>> proj = pf.h.proj("Density", 0)
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
-        >>> write_image(na.log10(frb["Density"]), 'density_100kpc.png')
+        >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
         """
         
         if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
@@ -738,16 +738,16 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 samples.append(svals)
             verts.append(my_verts)
         pb.finish()
-        verts = na.concatenate(verts).transpose()
+        verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         verts = verts.transpose()
         if sample_values is not None:
-            samples = na.concatenate(samples)
+            samples = np.concatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
                                 datatype='array')
         if rescale:
-            mi = na.min(verts, axis=0)
-            ma = na.max(verts, axis=0)
+            mi = np.min(verts, axis=0)
+            ma = np.max(verts, axis=0)
             verts = (verts - mi) / (ma - mi).max()
         if filename is not None and self.comm.rank == 0:
             f = open(filename, "w")
@@ -849,7 +849,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         mask = self._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field)
         if fluxing_field is None:
-            ff = na.ones(vals.shape, dtype="float64")
+            ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
         xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
@@ -866,10 +866,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
         them to be plotted.
         """
         if log_space:
-            cons = na.logspace(na.log10(min_val),na.log10(max_val),
+            cons = np.logspace(np.log10(min_val),np.log10(max_val),
                                num_levels+1)
         else:
-            cons = na.linspace(min_val, max_val, num_levels+1)
+            cons = np.linspace(min_val, max_val, num_levels+1)
         contours = {}
         if cache: cached_fields = defaultdict(lambda: dict())
         else: cached_fields = None
@@ -898,7 +898,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         for grid in self._grids:
             if default_value != None:
-                grid[field] = na.ones(grid.ActiveDimensions)*default_value
+                grid[field] = np.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
     _particle_handler = None
@@ -1001,36 +1001,36 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
         grid_vals, xi, yi, zi = [], [], [], []
         for grid in self._base_region._grids:
             xit,yit,zit = self._base_region._get_point_indices(grid)
-            grid_vals.append(na.ones(xit.shape, dtype='int') * (grid.id-grid._id_offset))
+            grid_vals.append(np.ones(xit.shape, dtype='int') * (grid.id-grid._id_offset))
             xi.append(xit)
             yi.append(yit)
             zi.append(zit)
-        grid_vals = na.concatenate(grid_vals)[self._base_indices]
-        grid_order = na.argsort(grid_vals)
+        grid_vals = np.concatenate(grid_vals)[self._base_indices]
+        grid_order = np.argsort(grid_vals)
         # Note: grid_vals is still unordered
-        grid_ids = na.unique(grid_vals)
-        xi = na.concatenate(xi)[self._base_indices][grid_order]
-        yi = na.concatenate(yi)[self._base_indices][grid_order]
-        zi = na.concatenate(zi)[self._base_indices][grid_order]
-        bc = na.bincount(grid_vals)
+        grid_ids = np.unique(grid_vals)
+        xi = np.concatenate(xi)[self._base_indices][grid_order]
+        yi = np.concatenate(yi)[self._base_indices][grid_order]
+        zi = np.concatenate(zi)[self._base_indices][grid_order]
+        bc = np.bincount(grid_vals)
         splits = []
         for i,v in enumerate(bc):
             if v > 0: splits.append(v)
-        splits = na.add.accumulate(splits)
-        xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
+        splits = np.add.accumulate(splits)
+        xis, yis, zis = [np.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
         h = self._base_region.pf.h
         for grid_id, x, y, z in itertools.izip(grid_ids, xis, yis, zis):
             # grid_id needs no offset
             ll = h.grids[grid_id].ActiveDimensions.prod() \
-               - (na.logical_not(h.grids[grid_id].child_mask)).sum()
+               - (np.logical_not(h.grids[grid_id].child_mask)).sum()
             # This means we're completely enclosed, except for child masks
             if x.size == ll:
                 self._indices[grid_id] = None
             else:
                 # This will slow things down a bit, but conserve memory
                 self._indices[grid_id] = \
-                    na.zeros(h.grids[grid_id].ActiveDimensions, dtype='bool')
+                    np.zeros(h.grids[grid_id].ActiveDimensions, dtype='bool')
                 self._indices[grid_id][(x,y,z)] = True
         self._grids = h.grids[self._indices.keys()]
 
@@ -1042,16 +1042,16 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
         return False
 
     def _get_cut_mask(self, grid):
-        cm = na.zeros(grid.ActiveDimensions, dtype='bool')
+        cm = np.zeros(grid.ActiveDimensions, dtype='bool')
         cm[self._get_point_indices(grid, False)] = True
         return cm
 
-    __empty_array = na.array([], dtype='bool')
+    __empty_array = np.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
         tr = self._indices.get(grid.id-grid._id_offset, self.__empty_array)
-        if tr is None: tr = na.where(grid.child_mask)
-        else: tr = na.where(tr)
+        if tr is None: tr = np.where(grid.child_mask)
+        else: tr = np.where(tr)
         return tr
 
     def __repr__(self):
@@ -1068,7 +1068,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
             grid = self.pf.h.grids[g]
             if g in other._indices and g in self._indices:
                 # We now join the indices
-                ind = na.zeros(grid.ActiveDimensions, dtype='bool')
+                ind = np.zeros(grid.ActiveDimensions, dtype='bool')
                 ind[self._indices[g]] = True
                 ind[other._indices[g]] = True
                 if ind.prod() == grid.ActiveDimensions.prod(): ind = None
@@ -1105,7 +1105,7 @@ class YTValueCutExtractionBase(YTSelectionContainer3D):
         return False
 
     def _get_cut_mask(self, grid):
-        point_mask = na.ones(grid.ActiveDimensions, dtype='bool')
+        point_mask = np.ones(grid.ActiveDimensions, dtype='bool')
         point_mask *= self._base_region._get_cut_mask(grid)
         for cut in self._field_cuts:
             point_mask *= eval(cut)
@@ -1160,7 +1160,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             self._all_regions.append(item)
             # So cut_masks don't get messed up.
             item._boolean_touched = True
-        self._all_regions = na.unique(self._all_regions)
+        self._all_regions = np.unique(self._all_regions)
 
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
@@ -1185,7 +1185,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                 # The whole grid is in the hybrid region if a) its cut_mask
                 # in the original region is identical to the new one and b)
                 # the original region cut_mask is all ones.
-                if (local == na.bitwise_and(overall, local)).all() and \
+                if (local == np.bitwise_and(overall, local)).all() and \
                         (local == True).all():
                     self._all_overlap.append(grid)
                     continue
@@ -1213,7 +1213,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         return (grid in self._all_overlap)
 
     def _get_list_of_grids(self):
-        self._grids = na.array(self._some_overlap + self._all_overlap,
+        self._grids = np.array(self._some_overlap + self._all_overlap,
             dtype='object')
 
     def _get_cut_mask(self, grid, field=None):
@@ -1270,13 +1270,13 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             if i == 0: continue
             if item == "AND":
                 # So, the next item in level_masks we want to AND.
-                na.bitwise_and(this_cut_mask, level_masks[i+1], this_cut_mask)
+                np.bitwise_and(this_cut_mask, level_masks[i+1], this_cut_mask)
             if item == "NOT":
                 # It's convenient to remember that NOT == AND NOT
-                na.bitwise_and(this_cut_mask, na.invert(level_masks[i+1]),
+                np.bitwise_and(this_cut_mask, np.invert(level_masks[i+1]),
                     this_cut_mask)
             if item == "OR":
-                na.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
+                np.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
         if not isinstance(grid, FakeGridForParticles):
             self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask

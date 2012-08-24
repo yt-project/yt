@@ -26,7 +26,7 @@ License:
 from matplotlib import figure
 import shutil
 import tempfile
-import numpy as na
+import numpy as np
 import os
 
 from yt.funcs import *
@@ -71,7 +71,7 @@ class ImageCollection(object):
 
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
-        self.images.append((os.path.basename(fn), na.fromfile(fn, dtype='c')))
+        self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
     __id_counter = 0
@@ -122,7 +122,7 @@ class PlotCollection(object):
         elif center == "center" or center == "c":
             self.c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         else:
-            self.c = na.array(center, dtype='float64')
+            self.c = np.array(center, dtype='float64')
         mylog.info("Created plot collection with default plot-center = %s",
                     list(self.c))
 
@@ -1849,7 +1849,7 @@ def matplotlib_widget(data_source, field, npix):
         norm = matplotlib.colors.Normalize()
     ax = pylab.figure().gca()
     ax.autoscale(False)
-    axi = ax.imshow(na.random.random((npix, npix)),
+    axi = ax.imshow(np.random.random((npix, npix)),
                     extent = extent, norm = norm,
                     origin = 'lower')
     cb = pylab.colorbar(axi, norm = norm)

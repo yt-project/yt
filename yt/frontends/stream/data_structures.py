@@ -24,7 +24,7 @@ License:
 """
 
 import weakref
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -71,7 +71,7 @@ class StreamGrid(AMRGridPatch):
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
-        ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
+        ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
@@ -180,7 +180,7 @@ class StreamHierarchy(GridGeometryHandler):
             self._reconstruct_parent_child()
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
-        temp_grids = na.empty(self.num_grids, dtype='object')
+        temp_grids = np.empty(self.num_grids, dtype='object')
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
@@ -191,7 +191,7 @@ class StreamHierarchy(GridGeometryHandler):
         mylog.debug("Prepared")
 
     def _reconstruct_parent_child(self):
-        mask = na.empty(len(self.grids), dtype='int32')
+        mask = np.empty(len(self.grids), dtype='int32')
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
             get_box_grids_level(self.grid_left_edge[i,:],
@@ -199,7 +199,7 @@ class StreamHierarchy(GridGeometryHandler):
                                 self.grid_levels[i] + 1,
                                 self.grid_left_edge, self.grid_right_edge,
                                 self.grid_levels, mask)
-            ids = na.where(mask.astype("bool"))
+            ids = np.where(mask.astype("bool"))
             grid._children_ids = ids[0] # where is a tuple
         mylog.debug("Second pass; identifying parents")
         for i, grid in enumerate(self.grids): # Second pass
@@ -208,7 +208,7 @@ class StreamHierarchy(GridGeometryHandler):
 
     def _initialize_grid_arrays(self):
         GridGeometryHandler._initialize_grid_arrays(self)
-        self.grid_procs = na.zeros((self.num_grids,1),'int32')
+        self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
     def save_data(self, *args, **kwargs):
         pass
@@ -224,7 +224,7 @@ class StreamHierarchy(GridGeometryHandler):
                             pf = self.parameter_file)
             except:
                 continue
-            available = na.all([f in self.field_list for f in fd.requested])
+            available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -325,23 +325,23 @@ def load_uniform_grid(data, domain_dimensions, domain_size_in_cm,
     Examples
     --------
 
-    >>> arr = na.random.random((256, 256, 256))
+    >>> arr = np.random.random((256, 256, 256))
     >>> data = dict(Density = arr)
     >>> pf = load_uniform_grid(data, [256, 256, 256], 3.08e24)
                 
     """
     sfh = StreamDictFieldHandler()
     sfh.update({0:data})
-    domain_dimensions = na.array(domain_dimensions)
-    if na.unique(domain_dimensions).size != 1:
+    domain_dimensions = np.array(domain_dimensions)
+    if np.unique(domain_dimensions).size != 1:
         print "We don't support variably sized domains yet."
         raise RuntimeError
-    domain_left_edge = na.zeros(3, 'float64')
-    domain_right_edge = na.ones(3, 'float64')
-    grid_left_edges = na.zeros(3, "int64").reshape((1,3))
-    grid_right_edges = na.array(domain_dimensions, "int64").reshape((1,3))
+    domain_left_edge = np.zeros(3, 'float64')
+    domain_right_edge = np.ones(3, 'float64')
+    grid_left_edges = np.zeros(3, "int64").reshape((1,3))
+    grid_right_edges = np.array(domain_dimensions, "int64").reshape((1,3))
 
-    grid_levels = na.array([0], dtype='int32').reshape((1,1))
+    grid_levels = np.array([0], dtype='int32').reshape((1,1))
     grid_dimensions = grid_right_edges - grid_left_edges
 
     grid_left_edges  = grid_left_edges.astype("float64")
@@ -359,9 +359,9 @@ def load_uniform_grid(data, domain_dimensions, domain_size_in_cm,
         grid_right_edges,
         grid_dimensions,
         grid_levels,
-        na.array([-1], dtype='int64'),
-        number_of_particles*na.ones(1, dtype='int64').reshape((1,1)),
-        na.zeros(1).reshape((1,1)),
+        np.array([-1], dtype='int64'),
+        number_of_particles*np.ones(1, dtype='int64').reshape((1,1)),
+        np.zeros(1).reshape((1,1)),
         sfh,
     )
 

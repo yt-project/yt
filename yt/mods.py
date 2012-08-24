@@ -33,6 +33,7 @@ from __future__ import absolute_import
 # First module imports
 import sys, types, os, glob, cPickle, time
 import numpy as na # For historical reasons
+import numpy as np # For modern purposes
 import numpy # In case anyone wishes to use it by name
 
 # This next item will handle most of the actual startup procedures, but it will
@@ -52,7 +53,7 @@ from yt.utilities.logger import level as __level
 if __level >= int(ytcfgDefaults["loglevel"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
-    na.seterr(all = 'ignore')
+    np.seterr(all = 'ignore')
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \

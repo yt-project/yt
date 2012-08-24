@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import copy
 
 from yt.funcs import *
@@ -98,15 +98,15 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
     original_weight_field = copy.deepcopy(proj['weight_field'])
 
     # Copy original into offset positions to make tiles.
-    for x in range(int(na.ceil(lightConeSlice['box_width_fraction']))):
-        for y in range(int(na.ceil(lightConeSlice['box_width_fraction']))):
+    for x in range(int(np.ceil(lightConeSlice['box_width_fraction']))):
+        for y in range(int(np.ceil(lightConeSlice['box_width_fraction']))):
             if ((x + y) > 0):
-                proj['px'] = na.concatenate([proj['px'], original_px+x])
-                proj['py'] = na.concatenate([proj['py'], original_py+y])
-                proj['pdx'] = na.concatenate([proj['pdx'], original_pdx])
-                proj['pdy'] = na.concatenate([proj['pdy'], original_pdy])
-                proj[field] = na.concatenate([proj[field], original_field])
-                proj['weight_field'] = na.concatenate([proj['weight_field'],
+                proj['px'] = np.concatenate([proj['px'], original_px+x])
+                proj['py'] = np.concatenate([proj['py'], original_py+y])
+                proj['pdx'] = np.concatenate([proj['pdx'], original_pdx])
+                proj['pdy'] = np.concatenate([proj['pdy'], original_pdy])
+                proj[field] = np.concatenate([proj[field], original_field])
+                proj['weight_field'] = np.concatenate([proj['weight_field'],
                                                        original_weight_field])
 
     # Delete originals.
@@ -129,17 +129,17 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
     proj['py'] -= offset[1]
 
     # Wrap off-edge cells back around to other side (periodic boundary conditions).
-    proj['px'][proj['px'] < 0] += na.ceil(lightConeSlice['box_width_fraction'])
-    proj['py'][proj['py'] < 0] += na.ceil(lightConeSlice['box_width_fraction'])
+    proj['px'][proj['px'] < 0] += np.ceil(lightConeSlice['box_width_fraction'])
+    proj['py'][proj['py'] < 0] += np.ceil(lightConeSlice['box_width_fraction'])
 
     # After shifting, some cells have fractional coverage on both sides of the box.
     # Find those cells and make copies to be placed on the other side.
 
     # Cells hanging off the right edge.
     add_x_right = proj['px'] + 0.5 * proj['pdx'] > \
-      na.ceil(lightConeSlice['box_width_fraction'])
+      np.ceil(lightConeSlice['box_width_fraction'])
     add_x_px = proj['px'][add_x_right]
-    add_x_px -= na.ceil(lightConeSlice['box_width_fraction'])
+    add_x_px -= np.ceil(lightConeSlice['box_width_fraction'])
     add_x_py = proj['py'][add_x_right]
     add_x_pdx = proj['pdx'][add_x_right]
     add_x_pdy = proj['pdy'][add_x_right]
@@ -150,7 +150,7 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
     # Cells hanging off the left edge.
     add_x_left = proj['px'] - 0.5 * proj['pdx'] < 0
     add2_x_px = proj['px'][add_x_left]
-    add2_x_px += na.ceil(lightConeSlice['box_width_fraction'])
+    add2_x_px += np.ceil(lightConeSlice['box_width_fraction'])
     add2_x_py = proj['py'][add_x_left]
     add2_x_pdx = proj['pdx'][add_x_left]
     add2_x_pdy = proj['pdy'][add_x_left]
@@ -160,10 +160,10 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
 
     # Cells hanging off the top edge.
     add_y_right = proj['py'] + 0.5 * proj['pdy'] > \
-      na.ceil(lightConeSlice['box_width_fraction'])
+      np.ceil(lightConeSlice['box_width_fraction'])
     add_y_px = proj['px'][add_y_right]
     add_y_py = proj['py'][add_y_right]
-    add_y_py -= na.ceil(lightConeSlice['box_width_fraction'])
+    add_y_py -= np.ceil(lightConeSlice['box_width_fraction'])
     add_y_pdx = proj['pdx'][add_y_right]
     add_y_pdy = proj['pdy'][add_y_right]
     add_y_field = proj[field][add_y_right]
@@ -174,7 +174,7 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
     add_y_left = proj['py'] - 0.5 * proj['pdy'] < 0
     add2_y_px = proj['px'][add_y_left]
     add2_y_py = proj['py'][add_y_left]
-    add2_y_py += na.ceil(lightConeSlice['box_width_fraction'])
+    add2_y_py += np.ceil(lightConeSlice['box_width_fraction'])
     add2_y_pdx = proj['pdx'][add_y_left]
     add2_y_pdy = proj['pdy'][add_y_left]
     add2_y_field = proj[field][add_y_left]
@@ -182,17 +182,17 @@ def _light_cone_projection(lightConeSlice, field, pixels, weight_field=None,
     del add_y_left
 
     # Add the hanging cells back to the projection data.
-    proj['px'] = na.concatenate([proj['px'], add_x_px, add_y_px,
+    proj['px'] = np.concatenate([proj['px'], add_x_px, add_y_px,
                                  add2_x_px, add2_y_px])
-    proj['py'] = na.concatenate([proj['py'], add_x_py, add_y_py,
+    proj['py'] = np.concatenate([proj['py'], add_x_py, add_y_py,
                                  add2_x_py, add2_y_py])
-    proj['pdx'] = na.concatenate([proj['pdx'], add_x_pdx, add_y_pdx,
+    proj['pdx'] = np.concatenate([proj['pdx'], add_x_pdx, add_y_pdx,
                                   add2_x_pdx, add2_y_pdx])
-    proj['pdy'] = na.concatenate([proj['pdy'], add_x_pdy, add_y_pdy,
+    proj['pdy'] = np.concatenate([proj['pdy'], add_x_pdy, add_y_pdy,
                                   add2_x_pdy, add2_y_pdy])
-    proj[field] = na.concatenate([proj[field], add_x_field, add_y_field,
+    proj[field] = np.concatenate([proj[field], add_x_field, add_y_field,
                                   add2_x_field, add2_y_field])
-    proj['weight_field'] = na.concatenate([proj['weight_field'],
+    proj['weight_field'] = np.concatenate([proj['weight_field'],
                                            add_x_weight_field, add_y_weight_field,
                                            add2_x_weight_field, add2_y_weight_field])
 

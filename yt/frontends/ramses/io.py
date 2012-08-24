@@ -24,7 +24,7 @@ License:
 """
 
 from collections import defaultdict
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -39,7 +39,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
-        tr = dict((f, na.empty(size, dtype='float64')) for f in fields)
+        tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
         cp = 0
         for chunk in chunks:
             for subset in chunk.objs:
@@ -77,7 +77,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 size += mask.sum()
                 masks[id(subset)] = mask
         # Now our second pass
-        tr = dict((f, na.empty(size, dtype="float64")) for f in fields)
+        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
         for chunk in chunks:
             for subset in chunk.objs:
                 f = open(subset.domain.part_fn, "rb")

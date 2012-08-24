@@ -24,7 +24,7 @@ License:
 """
 
 import h5py, os.path
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from yt.data_objects.data_containers import YTFieldData
@@ -57,7 +57,7 @@ class ConstructedRootGrid(AMRGridPatch):
         self.Level = level
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
-        self.start_index = na.min([grid.get_global_startindex() for grid in
+        self.start_index = np.min([grid.get_global_startindex() for grid in
                              base_pf.h.select_grids(level)], axis=0).astype('int64')
         self.dds = base_pf.h.select_grids(level)[0].dds.copy()
         dims = (self.RightEdge-self.LeftEdge)/self.dds
@@ -106,11 +106,11 @@ class OldExtractedHierarchy(object):
         self.pf = pf
         self.always_copy = always_copy
         self.min_level = min_level
-        self.int_offset = na.min([grid.get_global_startindex() for grid in
+        self.int_offset = np.min([grid.get_global_startindex() for grid in
                              pf.h.select_grids(min_level)], axis=0).astype('float64')
-        min_left = na.min([grid.LeftEdge for grid in
+        min_left = np.min([grid.LeftEdge for grid in
                            pf.h.select_grids(min_level)], axis=0).astype('float64')
-        max_right = na.max([grid.RightEdge for grid in 
+        max_right = np.max([grid.RightEdge for grid in 
                                    pf.h.select_grids(min_level)], axis=0).astype('float64')
         if offset is None: offset = (max_right + min_left)/2.0
         self.left_edge_offset = offset
@@ -151,7 +151,7 @@ class OldExtractedHierarchy(object):
         # Grid objects on this level...
         if grids is None: grids = self.pf.h.select_grids(level+self.min_level)
         level_node.attrs['delta'] = grids[0].dds*self.mult_factor
-        level_node.attrs['relativeRefinementFactor'] = na.array([2]*3, dtype='int32')
+        level_node.attrs['relativeRefinementFactor'] = np.array([2]*3, dtype='int32')
         level_node.attrs['numGrids'] = len(grids)
         for i,g in enumerate(grids):
             self.export_grid(afile, level_node, g, i, field)
@@ -169,8 +169,8 @@ class OldExtractedHierarchy(object):
         int_origin, lint, origin, dds = self._convert_grid(grid)
         grid_node.attrs['integerOrigin'] = int_origin
         grid_node.attrs['origin'] = origin
-        grid_node.attrs['ghostzoneFlags'] = na.zeros(6, dtype='int32')
-        grid_node.attrs['numGhostzones'] = na.zeros(3, dtype='int32')
+        grid_node.attrs['ghostzoneFlags'] = np.zeros(6, dtype='int32')
+        grid_node.attrs['numGhostzones'] = np.zeros(3, dtype='int32')
         grid_node.attrs['dims'] = grid.ActiveDimensions[::-1].astype('int32')
         if not self.always_copy and self.pf.h.data_style == 6 \
            and field in self.pf.h.field_list:
@@ -203,11 +203,11 @@ class ExtractedHierarchy(GridGeometryHandler):
         # First we set up our translation between original and extracted
         self.data_style = data_style
         self.min_level = pf.min_level
-        self.int_offset = na.min([grid.get_global_startindex() for grid in
+        self.int_offset = np.min([grid.get_global_startindex() for grid in
                            pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
-        min_left = na.min([grid.LeftEdge for grid in
+        min_left = np.min([grid.LeftEdge for grid in
                            pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
-        max_right = na.max([grid.RightEdge for grid in 
+        max_right = np.max([grid.RightEdge for grid in 
                            pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
         level_dx = pf.base_pf.h.select_grids(pf.min_level)[0].dds[0]
         dims = ((max_right-min_left)/level_dx)
@@ -247,12 +247,12 @@ class ExtractedHierarchy(GridGeometryHandler):
         # Here we need to set up the grid info, which for the Enzo hierarchy
         # is done like:
         # self.grid_dimensions.flat[:] = ei
-        # self.grid_dimensions -= na.array(si, self.float_type)
+        # self.grid_dimensions -= np.array(si, self.float_type)
         # self.grid_dimensions += 1
         # self.grid_left_edge.flat[:] = LE
         # self.grid_right_edge.flat[:] = RE
         # self.grid_particle_count.flat[:] = np
-        # self.grids = na.array(self.grids, dtype='object')
+        # self.grids = np.array(self.grids, dtype='object')
         #
         # For now, we make the presupposition that all of our grids are
         # strictly nested and we are not doing any cuts.  However, we do
@@ -285,7 +285,7 @@ class ExtractedHierarchy(GridGeometryHandler):
 
         self.grid_left_edge = self._convert_coords(self.grid_left_edge)
         self.grid_right_edge = self._convert_coords(self.grid_right_edge)
-        self.grids = na.array(grids, dtype='object')
+        self.grids = np.array(grids, dtype='object')
 
     def _fill_grid_arrays(self, grid, i):
         # This just fills in the grid arrays for a single grid --

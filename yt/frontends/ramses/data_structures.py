@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import stat
 import weakref
 import cStringIO
@@ -88,9 +88,9 @@ class RAMSESDomainFile(object):
         # It goes: level, CPU, 8-variable
         min_level = self.pf.min_level
         n_levels = self.amr_header['nlevelmax'] - min_level
-        hydro_offset = na.zeros(n_levels, dtype='int64')
+        hydro_offset = np.zeros(n_levels, dtype='int64')
         hydro_offset -= 1
-        level_count = na.zeros(n_levels, dtype='int64')
+        level_count = np.zeros(n_levels, dtype='int64')
         for level in range(self.amr_header['nlevelmax']):
             for cpu in range(self.amr_header['nboundary'] +
                              self.amr_header['ncpu']):
@@ -148,7 +148,7 @@ class RAMSESDomainFile(object):
         for header in ramses_header(hvals):
             hvals.update(fpu.read_attrs(f, header))
         # That's the header, now we skip a few.
-        hvals['numbl'] = na.array(hvals['numbl']).reshape(
+        hvals['numbl'] = np.array(hvals['numbl']).reshape(
             (hvals['nlevelmax'], hvals['ncpu']))
         fpu.skip(f)
         if hvals['nboundary'] > 0:
@@ -196,7 +196,7 @@ class RAMSESDomainFile(object):
                 if ng == 0: continue
                 ind = fpu.read_vector(f, "I").astype("int64")
                 fpu.skip(f, 2)
-                pos = na.empty((ng, 3), dtype='float64')
+                pos = np.empty((ng, 3), dtype='float64')
                 pos[:,0] = fpu.read_vector(f, "d")
                 pos[:,1] = fpu.read_vector(f, "d")
                 pos[:,2] = fpu.read_vector(f, "d")
@@ -205,13 +205,13 @@ class RAMSESDomainFile(object):
                 fpu.skip(f, 31)
                 #parents = fpu.read_vector(f, "I")
                 #fpu.skip(f, 6)
-                #children = na.empty((ng, 8), dtype='int64')
+                #children = np.empty((ng, 8), dtype='int64')
                 #for i in range(8):
                 #    children[:,i] = fpu.read_vector(f, "I")
-                #cpu_map = na.empty((ng, 8), dtype="int64")
+                #cpu_map = np.empty((ng, 8), dtype="int64")
                 #for i in range(8):
                 #    cpu_map[:,i] = fpu.read_vector(f, "I")
-                #rmap = na.empty((ng, 8), dtype="int64")
+                #rmap = np.empty((ng, 8), dtype="int64")
                 #for i in range(8):
                 #    rmap[:,i] = fpu.read_vector(f, "I")
                 # We don't want duplicate grids.
@@ -247,7 +247,7 @@ class RAMSESDomainSubset(object):
             self.domain.pf.max_level, self.domain.domain_id, mask)
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
-        self.level_counts = na.add.accumulate(level_counts)
+        self.level_counts = np.add.accumulate(level_counts)
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -262,7 +262,7 @@ class RAMSESDomainSubset(object):
     def fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
         base_dx = 1.0/self.domain.pf.domain_dimensions
-        widths = na.empty((self.cell_count, 3), dtype="float64")
+        widths = np.empty((self.cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))
         for i in range(3):
             widths[:,i] = base_dx[i] / dds
@@ -283,14 +283,14 @@ class RAMSESDomainSubset(object):
         filled = pos = level_offset = 0
         min_level = self.domain.pf.min_level
         for field in fields:
-            tr[field] = na.zeros(self.cell_count, 'float64')
+            tr[field] = np.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.hydro_offset):
             if offset == -1: continue
             content.seek(offset)
             nc = self.domain.level_count[level]
             temp = {}
             for field in all_fields:
-                temp[field] = na.empty((nc, 8), dtype="float64")
+                temp[field] = np.empty((nc, 8), dtype="float64")
             for i in range(8):
                 for field in all_fields:
                     if field not in fields:
@@ -317,7 +317,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.max_level = pf.max_level
 
-        self.float_type = na.float64
+        self.float_type = np.float64
         super(RAMSESGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
@@ -455,10 +455,10 @@ class RAMSESStaticOutput(StaticOutput):
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
         self.parameters.update(rheader)
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
-        self.domain_left_edge = na.zeros(3, dtype='float64')
-        self.domain_dimensions = na.ones(3, dtype='int32') * \
+        self.domain_left_edge = np.zeros(3, dtype='float64')
+        self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
-        self.domain_right_edge = na.ones(3, dtype='float64')
+        self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
         mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
