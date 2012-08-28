@@ -35,7 +35,7 @@ from yt.utilities.lib.grid_traversal import PartitionedGrid
 import pdb
 
 def my_break():
-    my_debug = False
+    my_debug = False 
     if my_debug: pdb.set_trace()
 
 class Tree(object):
@@ -47,7 +47,7 @@ class Tree(object):
     comm_rank = 0
     comm_size = 1
     def __init__(self, pf, comm_rank, comm_size, left=None, right=None, 
-            min_level=None, max_level=None):
+            min_level=None, max_level=None, grids=None):
 
         self.pf = pf
         self._id_offset = self.pf.h.grids[0]._id_offset
@@ -64,10 +64,11 @@ class Tree(object):
         self.comm_size = comm_size
         self.trunk = Node(None, None, None,
                 left, right, None, 1)
-        self.build()
+        self.build(grids)
 
     def add_grids(self, grids):
-        lvl_range = range(self.min_level, self.max_level)
+        my_break() 
+        lvl_range = range(self.min_level, self.max_level+1)
         if grids is None:
             level_iter = self.pf.hierarchy.get_levels()
             while True:
@@ -79,7 +80,7 @@ class Tree(object):
                 gles = na.array([g.LeftEdge for g in grids])
                 gres = na.array([g.RightEdge for g in grids])
                 gids = na.array([g.id for g in grids])
-
+                my_break() 
                 add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
                 del gles, gres, gids, grids
         else:
@@ -129,7 +130,8 @@ class AMRKDTree(HomogenizedVolume):
     _initialized = False
     def __init__(self, pf,  l_max=None, le=None, re=None,
                  fields=None, no_ghost=False, min_level=None, max_level=None,
-                 tree_type='domain',log_fields=None, merge_trees=False):
+                 tree_type='domain',log_fields=None, merge_trees=False,
+                 grids=None):
 
         ParallelAnalysisInterface.__init__(self)
 
@@ -160,7 +162,7 @@ class AMRKDTree(HomogenizedVolume):
         mylog.debug('Building AMRKDTree')
         self.tree = Tree(pf, self.comm.rank, self.comm.size, 
                          self.le, self.re, min_level=min_level,
-                         max_level=max_level)
+                         max_level=max_level, grids=grids)
 
     def initialize_source(self):
         if self._initialized : return

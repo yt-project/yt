@@ -81,17 +81,59 @@ def add_grids(node, gles, gres, gids, rank, size):
                 add_grids(node.right, gles[greater_ids], gres[greater_ids], 
                           gids[greater_ids], rank, size)
 
+def should_i_split(node, rank, size):
+    if node.id < size:
+        return True
+    else:
+        return False
+
+def geo_split(node, gles, gres, grid_ids, rank, size):
+    big_dim = na.argmax(gres[0]-gles[0])
+    new_pos = (gres[0][big_dim] + gles[0][big_dim])/2.
+    old_gre = gres[0].copy()
+    new_gle = gles[0].copy()
+    new_gle[big_dim] = new_pos
+    gres[0][big_dim] = new_pos
+    gles = na.append(gles, na.array([new_gle]), axis=0)
+    gres = na.append(gres, na.array([old_gre]), axis=0)
+    grid_ids = na.append(grid_ids, grid_ids, axis=0)
+
+    split = Split(big_dim, new_pos)
+
+    # Create a Split
+    divide(node, split)
+
+    # Populate Left Node
+    #print 'Inserting left node', node.left_edge, node.right_edge
+    insert_grids(node.left, gles[:1], gres[:1],
+            grid_ids[:1], rank, size)
+
+    # Populate Right Node
+    #print 'Inserting right node', node.left_edge, node.right_edge
+    insert_grids(node.right, gles[1:], gres[1:],
+            grid_ids[1:], rank, size)
+    return
+
 def insert_grids(node, gles, gres, grid_ids, rank, size):
     if should_i_build(node, rank, size):
         if len(grid_ids) == 0:
             return
 
         if len(grid_ids) == 1:
+            print node.id, gles, gres, grid_ids, rank, size
+            # If we should continue to split based on parallelism, do so!
+            if should_i_split(node, rank, size):
+                print 'Splitting grid!'
+                print '%04i '%rank, gles, gres, grid_ids
+                geo_split(node, gles, gres, grid_ids, rank, size)
+                print '%04i '%rank, gles, gres, grid_ids
+                return
+
             if na.all(gles[0] <= node.left_edge) and \
                     na.all(gres[0] >= node.right_edge):
                 node.grid = grid_ids[0]
                 assert(node.grid is not None)
-                return
+            return
 
         # Split the grids
         split_grids(node, gles, gres, grid_ids, rank, size)
