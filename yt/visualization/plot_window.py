@@ -706,7 +706,7 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1])
 
             field_name = self.data_source.pf.field_info[f].display_name
-
+            if field_name is None: field_name = f
             if md['units'] == None or md['units'] == '':
                 label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
             else:
