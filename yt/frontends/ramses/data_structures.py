@@ -108,6 +108,10 @@ class RAMSESDomainFile(object):
         return self._hydro_offset
 
     def _read_particle_header(self):
+        if not os.path.exists(self.part_fn):
+            self.local_particle_count = 0
+            self.particle_field_offsets = {}
+            return
         f = open(self.part_fn, "rb")
         hvals = {}
         attrs = ( ('ncpu', 1, 'I'),
@@ -345,8 +349,10 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         # TODO: Add additional fields
         self.fluid_field_list = [ "Density", "x-velocity", "y-velocity",
 	                        "z-velocity", "Pressure", "Metallicity" ]
-        self.particle_field_list = \
-            self.domains[0].particle_field_offsets.keys()
+        pfl = set([])
+        for domain in self.domains:
+            pfl.update(set(domain.particle_field_offsets.keys()))
+        self.particle_field_list = list(pfl)
         self.field_list = self.fluid_field_list + self.particle_field_list
     
     def _setup_classes(self):
