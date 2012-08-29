@@ -2,10 +2,10 @@
 Coordinate handler base class.
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -127,36 +127,72 @@ class CartesianCoordinatesHandler(CoordinatesHandler):
     def convert_to_cartesian(self, coord):
         return coord
 
+    # Despite being mutables, we uses these here to be clear about how these
+    # are generated and to ensure that they are not re-generated unnecessarily
+    axis_name = { 0  : 'x',  1  : 'y',  2  : 'z',
+                 'x' : 'x', 'y' : 'y', 'z' : 'z',
+                 'X' : 'x', 'Y' : 'y', 'Z' : 'z'}
+
+    axis_id = { 'x' : 0, 'y' : 1, 'z' : 2,
+                 0  : 0,  1  : 1,  2  : 2}
+
+    x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
+                0  : 1,  1  : 0,  2  : 0}
+
+    y_axis = { 'x' : 2, 'y' : 2, 'z' : 1,
+                0  : 2,  1  : 2,  2  : 1}
+
+    @property
+    def period(self):
+        return self.pf.domain_width
+
+class PolarCoordinatesHandler(CoordinatesHandler):
+
+    def __init__(self, pf, ordering = 'rzt'):
+        if ordering != 'rzt': raise NotImplementedError
+        super(PolarCoordinatesHandler, self).__init__(pf)
+
+    def coordinate_fields(self):
+        # return the fields for r, z, theta
+        pass
+
+    def pixelize(self, dimension):
+        raise NotImplementedError
+        if dimension in (0, 2):
+            return _MPL.Pixelize
+        elif dimension == 2:
+            return pixelize_cylinder
+        elif dimension > 2:
+            raise NotImplementedError
+
     @property
     def axis_name(self):
         return {
-             0  : 'x',  1  : 'y',  2  : 'z',
-            'x' : 'x', 'y' : 'y', 'z' : 'z',
-            'X' : 'x', 'Y' : 'y', 'Z' : 'z',
+             0  : 'r',  1  : 'z',  2  : 'theta',
+            'r' : 'r', 'z' : 'z', 'theta' : 'theta',
+            'R' : 'r', 'Z' : 'z', 'Theta' : 'theta',
         }
 
     @property
     def axis_id(self):
         return {
-            'x' : 0, 'y' : 1, 'z' : 2,
+            'r' : 0, 'z' : 1, 'theta' : 2,
              0  : 0,  1  : 1,  2  : 2,
         }
 
     @property
     def x_axis(self):
         return {
-            'x' : 1, 'y' : 0, 'z' : 0,
+            'r' : 1, 'z' : 0, 'theta' : 0,
              0  : 1,  1  : 0,  2  : 0,
         }
 
     @property
     def y_axis(self):
         return {
-            'x' : 2, 'y' : 2, 'z' : 1,
+            'r' : 2, 'z' : 2, 'theta' : 1,
              0  : 2,  1  : 2,  2  : 1,
         }
 
-    @property
     def period(self):
-        return self.pf.domain_width
-
+        return na.array([0.0, 0.0, 2.0*np.pi])
