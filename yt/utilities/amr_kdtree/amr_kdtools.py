@@ -120,13 +120,13 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
             return
 
         if len(grid_ids) == 1:
-            print node.id, gles, gres, grid_ids, rank, size
+            # print node.id, gles, gres, grid_ids, rank, size
             # If we should continue to split based on parallelism, do so!
             if should_i_split(node, rank, size):
-                print 'Splitting grid!'
-                print '%04i '%rank, gles, gres, grid_ids
+                #print 'Splitting grid!'
+                #print '%04i '%rank, gles, gres, grid_ids
                 geo_split(node, gles, gres, grid_ids, rank, size)
-                print '%04i '%rank, gles, gres, grid_ids
+                #print '%04i '%rank, gles, gres, grid_ids
                 return
 
             if na.all(gles[0] <= node.left_edge) and \
