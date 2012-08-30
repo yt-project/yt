@@ -194,14 +194,33 @@ class PolarCoordinatesHandler(CoordinatesHandler):
         # return the fields for r, z, theta
         pass
 
-    def pixelize(self, dimension):
+    def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
         raise NotImplementedError
-        if dimension in (0, 2):
-            return _MPL.Pixelize
+        if dimension == 1:
+            return self._ortho_pixelize(data_source, field, bounds, size,
+                                        antialias)
         elif dimension == 2:
-            return pixelize_cylinder
-        elif dimension > 2:
+            return self._polar_pixelize(data_source, field, bounds, size,
+                                        antialias)
+        else:
+            # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
+
+    def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
+        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
+                             data_source['pdx'], data_source['pdy'],
+                             data_source[field], size[0], size[1],
+                             bounds, int(antialias),
+                             True, self.period).transpose()
+        return buff
+
+    def _polar_pixelize(self, data_source, field, bounds, size, antialias):
+        buff = pixelize_cylinder(data_source['r'],
+                                 data_source['dr']/2.0,
+                                 data_source['theta'],
+                                 data_source['dtheta']/2.0,
+                                 size[0], field, bounds[0])
+        return buff
 
     axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
                  'r' : 'r', 'z' : 'z', 'theta' : 'theta',
@@ -220,7 +239,7 @@ class PolarCoordinatesHandler(CoordinatesHandler):
         return cartesian_to_cylindrical(coord)
 
     def convert_to_cartesian(self, coord):
-        return cylindrical_to_cartesian(coord, center)
+        return cylindrical_to_cartesian(coord)
 
     def convert_to_cylindrical(self, coord):
         return coord
