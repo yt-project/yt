@@ -40,54 +40,60 @@ import yt.visualization._MPL
 
 class CoordinatesHandler(object):
     
-    __metaclass__ = abc.ABCMeta
-
     def __init__(self, pf):
         self.pf = weakref.proxy(pf)
 
-    @abc.abstractmethod
     def coordinate_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
-        pass
+        raise NotImplementedError
 
-    def cartesian_length(self, start, end):
+    def distance(self, start, end):
         p1 = self.convert_to_cartesian(start)
         p2 = self.convert_to_cartesian(end)
         return np.sqrt(((p1-p2)**2.0).sum())
 
-    @abc.abstractmethod
     def convert_from_cartesian(self, coord):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def convert_to_cartesian(self, coord):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractproperty
+    def convert_to_cylindrical(self, coord):
+        raise NotImplementedError
+
+    def convert_from_cylindrical(self, coord):
+        raise NotImplementedError
+
+    def convert_to_spherical(self, coord):
+        raise NotImplementedError
+
+    def convert_from_spherical(self, coord):
+        raise NotImplementedError
+
+    @property
     def axis_name(self):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
     def axis_id(self):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
     def x_axis(self):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
     def y_axis(self):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
     def period(self):
-        pass
+        raise NotImplementedError
 
 class CartesianCoordinatesHandler(CoordinatesHandler):
 
@@ -165,34 +171,19 @@ class PolarCoordinatesHandler(CoordinatesHandler):
         elif dimension > 2:
             raise NotImplementedError
 
-    @property
-    def axis_name(self):
-        return {
-             0  : 'r',  1  : 'z',  2  : 'theta',
-            'r' : 'r', 'z' : 'z', 'theta' : 'theta',
-            'R' : 'r', 'Z' : 'z', 'Theta' : 'theta',
-        }
+    axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
+                 'r' : 'r', 'z' : 'z', 'theta' : 'theta',
+                 'R' : 'r', 'Z' : 'z', 'Theta' : 'theta'}
+
+    axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
+                 0  : 0,  1  : 1,  2  : 2}
+
+    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
+                0  : 1,  1  : 0,  2  : 0}
+
+    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
+                0  : 2,  1  : 2,  2  : 1}
 
     @property
-    def axis_id(self):
-        return {
-            'r' : 0, 'z' : 1, 'theta' : 2,
-             0  : 0,  1  : 1,  2  : 2,
-        }
-
-    @property
-    def x_axis(self):
-        return {
-            'r' : 1, 'z' : 0, 'theta' : 0,
-             0  : 1,  1  : 0,  2  : 0,
-        }
-
-    @property
-    def y_axis(self):
-        return {
-            'r' : 2, 'z' : 2, 'theta' : 1,
-             0  : 2,  1  : 2,  2  : 1,
-        }
-
     def period(self):
         return na.array([0.0, 0.0, 2.0*np.pi])
