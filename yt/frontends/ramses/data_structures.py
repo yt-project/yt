@@ -38,7 +38,6 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from .fields import RAMSESFieldInfo, KnownRAMSESFields
 from .definitions import ramses_header
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -51,6 +50,7 @@ from yt.data_objects.field_info_container import \
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
+from .fields import RAMSESFieldInfo, KnownRAMSESFields
 
 class RAMSESDomainFile(object):
     _last_mask = None

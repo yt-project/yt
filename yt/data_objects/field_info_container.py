@@ -70,21 +70,31 @@ class FieldInfoContainer(dict): # Resistance has utility
             raise KeyError("No field named %s" % (key,))
         return self.fallback[key]
 
+    name = ""
+
     @classmethod
-    def create_with_fallback(cls, fallback):
+    def create_with_fallback(cls, fallback, name = ""):
         obj = cls()
         obj.fallback = fallback
+        obj.name = name
         return obj
 
     def __contains__(self, key):
         if dict.__contains__(self, key): return True
         if self.fallback is None: return False
-        return self.fallback.has_key(key)
+        return key in self.fallback
 
     def __iter__(self):
-        for f in dict.__iter__(self): yield f
+        for f in dict.__iter__(self):
+            yield f
         if self.fallback:
             for f in self.fallback: yield f
+
+    def keys(self):
+        keys = dict.keys(self)
+        if self.fallback:
+            keys += self.fallback.keys()
+        return keys
 
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
@@ -95,6 +105,7 @@ def NullFunc(field, data):
     return
 
 FieldInfo = FieldInfoContainer()
+FieldInfo.name = id(FieldInfo)
 add_field = FieldInfo.add_field
 
 def derived_field(**kwargs):

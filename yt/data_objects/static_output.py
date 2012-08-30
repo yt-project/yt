@@ -226,8 +226,6 @@ class StaticOutput(object):
         if getattr(self, "field_dependencies", None) is None:
             self.field_dependencies = {}
 
-        
-
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)

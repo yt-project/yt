@@ -42,7 +42,7 @@ from yt.funcs import *
 
 import yt.utilities.lib as amr_utils
 
-EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "EFI")
 add_field = EnzoFieldInfo.add_field
 
 KnownEnzoFields = FieldInfoContainer()
