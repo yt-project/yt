@@ -95,6 +95,22 @@ class CoordinatesHandler(object):
     def period(self):
         raise NotImplementedError
 
+def cartesian_to_cylindrical(coord, center = (0,0,0)):
+    c2 = np.zeros_like(coord)
+    c2[...,0] = ((coord[...,0] - center[0])**2.0
+              +  (coord[...,1] - center[1])**2.0)**0.5
+    c2[...,1] = coord[...,2] # rzt
+    c2[...,2] = np.arctans(coord[...,1] - center[1],
+                           coord[...,0] - center[0])
+    return c2
+
+def cylindrical_to_cartesian(coord, center = (0,0,0)):
+    c2 = np.zeros_like(coord)
+    c2[...,0] = np.cos(coord[...,0]) * coord[...,1] + center[0]
+    c2[...,1] = np.sin(coord[...,0]) * coord[...,1] + center[1]
+    c2[...,2] = coord[...,2]
+    return c2
+
 class CartesianCoordinatesHandler(CoordinatesHandler):
 
     def __init__(self, pf):
@@ -120,9 +136,11 @@ class CartesianCoordinatesHandler(CoordinatesHandler):
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = _MPL.CPixelize(data_source['x'],   data_source['y'],   data_source['z'],
-                              data_source['px'],  data_source['py'],
-                              data_source['pdx'], data_source['pdy'], data_source['pdz'],
+        indices = np.argsort(data_source['dx'])[::-1]
+        buff = _MPL.CPixelize(data_source['x'], data_source['y'],
+                              data_source['z'], data_source['px'],
+                              data_source['py'], data_source['pdx'],
+                              data_source['pdy'], data_source['pdz'],
                               data_source.center, data_source._inv_mat, indices,
                               data_source[item], size[0], size[1], bounds).transpose()
         return buff
@@ -132,6 +150,20 @@ class CartesianCoordinatesHandler(CoordinatesHandler):
 
     def convert_to_cartesian(self, coord):
         return coord
+
+    def convert_to_cylindrical(self, coord):
+        center = self.pf.domain_center
+        return cartesian_to_cylindrical(coord, center)
+
+    def convert_from_cylindrical(self, coord):
+        center = self.pf.domain_center
+        return cylindrical_to_cartesian(coord, center)
+
+    def convert_to_spherical(self, coord):
+        raise NotImplementedError
+
+    def convert_from_spherical(self, coord):
+        raise NotImplementedError
 
     # Despite being mutables, we uses these here to be clear about how these
     # are generated and to ensure that they are not re-generated unnecessarily
@@ -184,6 +216,25 @@ class PolarCoordinatesHandler(CoordinatesHandler):
     y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
                 0  : 2,  1  : 2,  2  : 1}
 
+    def convert_from_cartesian(self, coord):
+        return cartesian_to_cylindrical(coord)
+
+    def convert_to_cartesian(self, coord):
+        return cylindrical_to_cartesian(coord, center)
+
+    def convert_to_cylindrical(self, coord):
+        return coord
+
+    def convert_from_cylindrical(self, coord):
+        return coord
+
+    def convert_to_spherical(self, coord):
+        raise NotImplementedError
+
+    def convert_from_spherical(self, coord):
+        raise NotImplementedError
+
     @property
     def period(self):
         return na.array([0.0, 0.0, 2.0*np.pi])
+
