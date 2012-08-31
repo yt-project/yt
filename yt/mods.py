@@ -95,6 +95,9 @@ from yt.frontends.chombo.api import \
 from yt.frontends.gdf.api import \
     GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
+from yt.frontends.athena.api import \
+    AthenaStaticOutput, AthenaFieldInfo, add_athena_field
+
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
 
