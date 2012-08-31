@@ -350,7 +350,7 @@ class GridBoundaryCallback(PlotCallback):
             if self.draw_ids:
                 visible_gids = visible.nonzero()[0]
                 ids = [g.id for g in plot.data._grids
-                       if na.any(g.child_mask) and g.id in visible_gids]
+                       if len(g.Children)==0 and g.id in visible_gids]
                 for gid in ids:
                     plot._axes.text(left_edge_x[gid] + (2 * (xx1 - xx0) / xpix),
                                     left_edge_y[gid] + (2 * (yy1 - yy0) / ypix),
