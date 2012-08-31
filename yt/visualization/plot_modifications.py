@@ -295,18 +295,18 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
+    def __init__(self, alpha=1.0, min_pix=1, draw_ids=False, periodic=True):
         """
-        annotate_grids(alpha=1.0, min_pix=1, annotate=False, periodic=True)
+        annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
 
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
-        *annotate* puts the grid id in the corner of the grid.  (Not so great in projections...)
+        *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
-        self.annotate = annotate # put grid numbers in the corner.
+        self.draw_ids = draw_ids # put grid numbers in the corner.
         self.periodic = periodic
 
     def __call__(self, plot):
@@ -347,7 +347,7 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
-            if self.annotate:
+            if self.draw_ids:
                 ids = [g.id for g in plot.data._grids]
                 for n in range(len(left_edge_x)):
                     plot._axes.text(left_edge_x[n]+(2*(xx1-xx0)/xpix),left_edge_y[n]+(2*(yy1-yy0)/ypix),ids[n])
