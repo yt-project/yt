@@ -321,10 +321,10 @@ class GridBoundaryCallback(PlotCallback):
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
-        #if self.periodic:
-        #    pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
-        #else:
-        pxs, pys = na.mgrid[0:0:1j,0:0:1j]
+        if self.periodic:
+            pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        else:
+            pxs, pys = na.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.grid_left_edge
         GRE = plot.data.grid_right_edge
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
