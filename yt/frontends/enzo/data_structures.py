@@ -291,7 +291,7 @@ class EnzoHierarchy(AMRHierarchy):
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
-        si, ei, LE, RE, fn, np = [], [], [], [], [], []
+        si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         for grid_id in xrange(self.num_grids):
@@ -304,15 +304,15 @@ class EnzoHierarchy(AMRHierarchy):
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
             fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
-            np.append(int(_next_token_line("NumberOfParticles", f)[0]))
-            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
+            npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
+            if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
             for line in f:
                 if len(line) < 2: break
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
         pbar.finish()
-        self._fill_arrays(ei, si, LE, RE, np)
+        self._fill_arrays(ei, si, LE, RE, npart)
         temp_grids = np.empty(self.num_grids, dtype='object')
         temp_grids[:] = self.grids
         self.grids = temp_grids
@@ -320,13 +320,13 @@ class EnzoHierarchy(AMRHierarchy):
         self._store_binary_hierarchy()
         t2 = time.time()
 
-    def _fill_arrays(self, ei, si, LE, RE, np):
+    def _fill_arrays(self, ei, si, LE, RE, npart):
         self.grid_dimensions.flat[:] = ei
         self.grid_dimensions -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE
-        self.grid_particle_count.flat[:] = np
+        self.grid_particle_count.flat[:] = npart
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
