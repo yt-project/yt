@@ -350,7 +350,7 @@ class GridBoundaryCallback(PlotCallback):
             if self.draw_ids:
                 ids = [g.id for g in plot.data._grids]
                 for n in visible.nonzero()[0]:
-                    plot._axes.text(left_edge_x[n]+(2*(xx1-xx0)/xpix),left_edge_y[n]+(2*(yy1-yy0)/ypix),ids[n])
+                    plot._axes.text(left_edge_x[n]+(2*(xx1-xx0)/xpix),left_edge_y[n]+(2*(yy1-yy0)/ypix),ids[n],clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
