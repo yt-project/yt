@@ -348,13 +348,13 @@ class GridBoundaryCallback(PlotCallback):
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
             if self.draw_ids:
-                visible_gids = visible.nonzero()[0]
-                ids = [g.id for g in plot.data._grids
-                       if len(g.Children)==0 and g.id in visible_gids]
-                for gid in ids:
-                    plot._axes.text(left_edge_x[gid] + (2 * (xx1 - xx0) / xpix),
-                                    left_edge_y[gid] + (2 * (yy1 - yy0) / ypix),
-                                    gid, clip_on=True)
+                for i, g in enumerate(plot.data._grids[visible]):
+                    if na.any(g.child_mask):
+                        gid = na.where(visible)[0][i]
+                        plot._axes.text(
+                                left_edge_x[gid] + (2 * (xx1 - xx0) / xpix),
+                                left_edge_y[gid] + (2 * (yy1 - yy0) / ypix),
+                                g.id, clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
