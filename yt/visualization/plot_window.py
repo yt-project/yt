@@ -364,7 +364,7 @@ class PlotWindow(object):
         """
         if iterable(width) and isinstance(width[1],str):
             unit = width[1]
-            width = width[0]
+            width = (width[0],width[0])
         elif not iterable(width):
             width = (width,width)
         Wx, Wy = width
