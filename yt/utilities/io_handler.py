@@ -42,7 +42,6 @@ class BaseIOHandler(object):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
             if hasattr(cls, "_data_style"):
-                print 'Registering Class ', cls ,' with datastyle ', cls._data_style
                 io_registry[cls._data_style] = cls
 
     def __init__(self):

@@ -54,10 +54,13 @@ class AthenaGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, hierarchy, level, start, dimensions):
         df = hierarchy.storage_filename
-        if id == 0:
-            gname = 'id0/' + df + '.vtk'
+        if 'id0' not in hierarchy.parameter_file.filename:
+            gname = hierarchy.parameter_file.filename
         else:
-            gname = 'id%i/' % id + df[:-5] + '-id%i'%id + df[-5:] + '.vtk'
+            if id == 0:
+                gname = 'id0/' + df + '.vtk'
+            else:
+                gname = 'id%i/' % id + df[:-5] + '-id%i'%id + df[-5:] + '.vtk'
         AMRGridPatch.__init__(self, id, filename = gname,
                               hierarchy = hierarchy)
         self.filename = gname
@@ -384,8 +387,7 @@ class AthenaStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = file(args[0],'rb')
-            if "gridded_data_format" in fileh:
+            if 'vtk' in args[0]:
                 return True
         except:
             pass
