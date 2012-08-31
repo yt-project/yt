@@ -354,25 +354,48 @@ class PlotWindow(object):
 
         parameters
         ----------
-        width : float, array of floats, or (float, unit) tuple.
-            the width of the image.
+        width : float, array of floats, (float, unit) tuple, or arry of (float, unit) tuples.
+             Width can have four different formats to support windows with variable 
+             x and y widths.  They are:
+             
+             ==================================     =======================
+             format                                 example                
+             ==================================     =======================
+             (float, string)                        (10,'kpc')
+             ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+             float                                  0.2
+             (float, float)                         (0.2, 0.3)
+             ==================================     =======================
+             
+             For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs 
+             wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
+             that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
+             the y axis.  In the other two examples, code units are assumed, for example
+             (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
+             in code units.  the width of the image.
         unit : str
             the unit the width has been specified in.
             defaults to code units.  If width is a tuple this 
             argument is ignored
 
         """
-        if iterable(width) and isinstance(width[1],str):
-            unit = width[1]
-            width = width[0]
-        elif not iterable(width):
-            width = (width,width)
+        if iterable(width): 
+            if isinstance(width[1],str):
+                w, unit = width
+                width = (w, w)
+            elif isinstance(width[1], tuple):
+                wx,unitx = width[0]
+                wy,unity = width[1]
+                width = (wx/self.pf[unitx],wy/self.pf[unity])
+        else:
+            width = (width, width)
         Wx, Wy = width
         width = (Wx,Wy)
         width = [w / self.pf[unit] for w in width]
 
         centerx = (self.xlim[1] + self.xlim[0])/2 
         centery = (self.ylim[1] + self.ylim[0])/2 
+        
         self.xlim = (centerx - width[0]/2.,
                      centerx + width[0]/2.)
         self.ylim = (centery - width[1]/2.,

@@ -80,11 +80,11 @@ class PlotCallback(object):
     def pixel_scale(self,plot):
         x0, x1 = plot.xlim
         xx0, xx1 = plot._axes.get_xlim()
-        dx = (xx0 - xx1)/(x1 - x0)
+        dx = (xx1 - xx0)/(x1 - x0)
         
         y0, y1 = plot.ylim
         yy0, yy1 = plot._axes.get_ylim()
-        dy = (yy0 - yy1)/(y1 - y0)
+        dy = (yy1 - yy0)/(y1 - y0)
 
         return (dx,dy)
 
@@ -295,30 +295,29 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
+    def __init__(self, alpha=1.0, min_pix=1, draw_ids=False, periodic=True):
         """
-        annotate_grids(alpha=1.0, min_pix=1, annotate=False, periodic=True)
+        annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
 
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
-        *annotate* puts the grid id in the corner of the grid.  (Not so great in projections...)
+        *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
-        self.annotate = annotate # put grid numbers in the corner.
+        self.draw_ids = draw_ids # put grid numbers in the corner.
         self.periodic = periodic
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        width, height = plot.image._A.shape
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         xi = x_dict[plot.data.axis]
         yi = y_dict[plot.data.axis]
-        dx = width / (x1-x0)
-        dy = height / (y1-y0)
+        (dx, dy) = self.pixel_scale(plot)
+        (xpix, ypix) = plot.image._A.shape
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
@@ -331,29 +330,27 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
-            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx
-            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy
-            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
-            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
+            left_edge_x = (GLE[:,px_index]+pxo-x0)*dx + xx0
+            left_edge_y = (GLE[:,py_index]+pyo-y0)*dy + yy0
+            right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
+            right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
+                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix )
+            if visible.nonzero()[0].size == 0: continue
             verts = na.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-            visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
-                       ( right_edge_px - left_edge_px > self.min_pix )
+                [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
+                 (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
-            if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
-            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width) + xx0
-            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height) + yy0
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
                 edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
-            if self.annotate:
+            if self.draw_ids:
                 ids = [g.id for g in plot.data._grids]
-                for n in range(len(left_edge_px)):
-                    plot._axes.text(left_edge_px[n]+2,left_edge_py[n]+2,ids[n])
+                for n in visible.nonzero()[0]:
+                    plot._axes.text(left_edge_x[n]+(2*(xx1-xx0)/xpix),left_edge_y[n]+(2*(yy1-yy0)/ypix),ids[n],clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
