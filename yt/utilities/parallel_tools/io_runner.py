@@ -73,7 +73,7 @@ class IOCommunicator(BaseIOHandler):
             for g in self.grids:
                 for f in fields:
                     if f not in self.queue[g.id]:
-                        d = na.zeros(g.ActiveDimensions, dtype='float64')
+                        d = np.zeros(g.ActiveDimensions, dtype='float64')
                         self.queue[g.id][f] = d
                 for f in pfields:
                     self.queue[g.id][f] = self._read(g, f)
@@ -87,12 +87,12 @@ class IOCommunicator(BaseIOHandler):
         fi = self.pf.field_info[f]
         if fi.particle_type and g.NumberOfParticles == 0:
             # because this gets upcast to float
-            return na.array([],dtype='float64')
+            return np.array([],dtype='float64')
         try:
             temp = self.pf.h.io._read_data_set(g, f)
         except:# self.pf.hierarchy.io._read_exception as exc:
             if fi.not_in_all:
-                temp = na.zeros(g.ActiveDimensions, dtype='float64')
+                temp = np.zeros(g.ActiveDimensions, dtype='float64')
             else:
                 raise
         return temp
@@ -137,9 +137,9 @@ class IOHandlerRemote(BaseIOHandler):
         msg = dict(grid_id = grid.id, field = field, op="read")
         mylog.debug("Requesting %s for %s from %s", field, grid, dest)
         if self.pf.field_info[field].particle_type:
-            data = na.empty(grid.NumberOfParticles, 'float64')
+            data = np.empty(grid.NumberOfParticles, 'float64')
         else:
-            data = na.empty(grid.ActiveDimensions, 'float64')
+            data = np.empty(grid.ActiveDimensions, 'float64')
         hook = self.comm.comm.Irecv([data, MPI.DOUBLE], source = dest)
         self.comm.comm.send(msg, dest = dest, tag = YT_TAG_MESSAGE)
         mylog.debug("Waiting for data.")

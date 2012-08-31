@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import h5py
 
 from yt.utilities.io_handler import \
@@ -66,12 +66,12 @@ class IOHandlerFLASH(BaseIOHandler):
             gi = f["/tracer particles"][start:end,blki] == bi
             tr.append(f["/tracer particles"][gi,fi])
             start = end
-        return na.concatenate(tr)
+        return np.concatenate(tr)
 
     def _read_data_set(self, grid, field):
         f = self._handle
         if field in self._particle_fields:
-            if grid.NumberOfParticles == 0: return na.array([], dtype='float64')
+            if grid.NumberOfParticles == 0: return np.array([], dtype='float64')
             start = self.pf.h._particle_indices[grid.id - grid._id_offset]
             end = self.pf.h._particle_indices[grid.id - grid._id_offset + 1]
             fi = self._particle_fields[field]

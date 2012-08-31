@@ -24,7 +24,7 @@ License:
 """
 
 import copy
-import numpy as na
+import numpy as np
 import random as rand
 import sys
 
@@ -128,7 +128,7 @@ def find_unique_solutions(lightcone1, solutions=10, seed=None,
         rand.seed(seed)
         state = rand.getstate()
 
-    fail_digits = str(int(na.log10(failures))+1)
+    fail_digits = str(int(np.log10(failures))+1)
 
     while (len(unique_seeds) < solutions):
         # Create new random seed.
@@ -221,7 +221,7 @@ def _compare_solutions(solution1, solution2):
         mylog.error("Light cone solutions do not have equal volumes, will use the smaller one.")
 
     for q in range(len(solution1)):
-        cube1 = na.zeros(shape=(len(solution1[q]['projection_center']), 2))
+        cube1 = np.zeros(shape=(len(solution1[q]['projection_center']), 2))
         volume1 = 1.0
         for w in range(len(cube1)):
             if (w == solution1[q]['projection_axis']):
@@ -232,7 +232,7 @@ def _compare_solutions(solution1, solution2):
             cube1[w] = [solution1[q]['projection_center'][w] - 0.5 * width,
                         solution1[q]['projection_center'][w] + 0.5 * width]
 
-        cube2 = na.zeros(shape=(len(solution2[q]['projection_center']), 2))
+        cube2 = np.zeros(shape=(len(solution2[q]['projection_center']), 2))
         volume2 = 1.0
         for w in range(len(cube2)):
             if (w == solution2[q]['projection_axis']):
@@ -245,7 +245,7 @@ def _compare_solutions(solution1, solution2):
 
         total_volume += min(volume1, volume2)
         my_volume += common_volume(cube1, cube2,
-                                   periodic=na.array([[0, 1],
+                                   periodic=np.array([[0, 1],
                                                       [0, 1],
                                                       [0, 1]]))
 

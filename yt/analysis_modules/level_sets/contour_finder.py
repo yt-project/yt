@@ -24,7 +24,7 @@ License:
 """
 
 from itertools import chain
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 import yt.utilities.data_point_utilities as data_point_utilities
@@ -63,12 +63,12 @@ def coalesce_join_tree(jtree1):
     tr = []
     for k in joins.keys():
         v = joins.pop(k)
-        tr.append((k, na.array(list(v), dtype="int64")))
+        tr.append((k, np.array(list(v), dtype="int64")))
     return tr
 
 def identify_contours(data_source, field, min_val, max_val,
                           cached_fields=None):
-    cur_max_id = na.sum([g.ActiveDimensions.prod() for g in data_source._grids])
+    cur_max_id = np.sum([g.ActiveDimensions.prod() for g in data_source._grids])
     pbar = get_pbar("First pass", len(data_source._grids))
     grids = sorted(data_source._grids, key=lambda g: -g.Level)
     total_contours = 0
@@ -76,27 +76,27 @@ def identify_contours(data_source, field, min_val, max_val,
     for gi,grid in enumerate(grids):
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
-        if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        if cm is True: cm = np.ones(grid.ActiveDimensions, dtype='bool')
         old_field_parameters = grid.field_parameters
         grid.field_parameters = data_source.field_parameters
-        local_ind = na.where( (grid[field] > min_val)
+        local_ind = np.where( (grid[field] > min_val)
                             & (grid[field] < max_val) & cm )
         grid.field_parameters = old_field_parameters
         if local_ind[0].size == 0: continue
-        kk = na.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
-        grid["tempContours"] = na.ones(grid.ActiveDimensions, dtype='int64') * -1
+        kk = np.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
+        grid["tempContours"] = np.ones(grid.ActiveDimensions, dtype='int64') * -1
         grid["tempContours"][local_ind] = kk[:]
         cur_max_id -= local_ind[0].size
-        xi_u,yi_u,zi_u = na.where(grid["tempContours"] > -1)
-        cor_order = na.argsort(-1*grid["tempContours"][(xi_u,yi_u,zi_u)])
+        xi_u,yi_u,zi_u = np.where(grid["tempContours"] > -1)
+        cor_order = np.argsort(-1*grid["tempContours"][(xi_u,yi_u,zi_u)])
         fd_orig = grid["tempContours"].copy()
         xi = xi_u[cor_order]
         yi = yi_u[cor_order]
         zi = zi_u[cor_order]
         while data_point_utilities.FindContours(grid["tempContours"], xi, yi, zi) < 0:
             pass
-        total_contours += na.unique(grid["tempContours"][grid["tempContours"] > -1]).size
-        new_contours = na.unique(grid["tempContours"][grid["tempContours"] > -1]).tolist()
+        total_contours += np.unique(grid["tempContours"][grid["tempContours"] > -1]).size
+        new_contours = np.unique(grid["tempContours"][grid["tempContours"] > -1]).tolist()
         tree += zip(new_contours, new_contours)
     tree = set(tree)
     pbar.finish()
@@ -110,10 +110,10 @@ def identify_contours(data_source, field, min_val, max_val,
         boundary_tree = amr_utils.construct_boundary_relationships(fd)
         tree.update(((a, b) for a, b in boundary_tree))
     pbar.finish()
-    sort_new = na.array(list(tree), dtype='int64')
+    sort_new = np.array(list(tree), dtype='int64')
     mylog.info("Coalescing %s joins", sort_new.shape[0])
     joins = coalesce_join_tree(sort_new)
-    #joins = [(i, na.array(list(j), dtype="int64")) for i, j in sorted(joins.items())]
+    #joins = [(i, np.array(list(j), dtype="int64")) for i, j in sorted(joins.items())]
     pbar = get_pbar("Joining ", len(joins))
     # This process could and should be done faster
     print "Joining..."
@@ -136,9 +136,9 @@ def identify_contours(data_source, field, min_val, max_val,
     data_source.get_data("tempContours", in_grids=True)
     contour_ind = {}
     i = 0
-    for contour_id in na.unique(data_source["tempContours"]):
+    for contour_id in np.unique(data_source["tempContours"]):
         if contour_id == -1: continue
-        contour_ind[i] = na.where(data_source["tempContours"] == contour_id)
+        contour_ind[i] = np.where(data_source["tempContours"] == contour_id)
         mylog.debug("Contour id %s has %s cells", i, contour_ind[i][0].size)
         i += 1
     mylog.info("Identified %s contours between %0.5e and %0.5e",

@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
@@ -193,7 +193,7 @@ def _NumberDensity(field, data):
     # We can assume that we at least have Density
     # We should actually be guaranteeing the presence of a .shape attribute,
     # but I am not currently implementing that
-    fieldData = na.zeros(data["Density"].shape,
+    fieldData = np.zeros(data["Density"].shape,
                          dtype = data["Density"].dtype)
     if data.pf["MultiSpecies"] == 0:
         if data.has_field_parameter("mu"):
@@ -249,7 +249,7 @@ KnownEnzoFields["y-velocity"].projection_conversion='1'
 KnownEnzoFields["z-velocity"].projection_conversion='1'
 
 def _convertBfield(data): 
-    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
+    return np.sqrt(4*np.pi*data.convert("Density")*data.convert("x-velocity")**2)
 for field in ['Bx','By','Bz']:
     f = KnownEnzoFields[field]
     f._convert_function=_convertBfield
@@ -324,39 +324,39 @@ for ax in ['x','y','z']:
     f.take_log = False
 
 def _spdensity(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
     filter = data['creation_time'] > 0.0
     if not filter.any(): return blank
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
-                           data["particle_position_y"][filter].astype(na.float64),
-                           data["particle_position_z"][filter].astype(na.float64),
-                           data["particle_mass"][filter].astype(na.float32),
-                           na.int64(na.where(filter)[0].size),
-                           blank, na.array(data.LeftEdge).astype(na.float64),
-                           na.array(data.ActiveDimensions).astype(na.int32), 
-                           na.float64(data['dx']))
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
+                           data["particle_position_y"][filter].astype(np.float64),
+                           data["particle_position_z"][filter].astype(np.float64),
+                           data["particle_mass"][filter].astype(np.float32),
+                           np.int64(np.where(filter)[0].size),
+                           blank, np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
     return blank
 add_field("star_density", function=_spdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 def _dmpdensity(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
     if 'creation_time' in data.pf.field_info:
         filter = data['creation_time'] <= 0.0
         if not filter.any(): return blank
     else:
-        filter = na.ones(data.NumberOfParticles, dtype='bool')
+        filter = np.ones(data.NumberOfParticles, dtype='bool')
     if not filter.any(): return blank
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
-                           data["particle_position_y"][filter].astype(na.float64),
-                           data["particle_position_z"][filter].astype(na.float64),
-                           data["particle_mass"][filter].astype(na.float32),
-                           na.int64(na.where(filter)[0].size),
-                           blank, na.array(data.LeftEdge).astype(na.float64),
-                           na.array(data.ActiveDimensions).astype(na.int32), 
-                           na.float64(data['dx']))
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
+                           data["particle_position_y"][filter].astype(np.float64),
+                           data["particle_position_z"][filter].astype(np.float64),
+                           data["particle_mass"][filter].astype(np.float32),
+                           np.int64(np.where(filter)[0].size),
+                           blank, np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
     return blank
 add_field("dm_density", function=_dmpdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
@@ -367,28 +367,28 @@ def _cic_particle_field(field, data):
     using cloud-in-cell deposit.
     """
     particle_field = field.name[4:]
-    top = na.zeros(data.ActiveDimensions, dtype='float32')
+    top = np.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return top
     particle_field_data = data[particle_field] * data['particle_mass']
-    amr_utils.CICDeposit_3(data["particle_position_x"].astype(na.float64),
-                           data["particle_position_y"].astype(na.float64),
-                           data["particle_position_z"].astype(na.float64),
-                           particle_field_data.astype(na.float32),
-                           na.int64(data.NumberOfParticles),
-                           top, na.array(data.LeftEdge).astype(na.float64),
-                           na.array(data.ActiveDimensions).astype(na.int32), 
-                           na.float64(data['dx']))
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
+                           data["particle_position_y"].astype(np.float64),
+                           data["particle_position_z"].astype(np.float64),
+                           particle_field_data.astype(np.float32),
+                           np.int64(data.NumberOfParticles),
+                           top, np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
     del particle_field_data
 
-    bottom = na.zeros(data.ActiveDimensions, dtype='float32')
-    amr_utils.CICDeposit_3(data["particle_position_x"].astype(na.float64),
-                           data["particle_position_y"].astype(na.float64),
-                           data["particle_position_z"].astype(na.float64),
-                           data["particle_mass"].astype(na.float32),
-                           na.int64(data.NumberOfParticles),
-                           bottom, na.array(data.LeftEdge).astype(na.float64),
-                           na.array(data.ActiveDimensions).astype(na.int32), 
-                           na.float64(data['dx']))
+    bottom = np.zeros(data.ActiveDimensions, dtype='float32')
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
+                           data["particle_position_y"].astype(np.float64),
+                           data["particle_position_z"].astype(np.float64),
+                           data["particle_mass"].astype(np.float32),
+                           np.int64(data.NumberOfParticles),
+                           bottom, np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
     top[bottom == 0] = 0.0
     bnz = bottom.nonzero()
     top[bnz] /= bottom[bnz]
@@ -406,30 +406,30 @@ def _star_field(field, data):
     Create a grid field for star quantities, weighted by star mass.
     """
     particle_field = field.name[5:]
-    top = na.zeros(data.ActiveDimensions, dtype='float32')
+    top = np.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return top
     filter = data['creation_time'] > 0.0
     if not filter.any(): return top
     particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
-                          data["particle_position_y"][filter].astype(na.float64),
-                          data["particle_position_z"][filter].astype(na.float64),
-                          particle_field_data.astype(na.float32),
-                          na.int64(na.where(filter)[0].size),
-                          top, na.array(data.LeftEdge).astype(na.float64),
-                          na.array(data.ActiveDimensions).astype(na.int32), 
-                          na.float64(data['dx']))
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
+                          data["particle_position_y"][filter].astype(np.float64),
+                          data["particle_position_z"][filter].astype(np.float64),
+                          particle_field_data.astype(np.float32),
+                          np.int64(np.where(filter)[0].size),
+                          top, np.array(data.LeftEdge).astype(np.float64),
+                          np.array(data.ActiveDimensions).astype(np.int32), 
+                          np.float64(data['dx']))
     del particle_field_data
 
-    bottom = na.zeros(data.ActiveDimensions, dtype='float32')
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
-                          data["particle_position_y"][filter].astype(na.float64),
-                          data["particle_position_z"][filter].astype(na.float64),
-                          data["particle_mass"][filter].astype(na.float32),
-                          na.int64(na.where(filter)[0].size),
-                          bottom, na.array(data.LeftEdge).astype(na.float64),
-                          na.array(data.ActiveDimensions).astype(na.int32), 
-                          na.float64(data['dx']))
+    bottom = np.zeros(data.ActiveDimensions, dtype='float32')
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
+                          data["particle_position_y"][filter].astype(np.float64),
+                          data["particle_position_z"][filter].astype(np.float64),
+                          data["particle_mass"][filter].astype(np.float32),
+                          np.int64(np.where(filter)[0].size),
+                          bottom, np.array(data.LeftEdge).astype(np.float64),
+                          np.array(data.ActiveDimensions).astype(np.int32), 
+                          np.float64(data['dx']))
     top[bottom == 0] = 0.0
     bnz = bottom.nonzero()
     top[bnz] /= bottom[bnz]
@@ -466,7 +466,7 @@ add_field('StarDynamicalTimeYears', units=r"\rm{yr}",
           projection_conversion="1")
 
 def _StarAge(field, data):
-    star_age = na.zeros(data['StarCreationTimeYears'].shape)
+    star_age = np.zeros(data['StarCreationTimeYears'].shape)
     with_stars = data['StarCreationTimeYears'] > 0
     star_age[with_stars] = data.pf.time_units['years'] * \
         data.pf.current_time - \
@@ -485,7 +485,7 @@ add_field('IsStarParticle', function=_IsStarParticle,
 def _Bmag(field, data):
     """ magnitude of bvec
     """
-    return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
+    return np.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
 add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\rm{Gauss}")
 
@@ -495,7 +495,7 @@ def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
         io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
-            return na.array([], dtype=dtype)
+            return np.array([], dtype=dtype)
         try:
             return io._read_data_set(data, p_field).astype(dtype)
         except io._read_exception:
@@ -555,13 +555,13 @@ def _ParticleMass(field, data):
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
 def _IOLevelParticleMass(grid):
-    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
     cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
     return cf
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
 def _IOLevelParticleMassMsun(grid):
-    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
     cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
     return cf
 add_field("ParticleMass",
@@ -584,7 +584,7 @@ def _CellArea(field, data):
     if data['dx'].size == 1:
         try:
             return data['dx']*data['dy']*\
-                na.ones(data.ActiveDimensions, dtype='float64')
+                np.ones(data.ActiveDimensions, dtype='float64')
         except AttributeError:
             return data['dx']*data['dy']
     return data["dx"]*data["dy"]
@@ -606,7 +606,7 @@ for a in ["Code", "Mpc", ""]:
         Enzo2DFieldInfo["CellArea%s" % a]
 
 def _zvel(field, data):
-    return na.zeros(data["x-velocity"].shape,
+    return np.zeros(data["x-velocity"].shape,
                     dtype='float64')
 add_enzo_2d_field("z-velocity", function=_zvel)
 
@@ -638,7 +638,7 @@ for a in ["Code", "Mpc", ""]:
         Enzo1DFieldInfo["CellLength%s" % a]
 
 def _yvel(field, data):
-    return na.zeros(data["x-velocity"].shape,
+    return np.zeros(data["x-velocity"].shape,
                     dtype='float64')
 add_enzo_1d_field("z-velocity", function=_zvel)
 add_enzo_1d_field("y-velocity", function=_yvel)

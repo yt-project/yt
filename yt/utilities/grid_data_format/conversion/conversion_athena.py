@@ -1,6 +1,6 @@
 import os
 import weakref
-import numpy as na
+import numpy as np
 import h5py as h5
 from conversion_abc import *
 from glob import glob
@@ -55,11 +55,11 @@ class AthenaDistributedConverter(Converter):
             grid['domain'] = int(splitup[8].rstrip(','))
             self.current_time = grid['time']
         elif "DIMENSIONS" in splitup:
-            grid['dimensions'] = na.array(splitup[-3:]).astype('int')
+            grid['dimensions'] = np.array(splitup[-3:]).astype('int')
         elif "ORIGIN" in splitup:
-            grid['left_edge'] = na.array(splitup[-3:]).astype('float64')
+            grid['left_edge'] = np.array(splitup[-3:]).astype('float64')
         elif "SPACING" in splitup:
-            grid['dds'] = na.array(splitup[-3:]).astype('float64')
+            grid['dds'] = np.array(splitup[-3:]).astype('float64')
         elif "CELL_DATA" in splitup:
             grid["ncells"] = int(splitup[-1])
         elif "SCALARS" in splitup:
@@ -94,12 +94,12 @@ class AthenaDistributedConverter(Converter):
         proc_names = glob(self.source_dir+'id*')
         #print 'Reading a dataset from %i Processor Files' % len(proc_names)
         N = len(proc_names)
-        grid_dims = na.empty([N,3],dtype='int64')
-        grid_left_edges = na.empty([N,3],dtype='float64')
-        grid_dds = na.empty([N,3],dtype='float64')
-        grid_levels = na.zeros(N,dtype='int64')
-        grid_parent_ids = -1*na.ones(N,dtype='int64')
-        grid_particle_counts = na.zeros([N,1],dtype='int64')
+        grid_dims = np.empty([N,3],dtype='int64')
+        grid_left_edges = np.empty([N,3],dtype='float64')
+        grid_dds = np.empty([N,3],dtype='float64')
+        grid_levels = np.zeros(N,dtype='int64')
+        grid_parent_ids = -1*np.ones(N,dtype='int64')
+        grid_particle_counts = np.zeros([N,1],dtype='int64')
 
         for i in range(N):
             if i == 0:
@@ -128,12 +128,12 @@ class AthenaDistributedConverter(Converter):
 
             if len(line) == 0: break
             
-            if na.prod(grid['dimensions']) != grid['ncells']:
+            if np.prod(grid['dimensions']) != grid['ncells']:
                 grid['dimensions'] -= 1
                 grid['dimensions'][grid['dimensions']==0]=1
-            if na.prod(grid['dimensions']) != grid['ncells']:
+            if np.prod(grid['dimensions']) != grid['ncells']:
                 print 'product of dimensions %i not equal to number of cells %i' % \
-                      (na.prod(grid['dimensions']), grid['ncells'])
+                      (np.prod(grid['dimensions']), grid['ncells'])
                 raise TypeError
 
             # Append all hierachy info before reading this grid's data
@@ -149,7 +149,7 @@ class AthenaDistributedConverter(Converter):
 
         ## --------- Begin level nodes --------- ##
         g = f.create_group('gridded_data_format')
-        g.attrs['format_version']=na.float32(1.0)
+        g.attrs['format_version']=np.float32(1.0)
         g.attrs['data_software']='athena'
         data_g = f.create_group('data')
         field_g = f.create_group('field_types')
@@ -159,8 +159,8 @@ class AthenaDistributedConverter(Converter):
 
         gles = grid_left_edges
         gdims = grid_dims
-        dle = na.min(gles,axis=0)
-        dre = na.max(gles+grid_dims*grid_dds,axis=0)
+        dle = np.min(gles,axis=0)
+        dre = np.max(gles+grid_dims*grid_dds,axis=0)
         glis = ((gles - dle)/grid_dds).astype('int64')
         gris = glis + gdims
 
@@ -183,17 +183,17 @@ class AthenaDistributedConverter(Converter):
 
         ## --------- Done with top level nodes --------- ##
 
-        pars_g.attrs['refine_by'] = na.int64(1)
-        pars_g.attrs['dimensionality'] = na.int64(3)
+        pars_g.attrs['refine_by'] = np.int64(1)
+        pars_g.attrs['dimensionality'] = np.int64(3)
         pars_g.attrs['domain_dimensions'] = ddims
         pars_g.attrs['current_time'] = self.current_time
         pars_g.attrs['domain_left_edge'] = dle
         pars_g.attrs['domain_right_edge'] = dre
         pars_g.attrs['unique_identifier'] = 'athenatest'
-        pars_g.attrs['cosmological_simulation'] = na.int64(0)
-        pars_g.attrs['num_ghost_zones'] = na.int64(0)
-        pars_g.attrs['field_ordering'] = na.int64(1)
-        pars_g.attrs['boundary_conditions'] = na.int64([0]*6) # For Now
+        pars_g.attrs['cosmological_simulation'] = np.int64(0)
+        pars_g.attrs['num_ghost_zones'] = np.int64(0)
+        pars_g.attrs['field_ordering'] = np.int64(1)
+        pars_g.attrs['boundary_conditions'] = np.int64([0]*6) # For Now
 
         # Extra pars:
         # pars_g.attrs['n_cells'] = grid['ncells']
@@ -224,18 +224,18 @@ class AthenaDistributedConverter(Converter):
                 splitup = line.strip().split()
 
                 if "DIMENSIONS" in splitup:
-                    grid_dims = na.array(splitup[-3:]).astype('int')
+                    grid_dims = np.array(splitup[-3:]).astype('int')
                     line = f.readline()
                     continue
                 elif "CELL_DATA" in splitup:
                     grid_ncells = int(splitup[-1])
                     line = f.readline()
-                    if na.prod(grid_dims) != grid_ncells:
+                    if np.prod(grid_dims) != grid_ncells:
                         grid_dims -= 1
                         grid_dims[grid_dims==0]=1
-                    if na.prod(grid_dims) != grid_ncells:
+                    if np.prod(grid_dims) != grid_ncells:
                         print 'product of dimensions %i not equal to number of cells %i' % \
-                              (na.prod(grid_dims), grid_ncells)
+                              (np.prod(grid_dims), grid_ncells)
                         raise TypeError
                     break
                 else:
@@ -250,7 +250,7 @@ class AthenaDistributedConverter(Converter):
                     if not read_table:
                         line = f.readline() # Read the lookup table line
                         read_table = True
-                    data = na.fromfile(f, dtype='>f4', count=grid_ncells).reshape(grid_dims,order='F')
+                    data = np.fromfile(f, dtype='>f4', count=grid_ncells).reshape(grid_dims,order='F')
                     if i == 0:
                         self.fields.append(field)
                     # print 'writing field %s' % field
@@ -259,7 +259,7 @@ class AthenaDistributedConverter(Converter):
 
                 elif 'VECTORS' in splitup:
                     field = splitup[1]
-                    data = na.fromfile(f, dtype='>f4', count=3*grid_ncells)
+                    data = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
                     data_x = data[0::3].reshape(grid_dims,order='F')
                     data_y = data[1::3].reshape(grid_dims,order='F')
                     data_z = data[2::3].reshape(grid_dims,order='F')
@@ -291,7 +291,7 @@ class AthenaDistributedConverter(Converter):
             if name in self.field_conversions.keys():
                 this_field.attrs['field_to_cgs'] = self.field_conversions[name]
             else:
-                this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
+                this_field.attrs['field_to_cgs'] = np.float64('1.0') # For Now
             
 
     def convert(self, hierarchy=True, data=True):
@@ -327,11 +327,11 @@ class AthenaConverter(Converter):
         elif "Really" in splitup:
             grid['time'] = splitup[-1]
         elif "DIMENSIONS" in splitup:
-            grid['dimensions'] = na.array(splitup[-3:]).astype('int')
+            grid['dimensions'] = np.array(splitup[-3:]).astype('int')
         elif "ORIGIN" in splitup:
-            grid['left_edge'] = na.array(splitup[-3:]).astype('float64')
+            grid['left_edge'] = np.array(splitup[-3:]).astype('float64')
         elif "SPACING" in splitup:
-            grid['dds'] = na.array(splitup[-3:]).astype('float64')
+            grid['dds'] = np.array(splitup[-3:]).astype('float64')
         elif "CELL_DATA" in splitup:
             grid["ncells"] = int(splitup[-1])
         elif "SCALARS" in splitup:
@@ -365,19 +365,19 @@ class AthenaConverter(Converter):
             #    print line
 
             if len(line) == 0: break
-            if na.prod(grid['dimensions']) != grid['ncells']:
+            if np.prod(grid['dimensions']) != grid['ncells']:
                 grid['dimensions'] -= 1
-            if na.prod(grid['dimensions']) != grid['ncells']:
+            if np.prod(grid['dimensions']) != grid['ncells']:
                 print 'product of dimensions %i not equal to number of cells %i' % \
-                      (na.prod(grid['dimensions']), grid['ncells'])
+                      (np.prod(grid['dimensions']), grid['ncells'])
                 raise TypeError
 
             if grid['read_type'] is 'scalar':
                 grid[grid['read_field']] = \
-                    na.fromfile(f, dtype='>f4', count=grid['ncells']).reshape(grid['dimensions'],order='F')
+                    np.fromfile(f, dtype='>f4', count=grid['ncells']).reshape(grid['dimensions'],order='F')
                 self.fields.append(grid['read_field'])
             elif grid['read_type'] is 'vector':
-                data = na.fromfile(f, dtype='>f4', count=3*grid['ncells'])
+                data = np.fromfile(f, dtype='>f4', count=3*grid['ncells'])
                 grid[grid['read_field']+'_x'] = data[0::3].reshape(grid['dimensions'],order='F')
                 grid[grid['read_field']+'_y'] = data[1::3].reshape(grid['dimensions'],order='F')
                 grid[grid['read_field']+'_z'] = data[2::3].reshape(grid['dimensions'],order='F')
@@ -398,7 +398,7 @@ class AthenaConverter(Converter):
 
         ## --------- Begin level nodes --------- ##
         g = f.create_group('gridded_data_format')
-        g.attrs['format_version']=na.float32(1.0)
+        g.attrs['format_version']=np.float32(1.0)
         g.attrs['data_software']='athena'
         data_g = f.create_group('data')
         field_g = f.create_group('field_types')
@@ -406,8 +406,8 @@ class AthenaConverter(Converter):
         pars_g = f.create_group('simulation_parameters')
 
         dle = grid['left_edge'] # True only in this case of one grid for the domain
-        gles = na.array([grid['left_edge']])
-        gdims = na.array([grid['dimensions']])
+        gles = np.array([grid['left_edge']])
+        gdims = np.array([grid['dimensions']])
         glis = ((gles - dle)/grid['dds']).astype('int64')
         gris = glis + gdims
 
@@ -416,18 +416,18 @@ class AthenaConverter(Converter):
         # grid_dimensions
         gdim = f.create_dataset('grid_dimensions',data=gdims)
 
-        levels = na.array([0]).astype('int64') # unigrid example
+        levels = np.array([0]).astype('int64') # unigrid example
         # grid_level
         level = f.create_dataset('grid_level',data=levels)
 
         ## ----------QUESTIONABLE NEXT LINE--------- ##
         # This data needs two dimensions for now. 
-        n_particles = na.array([[0]]).astype('int64')
+        n_particles = np.array([[0]]).astype('int64')
         #grid_particle_count
         part_count = f.create_dataset('grid_particle_count',data=n_particles)
 
         # Assume -1 means no parent.
-        parent_ids = na.array([-1]).astype('int64')
+        parent_ids = np.array([-1]).astype('int64')
         # grid_parent_id
         pids = f.create_dataset('grid_parent_id',data=parent_ids)
 
@@ -451,8 +451,8 @@ class AthenaConverter(Converter):
 
         ## --------- Attribute Tables --------- ##
 
-        pars_g.attrs['refine_by'] = na.int64(1)
-        pars_g.attrs['dimensionality'] = na.int64(3)
+        pars_g.attrs['refine_by'] = np.int64(1)
+        pars_g.attrs['dimensionality'] = np.int64(3)
         pars_g.attrs['domain_dimensions'] = grid['dimensions']
         try:
             pars_g.attrs['current_time'] = grid['time']
@@ -461,10 +461,10 @@ class AthenaConverter(Converter):
         pars_g.attrs['domain_left_edge'] = grid['left_edge'] # For Now
         pars_g.attrs['domain_right_edge'] = grid['right_edge'] # For Now
         pars_g.attrs['unique_identifier'] = 'athenatest'
-        pars_g.attrs['cosmological_simulation'] = na.int64(0)
-        pars_g.attrs['num_ghost_zones'] = na.int64(0)
-        pars_g.attrs['field_ordering'] = na.int64(0)
-        pars_g.attrs['boundary_conditions'] = na.int64([0]*6) # For Now
+        pars_g.attrs['cosmological_simulation'] = np.int64(0)
+        pars_g.attrs['num_ghost_zones'] = np.int64(0)
+        pars_g.attrs['field_ordering'] = np.int64(0)
+        pars_g.attrs['boundary_conditions'] = np.int64([0]*6) # For Now
 
         # Extra pars:
         pars_g.attrs['n_cells'] = grid['ncells']
@@ -481,7 +481,7 @@ class AthenaConverter(Converter):
         if name in self.field_conversions.keys():
             this_field.attrs['field_to_cgs'] = self.field_conversions[name]
         else:
-            this_field.attrs['field_to_cgs'] = na.float64('1.0') # For Now
+            this_field.attrs['field_to_cgs'] = np.float64('1.0') # For Now
 
         # Add particle types
         # Nothing to do here

@@ -25,7 +25,7 @@ License:
 
 import h5py
 import stat
-import numpy as na
+import numpy as np
 import weakref
 
 from yt.funcs import *
@@ -70,7 +70,7 @@ class FLASHHierarchy(AMRHierarchy):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._handle = pf._handle
 
-        self.float_type = na.float64
+        self.float_type = np.float64
         AMRHierarchy.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
@@ -123,14 +123,14 @@ class FLASHHierarchy(AMRHierarchy):
             self.grid_particle_count[:] = f["/localnp"][:][:,None]
         except KeyError:
             self.grid_particle_count[:] = 0.0
-        self._particle_indices = na.zeros(self.num_grids + 1, dtype='int64')
-        na.add.accumulate(self.grid_particle_count.squeeze(),
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        np.add.accumulate(self.grid_particle_count.squeeze(),
                           out=self._particle_indices[1:])
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
         self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
-        self.grids = na.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
         
@@ -139,20 +139,20 @@ class FLASHHierarchy(AMRHierarchy):
         rdx = (self.parameter_file.domain_right_edge -
                 self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
         nlevels = self.grid_levels.max()
-        dxs = na.zeros((nlevels+1,3),dtype='float64')
+        dxs = np.zeros((nlevels+1,3),dtype='float64')
         for i in range(nlevels+1):
             dxs[i] = rdx/self.parameter_file.refine_by**i
        
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
-            self.grid_left_edge[i] = na.rint(self.grid_left_edge[i]/dx)*dx
-            self.grid_right_edge[i] = na.rint(self.grid_right_edge[i]/dx)*dx
+            self.grid_left_edge[i] = np.rint(self.grid_left_edge[i]/dx)*dx
+            self.grid_right_edge[i] = np.rint(self.grid_right_edge[i]/dx)*dx
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
         offset = 7
-        ii = na.argsort(self.grid_levels.flat)
+        ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
         first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
         for g in self.grids[ii].flat:
@@ -363,9 +363,9 @@ class FLASHStaticOutput(StaticOutput):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
-        self.domain_left_edge = na.array(
+        self.domain_left_edge = np.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
-        self.domain_right_edge = na.array(
+        self.domain_right_edge = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         self.min_level = self.parameters.get("lrefine_min", 1) - 1
 
@@ -391,7 +391,7 @@ class FLASHStaticOutput(StaticOutput):
         nblockz = self.parameters["nblockz"]
         self.dimensionality = dimensionality
         self.domain_dimensions = \
-            na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+            np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
         try:
             self.parameters["Gamma"] = self.parameters["gamma"]
         except:

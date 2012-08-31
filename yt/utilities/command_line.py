@@ -1212,7 +1212,7 @@ class YTPlotCmd(YTCommand):
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
+        center = np.array(center)
         if args.axis == 4:
             axes = range(3)
         else:
@@ -1266,12 +1266,12 @@ class YTRenderCmd(YTCommand):
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
+        center = np.array(center)
 
         L = args.viewpoint
         if L is None:
             L = [1.]*3
-        L = na.array(args.viewpoint)
+        L = np.array(args.viewpoint)
 
         unit = args.unit
         if unit is None:
@@ -1302,7 +1302,7 @@ class YTRenderCmd(YTCommand):
             roi = pf.h.region(center, center-width, center+width)
             mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
-                mi, ma = na.log10(mi), na.log10(ma)
+                mi, ma = np.log10(mi), np.log10(ma)
         else:
             mi, ma = myrange[0], myrange[1]
 

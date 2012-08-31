@@ -24,25 +24,25 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 def common_volume(n_cube_1, n_cube_2, periodic=None):
     "Return the n-volume in common between the two n-cubes."
 
     # Check for proper args.
-    if ((len(na.shape(n_cube_1)) != 2) or
-        (na.shape(n_cube_1)[1] != 2) or
-        (na.shape(n_cube_1) != na.shape(n_cube_2))):
+    if ((len(np.shape(n_cube_1)) != 2) or
+        (np.shape(n_cube_1)[1] != 2) or
+        (np.shape(n_cube_1) != np.shape(n_cube_2))):
         print "Arguments must be 2 (n, 2) numpy array."
         return 0
 
     if ((periodic is not None) and
-        (na.shape(n_cube_1) != na.shape(periodic))):
+        (np.shape(n_cube_1) != np.shape(periodic))):
         print "periodic argument must be (n, 2) numpy array."
         return 0
 
     nCommon = 1.0
-    for q in range(na.shape(n_cube_1)[0]):
+    for q in range(np.shape(n_cube_1)[0]):
         if (periodic is None):
             nCommon *= common_segment(n_cube_1[q], n_cube_2[q])
         else:
@@ -97,10 +97,10 @@ def common_segment(seg1, seg2, periodic=None):
             return min(flen1, flen2)
 
         # Adjust for periodicity
-        seg1[0] = na.mod(seg1[0], scale) + periodic[0]
+        seg1[0] = np.mod(seg1[0], scale) + periodic[0]
         seg1[1] = seg1[0] + len1
         if (seg1[1] > periodic[1]): seg1[1] -= scale
-        seg2[0] = na.mod(seg2[0], scale) + periodic[0]
+        seg2[0] = np.mod(seg2[0], scale) + periodic[0]
         seg2[1] = seg2[0] + len2
         if (seg2[1] > periodic[1]): seg2[1] -= scale
 

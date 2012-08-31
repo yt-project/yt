@@ -31,7 +31,7 @@ import types
 import __builtin__
 from functools import wraps
 
-import numpy as na
+import numpy as np
 from ._mpl_imports import *
 from .color_maps import yt_colormaps, is_colormap
 from .image_writer import \
@@ -120,7 +120,7 @@ class FieldTransform(object):
             ticks = []
         return ticks
 
-log_transform = FieldTransform('log10', na.log10, LogLocator())
+log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
 def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
@@ -162,7 +162,7 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     if not iterable(width):
         width = (width, width)
     Wx, Wy = width
-    width = na.array((Wx/pf[unit], Wy/pf[unit]))
+    width = np.array((Wx/pf[unit], Wy/pf[unit]))
     if isinstance(center,str):
         if center.lower() == 'm' or center.lower() == 'max':
             v, center = pf.h.find_max("Density")
@@ -172,11 +172,11 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
             raise RuntimeError('center keyword \"%s\" not recognized'%center)
 
     # Transforming to the cutting plane coordinate system
-    center = na.array(center)
+    center = np.array(center)
     center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
     (normal,perp1,perp2) = ortho_find(normal)
-    mat = na.transpose(na.column_stack((perp1,perp2,normal)))
-    center = na.dot(mat,center)
+    mat = np.transpose(np.column_stack((perp1,perp2,normal)))
+    center = np.dot(mat,center)
     width = width/pf.domain_width.min()
 
     bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
@@ -1072,7 +1072,7 @@ class PWViewerExtJS(PWViewer):
             img_data = base64.b64encode(pngs)
             # We scale the width between 200*min_dx and 1.0
             x_width = self.xlim[1] - self.xlim[0]
-            zoom_fac = na.log10(x_width*self.pf['unitary'])/na.log10(min_zoom)
+            zoom_fac = np.log10(x_width*self.pf['unitary'])/np.log10(min_zoom)
             zoom_fac = 100.0*max(0.0, zoom_fac)
             ticks = self.get_ticks(field)
             payload = {'type':'png_string',
@@ -1116,12 +1116,12 @@ class PWViewerExtJS(PWViewer):
 
         raw_data = self._frb.data_source
         b = self._frb.bounds
-        xi, yi = na.mgrid[b[0]:b[1]:(vi / 8) * 1j,
+        xi, yi = np.mgrid[b[0]:b[1]:(vi / 8) * 1j,
                           b[2]:b[3]:(vj / 8) * 1j]
         x = raw_data['px']
         y = raw_data['py']
         z = raw_data[field]
-        if logit: z = na.log10(z)
+        if logit: z = np.log10(z)
         fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()[::-1,:]
 
         ax.contour(fvals, number, colors='w')
@@ -1140,8 +1140,8 @@ class PWViewerExtJS(PWViewer):
         fy = "%s-velocity" % (axis_names[y_dict[axis]])
         px = new_frb[fx][::-1,:]
         py = new_frb[fy][::-1,:]
-        x = na.mgrid[0:vi-1:ny*1j]
-        y = na.mgrid[0:vj-1:nx*1j]
+        x = np.mgrid[0:vi-1:ny*1j]
+        y = np.mgrid[0:vj-1:nx*1j]
         # Always normalize, then we scale
         nn = ((px**2.0 + py**2.0)**0.5).max()
         px /= nn
@@ -1165,7 +1165,7 @@ class PWViewerExtJS(PWViewer):
     def _get_cbar_image(self, height = 400, width = 40, field = None):
         if field is None: field = self._current_field
         cmap_name = self._colormaps[field]
-        vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
+        vals = np.mgrid[1:0:height * 1j] * np.ones(width)[:,None]
         vals = vals.transpose()
         to_plot = apply_colormap(vals, cmap_name = cmap_name)
         pngs = write_png_to_string(to_plot)

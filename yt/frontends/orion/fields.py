@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.utilities.physical_constants import \
     mh, kboltz
@@ -146,7 +146,7 @@ def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
         io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
-            return na.array([], dtype=dtype)
+            return np.array([], dtype=dtype)
         else:
             return io._read_particles(data, p_field).astype(dtype)
 
