@@ -80,11 +80,11 @@ class PlotCallback(object):
     def pixel_scale(self,plot):
         x0, x1 = plot.xlim
         xx0, xx1 = plot._axes.get_xlim()
-        dx = (xx0 - xx1)/(x1 - x0)
+        dx = (xx1 - xx0)/(x1 - x0)
         
         y0, y1 = plot.ylim
         yy0, yy1 = plot._axes.get_ylim()
-        dy = (yy0 - yy1)/(y1 - y0)
+        dy = (yy1 - yy0)/(y1 - y0)
 
         return (dx,dy)
 
