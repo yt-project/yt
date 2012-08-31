@@ -672,6 +672,7 @@ class PWViewerMPL(PWViewer):
 
             ftype, fname = f
             field_name = self.data_source._get_field_info(ftype, fname).display_name
+            if field_name is None: field_name = fname
             if md['units'] == None or md['units'] == '':
                 label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
             else:
