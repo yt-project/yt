@@ -80,8 +80,7 @@ class ParticleTrajectoryCollection(object) :
         indices.sort() # Just in case the caller wasn't careful
         
         self.field_data = YTFieldData()
-        #self.pfs = TimeSeriesData.from_filenames(filenames)
-        self.pfs = [load(fn) for fn in filenames]
+        self.pfs = TimeSeriesData.from_filenames(filenames)
         self.masks = []
         self.sorts = []
         self.indices = indices
@@ -114,14 +113,14 @@ class ParticleTrajectoryCollection(object) :
         for pf in self.pfs :
             dd = pf.h.all_data()
             newtags = dd["particle_index"].astype("int")
-            #if not na.all(na.in1d(indices, newtags, assume_unique=True)) :
-            #    print "Not all requested particle ids contained in this file!"
-            #    raise IndexError
-            #mask = na.in1d(newtags, indices, assume_unique=True)
-            #sorts = na.argsort(newtags[mask])
-            #self.masks.append(mask)            
-            #self.sorts.append(sorts)
-            #self.times.append(pf.current_time)
+            if not na.all(na.in1d(indices, newtags, assume_unique=True)) :
+                print "Not all requested particle ids contained in this file!"
+                raise IndexError
+            mask = na.in1d(newtags, indices, assume_unique=True)
+            sorts = na.argsort(newtags[mask])
+            self.masks.append(mask)            
+            self.sorts.append(sorts)
+            self.times.append(pf.current_time)
 
         self.times = na.array(self.times)
 
