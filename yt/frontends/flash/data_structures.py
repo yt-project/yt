@@ -39,7 +39,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
-
+from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField
@@ -265,7 +265,8 @@ class FLASHStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+            self.units[unit] /= (1.0+self.current_redshift)
+            
     def _setup_cgs_units(self):
         self.conversion_factors['dens'] = 1.0
         self.conversion_factors['pres'] = 1.0
@@ -407,6 +408,7 @@ class FLASHStaticOutput(StaticOutput):
             self.omega_lambda = self.parameters['cosmologicalconstant']
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']
+            self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
