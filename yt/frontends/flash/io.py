@@ -25,13 +25,12 @@ License:
 
 import numpy as na
 import h5py
-from yt.frontends.flash import _flash_particle_reader
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 
 class IOHandlerFLASH(BaseIOHandler):
-    _particle_reader = True
+    _particle_reader = False
     _data_style = "flash_hdf5"
 
     def __init__(self, pf, *args, **kwargs):
@@ -50,17 +49,7 @@ class IOHandlerFLASH(BaseIOHandler):
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
-        fx = self._particle_fields["particle_posx"]
-        fy = self._particle_fields["particle_posy"]
-        fz = self._particle_fields["particle_posz"]
-        field_indices = na.array([self._particle_fields[field]
-                                  for field in fields_to_read],
-                                 dtype='int32')
-        return _flash_particle_reader.read_particles(self._handle.fid,
-                                                     fx, fy, fz,
-                                                     len(fields_to_read),
-                                                     type, args,
-                                                     field_indices)
+        pass
 
     def _read_data_set(self, grid, field):
         f = self._handle
