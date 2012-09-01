@@ -229,13 +229,13 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         if "EOSType" not in self.parameters:
             self.parameters["EOSType"] = -1
-        if self.cosmological_simulation == 1:
-            self._setup_comoving_units()
         if "pc_unitsbase" in self.parameters:
             if self.parameters["pc_unitsbase"] == "CGS":
                 self._setup_cgs_units()
         else:
             self._setup_nounits_units()
+        if self.cosmological_simulation == 1:
+            self._setup_comoving_units()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / \
@@ -252,10 +252,10 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['velx'] = (1.0 + self.current_redshift)**-1.0
         self.conversion_factors['vely'] = self.conversion_factors['velx']
         self.conversion_factors['velz'] = self.conversion_factors['velx']
-        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)**-1.0
         self.conversion_factors['particle_vely'] = \
             self.conversion_factors['particle_velx']
         self.conversion_factors['particle_velz'] = \
