@@ -688,9 +688,9 @@ class PWViewerMPL(PWViewer):
             norm_size = 10.0
             cbar_frac = 0.0
             if aspect > 1.0:
-                size = (aspect*norm_size*(1.+cbar_frac), norm_size)
-            else:
                 size = (norm_size*(1.+cbar_frac), norm_size/aspect)
+            else:
+                size = (aspect*norm_size*(1.+cbar_frac), norm_size)
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
@@ -1222,7 +1222,7 @@ class PlotMPL(object):
         newsize = [size[0] + cbar_inches, size[1]]
         
         # add buffers for text, and a bit of whitespace on top
-        text_buffx = 0.7/(newsize[0])
+        text_buffx = 1.0/(newsize[0])
         text_bottomy = 0.7/size[1]
         text_topy = 0.3/size[1]
 
