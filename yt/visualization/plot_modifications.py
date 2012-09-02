@@ -302,6 +302,7 @@ class GridBoundaryCallback(PlotCallback):
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
         *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
+        Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
