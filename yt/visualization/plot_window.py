@@ -708,10 +708,12 @@ class PWViewerMPL(PWViewer):
 
             # This sets the size of the figure, and defaults to making one of the dimensions smaller.
             # This should protect against giant images in the case of a very large aspect ratio.
+            norm_size = 10.0
+            cbar_frac = 0.0
             if aspect > 1.0:
-                size = (10.0, 10.0/aspect)
+                size = (norm_size*(1.+cbar_frac), norm_size/aspect)
             else:
-                size = (10.0*aspect, 10.0)
+                size = (aspect*norm_size*(1.+cbar_frac), norm_size)
 
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
@@ -1207,10 +1209,13 @@ class PlotMPL(object):
     figure = None
     def __init__(self, field, size):
         self._plot_valid = True
-        self.figure = matplotlib.figure.Figure(figsize = size, frameon = True)
+        fsize, axrect, caxrect = self._get_best_layout(size)
         # Hardcoding the axis dimensions for now
-        self.axes = self.figure.add_axes((.07,.10,.8,.8))
-        self.cax = self.figure.add_axes((.87,.10,.04,.8))
+        
+        self.figure = matplotlib.figure.Figure(figsize = fsize, 
+                                               frameon = True)
+        self.axes = self.figure.add_axes(axrect)
+        self.cax = self.figure.add_axes(caxrect)
 
     def save(self, name, canvas = None):
         if name[-4:] == '.png':
@@ -1229,8 +1234,46 @@ class PlotMPL(object):
             else:
                 mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
                 canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(fn, bbox_inches='tight')
+        canvas.print_figure(fn)
         return fn
+
+    def _get_best_layout(self, size):
+        aspect = 1.0*size[0]/size[1]
+
+        # add room for a colorbar
+        cbar_inches = 0.7
+        newsize = [size[0] + cbar_inches, size[1]]
+        
+        # add buffers for text, and a bit of whitespace on top
+        text_buffx = 1.0/(newsize[0])
+        text_bottomy = 0.7/size[1]
+        text_topy = 0.3/size[1]
+
+        # calculate how much room the colorbar takes
+        cbar_frac = cbar_inches/newsize[0] 
+        
+        # Calculate y fraction, then use to make x fraction.
+        yfrac = 1.0-text_bottomy-text_topy
+        ysize = yfrac*size[1]
+        xsize = aspect*ysize
+        xfrac = xsize/newsize[0]
+
+        # Now make sure it all fits!
+        xbig = xfrac + text_buffx + 2.0*cbar_frac
+        ybig = yfrac + text_bottomy + text_topy
+
+        if xbig > 1:
+            xsize /= xbig
+            ysize /= xbig
+        if ybig > 1:
+            xsize /= ybig
+            ysize /= ybig
+        xfrac = xsize/newsize[0]
+        yfrac = ysize/newsize[1]
+
+        axrect = (text_buffx, text_bottomy, xfrac, yfrac )
+        caxrect = (text_buffx+xfrac, text_bottomy, cbar_frac/4., yfrac )
+        return newsize, axrect, caxrect
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
