@@ -352,13 +352,12 @@ class GridBoundaryCallback(PlotCallback):
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
                                ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
-                for i, g in enumerate(plot.data._grids[visible_ids]):
-                    if na.any(g.child_mask):
-                        gid = na.where(visible_ids)[0][i]
-                        plot._axes.text(
-                                left_edge_x[gid] + (2 * (xx1 - xx0) / xpix),
-                                left_edge_y[gid] + (2 * (yy1 - yy0) / ypix),
-                                g.id, clip_on=True)
+                active_ids = na.unique(plot.data['GridIndices'])
+                for i in na.where(visible_ids)[0]:
+                    plot._axes.text(
+                        left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
+                        left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
+                        "%d" % active_ids[i], clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
