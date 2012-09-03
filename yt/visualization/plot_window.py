@@ -1273,3 +1273,5 @@ class WindowPlotMPL(PlotMPL):
         self.image = self.axes.imshow(data, origin='lower', extent = extent,
                                       norm = norm, vmin = self.zmin, 
                                       vmax = self.zmax, cmap = cmap)
+        self.image.axes.ticklabel_format(scilimits=(-4,3))
+
