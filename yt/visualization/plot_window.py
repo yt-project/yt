@@ -189,8 +189,8 @@ class PlotWindow(object):
     _contour_info = None
     _vector_info = None
     _frb = None
-    def __init__(self, data_source, bounds, buff_size=(800,800), antialias = True, 
-                 periodic = True, origin='center-window', oblique=False):
+    def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
+                 periodic=True, origin='center-window', oblique=False):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
         
@@ -451,16 +451,17 @@ class PlotWindow(object):
         pass
 
 class PWViewer(PlotWindow):
+    _unit = None
+    _colormaps = defaultdict(lambda: 'algae')
+    _callbacks = []
+    _field_transform = {}
     """A viewer for PlotWindows.
 
     """
     def __init__(self, *args,**kwargs):
         setup = kwargs.pop("setup", True)
         PlotWindow.__init__(self, *args,**kwargs)
-        self._colormaps = defaultdict(lambda: 'algae')
         self.setup_callbacks()
-        self._callbacks = []
-        self._field_transform = {}
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
                 self._field_transform[field] = log_transform
@@ -577,7 +578,6 @@ class PWViewer(PlotWindow):
             callback.__doc__ = CallbackMaker.__init__.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
-    _unit = None
     @invalidate_plot
     def set_axes_unit(self, unit_name):
         r"""Set the unit for display on the x and y axes of the image.
@@ -587,7 +587,7 @@ class PWViewer(PlotWindow):
         unit_name : string
             A unit, available for conversion in the parameter file, that the
             image extents will be displayed in.  If set to None, any previous
-            units will be reset.
+            units will be reset.  If the unit is None, the default is chosen.
 
         Raises
         ------
@@ -850,7 +850,8 @@ class PWViewerMPL(PWViewer):
             raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
-    def __init__(self, pf, axis, fields, center='c', width=None, origin='center-window'):
+    def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
+                 origin='center-window'):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -895,6 +896,9 @@ class SlicePlot(PWViewerMPL):
              the y axis.  In the other two examples, code units are assumed, for example
              (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
              in code units.  
+        axes_unit : A string
+            The name of the unit for the tick labels on the x and y axes.  
+            Defaults to None, which automatically picks an appropriate unit.
         origin : string
              The location of the origin of the plot coordinate system.
              Currently, can be set to three options: 'left-domain', corresponding
@@ -916,9 +920,10 @@ class SlicePlot(PWViewerMPL):
         (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
         slc = pf.h.slice(axis, center[axis], fields=fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
+        self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
-    def __init__(self, pf, axis, fields, center='c', width=None,
+    def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
         
@@ -964,6 +969,9 @@ class ProjectionPlot(PWViewerMPL):
              the y axis.  In the other two examples, code units are assumed, for example
              (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
              in code units.
+        axes_unit : A string
+            The name of the unit for the tick labels on the x and y axes.  
+            Defaults to None, which automatically picks an appropriate unit.
         origin : A string
             The location of the origin of the plot coordinate system.
             Currently, can be set to three options: 'left-domain', corresponding
@@ -989,9 +997,11 @@ class ProjectionPlot(PWViewerMPL):
         (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
+        self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
-    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), north_vector=None):
+    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
+                 axes_unit=None, north_vector=None):
         r"""Creates an off axis slice plot from a parameter file
 
         Given a pf object, a normal vector defining a slicing plane, and
@@ -1019,6 +1029,9 @@ class OffAxisSlicePlot(PWViewerMPL):
             A tuple containing the width of image and the string key of
             the unit: (width, 'unit').  If set to a float, code units
             are assumed
+        axes_unit : A string
+            The name of the unit for the tick labels on the x and y axes.  
+            Defaults to None, which automatically picks an appropriate unit.
         north-vector : a sequence of floats
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
@@ -1030,6 +1043,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
+        self.set_axes_unit(axes_unit)
 
 _metadata_template = """
 %(pf)s<br>

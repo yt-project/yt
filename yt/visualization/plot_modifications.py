@@ -295,17 +295,19 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, draw_ids=False, periodic=True):
+    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True):
         """
         annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
 
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
         *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
+        Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
+        self.min_pix_ids = min_pix_ids
         self.draw_ids = draw_ids # put grid numbers in the corner.
         self.periodic = periodic
 
@@ -348,9 +350,11 @@ class GridBoundaryCallback(PlotCallback):
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
             if self.draw_ids:
-                for i, g in enumerate(plot.data._grids[visible]):
+                visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
+                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
+                for i, g in enumerate(plot.data._grids[visible_ids]):
                     if na.any(g.child_mask):
-                        gid = na.where(visible)[0][i]
+                        gid = na.where(visible_ids)[0][i]
                         plot._axes.text(
                                 left_edge_x[gid] + (2 * (xx1 - xx0) / xpix),
                                 left_edge_y[gid] + (2 * (yy1 - yy0) / ypix),
