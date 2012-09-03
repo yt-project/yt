@@ -355,7 +355,11 @@ class AthenaStaticOutput(StaticOutput):
             line = self._handle.readline()
 
         self.domain_left_edge = grid['left_edge']
-        self.domain_right_edge = -grid['left_edge']
+        try:
+            self.domain_right_edge = na.array(self.specified_parameters['domain_right_edge'])
+        except:
+            mylog.info("Please set 'domain_right_edge' in parameters dictionary argument " +
+                    "if it is not equal to -domain_left_edge.")
         self.domain_width = self.domain_right_edge-self.domain_left_edge
         self.domain_dimensions = self.domain_width/grid['dds']
         refine_by = None
