@@ -107,6 +107,12 @@ add_field("GridLevel", function=_GridLevel,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)])
 
+def _GridID(field, data):
+    return na.ones(data.ActiveDimensions)*(data.id)
+add_field("GridID", function=_GridID,
+          validators=[ValidateGridType(),
+                      ValidateSpatial(0)])
+
 def _GridIndices(field, data):
     return na.ones(data["Ones"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
