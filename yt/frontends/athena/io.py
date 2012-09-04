@@ -48,20 +48,11 @@ class IOHandlerAthena(BaseIOHandler):
         dtype, offset = grid.hierarchy._field_map[field]
         grid_ncells = np.prod(grid.ActiveDimensions)
         grid_dims = grid.ActiveDimensions
-        line = f.readline()
-        while True:
-            splitup = line.strip().split()
-            if 'CELL_DATA' in splitup:
-                f.readline()
-                read_table_offset = f.tell()
-                del line
-                break
-            del line; line = f.readline()
-
-
+        read_table_offset = get_read_table_offset(f)
         f.seek(read_table_offset+offset)
         if dtype == 'scalar':
-            data = np.fromfile(f, dtype='>f4', count=grid_ncells).reshape(grid_dims,order='F').copy()
+            data = np.fromfile(f, dtype='>f4',
+                    count=grid_ncells).reshape(grid_dims,order='F').copy()
         if dtype == 'vector':
             data = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
             if '_x' in field:
@@ -86,19 +77,11 @@ class IOHandlerAthena(BaseIOHandler):
         dtype, offset = grid.hierarchy._field_map[field]
         grid_ncells = np.prod(grid.ActiveDimensions)
 
-        line = f.readline()
-        while True:
-            splitup = line.strip().split()
-            if 'CELL_DATA' in splitup:
-                f.readline()
-                read_table_offset = f.tell()
-                del line
-                break
-            del line; line = f.readline()
-
+        read_table_offset = get_read_table_offset(f)
         f.seek(read_table_offset+offset)
         if dtype == 'scalar':
-            data = np.fromfile(f, dtype='>f4', count=grid_ncells).reshape(grid.ActiveDimensions,order='F')[sl].copy()
+            data = np.fromfile(f, dtype='>f4', 
+                    count=grid_ncells).reshape(grid.ActiveDimensions,order='F')[sl].copy()
         if dtype == 'vector':
             data = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
             if '_x' in field:
@@ -107,10 +90,18 @@ class IOHandlerAthena(BaseIOHandler):
                 data = data[1::3].reshape(grid.ActiveDimensions,order='F')[sl].copy()
             elif '_z' in field:
                 data = data[2::3].reshape(grid.ActiveDimensions,order='F')[sl].copy()
-
         f.close()
-        if grid.pf.field_ordering == 1:
-            return data.T
-        else:
-            return data
+        return data
+
+def get_read_table_offset(f):
+    line = f.readline()
+    while True:
+        splitup = line.strip().split()
+        if 'CELL_DATA' in splitup:
+            f.readline()
+            read_table_offset = f.tell()
+            break
+        line = f.readline()
+    return read_table_offset
+
 

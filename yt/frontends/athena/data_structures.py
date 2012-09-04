@@ -155,12 +155,10 @@ class AthenaHierarchy(AMRHierarchy):
                     raise TypeError
                 break
             else:
-                del line
                 line = f.readline()
         read_table = False
         read_table_offset = f.tell()
         while line != '':
-            if len(line) == 0: break
             splitup = line.strip().split()
             if 'SCALARS' in splitup:
                 field = splitup[1]
@@ -175,11 +173,9 @@ class AthenaHierarchy(AMRHierarchy):
                 for ax in 'xyz':
                     field_map["%s_%s" % (field, ax)] =\
                             ('vector', f.tell() - read_table_offset)
-            del line
             line = f.readline()
 
         f.close()
-        del f
 
         self.field_list = field_map.keys()
         self._field_map = field_map
@@ -208,10 +204,8 @@ class AthenaHierarchy(AMRHierarchy):
             if 'TABLE' in line.strip().split():
                 break
             if len(line) == 0: break
-            del line
             line = f.readline()
         f.close()
-        del f
 
         # It seems some datasets have a mismatch between ncells and 
         # the actual grid dimensions.
@@ -252,7 +246,6 @@ class AthenaHierarchy(AMRHierarchy):
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
-        del levels, glis, gdims
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -282,10 +275,10 @@ class AthenaStaticOutput(StaticOutput):
 
     def __init__(self, filename, data_style='athena',
                  storage_filename = None, parameters = {}):
+        self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
         self.storage_filename = filename[4:-4]
-        self.specified_parameters = parameters
 
     def _set_units(self):
         """
@@ -298,7 +291,6 @@ class AthenaStaticOutput(StaticOutput):
             self._parse_parameter_file()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['cm'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         for unit in mpc_conversion.keys():
             self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
@@ -320,13 +312,12 @@ class AthenaStaticOutput(StaticOutput):
             if 'TABLE' in line.strip().split():
                 break
             if len(line) == 0: break
-            del line
             line = self._handle.readline()
 
         self.domain_left_edge = grid['left_edge']
-        try:
+        if 'domain_right_edge' in self.specified_parameters:
             self.domain_right_edge = np.array(self.specified_parameters['domain_right_edge'])
-        except:
+        else:
             mylog.info("Please set 'domain_right_edge' in parameters dictionary argument " +
                     "if it is not equal to -domain_left_edge.")
             self.domain_right_edge = -self.domain_left_edge
