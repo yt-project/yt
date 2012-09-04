@@ -91,7 +91,7 @@ def parse_line(line, grid):
         grid['vtk_version'] = splitup[-1]
     elif "Really" in splitup:
         grid['time'] = splitup[-1]
-    elif 'PRIMITIVE' in splitup:
+    elif any(x in ['PRIMITIVE','CONSERVED'] for x in splitup):
         grid['time'] = float(splitup[4].rstrip(','))
         grid['level'] = int(splitup[6].rstrip(','))
         grid['domain'] = int(splitup[8].rstrip(','))
