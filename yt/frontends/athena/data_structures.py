@@ -57,9 +57,9 @@ class AthenaGrid(AMRGridPatch):
             gname = hierarchy.parameter_file.filename
         else:
             if id == 0:
-                gname = 'id0/' + df + '.vtk'
+                gname = 'id0/%s.vtk' % df
             else:
-                gname = 'id%i/' % id + df[:-5] + '-id%i'%id + df[-5:] + '.vtk'
+                gname = 'id%i/%s-id%i%s.vtk' % (id, df[:-5], id, df[-5:] )
         AMRGridPatch.__init__(self, id, filename = gname,
                               hierarchy = hierarchy)
         self.filename = gname
@@ -143,7 +143,6 @@ class AthenaHierarchy(AMRHierarchy):
             if "DIMENSIONS" in splitup:
                 grid_dims = np.array(splitup[-3:]).astype('int')
                 line = f.readline()
-                continue
             elif "CELL_DATA" in splitup:
                 grid_ncells = int(splitup[-1])
                 line = f.readline()
@@ -151,7 +150,7 @@ class AthenaHierarchy(AMRHierarchy):
                     grid_dims -= 1
                     grid_dims[grid_dims==0]=1
                 if np.prod(grid_dims) != grid_ncells:
-                    mylog.error('product of dimensions %i not equal to number of cells %i' % 
+                    mylog.error('product of dimensions %i not equal to number of cells %i' %
                           (np.prod(grid_dims), grid_ncells))
                     raise TypeError
                 break
@@ -168,17 +167,14 @@ class AthenaHierarchy(AMRHierarchy):
                 if not read_table:
                     line = f.readline() # Read the lookup table line
                     read_table = True
-                field_map[field] = 'scalar',f.tell() - read_table_offset
+                field_map[field] = ('scalar', f.tell() - read_table_offset)
                 read_table=False
 
             elif 'VECTORS' in splitup:
                 field = splitup[1]
-                vfield = field+'_x'
-                field_map[vfield] = 'vector',f.tell() - read_table_offset
-                vfield = field+'_y'
-                field_map[vfield] = 'vector',f.tell() - read_table_offset
-                vfield = field+'_z'
-                field_map[vfield] = 'vector',f.tell() - read_table_offset
+                for ax in 'xyz':
+                    field_map["%s_%s" % (field, ax)] =\
+                            ('vector', f.tell() - read_table_offset)
             del line
             line = f.readline()
 
@@ -217,6 +213,8 @@ class AthenaHierarchy(AMRHierarchy):
         f.close()
         del f
 
+        # It seems some datasets have a mismatch between ncells and 
+        # the actual grid dimensions.
         if np.prod(grid['dimensions']) != grid['ncells']:
             grid['dimensions'] -= 1
             grid['dimensions'][grid['dimensions']==0]=1
@@ -244,7 +242,6 @@ class AthenaHierarchy(AMRHierarchy):
             self.grids[i] = self.grid(i, self, levels[i],
                                       glis[i],
                                       gdims[i])
-            self.grids[i]._level_id = levels[i]
 
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
@@ -268,8 +265,8 @@ class AthenaHierarchy(AMRHierarchy):
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
+#     def _setup_derived_fields(self):
+#         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
@@ -293,6 +290,7 @@ class AthenaStaticOutput(StaticOutput):
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
+        This is a stub for future development.  Currently sets arbitrary.
         """
         self.units = {}
         self.time_units = {}
@@ -306,34 +304,6 @@ class AthenaStaticOutput(StaticOutput):
             self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
-
-        # Here should read through and add fields.
-
-        #default_fields=['density']
-        # for field in self.field_list:
-        #     self.units[field] = 1.0
-        #     self._fieldinfo_known.add_field(field, function=NullFunc, take_log=False,
-        #             units="", projected_units="",
-        #             convert_function=None)
-
-        # This should be improved.
-        # self._handle = h5py.File(self.parameter_filename, "r")
-        # for field_name in self._handle["/field_types"]:
-        #     current_field = self._handle["/field_types/%s" % field_name]
-        #     try:
-        #         self.units[field_name] = current_field.attrs['field_to_cgs']
-        #     except:
-        #         self.units[field_name] = 1.0
-        #     try:
-        #         current_fields_unit = current_field.attrs['field_units'][0]
-        #     except:
-        #         current_fields_unit = ""
-        #     self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
-        #            units=current_fields_unit, projected_units="", 
-        #            convert_function=_get_convert(field_name))
-
-        # self._handle.close()
-        # del self._handle
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
@@ -366,7 +336,7 @@ class AthenaStaticOutput(StaticOutput):
         self.refine_by = refine_by
         self.dimensionality = 3
         self.current_time = grid["time"]
-        self.unique_identifier = None
+        self.unique_identifier = self._handle.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = 'fortran'
@@ -374,18 +344,11 @@ class AthenaStaticOutput(StaticOutput):
 
         self.nvtk = int(np.product(self.domain_dimensions/(grid['dimensions']-1)))
 
-        # if self.cosmological_simulation:
-        #     self.current_redshift = sp["current_redshift"]
-        #     self.omega_lambda = sp["omega_lambda"]
-        #     self.omega_matter = sp["omega_matter"]
-        #     self.hubble_constant = sp["hubble_constant"]
-        # else:
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()
-        del self._handle
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
