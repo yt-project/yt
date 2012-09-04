@@ -329,6 +329,7 @@ class AthenaStaticOutput(StaticOutput):
         except:
             mylog.info("Please set 'domain_right_edge' in parameters dictionary argument " +
                     "if it is not equal to -domain_left_edge.")
+            self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge-self.domain_left_edge
         self.domain_dimensions = self.domain_width/grid['dds']
         refine_by = None
