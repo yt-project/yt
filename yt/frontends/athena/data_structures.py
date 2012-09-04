@@ -28,7 +28,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -43,7 +43,6 @@ from yt.utilities.definitions import \
 from .fields import AthenaFieldInfo, KnownAthenaFields
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-import pdb
 
 def _get_convert(fname):
     def _conv(data):
@@ -80,7 +79,7 @@ class AthenaGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -97,11 +96,11 @@ def parse_line(line, grid):
         grid['level'] = int(splitup[6].rstrip(','))
         grid['domain'] = int(splitup[8].rstrip(','))
     elif "DIMENSIONS" in splitup:
-        grid['dimensions'] = na.array(splitup[-3:]).astype('int')
+        grid['dimensions'] = np.array(splitup[-3:]).astype('int')
     elif "ORIGIN" in splitup:
-        grid['left_edge'] = na.array(splitup[-3:]).astype('float64')
+        grid['left_edge'] = np.array(splitup[-3:]).astype('float64')
     elif "SPACING" in splitup:
-        grid['dds'] = na.array(splitup[-3:]).astype('float64')
+        grid['dds'] = np.array(splitup[-3:]).astype('float64')
     elif "CELL_DATA" in splitup:
         grid["ncells"] = int(splitup[-1])
     elif "SCALARS" in splitup:
@@ -128,7 +127,7 @@ class AthenaHierarchy(AMRHierarchy):
         self.hierarchy_filename = self.parameter_file.filename
         #self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = file(self.hierarchy_filename,'rb')
-        AMRHierarchy.__init__(self,pf,data_style)
+        AMRHierarchy.__init__(self, pf, data_style)
 
         self._fhandle.close()
 
@@ -142,18 +141,18 @@ class AthenaHierarchy(AMRHierarchy):
         while line != '':
             splitup = line.strip().split()
             if "DIMENSIONS" in splitup:
-                grid_dims = na.array(splitup[-3:]).astype('int')
+                grid_dims = np.array(splitup[-3:]).astype('int')
                 line = f.readline()
                 continue
             elif "CELL_DATA" in splitup:
                 grid_ncells = int(splitup[-1])
                 line = f.readline()
-                if na.prod(grid_dims) != grid_ncells:
+                if np.prod(grid_dims) != grid_ncells:
                     grid_dims -= 1
                     grid_dims[grid_dims==0]=1
-                if na.prod(grid_dims) != grid_ncells:
+                if np.prod(grid_dims) != grid_ncells:
                     mylog.error('product of dimensions %i not equal to number of cells %i' % 
-                          (na.prod(grid_dims), grid_ncells))
+                          (np.prod(grid_dims), grid_ncells))
                     raise TypeError
                 break
             else:
@@ -218,20 +217,20 @@ class AthenaHierarchy(AMRHierarchy):
         f.close()
         del f
 
-        if na.prod(grid['dimensions']) != grid['ncells']:
+        if np.prod(grid['dimensions']) != grid['ncells']:
             grid['dimensions'] -= 1
             grid['dimensions'][grid['dimensions']==0]=1
-        if na.prod(grid['dimensions']) != grid['ncells']:
+        if np.prod(grid['dimensions']) != grid['ncells']:
             mylog.error('product of dimensions %i not equal to number of cells %i' % 
-                  (na.prod(grid['dimensions']), grid['ncells']))
+                  (np.prod(grid['dimensions']), grid['ncells']))
             raise TypeError
 
         dxs=[]
-        self.grids = na.empty(self.num_grids, dtype='object')
-        levels = na.zeros(self.num_grids, dtype='int32')
+        self.grids = np.empty(self.num_grids, dtype='object')
+        levels = np.zeros(self.num_grids, dtype='int32')
         single_grid_width = grid['dds']*grid['dimensions']
         grids_per_dim = (self.parameter_file.domain_width/single_grid_width).astype('int32')
-        glis = na.empty((self.num_grids,3), dtype='int64')
+        glis = np.empty((self.num_grids,3), dtype='int64')
         for i in range(self.num_grids):
             procz = i/(grids_per_dim[0]*grids_per_dim[1])
             procy = (i - procz*(grids_per_dim[0]*grids_per_dim[1]))/grids_per_dim[0]
@@ -239,7 +238,7 @@ class AthenaHierarchy(AMRHierarchy):
             glis[i, 0] = procx*grid['dimensions'][0]
             glis[i, 1] = procy*grid['dimensions'][1]
             glis[i, 2] = procz*grid['dimensions'][2]
-        gdims = na.ones_like(glis)
+        gdims = np.ones_like(glis)
         gdims[:] = grid['dimensions']
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i, self, levels[i],
@@ -251,11 +250,11 @@ class AthenaHierarchy(AMRHierarchy):
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx = dx/self.parameter_file.refine_by**(levels[i])
             dxs.append(grid['dds'])
-        dx = na.array(dxs)
+        dx = np.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
-        self.grid_particle_count = na.zeros([self.num_grids, 1], dtype='int64')
+        self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
         del levels, glis, gdims
 
     def _populate_grid_objects(self):
@@ -273,7 +272,7 @@ class AthenaHierarchy(AMRHierarchy):
         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
@@ -356,7 +355,7 @@ class AthenaStaticOutput(StaticOutput):
 
         self.domain_left_edge = grid['left_edge']
         try:
-            self.domain_right_edge = na.array(self.specified_parameters['domain_right_edge'])
+            self.domain_right_edge = np.array(self.specified_parameters['domain_right_edge'])
         except:
             mylog.info("Please set 'domain_right_edge' in parameters dictionary argument " +
                     "if it is not equal to -domain_left_edge.")
@@ -373,7 +372,7 @@ class AthenaStaticOutput(StaticOutput):
         self.field_ordering = 'fortran'
         self.boundary_conditions = [1]*6
 
-        self.nvtk = int(na.product(self.domain_dimensions/(grid['dimensions']-1)))
+        self.nvtk = int(np.product(self.domain_dimensions/(grid['dimensions']-1)))
 
         # if self.cosmological_simulation:
         #     self.current_redshift = sp["current_redshift"]
