@@ -657,13 +657,18 @@ class PWViewerMPL(PWViewer):
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
 
+            if not md['unit'] in ['1', 'u', 'unitary']:
+                axes_unit_label = '\/\/('+md['unit'].encode('string-escape')+')'
+            else:
+                axes_unit_label = ''
+
             if self.oblique == False:
                 labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
-                          r'\/\/('+md['unit'].encode('string-escape')+r')}$' for i in (0,1)]
+                        axes_unit_label + r'}$' for i in (0,1)]
             else:
-                labels = [r'$\rm{Image\/x}\/\/\rm{('+md['unit'].encode('string-escape')+r')}$',
-                          r'$\rm{Image\/y}\/\/\rm{('+md['unit'].encode('string-escape')+r')}$']
-                
+                labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
+                          r'$\rm{Image\/y'+axes_unit_label+'}$']
+
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
 
