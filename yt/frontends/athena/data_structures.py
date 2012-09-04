@@ -283,19 +283,21 @@ class AthenaStaticOutput(StaticOutput):
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
-        This is a stub for future development.  Currently sets arbitrary.
         """
         self.units = {}
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
+        self._setup_nounits_units()
+        self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
+
+    def _setup_nounits_units(self):
+        self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
-            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
