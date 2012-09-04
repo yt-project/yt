@@ -38,14 +38,14 @@ from yt.data_objects.field_info_container import \
     TranslationFunc
 import yt.data_objects.universal_fields
 
-log_translation_dict = {"Density": "density",
-                        "Pressure": "pressure"}
+log_translation_dict = {}
 
-translation_dict = {"x-velocity": "velocity_x",
+translation_dict = {"Density": "density",
+                    "Pressure": "pressure",
+                    "x-velocity": "velocity_x",
                     "y-velocity": "velocity_y",
-                    "z-velocity": "velocity_z"}
-
-translation_dict = {"mag_field_x": "cell_centered_B_x ",
+                    "z-velocity": "velocity_z",
+                    "mag_field_x": "cell_centered_B_x ",
                     "mag_field_y": "cell_centered_B_y ",
                     "mag_field_z": "cell_centered_B_z "}
 
@@ -81,7 +81,7 @@ add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
           units=r"")
 
 for f,v in log_translation_dict.items():
-    add_field(f, TranslationFunc(v), take_log=False)
+    add_field(f, TranslationFunc(v), take_log=True)
 
 for f,v in translation_dict.items():
     add_field(f, TranslationFunc(v), take_log=False)
