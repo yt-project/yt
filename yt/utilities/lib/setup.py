@@ -135,6 +135,9 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("Interpolators", 
                 ["yt/utilities/lib/Interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("alt_ray_tracers", 
+                ["yt/utilities/lib/alt_ray_tracers.pyx"],
+                libraries=["m"], depends=[])
     config.add_extension("marching_cubes", 
                 ["yt/utilities/lib/marching_cubes.pyx",
                  "yt/utilities/lib/FixedInterpolator.c"],
