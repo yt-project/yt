@@ -104,7 +104,6 @@ def get_psize(n_d, pieces):
         to minimize the amount of inter-process communication.
     """
     fac = factorize_number(pieces)
-    print fac, pieces
     nfactors = len(fac[:, 2])
     best = 0.0
     while np.all(fac[:, 2] > 0):
