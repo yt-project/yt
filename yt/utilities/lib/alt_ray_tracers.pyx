@@ -71,59 +71,117 @@ def _cart_intersect(np.ndarray[np.float64_t, ndim=1] a,
     return t, loc
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1, 
+                          np.ndarray[np.float64_t, ndim=1] p2, 
+                          np.ndarray[np.float64_t, ndim=2] left_edges, 
+                          np.ndarray[np.float64_t, ndim=2] right_edges)
+
+    """Computes straight (cartesian) rays being traced through a 
+    cylindrical geometry.
+
+    Parameters
+    ----------
+    p1 : length 3 float ndarray
+        start point for ray
+    p2 : length 3 float ndarray
+        stop point for ray
+    left_edges : 2d ndarray
+        left edges of grid cells
+    right_edges : 2d ndarray
+        right edges of grid cells
+
+    Returns
+    -------
+    t : 1d float ndarray
+        ray parametric time on range [0,1]
+    s : 1d float ndarray
+        ray parametric distance on range [0,len(ray)]
+    rztheta : 2d float ndarray
+        ray grid cell intersections in cylidrical coordinates
+    inds : 1d int ndarray
+        indexes into the grid cells which the ray crosses in order.
+
+    """
+    int i, I
+    cdef np.float64_t a, b,b2, twoa
+    cdef np.ndarray[np.float64_t, ndim=1] dp, p1cart, p2cart, dpcart, t, s, 
+                                          rleft, rright, zleft, zright, 
+                                          cleft, cright, thetaleft, thetaright,
+                                          tmleft, tpleft, tmright, tpright
+    cdef np.ndarray[np.int32_t, ndim=1] inds
+    cdef np.ndarray[np.float64_t, ndim=2] rztheta, ptemp
+
+    # set up  points
+    dp = p2 - p1
+    ptemp = np.array([p1, p2])
+    ptemp = _cyl2cart(ptemp)
+    p1cart = ptemp[0]
+    p2cart = ptemp[1]
+    dpcart = p2cart - p1cart
+
+    # set up components
+    rleft = left_edge[:,0]
+    rright = right_edge[:,0]
+    zleft = left_edge[:,1]
+    zright = right_edge[:,1]
+
+    a = (dpcart[0]**2) + (dpcart[1]**2)
+    b = (2*dpcart[0]*p1cart[0]) + (2*dpcart[1]*p1cart[1])
+    cleft = ((p1cart[0]**2) + (p1cart[1]**2)) - rleft**2
+    cright = ((p1cart[0]**2) + (p1cart[1]**2)) - rright**2
+    twoa = 2*a
+    b2 = b**2
+
+    # Compute positive and negative times and associated masks
+    I = left_edge.shape[0]
+    tmleft = np.empty(I, dtype='float64')
+    tpleft = np.empty(I, dtype='float64')
+    tmright = np.empty(I, dtype='float64')
+    tpright = np.empty(I, dtype='float64')
+    for i in range(I):
+        tmleft[i] = (-b - math.sqrt(b2 - 4*a*cleft[i])) / twoa
+        tpleft[i] = (-b + math.sqrt(b2 - 4*a*cleft[i])) / twoa  
+        tmright[i] = (-b - math.sqrt(b2 - 4*a*cright[i])) / twoa
+        tpright[i] = (-b + math.sqrt(b2 - 4*a*cright[i])) / twoa
+
+    tmmright = np.logical_and(~np.isnan(tmright), rright <= p1[0])
+    tpmright = np.logical_and(~np.isnan(tpright), rright <= p2[0])
+
+    tmmleft = np.logical_and(~np.isnan(tmleft), rleft <= p1[0])
+    tpmleft = np.logical_and(~np.isnan(tpleft), rleft <= p2[0])
+
+    # compute first cut of indexes and thetas, which 
+    # have been filtered by those values for which intersection
+    # times are impossible (see above masks). Note that this is
+    # still independnent of z.
+    inds = np.unique(np.concatenate([np.argwhere(tmmleft).flat, 
+                                     np.argwhere(tpmleft).flat, 
+                                     np.argwhere(tmmright).flat, 
+                                     np.argwhere(tpmright).flat,]))
+    if 0 == inds.shape[0]:
+        inds = np.arange(I)
+        thetaleft = np.empty(I)
+        thetaleft.fill(p1[2])
+        thetaright = np.empty(I)
+        thetaleft.fill(p2[2])
+    else:
+        thetaleft = np.arctan2((p1cart[1] + tmleft[inds]*dpcart[1]), 
+                               (p1cart[0] + tmleft[inds]*dpcart[0]))
+        nans = np.isnan(thetaleft)
+        thetaleft[nans] = np.arctan2((p1cart[1] + tpleft[inds[nans]]*dpcart[1]), 
+                                     (p1cart[0] + tpleft[inds[nans]]*dpcart[0]))
+
+        thetaright = np.arctan2((p1cart[1] + tmright[inds]*dpcart[1]), 
+                                (p1cart[0] + tmright[inds]*dpcart[0]))
+        nans = np.isnan(thetaright)
+        thetaright[nans] = np.arctan2((p1cart[1] + tpright[inds[nans]]*dpcart[1]), 
+                                      (p1cart[0] + tpright[inds[nans]]*dpcart[0]))
+
+
 """\ 
-D = F - E
-
-Ecart = na.array((E[0]*na.cos(E[2]), E[0]*na.sin(E[2]), E[1]))
-Fcart = na.array((F[0]*na.cos(F[2]), F[0]*na.sin(F[2]), F[1]))
-Dcart = Fcart - Ecart
-
-# <codecell>
-
-rleft = pf.h.grid_left_edge[:,0]
-rright = pf.h.grid_right_edge[:,0]
-zleft = pf.h.grid_left_edge[:,1]
-zright = pf.h.grid_right_edge[:,1]
-
-a = (Dcart**2)[:2].sum()
-b = (2*Dcart*Ecart)[:2].sum()
-cleft = (Ecart**2)[:2].sum() - rleft**2
-cright = (Ecart**2)[:2].sum() - rright**2
-
-tmleft = (-b - na.sqrt(b**2 - 4*a*cleft)) / (2*a)
-tpleft = (-b + na.sqrt(b**2 - 4*a*cleft)) / (2*a)  
-tmright = (-b - na.sqrt(b**2 - 4*a*cright)) / (2*a)
-tpright = (-b + na.sqrt(b**2 - 4*a*cright)) / (2*a)  
-
-tmmright = np.logical_and(~np.isnan(tmright), rright <= E[0])
-tpmright = np.logical_and(~np.isnan(tpright), rright <= F[0])
-
-tmmleft = np.logical_and(~np.isnan(tmleft), rleft <= E[0])
-tpmleft = np.logical_and(~np.isnan(tpleft), rleft <= F[0])
-
-# <codecell>
-
-ind = np.unique(np.concatenate([np.argwhere(tmmleft).flat, np.argwhere(tpmleft).flat, np.argwhere(tmmright).flat, np.argwhere(tpmright).flat,]))
-
-thetaleft = np.arctan2((Ecart[1] + tmleft[ind]*Dcart[1]), (Ecart[0] + tmleft[ind]*Dcart[0]))
-nans = np.isnan(thetaleft)
-thetaleft[nans] = np.arctan2((Ecart[1] + tpleft[ind[nans]]*Dcart[1]), (Ecart[0] + tpleft[ind[nans]]*Dcart[0]))
-
-thetaright = np.arctan2((Ecart[1] + tmright[ind]*Dcart[1]), (Ecart[0] + tmright[ind]*Dcart[0]))
-nans = np.isnan(thetaleft)
-thetaright[nans] = np.arctan2((Ecart[1] + tpright[ind[nans]]*Dcart[1]), (Ecart[0] + tpright[ind[nans]]*Dcart[0]))
-
-#thetaleft += np.pi*3/2
-#thetaright += np.pi*3/2
-
-if 0 == len(ind):
-    print "Ind len zero"
-    I = len(rleft)
-    ind = np.arange(I)
-    thetaleft = np.empty(I)
-    thetaleft.fill(E[2])
-    thetaright = np.empty(I)
-    thetaleft.fill(F[2])
 
 # <codecell>
 
