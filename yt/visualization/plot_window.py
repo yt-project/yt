@@ -588,6 +588,8 @@ class PWViewer(PlotWindow):
             A unit, available for conversion in the parameter file, that the
             image extents will be displayed in.  If set to None, any previous
             units will be reset.  If the unit is None, the default is chosen.
+            If unit_name is '1', 'u', or 'unitary', it will not display the 
+            units, and only show the axes name.
 
         Raises
         ------
@@ -904,6 +906,8 @@ class SlicePlot(PWViewerMPL):
         axes_unit : A string
             The name of the unit for the tick labels on the x and y axes.  
             Defaults to None, which automatically picks an appropriate unit.
+            If axes_unit is '1', 'u', or 'unitary', it will not display the 
+            units, and only show the axes name.
         origin : string
              The location of the origin of the plot coordinate system.
              Currently, can be set to three options: 'left-domain', corresponding
@@ -977,6 +981,8 @@ class ProjectionPlot(PWViewerMPL):
         axes_unit : A string
             The name of the unit for the tick labels on the x and y axes.  
             Defaults to None, which automatically picks an appropriate unit.
+            If axes_unit is '1', 'u', or 'unitary', it will not display the 
+            units, and only show the axes name.
         origin : A string
             The location of the origin of the plot coordinate system.
             Currently, can be set to three options: 'left-domain', corresponding
@@ -1037,6 +1043,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         axes_unit : A string
             The name of the unit for the tick labels on the x and y axes.  
             Defaults to None, which automatically picks an appropriate unit.
+            If axes_unit is '1', 'u', or 'unitary', it will not display the 
+            units, and only show the axes name.
         north-vector : a sequence of floats
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
