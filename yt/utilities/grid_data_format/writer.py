@@ -139,7 +139,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     f["grid_left_index"] = pf.h.grid_left_edge
     f["grid_level"] = pf.h.grid_levels
     # @todo: Do we need to loop over the grids for this?
-    f["grid_parent_id"] = -1
+    f["grid_parent_id"] = -np.ones(pf.h.grid_dimensions.shape[0])
     f["grid_particle_count"] = pf.h.grid_particle_count
 
     ###
