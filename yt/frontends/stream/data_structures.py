@@ -332,7 +332,7 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
 
     >>> arr = na.random.random((128, 128, 129))
     >>> data = dict(Density = arr)
-    >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
+    >>> bbox = na.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> pf = load_uniform_grid(data, arr.shape, bbox, nprocs=12)
 
     """
@@ -351,6 +351,7 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
             psize = get_psize(na.array(data[key].shape), nprocs)
             grid_left_edges, grid_right_edges, temp[key] = \
                 decompose_array(data[key], psize, bbox)
+            grid_dimensions = na.array([grid.shape for grid in temp[key]])
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():
@@ -371,15 +372,15 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
         grid_right_edges /= domain_dimensions*2**grid_levels
         grid_right_edges *= domain_right_edge - domain_left_edge
         grid_right_edges += domain_left_edge
+        grid_dimensions = grid_right_edges - grid_left_edges
 
-    grid_dimensions = grid_right_edges - grid_left_edges
 
     handler = StreamHandler(
         grid_left_edges,
         grid_right_edges,
         grid_dimensions,
         grid_levels,
-        na.array([-1], dtype='int64'),
+        -na.ones(nprocs, dtype='int64'),
         number_of_particles*na.ones(nprocs, dtype='int64').reshape(nprocs,1),
         na.zeros(nprocs).reshape((nprocs,1)),
         sfh,
