@@ -319,8 +319,7 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     sim_unit_to_cm : float
         Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm, if the latter
-        is not provided centimeters are assumed
+        Size of computational domain in units sim_unit_to_cm
     nprocs: integer, optional
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
