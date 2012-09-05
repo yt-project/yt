@@ -297,13 +297,13 @@ class StreamDictFieldHandler(dict):
     @property
     def all_fields(self): return self[0].keys()
 
-def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
+def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
                       nprocs=1, sim_time=0.0, number_of_particles=0):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
     This should allow a uniform grid of data to be loaded directly into yt and
-    nalyzed as would any others.  This comes with several caveats:
+    analyzed as would any others.  This comes with several caveats:
         * Units will be incorrect unless the data has already been converted to
           cgs.
         * Some functions may behave oddly, and parallelism will be
@@ -316,10 +316,11 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
         This is a dict of numpy arrays, where the keys are the field names.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
-    bbox : array_like (xdim:zdim, LE:RE)
-        Size of computational domain in centimeters
-    bbox_to_cm : float, optional
-        Conversion factor from bbox units to centimeters
+    sim_unit_to_cm : float
+        Conversion factor from simulation units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units sim_unit_to_cm, if the latter
+        is not provided centimeters are assumed
     nprocs: integer, optional
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
@@ -333,11 +334,13 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
     >>> arr = na.random.random((128, 128, 129))
     >>> data = dict(Density = arr)
     >>> bbox = na.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
-    >>> pf = load_uniform_grid(data, arr.shape, bbox, nprocs=12)
+    >>> pf = load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
     """
 
     domain_dimensions = na.array(domain_dimensions)
+    if bbox is None:
+        bbox = na.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
     domain_left_edge = na.array(bbox[:, 0], 'float64')
     domain_right_edge = na.array(bbox[:, 1], 'float64')
     grid_levels = na.zeros(nprocs, dtype='int32').reshape((nprocs,1))
@@ -360,20 +363,9 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
         del new_data, temp
     else:
         sfh.update({0:data})
-        grid_left_edges = na.zeros(3, "int64").reshape((1,3))
-        grid_right_edges = na.array(domain_dimensions, "int64").reshape((1,3))
-
-        grid_left_edges  = grid_left_edges.astype("float64")
-        grid_left_edges /= domain_dimensions*2**grid_levels
-        grid_left_edges *= domain_right_edge - domain_left_edge
-        grid_left_edges += domain_left_edge
-
-        grid_right_edges  = grid_right_edges.astype("float64")
-        grid_right_edges /= domain_dimensions*2**grid_levels
-        grid_right_edges *= domain_right_edge - domain_left_edge
-        grid_right_edges += domain_left_edge
-        grid_dimensions = grid_right_edges - grid_left_edges
-
+        grid_left_edges = domain_left_edge
+        grid_right_edges = domain_right_edge
+        grid_dimensions = domain_dimensions.reshape(nprocs,3)
 
     handler = StreamHandler(
         grid_left_edges,
@@ -396,10 +388,10 @@ def load_uniform_grid(data, domain_dimensions, bbox, bbox_to_cm=1.0,
     handler.cosmology_simulation = 0
 
     spf = StreamStaticOutput(handler)
-    spf.units["cm"] = bbox_to_cm
+    spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
-    box_in_mpc = bbox_to_cm / mpc_conversion['cm']
+    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
     return spf
