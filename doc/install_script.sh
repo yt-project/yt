@@ -399,7 +399,6 @@ cd ${DEST_DIR}/src
 # Now we dump all our SHA512 files out.
 
 echo '2c1933ab31246b4f4eba049d3288156e0a72f1730604e3ed7357849967cdd329e4647cf236c9442ecfb06d0aff03e6fc892a7ba2a5c1cf5c011b7ab9c619acec  Cython-0.16.tar.gz' > Cython-0.16.tar.gz.sha512
-echo 'b8a12bf05b3aafa71135e47da81440fd0f16a4bd91954bc5615ad3d3b7f9df7d5a7d5620dc61088dc6b04952c5c66ebda947a4cfa33ed1be614c8ca8c0f11dff  PhiloGL-1.4.2.zip' > PhiloGL-1.4.2.zip.sha512
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
 echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
 echo 'c017d3d59dd324ac91af0edc178c76b60a5f90fbb775cf843e39062f95bd846238f2c53705f8890ed3f34bc0e6e75671a73d13875eb0287d6201cb45f0a2d338  bzip2-1.0.5.tar.gz' > bzip2-1.0.5.tar.gz.sha512
@@ -599,11 +598,11 @@ then
     elif [ ! -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
@@ -682,7 +681,12 @@ do_setup_py Forthon-0.8.10
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
 cd $YT_DIR
-( ${HG_EXEC} pull && ${HG_EXEC} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+( ${HG_EXEC} pull 2>1 && ${HG_EXEC} up -C 2>1 ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+
+echo "Building Fortran kD-tree module."
+cd yt/utilities/kdtree
+( make 2>&1 ) 1>> ${LOG_FILE}
+cd ../../..
 
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg

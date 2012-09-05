@@ -183,6 +183,12 @@ add_field("Total_Energy", function=_Total_Energy,
           display_name = "\rm{Total}\/\rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
+def _TotalEnergy(field, data):
+    return data["Total_Energy"] / _convertEnergy(data)
+add_field("TotalEnergy", function=_TotalEnergy,
+          display_name = "\rm{Total}\/\rm{Energy}",
+          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
     # We should actually be guaranteeing the presence of a .shape attribute,

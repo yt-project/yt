@@ -220,7 +220,7 @@ class FieldDetector(defaultdict):
 
     def get_field_parameter(self, param):
         self.requested_parameters.append(param)
-        if param in ['bulk_velocity', 'center', 'height_vector']:
+        if param in ['bulk_velocity', 'center', 'normal']:
             return na.random.random(3) * 1e-2
         else:
             return 0.0

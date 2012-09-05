@@ -39,7 +39,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
-
+from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField
@@ -229,13 +229,13 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         if "EOSType" not in self.parameters:
             self.parameters["EOSType"] = -1
-        if self.cosmological_simulation == 1:
-            self._setup_comoving_units()
         if "pc_unitsbase" in self.parameters:
             if self.parameters["pc_unitsbase"] == "CGS":
                 self._setup_cgs_units()
         else:
             self._setup_nounits_units()
+        if self.cosmological_simulation == 1:
+            self._setup_comoving_units()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / \
@@ -252,10 +252,10 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['velx'] = (1.0 + self.current_redshift)**-1.0
         self.conversion_factors['vely'] = self.conversion_factors['velx']
         self.conversion_factors['velz'] = self.conversion_factors['velx']
-        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)**-1.0
         self.conversion_factors['particle_vely'] = \
             self.conversion_factors['particle_velx']
         self.conversion_factors['particle_velz'] = \
@@ -265,7 +265,8 @@ class FLASHStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+            self.units[unit] /= (1.0+self.current_redshift)
+            
     def _setup_cgs_units(self):
         self.conversion_factors['dens'] = 1.0
         self.conversion_factors['pres'] = 1.0
@@ -407,6 +408,7 @@ class FLASHStaticOutput(StaticOutput):
             self.omega_lambda = self.parameters['cosmologicalconstant']
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']
+            self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0

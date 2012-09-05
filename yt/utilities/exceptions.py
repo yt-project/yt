@@ -110,3 +110,10 @@ class YTNotDeclaredInsideNotebook(YTException):
         return "You have not declared yourself to be inside the IPython" + \
                "Notebook.  Do so with this command:\n\n" + \
                "ytcfg['yt','ipython_notebook'] = 'True'"
+
+class YTUnitNotRecognized(YTException):
+    def __init__(self, unit):
+        self.unit = unit
+
+    def __str__(self):
+        return "This parameter file doesn't recognize %s" % self.unit
