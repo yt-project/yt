@@ -488,9 +488,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         child_IDs = []
         child_masses = []
         child_halos = []
-        for i,pname in enumerate(child_names):
+        for i,cname in enumerate(child_names):
             if i>=self.comm.rank and i%self.comm.size==self.comm.rank:
-                h5fp = h5py.File(pname)
+                h5fp = h5py.File(cname)
                 for group in h5fp:
                     gID = int(group[4:])
                     thisIDs = h5fp[group]['particle_index'][:]
