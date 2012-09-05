@@ -1580,7 +1580,7 @@ class PlotCollection(object):
         >>> dd = pf.h.all_data()
         >>> pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
         ...                     weight = None)
-        >>> pc.save_book("my_plots.pdf", author="Matthew Turk",
+        >>> pc.save_book("my_plots.pdf", author="Yours Truly",
         ...              title="Fun plots")
         """
         from matplotlib.backends.backend_pdf import PdfPages
