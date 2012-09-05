@@ -112,8 +112,6 @@ def parse_line(line, grid):
         grid['read_field'] = field
         grid['read_type'] = 'vector'
 
-
-
 class AthenaHierarchy(AMRHierarchy):
 
     grid = AthenaGrid
@@ -226,7 +224,7 @@ class AthenaHierarchy(AMRHierarchy):
         for i in range(self.num_grids):
             procz = i/(grids_per_dim[0]*grids_per_dim[1])
             procy = (i - procz*(grids_per_dim[0]*grids_per_dim[1]))/grids_per_dim[0]
-            procx = i - procz*(grids_per_dim[0]*grids_per_dim[1]) - procy*grids_per_dim[1]
+            procx = i - procz*(grids_per_dim[0]*grids_per_dim[1]) - procy*grids_per_dim[0]
             glis[i, 0] = procx*grid['dimensions'][0]
             glis[i, 1] = procy*grid['dimensions'][1]
             glis[i, 2] = procz*grid['dimensions'][2]
