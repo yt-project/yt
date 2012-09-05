@@ -112,7 +112,7 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                                           cleft, cright, thetaleft, thetaright,
                                           tmleft, tpleft, tmright, tpright
     cdef np.ndarray[np.int32_t, ndim=1] inds
-    cdef np.ndarray[np.float64_t, ndim=2] rztheta, ptemp
+    cdef np.ndarray[np.float64_t, ndim=2] rztheta, ptemp, b1, b2
 
     # set up  points
     dp = p2 - p1
@@ -180,21 +180,8 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         thetaright[nans] = np.arctan2((p1cart[1] + tpright[inds[nans]]*dpcart[1]), 
                                       (p1cart[0] + tpright[inds[nans]]*dpcart[0]))
 
-
-"""\ 
-
-# <codecell>
-
-a = E
-b = F
-
-#c = np.array([rleft[ind], zleft[ind], thetaleft]).T
-#d = np.array([rleft[ind], zright[ind], thetaleft]).T
-
-#c = np.array([rright[ind], zleft[ind], thetaright]).T
-#d = np.array([rright[ind], zright[ind], thetaright]).T
-
-c =              np.array([rleft[ind], zright[ind], thetaleft]).T
+    # Set up the cell boundary arrays    
+    b1 = np.concatenate()              np.array([rleft[ind], zright[ind], thetaleft]).T
 c = np.append(c, np.array([rleft[ind], zleft[ind], thetaleft]).T, axis=0)
 c = np.append(c, np.array([rleft[ind], zleft[ind], thetaleft]).T, axis=0)
 c = np.append(c, np.array([rright[ind], zleft[ind], thetaright]).T, axis=0)
@@ -221,6 +208,7 @@ ind = np.append(ind, origind)
 ind = np.append(ind, origind)
 ind = np.append(ind, origind)
 
+"""\ 
 tsec, intsec = intersect(a, b, c, d)
 print tsec
 print np.isnan(tsec).all(), len(tsec)
