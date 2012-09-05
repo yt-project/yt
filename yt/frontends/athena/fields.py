@@ -38,16 +38,16 @@ from yt.data_objects.field_info_container import \
     TranslationFunc
 import yt.data_objects.universal_fields
 
-log_translation_dict = {"Density": "density",
-                        "Pressure": "pressure"}
+log_translation_dict = {}
 
-translation_dict = {"x-velocity": "velocity_x",
+translation_dict = {"Density": "density",
+                    "Pressure": "pressure",
+                    "x-velocity": "velocity_x",
                     "y-velocity": "velocity_y",
-                    "z-velocity": "velocity_z"}
-                    
-# translation_dict = {"mag_field_x": "cell_centered_B_x ",
-#                     "mag_field_y": "cell_centered_B_y ",
-#                     "mag_field_z": "cell_centered_B_z "}
+                    "z-velocity": "velocity_z",
+                    "mag_field_x": "cell_centered_B_x ",
+                    "mag_field_y": "cell_centered_B_y ",
+                    "mag_field_z": "cell_centered_B_z "}
 
 AthenaFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = AthenaFieldInfo.add_field
@@ -55,33 +55,30 @@ add_field = AthenaFieldInfo.add_field
 KnownAthenaFields = FieldInfoContainer()
 add_athena_field = KnownAthenaFields.add_field
 
-add_athena_field("density", function=NullFunc, take_log=True,
-          units=r"\rm{g}/\rm{cm}^3",
-          projected_units =r"\rm{g}/\rm{cm}^2")
+add_athena_field("density", function=NullFunc, take_log=False,
+          units=r"",
+          projected_units =r"")
 
-add_athena_field("specific_energy", function=NullFunc, take_log=True,
-          units=r"\rm{erg}/\rm{g}")
-
-add_athena_field("pressure", function=NullFunc, take_log=True,
-          units=r"\rm{erg}/\rm{g}")
+add_athena_field("pressure", function=NullFunc, take_log=False,
+          units=r"")
 
 add_athena_field("velocity_x", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
+          units=r"")
 
 add_athena_field("velocity_y", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
+          units=r"")
 
 add_athena_field("velocity_z", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
+          units=r"")
 
-add_athena_field("mag_field_x", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
+add_athena_field("cell_centered_B_x", function=NullFunc, take_log=False,
+          units=r"")
 
-add_athena_field("mag_field_y", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
+add_athena_field("cell_centered_B_y", function=NullFunc, take_log=False,
+          units=r"")
 
-add_athena_field("mag_field_z", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
+add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
+          units=r"")
 
 for f,v in log_translation_dict.items():
     add_field(f, TranslationFunc(v), take_log=True)
