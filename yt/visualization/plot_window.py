@@ -453,7 +453,6 @@ class PlotWindow(object):
 class PWViewer(PlotWindow):
     _unit = None
     _colormaps = defaultdict(lambda: 'algae')
-    _callbacks = []
     _field_transform = {}
     """A viewer for PlotWindows.
 
@@ -461,6 +460,7 @@ class PWViewer(PlotWindow):
     def __init__(self, *args,**kwargs):
         setup = kwargs.pop("setup", True)
         PlotWindow.__init__(self, *args,**kwargs)
+        self._callbacks = []
         self.setup_callbacks()
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
@@ -928,7 +928,7 @@ class SlicePlot(PWViewerMPL):
         axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
         slc = pf.h.slice(axis, center[axis], fields=fields)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin)
+        self.viewer = PWViewerMPL.__init__(self, slc, bounds, origin=origin)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
