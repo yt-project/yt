@@ -77,8 +77,7 @@ def _cart_intersect(np.ndarray[np.float64_t, ndim=1] a,
 def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1, 
                           np.ndarray[np.float64_t, ndim=1] p2, 
                           np.ndarray[np.float64_t, ndim=2] left_edges, 
-                          np.ndarray[np.float64_t, ndim=2] right_edges)
-
+                          np.ndarray[np.float64_t, ndim=2] right_edges):
     """Computes straight (cartesian) rays being traced through a 
     cylindrical geometry.
 
@@ -105,14 +104,14 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         indexes into the grid cells which the ray crosses in order.
 
     """
-    int i, I
-    cdef np.float64_t a, b,b2, twoa
-    cdef np.ndarray[np.float64_t, ndim=1] dp, p1cart, p2cart, dpcart, t, s, 
-                                          rleft, rright, zleft, zright, 
-                                          cleft, cright, thetaleft, thetaright,
-                                          tmleft, tpleft, tmright, tpright
-    cdef np.ndarray[np.int32_t, ndim=1] inds
-    cdef np.ndarray[np.float64_t, ndim=2] rztheta, ptemp, b1, b2
+    cdef int i, I
+    cdef np.float64_t a, b, bsqrd, twoa
+    cdef np.ndarray[np.float64_t, ndim=1] dp, p1cart, p2cart, dpcart, t, s, \
+                                          rleft, rright, zleft, zright, \
+                                          cleft, cright, thetaleft, thetaright, \
+                                          tmleft, tpleft, tmright, tpright, tsect
+    cdef np.ndarray[np.int64_t, ndim=1] inds, tinds, sinds
+    cdef np.ndarray[np.float64_t, ndim=2] xyz, rztheta, ptemp, b1, b2, dsect
 
     # set up  points
     dp = p2 - p1
@@ -123,29 +122,29 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     dpcart = p2cart - p1cart
 
     # set up components
-    rleft = left_edge[:,0]
-    rright = right_edge[:,0]
-    zleft = left_edge[:,1]
-    zright = right_edge[:,1]
+    rleft = left_edges[:,0]
+    rright = right_edges[:,0]
+    zleft = left_edges[:,1]
+    zright = right_edges[:,1]
 
     a = (dpcart[0]**2) + (dpcart[1]**2)
     b = (2*dpcart[0]*p1cart[0]) + (2*dpcart[1]*p1cart[1])
     cleft = ((p1cart[0]**2) + (p1cart[1]**2)) - rleft**2
     cright = ((p1cart[0]**2) + (p1cart[1]**2)) - rright**2
     twoa = 2*a
-    b2 = b**2
+    bsqrd = b**2
 
     # Compute positive and negative times and associated masks
-    I = left_edge.shape[0]
+    I = left_edges.shape[0]
     tmleft = np.empty(I, dtype='float64')
     tpleft = np.empty(I, dtype='float64')
     tmright = np.empty(I, dtype='float64')
     tpright = np.empty(I, dtype='float64')
     for i in range(I):
-        tmleft[i] = (-b - math.sqrt(b2 - 4*a*cleft[i])) / twoa
-        tpleft[i] = (-b + math.sqrt(b2 - 4*a*cleft[i])) / twoa  
-        tmright[i] = (-b - math.sqrt(b2 - 4*a*cright[i])) / twoa
-        tpright[i] = (-b + math.sqrt(b2 - 4*a*cright[i])) / twoa
+        tmleft[i] = (-b - math.sqrt(bsqrd - 4*a*cleft[i])) / twoa
+        tpleft[i] = (-b + math.sqrt(bsqrd - 4*a*cleft[i])) / twoa  
+        tmright[i] = (-b - math.sqrt(bsqrd - 4*a*cright[i])) / twoa
+        tpright[i] = (-b + math.sqrt(bsqrd - 4*a*cright[i])) / twoa
 
     tmmright = np.logical_and(~np.isnan(tmright), rright <= p1[0])
     tpmright = np.logical_and(~np.isnan(tpright), rright <= p2[0])
@@ -168,12 +167,17 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         thetaright = np.empty(I)
         thetaleft.fill(p2[2])
     else:
+        rleft = rleft[inds]
+        rright = rright[inds]
+
+        zleft = zleft[inds]
+        zright = zright[inds]
+
         thetaleft = np.arctan2((p1cart[1] + tmleft[inds]*dpcart[1]), 
                                (p1cart[0] + tmleft[inds]*dpcart[0]))
         nans = np.isnan(thetaleft)
         thetaleft[nans] = np.arctan2((p1cart[1] + tpleft[inds[nans]]*dpcart[1]), 
                                      (p1cart[0] + tpleft[inds[nans]]*dpcart[0]))
-
         thetaright = np.arctan2((p1cart[1] + tmright[inds]*dpcart[1]), 
                                 (p1cart[0] + tmright[inds]*dpcart[0]))
         nans = np.isnan(thetaright)
@@ -181,56 +185,46 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                                       (p1cart[0] + tpright[inds[nans]]*dpcart[0]))
 
     # Set up the cell boundary arrays    
-    b1 = np.concatenate()              np.array([rleft[ind], zright[ind], thetaleft]).T
-c = np.append(c, np.array([rleft[ind], zleft[ind], thetaleft]).T, axis=0)
-c = np.append(c, np.array([rleft[ind], zleft[ind], thetaleft]).T, axis=0)
-c = np.append(c, np.array([rright[ind], zleft[ind], thetaright]).T, axis=0)
-c = np.append(c, np.array([rleft[ind], zleft[ind], thetaleft]).T, axis=0)
-c = np.append(c, np.array([rright[ind], zright[ind], thetaleft]).T, axis=0)
-c = np.append(c, np.array([rleft[ind], zright[ind], thetaleft]).T, axis=0)
-c = np.append(c, np.array([rright[ind], zleft[ind], thetaleft]).T, axis=0)
+    b1 = np.concatenate([[rleft,  zright, thetaleft],
+                         [rleft,  zleft,  thetaleft],
+                         [rleft,  zleft,  thetaleft],
+                         [rright, zleft,  thetaright],
+                         [rleft,  zleft,  thetaleft],
+                         [rright, zright, thetaleft],
+                         [rleft,  zright, thetaleft],
+                         [rright, zleft,  thetaleft],
+                         ], axis=1).T
 
-d =              np.array([rright[ind], zright[ind], thetaright]).T
-d = np.append(d, np.array([rright[ind], zleft[ind], thetaright]).T, axis=0)
-d = np.append(d, np.array([rleft[ind], zright[ind], thetaleft]).T, axis=0)
-d = np.append(d, np.array([rright[ind], zright[ind], thetaright]).T, axis=0)
-d = np.append(d, np.array([rleft[ind], zleft[ind], thetaright]).T, axis=0)
-d = np.append(d, np.array([rright[ind], zright[ind], thetaright]).T, axis=0)
-d = np.append(d, np.array([rleft[ind], zright[ind], thetaright]).T, axis=0)
-d = np.append(d, np.array([rright[ind], zleft[ind], thetaright]).T, axis=0)
+    b2 = np.concatenate([[rright, zright, thetaright],
+                         [rright, zleft,  thetaright], 
+                         [rleft,  zright, thetaleft], 
+                         [rright, zright, thetaright], 
+                         [rleft,  zleft,  thetaright], 
+                         [rright, zright, thetaright], 
+                         [rleft,  zright, thetaright], 
+                         [rright, zleft,  thetaright],
+                         ], axis=1).T
 
-origind = ind
-ind = np.append(ind, origind)
-ind = np.append(ind, origind)
-ind = np.append(ind, origind)
-ind = np.append(ind, origind)
-ind = np.append(ind, origind)
-ind = np.append(ind, origind)
-ind = np.append(ind, origind)
+    inds = np.concatenate([inds, inds, inds, inds, inds, inds, inds, inds])
 
-"""\ 
-tsec, intsec = intersect(a, b, c, d)
-print tsec
-print np.isnan(tsec).all(), len(tsec)
-tmask = np.logical_and(0.0<=tsec, tsec<=1.0)
-tsec, utmask = np.unique(tsec[tmask], return_index=True)
-print tsec.max(), tsec.ptp(), len(utmask)
-ind = ind[tmask][utmask]
-xyz = intsec[tmask][utmask]
-s = np.sqrt(((xyz - Ecart)**2).sum(axis=1))
-s, smask = np.unique(s, return_index=True)
-ind = ind[smask]
-xyz = xyz[smask]
-t = s/np.sqrt((Dcart**2).sum())
-si = s.argsort()
-s = s[si]
-t = t[si]
-ind = ind[si]
-xyz = xyz[si]
-rztheta = np.array([np.sqrt(xyz[:,0]**2 + xyz[:,1]**2), xyz[:,2], np.arctan2(xyz[:,1], xyz[:,0])]).T
-rztheta[:,2] = 0.0 + (rztheta[:,2] - np.pi*3/2)%(2*np.pi)
-
-
-
-
-"""
+    # find intersections and compute return values
+    tsect, dsect = _cart_intersect(p1cart, p2cart, _cyl2cart(b1), _cyl2cart(b2))
+    tmask = np.logical_and(0.0<=tsect, tsect<=1.0)
+    tsect, tinds = np.unique(tsect[tmask], return_index=True)
+    inds = inds[tmask][tinds]
+    xyz = dsect[tmask][tinds]
+    s = np.sqrt(((xyz - p1cart)**2).sum(axis=1))
+    s, sinds = np.unique(s, return_index=True)
+    inds = inds[sinds]
+    xyz = xyz[sinds]
+    t = s/np.sqrt((dpcart**2).sum())
+    sinds = s.argsort()
+    s = s[sinds]
+    t = t[sinds]
+    inds = inds[sinds]
+    xyz = xyz[sinds]
+    rztheta = np.concatenate([np.sqrt(xyz[:,0]**2 + xyz[:,1]**2)[:,np.newaxis], 
+                              xyz[:,2:3],
+                              np.arctan2(xyz[:,1], xyz[:,0])[:,np.newaxis]], axis=1)
+    return t, s, rztheta, inds
+    #rztheta[:,2] = 0.0 + (rztheta[:,2] - np.pi*3/2)%(2*np.pi)
