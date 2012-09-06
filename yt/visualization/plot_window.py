@@ -451,7 +451,6 @@ class PlotWindow(object):
         pass
 
 class PWViewer(PlotWindow):
-    _colormaps = defaultdict(lambda: 'algae')
     """A viewer for PlotWindows.
 
     """
@@ -461,6 +460,7 @@ class PWViewer(PlotWindow):
         self._unit = None
         self._callbacks = []
         self._field_transform = {}
+        self._colormaps = defaultdict(lambda: 'algae')
         self.setup_callbacks()
         for field in self._frb.data.keys():
             if self.pf.field_info[field].take_log:
