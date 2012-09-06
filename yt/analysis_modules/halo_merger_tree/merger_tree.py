@@ -470,12 +470,12 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             # Sort the arrays by particle index in ascending order.
             if len(parent_IDs)==0:
                 parent_IDs = na.array([], dtype='int32')
-                parent_masses = na.array([], dtype='int32')
+                parent_masses = na.array([], dtype='float64')
                 parent_halos = na.array([], dtype='int32')
             else:
-                parent_IDs = na.concatenate(parent_IDs)
-                parent_masses = na.concatenate(parent_masses)
-                parent_halos = na.concatenate(parent_halos)
+                parent_IDs = na.concatenate(parent_IDs).astype('int32')
+                parent_masses = na.concatenate(parent_masses).astype('float64')
+                parent_halos = na.concatenate(parent_halos).astype('int32')
         else:
             # We can use old data and save disk reading.
             (parent_IDs, parent_masses, parent_halos) = last
@@ -505,12 +505,12 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # Sort the arrays by particle index in ascending order.
         if len(child_IDs)==0:
             child_IDs = na.array([], dtype='int32')
-            child_masses = na.array([], dtype='int32')
+            child_masses = na.array([], dtype='float64')
             child_halos = na.array([], dtype='int32')
         else:
-            child_IDs = na.concatenate(child_IDs)
-            child_masses = na.concatenate(child_masses)
-            child_halos = na.concatenate(child_halos)
+            child_IDs = na.concatenate(child_IDs).astype('int32')
+            child_masses = na.concatenate(child_masses).astype('float64')
+            child_halos = na.concatenate(child_halos).astype('int32')
         child_send = na.ones(child_IDs.size, dtype='bool')
         
         # Match particles in halos.
