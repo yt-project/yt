@@ -465,11 +465,12 @@ class TimeCallback(PlotCallback):
         *format_code* can be optionally set, allowing a custom 
         c-style format code for the time display.
         """
+        self.format_code = format_code
         PlotCallback.__init__(self)
     
     def __call__(self, plot):
         current_time = plot.pf.current_time/plot.pf['Time']
-        timestring = format(current_time,format_code)
+        timestring = format(current_time,self.format_code)
         base = timestring[:timestring.find('e')]
         exponent = timestring[timestring.find('e')+1:]
         if exponent[0] == '+':
