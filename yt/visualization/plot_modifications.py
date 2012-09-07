@@ -458,16 +458,18 @@ class LabelCallback(PlotCallback):
 
 class TimeCallback(PlotCallback):
     _type_name = "time"
-    def __init__(self):
+    def __init__(self, format_code='10.7e'):
         """
         This annotates the plot with the current simulation time.
         For now, the time is displayed in seconds.
+        *format_code* can be optionally set, allowing a custom 
+        c-style format code for the time display.
         """
         PlotCallback.__init__(self)
     
     def __call__(self, plot):
         current_time = plot.pf.current_time/plot.pf['Time']
-        timestring = format(current_time,'10.7e')
+        timestring = format(current_time,format_code)
         base = timestring[:timestring.find('e')]
         exponent = timestring[timestring.find('e')+1:]
         if exponent[0] == '+':
