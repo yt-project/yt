@@ -723,12 +723,12 @@ class PWViewerMPL(PWViewer):
                 self.plots[f].image, cax = self.plots[f].cax)
 
             if not md['unit'] in ['1', 'u', 'unitary']:
-                axes_unit_label = '\/\/('+md['unit'].encode('string-escape')+')'
+                axes_unit_label = '\/\/('+md['unit']+')'
             else:
                 axes_unit_label = ''
 
             if self.oblique == False:
-                labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
+                labels = [r'$\rm{'+axis_labels[axis_index][i]+
                         axes_unit_label + r'}$' for i in (0,1)]
             else:
                 labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
@@ -738,11 +738,16 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1])
 
             field_name = self.data_source.pf.field_info[f].display_name
+            # If the field author has passed us formatted mathtext, leave it alone
+            if field_name[0] == '$':
+                label = field_name[:-1]
+            else:
+                label = r'$\rm{'+field_name+r'}'
             if field_name is None: field_name = f
             if md['units'] == None or md['units'] == '':
-                label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
+                label += r'$'
             else:
-                label = r'$\rm{'+field_name.encode('string-escape')+r'}\/\/('+md['units']+r')$'
+                label += r'\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
 
