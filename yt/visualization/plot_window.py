@@ -725,12 +725,12 @@ class PWViewerMPL(PWViewer):
                 self.plots[f].image, cax = self.plots[f].cax)
 
             if not md['unit'] in ['1', 'u', 'unitary']:
-                axes_unit_label = '\/\/('+md['unit'].encode('string-escape')+')'
+                axes_unit_label = '\/\/('+md['unit']+')'
             else:
                 axes_unit_label = ''
 
             if self.oblique == False:
-                labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
+                labels = [r'$\rm{'+axis_labels[axis_index][i]+
                         axes_unit_label + r'}$' for i in (0,1)]
             else:
                 labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
