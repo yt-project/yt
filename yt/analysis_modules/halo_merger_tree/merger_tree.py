@@ -37,10 +37,7 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
 from yt.convenience import load
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.pydot as pydot
-try:
-    from yt.utilities.kdtree import *
-except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly.")
+from yt.utilities.spatial import cKDTree
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
@@ -349,16 +346,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 child_points.append([row[1] / self.period[0],
                 row[2] / self.period[1],
                 row[3] / self.period[2]])
-            # Turn it into fortran.
             child_points = na.array(child_points)
-            fKD.pos = na.asfortranarray(child_points.T)
-            fKD.qv = na.empty(3, dtype='float64')
-            fKD.dist = na.empty(NumNeighbors, dtype='float64')
-            fKD.tags = na.empty(NumNeighbors, dtype='int64')
-            fKD.nn = NumNeighbors
-            fKD.sort = True
-            fKD.rearrange = True
-            create_tree(0)
+            kdtree = cKDTree(child_points, leafsize = 10)
     
         # Find the parent points from the database.
         parent_pf = load(parentfile)
@@ -373,22 +362,20 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             candidates = {}
             for row in self.cursor:
                 # Normalize positions for use within the kdtree.
-                fKD.qv = na.array([row[1] / self.period[0],
+                query = na.array([row[1] / self.period[0],
                 row[2] / self.period[1],
                 row[3] / self.period[2]])
-                find_nn_nearest_neighbors()
-                NNtags = fKD.tags[:] - 1
+                NNtags = kdtree.query(query, NumNeighbors, period=self.period)[1]
                 nIDs = []
                 for n in NNtags:
-                    nIDs.append(n)
+                    if n not in nIDs:
+                        nIDs.append(n)
                 # We need to fill in fake halos if there aren't enough halos,
                 # which can happen at high redshifts.
                 while len(nIDs) < NumNeighbors:
                     nIDs.append(-1)
                 candidates[row[0]] = nIDs
-            
-            del fKD.pos, fKD.tags, fKD.dist
-            free_tree(0) # Frees the kdtree object.
+            del kdtree
         else:
             candidates = None
 
