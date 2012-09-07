@@ -460,9 +460,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                         gID = int(group[4:])
                         thisIDs = h5fp[group]['particle_index'][:]
                         thisMasses = h5fp[group]['ParticleMassMsun'][:]
-                        parent_IDs.extend(thisIDs)
-                        parent_masses.extend(thisMasses)
-                        parent_halos.extend(na.ones(len(thisIDs),
+                        parent_IDs.append(thisIDs)
+                        parent_masses.append(thisMasses)
+                        parent_halos.append(na.ones(len(thisIDs),
                             dtype='int32') * gID)
                         del thisIDs, thisMasses
                     h5fp.close()
@@ -472,9 +472,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 parent_masses = na.array([], dtype='float64')
                 parent_halos = na.array([], dtype='int32')
             else:
-                parent_IDs = na.asarray(parent_IDs).astype('int64')
-                parent_masses = na.asarray(parent_masses).astype('float64')
-                parent_halos = na.asarray(parent_halos).astype('int32')
+                parent_IDs = na.concatenate(parent_IDs).astype('int64')
+                parent_masses = na.concatenate(parent_masses).astype('float64')
+                parent_halos = na.concatenate(parent_halos).astype('int32')
                 sort = parent_IDs.argsort()
                 parent_IDs = parent_IDs[sort]
                 parent_masses = parent_masses[sort]
@@ -499,9 +499,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     gID = int(group[4:])
                     thisIDs = h5fp[group]['particle_index'][:]
                     thisMasses = h5fp[group]['ParticleMassMsun'][:]
-                    child_IDs.extend(thisIDs)
-                    child_masses.extend(thisMasses)
-                    child_halos.extend(na.ones(len(thisIDs),
+                    child_IDs.append(thisIDs)
+                    child_masses.append(thisMasses)
+                    child_halos.append(na.ones(len(thisIDs),
                         dtype='int32') * gID)
                     del thisIDs, thisMasses
                 h5fp.close()
@@ -511,9 +511,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             child_masses = na.array([], dtype='float64')
             child_halos = na.array([], dtype='int32')
         else:
-            child_IDs = na.asarray(child_IDs).astype('int64')
-            child_masses = na.asarray(child_masses)
-            child_halos = na.asarray(child_halos)
+            child_IDs = na.concatenate(child_IDs).astype('int64')
+            child_masses = na.concatenate(child_masses)
+            child_halos = na.concatenate(child_halos)
             sort = child_IDs.argsort()
             child_IDs = child_IDs[sort]
             child_masses = child_masses[sort]
