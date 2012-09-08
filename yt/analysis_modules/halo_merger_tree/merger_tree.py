@@ -37,10 +37,7 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
 from yt.convenience import load
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.pydot as pydot
-try:
-    from yt.utilities.kdtree import *
-except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly.")
+from yt.utilities.spatial import cKDTree
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
@@ -349,16 +346,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 child_points.append([row[1] / self.period[0],
                 row[2] / self.period[1],
                 row[3] / self.period[2]])
-            # Turn it into fortran.
             child_points = na.array(child_points)
-            fKD.pos = na.asfortranarray(child_points.T)
-            fKD.qv = na.empty(3, dtype='float64')
-            fKD.dist = na.empty(NumNeighbors, dtype='float64')
-            fKD.tags = na.empty(NumNeighbors, dtype='int64')
-            fKD.nn = NumNeighbors
-            fKD.sort = True
-            fKD.rearrange = True
-            create_tree(0)
+            kdtree = cKDTree(child_points, leafsize = 10)
     
         # Find the parent points from the database.
         parent_pf = load(parentfile)
@@ -373,22 +362,20 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             candidates = {}
             for row in self.cursor:
                 # Normalize positions for use within the kdtree.
-                fKD.qv = na.array([row[1] / self.period[0],
+                query = na.array([row[1] / self.period[0],
                 row[2] / self.period[1],
                 row[3] / self.period[2]])
-                find_nn_nearest_neighbors()
-                NNtags = fKD.tags[:] - 1
+                NNtags = kdtree.query(query, NumNeighbors, period=self.period)[1]
                 nIDs = []
                 for n in NNtags:
-                    nIDs.append(n)
+                    if n not in nIDs:
+                        nIDs.append(n)
                 # We need to fill in fake halos if there aren't enough halos,
                 # which can happen at high redshifts.
                 while len(nIDs) < NumNeighbors:
                     nIDs.append(-1)
                 candidates[row[0]] = nIDs
-            
-            del fKD.pos, fKD.tags, fKD.dist
-            free_tree(0) # Frees the kdtree object.
+            del kdtree
         else:
             candidates = None
 
@@ -450,9 +437,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             # the parent dataset.
             parent_names = list(self.names[parent_currt])
             parent_names.sort()
-            parent_IDs = na.array([], dtype='int64')
-            parent_masses = na.array([], dtype='float64')
-            parent_halos = na.array([], dtype='int32')
+            parent_IDs = []
+            parent_masses = []
+            parent_halos = []
             for i,pname in enumerate(parent_names):
                 if i>=self.comm.rank and i%self.comm.size==self.comm.rank:
                     h5fp = h5py.File(pname)
@@ -460,31 +447,38 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                         gID = int(group[4:])
                         thisIDs = h5fp[group]['particle_index'][:]
                         thisMasses = h5fp[group]['ParticleMassMsun'][:]
-                        parent_IDs = na.concatenate((parent_IDs, thisIDs))
-                        parent_masses = na.concatenate((parent_masses, thisMasses))
-                        parent_halos = na.concatenate((parent_halos, 
-                            na.ones(thisIDs.size, dtype='int32') * gID))
+                        parent_IDs.append(thisIDs)
+                        parent_masses.append(thisMasses)
+                        parent_halos.append(na.ones(len(thisIDs),
+                            dtype='int32') * gID)
                         del thisIDs, thisMasses
                     h5fp.close()
-            
             # Sort the arrays by particle index in ascending order.
-            sort = parent_IDs.argsort()
-            parent_IDs = parent_IDs[sort]
-            parent_masses = parent_masses[sort]
-            parent_halos = parent_halos[sort]
-            del sort
+            if len(parent_IDs)==0:
+                parent_IDs = na.array([], dtype='int64')
+                parent_masses = na.array([], dtype='float64')
+                parent_halos = na.array([], dtype='int32')
+            else:
+                parent_IDs = na.concatenate(parent_IDs).astype('int64')
+                parent_masses = na.concatenate(parent_masses).astype('float64')
+                parent_halos = na.concatenate(parent_halos).astype('int32')
+                sort = parent_IDs.argsort()
+                parent_IDs = parent_IDs[sort]
+                parent_masses = parent_masses[sort]
+                parent_halos = parent_halos[sort]
+                del sort
         else:
             # We can use old data and save disk reading.
             (parent_IDs, parent_masses, parent_halos) = last
         # Used to communicate un-matched particles.
         parent_send = na.ones(parent_IDs.size, dtype='bool')
-        
+
         # Now get the child halo data.
         child_names = list(self.names[child_currt])
         child_names.sort()
-        child_IDs = na.array([], dtype='int64')
-        child_masses = na.array([], dtype='float64')
-        child_halos = na.array([], dtype='int32')
+        child_IDs = []
+        child_masses = []
+        child_halos = []
         for i,cname in enumerate(child_names):
             if i>=self.comm.rank and i%self.comm.size==self.comm.rank:
                 h5fp = h5py.File(cname)
@@ -492,20 +486,28 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     gID = int(group[4:])
                     thisIDs = h5fp[group]['particle_index'][:]
                     thisMasses = h5fp[group]['ParticleMassMsun'][:]
-                    child_IDs = na.concatenate((child_IDs, thisIDs))
-                    child_masses = na.concatenate((child_masses, thisMasses))
-                    child_halos = na.concatenate((child_halos, 
-                        na.ones(thisIDs.size, dtype='int32') * gID))
+                    child_IDs.append(thisIDs)
+                    child_masses.append(thisMasses)
+                    child_halos.append(na.ones(len(thisIDs),
+                        dtype='int32') * gID)
                     del thisIDs, thisMasses
                 h5fp.close()
+        # Sort the arrays by particle index in ascending order.
+        if len(child_IDs)==0:
+            child_IDs = na.array([], dtype='int64')
+            child_masses = na.array([], dtype='float64')
+            child_halos = na.array([], dtype='int32')
+        else:
+            child_IDs = na.concatenate(child_IDs).astype('int64')
+            child_masses = na.concatenate(child_masses)
+            child_halos = na.concatenate(child_halos)
+            sort = child_IDs.argsort()
+            child_IDs = child_IDs[sort]
+            child_masses = child_masses[sort]
+            child_halos = child_halos[sort]
+            del sort
         
-        # Sort the arrays by particle index.
-        sort = child_IDs.argsort()
-        child_IDs = child_IDs[sort]
-        child_masses = child_masses[sort]
-        child_halos = child_halos[sort]
         child_send = na.ones(child_IDs.size, dtype='bool')
-        del sort
         
         # Match particles in halos.
         self._match(parent_IDs, child_IDs, parent_halos, child_halos,
