@@ -136,12 +136,12 @@ class FLASHHierarchy(AMRHierarchy):
         
 
         # This is a possibly slow and verbose fix, and should be re-examined!
-        rdx = (self.parameter_file.domain_right_edge -
-                self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
+        rdx = (self.parameter_file.domain_width /
+                self.parameter_file.domain_dimensions)
         nlevels = self.grid_levels.max()
-        dxs = na.zeros((nlevels+1,3),dtype='float64')
+        dxs = na.ones((nlevels+1,3),dtype='float64')
         for i in range(nlevels+1):
-            dxs[i] = rdx/self.parameter_file.refine_by**i
+            dxs[i,:ND] = rdx[:ND]/self.parameter_file.refine_by**i
        
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
