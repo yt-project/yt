@@ -506,7 +506,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             child_masses = child_masses[sort]
             child_halos = child_halos[sort]
             del sort
-
+        
         child_send = na.ones(child_IDs.size, dtype='bool')
         
         # Match particles in halos.
