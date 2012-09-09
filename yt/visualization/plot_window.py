@@ -758,13 +758,7 @@ class PWViewerMPL(PWViewer):
                 raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
 
             if md['units'] == None or md['units'] == '':
-<<<<<<< variant A
-                label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
->>>>>>> variant B
                 label = field_name
-####### Ancestor
-                label += r'$'
-======= end
             else:
                 label = field_name+r'$\/\/('+md['units']+r')$'
 
