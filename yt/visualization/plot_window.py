@@ -26,6 +26,8 @@ License:
 """
 import base64
 import matplotlib.figure
+from matplotlib.mathtext import MathTextParser
+from matplotlib.pyparsing import ParseFatalException
 import cStringIO
 import types
 import __builtin__
@@ -738,11 +740,33 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1])
 
             field_name = self.data_source.pf.field_info[f].display_name
-            if field_name is None: field_name = f
+
+            if field_name is None:
+                field_name = r'$\rm{'+f+r'}$'
+            elif field_name.find('$') == -1:
+                field_name = r'$\rm{'+field_name+r'}$'
+            
+            parser = MathTextParser('Agg')
+            try:
+                parser.parse(field_name)
+            except ParseFatalException, err:
+                raise YTCannotParseFieldDisplayName(f,field_name,str(err))
+
+            try:
+                parser.parse(r'$'+md['units']+r'$')
+            except ParseFatalException, err:
+                raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
+
             if md['units'] == None or md['units'] == '':
+<<<<<<< variant A
                 label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
+>>>>>>> variant B
+                label = field_name
+####### Ancestor
+                label += r'$'
+======= end
             else:
-                label = r'$\rm{'+field_name.encode('string-escape')+r'}\/\/('+md['units']+r')$'
+                label = field_name+r'$\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
 
