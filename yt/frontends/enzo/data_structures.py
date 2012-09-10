@@ -702,23 +702,6 @@ class EnzoStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
-        rp = os.path.join(self.directory, "rates.out")
-        if os.path.exists(rp):
-            try:
-                self.rates = EnzoTable(rp, rates_out_key)
-            except:
-                pass
-        cp = os.path.join(self.directory, "cool_rates.out")
-        if os.path.exists(cp):
-            try:
-                self.cool = EnzoTable(cp, cool_out_key)
-            except:
-                pass
-
-        # Now fixes for different types of Hierarchies
-        # This includes changing the fieldinfo class!
-        if self["TopGridRank"] == 1: self._setup_1d()
-        elif self["TopGridRank"] == 2: self._setup_2d()
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
@@ -732,9 +715,9 @@ class EnzoStaticOutput(StaticOutput):
         self._hierarchy_class = EnzoHierarchy2D
         self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
-            na.concatenate([self["DomainLeftEdge"], [0.0]])
+            na.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
-            na.concatenate([self["DomainRightEdge"], [1.0]])
+            na.concatenate([self.domain_right_edge, [1.0]])
 
     def get_parameter(self,parameter,type=None):
         """
@@ -869,6 +852,11 @@ class EnzoStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+
+        if self.dimensionality == 1:
+            self._setup_1d()
+        elif self.dimensionality == 2:
+            self._setup_2d()
 
     def _set_units(self):
         """

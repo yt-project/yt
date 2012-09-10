@@ -610,7 +610,6 @@ def _zvel(field, data):
                     dtype='float64')
 add_enzo_2d_field("z-velocity", function=_zvel)
 
-
 #
 # Now we do overrides for 1D fields
 #
