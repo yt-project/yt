@@ -26,6 +26,8 @@ License:
 """
 import base64
 import matplotlib.figure
+from matplotlib.mathtext import MathTextParser
+from matplotlib.pyparsing import ParseFatalException
 import cStringIO
 import types
 import __builtin__
@@ -723,12 +725,12 @@ class PWViewerMPL(PWViewer):
                 self.plots[f].image, cax = self.plots[f].cax)
 
             if not md['unit'] in ['1', 'u', 'unitary']:
-                axes_unit_label = '\/\/('+md['unit'].encode('string-escape')+')'
+                axes_unit_label = '\/\/('+md['unit']+')'
             else:
                 axes_unit_label = ''
 
             if self.oblique == False:
-                labels = [r'$\rm{'+axis_labels[axis_index][i].encode('string-escape')+
+                labels = [r'$\rm{'+axis_labels[axis_index][i]+
                         axes_unit_label + r'}$' for i in (0,1)]
             else:
                 labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
@@ -738,11 +740,27 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1])
 
             field_name = self.data_source.pf.field_info[f].display_name
-            if field_name is None: field_name = f
+
+            if field_name is None:
+                field_name = r'$\rm{'+f+r'}$'
+            elif field_name.find('$') == -1:
+                field_name = r'$\rm{'+field_name+r'}$'
+            
+            parser = MathTextParser('Agg')
+            try:
+                parser.parse(field_name)
+            except ParseFatalException, err:
+                raise YTCannotParseFieldDisplayName(f,field_name,str(err))
+
+            try:
+                parser.parse(r'$'+md['units']+r'$')
+            except ParseFatalException, err:
+                raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
+
             if md['units'] == None or md['units'] == '':
-                label = r'$\rm{'+field_name.encode('string-escape')+r'}$'
+                label = field_name
             else:
-                label = r'$\rm{'+field_name.encode('string-escape')+r'}\/\/('+md['units']+r')$'
+                label = field_name+r'$\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
 
