@@ -18,7 +18,7 @@ Coding Style Guide
    Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do 
    "a = a.reshape(3,4)" when "a.shape = (3,4)" will do, and "a = a * 3" should
-   be "na.multiply(a, 3, a)".
+   be "np.multiply(a, 3, a)".
  * In general, avoid all double-underscore method names: __something is usually
    unnecessary.
  * When writing a subclass, use the super built-in to access the super class,
@@ -40,8 +40,7 @@ API Guide
 
    from yt.visualization.plot_collection import PlotCollection
 
- * Numpy is to be imported as "na" not "np".  While this may change in the
-   future, for now this is the correct idiom.
+ * Numpy is to be imported as "np", after a long time of using "na".
  * Do not use too many keyword arguments.  If you have a lot of keyword
    arguments, then you are doing too much in __init__ and not enough via
    parameter setting.
