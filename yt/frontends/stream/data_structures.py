@@ -24,7 +24,7 @@ License:
 """
 
 import weakref
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -73,7 +73,7 @@ class StreamGrid(AMRGridPatch):
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
-        ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
+        ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
@@ -181,7 +181,7 @@ class StreamHierarchy(AMRHierarchy):
             self._reconstruct_parent_child()
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
-        temp_grids = na.empty(self.num_grids, dtype='object')
+        temp_grids = np.empty(self.num_grids, dtype='object')
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
@@ -192,7 +192,7 @@ class StreamHierarchy(AMRHierarchy):
         mylog.debug("Prepared")
 
     def _reconstruct_parent_child(self):
-        mask = na.empty(len(self.grids), dtype='int32')
+        mask = np.empty(len(self.grids), dtype='int32')
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
             get_box_grids_level(self.grid_left_edge[i,:],
@@ -200,7 +200,7 @@ class StreamHierarchy(AMRHierarchy):
                                 self.grid_levels[i] + 1,
                                 self.grid_left_edge, self.grid_right_edge,
                                 self.grid_levels, mask)
-            ids = na.where(mask.astype("bool"))
+            ids = np.where(mask.astype("bool"))
             grid._children_ids = ids[0] # where is a tuple
         mylog.debug("Second pass; identifying parents")
         for i, grid in enumerate(self.grids): # Second pass
@@ -209,7 +209,7 @@ class StreamHierarchy(AMRHierarchy):
 
     def _initialize_grid_arrays(self):
         AMRHierarchy._initialize_grid_arrays(self)
-        self.grid_procs = na.zeros((self.num_grids,1),'int32')
+        self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
     def save_data(self, *args, **kwargs):
         pass
@@ -225,7 +225,7 @@ class StreamHierarchy(AMRHierarchy):
                             pf = self.parameter_file)
             except:
                 continue
-            available = na.all([f in self.field_list for f in fd.requested])
+            available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -330,19 +330,19 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     Examples
     --------
 
-    >>> arr = na.random.random((128, 128, 129))
+    >>> arr = np.random.random((128, 128, 129))
     >>> data = dict(Density = arr)
-    >>> bbox = na.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
+    >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> pf = load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
     """
 
-    domain_dimensions = na.array(domain_dimensions)
+    domain_dimensions = np.array(domain_dimensions)
     if bbox is None:
-        bbox = na.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
-    domain_left_edge = na.array(bbox[:, 0], 'float64')
-    domain_right_edge = na.array(bbox[:, 1], 'float64')
-    grid_levels = na.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+        bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    domain_left_edge = np.array(bbox[:, 0], 'float64')
+    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
     sfh = StreamDictFieldHandler()
 
@@ -350,10 +350,10 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         temp = {}
         new_data = {}
         for key in data.keys():
-            psize = get_psize(na.array(data[key].shape), nprocs)
+            psize = get_psize(np.array(data[key].shape), nprocs)
             grid_left_edges, grid_right_edges, temp[key] = \
                 decompose_array(data[key], psize, bbox)
-            grid_dimensions = na.array([grid.shape for grid in temp[key]])
+            grid_dimensions = np.array([grid.shape for grid in temp[key]])
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():
@@ -371,9 +371,9 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         grid_right_edges,
         grid_dimensions,
         grid_levels,
-        -na.ones(nprocs, dtype='int64'),
-        number_of_particles*na.ones(nprocs, dtype='int64').reshape(nprocs,1),
-        na.zeros(nprocs).reshape((nprocs,1)),
+        -np.ones(nprocs, dtype='int64'),
+        number_of_particles*np.ones(nprocs, dtype='int64').reshape(nprocs,1),
+        np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
     )
 

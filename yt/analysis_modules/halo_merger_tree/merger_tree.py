@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import os, glob, time, gc, md5, sys
 import h5py
 import types
@@ -171,7 +171,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         """
         ParallelAnalysisInterface.__init__(self)
         self.restart_files = restart_files # list of enzo restart files
-        self.with_halos = na.ones(len(restart_files), dtype='bool')
+        self.with_halos = np.ones(len(restart_files), dtype='bool')
         self.database = database # the sqlite database of haloes.
         self.halo_finder_function = halo_finder_function # which halo finder to use
         self.halo_finder_threshold = halo_finder_threshold # overdensity threshold
@@ -346,7 +346,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 child_points.append([row[1] / self.period[0],
                 row[2] / self.period[1],
                 row[3] / self.period[2]])
-            child_points = na.array(child_points)
+            child_points = np.array(child_points)
             kdtree = cKDTree(child_points, leafsize = 10)
     
         # Find the parent points from the database.
@@ -362,7 +362,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             candidates = {}
             for row in self.cursor:
                 # Normalize positions for use within the kdtree.
-                query = na.array([row[1] / self.period[0],
+                query = np.array([row[1] / self.period[0],
                 row[2] / self.period[1],
                 row[3] / self.period[2]])
                 NNtags = kdtree.query(query, NumNeighbors, period=self.period)[1]
@@ -387,7 +387,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # The +1 is an extra element in the array that collects garbage
         # values. This is allowing us to eliminate a try/except later.
         # This extra array element will be cut off eventually.
-        self.child_mass_arr = na.zeros(len(candidates)*NumNeighbors + 1,
+        self.child_mass_arr = np.zeros(len(candidates)*NumNeighbors + 1,
             dtype='float64')
         # Records where to put the entries in the above array.
         self.child_mass_loc = defaultdict(dict)
@@ -449,19 +449,19 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                         thisMasses = h5fp[group]['ParticleMassMsun'][:]
                         parent_IDs.append(thisIDs)
                         parent_masses.append(thisMasses)
-                        parent_halos.append(na.ones(len(thisIDs),
+                        parent_halos.append(np.ones(len(thisIDs),
                             dtype='int32') * gID)
                         del thisIDs, thisMasses
                     h5fp.close()
             # Sort the arrays by particle index in ascending order.
             if len(parent_IDs)==0:
-                parent_IDs = na.array([], dtype='int64')
-                parent_masses = na.array([], dtype='float64')
-                parent_halos = na.array([], dtype='int32')
+                parent_IDs = np.array([], dtype='int64')
+                parent_masses = np.array([], dtype='float64')
+                parent_halos = np.array([], dtype='int32')
             else:
-                parent_IDs = na.concatenate(parent_IDs).astype('int64')
-                parent_masses = na.concatenate(parent_masses).astype('float64')
-                parent_halos = na.concatenate(parent_halos).astype('int32')
+                parent_IDs = np.concatenate(parent_IDs).astype('int64')
+                parent_masses = np.concatenate(parent_masses).astype('float64')
+                parent_halos = np.concatenate(parent_halos).astype('int32')
                 sort = parent_IDs.argsort()
                 parent_IDs = parent_IDs[sort]
                 parent_masses = parent_masses[sort]
@@ -471,7 +471,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             # We can use old data and save disk reading.
             (parent_IDs, parent_masses, parent_halos) = last
         # Used to communicate un-matched particles.
-        parent_send = na.ones(parent_IDs.size, dtype='bool')
+        parent_send = np.ones(parent_IDs.size, dtype='bool')
 
         # Now get the child halo data.
         child_names = list(self.names[child_currt])
@@ -488,26 +488,26 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     thisMasses = h5fp[group]['ParticleMassMsun'][:]
                     child_IDs.append(thisIDs)
                     child_masses.append(thisMasses)
-                    child_halos.append(na.ones(len(thisIDs),
+                    child_halos.append(np.ones(len(thisIDs),
                         dtype='int32') * gID)
                     del thisIDs, thisMasses
                 h5fp.close()
         # Sort the arrays by particle index in ascending order.
         if len(child_IDs)==0:
-            child_IDs = na.array([], dtype='int64')
-            child_masses = na.array([], dtype='float64')
-            child_halos = na.array([], dtype='int32')
+            child_IDs = np.array([], dtype='int64')
+            child_masses = np.array([], dtype='float64')
+            child_halos = np.array([], dtype='int32')
         else:
-            child_IDs = na.concatenate(child_IDs).astype('int64')
-            child_masses = na.concatenate(child_masses)
-            child_halos = na.concatenate(child_halos)
+            child_IDs = np.concatenate(child_IDs).astype('int64')
+            child_masses = np.concatenate(child_masses)
+            child_halos = np.concatenate(child_halos)
             sort = child_IDs.argsort()
             child_IDs = child_IDs[sort]
             child_masses = child_masses[sort]
             child_halos = child_halos[sort]
             del sort
         
-        child_send = na.ones(child_IDs.size, dtype='bool')
+        child_send = np.ones(child_IDs.size, dtype='bool')
         
         # Match particles in halos.
         self._match(parent_IDs, child_IDs, parent_halos, child_halos,
@@ -620,8 +620,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     def _match(self, parent_IDs, child_IDs, parent_halos, child_halos,
             parent_masses, parent_send = None, child_send = None):
         # Pick out IDs that are in both arrays.
-        parent_in_child = na.in1d(parent_IDs, child_IDs, assume_unique = True)
-        child_in_parent = na.in1d(child_IDs, parent_IDs, assume_unique = True)
+        parent_in_child = np.in1d(parent_IDs, child_IDs, assume_unique = True)
+        child_in_parent = np.in1d(child_IDs, parent_IDs, assume_unique = True)
         # Pare down the arrays to just matched particle IDs.
         parent_halos_cut = parent_halos[parent_in_child]
         child_halos_cut = child_halos[child_in_parent]

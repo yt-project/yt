@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 def create_spline(old_x, old_y, new_x, tension=0.5, sorted=False):
     """
@@ -45,18 +45,18 @@ Outputs:
     """
     ndata = len(old_x)
     N = len(new_x)
-    result = na.zeros(N)
+    result = np.zeros(N)
     if not sorted:
-        isort = na.argsort(old_x)
+        isort = np.argsort(old_x)
         old_x = old_x[isort]
         old_y = old_y[isort]
     # Floor/ceiling of values outside of the original data
-    new_x = na.minimum(new_x, old_x[-1])
-    new_x = na.maximum(new_x, old_x[0])
-    ind = na.searchsorted(old_x, new_x)
-    im2 = na.maximum(ind-2, 0)
-    im1 = na.maximum(ind-1, 0)
-    ip1 = na.minimum(ind+1, ndata-1)
+    new_x = np.minimum(new_x, old_x[-1])
+    new_x = np.maximum(new_x, old_x[0])
+    ind = np.searchsorted(old_x, new_x)
+    im2 = np.maximum(ind-2, 0)
+    im1 = np.maximum(ind-1, 0)
+    ip1 = np.minimum(ind+1, ndata-1)
     for i in range(N):
         if ind[i] != im1[i]:
             u = (new_x[i] - old_x[im1[i]]) / (old_x[ind[i]] - old_x[im1[i]])

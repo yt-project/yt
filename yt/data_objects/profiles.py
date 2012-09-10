@@ -26,7 +26,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -115,13 +115,13 @@ class BinnedProfile(ParallelAnalysisInterface):
             grid.clear_data()
         # When the loop completes the parallel finalizer gets called
         #pbar.finish()
-        ub = na.where(self.__used)
+        ub = np.where(self.__used)
         for field in fields:
             if weight: # Now, at the end, we divide out.
                 self.__data[field][ub] /= self.__weight_data[field][ub]
                 self.__std_data[field][ub] /= self.__weight_data[field][ub]
             self[field] = self.__data[field]
-            self["%s_std" % field] = na.sqrt(self.__std_data[field])
+            self["%s_std" % field] = np.sqrt(self.__std_data[field])
         self["UsedBins"] = self.__used
         del self.__data, self.__std_data, self.__weight_data, self.__used
 
@@ -131,7 +131,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         for key in self.__data:
             my_mean[key] = self._get_empty_field()
             my_weight[key] = self._get_empty_field()
-        ub = na.where(self.__used)
+        ub = np.where(self.__used)
         for key in self.__data:
             my_mean[key][ub] = self.__data[key][ub] / self.__weight_data[key][ub]
             my_weight[key][ub] = self.__weight_data[key][ub]
@@ -151,7 +151,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                                          accumulation, self._args, check_cut = False)
             if weight:
                 f[u] /= w[u]
-                q[u] = na.sqrt(q[u] / w[u])
+                q[u] = np.sqrt(q[u] / w[u])
             self[field] = f
             self["%s_std" % field] = q
         self["UsedBins"] = u
@@ -202,7 +202,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 else:
                     pointI = self._data_source._get_point_indices(source)
             data.append(source[field][pointI].ravel().astype('float64'))
-        return na.concatenate(data, axis=0)
+        return np.concatenate(data, axis=0)
 
     def _fix_pickle(self):
         if isinstance(self._data_source, tuple):
@@ -235,10 +235,10 @@ class BinnedProfile1D(BinnedProfile):
 
         # Get our bins
         if log_space:
-            func = na.logspace
-            lower_bound, upper_bound = na.log10(lower_bound), na.log10(upper_bound)
+            func = np.logspace
+            lower_bound, upper_bound = np.log10(lower_bound), np.log10(upper_bound)
         else:
-            func = na.linspace
+            func = np.linspace
 
         # These are the bin *edges*
         self._bins = func(lower_bound, upper_bound, n_bins + 1)
@@ -253,7 +253,7 @@ class BinnedProfile1D(BinnedProfile):
             self._args = self._get_bins(data_source)
 
     def _get_empty_field(self):
-        return na.zeros(self[self.bin_field].size, dtype='float64')
+        return np.zeros(self[self.bin_field].size, dtype='float64')
 
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
@@ -263,7 +263,7 @@ class BinnedProfile1D(BinnedProfile):
         # (i.e., lazy_reader)
         source_data = self._get_field(source, field, check_cut)
         if weight: weight_data = self._get_field(source, weight, check_cut)
-        else: weight_data = na.ones(source_data.shape, dtype='float64')
+        else: weight_data = np.ones(source_data.shape, dtype='float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
@@ -282,7 +282,7 @@ class BinnedProfile1D(BinnedProfile):
         # weights.  Accumulation likely doesn't work with weighted
         # average fields.
         if accumulation: 
-            binned_field = na.add.accumulate(binned_field)
+            binned_field = np.add.accumulate(binned_field)
         return binned_field, weight_field, q_field, \
             used_field.astype("bool")
 
@@ -293,7 +293,7 @@ class BinnedProfile1D(BinnedProfile):
             raise EmptyProfileData()
         # Truncate at boundaries.
         if self.end_collect:
-            mi = na.ones_like(source_data).astype('bool')
+            mi = np.ones_like(source_data).astype('bool')
         else:
             mi = ((source_data > self._bins.min())
                &  (source_data < self._bins.max()))
@@ -301,9 +301,9 @@ class BinnedProfile1D(BinnedProfile):
         if sd.size == 0:
             raise EmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization
-        bin_indices = na.digitize(sd, self._bins)
+        bin_indices = np.digitize(sd, self._bins)
         if self.end_collect: #limit the range of values to 0 and n_bins-1
-            bin_indices = na.clip(bin_indices, 0, self.n_bins - 1)
+            bin_indices = np.clip(bin_indices, 0, self.n_bins - 1)
         else: #throw away outside values
             bin_indices -= 1
           
@@ -319,7 +319,7 @@ class BinnedProfile1D(BinnedProfile):
         elif bin_style is 'left': x = x[:-1]
         elif bin_style is 'right': x = x[1:]
         elif bin_style is 'center':
-            if self._x_log: x=na.log10(x)
+            if self._x_log: x=np.log10(x)
             x = 0.5*(x[:-1] + x[1:])
             if self._x_log: x=10**x
         else:
@@ -337,11 +337,11 @@ class BinnedProfile1D(BinnedProfile):
         fields.remove(self.bin_field)
         fid.write("\t".join(["#"] + [self.bin_field] + fields + ["\n"]))
 
-        field_data = na.array(self.choose_bins(bin_style)) 
+        field_data = np.array(self.choose_bins(bin_style)) 
         if bin_style is 'both':
-            field_data = na.append([field_data], na.array([self.field_data[field] for field in fields]), axis=0)
+            field_data = np.append([field_data], np.array([self.field_data[field] for field in fields]), axis=0)
         else: 
-            field_data = na.append([field_data], na.array([self.field_data[field][:-1] for field in fields]), axis=0)
+            field_data = np.append([field_data], np.array([self.field_data[field][:-1] for field in fields]), axis=0)
         
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
@@ -409,18 +409,18 @@ class BinnedProfile2D(BinnedProfile):
         self.x_n_bins = x_n_bins
         self.y_n_bins = y_n_bins
 
-        func = {True:na.logspace, False:na.linspace}[x_log]
+        func = {True:np.logspace, False:np.linspace}[x_log]
         bounds = fix_bounds(x_lower_bound, x_upper_bound, x_log)
         self._x_bins = func(bounds[0], bounds[1], x_n_bins + 1)
         self[x_bin_field] = self._x_bins
 
-        func = {True:na.logspace, False:na.linspace}[y_log]
+        func = {True:np.logspace, False:np.linspace}[y_log]
         bounds = fix_bounds(y_lower_bound, y_upper_bound, y_log)
         self._y_bins = func(bounds[0], bounds[1], y_n_bins + 1)
         self[y_bin_field] = self._y_bins
 
-        if na.any(na.isnan(self[x_bin_field])) \
-            or na.any(na.isnan(self[y_bin_field])):
+        if np.any(np.isnan(self[x_bin_field])) \
+            or np.any(np.isnan(self[y_bin_field])):
             mylog.error("Your min/max values for x, y have given me a nan.")
             mylog.error("Usually this means you are asking for log, with a zero bound.")
             raise ValueError
@@ -428,7 +428,7 @@ class BinnedProfile2D(BinnedProfile):
             self._args = self._get_bins(data_source)
 
     def _get_empty_field(self):
-        return na.zeros((self[self.x_bin_field].size,
+        return np.zeros((self[self.x_bin_field].size,
                          self[self.y_bin_field].size), dtype='float64')
 
     @preserve_source_parameters
@@ -436,7 +436,7 @@ class BinnedProfile2D(BinnedProfile):
                    args, check_cut=False):
         source_data = self._get_field(source, field, check_cut)
         if weight: weight_data = self._get_field(source, weight, check_cut)
-        else: weight_data = na.ones(source_data.shape, dtype='float64')
+        else: weight_data = np.ones(source_data.shape, dtype='float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
@@ -456,9 +456,9 @@ class BinnedProfile2D(BinnedProfile):
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
             if accumulation[0]:
-                binned_field = na.add.accumulate(binned_field, axis=0)
+                binned_field = np.add.accumulate(binned_field, axis=0)
             if accumulation[1]:
-                binned_field = na.add.accumulate(binned_field, axis=1)
+                binned_field = np.add.accumulate(binned_field, axis=1)
         return binned_field, weight_field, q_field, \
             used_field.astype("bool")
 
@@ -470,9 +470,9 @@ class BinnedProfile2D(BinnedProfile):
             raise EmptyProfileData()
 
         if self.end_collect:
-            mi = na.arange(source_data_x.size)
+            mi = np.arange(source_data_x.size)
         else:
-            mi = na.where( (source_data_x > self._x_bins.min())
+            mi = np.where( (source_data_x > self._x_bins.min())
                            & (source_data_x < self._x_bins.max())
                            & (source_data_y > self._y_bins.min())
                            & (source_data_y < self._y_bins.max()))
@@ -481,11 +481,11 @@ class BinnedProfile2D(BinnedProfile):
         if sd_x.size == 0 or sd_y.size == 0:
             raise EmptyProfileData()
 
-        bin_indices_x = na.digitize(sd_x, self._x_bins) - 1
-        bin_indices_y = na.digitize(sd_y, self._y_bins) - 1
+        bin_indices_x = np.digitize(sd_x, self._x_bins) - 1
+        bin_indices_y = np.digitize(sd_y, self._y_bins) - 1
         if self.end_collect:
-            bin_indices_x = na.minimum(na.maximum(1, bin_indices_x), self.x_n_bins) - 1
-            bin_indices_y = na.minimum(na.maximum(1, bin_indices_y), self.y_n_bins) - 1
+            bin_indices_x = np.minimum(np.maximum(1, bin_indices_x), self.x_n_bins) - 1
+            bin_indices_y = np.minimum(np.maximum(1, bin_indices_y), self.y_n_bins) - 1
 
         # Now we set up our inverse bin indices
         return (mi, bin_indices_x, bin_indices_y)
@@ -507,8 +507,8 @@ class BinnedProfile2D(BinnedProfile):
             x = x[1:]
             y = y[1:]
         elif bin_style is 'center':
-            if self._x_log: x=na.log10(x)
-            if self._y_log: y=na.log10(y)
+            if self._x_log: x=np.log10(x)
+            if self._y_log: y=np.log10(y)
             x = 0.5*(x[:-1] + x[1:])
             y = 0.5*(y[:-1] + y[1:])
             if self._x_log: x=10**x
@@ -531,7 +531,7 @@ class BinnedProfile2D(BinnedProfile):
         fid.write("\t".join(["#"] + [self.x_bin_field, self.y_bin_field]
                           + fields + ["\n"]))
         x,y = self.choose_bins(bin_style)
-        x,y = na.meshgrid(x,y)
+        x,y = np.meshgrid(x,y)
         field_data = [x.ravel(), y.ravel()]
         if bin_style is not 'both':
             field_data += [self.field_data[field][:-1,:-1].ravel() for field in fields
@@ -540,7 +540,7 @@ class BinnedProfile2D(BinnedProfile):
             field_data += [self.field_data[field].ravel() for field in fields
                            if field not in [self.x_bin_field, self.y_bin_field]]
 
-        field_data = na.array(field_data)
+        field_data = np.array(field_data)
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
@@ -579,7 +579,7 @@ class BinnedProfile2D(BinnedProfile):
         return [self.x_bin_field, self.y_bin_field]
 
 def fix_bounds(upper, lower, logit):
-    if logit: return na.log10(upper), na.log10(lower)
+    if logit: return np.log10(upper), np.log10(lower)
     return upper, lower
 
 class BinnedProfile2DInlineCut(BinnedProfile2D):
@@ -599,7 +599,7 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
                    args, check_cut=False):
         source_data = self._get_field(source, field, check_cut)
         if weight: weight_data = self._get_field(source, weight, check_cut)
-        else: weight_data = na.ones(source_data.shape, dtype='float64')
+        else: weight_data = np.ones(source_data.shape, dtype='float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
@@ -617,9 +617,9 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
             if accumulation[0]:
-                binned_field = na.add.accumulate(binned_field, axis=0)
+                binned_field = np.add.accumulate(binned_field, axis=0)
             if accumulation[1]:
-                binned_field = na.add.accumulate(binned_field, axis=1)
+                binned_field = np.add.accumulate(binned_field, axis=1)
         return binned_field, weight_field, used_field.astype('bool')
 
         
@@ -656,24 +656,24 @@ class BinnedProfile3D(BinnedProfile):
         self.y_n_bins = y_n_bins
         self.z_n_bins = z_n_bins
 
-        func = {True:na.logspace, False:na.linspace}[x_log]
+        func = {True:np.logspace, False:np.linspace}[x_log]
         bounds = fix_bounds(x_lower_bound, x_upper_bound, x_log)
         self._x_bins = func(bounds[0], bounds[1], x_n_bins + 1)
         self[x_bin_field] = self._x_bins
 
-        func = {True:na.logspace, False:na.linspace}[y_log]
+        func = {True:np.logspace, False:np.linspace}[y_log]
         bounds = fix_bounds(y_lower_bound, y_upper_bound, y_log)
         self._y_bins = func(bounds[0], bounds[1], y_n_bins + 1)
         self[y_bin_field] = self._y_bins
 
-        func = {True:na.logspace, False:na.linspace}[z_log]
+        func = {True:np.logspace, False:np.linspace}[z_log]
         bounds = fix_bounds(z_lower_bound, z_upper_bound, z_log)
         self._z_bins = func(bounds[0], bounds[1], z_n_bins + 1)
         self[z_bin_field] = self._z_bins
 
-        if na.any(na.isnan(self[x_bin_field])) \
-            or na.any(na.isnan(self[y_bin_field])) \
-            or na.any(na.isnan(self[z_bin_field])):
+        if np.any(np.isnan(self[x_bin_field])) \
+            or np.any(np.isnan(self[y_bin_field])) \
+            or np.any(np.isnan(self[z_bin_field])):
             mylog.error("Your min/max values for x, y or z have given me a nan.")
             mylog.error("Usually this means you are asking for log, with a zero bound.")
             raise ValueError
@@ -681,7 +681,7 @@ class BinnedProfile3D(BinnedProfile):
             self._args = self._get_bins(data_source)
 
     def _get_empty_field(self):
-        return na.zeros((self[self.x_bin_field].size,
+        return np.zeros((self[self.x_bin_field].size,
                          self[self.y_bin_field].size,
                          self[self.z_bin_field].size), dtype='float64')
 
@@ -689,9 +689,9 @@ class BinnedProfile3D(BinnedProfile):
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
         source_data = self._get_field(source, field, check_cut)
-        weight_data = na.ones(source_data.shape).astype('float64')
+        weight_data = np.ones(source_data.shape).astype('float64')
         if weight: weight_data = self._get_field(source, weight, check_cut)
-        else: weight_data = na.ones(source_data.shape).astype('float64')
+        else: weight_data = np.ones(source_data.shape).astype('float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
@@ -711,11 +711,11 @@ class BinnedProfile3D(BinnedProfile):
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
             if accumulation[0]:
-                binned_field = na.add.accumulate(binned_field, axis=0)
+                binned_field = np.add.accumulate(binned_field, axis=0)
             if accumulation[1]:
-                binned_field = na.add.accumulate(binned_field, axis=1)
+                binned_field = np.add.accumulate(binned_field, axis=1)
             if accumulation[2]:
-                binned_field = na.add.accumulate(binned_field, axis=2)
+                binned_field = np.add.accumulate(binned_field, axis=2)
         return binned_field, weight_field, q_field, \
             used_field.astype("bool")
 
@@ -727,7 +727,7 @@ class BinnedProfile3D(BinnedProfile):
         if source_data_x.size == 0:
             raise EmptyProfileData()
         if self.end_collect:
-            mi = na.arange(source_data_x.size)
+            mi = np.arange(source_data_x.size)
         else:
             mi = ( (source_data_x > self._x_bins.min())
                  & (source_data_x < self._x_bins.max())
@@ -741,13 +741,13 @@ class BinnedProfile3D(BinnedProfile):
         if sd_x.size == 0 or sd_y.size == 0 or sd_z.size == 0:
             raise EmptyProfileData()
 
-        bin_indices_x = na.digitize(sd_x, self._x_bins) - 1
-        bin_indices_y = na.digitize(sd_y, self._y_bins) - 1
-        bin_indices_z = na.digitize(sd_z, self._z_bins) - 1
+        bin_indices_x = np.digitize(sd_x, self._x_bins) - 1
+        bin_indices_y = np.digitize(sd_y, self._y_bins) - 1
+        bin_indices_z = np.digitize(sd_z, self._z_bins) - 1
         if self.end_collect:
-            bin_indices_x = na.minimum(na.maximum(1, bin_indices_x), self.x_n_bins) - 1
-            bin_indices_y = na.minimum(na.maximum(1, bin_indices_y), self.y_n_bins) - 1
-            bin_indices_z = na.minimum(na.maximum(1, bin_indices_z), self.z_n_bins) - 1
+            bin_indices_x = np.minimum(np.maximum(1, bin_indices_x), self.x_n_bins) - 1
+            bin_indices_y = np.minimum(np.maximum(1, bin_indices_y), self.y_n_bins) - 1
+            bin_indices_z = np.minimum(np.maximum(1, bin_indices_z), self.z_n_bins) - 1
 
         # Now we set up our inverse bin indices
         return (mi, bin_indices_x, bin_indices_y, bin_indices_z)
@@ -772,9 +772,9 @@ class BinnedProfile3D(BinnedProfile):
             y = y[1:]
             z = z[1:]
         elif bin_style is 'center':
-            if self._x_log: x=na.log10(x)
-            if self._y_log: y=na.log10(y)
-            if self._z_log: z=na.log10(z)
+            if self._x_log: x=np.log10(x)
+            if self._y_log: y=np.log10(y)
+            if self._z_log: z=np.log10(z)
             x = 0.5*(x[:-1] + x[1:])
             y = 0.5*(y[:-1] + y[1:])
             z = 0.5*(z[:-1] + z[1:])
@@ -853,7 +853,7 @@ class BinnedProfile3D(BinnedProfile):
             if field in set_attr.values(): continue
             order.append(field)
             values.append(self[field].ravel())
-        values = na.array(values).transpose()
+        values = np.array(values).transpose()
         self._data_source.hierarchy.save_data(values, "/Profiles", name,
                                               set_attr, force=force)
 

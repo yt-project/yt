@@ -44,7 +44,7 @@ add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = ARTFieldInfo.add_field
 
-import numpy as na
+import numpy as np
 
 #these are just the hydro fields
 known_art_fields = [ 'Density','TotalEnergy',
@@ -178,7 +178,7 @@ def _temperature(field, data):
     di = dd==0.0
     #dd[di] = -1.0
     tr = dg/dd
-    #tr[na.isnan(tr)] = 0.0
+    #tr[np.isnan(tr)] = 0.0
     #if data.id==460:
     #    import pdb;pdb.set_trace()
     tr /= data.pf.conversion_factors["GasEnergy"]
@@ -186,7 +186,7 @@ def _temperature(field, data):
     tr *= data.pf.tr
     #tr[di] = -1.0 #replace the zero-density points with zero temp
     #print tr.min()
-    #assert na.all(na.isfinite(tr))
+    #assert np.all(np.isfinite(tr))
     return tr
 def _converttemperature(data):
     x = data.pf.conversion_factors["Temperature"]
@@ -258,9 +258,9 @@ def mass_dm(field, data):
     #make a dumb assumption that the mass is evenly spread out in the grid
     #must return an array the shape of the grid cells
     tr  = data["Ones"] #create a grid in the right size
-    if na.sum(idx)>0:
-        tr /= na.prod(tr.shape) #divide by the volume
-        tr *= na.sum(data['particle_mass'][idx]) #Multiply by total contaiend mass
+    if np.sum(idx)>0:
+        tr /= np.prod(tr.shape) #divide by the volume
+        tr *= np.sum(data['particle_mass'][idx]) #Multiply by total contaiend mass
         return tr
     else:
         return tr*0.0

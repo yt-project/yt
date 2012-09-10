@@ -31,7 +31,7 @@ from OpenGL.arrays import vbo, ArrayDatatype
 import OpenGL.GL.ARB.framebuffer_object as GL_fbo
 import Image
 import glob
-import numpy as na
+import numpy as np
 import time
 
 from small_apps import ViewHandler3D, GenericGLUTScene
@@ -85,8 +85,8 @@ class MIPScene(GenericGLUTScene):
                     yield s[v][i]
 
     def _get_texture_vertices(self):
-        vs = [na.zeros(3, dtype='float32'),
-              na.ones(3, dtype='float32')]
+        vs = [np.zeros(3, dtype='float32'),
+              np.ones(3, dtype='float32')]
         #vs.reverse()
         for b in self.hv.bricks:
             shape = b.my_data[0].shape
@@ -126,7 +126,7 @@ class MIPScene(GenericGLUTScene):
 
         DW = self.hv.pf.domain_right_edge - self.hv.pf.domain_left_edge
         dds = ((brick.RightEdge - brick.LeftEdge) /
-               (na.array([ix,iy,iz], dtype='float32')-1)) / DW
+               (np.array([ix,iy,iz], dtype='float32')-1)) / DW
         BLE = brick.LeftEdge / DW - 0.5
         self._brick_textures.append(
             (id_field, (ix-1,iy-1,iz-1), dds, BLE))
@@ -135,7 +135,7 @@ class MIPScene(GenericGLUTScene):
 
     def _setup_colormap(self):
 
-        buffer = na.mgrid[0.0:1.0:256j]
+        buffer = np.mgrid[0.0:1.0:256j]
         colors = map_to_colors(buffer, "algae")
         
         GL.glActiveTexture(GL.GL_TEXTURE1)
@@ -165,17 +165,17 @@ class MIPScene(GenericGLUTScene):
         GenericGLUTScene.__init__(self, 800, 800)
 
         num = len(hv.bricks) * 6 * 4
-        self.v = na.fromiter(self._get_brick_vertices(offset),
+        self.v = np.fromiter(self._get_brick_vertices(offset),
                              dtype = 'float32', count = num * 3)
         self.vertices = vbo.VBO(self.v)
 
-        self.t = na.fromiter(self._get_texture_vertices(),
+        self.t = np.fromiter(self._get_texture_vertices(),
                              dtype = 'float32', count = num * 3)
         self.tvertices = vbo.VBO(self.t)
 
         self.ng = len(hv.bricks)
-        self.position = na.zeros(3, dtype='float')
-        self.rotation = na.zeros(3, dtype='float') + 30
+        self.position = np.zeros(3, dtype='float')
+        self.rotation = np.zeros(3, dtype='float') + 30
         self.position[2] = -2 # Offset backwards a bit
 
         self._setup_bricks()
@@ -373,8 +373,8 @@ class MIPScene(GenericGLUTScene):
 
     def reset_view(self):   
         print "RESETTING"
-        self.position = na.zeros(3, dtype='float')
-        self.rotation = na.zeros(3, dtype='float') + 30
+        self.position = np.zeros(3, dtype='float')
+        self.rotation = np.zeros(3, dtype='float') + 30
         self.position[2] = -2 # Offset backwards a bit
 
     def translate(self, axis, value):

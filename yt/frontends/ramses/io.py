@@ -24,7 +24,7 @@ License:
 """
 
 from collections import defaultdict
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -38,8 +38,8 @@ class IOHandlerRAMSES(BaseIOHandler):
         BaseIOHandler.__init__(self, *args, **kwargs)
 
     def _read_data_set(self, grid, field):
-        tr = na.zeros(grid.ActiveDimensions, dtype='float64')
-        filled = na.zeros(grid.ActiveDimensions, dtype='int32')
+        tr = np.zeros(grid.ActiveDimensions, dtype='float64')
+        filled = np.zeros(grid.ActiveDimensions, dtype='int32')
         to_fill = grid.ActiveDimensions.prod()
         grids = [grid]
         l_delta = 0
