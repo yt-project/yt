@@ -208,6 +208,7 @@ class FLASHStaticOutput(StaticOutput):
                  storage_filename = None,
                  conversion_override = None):
 
+        if self._handle is not None: return
         self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
