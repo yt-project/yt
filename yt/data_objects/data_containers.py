@@ -1,4 +1,4 @@
-"""
+""" 
 The base classes for selecting and returning data.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -61,7 +61,7 @@ def force_array(item, shape):
             return np.zeros(shape, dtype='bool')
 
 def restore_field_information_state(func):
-    """
+    """ 
     A decorator that takes a function with the API of (self, grid, field)
     and ensures that after the function is called, the field_parameters will
     be returned to normal.
@@ -75,14 +75,14 @@ def restore_field_information_state(func):
     return save_state
 
 class YTFieldData(dict):
-    """
+    """ 
     A Container object for field data, instead of just having it be a dict.
     """
     pass
         
 
 class YTDataContainer(object):
-    """
+    """ 
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
@@ -100,7 +100,7 @@ class YTDataContainer(object):
                 data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, field_parameters):
-        """
+        """ 
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
         sets its initial set of fields, and the remainder of the arguments
@@ -518,7 +518,7 @@ class YTSelectionContainer1D(YTSelectionContainer):
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
-    """
+    """ 
     Class to represent a set of :class:`YTDataContainer` that's 2-D in nature, and
     thus does not have as many actions as the 3-D data types.
     """

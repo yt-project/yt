@@ -1,4 +1,4 @@
-"""
+""" 
 Data containers based on geometric selection
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -35,6 +35,7 @@ from yt.funcs import *
 from yt.utilities.lib import \
     VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, \
     grid_points_in_volume
+from yt.utilities.lib.alt_ray_tracers import clyindrical_ray_trace
 from yt.utilities.orientation import Orientation
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
@@ -52,8 +53,8 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
-    def __init__(self, axis, coords, pf=None, field_parameters = None):
-        """
+    def __init__(self, axis, coords, pf=None, field_parameters=None):
+        """ 
         This is an orthogonal ray cast through the entire domain, at a specific
         coordinate.
 
@@ -103,7 +104,7 @@ class YTRayBase(YTSelectionContainer1D):
     _con_args = ('start_point', 'end_point')
     sort_by = 't'
     def __init__(self, start_point, end_point, pf=None, field_parameters = None):
-        """
+        """ 
         This is an arbitrarily-aligned ray cast through the entire domain, at a
         specific coordinate.
 
@@ -141,26 +142,49 @@ class YTRayBase(YTSelectionContainer1D):
         #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
-        self._dts, self._ts = {}, {}
+        self._dts, self._ts, self._masks = {}, {}, {}
 
     def _get_data_from_grid(self, grid, field):
-        mask = np.logical_and(self._get_cut_mask(grid),
-                              grid.child_mask)
-        if field == 'dts': return self._dts[grid.id][mask]
-        if field == 't': return self._ts[grid.id][mask]
+        if self.pf.geometry == "cylindrical":
+            if grid.id in self._masks:
+                mask = self._masks[grid.id] 
+            else:
+                mask = self._get_cut_mask(grid)
+            ts, dts = self._ts[grid.id], self._dts[grid.id]
+        else:
+            mask = np.logical_and(self._get_cut_mask(grid), grid.child_mask)
+            ts, dts = self._ts[grid.id][mask], self._dts[grid.id][mask]
+
+        if field == 'dts':
+            return dts
+        if field == 't': 
+            return ts
+
         gf = grid[field]
         if not iterable(gf):
             gf = gf * np.ones(grid.child_mask.shape)
         return gf[mask]
 
     def _get_cut_mask(self, grid):
-        mask = np.zeros(grid.ActiveDimensions, dtype='int')
-        dts = np.zeros(grid.ActiveDimensions, dtype='float64')
-        ts = np.zeros(grid.ActiveDimensions, dtype='float64')
-        VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
-                       grid.dds, self.center, self.vec)
-        self._dts[grid.id] = np.abs(dts)
-        self._ts[grid.id] = np.abs(ts)
+        if self.pf.geometry == "cylindrical":
+            _ = clyindrical_ray_trace(self.start_point, self.end_point, 
+                                      grid.LeftEdge, grid.RightEdge)
+            ts, s, rzt, mask = _
+            dts = np.empty(ts.shape, dtype='float64')
+            dts[0], dts[1:] = 0.0, ts[1:] - ts[:-1]
+            grid['r'], grid['z'], grid['theta'] = rzt[:,0], rzt[:,1], rzt[:,2]
+            grid['s'] = s
+        else:
+            mask = np.zeros(grid.ActiveDimensions, dtype='int')
+            dts = np.zeros(grid.ActiveDimensions, dtype='float64')
+            ts = np.zeros(grid.ActiveDimensions, dtype='float64')
+            VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
+                           grid.dds, self.center, self.vec)
+            dts = np.abs(dts) 
+            ts = np.abs(ts)
+        self._dts[grid.id] = dts
+        self._ts[grid.id] = ts
+        self._masks[grid.id] = masks
         return mask
 
 
