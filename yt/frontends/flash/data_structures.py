@@ -42,7 +42,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
-     ValidateDataField
+     ValidateDataField, TranslationFunc
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -184,11 +184,16 @@ class FLASHHierarchy(AMRHierarchy):
                 self.derived_field_list.append(field)
             if (field not in KnownFLASHFields and
                 field.startswith("particle")) :
-                self.parameter_file.field_info.add_field(field,
-                                                         function=NullFunc,
-                                                         take_log=False,
-                                                         validators = [ValidateDataField(field)],
-                                                         particle_type=True)
+                self.parameter_file.field_info.add_field(
+                        field, function=NullFunc, take_log=False,
+                        validators = [ValidateDataField(field)],
+                        particle_type=True)
+
+        for field in self.derived_field_list:
+            f = self.parameter_file.field_info[field]
+            if f._function.func_name == "_TranslationFunc":
+                # Translating an already-converted field
+                self.parameter_file.conversion_factors[field] = 1.0 
                 
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
