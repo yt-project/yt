@@ -145,7 +145,6 @@ class YTRayBase(YTSelectionContainer1D):
         self._dts, self._ts, self._masks = {}, {}, {}
 
     def _get_data_from_grid(self, grid, field):
-        import pdb; pdb.set_trace()
         if self.pf.geometry == "cylindrical":
             if grid.id in self._masks:
                 mask = self._masks[grid.id] 
