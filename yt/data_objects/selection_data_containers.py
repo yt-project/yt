@@ -103,7 +103,7 @@ class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     sort_by = 't'
-    def __init__(self, start_point, end_point, pf=None, field_parameters = None):
+    def __init__(self, start_point, end_point, pf=None, field_parameters=None):
         """ 
         This is an arbitrarily-aligned ray cast through the entire domain, at a
         specific coordinate.
@@ -145,6 +145,7 @@ class YTRayBase(YTSelectionContainer1D):
         self._dts, self._ts, self._masks = {}, {}, {}
 
     def _get_data_from_grid(self, grid, field):
+        import pdb; pdb.set_trace()
         if self.pf.geometry == "cylindrical":
             if grid.id in self._masks:
                 mask = self._masks[grid.id] 
