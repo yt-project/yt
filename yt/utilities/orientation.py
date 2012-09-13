@@ -56,6 +56,7 @@ class Orientation:
             mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
             north_vector = None
         if north_vector is not None: self.steady_north = True
+        self.north_vector = north_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
@@ -74,7 +75,6 @@ class Orientation:
         north_vector /= na.sqrt(na.dot(north_vector, north_vector))
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
-        self.north_vector = north_vector
         self.unit_vectors = [east_vector, north_vector, normal_vector]
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
         
