@@ -30,6 +30,7 @@ License:
 import h5py
 import numpy as np
 import weakref
+import glob #ST 9/12
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
@@ -111,6 +112,8 @@ def parse_line(line, grid):
         field = splitup[1]
         grid['read_field'] = field
         grid['read_type'] = 'vector'
+
+
 
 class AthenaHierarchy(AMRHierarchy):
 
@@ -215,33 +218,95 @@ class AthenaHierarchy(AMRHierarchy):
                   (np.prod(grid['dimensions']), grid['ncells']))
             raise TypeError
 
+        # Need to determine how many grids: self.num_grids
+        dname = self.hierarchy_filename
+        print dname,dname[4:-9], dname[-9:]
+        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        gridlistread.insert(0,self.hierarchy_filename)
+        self.num_grids = len(gridlistread)
+        print gridlistread[0:10]
+        print(self.num_grids)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = np.zeros(self.num_grids, dtype='int32')
-        single_grid_width = grid['dds']*grid['dimensions']
-        grids_per_dim = (self.parameter_file.domain_width/single_grid_width).astype('int32')
-        glis = np.empty((self.num_grids,3), dtype='int64')
-        for i in range(self.num_grids):
-            procz = i/(grids_per_dim[0]*grids_per_dim[1])
-            procy = (i - procz*(grids_per_dim[0]*grids_per_dim[1]))/grids_per_dim[0]
-            procx = i - procz*(grids_per_dim[0]*grids_per_dim[1]) - procy*grids_per_dim[0]
-            glis[i, 0] = procx*grid['dimensions'][0]
-            glis[i, 1] = procy*grid['dimensions'][1]
-            glis[i, 2] = procz*grid['dimensions'][2]
+        glis = np.empty((self.num_grids,3), dtype='float64')
         gdims = np.ones_like(glis)
-        gdims[:] = grid['dimensions']
+        j = 0
+        while j < (self.num_grids):
+            f = open(gridlistread[j],'rb')
+            f.close()
+            if j == 0:
+                f = open(dname,'rb')
+            if j != 0:
+                f = open('id%i/%s-id%i%s' % (j, dname[4:-9],j, dname[-9:]),'rb')
+            gridread = {}
+            gridread['read_field'] = None
+            gridread['read_type'] = None
+            table_read=False
+            line = f.readline()
+            while gridread['read_field'] is None:
+                parse_line(line, gridread)
+                if "SCALAR" in line.strip().split():
+                    break
+                if "VECTOR" in line.strip().split():
+                    break 
+                if 'TABLE' in line.strip().split():
+                    break
+                if len(line) == 0: break
+                line = f.readline()
+            f.close()
+            glis[j,0] = gridread['left_edge'][0]
+            glis[j,1] = gridread['left_edge'][1]
+            glis[j,2] = gridread['left_edge'][2]
+            # It seems some datasets have a mismatch between ncells and 
+            # the actual grid dimensions.
+            if np.prod(gridread['dimensions']) != gridread['ncells']:
+                gridread['dimensions'] -= 1
+                gridread['dimensions'][gridread['dimensions']==0]=1
+            if np.prod(gridread['dimensions']) != gridread['ncells']:
+                mylog.error('product of dimensions %i not equal to number of cells %i' % 
+                      (np.prod(gridread['dimensions']), gridread['ncells']))
+                raise TypeError
+            gdims[j,0] = gridread['dimensions'][0]
+            gdims[j,1] = gridread['dimensions'][1]
+            gdims[j,2] = gridread['dimensions'][2]
+            
+            j=j+1
         for i in range(levels.shape[0]):
-            self.grids[i] = self.grid(i, self, levels[i],
+            self.grids[i] = self.grid(i,self,levels[i],
                                       glis[i],
                                       gdims[i])
-
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx = dx/self.parameter_file.refine_by**(levels[i])
-            dxs.append(grid['dds'])
+            dxs.append(gridread['dds'])
+          
+        
+#        single_grid_width = grid['dds']*grid['dimensions']   #####
+#        grids_per_dim = (self.parameter_file.domain_width/single_grid_width).astype('int32')#####
+#        glis = np.empty((self.num_grids,3), dtype='int64')
+#        for i in range(self.num_grids):
+#            procz = i/(grids_per_dim[0]*grids_per_dim[1])
+#            procy = (i - procz*(grids_per_dim[0]*grids_per_dim[1]))/grids_per_dim[0]
+#            procx = i - procz*(grids_per_dim[0]*grids_per_dim[1]) - procy*grids_per_dim[1]
+#            glis[i, 0] = procx*grid['dimensions'][0]
+#            glis[i, 1] = procy*grid['dimensions'][1]
+#            glis[i, 2] = procz*grid['dimensions'][2]
+#        gdims = np.ones_like(glis)
+#        gdims[:] = grid['dimensions']
+#        for i in range(levels.shape[0]):
+#            self.grids[i] = self.grid(i, self, levels[i],
+#                                      glis[i],
+#                                      gdims[i])
+#
+#            dx = (self.parameter_file.domain_right_edge-
+#                  self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
+#            dx = dx/self.parameter_file.refine_by**(levels[i])
+#            dxs.append(grid['dds'])
         dx = np.array(dxs)
-        self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
+        self.grid_left_edge = glis
         self.grid_dimensions = gdims.astype("int32")
+        print dx.shape,self.grid_left_edge.shape,self.grid_dimensions.shape
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
@@ -333,8 +398,10 @@ class AthenaStaticOutput(StaticOutput):
         self.num_ghost_zones = 0
         self.field_ordering = 'fortran'
         self.boundary_conditions = [1]*6
-
-        self.nvtk = int(np.product(self.domain_dimensions/(grid['dimensions']-1)))
+        dname = self.parameter_filename
+        print dname, dname[:-9], dname[-9:]
+        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        self.nvtk = len(gridlistread)+1 #int(np.product(self.domain_dimensions/(grid['dimensions']-1)))
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
