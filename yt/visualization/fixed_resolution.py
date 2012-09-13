@@ -29,7 +29,7 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 import _MPL
-import numpy as na
+import numpy as np
 import weakref
 
 class FixedResolutionBuffer(object):
@@ -352,7 +352,7 @@ class FixedResolutionBuffer(object):
         """
         import numdisplay
         numdisplay.open()
-        if take_log: data=na.log10(self[field])
+        if take_log: data=np.log10(self[field])
         else: data=self[field]
         numdisplay.display(data)    
 
@@ -374,7 +374,7 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
-        indices = na.argsort(self.data_source['dx'])[::-1]
+        indices = np.argsort(self.data_source['dx'])[::-1]
         buff = _MPL.CPixelize( self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
                                self.data_source['px'],  self.data_source['py'],
                                self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],

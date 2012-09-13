@@ -24,7 +24,7 @@ License:
 """
 
 import __builtin__
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from yt.utilities.math_utils import *
@@ -167,12 +167,12 @@ class Camera(ParallelAnalysisInterface):
         >>> pf = EnzoStaticOutput('DD1701') # Load pf
         >>> c = [0.5]*3 # Center
         >>> L = [1.0,1.0,1.0] # Viewpoint
-        >>> W = na.sqrt(3) # Width
+        >>> W = np.sqrt(3) # Width
         >>> N = 1024 # Pixels (1024^2)
 
         # Get density min, max
         >>> mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
-        >>> mi, ma = na.log10(mi), na.log10(ma)
+        >>> mi, ma = np.log10(mi), np.log10(ma)
 
         # Construct transfer function
         >>> tf = vr.ColorTransferFunction((mi-2, ma+2))
@@ -226,10 +226,10 @@ class Camera(ParallelAnalysisInterface):
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
         self.center = center
-        self.box_vectors = na.array([unit_vectors[0]*width[0],
+        self.box_vectors = np.array([unit_vectors[0]*width[0],
                                      unit_vectors[1]*width[1],
                                      unit_vectors[2]*width[2]])
-        self.origin = center - 0.5*na.dot(width,unit_vectors)
+        self.origin = center - 0.5*np.dot(width,unit_vectors)
         self.back_center =  center - 0.5*width[2]*unit_vectors[2]
         self.front_center = center + 0.5*width[2]*unit_vectors[2]         
 
@@ -289,23 +289,23 @@ class Camera(ParallelAnalysisInterface):
                                          north_vector = north_vector)
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
     def new_image(self):
-        image = na.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        image = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
-        rotp = na.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
         args = (rotp, self.box_vectors[2], self.back_center,
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                na.array(self.width), self.transfer_function, self.sub_samples)
+                np.array(self.width), self.transfer_function, self.sub_samples)
         return args
 
     def get_sampler(self, args):
         if self.use_light:
             if self.light_dir is None:
                 self.set_default_light_dir()
-            temp_dir = na.empty(3,dtype='float64')
+            temp_dir = np.empty(3,dtype='float64')
             temp_dir = self.light_dir[0] * self.orienter.unit_vectors[1] + \
                     self.light_dir[1] * self.orienter.unit_vectors[2] + \
                     self.light_dir[2] * self.orienter.unit_vectors[0]
@@ -326,13 +326,13 @@ class Camera(ParallelAnalysisInterface):
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
-                    if na.any(na.isnan(data)):
+                    if np.any(np.isnan(data)):
                         raise RuntimeError
 
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         for brick in self.volume.traverse(view_pos, self.front_center, image):
             sampler(brick, num_threads=num_threads)
-            total_cells += na.prod(brick.my_data[0].shape)
+            total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
 
         pbar.finish()
@@ -510,30 +510,30 @@ class Camera(ParallelAnalysisInterface):
         >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
-        self.center = na.array(self.center)
+        self.center = np.array(self.center)
         dW = None
         if exponential:
             if final_width is not None:
                 if not iterable(final_width):
-                    width = na.array([final_width, final_width, final_width]) 
+                    width = np.array([final_width, final_width, final_width]) 
                     # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
-                    self.center += (na.array(final) - self.center) / (10. * n_steps)
-                final_zoom = final_width/na.array(self.width)
+                    self.center += (np.array(final) - self.center) / (10. * n_steps)
+                final_zoom = final_width/np.array(self.width)
                 dW = final_zoom**(1.0/n_steps)
             else:
-                dW = na.array([1.0,1.0,1.0])
-            position_diff = (na.array(final)/self.center)*1.0
+                dW = np.array([1.0,1.0,1.0])
+            position_diff = (np.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
             if final_width is not None:
                 if not iterable(final_width):
-                    width = na.array([final_width, final_width, final_width]) 
+                    width = np.array([final_width, final_width, final_width]) 
                     # left/right, top/bottom, front/back
-                dW = (1.0*final_width-na.array(self.width))/n_steps
+                dW = (1.0*final_width-np.array(self.width))/n_steps
             else:
-                dW = na.array([0.0,0.0,0.0])
-            dx = (na.array(final)-self.center)*1.0/n_steps
+                dW = np.array([0.0,0.0,0.0])
+            dx = (np.array(final)-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
                 self.switch_view(center=self.center*dx, width=self.width*dW)
@@ -559,7 +559,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.rotate(na.pi/4)
+        >>> cam.rotate(np.pi/4)
         """
         if rot_vector is None:
             rot_vector = self.rotation_vector
@@ -568,7 +568,7 @@ class Camera(ParallelAnalysisInterface):
 
         normal_vector = self.front_center-self.center
 
-        self.switch_view(normal_vector=na.dot(R,normal_vector))
+        self.switch_view(normal_vector=np.dot(R,normal_vector))
 
     def roll(self, theta):
         r"""Roll by a given angle
@@ -583,12 +583,12 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.roll(na.pi/4)
+        >>> cam.roll(np.pi/4)
         """
         rot_vector = self.orienter.normal_vector
         R = get_rotation_matrix(theta, rot_vector)
         north_vector = self.orienter.north_vector
-        self.switch_view(north_vector=na.dot(R, north_vector))
+        self.switch_view(north_vector=np.dot(R, north_vector))
 
     def rotation(self, theta, n_steps, rot_vector=None, clip_ratio = None):
         r"""Loop over rotate, creating a rotation
@@ -613,7 +613,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.rotation(na.pi, 10)):
+        >>> for i, snapshot in enumerate(cam.rotation(np.pi, 10)):
         ...     iw.write_bitmap(snapshot, 'rotation_%04i.png' % i)
         """
 
@@ -676,12 +676,12 @@ class PerspectiveCamera(Camera):
         self.front_center += self.expand_factor*dl
         self.back_center -= dl
 
-        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
+        px = np.linspace(-self.width[0]/2.0, self.width[0]/2.0,
                          self.resolution[0])[:,None]
-        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
+        py = np.linspace(-self.width[1]/2.0, self.width[1]/2.0,
                          self.resolution[1])[None,:]
         inv_mat = self.orienter.inv_mat
-        positions = na.zeros((self.resolution[0], self.resolution[1], 3),
+        positions = np.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
         positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
@@ -693,14 +693,14 @@ class PerspectiveCamera(Camera):
         positions = self.front_center - 1.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
         vectors = (self.front_center - positions)
 
-        uv = na.ones(3, dtype='float64')
+        uv = np.ones(3, dtype='float64')
         image.shape = (self.resolution[0]**2,1,3)
         vectors.shape = (self.resolution[0]**2,1,3)
         positions.shape = (self.resolution[0]**2,1,3)
         args = (positions, vectors, self.back_center, 
                 (0.0,1.0,0.0,1.0),
                 image, uv, uv,
-                na.zeros(3, dtype='float64'), 
+                np.zeros(3, dtype='float64'), 
                 self.transfer_function, self.sub_samples)
         return args
 
@@ -708,7 +708,7 @@ class PerspectiveCamera(Camera):
         image.shape = self.resolution[0], self.resolution[0], 3
 
 def corners(left_edge, right_edge):
-    return na.array([
+    return np.array([
       [left_edge[:,0], left_edge[:,1], left_edge[:,2]],
       [right_edge[:,0], left_edge[:,1], left_edge[:,2]],
       [right_edge[:,0], right_edge[:,1], left_edge[:,2]],
@@ -726,7 +726,7 @@ class HEALpixCamera(Camera):
                  pf = None, use_kd=True, no_ghost=False, use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
-        self.center = na.array(center, dtype='float64')
+        self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.nside = nside
         self.use_kd = use_kd
@@ -747,20 +747,20 @@ class HEALpixCamera(Camera):
         self.volume = volume
 
     def new_image(self):
-        image = na.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
+        image = np.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
         nv = 12 * self.nside ** 2
-        vs = arr_pix2vec_nest(self.nside, na.arange(nv))
+        vs = arr_pix2vec_nest(self.nside, np.arange(nv))
         vs *= self.radius
         vs.shape = nv, 1, 3
-        uv = na.ones(3, dtype='float64')
-        positions = na.ones((nv, 1, 3), dtype='float64') * self.center
+        uv = np.ones(3, dtype='float64')
+        positions = np.ones((nv, 1, 3), dtype='float64') * self.center
         args = (positions, vs, self.center,
                 (0.0, 1.0, 0.0, 1.0),
                 image, uv, uv,
-                na.zeros(3, dtype='float64'),
+                np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
         return args
  
@@ -771,13 +771,13 @@ class HEALpixCamera(Camera):
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
-                    if na.any(na.isnan(data)):
+                    if np.any(np.isnan(data)):
                         raise RuntimeError
         
         view_pos = self.center
         for brick in self.volume.traverse(view_pos, None, image):
             sampler(brick, num_threads=num_threads)
-            total_cells += na.prod(brick.my_data[0].shape)
+            total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         
         pbar.finish()
@@ -823,14 +823,14 @@ class HEALpixCamera(Camera):
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
-            phi, theta = na.mgrid[0.0:2*na.pi:800j, 0:na.pi:800j]
+            phi, theta = np.mgrid[0.0:2*np.pi:800j, 0:np.pi:800j]
             pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
             image *= self.radius * self.pf['cm']
-            img = na.log10(image[:,0,0][pixi]).reshape((800,800))
+            img = np.log10(image[:,0,0][pixi]).reshape((800,800))
 
             fig = matplotlib.figure.Figure((10, 5))
             ax = fig.add_subplot(1,1,1,projection='hammer')
-            implot = ax.imshow(img, extent=(-na.pi,na.pi,-na.pi/2,na.pi/2), clip_on=False, aspect=0.5)
+            implot = ax.imshow(img, extent=(-np.pi,np.pi,-np.pi/2,np.pi/2), clip_on=False, aspect=0.5)
             cb = fig.colorbar(implot, orientation='horizontal')
 
             if label == None:
@@ -852,7 +852,7 @@ class AdaptiveHEALpixCamera(Camera):
                  rays_per_cell = 0.1, max_nside = 8192):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
-        self.center = na.array(center, dtype='float64')
+        self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.use_kd = use_kd
         if transfer_function is None:
@@ -880,8 +880,8 @@ class AdaptiveHEALpixCamera(Camera):
                         (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
         total_cells = 0
         bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
-        left_edges = na.array([b.LeftEdge for b in bricks])
-        right_edges = na.array([b.RightEdge for b in bricks])
+        left_edges = np.array([b.LeftEdge for b in bricks])
+        right_edges = np.array([b.RightEdge for b in bricks])
         min_dx = min(((b.RightEdge[0] - b.LeftEdge[0])/b.my_data[0].shape[0]
                      for b in bricks))
         # We jitter a bit if we're on a boundary of our initial grid
@@ -896,7 +896,7 @@ class AdaptiveHEALpixCamera(Camera):
         for i,brick in enumerate(bricks):
             ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges,
                                        bricks)
-            total_cells += na.prod(brick.my_data[0].shape)
+            total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
         info, values = ray_source.get_rays()
@@ -935,10 +935,10 @@ class FisheyeCamera(Camera):
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
-        if rotation is None: rotation = na.eye(3)
+        if rotation is None: rotation = np.eye(3)
         self.rotation_matrix = rotation
         if pf is not None: self.pf = pf
-        self.center = na.array(center, dtype='float64')
+        self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.fov = fov
         if iterable(resolution):
@@ -957,7 +957,7 @@ class FisheyeCamera(Camera):
         self.volume = volume
 
     def new_image(self):
-        image = na.zeros((self.resolution**2,1,3), dtype='float64', order='C')
+        image = np.zeros((self.resolution**2,1,3), dtype='float64', order='C')
         return image
         
     def get_sampler_args(self, image):
@@ -968,13 +968,13 @@ class FisheyeCamera(Camera):
             vp[:,:,i] = (vp2 * self.rotation_matrix[:,i]).sum(axis=2)
         del vp2
         vp *= self.radius
-        uv = na.ones(3, dtype='float64')
-        positions = na.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
+        uv = np.ones(3, dtype='float64')
+        positions = np.ones((self.resolution**2, 1, 3), dtype='float64') * self.center
 
         args = (positions, vp, self.center,
                 (0.0, 1.0, 0.0, 1.0),
                 image, uv, uv,
-                na.zeros(3, dtype='float64'),
+                np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
         return args
 
@@ -988,13 +988,13 @@ class FisheyeCamera(Camera):
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
-                    if na.any(na.isnan(data)):
+                    if np.any(np.isnan(data)):
                         raise RuntimeError
         
         view_pos = self.center
         for brick in self.volume.traverse(view_pos, None, image):
             sampler(brick, num_threads=num_threads)
-            total_cells += na.prod(brick.my_data[0].shape)
+            total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         
         pbar.finish()
@@ -1088,7 +1088,7 @@ class MosaicFisheyeCamera(Camera):
         
         >>> field='Density'
         >>> mi,ma = pf.h.all_data().quantities['Extrema']('Density')[0]
-        >>> mi,ma = na.log10(mi), na.log10(ma)
+        >>> mi,ma = np.log10(mi), np.log10(ma)
         
         # You may want to comment out the above lines and manually set the min and max
         # of the log of the Density field. For example:
@@ -1106,7 +1106,7 @@ class MosaicFisheyeCamera(Camera):
         # the color range to the min and max values, rather than the transfer function
         # bounds.
         >>> Nc = 5
-        >>> tf.add_layers(Nc,w=0.005, col_bounds = (mi,ma), alpha=na.logspace(-2,0,Nc),
+        >>> tf.add_layers(Nc,w=0.005, col_bounds = (mi,ma), alpha=np.logspace(-2,0,Nc),
         >>>         colormap='RdBu_r')
         >>> 
         # Create the camera object. Use the keyword: no_ghost=True if a lot of time is
@@ -1164,18 +1164,18 @@ class MosaicFisheyeCamera(Camera):
             self.nimy = 1
         if pf is not None: self.pf = pf
         
-        if rotation is None: rotation = na.eye(3)
+        if rotation is None: rotation = np.eye(3)
         self.rotation_matrix = rotation
         
-        self.normal_vector = na.array([0.,0.,1])
-        self.north_vector = na.array([1.,0.,0.])
-        self.east_vector = na.array([0.,1.,0.])
+        self.normal_vector = np.array([0.,0.,1])
+        self.north_vector = np.array([1.,0.,0.])
+        self.east_vector = np.array([0.,1.,0.])
         self.rotation_vector = self.north_vector
 
         if iterable(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
-        self.center = na.array(center, dtype='float64')
+        self.center = np.array(center, dtype='float64')
         self.focal_center = focal_center
         self.radius = radius
         self.fov = fov
@@ -1195,17 +1195,17 @@ class MosaicFisheyeCamera(Camera):
 
     def get_vector_plane(self):
         if self.focal_center is not None:
-            rvec =  na.array(self.focal_center) - na.array(self.center)
+            rvec =  np.array(self.focal_center) - np.array(self.center)
             rvec /= (rvec**2).sum()**0.5
-            angle = na.arccos( (self.normal_vector*rvec).sum()/( (self.normal_vector**2).sum()**0.5 *
+            angle = np.arccos( (self.normal_vector*rvec).sum()/( (self.normal_vector**2).sum()**0.5 *
                 (rvec**2).sum()**0.5))
-            rot_vector = na.cross(rvec, self.normal_vector)
+            rot_vector = np.cross(rvec, self.normal_vector)
             rot_vector /= (rot_vector**2).sum()**0.5
             
             self.rotation_matrix = get_rotation_matrix(angle,rot_vector)
-            self.normal_vector = na.dot(self.rotation_matrix,self.normal_vector)
-            self.north_vector = na.dot(self.rotation_matrix,self.north_vector)
-            self.east_vector = na.dot(self.rotation_matrix,self.east_vector)
+            self.normal_vector = np.dot(self.rotation_matrix,self.normal_vector)
+            self.north_vector = np.dot(self.rotation_matrix,self.north_vector)
+            self.east_vector = np.dot(self.rotation_matrix,self.east_vector)
         else:
             self.focal_center = self.center + self.radius*self.normal_vector  
         dist = ((self.focal_center - self.center)**2).sum()**0.5
@@ -1228,9 +1228,9 @@ class MosaicFisheyeCamera(Camera):
             self.get_vector_plane()
 
         nx,ny = self.resolution/self.nimx, self.resolution/self.nimy
-        image = na.zeros((nx*ny,1,3), dtype='float64', order='C')
-        uv = na.ones(3, dtype='float64')
-        positions = na.ones((nx*ny, 1, 3), dtype='float64') * self.center
+        image = np.zeros((nx*ny,1,3), dtype='float64', order='C')
+        uv = np.ones(3, dtype='float64')
+        positions = np.ones((nx*ny, 1, 3), dtype='float64') * self.center
         vector_plane = VectorPlane(positions, self.vp, self.center,
                         (0.0, 1.0, 0.0, 1.0), image, uv, uv)
         tfp = TransferFunctionProxy(self.transfer_function)
@@ -1243,7 +1243,7 @@ class MosaicFisheyeCamera(Camera):
         total_cells = 0
         for brick in self.volume.traverse(None, self.center, image):
             brick.cast_plane(tfp, vector_plane)
-            total_cells += na.prod(brick.my_data[0].shape)
+            total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
         image.shape = (nx, ny, 3)
@@ -1269,7 +1269,7 @@ class MosaicFisheyeCamera(Camera):
         if self.image_decomp:
             if self.comm.rank == 0:
                 if self.global_comm.rank == 0:
-                    final_image = na.empty((nx*self.nimx, 
+                    final_image = np.empty((nx*self.nimx, 
                         ny*self.nimy, 3),
                         dtype='float64',order='C')
                     final_image[:nx, :ny, :] = image
@@ -1312,7 +1312,7 @@ class MosaicFisheyeCamera(Camera):
         Examples
         --------
 
-        >>> cam.rotate(na.pi/4)
+        >>> cam.rotate(np.pi/4)
         """
         if rot_vector is None:
             rot_vector = self.north_vector
@@ -1322,9 +1322,9 @@ class MosaicFisheyeCamera(Camera):
         R = get_rotation_matrix(theta, rot_vector)
 
         self.vp = rotate_vectors(self.vp, R)
-        self.normal_vector = na.dot(R,self.normal_vector)
-        self.north_vector = na.dot(R,self.north_vector)
-        self.east_vector = na.dot(R,self.east_vector)
+        self.normal_vector = np.dot(R,self.normal_vector)
+        self.north_vector = np.dot(R,self.north_vector)
+        self.east_vector = np.dot(R,self.east_vector)
 
         if keep_focus:
             self.center = self.focal_center - dist*self.normal_vector
@@ -1349,7 +1349,7 @@ class MosaicFisheyeCamera(Camera):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.rotation(na.pi, 10)):
+        >>> for i, snapshot in enumerate(cam.rotation(np.pi, 10)):
         ...     iw.write_bitmap(snapshot, 'rotation_%04i.png' % i)
         """
 
@@ -1381,10 +1381,10 @@ class MosaicFisheyeCamera(Camera):
         ...     cam.save_image('move_%04i.png' % i)
         """
         if exponential:
-            position_diff = (na.array(final)/self.center)*1.0
+            position_diff = (np.array(final)/self.center)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
-            dx = (na.array(final) - self.center)*1.0/n_steps
+            dx = (np.array(final) - self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
                 self.center *= dx
@@ -1426,7 +1426,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         effects of nearby cells.
     rotation : optional, 3x3 array
         If supplied, the vectors will be rotated by this.  You can construct
-        this by, for instance, calling na.array([v1,v2,v3]) where those are the
+        this by, for instance, calling np.array([v1,v2,v3]) where those are the
         three reference planes of an orthogonal frame (see ortho_find).
 
     Returns
@@ -1445,7 +1445,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     # We manually modify the ProjectionTransferFunction to get it to work the
     # way we want, with a second field that's also passed through.
     fields = [field]
-    center = na.array(center, dtype='float64')
+    center = np.array(center, dtype='float64')
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
         def _make_wf(f, w):
@@ -1457,8 +1457,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
-    image = na.zeros((nv,1,3), dtype='float64', order='C')
-    vs = arr_pix2vec_nest(nside, na.arange(nv))
+    image = np.zeros((nv,1,3), dtype='float64', order='C')
+    vs = arr_pix2vec_nest(nside, np.arange(nv))
     vs.shape = (nv,1,3)
     if rotation is not None:
         vs2 = vs.copy()
@@ -1466,14 +1466,14 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             vs[:,:,i] = (vs2 * rotation[:,i]).sum(axis=2)
     else:
         vs += 1e-8
-    positions = na.ones((nv, 1, 3), dtype='float64', order='C') * center
+    positions = np.ones((nv, 1, 3), dtype='float64', order='C') * center
     dx = min(g.dds.min() for g in pf.h.find_point(center)[0])
     positions += inner_radius * dx * vs
     vs *= radius
-    uv = na.ones(3, dtype='float64')
+    uv = np.ones(3, dtype='float64')
     grids = pf.h.sphere(center, radius)._grids
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
-                                image, uv, uv, na.zeros(3, dtype='float64'))
+                                image, uv, uv, np.zeros(3, dtype='float64'))
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
         data = [grid[field] * grid.child_mask.astype('float64')
@@ -1502,15 +1502,15 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
                         take_log = True, resolution=512, cmin=None, cmax=None):
     import matplotlib.figure
     import matplotlib.backends.backend_agg
-    if rotation is None: rotation = na.eye(3).astype("float64")
+    if rotation is None: rotation = np.eye(3).astype("float64")
 
     img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
 
     fig = matplotlib.figure.Figure((10, 5))
     ax = fig.add_subplot(1,1,1,projection='aitoff')
-    if take_log: func = na.log10
+    if take_log: func = np.log10
     else: func = lambda a: a
-    implot = ax.imshow(func(img), extent=(-na.pi,na.pi,-na.pi/2,na.pi/2),
+    implot = ax.imshow(func(img), extent=(-np.pi,np.pi,-np.pi/2,np.pi/2),
                        clip_on=False, aspect=0.5, vmin=cmin, vmax=cmax)
     cb = fig.colorbar(implot, orientation='horizontal')
     cb.set_label(label)
@@ -1568,12 +1568,12 @@ class ProjectionCamera(Camera):
             pass
 
     def get_sampler_args(self, image):
-        rotp = na.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
         args = (rotp, self.box_vectors[2], self.back_center,
             (-self.width[0]/2, self.width[0]/2,
              -self.width[1]/2, self.width[1]/2),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                na.array(self.width), self.sub_samples)
+                np.array(self.width), self.sub_samples)
         return args
 
     def finalize_image(self,image):
@@ -1607,8 +1607,8 @@ class ProjectionCamera(Camera):
                     this_point = (self.center + width/2. * off1 * north_vector
                                          + width/2. * off2 * east_vector
                                          + width/2. * off3 * normal_vector)
-                    na.minimum(mi, this_point, mi)
-                    na.maximum(ma, this_point, ma)
+                    np.minimum(mi, this_point, mi)
+                    np.maximum(ma, this_point, ma)
         # Now we have a bounding box.
         grids = pf.h.region(self.center, mi, ma)._grids
 
@@ -1630,7 +1630,7 @@ class ProjectionCamera(Camera):
 
     def save_image(self, fn, clip_ratio, image):
         if self.pf.field_info[self.field].take_log:
-            im = na.log10(image)
+            im = np.log10(image)
         else:
             im = image
         if self.comm.rank is 0 and fn is not None:
@@ -1722,7 +1722,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
 
     >>> image = off_axis_projection(pf, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
                       0.2, N, "Temperature", "Density")
-    >>> write_image(na.log10(image), "offaxis.png")
+    >>> write_image(np.log10(image), "offaxis.png")
 
     """
     projcam = ProjectionCamera(center, normal_vector, width, resolution,

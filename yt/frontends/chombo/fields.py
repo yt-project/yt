@@ -33,7 +33,7 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-import numpy as na
+import numpy as np
 
 KnownChomboFields = FieldInfoContainer()
 add_chombo_field = KnownChomboFields.add_field
@@ -131,7 +131,7 @@ def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
         io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
-            return na.array([], dtype=dtype)
+            return np.array([], dtype=dtype)
         else:
             return io._read_particles(data, p_field).astype(dtype)
         

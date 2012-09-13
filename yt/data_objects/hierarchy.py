@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import string, re, gc, time, cPickle, pdb
 import weakref
 
@@ -116,11 +116,11 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+        self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
     def _setup_classes(self, dd):
         # Called by subclass
@@ -172,7 +172,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                             pf = self.parameter_file)
             except:
                 continue
-            available = na.all([f in self.field_list for f in fd.requested])
+            available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -361,13 +361,13 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
         for level in xrange(self.max_level+1):
-            self.level_stats[level]['numgrids'] = na.sum(self.grid_levels == level)
+            self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
 
     @property
     def grid_corners(self):
-        return na.array([
+        return np.array([
           [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],

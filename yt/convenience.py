@@ -24,7 +24,7 @@ License:
 """
 
 import glob
-import numpy as na
+import numpy as np
 import os, os.path, inspect, types
 from functools import wraps
 

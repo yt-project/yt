@@ -83,11 +83,11 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     g.attrs["unique_identifier"] = pf.unique_identifier
     g.attrs["cosmological_simulation"] = pf.cosmological_simulation
     # @todo: Where is this in the yt API?
-    #g.attrs["num_ghost_zones"] = pf...
+    g.attrs["num_ghost_zones"] = 0
     # @todo: Where is this in the yt API?
-    #g.attrs["field_ordering"] = pf...
+    g.attrs["field_ordering"] = 0
     # @todo: not yet supported by yt.
-    #g.attrs["boundary_conditions"] = pf...
+    g.attrs["boundary_conditions"] = np.array([0, 0, 0, 0, 0, 0], 'int32')
 
     if pf.cosmological_simulation:
         g.attrs["current_redshift"] = pf.current_redshift
@@ -136,10 +136,12 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     # root datasets -- info about the grids
     ###
     f["grid_dimensions"] = pf.h.grid_dimensions
-    f["grid_left_index"] = pf.h.grid_left_edge
+    f["grid_left_index"] = np.array(
+            [g.get_global_startindex() for g in pf.h.grids]
+    ).reshape(pf.h.grid_dimensions.shape[0], 3)
     f["grid_level"] = pf.h.grid_levels
-    # @todo: Do we need to loop over the grids for this?
-    f["grid_parent_id"] = -1
+    # @todo: Fill with proper values
+    f["grid_parent_id"] = -np.ones(pf.h.grid_dimensions.shape[0])
     f["grid_particle_count"] = pf.h.grid_particle_count
 
     ###

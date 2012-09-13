@@ -32,13 +32,13 @@ class TestParticleExtrema(YTStaticOutputTest):
         # Tests to make sure there are no particle positions aren't changing
         # drastically. This is very unlikely to be a problem.
         all = self.pf.h.all_data()
-        min = na.empty(3,dtype='float64')
+        min = np.empty(3,dtype='float64')
         max = min.copy()
         dims = ["particle_position_x","particle_position_y",
             "particle_position_z"]
         for i in xrange(3):
-            min[i] = na.min(all[dims[i]])
-            max[i] = na.max(all[dims[i]])
+            min[i] = np.min(all[dims[i]])
+            max[i] = np.max(all[dims[i]])
         self.result = (min,max)
     
     def compare(self, old_result):

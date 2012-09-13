@@ -144,10 +144,10 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             length_range[0] = math.sqrt(3) * self.pf.h.get_smallest_dx()
         # Make the list of ruler lengths.
         if length_type == "lin":
-            self.lengths = na.linspace(length_range[0], length_range[1],
+            self.lengths = np.linspace(length_range[0], length_range[1],
                 length_number)
         elif length_type == "log":
-            self.lengths = na.logspace(math.log10(length_range[0]),
+            self.lengths = np.logspace(math.log10(length_range[0]),
                 math.log10(length_range[1]), length_number)
         else:
             # Something went wrong.
@@ -177,7 +177,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
         self.width = self.ds.right_edge - self.ds.left_edge
-        self.mt = na.random.mtrand.RandomState(seed = 1234 * self.mine + salt)
+        self.mt = np.random.mtrand.RandomState(seed = 1234 * self.mine + salt)
     
     def add_function(self, function, out_labels, sqrt, corr_norm=None):
         r"""Add a function to the list that will be evaluated at the
@@ -265,7 +265,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 mylog.info("Doing length %1.5e" % length)
             # Things stop when this value below equals total_values.
             self.generated_points = 0
-            self.gen_array = na.zeros(self.size, dtype='int64')
+            self.gen_array = np.zeros(self.size, dtype='int64')
             self.comm_cycle_count = 0
             self.final_comm_cycle_count = 0
             self.sent_done = False
@@ -280,7 +280,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 t1 = time.time()
                 t_waiting += (t1-t0)
                 if (self.recv_points < -1.).any() or (self.recv_points > 1.).any(): # or \
-                        #(na.abs(na.log10(na.abs(self.recv_points))) > 20).any():
+                        #(np.abs(np.log10(np.abs(self.recv_points))) > 20).any():
                     raise ValueError("self.recv_points is no good!")
                 self.points = self.recv_points.copy()
                 self.fields_vals = self.recv_fields_vals.copy()
@@ -312,7 +312,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         xp = self.ds["x"]
         yp = self.ds["y"]
         zp = self.ds["z"]
-        fKD.pos = na.asfortranarray(na.empty((3,xp.size), dtype='float64'))
+        fKD.pos = np.asfortranarray(np.empty((3,xp.size), dtype='float64'))
         # Normalize the grid points only within the kdtree.
         fKD.pos[0, :] = xp[:] / self.period[0]
         fKD.pos[1, :] = yp[:] / self.period[1]
@@ -332,8 +332,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         xp = self.ds["x"]
         yp = self.ds["y"]
         zp = self.ds["z"]
-        self.sizes = [na.unique(xp).size, na.unique(yp).size, na.unique(zp).size]        
-        self.sort = na.lexsort([zp, yp, xp])
+        self.sizes = [np.unique(xp).size, np.unique(yp).size, np.unique(zp).size]        
+        self.sort = np.lexsort([zp, yp, xp])
         del xp, yp, zp
         self.ds.clear_data()
     
@@ -341,7 +341,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         Builds an array to store the field values array.
         """
-        self.fields_vals = na.empty((self.comm_size, len(self.fields)*2), \
+        self.fields_vals = np.empty((self.comm_size, len(self.fields)*2), \
             dtype='float64')
         # At the same time build a dict to label the columns.
         self.fields_columns = {}
@@ -353,7 +353,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         Initializes the array that contains the random points as all negatives
         to start with.
         """
-        self.points = na.ones((self.comm_size, 6), dtype='float64') * -1.0
+        self.points = np.ones((self.comm_size, 6), dtype='float64') * -1.0
     
     def _setup_done_hooks_on_root(self):
         """
@@ -364,7 +364,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.recv_done = {}
         for task in xrange(self.size):
             if task == self.mine: continue
-            self.recv_done[task] = na.zeros(1, dtype='int64')
+            self.recv_done[task] = np.zeros(1, dtype='int64')
             self.done_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_done[task], \
                 task, tag=15))
     
@@ -376,13 +376,13 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         if self.sent_done: return
         if self.mine !=0:
             # I send when I *think* things should finish.
-            self.send_done = na.ones(1, dtype='int64') * \
+            self.send_done = np.ones(1, dtype='int64') * \
                 (self.size / self.vol_ratio -1) + self.comm_cycle_count
             self.done_hooks.append(self.comm.mpi_nonblocking_send(self.send_done, \
                     0, tag=15))
         else:
             # As root, I need to mark myself!
-            self.recv_done[0] = na.ones(1, dtype='int64') * \
+            self.recv_done[0] = np.ones(1, dtype='int64') * \
                 (self.size / self.vol_ratio -1) + self.comm_cycle_count
         self.sent_done = True
     
@@ -416,10 +416,10 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         Creates the recv buffers and calls a non-blocking MPI receive pointing
         to the left-hand neighbor.
         """
-        self.recv_points = na.ones((self.comm_size, 6), dtype='float64') * -1.
-        self.recv_fields_vals = na.zeros((self.comm_size, len(self.fields)*2), \
+        self.recv_points = np.ones((self.comm_size, 6), dtype='float64') * -1.
+        self.recv_fields_vals = np.zeros((self.comm_size, len(self.fields)*2), \
             dtype='float64')
-        self.recv_gen_array = na.zeros(self.size, dtype='int64')
+        self.recv_gen_array = np.zeros(self.size, dtype='int64')
         self.recv_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_points, \
             (self.mine-1)%self.size, tag=10))
         self.recv_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_fields_vals, \
@@ -470,7 +470,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         Picks out size random pairs separated by length *length*.
         """
         # First make random points inside this subvolume.
-        r1 = na.empty((size,3), dtype='float64')
+        r1 = np.empty((size,3), dtype='float64')
         for dim in range(3):
             r1[:,dim] = self.mt.uniform(low=self.ds.left_edge[dim],
                 high=self.ds.right_edge[dim], size=size)
@@ -480,15 +480,15 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         # but phi and theta are switched to the Physics convention.
         if self.constant_phi is None:
             phi = self.mt.uniform(low=0, high=2.*math.pi, size=size)
-        else: phi = self.constant_phi * na.ones(size, dtype='float64')
+        else: phi = self.constant_phi * np.ones(size, dtype='float64')
         if self.constant_theta is None:
             v = self.mt.uniform(low=0., high=1, size=size)
-            theta = na.arccos(2 * v - 1)
-        else: theta = self.constant_theta * na.ones(size, dtype='float64')
-        r2 = na.empty((size,3), dtype='float64')
-        r2[:,0] = r1[:,0] + length * na.cos(phi) * na.sin(theta)
-        r2[:,1] = r1[:,1] + length * na.sin(phi) * na.sin(theta)
-        r2[:,2] = r1[:,2] + length * na.cos(theta)
+            theta = np.arccos(2 * v - 1)
+        else: theta = self.constant_theta * np.ones(size, dtype='float64')
+        r2 = np.empty((size,3), dtype='float64')
+        r2[:,0] = r1[:,0] + length * np.cos(phi) * np.sin(theta)
+        r2[:,1] = r1[:,1] + length * np.sin(phi) * np.sin(theta)
+        r2[:,2] = r1[:,2] + length * np.cos(theta)
         # Reflect so it's inside the (full) volume.
         r2 %= self.period
         return (r1, r2)
@@ -508,7 +508,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             points[:, 1] = points[:, 1] / self.period[1]
             points[:, 2] = points[:, 2] / self.period[2]
             fKD.qv_many = points.T
-            fKD.nn_tags = na.asfortranarray(na.empty((1, points.shape[0]), dtype='int64'))
+            fKD.nn_tags = np.asfortranarray(np.empty((1, points.shape[0]), dtype='int64'))
             find_many_nn_nearest_neighbors()
             # The -1 is for fortran counting.
             n = fKD.nn_tags[0,:] - 1
@@ -521,7 +521,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         # First find the grid data index field.
         indices = self._find_nearest_cell(points)
-        results = na.empty((len(indices), len(self.fields)), dtype='float64')
+        results = np.empty((len(indices), len(self.fields)), dtype='float64')
         # Put the field values into the columns of results.
         for field in self.fields:
             col = self.fields_columns[field]
@@ -547,7 +547,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 self.generated_points += size
                 # If size != select.sum(), we need to pad the end of new_r1/r2
                 # which is what is effectively happening below.
-                newpoints = na.ones((ssum, 6), dtype='float64') * -1.
+                newpoints = np.ones((ssum, 6), dtype='float64') * -1.
                 newpoints[:size,:3] = new_r1
                 newpoints[:size,3:] = new_r2
                 # Now we insert them into self.points.
@@ -564,9 +564,9 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # or I don't need to make any new points and I'm just processing the
             # array. Start by finding the indices of the points I own.
             self.points.shape = (self.comm_size*2, 3) # Doesn't make a copy - fast!
-            select = na.bitwise_or((self.points < self.ds.left_edge).any(axis=1),
+            select = np.bitwise_or((self.points < self.ds.left_edge).any(axis=1),
                 (self.points >= self.ds.right_edge).any(axis=1))
-            select = na.invert(select)
+            select = np.invert(select)
             mypoints = self.points[select]
             if mypoints.size > 0:
                 # Get the fields values.
@@ -583,19 +583,19 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # To run the functions, what is key is that the
             # second point in the pair is ours.
             second_points = self.points[:,3:]
-            select = na.bitwise_or((second_points < self.ds.left_edge).any(axis=1),
+            select = np.bitwise_or((second_points < self.ds.left_edge).any(axis=1),
                 (second_points >= self.ds.right_edge).any(axis=1))
-            select = na.invert(select)
+            select = np.invert(select)
             if select.any():
                 points_to_eval = self.points[select]
                 fields_to_eval = self.fields_vals[select]
                 
                 # Find the normal vector between our points.
-                vec = na.abs(points_to_eval[:,:3] - points_to_eval[:,3:])
-                norm = na.sqrt(na.sum(na.multiply(vec,vec), axis=1))
+                vec = np.abs(points_to_eval[:,:3] - points_to_eval[:,3:])
+                norm = np.sqrt(np.sum(np.multiply(vec,vec), axis=1))
                 # I wish there was a better way to do this, but I can't find it.
                 for i, n in enumerate(norm):
-                    vec[i] = na.divide(vec[i], n)
+                    vec[i] = np.divide(vec[i], n)
                 
                 # Now evaluate the functions.
                 for fcn_set in self._fsets:
@@ -604,7 +604,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                     fcn_set._bin_results(length, fcn_results)
                 
                 # Now clear the buffers at the processed points.
-                self.points[select] = na.array([-1.]*6, dtype='float64')
+                self.points[select] = np.array([-1.]*6, dtype='float64')
                 
             else:
                 # We didn't clear any points, so we should move on with our
@@ -712,8 +712,8 @@ class FcnSet(TwoPointFunctions):
         self.corr_norm = corr_norm # A number used to normalize a correlation function.
         # These below are used to track how many times the function returns
         # unbinned results.
-        self.too_low = na.zeros(len(self.out_labels), dtype='int32')
-        self.too_high = na.zeros(len(self.out_labels), dtype='int32')
+        self.too_low = np.zeros(len(self.out_labels), dtype='int32')
+        self.too_high = np.zeros(len(self.out_labels), dtype='int32')
         
     def set_pdf_params(self, bin_type="lin", bin_number=1000, bin_range=None):
         r"""Set the parameters used to build the Probability Distribution Function
@@ -772,14 +772,14 @@ class FcnSet(TwoPointFunctions):
             bin_type, bin_number = [bin_type], [bin_number]
             bin_range = [bin_range]
         self.bin_type = bin_type
-        self.bin_number = na.array(bin_number) - 1
+        self.bin_number = np.array(bin_number) - 1
         self.dims = range(len(bin_type))
         # Create the dict that stores the arrays to store the bin hits, and
         # the arrays themselves.
         self.length_bin_hits = {}
         for length in self.tpf.lengths:
             # It's easier to index flattened, but will be unflattened later.
-            self.length_bin_hits[length] = na.zeros(self.bin_number,
+            self.length_bin_hits[length] = np.zeros(self.bin_number,
                 dtype='int64').flatten()
         # Create the bin edges for each dimension.
         # self.bins is indexed by dimension
@@ -792,10 +792,10 @@ class FcnSet(TwoPointFunctions):
                 raise ValueError("bin_range[1] must be larger than bin_range[0]")
             # Make the edges for this dimension.
             if bin_type[dim] == "lin":
-                self.bin_edges[dim] = na.linspace(bin_range[dim][0], bin_range[dim][1],
+                self.bin_edges[dim] = np.linspace(bin_range[dim][0], bin_range[dim][1],
                     bin_number[dim])
             elif bin_type[dim] == "log":
-                self.bin_edges[dim] = na.logspace(math.log10(bin_range[dim][0]),
+                self.bin_edges[dim] = np.logspace(math.log10(bin_range[dim][0]),
                     math.log10(bin_range[dim][1]), bin_number[dim])
             else:
                 raise SyntaxError("bin_edges is either \"lin\" or \"log\".")
@@ -822,32 +822,32 @@ class FcnSet(TwoPointFunctions):
         is flattened, so we need to figure out the offset for this hit by
         factoring the sizes of the other dimensions.
         """
-        hit_bin = na.zeros(results.shape[0], dtype='int64')
+        hit_bin = np.zeros(results.shape[0], dtype='int64')
         multi = 1
-        good = na.ones(results.shape[0], dtype='bool')
+        good = np.ones(results.shape[0], dtype='bool')
         for dim in range(len(self.out_labels)):
             for d1 in range(dim):
                 multi *= self.bin_edges[d1].size
             if dim == 0 and len(self.out_labels)==1:
                 try:
-                    digi = na.digitize(results, self.bin_edges[dim])
+                    digi = np.digitize(results, self.bin_edges[dim])
                 except ValueError:
                     # The user probably did something like 
                     # return a * b rather than
                     # return a[0] * b[0], which will only happen
                     # for single field functions.
-                    digi = na.digitize(results[0], self.bin_edges[dim])
+                    digi = np.digitize(results[0], self.bin_edges[dim])
             else:
-                digi = na.digitize(results[:,dim], self.bin_edges[dim])
+                digi = np.digitize(results[:,dim], self.bin_edges[dim])
             too_low = (digi == 0)
             too_high = (digi == self.bin_edges[dim].size)
             self.too_low[dim] += (too_low).sum()
             self.too_high[dim] += (too_high).sum()
-            newgood = na.bitwise_and(na.invert(too_low), na.invert(too_high))
-            good = na.bitwise_and(good, newgood)
-            hit_bin += na.multiply((digi - 1), multi)
-        digi_bins = na.arange(self.length_bin_hits[length].size+1)
-        hist, digi_bins = na.histogram(hit_bin[good], digi_bins)
+            newgood = np.bitwise_and(np.invert(too_low), np.invert(too_high))
+            good = np.bitwise_and(good, newgood)
+            hit_bin += np.multiply((digi - 1), multi)
+        digi_bins = np.arange(self.length_bin_hits[length].size+1)
+        hist, digi_bins = np.histogram(hit_bin[good], digi_bins)
         self.length_bin_hits[length] += hist
 
     def _dim_sum(self, a, dim):
@@ -855,11 +855,11 @@ class FcnSet(TwoPointFunctions):
         Given a multidimensional array a, this finds the sum over all the
         elements leaving the dimension dim untouched.
         """
-        dims = na.arange(len(a.shape))
-        dims = na.flipud(dims)
+        dims = np.arange(len(a.shape))
+        dims = np.flipud(dims)
         gt_dims = dims[dims > dim]
         lt_dims = dims[dims < dim]
-        iter_dims = na.concatenate((gt_dims, lt_dims))
+        iter_dims = np.concatenate((gt_dims, lt_dims))
         for this_dim in iter_dims:
             a = a.sum(axis=this_dim)
         return a
@@ -882,6 +882,6 @@ class FcnSet(TwoPointFunctions):
         """
         xi = {}
         for length in self.tpf.lengths:
-            xi[length] = -1 + na.sum(self.length_bin_hits[length] * \
+            xi[length] = -1 + np.sum(self.length_bin_hits[length] * \
                 self.bin_edges[0][:-1]) / self.corr_norm
         return xi
