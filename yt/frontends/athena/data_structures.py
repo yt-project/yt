@@ -279,8 +279,10 @@ class AthenaHierarchy(AMRHierarchy):
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx = dx/self.parameter_file.refine_by**(levels[i])
-            dxs.append(gridread['dds'])
-          
+#            dxs.append(gridread['dds'])
+            gli = np.round((glis[i] - self.parameter_file.domain_left_edge)/dx).astype('int')
+            self.grids[i] = self.grid(i,self,levels[i],gli,gdims[i])
+            dxs.append(dx)
         
 #        single_grid_width = grid['dds']*grid['dimensions']   #####
 #        grids_per_dim = (self.parameter_file.domain_width/single_grid_width).astype('int32')#####
