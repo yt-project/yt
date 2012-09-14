@@ -630,7 +630,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             # This is the base_dx, but not the base distance from the center
             # position.  Note that the positions will also all be offset by
             # dx/2.0.  This is also for *oct grids*, not cells.
-            base_dx[i] = (self.DLE[i] + self.DRE[i])/self.nn[i]
+            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
         ci = 0
         cdef int proc
         for oi in range(self.nocts):
