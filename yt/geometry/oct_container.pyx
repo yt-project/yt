@@ -144,7 +144,7 @@ cdef class OctreeContainer:
         cdef int i
         for i in range(3):
             pp[i] = ppos[i] - self.DLE[i]
-            dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+            dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> (pp[i]/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
