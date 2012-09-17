@@ -809,7 +809,7 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
 
-    def save(self,name=None):
+    def save(self,name=None,mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -817,6 +817,10 @@ class PWViewerMPL(PWViewer):
         name : string
            the base of the filename.  If not set the filename of 
            the parameter file is used
+        mpl_kwargs : dict
+           A dict of keyword arguments to be passed to matplotlib.
+           
+        >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
 
         """
         if name == None:
@@ -841,7 +845,7 @@ class PWViewerMPL(PWViewer):
                 n = "%s_%s_%s" % (name, type, k)
             if weight:
                 n += "_%s" % (weight)
-            names.append(v.save(n))
+            names.append(v.save(n,mpl_kwargs))
         return names
 
     def _send_zmq(self):
@@ -1255,13 +1259,23 @@ class PlotMPL(object):
     def __init__(self, field, size):
         self._plot_valid = True
         fsize, axrect, caxrect = self._get_best_layout(size)
-                
-        self.figure = matplotlib.figure.Figure(figsize = fsize, 
-                                               frameon = True)
-        self.axes = self.figure.add_axes(axrect)
-        self.cax = self.figure.add_axes(caxrect)
-
-    def save(self, name, canvas = None):
+        
+        if np.any(np.array(axrect) < 0):
+            self.figure = matplotlib.figure.Figure(figsize = size, 
+                                                   frameon = True)
+            self.axes = self.figure.add_axes((.07,.10,.8,.8))
+            self.cax = self.figure.add_axes((.87,.10,.04,.8))
+            mylog.warning('The axis ratio of the requested plot is very narrow.  '
+                          'There is a good chance the plot will not look very good, '
+                          'consider making the plot manually using FixedResolutionBuffer '
+                          'and matplotlib.')
+        else:
+            self.figure = matplotlib.figure.Figure(figsize = fsize, 
+                                                   frameon = True)
+            self.axes = self.figure.add_axes(axrect)
+            self.cax = self.figure.add_axes(caxrect)
+            
+    def save(self, name, mpl_kwargs, canvas = None):
         if name[-4:] == '.png':
             suffix = ''
         else:
@@ -1278,7 +1292,7 @@ class PlotMPL(object):
             else:
                 mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
                 canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(fn)
+        canvas.print_figure(fn,mpl_kwargs)
         return fn
 
     def _get_best_layout(self, size):
