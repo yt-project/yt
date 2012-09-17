@@ -809,7 +809,7 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
 
-    def save(self,name=None,mpl_kwargs=None):
+    def save(self,name=None,mpl_kwargs={}):
         """saves the plot to disk.
 
         Parameters
