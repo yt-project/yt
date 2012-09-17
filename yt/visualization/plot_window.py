@@ -1255,8 +1255,7 @@ class PlotMPL(object):
     def __init__(self, field, size):
         self._plot_valid = True
         fsize, axrect, caxrect = self._get_best_layout(size)
-        # Hardcoding the axis dimensions for now
-        
+                
         self.figure = matplotlib.figure.Figure(figsize = fsize, 
                                                frameon = True)
         self.axes = self.figure.add_axes(axrect)
