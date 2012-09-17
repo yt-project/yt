@@ -335,7 +335,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     @cython.cdivision(True)
     def add(self, int curdom, int curlevel, int ng,
             np.ndarray[np.float64_t, ndim=2] pos,
-            int local_domain):
+            int local_domain, int skip_boundary = 1):
         cdef int level, no, p, i, j, k, ind[3]
         cdef int local = (local_domain == curdom)
         cdef Oct *cur, *next = NULL
@@ -344,15 +344,20 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         if curdom > self.max_domain: curdom = local_domain
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
+        cdef int in_boundary = 0
         # How do we bootstrap ourselves?
         for p in range(no):
             #for every oct we're trying to add find the 
             #floating point unitary position on this level
+            in_boundary = 0
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> (pp[i]/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
+                if ind[i] < 0 or ind[i] >= self.nn[i]:
+                    in_boundary = 1
+            if skip_boundary == in_boundary == 1: continue
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 if curlevel != 0:

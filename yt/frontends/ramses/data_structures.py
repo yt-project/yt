@@ -157,9 +157,9 @@ class RAMSESDomainFile(object):
         fpu.skip(f)
         if hvals['nboundary'] > 0:
             fpu.skip(f, 2)
-            self.ngridbound = fpu.read_vector(f, 'i')
+            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
         else:
-            self.ngridbound = 0
+            self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
         free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
         ordering = fpu.read_vector(f, 'c')
         fpu.skip(f, 4)
@@ -182,7 +182,7 @@ class RAMSESDomainFile(object):
         f.write(fb.read())
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
-            self.domain_id, self.local_oct_count, self.ngridbound)
+            self.domain_id, self.local_oct_count, self.ngridbound.sum())
         def _ng(c, l):
             if c < self.amr_header['ncpu']:
                 ng = self.amr_header['numbl'][l, c]
@@ -327,7 +327,8 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     def _initialize_oct_handler(self):
         self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
-        total_octs = sum(dom.local_oct_count for dom in self.domains)
+        total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
+                         for dom in self.domains)
         self.num_grids = total_octs
         #this merely allocates space for the oct tree
         #and nothing else
@@ -337,7 +338,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_right_edge)
         mylog.debug("Allocating %s octs", total_octs)
         self.oct_handler.allocate_domains(
-            [dom.local_oct_count + dom.ngridbound
+            [dom.local_oct_count #+ dom.ngridbound.sum()
              for dom in self.domains])
         #this actually reads every oct and loads it into the octree
         for dom in self.domains:
