@@ -330,6 +330,21 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         print "DOMAIN % 3i HAS % 9i BAD OCTS (%s / %s / %s)" % (curdom, nbad, 
             cont.n - cont.n_assigned, cont.n_assigned, cont.n)
 
+    def finalize_offsets(self):
+        cdef OctAllocationContainer *cont = self.domains[0]
+        cdef int oi, offset
+        cdef Oct* o
+        while cont != NULL:
+            offset = 0
+            for oi in range(cont.n):
+                o = &cont.my_octs[oi]
+                if o.level == -1:
+                    o.local_ind = -1 # Boundary
+                    offset += 1
+                else:
+                    o.local_ind -= offset
+            cont = cont.next
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -418,6 +433,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         coords = np.empty((cell_count, 3), dtype="int64")
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
+            if o.local_ind == -1: continue
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
@@ -447,6 +463,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         ci = 0
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
+            if o.local_ind == -1: continue
             for i in range(8):
                 if mask[oi + cur.offset, i] == 0: continue
                 ci = level_counts[o.level]
@@ -466,8 +483,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         level_count = np.zeros(max_level+1, 'int64')
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
+            if o.local_ind == -1: continue
             for i in range(8):
                 if mask[o.local_ind, i] == 0: continue
+                if o.local_ind == -1: raise RuntimeError
                 level_count[o.level] += 1
         return level_count
 
@@ -494,6 +513,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
+            if o.local_ind == -1: continue
             for i in range(3):
                 # This gives the *grid* width for this level
                 dx[i] = base_dx[i] / (1 << o.level)
@@ -538,6 +558,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
+                            if o.local_ind == -1: raise RuntimeError
                             dest[local_filled + offset] = source[o.ind, ii]
                             local_filled += 1
         return local_filled

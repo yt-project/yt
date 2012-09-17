@@ -327,7 +327,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     def _initialize_oct_handler(self):
         self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
-        total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
+        total_octs = sum(dom.local_oct_count + dom.ngridbound.sum()
                          for dom in self.domains)
         self.num_grids = total_octs
         #this merely allocates space for the oct tree
@@ -338,11 +338,12 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_right_edge)
         mylog.debug("Allocating %s octs", total_octs)
         self.oct_handler.allocate_domains(
-            [dom.local_oct_count #+ dom.ngridbound.sum()
+            [dom.local_oct_count + dom.ngridbound.sum()
              for dom in self.domains])
         #this actually reads every oct and loads it into the octree
         for dom in self.domains:
             dom._read_amr(self.oct_handler)
+        self.oct_handler.finalize_offsets()    
         #for dom in self.domains:
         #    self.oct_handler.check(dom.domain_id)
 
