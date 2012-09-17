@@ -284,6 +284,14 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
         pi += npart
     num_p[0] = tnpart
     TOTAL_PARTICLES = tnpart
+    #print 'first particle coordinates'
+    #for i in range(3):
+    #    print p[0][0].pos[i],
+    #print ""
+    #print 'last particle coordinates'
+    #for i in range(3):
+    #    print p[0][tnpart-1].pos[i],
+    #print ""
 
 cdef class RockstarInterface:
 

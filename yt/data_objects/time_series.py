@@ -78,7 +78,7 @@ class TimeSeriesParametersContainer(object):
         raise AttributeError(attr)
 
 class TimeSeriesData(object):
-    def __init__(self, outputs, parallel = True):
+    def __init__(self, outputs, parallel = True ,**kwargs):
         r"""The TimeSeriesData object is a container of multiple datasets,
         allowing easy iteration and computation on them.
 
@@ -107,12 +107,13 @@ class TimeSeriesData(object):
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
         self.parallel = parallel
+        self.kwargs = kwargs
 
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
             if isinstance(o, types.StringTypes):
-                yield load(o)
+                yield load(o,**self.kwargs)
             else:
                 yield o
 
@@ -124,7 +125,7 @@ class TimeSeriesData(object):
             return TimeSeriesData(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
         if isinstance(o, types.StringTypes):
-            o = load(o)
+            o = load(o,**self.kwargs)
         return o
 
     def __len__(self):
@@ -223,7 +224,7 @@ class TimeSeriesData(object):
         return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filenames, parallel = True):
+    def from_filenames(cls, filenames, parallel = True, **kwargs):
         r"""Create a time series from either a filename pattern or a list of
         filenames.
 
@@ -260,7 +261,7 @@ class TimeSeriesData(object):
         if isinstance(filenames, types.StringTypes):
             filenames = glob.glob(filenames)
             filenames.sort()
-        obj = cls(filenames[:], parallel = parallel)
+        obj = cls(filenames[:], parallel = parallel, **kwargs)
         return obj
 
     @classmethod

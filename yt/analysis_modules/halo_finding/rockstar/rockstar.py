@@ -115,6 +115,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         tpf = ts.__iter__().next()
         dd = tpf.h.all_data()
         total_particles = na.sum(dd['particle_type']==dm_type).astype('int64')
+        mylog.info("Found %i halo particles",total_particles)
         self.total_particles = -1
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
@@ -130,16 +131,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.num_readers + self.num_writers + 1 != self.comm.size:
             #we need readers+writers+1 server = comm size        
             raise RuntimeError
-        if self.comm.size > 1:
-            mylog.debug('creating MPI workgroups')
-            self.pool = ProcessorPool()
-            self.pool.add_workgroup(1, name = "server")
-            self.pool.add_workgroup(num_readers, name = "readers")
-            self.pool.add_workgroup(num_writers, name = "writers")
-            for wg in self.pool.workgroups:
-                if self.comm.rank in wg.ranks: self.workgroup = wg
-        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
-        data_source = self.pf.h.all_data()
+        self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
+        data_source = tpf.h.all_data()
+        self.comm.barrier()
         self.handler = rockstar_interface.RockstarInterface(
                 self.ts, data_source)
 

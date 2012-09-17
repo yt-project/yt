@@ -716,6 +716,7 @@ class ARTStaticOutput(StaticOutput):
                  limit_level=None,
                  only_particle_type = None,
                  do_grid_particles=False,
+                 merge_dm_and_stars=False,
                  spread = True,
                  single_particle_mass=False,
                  single_particle_type=0):
@@ -732,6 +733,7 @@ class ARTStaticOutput(StaticOutput):
         self.only_particle_type = only_particle_type
         self.do_grid_particles = do_grid_particles
         self.single_particle_mass = single_particle_mass
+        self.merge_dm_and_stars = merge_dm_and_stars
         self.spread = spread
         
         if limit_level is None:
