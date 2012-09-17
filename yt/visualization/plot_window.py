@@ -1292,7 +1292,7 @@ class PlotMPL(object):
             else:
                 mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
                 canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(fn,mpl_kwargs)
+        canvas.print_figure(fn,**mpl_kwargs)
         return fn
 
     def _get_best_layout(self, size):
