@@ -148,8 +148,8 @@ class FLASHHierarchy(AMRHierarchy):
 
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
-            self.grid_left_edge[i] = np.rint(self.grid_left_edge[i]/dx)*dx
-            self.grid_right_edge[i] = np.rint(self.grid_right_edge[i]/dx)*dx
+            self.grid_left_edge[i][:ND] = np.rint(self.grid_left_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            self.grid_right_edge[i][:ND] = np.rint(self.grid_right_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
