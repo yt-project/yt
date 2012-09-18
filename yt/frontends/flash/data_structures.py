@@ -143,6 +143,9 @@ class FLASHHierarchy(AMRHierarchy):
         for i in range(nlevels+1):
             dxs[i,:ND] = rdx[:ND]/self.parameter_file.refine_by**i
        
+        if ND < 3:
+            dxs[:,ND:] = rdx[ND:]
+
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             self.grid_left_edge[i] = np.rint(self.grid_left_edge[i]/dx)*dx
