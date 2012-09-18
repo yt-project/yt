@@ -192,6 +192,7 @@ class RAMSESDomainFile(object):
             return ng
         min_level = self.pf.min_level
         total = 0
+        nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
             for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
@@ -201,9 +202,9 @@ class RAMSESDomainFile(object):
                 ind = fpu.read_vector(f, "I").astype("int64")
                 fpu.skip(f, 2)
                 pos = np.empty((ng, 3), dtype='float64')
-                pos[:,0] = fpu.read_vector(f, "d")
-                pos[:,1] = fpu.read_vector(f, "d")
-                pos[:,2] = fpu.read_vector(f, "d")
+                pos[:,0] = fpu.read_vector(f, "d") - nx
+                pos[:,1] = fpu.read_vector(f, "d") - ny
+                pos[:,2] = fpu.read_vector(f, "d") - nz
                 #pos *= self.pf.domain_width
                 #pos += self.parameter_file.domain_left_edge
                 fpu.skip(f, 31)
