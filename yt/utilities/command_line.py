@@ -1188,6 +1188,35 @@ class YTPastebinGrabCmd(YTCommand):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
+class YTNotebookUploadCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload an IPython notebook to hub.yt-project.org.
+        """
+
+    name = "upload_notebook"
+    def __call__(self, args):
+        filename = args.file
+        if not os.path.isfile(filename):
+            raise IOError(filename)
+        if not filename.endswith(".ipynb"):
+            print "File must be an IPython notebook!"
+            return 1
+        import json
+        try:
+            t = json.loads(open(filename).read())['metadata']['name']
+        except (ValueError, KeyError):
+            print "File does not appear to be an IPython notebook."
+        from yt.utilities.minimal_representation import MinimalNotebook
+        mn = MinimalNotebook(filename, t)
+        rv = mn.upload()
+        print "Upload successful!"
+        print
+        print "To view your notebook go here:"
+        print "  %s" % (rv['url'].replace("/go/", "/nb/"))
+        print
+
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center",
             "zlim", "axis", "field", "weight", "skip",
