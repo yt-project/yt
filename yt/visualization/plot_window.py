@@ -809,7 +809,7 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
 
-    def save(self,name=None,mpl_kwargs={}):
+    def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -827,6 +827,7 @@ class PWViewerMPL(PWViewer):
             name = str(self.pf)
         elif name.endswith('.png'):
             return v.save(name)
+        if mpl_kwargs is None: mpl_kwargs = {}
         axis = axis_names[self.data_source.axis]
         weight = None
         if 'Slice' in self.data_source.__class__.__name__:
