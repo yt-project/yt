@@ -1213,7 +1213,12 @@ class YTNotebookUploadCmd(YTCommand):
         rv = mn.upload()
         print "Upload successful!"
         print
+        print "To access your raw notebook go here:"
+        print
+        print "  %s" % (rv['url'])
+        print
         print "To view your notebook go here:"
+        print
         print "  %s" % (rv['url'].replace("/go/", "/nb/"))
         print
 
