@@ -134,9 +134,9 @@ cdef class OctreeContainer:
             size[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i] << o.level)
             corner[i] = o.pos[i] * size[i] + self.DLE[i]
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     cdef Oct *get(self, ppos):
         cdef np.int64_t ind[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
@@ -160,9 +160,9 @@ cdef class OctreeContainer:
             cur = cur.children[ind[0]][ind[1]][ind[2]]
         return cur
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def count_cells(self, SelectorObject selector,
               np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
         cdef int i, j, k, oi
@@ -180,16 +180,16 @@ cdef class OctreeContainer:
             base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
         cur = self.cont
         for oi in range(n):
-            if oi - cur.offset >= cur.n:
+            if oi - cur.offset >= cur.n_assigned:
                 cur = cur.next
             o = &cur.my_octs[oi - cur.offset]
             for i in range(8):
                 count[o.domain - 1] += mask[oi,i]
         return count
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     cdef void neighbors(self, Oct* o, Oct* neighbors[27]):
         cdef np.int64_t curopos[3]
         cdef np.int64_t curnpos[3]
@@ -254,9 +254,9 @@ cdef class OctreeContainer:
                     neighbors[nn] = candidate
                     nn += 1
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def get_neighbor_boundaries(self, ppos):
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]
@@ -293,9 +293,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # called.
         if self.domains != NULL: free(self.domains)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def count(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
                      split = False):
         cdef int n = mask.shape[0]
@@ -332,22 +332,33 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
     def finalize_offsets(self):
         cdef OctAllocationContainer *cont = self.domains[0]
-        cdef int oi, offset
+        cdef int oi, loffset, goffset, ci
         cdef Oct* o
+        ci = 0
+        goffset = 0
         while cont != NULL:
-            offset = 0
+            loffset = 0
             for oi in range(cont.n):
                 o = &cont.my_octs[oi]
                 if o.level == -1:
+                    #print "Eliminating", o.pos[0], o.pos[1], o.pos[2],
+                    #print o.local_ind, o.ind, o.domain, oi
                     o.local_ind = -1 # Boundary
-                    offset += 1
+                    loffset += 1
+                    goffset += 1
+                elif o.local_ind == -1:
+                    raise RuntimeError
                 else:
-                    o.local_ind -= offset
+                    o.local_ind -= loffset
+            print "Container %s has %s / %s unassigned (%s)" % (
+                ci, loffset, cont.n, goffset)
             cont = cont.next
+            cont.offset -= goffset
+            ci += 1
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def add(self, int curdom, int curlevel, int ng,
             np.ndarray[np.float64_t, ndim=2] pos,
             int local_domain, int skip_boundary = 1):
@@ -417,9 +428,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             cur.level = curlevel
         return cont.n_assigned - initial
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def icoords(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count,
@@ -446,9 +457,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         level_counts[o.level] += 1
         return coords
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def ires(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count,
@@ -464,35 +475,41 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             if o.local_ind == -1: continue
-            for i in range(8):
-                if mask[oi + cur.offset, i] == 0: continue
-                ci = level_counts[o.level]
-                levels[ci] = o.level
-                level_counts[o.level] += 1
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        if mask[o.local_ind, ii] == 0: continue
+                        ci = level_counts[o.level]
+                        levels[ci] = o.level
+                        level_counts[o.level] += 1
         return levels
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def count_levels(self, int max_level, int domain_id,
                      np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
         cdef np.ndarray[np.int64_t, ndim=1] level_count
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
-        cdef int oi, i
+        cdef int oi, i, skipped = 0
         level_count = np.zeros(max_level+1, 'int64')
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             if o.local_ind == -1: continue
             for i in range(8):
-                if mask[o.local_ind, i] == 0: continue
-                if o.local_ind == -1: raise RuntimeError
+                if (o.local_ind + cur.offset) > mask.shape[0]:
+                    print mask.shape[0], o.local_ind, cur.offset, o.ind, o.level
+                if mask[o.local_ind + cur.offset, i] == 0: continue
+                ci = level_count[o.level]
                 level_count[o.level] += 1
+        print "Skipped (%s) %s / %s => %s" % (domain_id, skipped, cur.n, mask.shape[0])
         return level_count
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def fcoords(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count,
@@ -533,9 +550,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         level_counts[o.level] += 1
         return coords
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
         cdef np.ndarray[np.float64_t, ndim=2] source
@@ -558,8 +575,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
-                            if o.local_ind == -1: raise RuntimeError
-                            dest[local_filled + offset] = source[o.ind, ii]
+                            if o.local_ind + offset > dest.shape[0]:
+                                print dest.shape[0], o.local_ind, offset
+                            dest[o.local_ind + offset] = source[o.ind, ii]
                             local_filled += 1
         return local_filled
 
@@ -604,9 +622,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             free(o.sd.domain_id)
         free(o)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def icoords(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.int64_t, ndim=2] coords
@@ -626,9 +644,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                             ci += 1
         return coords
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def ires(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.int64_t, ndim=1] res
@@ -643,9 +661,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     ci += 1
         return res
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def fcoords(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.float64_t, ndim=2] coords
@@ -858,9 +876,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 dmask[o.sd.domain_id[i]] = 1
         return dmask.astype("bool")
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     def count_neighbor_particles(self, ppos):
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]

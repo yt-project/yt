@@ -192,6 +192,9 @@ class RAMSESDomainFile(object):
             return ng
         min_level = self.pf.min_level
         total = 0
+        nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
+        print "LEFT OFFSET", nx, ny, nz
+        print "MIN LEVEL", min_level
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
             for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
@@ -201,11 +204,9 @@ class RAMSESDomainFile(object):
                 ind = fpu.read_vector(f, "I").astype("int64")
                 fpu.skip(f, 2)
                 pos = np.empty((ng, 3), dtype='float64')
-                pos[:,0] = fpu.read_vector(f, "d")
-                pos[:,1] = fpu.read_vector(f, "d")
-                pos[:,2] = fpu.read_vector(f, "d")
-                #pos *= self.pf.domain_width
-                #pos += self.parameter_file.domain_left_edge
+                pos[:,0] = fpu.read_vector(f, "d") - nx
+                pos[:,1] = fpu.read_vector(f, "d") - ny
+                pos[:,2] = fpu.read_vector(f, "d") - nz
                 fpu.skip(f, 31)
                 #parents = fpu.read_vector(f, "I")
                 #fpu.skip(f, 6)
@@ -221,6 +222,10 @@ class RAMSESDomainFile(object):
                 # We don't want duplicate grids.
                 # Note that we're adding *grids*, not individual cells.
                 if level >= min_level and cpu + 1 >= self.domain_id: 
+                    print level, cpu,
+                    for i,ax in zip(range(3), 'xyz'):
+                        print pos[:,i].min(), pos[:,i].max(),
+                    print
                     assert(pos.shape[0] == ng)
                     if cpu + 1 == self.domain_id:
                         total += ng
@@ -327,7 +332,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     def _initialize_oct_handler(self):
         self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
-        total_octs = sum(dom.local_oct_count + dom.ngridbound.sum()
+        total_octs = sum(dom.local_oct_count + 0*dom.ngridbound.sum()
                          for dom in self.domains)
         self.num_grids = total_octs
         #this merely allocates space for the oct tree
@@ -338,7 +343,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_right_edge)
         mylog.debug("Allocating %s octs", total_octs)
         self.oct_handler.allocate_domains(
-            [dom.local_oct_count + dom.ngridbound.sum()
+            [dom.local_oct_count + 0*dom.ngridbound.sum()
              for dom in self.domains])
         #this actually reads every oct and loads it into the octree
         for dom in self.domains:
