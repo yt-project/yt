@@ -240,9 +240,9 @@ class AthenaHierarchy(AMRHierarchy):
             dx = dx/self.parameter_file.refine_by**(levels[i])
             dxs.append(grid['dds'])
         dx = np.array(dxs)
-        self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
+        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
+        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
     def _populate_grid_objects(self):
