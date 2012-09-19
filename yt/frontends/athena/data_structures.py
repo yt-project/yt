@@ -322,7 +322,7 @@ class AthenaStaticOutput(StaticOutput):
                     "if it is not equal to -domain_left_edge.")
             self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge-self.domain_left_edge
-        self.domain_dimensions = self.domain_width/grid['dds']
+        self.domain_dimensions = np.round(self.domain_width/grid['dds']).astype('int32')
         refine_by = None
         if refine_by is None: refine_by = 2
         self.refine_by = refine_by
