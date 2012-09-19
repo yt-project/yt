@@ -998,11 +998,11 @@ class AMRKDTree(HomogenizedVolume):
         anprocs = 2**par_tree_depth
 
         volume_partitioned = 0.0
-        pbar = get_pbar("Building kd-Tree",
-                na.prod(self.domain_right_edge-self.domain_left_edge))
+        total_vol = na.prod(self.domain_right_edge-self.domain_left_edge)
+        pbar = get_pbar("Building kd-Tree", total_vol)
 
         while current_node is not None:
-            pbar.update(volume_partitioned)
+            pbar.update(min(volume_partitioned, total_vol))
 
             # If we don't have any grids, that means we are revisiting
             # a dividing node, and there is nothing to be done.
