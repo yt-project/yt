@@ -27,7 +27,7 @@ License:
 import base64
 import matplotlib.figure
 from matplotlib.mathtext import MathTextParser
-from matplotlib.pyparsing import ParseFatalException
+from pyparsing import ParseFatalException
 import cStringIO
 import types
 import __builtin__
