@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -86,7 +86,7 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
         for field in fields:
             f = self.pf.field_info[field]
             to_add = f.get_dependencies(pf = self.pf).requested
-            to_add = list(na.unique(to_add))
+            to_add = list(np.unique(to_add))
             if len(to_add) != 1: raise KeyError
             fields_to_read += to_add
             if f._particle_convert_function is None:
@@ -95,9 +95,9 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
                 func = f.particle_convert
             func = particle_converter(func)
             conv_factors.append(
-              na.fromiter((func(g) for g in grid_list),
+              np.fromiter((func(g) for g in grid_list),
                           count=len(grid_list), dtype='float64'))
-        conv_factors = na.array(conv_factors).transpose()
+        conv_factors = np.array(conv_factors).transpose()
         self.conv_factors = conv_factors
         rvs = self.pf.h.io._read_particles(
             fields_to_read, rtype, args, grid_list, count_list,
@@ -115,9 +115,9 @@ class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
         ParticleIOHandler.__init__(self, pf, source)
 
     def _get_args(self):
-        DLE = na.array(self.pf.domain_left_edge, dtype='float64') 
-        DRE = na.array(self.pf.domain_right_edge, dtype='float64') 
-        args = (na.array(self.left_edge), na.array(self.right_edge), 
+        DLE = np.array(self.pf.domain_left_edge, dtype='float64') 
+        DRE = np.array(self.pf.domain_right_edge, dtype='float64') 
+        args = (np.array(self.left_edge), np.array(self.right_edge), 
                 int(self.periodic), DLE, DRE)
         return (0, args)
 
@@ -140,9 +140,9 @@ class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
         ParticleIOHandler.__init__(self, pf, source)
 
     def _get_args(self):
-        DLE = na.array(self.pf.domain_left_edge, dtype='float64')
-        DRE = na.array(self.pf.domain_right_edge, dtype='float64')
-        return (1, (na.array(self.center, dtype='float64'), self.radius,
+        DLE = np.array(self.pf.domain_left_edge, dtype='float64')
+        DRE = np.array(self.pf.domain_right_edge, dtype='float64')
+        return (1, (np.array(self.center, dtype='float64'), self.radius,
             1, DLE, DRE))
 
 class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
@@ -156,8 +156,8 @@ class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
         ParticleIOHandler.__init__(self, pf, source)
     
     def _get_args(self):
-        args = (na.array(self.center, dtype='float64'),
-                na.array(self.normal, dtype='float64'),
+        args = (np.array(self.center, dtype='float64'),
+                np.array(self.normal, dtype='float64'),
                 self.radius, self.height)
         return (2, args)
         

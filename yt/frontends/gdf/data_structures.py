@@ -28,7 +28,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -71,7 +71,7 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -108,11 +108,11 @@ class GDFHierarchy(AMRHierarchy):
     def _parse_hierarchy(self):
         f = self._fhandle
         dxs = []
-        self.grids = na.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype='object')
         levels = (f['grid_level'][:]).copy()
         glis = (f['grid_left_index'][:]).copy()
         gdims = (f['grid_dimensions'][:]).copy()
-        active_dims = ~((na.max(gdims, axis=0) == 1) &
+        active_dims = ~((np.max(gdims, axis=0) == 1) &
                         (self.parameter_file.domain_dimensions == 1))
 
         for i in range(levels.shape[0]):
@@ -125,7 +125,7 @@ class GDFHierarchy(AMRHierarchy):
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx[active_dims] = dx[active_dims]/self.parameter_file.refine_by**(levels[i])
             dxs.append(dx)
-        dx = na.array(dxs)
+        dx = np.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
@@ -147,7 +147,7 @@ class GDFHierarchy(AMRHierarchy):
         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]

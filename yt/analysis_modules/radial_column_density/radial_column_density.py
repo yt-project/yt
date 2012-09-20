@@ -105,14 +105,14 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         """
         ParallelAnalysisInterface.__init__(self)
         self.pf = pf
-        self.center = na.asarray(center)
+        self.center = np.asarray(center)
         self.max_radius = max_radius
         self.steps = steps
         self.base = base
         self.Nside = Nside
         self.ang_divs = ang_divs
-        self.real_ang_divs = int(na.abs(ang_divs))
-        self.phi, self.theta = na.mgrid[0.0:2*na.pi:ang_divs, 0:na.pi:ang_divs]
+        self.real_ang_divs = int(np.abs(ang_divs))
+        self.phi, self.theta = np.mgrid[0.0:2*np.pi:ang_divs, 0:np.pi:ang_divs]
         self.phi1d = self.phi[:,0]
         self.theta1d = self.theta[0,:]
         self.dphi = self.phi1d[1] - self.phi1d[0]
@@ -135,20 +135,20 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # but this will work for now.
         right = self.pf.domain_right_edge - self.center
         left = self.center - self.pf.domain_left_edge
-        min_r = na.min(right)
-        min_l = na.min(left)
-        self.max_radius = na.min([self.max_radius, min_r, min_l])
+        min_r = np.min(right)
+        min_l = np.min(left)
+        self.max_radius = np.min([self.max_radius, min_r, min_l])
     
     def _make_bins(self):
         # We'll make the bins start from the smallest cell size to the
         # specified radius. Column density inside the same cell as our 
         # center is kind of ill-defined, anyway.
         if self.base == 'lin':
-            self.bins = na.linspace(self.pf.h.get_smallest_dx(), self.max_radius,
+            self.bins = np.linspace(self.pf.h.get_smallest_dx(), self.max_radius,
                 self.steps)
         elif self.base == 'log':
-            self.bins = na.logspace(na.log10(self.pf.h.get_smallest_dx()),
-                na.log10(self.max_radius), self.steps)
+            self.bins = np.logspace(np.log10(self.pf.h.get_smallest_dx()),
+                np.log10(self.max_radius), self.steps)
     
     def _build_surfaces(self, field):
         # This will be index by bin index.
@@ -172,17 +172,17 @@ class RadialColumnDensity(ParallelAnalysisInterface):
             Values of zero are found outside the maximum radius and
             in the cell of the user-specified center point.
             This setting is useful if the field is going to be logged
-            (e.g. na.log10) where zeros are inconvenient.
+            (e.g. np.log10) where zeros are inconvenient.
             Default = None
         """
         x = data['x']
         sh = x.shape
-        ad = na.prod(sh)
+        ad = np.prod(sh)
         if type(data) == type(FieldDetector()):
-            return na.ones(sh)
+            return np.ones(sh)
         y = data['y']
         z = data['z']
-        pos = na.array([x.reshape(ad), y.reshape(ad), z.reshape(ad)]).T
+        pos = np.array([x.reshape(ad), y.reshape(ad), z.reshape(ad)]).T
         del x, y, z
         vals = self._interpolate_value(pos)
         del pos
@@ -199,25 +199,25 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # according to the points angle.
         # 1. Find the angle from the center point to the position.
         vec = pos - self.center
-        phi = na.arctan2(vec[:, 1], vec[:, 0])
+        phi = np.arctan2(vec[:, 1], vec[:, 0])
         # Convert the convention from [-pi, pi) to [0, 2pi).
         sel = (phi < 0)
-        phi[sel] += 2 * na.pi
+        phi[sel] += 2 * np.pi
         # Find the radius.
-        r = na.sqrt(na.sum(vec * vec, axis = 1))
+        r = np.sqrt(np.sum(vec * vec, axis = 1))
         # Keep track of the points outside of self.max_radius, which we'll
         # handle separately before we return.
         outside = (r > self.max_radius)
-        theta = na.arccos(vec[:, 2] / r)
+        theta = np.arccos(vec[:, 2] / r)
         # 2. Find the bin for this position.
-        digi = na.digitize(r, self.bins)
+        digi = np.digitize(r, self.bins)
         # Find the values on the inner and outer surfaces.
-        in_val = na.zeros_like(r)
-        out_val = na.zeros_like(r)
+        in_val = np.zeros_like(r)
+        out_val = np.zeros_like(r)
         # These two will be used for interpolation.
-        in_r = na.zeros_like(r)
-        out_r = na.zeros_like(r)
-        for bin in na.unique(digi):
+        in_r = np.zeros_like(r)
+        out_r = np.zeros_like(r)
+        for bin in np.unique(digi):
             sel = (digi == bin)
             # Special case if we're outside the largest sphere.
             if bin == len(self.bins):
@@ -229,7 +229,7 @@ class RadialColumnDensity(ParallelAnalysisInterface):
                 continue
             # Special case if we're inside the smallest sphere.
             elif bin == 0:
-                in_val[sel] = na.zeros_like(phi[sel])
+                in_val[sel] = np.zeros_like(phi[sel])
                 in_r[sel] = 0.
                 out_val[sel] = self._interpolate_surface_value(1,
                     phi[sel], theta[sel])
@@ -244,11 +244,11 @@ class RadialColumnDensity(ParallelAnalysisInterface):
                     phi[sel], theta[sel])
                 out_r[sel] = self.bins[bin]
         # Interpolate using a linear fit in column density / r space.
-        val = na.empty_like(r)
+        val = np.empty_like(r)
         # Special case for inside smallest sphere.
         sel = (digi == 0)
         val[sel] = (1. - (out_r[sel] - r[sel]) / out_r[sel]) * out_val[sel]
-        na.invert(sel, sel) # In-place operation!
+        np.invert(sel, sel) # In-place operation!
         val[sel] = (out_val[sel] - in_val[sel]) / (out_r[sel] - in_r[sel]) * \
             (r[sel] - in_r[sel]) + in_val[sel]
         # Fix the things to zero that should be zero.
@@ -259,8 +259,8 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # Given a surface bin and an angle, interpolate the value on
         # that surface to the angle.
         # 1. Find the four values closest to the angle.
-        phi_bin = na.digitize(phi, self.phi1d)
-        theta_bin = na.digitize(theta, self.theta1d)
+        phi_bin = np.digitize(phi, self.phi1d)
+        theta_bin = np.digitize(theta, self.theta1d)
         val00 = self.surfaces[bin][phi_bin - 1, theta_bin - 1]
         val01 = self.surfaces[bin][phi_bin - 1, theta_bin]
         val10 = self.surfaces[bin][phi_bin, theta_bin - 1]

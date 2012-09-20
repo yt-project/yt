@@ -25,7 +25,7 @@ License:
 """
 import h5py
 import re
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import \
            BaseIOHandler
@@ -108,4 +108,4 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                     if ( (grid.LeftEdge < coord).all() and
                          (coord <= grid.RightEdge).all() ):
                         particles.append(read(line, field))
-        return na.array(particles)
+        return np.array(particles)

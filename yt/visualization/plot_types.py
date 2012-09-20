@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from _mpl_imports import *
@@ -183,21 +183,21 @@ class RavenPlot(object):
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':
-                zmin = na.nanmin(imbuff[na.nonzero(imbuff)])
+                zmin = np.nanmin(imbuff[np.nonzero(imbuff)])
                 if dex is not None:
-                    zmax = min(zmin*10**(dex),na.nanmax(imbuff))
+                    zmax = min(zmin*10**(dex),np.nanmax(imbuff))
             if zmax == 'max':
-                zmax = na.nanmax(imbuff)
+                zmax = np.nanmax(imbuff)
                 if dex is not None:
-                    zmin = max(zmax/(10**(dex)),na.nanmin(imbuff))
+                    zmin = max(zmax/(10**(dex)),np.nanmin(imbuff))
         if self.colorbar is not None:
             if ticks is not None:
-                ticks = na.sort(ticks)
+                ticks = np.sort(ticks)
                 self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                 self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
             elif minmaxtick:
                 if self.log_field: 
-                    ticks = na.array(self.colorbar._ticker()[1],dtype='float')
+                    ticks = np.array(self.colorbar._ticker()[1],dtype='float')
                     ticks = [zmin] + ticks.tolist() + [zmax]
                     self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                     self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
@@ -205,11 +205,11 @@ class RavenPlot(object):
                     mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
             elif nticks is not None:
                 if self.log_field:
-                    lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
+                    lin = np.linspace(np.log10(zmin),np.log10(zmax),nticks)
                     self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
                     self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
                 else: 
-                    lin = na.linspace(zmin,zmax,nticks)
+                    lin = np.linspace(zmin,zmax,nticks)
                     self.colorbar.locator = matplotlib.ticker.FixedLocator(lin)
                     self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % x for x in lin])
 
@@ -218,7 +218,7 @@ class RavenPlot(object):
                     self.colorbar.locator = self._old_locator
                 if hasattr(self,'_old_formatter'):
                     self.colorbar.formatter = self._old_formatter
-        self.norm.autoscale(na.array([zmin,zmax], dtype='float64'))
+        self.norm.autoscale(np.array([zmin,zmax], dtype='float64'))
         self.image.changed()
         if self.colorbar is not None:
             mpl_notify(self.image, self.colorbar)
@@ -343,7 +343,7 @@ class VMPlot(RavenPlot):
             self.colorbar.formatter = ttype()
 
     def __init_temp_image(self, setup_colorbar):
-        temparray = na.ones(self.size)
+        temparray = np.ones(self.size)
         self.image = \
             self._axes.imshow(temparray, interpolation='nearest',
                              norm = self.norm, aspect=1.0, picker=True,
@@ -394,20 +394,20 @@ class VMPlot(RavenPlot):
         if self[self.axis_names["Z"]].size == 0:
             raise YTNoDataInObjectError(self.data)
         mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
-                    na.nanmin(buff), na.nanmax(buff),
+                    np.nanmin(buff), np.nanmax(buff),
                     self[self.axis_names["Z"]].min(),
                     self[self.axis_names["Z"]].max())
         if self.log_field:
-            bI = na.where(buff > 0)
+            bI = np.where(buff > 0)
             if len(bI[0]) == 0:
                 newmin = 1e-99
                 newmax = 1e-99
             else:
-                newmin = na.nanmin(buff[bI])
-                newmax = na.nanmax(buff[bI])
+                newmin = np.nanmin(buff[bI])
+                newmax = np.nanmax(buff[bI])
         else:
-            newmin = na.nanmin(buff)
-            newmax = na.nanmax(buff)
+            newmin = np.nanmin(buff)
+            newmax = np.nanmax(buff)
         aspect = (self.ylim[1]-self.ylim[0])/(self.xlim[1]-self.xlim[0])
         if self.image._A.size != buff.size:
             self._axes.clear()
@@ -418,7 +418,7 @@ class VMPlot(RavenPlot):
             self.image.set_data(buff)
         if self._axes.get_aspect() != aspect: self._axes.set_aspect(aspect)
         if self.do_autoscale:
-            self.norm.autoscale(na.array((newmin,newmax), dtype='float64'))
+            self.norm.autoscale(np.array((newmin,newmax), dtype='float64'))
         self._reset_image_parameters()
         self._run_callbacks()
 
@@ -476,8 +476,8 @@ class VMPlot(RavenPlot):
         self._redraw_image()
 
     def autoscale(self):
-        zmin = na.nanmin(self._axes.images[-1]._A)
-        zmax = na.nanmax(self._axes.images[-1]._A)
+        zmin = np.nanmin(self._axes.images[-1]._A)
+        zmax = np.nanmax(self._axes.images[-1]._A)
         self.set_zlim(zmin, zmax)
 
     def switch_y(self, *args, **kwargs):
@@ -558,16 +558,16 @@ class NNVMPlot:
         numPoints_y = int(width)
         dx = numPoints_x / (x1-x0)
         dy = numPoints_y / (y1-y0)
-        xlim = na.logical_and(self.data["px"]+2.0*self.data['pdx'] >= x0,
+        xlim = np.logical_and(self.data["px"]+2.0*self.data['pdx'] >= x0,
                               self.data["px"]-2.0*self.data['pdx'] <= x1)
-        ylim = na.logical_and(self.data["py"]+2.0*self.data['pdy'] >= y0,
+        ylim = np.logical_and(self.data["py"]+2.0*self.data['pdy'] >= y0,
                               self.data["py"]-2.0*self.data['pdy'] <= y1)
-        wI = na.where(na.logical_and(xlim,ylim))
-        xi, yi = na.mgrid[0:numPoints_x, 0:numPoints_y]
+        wI = np.where(np.logical_and(xlim,ylim))
+        xi, yi = np.mgrid[0:numPoints_x, 0:numPoints_y]
         x = (self.data["px"][wI]-x0)*dx
         y = (self.data["py"][wI]-y0)*dy
         z = self.data[self.axis_names["Z"]][wI]
-        if self.log_field: z=na.log10(z)
+        if self.log_field: z=np.log10(z)
         buff = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
         buff = buff.clip(z.min(), z.max())
         if self.log_field: buff = 10**buff
@@ -603,7 +603,7 @@ class CuttingPlanePlot(PCSlicePlot):
         else:
             height = width
         self.pix = (width,height)
-        indices = na.argsort(self.data['dx'])[::-1]
+        indices = np.argsort(self.data['dx'])[::-1]
         buff = _MPL.CPixelize( self.data['x'], self.data['y'], self.data['z'],
                                self.data['px'], self.data['py'],
                                self.data['pdx'], self.data['pdy'], self.data['pdz'],
@@ -756,7 +756,7 @@ class Profile1DPlot(ProfilePlot):
             func = self._axes.semilogy
         elif self._log_x and self._log_y:
             func = self._axes.loglog
-        indices = na.argsort(self.data[self.fields[0]])
+        indices = np.argsort(self.data[self.fields[0]])
         func(self.data[self.fields[0]][indices],
              self.data[self.fields[1]][indices],
              **self.plot_options)
@@ -823,7 +823,7 @@ class PhasePlot(ProfilePlot):
             cb(self)
 
     def __init_colorbar(self):
-        temparray = na.ones((self.x_bins.size, self.y_bins.size))
+        temparray = np.ones((self.x_bins.size, self.y_bins.size))
         self.norm = matplotlib.colors.Normalize()
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
                                       temparray, shading='flat',
@@ -858,13 +858,13 @@ class PhasePlot(ProfilePlot):
         #self._redraw_image()
         if (zmin is None) or (zmax is None):    
             if zmin == 'min':
-                zmin = na.nanmin(self._axes.images[-1]._A)
+                zmin = np.nanmin(self._axes.images[-1]._A)
                 if dex is not None:
-                    zmax = min(zmin*10**(dex),na.nanmax(self._axes.images[-1]._A))
+                    zmax = min(zmin*10**(dex),np.nanmax(self._axes.images[-1]._A))
             if zmax == 'max':
-                zmax = na.nanmax(self._axes.images[-1]._A)
+                zmax = np.nanmax(self._axes.images[-1]._A)
                 if dex is not None:
-                    zmin = max(zmax/(10**(dex)),na.nanmin(self._axes.images[-1]._A))
+                    zmin = max(zmax/(10**(dex)),np.nanmin(self._axes.images[-1]._A))
         self._zlim = (zmin, zmax)
 
     def set_log_field(self, val):
@@ -883,8 +883,8 @@ class PhasePlot(ProfilePlot):
     def _redraw_image(self):
         vals = self.data[self.fields[2]].transpose()
         used_bin = self.data["UsedBins"].transpose()
-        vmin = na.nanmin(vals[used_bin])
-        vmax = na.nanmax(vals[used_bin])
+        vmin = np.nanmin(vals[used_bin])
+        vmax = np.nanmax(vals[used_bin])
         if self._zlim is not None: vmin, vmax = self._zlim
         if self._log_z:
             # We want smallest non-zero vmin
@@ -892,10 +892,10 @@ class PhasePlot(ProfilePlot):
                                                 clip=False)
             self.ticker = matplotlib.ticker.LogLocator()
             if self._zlim is None:
-                vI = na.where(vals > 0)
+                vI = np.where(vals > 0)
                 vmin = vals[vI].min()
                 vmax = vals[vI].max()
-            self.norm.autoscale(na.array((vmin,vmax), dtype='float64'))
+            self.norm.autoscale(np.array((vmin,vmax), dtype='float64'))
         else:
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
                                                   clip=False)
@@ -979,7 +979,7 @@ class LineQueryPlot(RavenPlot):
             func = self._axes.semilogy
         elif self._log_x and self._log_y:
             func = self._axes.loglog
-        indices = na.argsort(self.data[self.fields[0]])
+        indices = np.argsort(self.data[self.fields[0]])
         func(self.data[self.fields[0]][indices],
              self.data[self.fields[1]][indices],
              **self.plot_options)

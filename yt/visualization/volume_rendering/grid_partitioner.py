@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 from yt.funcs import *
 import h5py
 
@@ -63,10 +63,10 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                    len(self.bricks), back_point, front_point)
         if self.bricks is None: self.initialize_source()
         vec = front_point - back_point
-        dist = na.minimum(
-             na.sum((self.brick_left_edges - back_point) * vec, axis=1),
-             na.sum((self.brick_right_edges - back_point) * vec, axis=1))
-        ind = na.argsort(dist)
+        dist = np.minimum(
+             np.sum((self.brick_left_edges - back_point) * vec, axis=1),
+             np.sum((self.brick_right_edges - back_point) * vec, axis=1))
+        ind = np.argsort(dist)
         for b in self.bricks[ind]:
             #print b.LeftEdge, b.RightEdge
             yield b
@@ -79,7 +79,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         for field, log_field in zip(self.fields, self.log_fields):
             vcd = grid.get_vertex_centered_data(field, no_ghost = self.no_ghost)
             vcd = vcd.astype("float64")
-            if log_field: vcd = na.log10(vcd)
+            if log_field: vcd = np.log10(vcd)
             vcds.append(vcd)
 
         GF = GridFaces(grid.Children + [grid])
@@ -121,11 +121,11 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         # intersection, we only need to do the left edge & right edge.
         #
         # We're going to double up a little bit here in memory.
-        self.brick_left_edges = na.zeros( (NB, 3), dtype='float64')
-        self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
-        self.brick_parents = na.zeros( NB, dtype='int64')
-        self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
-        self.bricks = na.empty(len(bricks), dtype='object')
+        self.brick_left_edges = np.zeros( (NB, 3), dtype='float64')
+        self.brick_right_edges = np.zeros( (NB, 3), dtype='float64')
+        self.brick_parents = np.zeros( NB, dtype='int64')
+        self.brick_dimensions = np.zeros( (NB, 3), dtype='int64')
+        self.bricks = np.empty(len(bricks), dtype='object')
         for i,b in enumerate(bricks):
             self.brick_left_edges[i,:] = b.LeftEdge
             self.brick_right_edges[i,:] = b.RightEdge
@@ -143,12 +143,12 @@ class HomogenizedVolume(ParallelAnalysisInterface):
             for j in [-1, 1]:
                 for k in [-1, 1]:
                     for b in self.bricks:
-                        BB = na.array([b.LeftEdge * [i,j,k], b.RightEdge * [i,j,k]])
-                        LE, RE = na.min(BB, axis=0), na.max(BB, axis=0)
+                        BB = np.array([b.LeftEdge * [i,j,k], b.RightEdge * [i,j,k]])
+                        LE, RE = np.min(BB, axis=0), np.max(BB, axis=0)
                         nb.append(
                             PartitionedGrid(b.parent_grid_id, len(b.my_data), 
                                 [md[::i,::j,::k].copy("C") for md in b.my_data],
-                                LE, RE, na.array(b.my_data[0].shape) - 1))
+                                LE, RE, np.array(b.my_data[0].shape) - 1))
         # Replace old bricks
         self.initialize_bricks(nb)
 
@@ -183,7 +183,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                                 self.brick_right_edges[i,:],
                                 self.brick_dimensions[i,:],
                                 ))
-        self.bricks = na.array(bricks, dtype='object')
+        self.bricks = np.array(bricks, dtype='object')
         f.close()
 
     def reset_cast(self):
@@ -194,10 +194,10 @@ class SingleBrickVolume(object):
     def __init__(self, data_array):
         self.bricks = [PartitionedGrid(-1, 1, 
                        [data_array.astype("float64")],
-                       na.zeros(3, dtype='float64'),
-                       na.ones(3, dtype='float64'),
-                       na.array(data_array.shape, dtype='int64')-1)]
-        self.brick_dimensions = na.ones((1, 3), dtype='int64')*data_array.shape
+                       np.zeros(3, dtype='float64'),
+                       np.ones(3, dtype='float64'),
+                       np.array(data_array.shape, dtype='int64')-1)]
+        self.brick_dimensions = np.ones((1, 3), dtype='int64')*data_array.shape
 
     def initialize_source(self):
         pass
@@ -221,24 +221,24 @@ class GridFaces(object):
     def __getitem__(self, item):
         return self.faces[item]
 
-def export_partitioned_grids(grid_list, fn, int_type=na.int64, float_type=na.float64):
+def export_partitioned_grids(grid_list, fn, int_type=np.int64, float_type=np.float64):
     f = h5py.File(fn, "w")
     pbar = get_pbar("Writing Grids", len(grid_list))
     nelem = sum((grid.my_data.size for grid in grid_list))
     ngrids = len(grid_list)
     group = f.create_group("/PGrids")
-    left_edge = na.concatenate([[grid.LeftEdge,] for grid in grid_list])
+    left_edge = np.concatenate([[grid.LeftEdge,] for grid in grid_list])
     f.create_dataset("/PGrids/LeftEdges", data=left_edge, dtype=float_type); del left_edge
-    right_edge = na.concatenate([[grid.RightEdge,] for grid in grid_list])
+    right_edge = np.concatenate([[grid.RightEdge,] for grid in grid_list])
     f.create_dataset("/PGrids/RightEdges", data=right_edge, dtype=float_type); del right_edge
-    dims = na.concatenate([[grid.my_data.shape[:],] for grid in grid_list])
+    dims = np.concatenate([[grid.my_data.shape[:],] for grid in grid_list])
     f.create_dataset("/PGrids/Dims", data=dims, dtype=int_type); del dims
-    data = na.concatenate([grid.my_data.ravel() for grid in grid_list])
+    data = np.concatenate([grid.my_data.ravel() for grid in grid_list])
     f.create_dataset("/PGrids/Data", data=data, dtype=float_type); del data
     f.close()
     pbar.finish()
 
-def import_partitioned_grids(fn, int_type=na.int64, float_type=na.float64):
+def import_partitioned_grids(fn, int_type=np.int64, float_type=np.float64):
     f = h5py.File(fn, "r")
     n_groups = len(f)
     grid_list = []
@@ -258,4 +258,4 @@ def import_partitioned_grids(fn, int_type=na.int64, float_type=na.float64):
         pbar.update(i)
     pbar.finish()
     f.close()
-    return na.array(grid_list, dtype='object')
+    return np.array(grid_list, dtype='object')
