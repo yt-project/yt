@@ -1084,6 +1084,64 @@ class OffAxisSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
         self.set_axes_unit(axes_unit)
 
+class OffAxisProjectionPlot(PWViewerMPL):
+    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
+                 axes_unit=None, weight_field=None, max_level=None, 
+                 north_vector=None, volume=None, no_ghost=False, le=None,
+                 re=None, interpolated=False):
+        r"""Creates an off axis projection plot from a parameter file
+
+        Given a pf object, a normal vector to project along, and
+        a field name string, this will return a PWViewrMPL object
+        containing the plot.
+        
+        The plot can be updated using one of the many helper functions
+        defined in PlotWindow.
+
+        Parameters
+        ----------
+        pf : :class:`yt.data_objects.api.StaticOutput`
+            This is the parameter file object corresponding to the
+            simulation output to be plotted.
+        normal : a sequence of floats
+            The vector normal to the slicing plane.
+        fields : string
+            The name of the field(s) to be plotted.
+        center : A two or three-element vector of sequence floats, 'c', or 'center'
+            The coordinate of the center of the image.  If left blanck,
+            the image centers on the location of the maximum density
+            cell.  If set to 'c' or 'center', the plot is centered on
+            the middle of the domain.
+        width : A tuple or a float
+            A tuple containing the width of image and the string key of
+            the unit: (width, 'unit').  If set to a float, code units
+            are assumed
+        weight_field : string
+            The name of the weighting field.  Set to None for no weight.
+        max_level: int
+            The maximum level to project to.
+        axes_unit : A string
+            The name of the unit for the tick labels on the x and y axes.  
+            Defaults to None, which automatically picks an appropriate unit.
+            If axes_unit is '1', 'u', or 'unitary', it will not display the 
+            units, and only show the axes name.
+        north-vector : a sequence of floats
+            A vector defining the 'up' direction in the plot.  This
+            option sets the orientation of the slicing plane.  If not
+            set, an arbitrary grid-aligned north-vector is chosen.
+
+        """
+        (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
+        # Hard-coding the resolution for now
+        projcam = ProjectionCamera(center, normal_vector, width, (800,800), fields,
+                                   weight=weight_field,  volume=volume, no_ghost=no_ghost,
+                                   le=le, re=re, north_vector=north_vector, pf=pf, 
+                                   interpolated=interpolated)
+        # Hard-coding the origin keyword since the other two options
+        # aren't well-defined for off-axis data objects
+        PWViewerMPL.__init__(self,projcam,bounds,origin='center-window',periodic=False,oblique=True)
+        self.set_axes_unit(axes_unit)
+
 _metadata_template = """
 %(pf)s<br>
 <br>
