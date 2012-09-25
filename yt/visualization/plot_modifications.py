@@ -1,4 +1,4 @@
-"""
+""" 
 Callbacks to add additional functionality on to plots.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -7,9 +7,12 @@ Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
 Affiliation: UC Berkeley
 Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego
+Author: Anthony Scopatz <scopatz@gmail.com>
+Affiliation: The University of Chicago
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2008-2012 Matthew Turk, JS Oishi, Stephen Skory, Anthony Scopatz.  
+  All Rights Reserved.
 
   This file is part of yt.
 
@@ -1090,7 +1093,7 @@ class TitleCallback(PlotCallback):
 class FlashRayDataCallback(PlotCallback):
     _type_name = "flash_ray_data"
     def __init__(self, pf, cmap_name='bone', sample=None):
-        """
+        """ 
         annotate_flash_ray_data(pf, cmap_name='bone', sample=None)
 
         Accepts a *pf* and adds ray trace data to the plot.  *cmap_name* is the
@@ -1120,4 +1123,88 @@ class FlashRayDataCallback(PlotCallback):
         plot._axes.hold(True)
         lc = matplotlib.collections.LineCollection(coords, colors=[cmap(p.max()) for p in power])
         plot._axes.add_collection(lc)
+        plot._axes.hold(False)
+
+
+class TimestampCallback(PlotCallback):
+    _type_name = "timestamp"
+    _time_conv = {
+          'as': 1e-18,
+          'attosec': 1e-18,
+          'attosecond': 1e-18,
+          'attoseconds': 1e-18,
+          'fs': 1e-15,
+          'femtosec': 1e-15,
+          'femtosecond': 1e-15,
+          'femtoseconds': 1e-15,
+          'ps': 1e-12,
+          'picosec': 1e-12,
+          'picosecond': 1e-12,
+          'picoseconds': 1e-12,
+          'ns': 1e-9,
+          'nanosec': 1e-9,
+          'nanosecond':1e-9,
+          'nanoseconds' : 1e-9,
+          'us': 1e-6,
+          'microsec': 1e-6,
+          'microsecond': 1e-6,
+          'microseconds': 1e-6,
+          'ms': 1e-3,
+          'millisec': 1e-3,
+          'millisecond': 1e-3,
+          'milliseconds': 1e-3,
+          's': 1.0,
+          'sec': 1.0,
+          'second':1.0,
+          'seconds': 1.0,
+          'm': 60.0,
+          'min': 60.0,
+          'minute': 60.0,
+          'minutes': 60.0,
+          'h': 3600.0,
+          'hour': 3600.0,
+          'hours': 3600.0,
+          'd': 86400.0,
+          'day': 86400.0,
+          'days': 86400.0,
+          'y': 86400.0*365.25,
+          'year': 86400.0*365.25,
+          'years': 86400.0*365.25,
+          'ev': 1e-9 * 7.6e-8 / 6.03,
+          'kev': 1e-12 * 7.6e-8 / 6.03,
+          'mev': 1e-15 * 7.6e-8 / 6.03,
+          }
+
+    def __init__(self, x, y, pf, units=None, format="{time:.3G} {units}", **kwargs):
+        """ 
+        annotate_timestamp(x, y, pf, units=None, format="{time:.3G} {units}", **kwargs)
+
+        Accepts a *pf* and adds *pf.current_time* to the plot at point given by *x* 
+        and *y*.  If *units* is given ('s', 'ms', 'ns', etc), it will covert the time 
+        to this basis.  If *units* is None, it will attempt to figure out the correct
+        value by which to scale.  The *format* keyword is a template string that will
+        be evaluated and displayed on the plot.  All other *kwargs* will be passed
+        to the text method on the plot axes.  See matplotlib's text() functions for
+        more information.
+        """
+        self.x = x
+        self.y = y
+        if units is None:
+            t = pf.current_time
+            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
+            units = 's'
+            for k in scale_keys:
+                if t < self._time_conv[k]:
+                    break
+                units = k
+        t = pf.current_time / self._time_conv[units.lower()]
+        if units == 'us':
+            units = '$\\mu s$'
+        self.s = format.format(time=t, units=units)
+        self.kwargs = {'color': 'w'}
+        self.kwargs.update(kwargs)
+
+    def __call__(self, plot):
+        plot._axes.hold(True)
+        plot._axes.text(self.x, self.y, self.s, **self.kwargs)
         plot._axes.hold(False)
