@@ -88,7 +88,6 @@ class IOHandlerAthena(BaseIOHandler):
             offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
         if grid_ncells == grid0_ncells:
             offset = offsetr
-        read_table_offset = get_read_table_offset(f)
         f.seek(read_table_offset+offset)
         if dtype == 'scalar':
             data = np.fromfile(f, dtype='>f4', 
