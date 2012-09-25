@@ -211,9 +211,8 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     _type_name = "contour"
-    def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args = None):
-        """
+    def __init__(self, field, ncont=5, factor=4, clim=None, plot_args=None):
+        """ 
         annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
                          plot_args = None):
 
@@ -289,7 +288,7 @@ class ContourCallback(PlotCallback):
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
         if self.clim is not None: 
-            self.ncont = np.linspace(self.clim[0], self.clim[1], ncont)
+            self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
         
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -1184,7 +1183,7 @@ class TimestampCallback(PlotCallback):
         to this basis.  If *units* is None, it will attempt to figure out the correct
         value by which to scale.  The *format* keyword is a template string that will
         be evaluated and displayed on the plot.  All other *kwargs* will be passed
-        to the text method on the plot axes.  See matplotlib's text() functions for
+        to the text() method on the plot axes.  See matplotlib's text() functions for
         more information.
         """
         self.x = x
@@ -1208,3 +1207,30 @@ class TimestampCallback(PlotCallback):
         plot._axes.hold(True)
         plot._axes.text(self.x, self.y, self.s, **self.kwargs)
         plot._axes.hold(False)
+
+
+class MaterialBoundaryCallback(ContourCallback):
+    _type_name = "material_boundary"
+    def __init__(self, field='targ', ncont=1, factor=4, clim=(0.9, 1.0), **kwargs):
+        """ 
+        annotate_material_boundary(self, field='targ', ncont=1, factor=4, 
+                                   clim=(0.9, 1.0), **kwargs):
+
+        Add the limiting contours of *field* to the plot.  Nominally, *field* is 
+        the target material but may be any other field present in the hierarchy.
+        The number of contours generated is given by *ncount*, *factor* governs 
+        the number of points used in the interpolation, and *clim* gives the 
+        (upper, lower) limits for contouring.  For this to truly be the boundary
+        *clim* should be close to the edge.  For example the default is (0.9, 1.0)
+        for 'targ' which is defined on the range [0.0, 1.0].  All other *kwargs* 
+        will be passed to the contour() method on the plot axes.  See matplotlib
+        for more information.
+        """
+        plot_args = {'colors': 'w'}
+        plot_args.update(kwargs)
+        super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont, 
+                                                       factor=factor, clim=clim,
+                                                       plot_args=plot_args)
+
+    def __call__(self, plot):
+        super(MaterialBoundaryCallback, self).__call__(plot)
