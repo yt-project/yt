@@ -230,6 +230,7 @@ class AthenaHierarchy(AMRHierarchy):
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = np.zeros(self.num_grids, dtype='int32')
         glis = np.empty((self.num_grids,3), dtype='float64')
+        gdds = np.empty((self.num_grids,3), dtype='float64')
         gdims = np.ones_like(glis)
         j = 0
         while j < (self.num_grids):
@@ -270,8 +271,23 @@ class AthenaHierarchy(AMRHierarchy):
             gdims[j,0] = gridread['dimensions'][0]
             gdims[j,1] = gridread['dimensions'][1]
             gdims[j,2] = gridread['dimensions'][2]
+            gdds[j,:] = gridread['dds']
             
             j=j+1
+
+        gres = glis + gdims*gdds
+        # Now we convert the glis, which were left edges (floats), to indices 
+        # from the domain left edge.  Then we do a bunch of fixing now that we
+        # know the extent of all the grids. 
+        glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
+        new_dre = np.max(gres,axis=0)
+        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_center = \
+                0.5*(self.parameter_file.domain_left_edge + 
+                     self.parameter_file.domain_right_edge)
+        self.parameter_file.domain_dimensions = \
+                np.round((self.parameter_file.domain_right_edge - 
+                          self.parameter_file.domain_left_edge)/gdds[0]).astype('int')
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i,self,levels[i],
                                       glis[i],
@@ -343,6 +359,11 @@ class AthenaStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
         self.storage_filename = filename[4:-4]
+        
+        # Unfortunately we now have to mandate that the hierarchy gets 
+        # instantiated so that we can make sure we have the correct left 
+        # and right domain edges.
+        self.h
 
     def _set_units(self):
         """
@@ -409,6 +430,7 @@ class AthenaStaticOutput(StaticOutput):
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
