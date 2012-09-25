@@ -47,6 +47,7 @@ from .fixed_resolution import \
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
+from .volume_rendering.api import off_axis_projection
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
 
@@ -157,7 +158,7 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
               center[y_dict[axis]]+width[1]/2]
     return (bounds,center)
 
-def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
+def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1',depth=None):
     if width == None:
         width = (pf.domain_width.min(),
                  pf.domain_width.min())
@@ -168,6 +169,13 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
         width = (width, width)
     Wx, Wy = width
     width = np.array((Wx/pf[unit], Wy/pf[unit]))
+    if depth != None:
+        if iterable(depth) and isinstance(depth[1],str):
+            d,unit = depth
+            depth = d/pf[unit]
+        elif iterable(depth):
+            raise RuntimeError("Depth must be a float or a (width,\"unit\") tuple")
+        width = np.append(width,depth)
     if isinstance(center,str):
         if center.lower() == 'm' or center.lower() == 'max':
             v, center = pf.h.find_max("Density")
@@ -182,10 +190,13 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     (normal,perp1,perp2) = ortho_find(normal)
     mat = np.transpose(np.column_stack((perp1,perp2,normal)))
     center = np.dot(mat,center)
-    width = width/pf.domain_width.min()
-
-    bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
+    width = width
     
+    if width.shape == (2,):
+        bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
+    else:
+        bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2, -width[2]/2, width[2]/2]
+
     return (bounds,center)
 
 class PlotWindow(object):
@@ -247,19 +258,24 @@ class PlotWindow(object):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
-        try:
-            bounds = self.xlim+self.ylim
-            if self.oblique == False:
-                self._frb = FixedResolutionBuffer(self.data_source, 
-                                                  bounds, self.buff_size, 
-                                                  self.antialias, 
+        bounds = self.xlim+self.ylim
+        class_name = self.data_source.__class__.__name__
+        if 'OffAxisProjection' in class_name:
+            self._frb = OffAxisProjectionDummyFRB(self.data_source,
+                                                  bounds, self.buff_size,
+                                                  self.antialias,
                                                   periodic=self._periodic)
-            else:
-                self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
-                                                         bounds, self.buff_size, 
-                                                         self.antialias, 
-                                                         periodic=self._periodic)
-        except:
+        elif 'Cutting' in class_name:
+            self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
+                                                     bounds, self.buff_size, 
+                                                     self.antialias, 
+                                                     periodic=self._periodic)
+        elif 'Projection' in class_name or 'Slice' in class_name:
+            self._frb = FixedResolutionBuffer(self.data_source, 
+                                              bounds, self.buff_size, 
+                                              self.antialias, 
+                                              periodic=self._periodic)
+        else:
             raise RuntimeError("Failed to repixelize.")
         if old_fields is None:
             self._frb._get_data_source_fields()
@@ -836,7 +852,10 @@ class PWViewerMPL(PWViewer):
         if 'Slice' in self.data_source.__class__.__name__:
             type = 'Slice'
         if 'Proj' in self.data_source.__class__.__name__:
-            type = 'Projection'
+            if 'OffAxis' in self.data_source.__class__.__name__:
+                type = 'OffAxisProjection'
+            else:
+                type = 'Projection'
             weight = self.data_source.weight_field
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
@@ -1084,11 +1103,55 @@ class OffAxisSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
         self.set_axes_unit(axes_unit)
 
+class OffAxisProjectionDummyFRB(FixedResolutionBuffer):
+    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
+                 periodic = False):
+        self.internal_dict = {}
+        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
+
+    def __getitem__(self, item):
+        try:
+            image = self.internal_dict[item]
+        except KeyError:
+            ds = self.data_source
+            image = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
+                                        ds.width, ds.resolution, item,
+                                        weight=ds.weight_field, volume=ds.volume,
+                                        no_ghost=ds.no_ghost, interpolated=ds.interpolated)
+            self.internal_dict[item] = image
+        return image
+    
+    def _get_data_source_fields(self):
+        for f in self.data_source.fields:
+            self[f] = None
+
+class OffAxisProjectionDummyDataSource(object):
+    _type_name = 'proj'
+    proj_style = 'integrate'
+    def __init__(self, center, pf, normal_vector, width, fields, 
+                 interpolated, resolution = (800,800), weight=None,  
+                 volume=None, no_ghost=False, le=None, re=None, 
+                 north_vector=None):
+        self.center = center
+        self.pf = pf
+        self.axis = 4 # always true for oblique data objects
+        self.normal_vector = normal_vector
+        self.width = width
+        self.fields = fields
+        self.interpolated = interpolated
+        self.resolution = resolution
+        self.weight_field = weight
+        self.volume = volume
+        self.no_ghost = no_ghost
+        self.le = le
+        self.re = re
+        self.north_vector = north_vector
+
 class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
-                 axes_unit=None, weight_field=None, max_level=None, 
-                 north_vector=None, volume=None, no_ghost=False, le=None,
-                 re=None, interpolated=False):
+                 depth=(1,'unitary'), axes_unit=None, weight_field=None, 
+                 max_level=None, north_vector=None, volume=None, no_ghost=False, 
+                 le=None, re=None, interpolated=False):
         r"""Creates an off axis projection plot from a parameter file
 
         Given a pf object, a normal vector to project along, and
@@ -1116,6 +1179,10 @@ class OffAxisProjectionPlot(PWViewerMPL):
             A tuple containing the width of image and the string key of
             the unit: (width, 'unit').  If set to a float, code units
             are assumed
+        depth : A tuple or a float
+            A tuple containing the depth to project thourhg and the string
+            key of the unit: (width, 'unit').  If set to a float, code units
+            are assumed
         weight_field : string
             The name of the weighting field.  Set to None for no weight.
         max_level: int
@@ -1131,15 +1198,17 @@ class OffAxisProjectionPlot(PWViewerMPL):
             set, an arbitrary grid-aligned north-vector is chosen.
 
         """
-        (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
+        self.OffAxisProjection = True
+        (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf,depth=depth)
         # Hard-coding the resolution for now
-        projcam = ProjectionCamera(center, normal_vector, width, (800,800), fields,
-                                   weight=weight_field,  volume=volume, no_ghost=no_ghost,
-                                   le=le, re=re, north_vector=north_vector, pf=pf, 
-                                   interpolated=interpolated)
+        fields = ensure_list(fields)[:]
+        width = np.array((bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4]))
+        OffAxisProj = OffAxisProjectionDummyDataSource(center_rot, pf, normal, width, fields, interpolated,
+                                                       weight=weight_field,  volume=volume, no_ghost=no_ghost,
+                                                       le=le, re=re, north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,projcam,bounds,origin='center-window',periodic=False,oblique=True)
+        PWViewerMPL.__init__(self,OffAxisProj,bounds,origin='center-window',periodic=False,oblique=True)
         self.set_axes_unit(axes_unit)
 
 _metadata_template = """
