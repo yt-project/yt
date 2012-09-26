@@ -650,8 +650,8 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data[self.field_y],
                                int(nx), int(ny),
                                (x0, x1, y0, y1),).transpose()
-        X = np.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
-        Y = np.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
+                          np.linspace(yy0,yy1,ny,endpoint=True))
         plot._axes.quiver(X,Y, pixX, pixY)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
