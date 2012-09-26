@@ -1,5 +1,4 @@
-import numpy as np
-from numpy.testing import assert_array_equal
+from yt.testing import *
 import yt.utilities.linear_interpolators as lin
 
 def setup():
