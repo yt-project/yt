@@ -220,12 +220,9 @@ class AthenaHierarchy(AMRHierarchy):
 
         # Need to determine how many grids: self.num_grids
         dname = self.hierarchy_filename
-        print dname,dname[4:-9], dname[-9:]
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
         gridlistread.insert(0,self.hierarchy_filename)
         self.num_grids = len(gridlistread)
-        print gridlistread[0:10]
-        print(self.num_grids)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = np.zeros(self.num_grids, dtype='int32')
@@ -282,12 +279,14 @@ class AthenaHierarchy(AMRHierarchy):
         glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
         self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_width = \
+                (self.parameter_file.domain_right_edge - 
+                 self.parameter_file.domain_left_edge)
         self.parameter_file.domain_center = \
                 0.5*(self.parameter_file.domain_left_edge + 
                      self.parameter_file.domain_right_edge)
         self.parameter_file.domain_dimensions = \
-                np.round((self.parameter_file.domain_right_edge - 
-                          self.parameter_file.domain_left_edge)/gdds[0]).astype('int')
+                np.round(self.parameter_file.domain_width/gdds[0]).astype('int')
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i,self,levels[i],
                                       glis[i],
@@ -295,32 +294,8 @@ class AthenaHierarchy(AMRHierarchy):
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx = dx/self.parameter_file.refine_by**(levels[i])
-#            dxs.append(gridread['dds'])
-            gli = np.round((glis[i] - self.parameter_file.domain_left_edge)/dx).astype('int')
-            self.grids[i] = self.grid(i,self,levels[i],gli,gdims[i])
             dxs.append(dx)
         
-#        single_grid_width = grid['dds']*grid['dimensions']   #####
-#        grids_per_dim = (self.parameter_file.domain_width/single_grid_width).astype('int32')#####
-#        glis = np.empty((self.num_grids,3), dtype='int64')
-#        for i in range(self.num_grids):
-#            procz = i/(grids_per_dim[0]*grids_per_dim[1])
-#            procy = (i - procz*(grids_per_dim[0]*grids_per_dim[1]))/grids_per_dim[0]
-#            procx = i - procz*(grids_per_dim[0]*grids_per_dim[1]) - procy*grids_per_dim[1]
-#            glis[i, 0] = procx*grid['dimensions'][0]
-#            glis[i, 1] = procy*grid['dimensions'][1]
-#            glis[i, 2] = procz*grid['dimensions'][2]
-#        gdims = np.ones_like(glis)
-#        gdims[:] = grid['dimensions']
-#        for i in range(levels.shape[0]):
-#            self.grids[i] = self.grid(i, self, levels[i],
-#                                      glis[i],
-#                                      gdims[i])
-#
-#            dx = (self.parameter_file.domain_right_edge-
-#                  self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-#            dx = dx/self.parameter_file.refine_by**(levels[i])
-#            dxs.append(grid['dds'])
         dx = np.array(dxs)
         self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
         self.grid_dimensions = gdims.astype("int32")
@@ -337,9 +312,6 @@ class AthenaHierarchy(AMRHierarchy):
             for g1 in g.Children:
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
-
-#     def _setup_derived_fields(self):
-#         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
@@ -402,12 +374,9 @@ class AthenaStaticOutput(StaticOutput):
             line = self._handle.readline()
 
         self.domain_left_edge = grid['left_edge']
-        if 'domain_right_edge' in self.specified_parameters:
-            self.domain_right_edge = np.array(self.specified_parameters['domain_right_edge'])
-        else:
-            mylog.info("Please set 'domain_right_edge' in parameters dictionary argument " +
-                    "if it is not equal to -domain_left_edge.")
-            self.domain_right_edge = -self.domain_left_edge
+        mylog.info("Temporarily setting domain_right_edge = -domain_left_edge."+
+                  " This will be corrected automatically if it is not the case.")
+        self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge-self.domain_left_edge
         self.domain_dimensions = np.round(self.domain_width/grid['dds']).astype('int32')
         refine_by = None
@@ -421,7 +390,6 @@ class AthenaStaticOutput(StaticOutput):
         self.field_ordering = 'fortran'
         self.boundary_conditions = [1]*6
         dname = self.parameter_filename
-        print dname, dname[:-9], dname[-9:]
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
         self.nvtk = len(gridlistread)+1 #int(np.product(self.domain_dimensions/(grid['dimensions']-1)))
 
