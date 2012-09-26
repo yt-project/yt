@@ -67,6 +67,8 @@ class Orientation:
             t = np.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             east_vector = np.cross(vecs[ax,:], normal_vector).ravel()
+            # self.north_vector must remain None otherwise rotations about a fixed axis will break.  
+            # The north_vector calculated here will still be included in self.unit_vectors.
             north_vector = np.cross(normal_vector, east_vector).ravel()
         else:
             if self.steady_north:
@@ -82,7 +84,7 @@ class Orientation:
         r"""Change the view direction based on any of the orientation parameters.
 
         This will recalculate all the necessary vectors and vector planes related
-        to a an orientable object.
+        to an orientable object.
 
         Parameters
         ----------

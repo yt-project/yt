@@ -195,7 +195,7 @@ class Camera(ParallelAnalysisInterface):
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
-        self.rotation_vector = self.orienter.north_vector
+        self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -282,7 +282,7 @@ class Camera(ParallelAnalysisInterface):
         if center is not None:
             self.center = center
         if north_vector is None:
-            north_vector = self.orienter.north_vector
+            north_vector = self.orienter.unit_vectors[1]
         if normal_vector is None:
             normal_vector = self.orienter.normal_vector
         self.orienter.switch_orientation(normal_vector = normal_vector,
@@ -587,7 +587,7 @@ class Camera(ParallelAnalysisInterface):
         """
         rot_vector = self.orienter.normal_vector
         R = get_rotation_matrix(theta, rot_vector)
-        north_vector = self.orienter.north_vector
+        north_vector = self.orienter.unit_vectors[1]
         self.switch_view(north_vector=np.dot(R, north_vector))
 
     def rotation(self, theta, n_steps, rot_vector=None, clip_ratio = None):

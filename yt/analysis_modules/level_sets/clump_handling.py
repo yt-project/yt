@@ -133,6 +133,7 @@ class Clump(object):
         else:
             exec(operation)
 
+        if self.children is None: return
         for child in self.children:
             child.pass_down(operation)
 
