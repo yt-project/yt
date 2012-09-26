@@ -106,7 +106,10 @@ class CallbackWrapper(object):
         self.pf = frb.pf
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
-        self._type_name = ''
+        if 'Cutting' in self.data.__class__.__name__:
+            self._type_name = "CuttingPlane"
+        else:
+            self._type_name = ''
 
 class FieldTransform(object):
     def __init__(self, name, func, locator):
@@ -182,7 +185,6 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
     (normal,perp1,perp2) = ortho_find(normal)
     mat = np.transpose(np.column_stack((perp1,perp2,normal)))
     center = np.dot(mat,center)
-    width = width/pf.domain_width.min()
 
     bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
     
