@@ -1666,8 +1666,8 @@ class ProjectionCamera(Camera):
 data_object_registry["projection_camera"] = ProjectionCamera
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
-                        field, weight = None, 
-                        volume = None, no_ghost = False, interpolated = False):
+                        field, weight=None, volume=None, no_ghost=False, 
+                        interpolated=False, north_vector=None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -1707,10 +1707,14 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         accuracy/smoothness in resulting image.  The effects are
         less notable when the transfer function is smooth and
         broad. Default: True
-    interpolated : optional, default False
+    interpolated : bool, optional
         If True, the data is first interpolated to vertex-centered data, 
         then tri-linearly interpolated along the ray. Not suggested for 
         quantitative studies.
+    north_vector : array-like, optional
+        A vector defining the 'up' direction in the plot.  This                                                                  
+        option sets the orientation of the slicing plane.  If not                                                                
+        set, an arbitrary grid-aligned north-vector is chosen.              
 
     Returns
     -------
@@ -1726,8 +1730,9 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
 
     """
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
-            field, weight=weight, pf=pf, volume=volume,
-            no_ghost=no_ghost, interpolated=interpolated)
+                               field, weight=weight, pf=pf, volume=volume,
+                               no_ghost=no_ghost, interpolated=interpolated,
+                               north_vector=north_vector)
     image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")

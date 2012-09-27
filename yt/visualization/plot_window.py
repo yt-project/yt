@@ -1,3 +1,4 @@
+
 """
 A plotting mechanism based on the idea of a "window" into the data.
 
@@ -184,15 +185,14 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1',depth=None):
         else:
             raise RuntimeError('center keyword \"%s\" not recognized'%center)
 
-    # Transforming to the cutting plane coordinate system
-    center = np.array(center)
-    center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
-    (normal,perp1,perp2) = ortho_find(normal)
-    mat = np.transpose(np.column_stack((perp1,perp2,normal)))
-    center = np.dot(mat,center)
-    width = width
-    
     if width.shape == (2,):
+        # Transforming to the cutting plane coordinate system
+        center = np.array(center)
+        center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
+        (normal,perp1,perp2) = ortho_find(normal)
+        mat = np.transpose(np.column_stack((perp1,perp2,normal)))
+        center = np.dot(mat,center)
+    
         bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
     else:
         bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2, -width[2]/2, width[2]/2]
@@ -270,12 +270,13 @@ class PlotWindow(object):
                                                      bounds, self.buff_size, 
                                                      self.antialias, 
                                                      periodic=self._periodic)
-        elif 'Projection' in class_name or 'Slice' in class_name:
+        elif 'AMRQuadTreeProj' in class_name or 'Slice' in class_name:
             self._frb = FixedResolutionBuffer(self.data_source, 
                                               bounds, self.buff_size, 
                                               self.antialias, 
                                               periodic=self._periodic)
         else:
+            pdb.set_trace()
             raise RuntimeError("Failed to repixelize.")
         if old_fields is None:
             self._frb._get_data_source_fields()
@@ -367,7 +368,7 @@ class PlotWindow(object):
             mylog.info("ylim = %f %f" %self.ylim)
         else:
             self.xlim = bounds[0:2]
-            self.ylim = bounds[2:]
+            self.ylim = bounds[2:4]
             
     @invalidate_data
     def set_width(self, width, unit = '1'):
@@ -1121,8 +1122,9 @@ class OffAxisProjectionDummyFRB(FixedResolutionBuffer):
             image = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
                                         ds.width, ds.resolution, item,
                                         weight=ds.weight_field, volume=ds.volume,
-                                        no_ghost=ds.no_ghost, interpolated=ds.interpolated)
-            self.internal_dict[item] = image
+                                        no_ghost=ds.no_ghost, interpolated=ds.interpolated,
+                                        north_vector=ds.north_vector)
+            self.internal_dict[item] = image.T
         return image
     
     def _get_data_source_fields(self):
