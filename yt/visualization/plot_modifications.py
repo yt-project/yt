@@ -146,7 +146,9 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+            qcb = CuttingQuiverCallback("CuttingPlaneBx",
+                                        "CuttingPlaneBy",
+                                        self.factor)
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])

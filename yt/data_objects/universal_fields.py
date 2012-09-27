@@ -938,6 +938,25 @@ add_field("CuttingPlaneVelocityY",
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
 
+def _CuttingPlaneBx(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    return np.dot(x_vec, b_vec)
+add_field("CuttingPlaneBx", 
+          function=_CuttingPlaneBx,
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{Gauss}")
+def _CuttingPlaneBy(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    return np.dot(y_vec, b_vec)
+add_field("CuttingPlaneBy", 
+          function=_CuttingPlaneBy,
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{Gauss}")
+
 def _MeanMolecularWeight(field,data):
     return (data["Density"] / (mh *data["NumberDensity"]))
 add_field("MeanMolecularWeight",function=_MeanMolecularWeight,units=r"")

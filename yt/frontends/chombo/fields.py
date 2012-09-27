@@ -98,6 +98,21 @@ def _Density(field,data):
 add_field("Density",function=_Density, take_log=True,
           units=r'\rm{g}/\rm{cm^3}')
 
+def _Bx(field,data):
+    return data["X-magnfield"]
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B")
+
+def _By(field,data):
+    return data["Y-magnfield"]
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B")
+
+def _Bz(field,data):
+    return data["Z-magnfield"]
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B")
+
 def _MagneticEnergy(field,data):
     return (data["X-magnfield"]**2 +
             data["Y-magnfield"]**2 +
