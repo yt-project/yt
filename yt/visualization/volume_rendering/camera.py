@@ -37,6 +37,7 @@ from yt.utilities.lib import \
     arr_ang2pix_nest, arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
+from yt.data_objects.api import ImageArray
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -290,7 +291,7 @@ class Camera(ParallelAnalysisInterface):
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
     def new_image(self):
         image = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
-        return image
+        return ImageArray(image)
 
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
@@ -342,11 +343,7 @@ class Camera(ParallelAnalysisInterface):
 
     def save_image(self, fn, clip_ratio, image):
         if self.comm.rank is 0 and fn is not None:
-            if clip_ratio is not None:
-                write_bitmap(image, fn, clip_ratio * image.std())
-            else:
-                write_bitmap(image, fn)
-
+            image.write_png(fn, clip_ratio=clip_ratio)
 
     def initialize_source(self):
         return self.volume.initialize_source()
@@ -748,7 +745,7 @@ class HEALpixCamera(Camera):
 
     def new_image(self):
         image = np.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
-        return image
+        return ImageArray(image)
 
     def get_sampler_args(self, image):
         nv = 12 * self.nside ** 2
@@ -958,7 +955,7 @@ class FisheyeCamera(Camera):
 
     def new_image(self):
         image = np.zeros((self.resolution**2,1,3), dtype='float64', order='C')
-        return image
+        return ImageArray(image)
         
     def get_sampler_args(self, image):
         vp = arr_fisheye_vectors(self.resolution, self.fov)
