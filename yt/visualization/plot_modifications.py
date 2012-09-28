@@ -146,7 +146,9 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+            qcb = CuttingQuiverCallback("CuttingPlaneBx",
+                                        "CuttingPlaneBy",
+                                        self.factor)
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
@@ -432,6 +434,9 @@ class StreamlineCallback(PlotCallback):
             iy = np.maximum(np.minimum((yt).astype('int'), ny-1), 0)
             lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
             lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
+        # scale into data units
+        lines[:,0,:,:] = lines[:,0,:,:] * (xx1 - xx0) / nx + xx0
+        lines[:,1,:,:] = lines[:,1,:,:] * (yy1 - yy0) / ny + yy0
         for i in range(self.data_size[0]):
             for j in range(self.data_size[1]):
                 plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
