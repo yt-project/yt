@@ -291,7 +291,7 @@ class Camera(ParallelAnalysisInterface):
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
     def new_image(self):
         image = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
-        return ImageArray(image)
+        return image
 
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
@@ -348,6 +348,14 @@ class Camera(ParallelAnalysisInterface):
     def initialize_source(self):
         return self.volume.initialize_source()
 
+    def get_information(self):
+        info_dict = {'fields':self.fields, 'type':'rendering', 
+                     'east_vector':self.orienter.unit_vectors[0],
+                     'north_vector':self.orienter.unit_vectors[1],
+                     'normal_vector':self.orienter.unit_vectors[2],
+                     'width':self.width, 'dataset':self.pf.fullpath}
+        return info_dict
+
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0):
         r"""Ray-cast the camera.
@@ -382,7 +390,9 @@ class Camera(ParallelAnalysisInterface):
         args = self.get_sampler_args(image)
         sampler = self.get_sampler(args)
         self.initialize_source()
-        image = self._render(double_check, num_threads, image, sampler)
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
         self.save_image(fn, clip_ratio, image)
         return image
 
@@ -745,7 +755,7 @@ class HEALpixCamera(Camera):
 
     def new_image(self):
         image = np.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
-        return ImageArray(image)
+        return image
 
     def get_sampler_args(self, image):
         nv = 12 * self.nside ** 2
@@ -811,7 +821,9 @@ class HEALpixCamera(Camera):
         args = self.get_sampler_args(image)
         sampler = self.get_sampler(args)
         self.volume.initialize_source()
-        image = self._render(double_check, num_threads, image, sampler)
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
         self.save_image(fn, clim, image, label = label)
         return image
 
@@ -955,7 +967,7 @@ class FisheyeCamera(Camera):
 
     def new_image(self):
         image = np.zeros((self.resolution**2,1,3), dtype='float64', order='C')
-        return ImageArray(image)
+        return image
         
     def get_sampler_args(self, image):
         vp = arr_fisheye_vectors(self.resolution, self.fov)
@@ -1247,8 +1259,9 @@ class MosaicFisheyeCamera(Camera):
 
         if self.image is not None:
             del self.image
+        image = ImageArray(image,
+                           info=self.get_information())
         self.image = image
-       
         return image
 
     def save_image(self, fn, clip_ratio=None):
@@ -1653,7 +1666,9 @@ class ProjectionCamera(Camera):
 
         self.initialize_source()
 
-        image = self._render(double_check, num_threads, image, sampler)
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
 
         self.save_image(fn, clip_ratio, image)
 
