@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as np
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
@@ -254,3 +255,43 @@ def _GasEnergy(fields, data) :
 
 add_field("GasEnergy", function=_GasEnergy, 
           units=r"\rm{ergs}/\rm{g}")
+
+# See http://flash.uchicago.edu/pipermail/flash-users/2012-October/001180.html
+# along with the attachment to that e-mail for details
+def GetMagRescalingFactor(pf):
+    if pf['unitsystem'].lower() == "cgs":
+         factor = 1
+    if pf['unitsystem'].lower() == "si":
+         factor = np.sqrt(4*np.pi/1e7)
+    if pf['unitsystem'].lower() == "none":
+         factor = np.sqrt(4*np.pi)
+    else:
+        raise RuntimeError("Runtime parameter unitsystem with"
+                           "value %s is unrecognized" % pf['unitsystem'])
+    return factor
+
+def _Bx(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magx']*factor
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_x")
+
+def _By(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magy']*factor
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_y")
+
+def _Bz(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magz']*factor
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_z")
+
+def _DivB(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['divb']*factor
+add_field("DivB", function=_DivB, take_log=False,
+          units=r"\rm{Gauss}\/\rm{cm}^{-1}")
+
+

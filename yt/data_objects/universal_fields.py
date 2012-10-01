@@ -994,12 +994,37 @@ def _MagneticEnergy(field,data):
     units of Gauss. If you use MKS, make sure to write your own
     MagneticEnergy field to deal with non-unitary \mu_0.
     """
-    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/2.
+    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/(8*np.pi)
 add_field("MagneticEnergy",function=_MagneticEnergy,
-          units=r"",
-          validators = [ValidateDataField("Bx"),
-                        ValidateDataField("By"),
-                        ValidateDataField("Bz")])
+          units=r"\rm{ergs}\/\rm{cm}^{-3}",
+          display_name=r"\rm{Magnetic}\/\rm{Energy}")
+
+def _BMagnitude(field,data):
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    MagneticEnergy field to deal with non-unitary \mu_0.
+    """
+    return np.sqrt((data["Bx"]**2 + data["By"]**2 + data["Bz"]**2))
+add_field("BMagnitude",
+          function=_BMagnitude,
+          display_name=r"|B|", units="\rm{Gauss}")
+
+def _PlasmaBeta(field,data):
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    MagneticEnergy field to deal with non-unitary \mu_0.
+    """
+    return data['Pressure']/data['MagneticEnergy']
+add_field("PlasmaBeta",
+          function=_PlasmaBeta,
+          display_name=r"\rm{Plasma}\/\beta", units="")
+
+def _MagneticPressure(field,data):
+    return data['MagneticEnergy']
+add_field("MagneticPressure",
+          function=_MagneticPressure,
+          display_name=r"\rm{Magnetic}\/\rm{Energy}",
+          units="\rm{ergs}\/\rm{cm}^{-3}")
 
 def _VorticitySquared(field, data):
     mylog.debug("Generating vorticity on %s", data)
