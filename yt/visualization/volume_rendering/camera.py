@@ -720,6 +720,9 @@ def corners(left_edge, right_edge):
     ], dtype='float64')
 
 class HEALpixCamera(Camera):
+
+    _sampler_object = None 
+    
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
@@ -733,6 +736,12 @@ class HEALpixCamera(Camera):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
+
+        if isinstance(self.transfer_function, ProjectionTransferFunction):
+            self._sampler_object = ProjectionSampler
+        else:
+            self._sampler_object = VolumeRenderSampler
+
         if fields is None: fields = ["Density"]
         self.fields = fields
         self.sub_samples = sub_samples
