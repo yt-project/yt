@@ -261,7 +261,10 @@ class PlotWindow(object):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
-        bounds = self.xlim+self.ylim
+        if self.zlim:
+            bounds = self.xlim+self.ylim+self.zlim
+        else:
+            bounds = self.xlim+self.ylim
         self._frb = self._frb_generator(self.data_source,
                                         bounds, self.buff_size,
                                         self.antialias,
@@ -306,6 +309,7 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
+                    
 
     @invalidate_data
     def pan(self, deltas):
@@ -352,12 +356,16 @@ class PlotWindow(object):
             dy = bounds[3] - bounds[2]
             self.xlim = (self.center[0] - dx/2., self.center[0] + dx/2.)
             self.ylim = (self.center[1] - dy/2., self.center[1] + dy/2.)
-            mylog.info("xlim = %f %f" %self.xlim)
-            mylog.info("ylim = %f %f" %self.ylim)
         else:
-            self.xlim = bounds[0:2]
-            self.ylim = bounds[2:]
-            
+            self.xlim = tuple(bounds[0:2])
+            self.ylim = tuple(bounds[2:4])
+            if len(bounds) == 6:
+                self.zlim = tuple(bounds[4:6])
+        mylog.info("xlim = %f %f" %self.xlim)
+        mylog.info("ylim = %f %f" %self.ylim)
+        if self.zlim:
+            mylog.info("zlim = %f %f" %self.zlim)
+
     @invalidate_data
     def set_width(self, width, unit = '1'):
         """set the width of the plot window
@@ -403,13 +411,19 @@ class PlotWindow(object):
         width = (Wx,Wy)
         width = [w / self.pf[unit] for w in width]
 
-        centerx = (self.xlim[1] + self.xlim[0])/2 
-        centery = (self.ylim[1] + self.ylim[0])/2 
+        centerx = (self.xlim[1] + self.xlim[0])/2.
+        centery = (self.ylim[1] + self.ylim[0])/2. 
         
         self.xlim = (centerx - width[0]/2.,
                      centerx + width[0]/2.)
         self.ylim = (centery - width[1]/2.,
                      centery + width[1]/2.)
+        
+        if hasattr(self,'zlim'):
+            centerz = (self.zlim[1] + self.zlim[0])/2.
+            mw = max(width)
+            self.zlim = (centerz - mw/2.,
+                         centerz + mw/2.)
         
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -1173,7 +1187,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
             set, an arbitrary grid-aligned north-vector is chosen.
 
         """
-        self.OffAxisProjection = True
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf,depth=depth)
         # Hard-coding the resolution for now
         fields = ensure_list(fields)[:]
