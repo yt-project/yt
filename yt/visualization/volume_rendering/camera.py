@@ -301,7 +301,11 @@ class Camera(ParallelAnalysisInterface):
                 np.array(self.width), self.transfer_function, self.sub_samples)
         return args
 
+    star_trees = None
     def get_sampler(self, args):
+        kwargs = {}
+        if self.star_trees is not None:
+            kwargs = {'star_list': self.star_trees}
         if self.use_light:
             if self.light_dir is None:
                 self.set_default_light_dir()
@@ -312,9 +316,10 @@ class Camera(ParallelAnalysisInterface):
             if self.light_rgba is None:
                 self.set_default_light_rgba()
             sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
-                    light_rgba=self.light_rgba)
+                    light_rgba=self.light_rgba, **kwargs)
         else:
-            sampler = self._sampler_object(*args)
+            sampler = self._sampler_object(*args, **kwargs)
+        print sampler, kwargs
         return sampler
 
     def finalize_image(self, image):
