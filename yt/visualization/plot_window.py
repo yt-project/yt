@@ -43,11 +43,11 @@ from .image_writer import \
     write_image, apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer
+    ObliqueFixedResolutionBuffer, \
+    OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
-from .volume_rendering.api import off_axis_projection
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
 
@@ -262,24 +262,10 @@ class PlotWindow(object):
         if self._frb is not None:
             old_fields = self._frb.keys()
         bounds = self.xlim+self.ylim
-        class_name = self.data_source.__class__.__name__
-        if 'OffAxisProjection' in class_name:
-            self._frb = OffAxisProjectionDummyFRB(self.data_source,
-                                                  bounds, self.buff_size,
-                                                  self.antialias,
-                                                  periodic=self._periodic)
-        elif 'Cutting' in class_name:
-            self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
-                                                     bounds, self.buff_size, 
-                                                     self.antialias, 
-                                                     periodic=self._periodic)
-        elif 'Projection' in class_name or 'Slice' in class_name:
-            self._frb = FixedResolutionBuffer(self.data_source, 
-                                              bounds, self.buff_size, 
-                                              self.antialias, 
-                                              periodic=self._periodic)
-        else:
-            raise RuntimeError("Failed to repixelize.")
+        self._frb = self._frb_generator(self.data_source,
+                                        bounds, self.buff_size,
+                                        self.antialias,
+                                        periodic=self._periodic)
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:
@@ -852,16 +838,7 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         axis = axis_names[self.data_source.axis]
         weight = None
-        if 'Slice' in self.data_source.__class__.__name__:
-            type = 'Slice'
-        if 'Proj' in self.data_source.__class__.__name__:
-            if 'OffAxis' in self.data_source.__class__.__name__:
-                type = 'OffAxisProjection'
-            else:
-                type = 'Projection'
-            weight = self.data_source.weight_field
-        if 'Cutting' in self.data_source.__class__.__name__:
-            type = 'OffAxisSlice'
+        type = self._plot_type
         names = []
         for k, v in self.plots.iteritems():
             if axis:
@@ -909,6 +886,9 @@ class PWViewerMPL(PWViewer):
             raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
+    _plot_type = 'Slice'
+    _frb_generator = FixedResolutionBuffer
+
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window'):
         r"""Creates a slice plot from a parameter file
@@ -984,6 +964,9 @@ class SlicePlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
+    __plot_type = 'Projection'
+    _frb_generator = FixedResolutionBuffer
+
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
@@ -1063,6 +1046,9 @@ class ProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
+    _plot_type = 'OffAxisSlice'
+    _frb_generator = ObliqueFixedResolutionBuffer
+
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  axes_unit=None, north_vector=None):
         r"""Creates an off axis slice plot from a parameter file
@@ -1110,31 +1096,10 @@ class OffAxisSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
         self.set_axes_unit(axes_unit)
 
-class OffAxisProjectionDummyFRB(FixedResolutionBuffer):
-    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
-                 periodic = False):
-        self.internal_dict = {}
-        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
-
-    def __getitem__(self, item):
-        try:
-            image = self.internal_dict[item]
-        except KeyError:
-            ds = self.data_source
-            image = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
-                                        ds.width, ds.resolution, item,
-                                        weight=ds.weight_field, volume=ds.volume,
-                                        no_ghost=ds.no_ghost, interpolated=ds.interpolated)
-            self.internal_dict[item] = image
-        return image
-    
-    def _get_data_source_fields(self):
-        for f in self.data_source.fields:
-            self[f] = None
-
 class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
     proj_style = 'integrate'
+    _key_fields = []
     def __init__(self, center, pf, normal_vector, width, fields, 
                  interpolated, resolution = (800,800), weight=None,  
                  volume=None, no_ghost=False, le=None, re=None, 
@@ -1155,6 +1120,9 @@ class OffAxisProjectionDummyDataSource(object):
         self.north_vector = north_vector
 
 class OffAxisProjectionPlot(PWViewerMPL):
+    _plot_type = 'OffAxisProjection'
+    _frb_generator = OffAxisProjectionFixedResolutionBuffer
+
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  depth=(1,'unitary'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
