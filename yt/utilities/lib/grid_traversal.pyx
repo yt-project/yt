@@ -590,7 +590,7 @@ cdef class star_kdtree_container:
         cdef np.float64_t *pointer = <np.float64_t *> star_colors.data
         for i in range(pos_x.shape[0]):
             kdtree_utils.kd_insert3(self.tree,
-                pos_x[i], pos_y[i], pos_z[i], pointer + i*3)
+                pos_x[i], pos_y[i], pos_z[i], <void *> (pointer + i*3))
 
     def __dealloc__(self):
         kdtree_utils.kd_free(self.tree)
@@ -656,7 +656,7 @@ cdef void volume_render_stars_sampler(
             gexp = (px - pos[0])*(px - pos[0]) \
                  + (py - pos[1])*(py - pos[1]) \
                  + (pz - pos[2])*(pz - pos[2])
-            gaussian = vri.star_coeff * expl(-gexp/vri.star_sigma_num)
+            gaussian = vri.star_coeff * exp(-gexp/vri.star_sigma_num)
             for j in range(3): im.rgba[j] += gaussian*dt*colors[j]
         for i in range(3):
             pos[i] += local_dds[i]
