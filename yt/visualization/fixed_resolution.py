@@ -404,8 +404,9 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
                                    width, ds.resolution, item,
                                    weight=ds.weight_field, volume=ds.volume,
-                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated)
-        self[item] = buff
+                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated,
+                                   north_vector=ds.north_vector)
+        self[item] = buff.swapaxes(0,1)
         return buff
 
 

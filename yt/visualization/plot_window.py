@@ -187,15 +187,15 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1',depth=None):
         else:
             raise RuntimeError('center keyword \"%s\" not recognized'%center)
 
-    # Transforming to the cutting plane coordinate system
-    center = np.array(center)
-    center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
-    (normal,perp1,perp2) = ortho_find(normal)
-    mat = np.transpose(np.column_stack((perp1,perp2,normal)))
-    center = np.dot(mat,center)
-    width = width
-    
     if width.shape == (2,):
+        # Transforming to the cutting plane coordinate system
+        center = np.array(center)
+        center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
+        (normal,perp1,perp2) = ortho_find(normal)
+        mat = np.transpose(np.column_stack((perp1,perp2,normal)))
+        center = np.dot(mat,center)
+        width = width
+    
         bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
     else:
         bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2, -width[2]/2, width[2]/2]
@@ -261,7 +261,7 @@ class PlotWindow(object):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
-        if self.zlim:
+        if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
             bounds = self.xlim+self.ylim
@@ -363,7 +363,7 @@ class PlotWindow(object):
                 self.zlim = tuple(bounds[4:6])
         mylog.info("xlim = %f %f" %self.xlim)
         mylog.info("ylim = %f %f" %self.ylim)
-        if self.zlim:
+        if hasattr(self,'zlim'):
             mylog.info("zlim = %f %f" %self.zlim)
 
     @invalidate_data
@@ -853,6 +853,8 @@ class PWViewerMPL(PWViewer):
         axis = axis_names[self.data_source.axis]
         weight = None
         type = self._plot_type
+        if type in ['Projection','OffAxisProjection']:
+            weight = self.data_source.weight_field
         names = []
         for k, v in self.plots.iteritems():
             if axis:
@@ -978,7 +980,7 @@ class SlicePlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
-    __plot_type = 'Projection'
+    _plot_type = 'Projection'
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,

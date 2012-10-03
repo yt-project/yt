@@ -1007,7 +1007,7 @@ def _BMagnitude(field,data):
     return np.sqrt((data["Bx"]**2 + data["By"]**2 + data["Bz"]**2))
 add_field("BMagnitude",
           function=_BMagnitude,
-          display_name=r"|B|", units="\rm{Gauss}")
+          display_name=r"|B|", units=r"\rm{Gauss}")
 
 def _PlasmaBeta(field,data):
     """This assumes that your front end has provided Bx, By, Bz in

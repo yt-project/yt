@@ -1681,7 +1681,8 @@ data_object_registry["projection_camera"] = ProjectionCamera
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, 
-                        volume = None, no_ghost = False, interpolated = False):
+                        volume = None, no_ghost = False, interpolated = False,
+                        north_vector = None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -1740,8 +1741,9 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
 
     """
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
-            field, weight=weight, pf=pf, volume=volume,
-            no_ghost=no_ghost, interpolated=interpolated)
+                               field, weight=weight, pf=pf, volume=volume,
+                               no_ghost=no_ghost, interpolated=interpolated, 
+                               north_vector=north_vector)
     image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
