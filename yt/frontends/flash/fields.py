@@ -99,6 +99,7 @@ for fn1, fn2 in translation_dict.items():
         add_field(fn1.split("_")[0] + "_Density",
                   function=_get_density(fn1), take_log=True,
                   display_name="%s\/Density" % fn1.split("_")[0],
+                  units = r"\rm{g}/\rm{cm}^3",
                   projected_units = r"\rm{g}/\rm{cm}^2",
                   )
 
