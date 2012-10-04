@@ -105,10 +105,10 @@ class ImageArray(np.ndarray):
             filename += '.png'
 
         if clip_ratio is not None:
-            return write_bitmap(np.flipud(self).transpose(1,0,2), filename,
+            return write_bitmap(self.swapaxes(0, 1), filename,
                                 clip_ratio * self.std())
         else:
-            return write_bitmap(np.flipud(self).transpose(1,0,2), filename)
+            return write_bitmap(self.swapaxes(0, 1), filename)
 
     def save(self, filename, png=True, hdf5=True):
         """
