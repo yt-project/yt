@@ -782,6 +782,10 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
 
+            if md['units'] == None or md['units'] == '':
+                label = field_name
+            else:
+                label = field_name+r'$\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
 
@@ -856,6 +860,7 @@ class PWViewerMPL(PWViewer):
             weight = self.data_source.weight_field
         names = []
         for k, v in self.plots.iteritems():
+            if isinstance(k, types.TupleType): k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
             else:
@@ -863,7 +868,7 @@ class PWViewerMPL(PWViewer):
                 n = "%s_%s_%s" % (name, type, k)
             if weight:
                 n += "_%s" % (weight)
-            names.append(v.save(n))
+            names.append(v.save(n, mpl_kwargs))
         return names
 
     def _send_zmq(self):

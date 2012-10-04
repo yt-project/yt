@@ -374,7 +374,7 @@ class AMRGridPatch(object):
         self._child_index_mask = None
 
     #@time_execution
-    def __fill_child_mask(self, child, mask, tofill):
+    def __fill_child_mask(self, child, mask, tofill, dlevel = 1):
         rf = self.pf.refine_by
         if dlevel != 1:
             rf = rf**dlevel
