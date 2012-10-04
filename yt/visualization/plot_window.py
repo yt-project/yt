@@ -753,8 +753,8 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{'+axis_labels[axis_index][i]+
                         axes_unit_label + r'}$' for i in (0,1)]
             else:
-                labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
-                          r'$\rm{Image\/y'+axes_unit_label+'}$']
+                labels = [r'$\rm{x'+axes_unit_label+'}$',
+                          r'$\rm{y'+axes_unit_label+'}$']
 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
