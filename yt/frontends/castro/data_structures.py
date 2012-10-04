@@ -101,18 +101,11 @@ class CastroGrid(AMRGridPatch):
             self.Parent = None
 
     def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if self.Parent is not None:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = np.array((RE-LE)/self.ActiveDimensions)
-
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        # has already been read in and stored in hierarchy
+        dx = self.hierarchy.grid_dxs[self.index][0]
+        dy = self.hierarchy.grid_dys[self.index][0]
+        dz = self.hierarchy.grid_dzs[self.index][0]
+        self.dds = np.array([dx, dy, dz])
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):

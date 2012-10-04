@@ -456,13 +456,15 @@ class EnzoHierarchy(GridGeometryHandler):
         mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
+        reconstruct = ytcfg.getboolean("yt","reconstruct_hierarchy")
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
             g.NumberOfActiveParticles = \
                 self.grid_active_particle_count[g.id - g._id_offset,0]
             g._setup_dx()
             g.set_filename(f[0])
-            #if g.Parent is not None: g._guess_properties_from_parent()
+            if reconstruct:
+                if g.Parent is not None: g._guess_properties_from_parent()
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
@@ -743,23 +745,6 @@ class EnzoStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
-        rp = os.path.join(self.directory, "rates.out")
-        if os.path.exists(rp):
-            try:
-                self.rates = EnzoTable(rp, rates_out_key)
-            except:
-                pass
-        cp = os.path.join(self.directory, "cool_rates.out")
-        if os.path.exists(cp):
-            try:
-                self.cool = EnzoTable(cp, cool_out_key)
-            except:
-                pass
-
-        # Now fixes for different types of Hierarchies
-        # This includes changing the fieldinfo class!
-        if self["TopGridRank"] == 1: self._setup_1d()
-        elif self["TopGridRank"] == 2: self._setup_2d()
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
@@ -918,6 +903,11 @@ class EnzoStaticOutput(StaticOutput):
         self.particle_types = ["all"]
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
+
+        if self.dimensionality == 1:
+            self._setup_1d()
+        elif self.dimensionality == 2:
+            self._setup_2d()
 
     def _set_units(self):
         """

@@ -37,6 +37,8 @@ from yt.geometry.grid_geometry_handler import \
            GridGeometryHandler
 from yt.data_objects.static_output import \
            StaticOutput
+from yt.utilities.lib import \
+    get_box_grids_level
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 
@@ -133,14 +135,25 @@ class GDFHierarchy(GridGeometryHandler):
         del levels, glis, gdims
 
     def _populate_grid_objects(self):
-        for g in self.grids:
+        mask = np.empty(self.grids.size, dtype='int32')
+        for gi, g in enumerate(self.grids):
             g._prepare_grid()
             g._setup_dx()
 
-        for g in self.grids:
+        for gi, g in enumerate(self.grids):
             g.Children = self._get_grid_children(g)
             for g1 in g.Children:
                 g1.Parent.append(g)
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                self.grid_levels[gi],
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            m = mask.astype("bool")
+            m[gi] = False
+            siblings = self.grids[gi:][m[gi:]]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):

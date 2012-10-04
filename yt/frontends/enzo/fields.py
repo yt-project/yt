@@ -171,16 +171,22 @@ add_field("Gas_Energy", function=_Gas_Energy,
 # We set up fields for both TotalEnergy and Total_Energy in the known fields
 # lists.  Note that this does not mean these will be the used definitions.
 add_enzo_field("TotalEnergy", function=NullFunc,
-          display_name = "\rm{Total}\/\rm{Energy}",
+          display_name = "$\rm{Total}\/\rm{Energy}$",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 add_enzo_field("Total_Energy", function=NullFunc,
-          display_name = "\rm{Total}\/\rm{Energy}",
+          display_name = "$\rm{Total}\/\rm{Energy}$",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Total_Energy(field, data):
     return data["TotalEnergy"] / _convertEnergy(data)
 add_field("Total_Energy", function=_Total_Energy,
-          display_name = "\rm{Total}\/\rm{Energy}",
+          display_name = "$\rm{Total}\/\rm{Energy}$",
+          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+
+def _TotalEnergy(field, data):
+    return data["Total_Energy"] / _convertEnergy(data)
+add_field("TotalEnergy", function=_TotalEnergy,
+          display_name = "$\rm{Total}\/\rm{Energy}$",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _NumberDensity(field, data):
@@ -481,7 +487,7 @@ def _Bmag(field, data):
     """
     return np.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\rm{Gauss}")
+add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units=r"\rm{Gauss}")
 
 # Particle functions
 
@@ -603,7 +609,6 @@ def _zvel(field, data):
     return np.zeros(data["x-velocity"].shape,
                     dtype='float64')
 add_enzo_2d_field("z-velocity", function=_zvel)
-
 
 #
 # Now we do overrides for 1D fields

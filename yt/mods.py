@@ -96,6 +96,9 @@ from yt.frontends.chombo.api import \
 from yt.frontends.gdf.api import \
     GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
+from yt.frontends.athena.api import \
+    AthenaStaticOutput, AthenaFieldInfo, add_athena_field
+
 #from yt.frontends.art.api import \
 #    ARTStaticOutput, ARTFieldInfo, add_art_field
 
@@ -119,7 +122,7 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, OffAxisSlicePlot, ProjectionPlot
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

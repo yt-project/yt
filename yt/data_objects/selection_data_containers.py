@@ -702,7 +702,7 @@ class YTDiskBase(YTSelectionContainer3D):
         """
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
-        self.set_field_parameter("height_vector", self._norm_vec)
+        self.set_field_parameter("normal", self._norm_vec)
         self._height = fix_length(height, self.pf)
         self._radius = fix_length(radius, self.pf)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)

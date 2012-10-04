@@ -214,8 +214,8 @@ class AMRGridPatch(object):
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        if self.pf.dimensionality < 2: self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
+        if self.pf.dimensionality < 3: self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     @property
@@ -376,6 +376,8 @@ class AMRGridPatch(object):
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
         rf = self.pf.refine_by
+        if dlevel != 1:
+            rf = rf**dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = np.maximum(0, cgi / rf - gi)
         endIndex = np.minimum((cgi + child.ActiveDimensions) / rf - gi,

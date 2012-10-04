@@ -89,17 +89,8 @@ class ChomboGrid(AMRGridPatch):
         return self.start_index
 
     def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = np.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        # has already been read in and stored in hierarchy
+        self.dds = self.hierarchy.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(GridGeometryHandler):
@@ -176,11 +167,13 @@ class ChomboHierarchy(GridGeometryHandler):
         # 'Chombo_global'
         levels = f.keys()[1:]
         grids = []
+        self.dds_list = []
         i = 0
         for lev in levels:
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
+            self.dds_list.append(dx * np.ones(3))
             for level_id, box in enumerate(boxes):
                 si = np.array([box['lo_%s' % ax] for ax in 'ijk'])
                 ei = np.array([box['hi_%s' % ax] for ax in 'ijk'])

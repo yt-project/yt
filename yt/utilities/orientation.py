@@ -56,6 +56,7 @@ class Orientation:
             mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
             north_vector = None
         if north_vector is not None: self.steady_north = True
+        self.north_vector = north_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
@@ -66,6 +67,8 @@ class Orientation:
             t = np.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             east_vector = np.cross(vecs[ax,:], normal_vector).ravel()
+            # self.north_vector must remain None otherwise rotations about a fixed axis will break.  
+            # The north_vector calculated here will still be included in self.unit_vectors.
             north_vector = np.cross(normal_vector, east_vector).ravel()
         else:
             if self.steady_north:
@@ -74,7 +77,6 @@ class Orientation:
         north_vector /= np.sqrt(np.dot(north_vector, north_vector))
         east_vector /= np.sqrt(np.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
-        self.north_vector = north_vector
         self.unit_vectors = [east_vector, north_vector, normal_vector]
         self.inv_mat = np.linalg.pinv(self.unit_vectors)
         
@@ -82,7 +84,7 @@ class Orientation:
         r"""Change the view direction based on any of the orientation parameters.
 
         This will recalculate all the necessary vectors and vector planes related
-        to a an orientable object.
+        to an orientable object.
 
         Parameters
         ----------

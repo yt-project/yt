@@ -23,7 +23,8 @@ License:
 """
 
 import numpy as np
-
+from yt.funcs import *
+from numpy.testing import assert_array_equal
 
 def amrspace(extent, levels=7, cells=8):
     """Creates two numpy arrays representing the left and right bounds of 
@@ -125,3 +126,18 @@ def amrspace(extent, levels=7, cells=8):
         right[start:stop,dims_nonzero] = rng_nonzero*dsize + extent[::2][dims_nonzero]
 
     return left, right, level
+
+def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",), negative = False):
+    from yt.frontends.stream.api import load_uniform_grid
+    if not iterable(ndims):
+        ndims = [ndims, ndims, ndims]
+    else:
+        assert(len(ndims) == 3)
+    if negative:
+        offset = 0.5
+    else:
+        offset = 0.0
+    data = dict((field, (np.random.random(ndims) - offset) * peak_value)
+                 for field in fields)
+    ug = load_uniform_grid(data, ndims, 1.0)
+    return ug

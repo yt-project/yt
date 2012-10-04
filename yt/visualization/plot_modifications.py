@@ -83,11 +83,11 @@ class PlotCallback(object):
     def pixel_scale(self,plot):
         x0, x1 = plot.xlim
         xx0, xx1 = plot._axes.get_xlim()
-        dx = (xx0 - xx1)/(x1 - x0)
+        dx = (xx1 - xx0)/(x1 - x0)
         
         y0, y1 = plot.ylim
         yy0, yy1 = plot._axes.get_ylim()
-        dy = (yy0 - yy1)/(y1 - y0)
+        dy = (yy1 - yy0)/(y1 - y0)
 
         return (dx,dy)
 
@@ -149,7 +149,9 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+            qcb = CuttingQuiverCallback("CuttingPlaneBx",
+                                        "CuttingPlaneBy",
+                                        self.factor)
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
@@ -211,8 +213,9 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     _type_name = "contour"
-    def __init__(self, field, ncont=5, factor=4, clim=None, plot_args=None):
-        """ 
+    def __init__(self, field, ncont=5, factor=4, clim=None,
+                 plot_args = None):
+        """
         annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
                          plot_args = None):
 
@@ -288,7 +291,7 @@ class ContourCallback(PlotCallback):
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
         if self.clim is not None: 
-            self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
+            self.ncont = np.linspace(self.clim[0], self.clim[1], ncont)
         
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -297,30 +300,31 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
+    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True):
         """
-        annotate_grids(alpha=1.0, min_pix=1, annotate=False, periodic=True)
+        annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
 
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
-        *annotate* puts the grid id in the corner of the grid.  (Not so great in projections...)
+        *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
+        Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
-        self.annotate = annotate # put grid numbers in the corner.
+        self.min_pix_ids = min_pix_ids
+        self.draw_ids = draw_ids # put grid numbers in the corner.
         self.periodic = periodic
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        width, height = plot.image._A.shape
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         xi = x_dict[plot.data.axis]
         yi = y_dict[plot.data.axis]
-        dx = width / (x1-x0)
-        dy = height / (y1-y0)
+        (dx, dy) = self.pixel_scale(plot)
+        (xpix, ypix) = plot.image._A.shape
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
@@ -333,29 +337,32 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
-            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx
-            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy
-            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
-            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
+            left_edge_x = (GLE[:,px_index]+pxo-x0)*dx + xx0
+            left_edge_y = (GLE[:,py_index]+pyo-y0)*dy + yy0
+            right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
+            right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
+                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix )
+            if visible.nonzero()[0].size == 0: continue
             verts = np.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-            visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
-                       ( right_edge_px - left_edge_px > self.min_pix )
+                [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
+                 (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
-            if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
-            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width) + xx0
-            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height) + yy0
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
                 edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
-            if self.annotate:
-                ids = [g.id for g in plot.data._grids]
-                for n in range(len(left_edge_px)):
-                    plot._axes.text(left_edge_px[n]+2,left_edge_py[n]+2,ids[n])
+            if self.draw_ids:
+                visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
+                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
+                active_ids = np.unique(plot.data['GridIndices'])
+                for i in np.where(visible_ids)[0]:
+                    plot._axes.text(
+                        left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
+                        left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
+                        "%d" % active_ids[i], clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
@@ -430,6 +437,9 @@ class StreamlineCallback(PlotCallback):
             iy = np.maximum(np.minimum((yt).astype('int'), ny-1), 0)
             lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
             lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
+        # scale into data units
+        lines[:,0,:,:] = lines[:,0,:,:] * (xx1 - xx0) / nx + xx0
+        lines[:,1,:,:] = lines[:,1,:,:] * (yy1 - yy0) / ny + yy0
         for i in range(self.data_size[0]):
             for j in range(self.data_size[1]):
                 plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
@@ -453,6 +463,30 @@ class LabelCallback(PlotCallback):
                                      left=0.0, right=1.0)
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
+
+class TimeCallback(PlotCallback):
+    _type_name = "time"
+    def __init__(self, format_code='10.7e'):
+        """
+        This annotates the plot with the current simulation time.
+        For now, the time is displayed in seconds.
+        *format_code* can be optionally set, allowing a custom 
+        c-style format code for the time display.
+        """
+        self.format_code = format_code
+        PlotCallback.__init__(self)
+    
+    def __call__(self, plot):
+        current_time = plot.pf.current_time/plot.pf['Time']
+        timestring = format(current_time,self.format_code)
+        base = timestring[:timestring.find('e')]
+        exponent = timestring[timestring.find('e')+1:]
+        if exponent[0] == '+':
+            exponent = exponent[1:]
+        timestring = r'$t\/=\/'+base+''+r'\times\,10^{'+exponent+r'}\, \rm{s}$'
+        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
+        at = AnchoredText(timestring, prop=dict(size=12), frameon=True, loc=4)
+        plot._axes.add_artist(at)
 
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
@@ -624,8 +658,8 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data[self.field_y],
                                int(nx), int(ny),
                                (x0, x1, y0, y1),).transpose()
-        X = np.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
-        Y = np.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
+                          np.linspace(yy0,yy1,ny,endpoint=True))
         plot._axes.quiver(X,Y, pixX, pixY)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)

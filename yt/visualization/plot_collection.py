@@ -1504,7 +1504,7 @@ class PlotCollection(object):
     @rootonly
     def save_book(self, filename, author = None, title = None, keywords = None,
                   subject = None, creator = None, producer = None,
-                  creation_data = None):
+                  creation_date = None):
         r"""Save a multipage PDF of all the current plots, rather than
         individual image files.
 
@@ -1551,15 +1551,21 @@ class PlotCollection(object):
         >>> dd = pf.h.all_data()
         >>> pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
         ...                     weight = None)
-        >>> pc.save_book("my_plots.pdf", author="Matthew Turk", 
+        >>> pc.save_book("my_plots.pdf", author="Yours Truly",
         ...              title="Fun plots")
         """
         from matplotlib.backends.backend_pdf import PdfPages
         outfile = PdfPages(filename)
         for plot in self.plots:
             plot.save_to_pdf(outfile)
-        if info is not None:
-            outfile._file.writeObject(outfile._file.infoObject, info)
+        pdf_keys = ['Title', 'Author', 'Subject', 'Keywords', 'Creator',
+            'Producer', 'CreationDate']
+        pdf_values = [title, author, subject, keywords, creator, producer,
+            creation_date]
+        metadata = outfile.infodict()
+        for key, val in zip(pdf_keys, pdf_values):
+            if isinstance(val, str):
+                metadata[key] = val
         outfile.close()
 
 def wrap_pylab_newplot(func):

@@ -298,7 +298,7 @@ class PhasePlotter(object):
             nz = (self.profile[self._current_field] > 0)
             mi = self.profile[self._current_field][nz].min()
         else:
-            mi = self.profile[self._current_field][nz].min()
+            mi = self.profile[self._current_field].min()
         ma = self.profile[self._current_field].max()
         cbar.bounds = (mi, ma)
         cbar.cmap = 'algae'

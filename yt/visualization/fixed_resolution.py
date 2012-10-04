@@ -28,6 +28,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
+from .volume_rendering.api import off_axis_projection
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
 import _MPL
@@ -411,3 +412,28 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
                                self.bounds).transpose()
         self[item] = buff
         return buff
+
+
+class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
+    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
+                 periodic = False):
+        self.data = {}
+        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
+
+    def __getitem__(self, item):
+        if item in self.data: return self.data[item]
+        mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
+            (item, self.buff_size[0], self.buff_size[1]))
+        ds = self.data_source
+        width = (self.bounds[1] - self.bounds[0],
+                 self.bounds[3] - self.bounds[2],
+                 self.bounds[5] - self.bounds[4])
+        buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
+                                   width, ds.resolution, item,
+                                   weight=ds.weight_field, volume=ds.volume,
+                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated,
+                                   north_vector=ds.north_vector)
+        self[item] = buff.swapaxes(0,1)
+        return buff
+
+
