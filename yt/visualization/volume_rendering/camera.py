@@ -349,11 +349,13 @@ class Camera(ParallelAnalysisInterface):
         return self.volume.initialize_source()
 
     def get_information(self):
-        info_dict = {'fields':self.fields, 'type':'rendering', 
+        info_dict = {'fields':self.fields,
+                     'type':self.__class__.__name__,
                      'east_vector':self.orienter.unit_vectors[0],
                      'north_vector':self.orienter.unit_vectors[1],
                      'normal_vector':self.orienter.unit_vectors[2],
-                     'width':self.width, 'dataset':self.pf.fullpath}
+                     'width':self.width,
+                     'dataset':self.pf.fullpath}
         return info_dict
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
@@ -672,7 +674,7 @@ data_object_registry["interactive_camera"] = InteractiveCamera
 class PerspectiveCamera(Camera):
     expand_factor = 1.0
     def __init__(self, *args, **kwargs):
-        expand_factor = kwargs.pop('expand_factor', 1.0)
+        self.expand_factor = kwargs.pop('expand_factor', 1.0)
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
@@ -710,6 +712,27 @@ class PerspectiveCamera(Camera):
                 np.zeros(3, dtype='float64'), 
                 self.transfer_function, self.sub_samples)
         return args
+
+    def _render(self, double_check, num_threads, image, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        view_pos = self.front_center
+        for brick in self.volume.traverse(view_pos, self.front_center, image):
+            sampler(brick, num_threads=num_threads)
+            total_cells += np.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+
+        pbar.finish()
+        image = sampler.aimage
+        self.finalize_image(image)
+        return image
+
 
     def finalize_image(self, image):
         image.shape = self.resolution[0], self.resolution[0], 3
@@ -793,6 +816,15 @@ class HEALpixCamera(Camera):
         self.finalize_image(image)
 
         return image
+
+    def get_information(self):
+        info_dict = {'fields':self.fields,
+                     'type':self.__class__.__name__,
+                     'center':self.center,
+                     'radius':self.radius,
+                     'dataset':self.pf.fullpath}
+        return info_dict
+
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0, clim = None, label = None):
