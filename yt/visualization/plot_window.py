@@ -900,6 +900,14 @@ class PWViewerMPL(PWViewer):
         else:
             raise YTNotInsideNotebook
 
+    def show_or_save(self, name=None):
+        """Will attempt to show the plot in in an IPython notebook.  Failing that, the 
+        plot will be saved to disk."""
+        try:
+            self.show()
+        except YTNotInsideNotebook:
+            self.save(name=name)
+
 class SlicePlot(PWViewerMPL):
     _plot_type = 'Slice'
     _frb_generator = FixedResolutionBuffer
