@@ -1091,26 +1091,26 @@ class TitleCallback(PlotCallback):
 
 class FlashRayDataCallback(PlotCallback):
     _type_name = "flash_ray_data"
-    def __init__(self, pf, cmap_name='bone', sample=None):
+    def __init__(self, cmap_name='bone', sample=None):
         """ 
-        annotate_flash_ray_data(pf, cmap_name='bone', sample=None)
+        annotate_flash_ray_data(cmap_name='bone', sample=None)
 
-        Accepts a *pf* and adds ray trace data to the plot.  *cmap_name* is the
-        name of the color map ('bone', 'jet', 'hot', etc).  *sample* dictates 
-        the amount of down sampling to do to prevent all of the rays from being 
-        plotted.  This may be None (plot all rays, default), an integer (step size), 
-        or a slice object.
+        Adds ray trace data to the plot.  *cmap_name* is the name of the color map 
+        ('bone', 'jet', 'hot', etc).  *sample* dictates the amount of down sampling 
+        to do to prevent all of the rays from being  plotted.  This may be None 
+        (plot all rays, default), an integer (step size), or a slice object.
         """
-        self.ray_data = pf._handle["RayData"][:]
-        idx = self.ray_data[:,0].argsort(kind="mergesort")
-        self.ray_data = self.ray_data[idx]
         self.cmap_name = cmap_name
         self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
 
     def __call__(self, plot):
-        tags = self.ray_data[:,0]
-        coords = self.ray_data[:,1:3]
-        power = self.ray_data[:,4]
+        ray_data = plot.data.pf._handle["RayData"][:]
+        idx = ray_data[:,0].argsort(kind="mergesort")
+        ray_data = ray_data[idx]
+
+        tags = ray_data[:,0]
+        coords = ray_data[:,1:3]
+        power = ray_data[:,4]
         power /= power.max()
         cx, cy = self.convert_to_plot(plot, coords.T)
         coords[:,0], coords[:,1] = cx, cy
@@ -1120,7 +1120,8 @@ class FlashRayDataCallback(PlotCallback):
         cmap = matplotlib.cm.get_cmap(self.cmap_name)
 
         plot._axes.hold(True)
-        lc = matplotlib.collections.LineCollection(coords, colors=[cmap(p.max()) for p in power])
+        colors = [cmap(p.max()) for p in power]
+        lc = matplotlib.collections.LineCollection(coords, colors=colors)
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
 
@@ -1174,38 +1175,40 @@ class TimestampCallback(PlotCallback):
           'mev': 1e-15 * 7.6e-8 / 6.03,
           }
 
-    def __init__(self, x, y, pf, units=None, format="{time:.3G} {units}", **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}", **kwargs):
         """ 
-        annotate_timestamp(x, y, pf, units=None, format="{time:.3G} {units}", **kwargs)
+        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs)
 
-        Accepts a *pf* and adds *pf.current_time* to the plot at point given by *x* 
-        and *y*.  If *units* is given ('s', 'ms', 'ns', etc), it will covert the time 
-        to this basis.  If *units* is None, it will attempt to figure out the correct
-        value by which to scale.  The *format* keyword is a template string that will
-        be evaluated and displayed on the plot.  All other *kwargs* will be passed
-        to the text() method on the plot axes.  See matplotlib's text() functions for
-        more information.
+        Adds the current time to the plot at point given by *x* and *y*.  If *units* 
+        is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
+        *units* is None, it will attempt to figure out the correct value by which to 
+        scale.  The *format* keyword is a template string that will be evaluated and 
+        displayed on the plot.  All other *kwargs* will be passed to the text() 
+        method on the plot axes.  See matplotlib's text() functions for more 
+        information.
         """
         self.x = x
         self.y = y
-        if units is None:
-            t = pf.current_time
-            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
-            units = 's'
-            for k in scale_keys:
-                if t < self._time_conv[k]:
-                    break
-                units = k
-        t = pf.current_time / self._time_conv[units.lower()]
-        if units == 'us':
-            units = '$\\mu s$'
-        self.s = format.format(time=t, units=units)
+        self.format = format
+        self.units = units
         self.kwargs = {'color': 'w'}
         self.kwargs.update(kwargs)
 
     def __call__(self, plot):
+        if self.units is None:
+            t = plot.data.pf.current_time
+            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
+            self.units = 's'
+            for k in scale_keys:
+                if t < self._time_conv[k]:
+                    break
+                self.units = k
+        t = plot.data.pf.current_time / self._time_conv[self.units.lower()]
+        if self.units == 'us':
+            self.units = '$\\mu s$'
+        s = self.format.format(time=t, units=self.units)
         plot._axes.hold(True)
-        plot._axes.text(self.x, self.y, self.s, **self.kwargs)
+        plot._axes.text(self.x, self.y, s, **self.kwargs)
         plot._axes.hold(False)
 
 
