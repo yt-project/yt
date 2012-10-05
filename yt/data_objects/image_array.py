@@ -26,24 +26,64 @@ License:
 
 import numpy as np
 import h5py as h5
-from yt.visualization.image_writer import write_bitmap
+from yt.visualization.image_writer import write_bitmap, write_image
 
 class ImageArray(np.ndarray):
-    """
-    A custom Numpy ndarray used for images.
+    r"""A custom Numpy ndarray used for images.
 
     This differs from ndarray in that you can optionally specify an
     info dictionary which is used later in saving, and can be accessed with
     ImageArray.info.
 
-    Optional Arguments:
-        info: dictionary
+    Parameters
+    ----------
+    input_array: array_like
+        A numpy ndarray, or list. 
+
+    Other Parameters
+    ----------------
+    info: dictionary
         Contains information to be stored with image.
+
+    Returns
+    -------
+    obj: ImageArray object 
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    numpy.ndarray : Inherits
+
+    Notes
+    -----
+
+    References
+    ----------
+
+    Examples
+    --------
+    These are written in doctest format, and should illustrate how to
+    use the function.  Use the variables 'pf' for the parameter file, 'pc' for
+    a plot collection, 'c' for a center, and 'L' for a vector. 
+
+    >>> im = np.zeros([64,128,3])
+    >>> for i in xrange(im.shape[0]):
+    >>>     for k in xrange(im.shape[2]):
+    >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+
+    >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
+    >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+    >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
+
+    >>> im_arr = ImageArray(im, info=myinfo)
+    >>> im_arr.save('test_ImageArray')
 
     Numpy ndarray documentation appended:
 
     """
-
     def __new__(cls, input_array, info=None):
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
@@ -61,21 +101,29 @@ class ImageArray(np.ndarray):
         self.info = getattr(obj, 'info', None)
 
     def write_hdf5(self, filename):
-        """
-        Writes ImageArray to hdf5 file.
+        r"""Writes ImageArray to hdf5 file.
 
-        Arguments:
-            filename: string
+        Parameters
+        ----------
+        filename: string
             Note filename not be modified.
+       
+        Examples
+        -------- 
+        >>> im = np.zeros([64,128,3])
+        >>> for i in xrange(im.shape[0]):
+        >>>     for k in xrange(im.shape[2]):
+        >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-        Returns:
-            None
+        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
+        >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
+
+        >>> im_arr = ImageArray(im, info=myinfo)
+        >>> im_arr.write_hdf5('test_ImageArray.h5')
 
         """
-        try:
-            array_name = self.info['name']
-        except KeyError:
-            array_name = 'image'
+        array_name = self.info.get("name","image")
 
         f = h5.File(filename)
         if array_name in f.keys():
@@ -86,19 +134,27 @@ class ImageArray(np.ndarray):
         f.close()
 
     def write_png(self, filename, clip_ratio=None):
-        """
-        Writes ImageArray to png.
+        r"""Writes ImageArray to png file.
 
-        Arguments:
-            filename: string
-            '.png' will be appended if not present.
+        Parameters
+        ----------
+        filename: string
+            Note filename not be modified.
+       
+        Examples
+        --------
+        
+        >>> im = np.zeros([64,128,3])
+        >>> for i in xrange(im.shape[0]):
+        >>>     for k in xrange(im.shape[2]):
+        >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-        Returns:
-            The bitmap array written
+        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
+        >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
 
-        Note: when writing to png, we invert the y axis
-        such to prepare for the write_bitmap call.  This puts the (0,0) pixel
-        in the lower left
+        >>> im_arr = ImageArray(im, info=myinfo)
+        >>> im_arr.write_png('test_ImageArray.png')
 
         """
         if filename[-4:] != '.png': 
@@ -109,6 +165,59 @@ class ImageArray(np.ndarray):
                                 clip_ratio * self.std())
         else:
             return write_bitmap(self.swapaxes(0, 1), filename)
+
+    def write_image(self, filename, color_bounds=None, channel=None,  cmap_name="algae", func=lambda x: x):
+        r"""Writes a single channel of the ImageArray to a png file.
+
+        Parameters
+        ----------
+        filename: string
+            Note filename not be modified.
+       
+        Other Parameters
+        ----------------
+        channel: int
+            Which channel to write out as an image. Defaults to 0
+        cmap_name: string
+            Name of the colormap to be used.
+        color_bounds : tuple of floats, optional
+            The min and max to scale between.  Outlying values will be clipped.
+        cmap_name : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        func : function, optional
+            A function to transform the buffer before applying a colormap. 
+
+        Returns
+        -------
+        scaled_image : uint8 image that has been saved
+        
+        Examples
+        --------
+        
+        >>> im = np.zeros([64,128])
+        >>> for i in xrange(im.shape[0]):
+        >>>     im[i,:] = np.linspace(0.,0.3*k, im.shape[1])
+
+        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
+        >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
+
+        >>> im_arr = ImageArray(im, info=myinfo)
+        >>> im_arr.write_image('test_ImageArray.png')
+
+        """
+        if filename[-4:] != '.png': 
+            filename += '.png'
+
+        if channel is None:
+            return write_image(self.swapaxes(0,1), filename, 
+                               color_bounds=color_bounds, cmap_name=cmap_name, 
+                               func=func)
+        else:
+            return write_image(self.swapaxes(0,1)[:,:,channel], filename, 
+                               color_bounds=color_bounds, cmap_name=cmap_name, 
+                               func=func)
 
     def save(self, filename, png=True, hdf5=True):
         """
@@ -127,7 +236,10 @@ class ImageArray(np.ndarray):
 
         """
         if png:
-            self.write_png("%s.png" % filename)
+            if len(self.shape) > 2:
+                self.write_png("%s.png" % filename)
+            else:
+                self.write_image("%s.png" % filename)
         if hdf5:
             self.write_hdf5("%s.h5" % filename)
 
@@ -144,5 +256,16 @@ if __name__ == "__main__":
         'width':0.245, 'units':'cm', 'type':'rendering'}
 
     im_arr = ImageArray(im, info=myinfo)
-    im_arr.save('test_ImageArray')
+    im_arr.save('test_3d_ImageArray')
+
+    im = np.zeros([64,128])
+    for i in xrange(im.shape[0]):
+        im[i,:] = np.linspace(0.,0.3*k, im.shape[1])
+
+    myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
+        'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        'width':0.245, 'units':'cm', 'type':'rendering'}
+
+    im_arr = ImageArray(im, info=myinfo)
+    im_arr.save('test_2d_ImageArray')
 
