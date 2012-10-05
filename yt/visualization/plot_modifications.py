@@ -728,9 +728,13 @@ class ArrowCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        if len(self.pos) == 3:
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
+        else: pos = self.pos
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
-        x, y = self.convert_to_plot(plot, self.pos)
+        x, y = self.convert_to_plot(plot, pos)
         dx, dy = self.convert_to_plot(plot, self.code_size, False)
         arrow = Arrow(x, y, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
