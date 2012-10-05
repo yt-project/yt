@@ -267,8 +267,6 @@ def _sph_phi(field, data):
 add_field("sph_phi", function=_sph_phi,
          validators=[ValidateParameter("center"),ValidateParameter("normal")])
 
-
-
 ### cylindrical coordinates: R (radius in the cylinder's plane)
 def _cyl_R(field, data):
     center = data.get_field_parameter("center")
@@ -1070,6 +1068,51 @@ add_field("MagneticPressure",
           function=_MagneticPressure,
           display_name=r"\rm{Magnetic}\/\rm{Energy}",
           units="\rm{ergs}\/\rm{cm}^{-3}")
+
+def _BPoloidal(field,data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    Bfields = np.array([data['Bx'], data['By'], data['Bz']])
+
+    return get_sph_theta_component(Bfields, coords, center, normal)
+add_field("BPoloidal", function=_BPoloidal,
+          units=r"\rm{Gauss}",
+          validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+def _BToroidal(field,data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    Bfields = np.array([data['Bx'], data['By'], data['Bz']])
+
+    return get_sph_phi_component(Bfields, coords, center, normal)
+add_field("BToroidal", function=_BToroidal,
+          units=r"\rm{Gauss}",
+          validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+def _BRadial(field,data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    Bfields = np.array([data['Bx'], data['By'], data['Bz']])
+
+    return get_sph_r_component(Bfields, coords, center, normal)
+add_field("BRadial", function=_BPoloidal,
+          units=r"\rm{Gauss}",
+          validators=[ValidateParameter("center"),ValidateParameter("normal")])
 
 def _VorticitySquared(field, data):
     mylog.debug("Generating vorticity on %s", data)
