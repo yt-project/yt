@@ -27,7 +27,10 @@ License:
 import base64
 import matplotlib.figure
 from matplotlib.mathtext import MathTextParser
-from matplotlib.pyparsing import ParseFatalException
+try:
+    from matplotlib.pyparsing import ParseFatalException
+except ImportError:
+    from pyparsing import ParseFatalException
 import cStringIO
 import types
 import __builtin__
@@ -40,7 +43,8 @@ from .image_writer import \
     write_image, apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer
+    ObliqueFixedResolutionBuffer, \
+    OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
@@ -103,7 +107,10 @@ class CallbackWrapper(object):
         self.pf = frb.pf
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
-        self._type_name = ''
+        if 'Cutting' in self.data.__class__.__name__:
+            self._type_name = "CuttingPlane"
+        else:
+            self._type_name = ''
 
 class FieldTransform(object):
     def __init__(self, name, func, locator):
@@ -154,7 +161,7 @@ def GetBoundsAndCenter(axis, center, width, pf, unit='1'):
               center[y_dict[axis]]+width[1]/2]
     return (bounds,center)
 
-def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
+def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1',depth=None):
     if width == None:
         width = (pf.domain_width.min(),
                  pf.domain_width.min())
@@ -165,6 +172,13 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
         width = (width, width)
     Wx, Wy = width
     width = np.array((Wx/pf[unit], Wy/pf[unit]))
+    if depth != None:
+        if iterable(depth) and isinstance(depth[1],str):
+            d,unit = depth
+            depth = d/pf[unit]
+        elif iterable(depth):
+            raise RuntimeError("Depth must be a float or a (width,\"unit\") tuple")
+        width = np.append(width,depth)
     if isinstance(center,str):
         if center.lower() == 'm' or center.lower() == 'max':
             v, center = pf.h.find_max("Density")
@@ -173,16 +187,19 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1'):
         else:
             raise RuntimeError('center keyword \"%s\" not recognized'%center)
 
-    # Transforming to the cutting plane coordinate system
-    center = np.array(center)
-    center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
-    (normal,perp1,perp2) = ortho_find(normal)
-    mat = np.transpose(np.column_stack((perp1,perp2,normal)))
-    center = np.dot(mat,center)
-    width = width/pf.domain_width.min()
-
-    bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
+    if width.shape == (2,):
+        # Transforming to the cutting plane coordinate system
+        center = np.array(center)
+        center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
+        (normal,perp1,perp2) = ortho_find(normal)
+        mat = np.transpose(np.column_stack((perp1,perp2,normal)))
+        center = np.dot(mat,center)
+        width = width
     
+        bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
+    else:
+        bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2, -width[2]/2, width[2]/2]
+
     return (bounds,center)
 
 class PlotWindow(object):
@@ -244,20 +261,14 @@ class PlotWindow(object):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
-        try:
+        if hasattr(self,'zlim'):
+            bounds = self.xlim+self.ylim+self.zlim
+        else:
             bounds = self.xlim+self.ylim
-            if self.oblique == False:
-                self._frb = FixedResolutionBuffer(self.data_source, 
-                                                  bounds, self.buff_size, 
-                                                  self.antialias, 
-                                                  periodic=self._periodic)
-            else:
-                self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
-                                                         bounds, self.buff_size, 
-                                                         self.antialias, 
-                                                         periodic=self._periodic)
-        except:
-            raise RuntimeError("Failed to repixelize.")
+        self._frb = self._frb_generator(self.data_source,
+                                        bounds, self.buff_size,
+                                        self.antialias,
+                                        periodic=self._periodic)
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:
@@ -298,6 +309,7 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
+                    
 
     @invalidate_data
     def pan(self, deltas):
@@ -344,12 +356,16 @@ class PlotWindow(object):
             dy = bounds[3] - bounds[2]
             self.xlim = (self.center[0] - dx/2., self.center[0] + dx/2.)
             self.ylim = (self.center[1] - dy/2., self.center[1] + dy/2.)
-            mylog.info("xlim = %f %f" %self.xlim)
-            mylog.info("ylim = %f %f" %self.ylim)
         else:
-            self.xlim = bounds[0:2]
-            self.ylim = bounds[2:]
-            
+            self.xlim = tuple(bounds[0:2])
+            self.ylim = tuple(bounds[2:4])
+            if len(bounds) == 6:
+                self.zlim = tuple(bounds[4:6])
+        mylog.info("xlim = %f %f" %self.xlim)
+        mylog.info("ylim = %f %f" %self.ylim)
+        if hasattr(self,'zlim'):
+            mylog.info("zlim = %f %f" %self.zlim)
+
     @invalidate_data
     def set_width(self, width, unit = '1'):
         """set the width of the plot window
@@ -395,13 +411,19 @@ class PlotWindow(object):
         width = (Wx,Wy)
         width = [w / self.pf[unit] for w in width]
 
-        centerx = (self.xlim[1] + self.xlim[0])/2 
-        centery = (self.ylim[1] + self.ylim[0])/2 
+        centerx = (self.xlim[1] + self.xlim[0])/2.
+        centery = (self.ylim[1] + self.ylim[0])/2. 
         
         self.xlim = (centerx - width[0]/2.,
                      centerx + width[0]/2.)
         self.ylim = (centery - width[1]/2.,
                      centery + width[1]/2.)
+        
+        if hasattr(self,'zlim'):
+            centerz = (self.zlim[1] + self.zlim[0])/2.
+            mw = max(width)
+            self.zlim = (centerz - mw/2.,
+                         centerz + mw/2.)
         
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -809,7 +831,7 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
 
-    def save(self,name=None,mpl_kwargs={}):
+    def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -827,15 +849,12 @@ class PWViewerMPL(PWViewer):
             name = str(self.pf)
         elif name.endswith('.png'):
             return v.save(name)
+        if mpl_kwargs is None: mpl_kwargs = {}
         axis = axis_names[self.data_source.axis]
         weight = None
-        if 'Slice' in self.data_source.__class__.__name__:
-            type = 'Slice'
-        if 'Proj' in self.data_source.__class__.__name__:
-            type = 'Projection'
+        type = self._plot_type
+        if type in ['Projection','OffAxisProjection']:
             weight = self.data_source.weight_field
-        if 'Cutting' in self.data_source.__class__.__name__:
-            type = 'OffAxisSlice'
         names = []
         for k, v in self.plots.iteritems():
             if axis:
@@ -849,11 +868,15 @@ class PWViewerMPL(PWViewer):
         return names
 
     def _send_zmq(self):
-        from IPython.zmq.pylab.backend_inline import \
-                    send_figure
+        try:
+            # pre-IPython v0.14        
+            from IPython.zmq.pylab.backend_inline import send_figure as display
+        except ImportError:
+            # IPython v0.14+ 
+            from IPython.core.display import display
         for k, v in sorted(self.plots.iteritems()):
             canvas = FigureCanvasAgg(v.figure)
-            send_figure(v.figure)
+            display(v.figure)
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
@@ -879,6 +902,9 @@ class PWViewerMPL(PWViewer):
             raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
+    _plot_type = 'Slice'
+    _frb_generator = FixedResolutionBuffer
+
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window'):
         r"""Creates a slice plot from a parameter file
@@ -954,6 +980,9 @@ class SlicePlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
+    _plot_type = 'Projection'
+    _frb_generator = FixedResolutionBuffer
+
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
@@ -1033,6 +1062,9 @@ class ProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
+    _plot_type = 'OffAxisSlice'
+    _frb_generator = ObliqueFixedResolutionBuffer
+
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  axes_unit=None, north_vector=None):
         r"""Creates an off axis slice plot from a parameter file
@@ -1078,6 +1110,95 @@ class OffAxisSlicePlot(PWViewerMPL):
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
+        self.set_axes_unit(axes_unit)
+
+class OffAxisProjectionDummyDataSource(object):
+    _type_name = 'proj'
+    proj_style = 'integrate'
+    _key_fields = []
+    def __init__(self, center, pf, normal_vector, width, fields, 
+                 interpolated, resolution = (800,800), weight=None,  
+                 volume=None, no_ghost=False, le=None, re=None, 
+                 north_vector=None):
+        self.center = center
+        self.pf = pf
+        self.axis = 4 # always true for oblique data objects
+        self.normal_vector = normal_vector
+        self.width = width
+        self.fields = fields
+        self.interpolated = interpolated
+        self.resolution = resolution
+        self.weight_field = weight
+        self.volume = volume
+        self.no_ghost = no_ghost
+        self.le = le
+        self.re = re
+        self.north_vector = north_vector
+
+class OffAxisProjectionPlot(PWViewerMPL):
+    _plot_type = 'OffAxisProjection'
+    _frb_generator = OffAxisProjectionFixedResolutionBuffer
+
+    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
+                 depth=(1,'unitary'), axes_unit=None, weight_field=None, 
+                 max_level=None, north_vector=None, volume=None, no_ghost=False, 
+                 le=None, re=None, interpolated=False):
+        r"""Creates an off axis projection plot from a parameter file
+
+        Given a pf object, a normal vector to project along, and
+        a field name string, this will return a PWViewrMPL object
+        containing the plot.
+        
+        The plot can be updated using one of the many helper functions
+        defined in PlotWindow.
+
+        Parameters
+        ----------
+        pf : :class:`yt.data_objects.api.StaticOutput`
+            This is the parameter file object corresponding to the
+            simulation output to be plotted.
+        normal : a sequence of floats
+            The vector normal to the slicing plane.
+        fields : string
+            The name of the field(s) to be plotted.
+        center : A two or three-element vector of sequence floats, 'c', or 'center'
+            The coordinate of the center of the image.  If left blanck,
+            the image centers on the location of the maximum density
+            cell.  If set to 'c' or 'center', the plot is centered on
+            the middle of the domain.
+        width : A tuple or a float
+            A tuple containing the width of image and the string key of
+            the unit: (width, 'unit').  If set to a float, code units
+            are assumed
+        depth : A tuple or a float
+            A tuple containing the depth to project thourhg and the string
+            key of the unit: (width, 'unit').  If set to a float, code units
+            are assumed
+        weight_field : string
+            The name of the weighting field.  Set to None for no weight.
+        max_level: int
+            The maximum level to project to.
+        axes_unit : A string
+            The name of the unit for the tick labels on the x and y axes.  
+            Defaults to None, which automatically picks an appropriate unit.
+            If axes_unit is '1', 'u', or 'unitary', it will not display the 
+            units, and only show the axes name.
+        north-vector : a sequence of floats
+            A vector defining the 'up' direction in the plot.  This
+            option sets the orientation of the slicing plane.  If not
+            set, an arbitrary grid-aligned north-vector is chosen.
+
+        """
+        (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf,depth=depth)
+        # Hard-coding the resolution for now
+        fields = ensure_list(fields)[:]
+        width = np.array((bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4]))
+        OffAxisProj = OffAxisProjectionDummyDataSource(center_rot, pf, normal, width, fields, interpolated,
+                                                       weight=weight_field,  volume=volume, no_ghost=no_ghost,
+                                                       le=le, re=re, north_vector=north_vector)
+        # Hard-coding the origin keyword since the other two options
+        # aren't well-defined for off-axis data objects
+        PWViewerMPL.__init__(self,OffAxisProj,bounds,origin='center-window',periodic=False,oblique=True)
         self.set_axes_unit(axes_unit)
 
 _metadata_template = """

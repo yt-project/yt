@@ -141,3 +141,8 @@ class YTUnitNotRecognized(YTException):
 
     def __str__(self):
         return "This parameter file doesn't recognize %s" % self.unit
+
+class YTHubRegisterError(YTException):
+    def __str__(self):
+        return "You must create an API key before uploading.  See " + \
+               "https://data.yt-project.org/getting_started.html"

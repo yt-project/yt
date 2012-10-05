@@ -146,7 +146,9 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+            qcb = CuttingQuiverCallback("CuttingPlaneBx",
+                                        "CuttingPlaneBy",
+                                        self.factor)
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
@@ -432,6 +434,9 @@ class StreamlineCallback(PlotCallback):
             iy = np.maximum(np.minimum((yt).astype('int'), ny-1), 0)
             lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
             lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
+        # scale into data units
+        lines[:,0,:,:] = lines[:,0,:,:] * (xx1 - xx0) / nx + xx0
+        lines[:,1,:,:] = lines[:,1,:,:] * (yy1 - yy0) / ny + yy0
         for i in range(self.data_size[0]):
             for j in range(self.data_size[1]):
                 plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
@@ -650,8 +655,8 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data[self.field_y],
                                int(nx), int(ny),
                                (x0, x1, y0, y1),).transpose()
-        X = np.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
-        Y = np.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
+                          np.linspace(yy0,yy1,ny,endpoint=True))
         plot._axes.quiver(X,Y, pixX, pixY)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)

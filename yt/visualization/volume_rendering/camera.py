@@ -195,7 +195,7 @@ class Camera(ParallelAnalysisInterface):
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
-        self.rotation_vector = self.orienter.north_vector
+        self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -282,7 +282,7 @@ class Camera(ParallelAnalysisInterface):
         if center is not None:
             self.center = center
         if north_vector is None:
-            north_vector = self.orienter.north_vector
+            north_vector = self.orienter.unit_vectors[1]
         if normal_vector is None:
             normal_vector = self.orienter.normal_vector
         self.orienter.switch_orientation(normal_vector = normal_vector,
@@ -301,7 +301,11 @@ class Camera(ParallelAnalysisInterface):
                 np.array(self.width), self.transfer_function, self.sub_samples)
         return args
 
+    star_trees = None
     def get_sampler(self, args):
+        kwargs = {}
+        if self.star_trees is not None:
+            kwargs = {'star_list': self.star_trees}
         if self.use_light:
             if self.light_dir is None:
                 self.set_default_light_dir()
@@ -312,9 +316,10 @@ class Camera(ParallelAnalysisInterface):
             if self.light_rgba is None:
                 self.set_default_light_rgba()
             sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
-                    light_rgba=self.light_rgba)
+                    light_rgba=self.light_rgba, **kwargs)
         else:
-            sampler = self._sampler_object(*args)
+            sampler = self._sampler_object(*args, **kwargs)
+        print sampler, kwargs
         return sampler
 
     def finalize_image(self, image):
@@ -587,7 +592,7 @@ class Camera(ParallelAnalysisInterface):
         """
         rot_vector = self.orienter.normal_vector
         R = get_rotation_matrix(theta, rot_vector)
-        north_vector = self.orienter.north_vector
+        north_vector = self.orienter.unit_vectors[1]
         self.switch_view(north_vector=np.dot(R, north_vector))
 
     def rotation(self, theta, n_steps, rot_vector=None, clip_ratio = None):
@@ -720,6 +725,9 @@ def corners(left_edge, right_edge):
     ], dtype='float64')
 
 class HEALpixCamera(Camera):
+
+    _sampler_object = None 
+    
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
@@ -733,6 +741,12 @@ class HEALpixCamera(Camera):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
+
+        if isinstance(self.transfer_function, ProjectionTransferFunction):
+            self._sampler_object = ProjectionSampler
+        else:
+            self._sampler_object = VolumeRenderSampler
+
         if fields is None: fields = ["Density"]
         self.fields = fields
         self.sub_samples = sub_samples
@@ -1667,7 +1681,8 @@ data_object_registry["projection_camera"] = ProjectionCamera
 
 def off_axis_projection(pf, center, normal_vector, width, resolution,
                         field, weight = None, 
-                        volume = None, no_ghost = False, interpolated = False):
+                        volume = None, no_ghost = False, interpolated = False,
+                        north_vector = None):
     r"""Project through a parameter file, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -1726,8 +1741,9 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
 
     """
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
-            field, weight=weight, pf=pf, volume=volume,
-            no_ghost=no_ghost, interpolated=interpolated)
+                               field, weight=weight, pf=pf, volume=volume,
+                               no_ghost=no_ghost, interpolated=interpolated, 
+                               north_vector=north_vector)
     image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")

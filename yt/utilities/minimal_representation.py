@@ -30,6 +30,7 @@ import urllib2
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
+from yt.utilities.exceptions import *
 
 from .poster.streaminghttp import register_openers
 from .poster.encode import multipart_encode
@@ -93,6 +94,7 @@ class MinimalRepresentation(object):
     def upload(self):
         api_key = ytcfg.get("yt","hub_api_key")
         url = ytcfg.get("yt","hub_url")
+        if api_key == '': raise YTHubRegisterError
         metadata, (final_name, chunks) = self._generate_post()
         if hasattr(self, "_pf_mrep"):
             self._pf_mrep.upload()
@@ -216,3 +218,22 @@ class MinimalProjectDescription(MinimalRepresentation):
         metadata = self._attrs
         chunks = []
         return (metadata, ("chunks", []))
+
+class MinimalNotebook(MinimalRepresentation):
+    type = "notebook"
+    _attr_list = ("title",)
+
+    def __init__(self, filename, title = None):
+        # First we read in the data
+        if not os.path.isfile(filename):
+            raise IOError(filename)
+        self.data = open(filename).read()
+        if title is None:
+            title = json.loads(self.data)['metadata']['name']
+        self.title = title
+        self.data = np.fromstring(self.data, dtype='c')
+
+    def _generate_post(self):
+        metadata = self._attrs
+        chunks = [ ("notebook", self.data) ]
+        return (metadata, ("chunks", chunks))
