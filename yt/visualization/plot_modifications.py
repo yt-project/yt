@@ -745,12 +745,13 @@ class PointAnnotateCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-
-
+        if len(self.pos) == 3:
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
+        else: pos = self.pos
         width,height = plot.image._A.shape
-        x,y = self.convert_to_plot(plot, self.pos)
-        x,y = x/width,y/height
-
+        x,y = self.convert_to_plot(plot, pos)
+        
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
