@@ -675,26 +675,33 @@ def get_rotation_matrix(theta, rot_vector):
     
     return R
 
-def get_sph_r_component(vectors, center):
+def get_ortho_basis(normal):
+    xprime = np.cross([0.0,1.0,0.0],normal)
+    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
+    yprime = np.cross(normal,xprime)
+    zprime = normal
+    return (xprime, yprime, zprime)
+
+def get_sph_r(coords, center):
     # The spherical coordinates radius is simply the magnitude of the
-    # vector.
+    # coordinate vector.
 
-    return np.sqrt(np.sum(vectors**2, axis=-1))
+    return np.sqrt(np.sum(coords**2, axis=-1))
 
 
-def get_sph_theta_component(vectors, center, normal):
+def get_sph_theta(coords, center, normal):
     # The angle (theta) with respect to the normal (J), is the arccos
-    # of the dot product of the normal with the normalized
+    # of the dot product of the normal with the normalized coordinate
     # vector.
     
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = list(coords.shape)[:-1] + [1]
     J = np.tile(normal,tile_shape)
 
-    JdotVectors = np.sum(J*vectors,axis=-1)
+    JdotCoords = np.sum(J*coords,axis=-1)
     
-    return np.arccos( JdotVectors / np.sqrt(np.sum(Vectors**2,axis=-1)) )
+    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=-1)) )
 
-def get_sph_phi_component(vectors, center, normal):
+def get_sph_phi(coords, center, normal):
     # We have freedom with respect to what axis (xprime) to define
     # the disk angle. Here I've chosen to use the axis that is
     # perpendicular to the normal and the y-axis. When normal ==
@@ -702,41 +709,134 @@ def get_sph_phi_component(vectors, center, normal):
     # normal == z-hat (as is typical), then xprime == x-hat.
     #
     # The angle is then given by the arctan of the ratio of the
-    # yprime-component and the xprime-component of the vector.
+    # yprime-component and the xprime-component of the coordinate 
+    # vector.
 
-    xprime = np.cross([0.0,1.0,0.0],normal)
-    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
-    yprime = np.cross(normal,xprime)
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
     
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = list(coords.shape)[:-1] + [1]
     Jx = np.tile(xprime,tile_shape)
     Jy = np.tile(yprime,tile_shape)
     
-    Px = np.sum(Jx*vectors,axis=-1)
-    Py = np.sum(Jy*vectors,axis=-1)
+    Px = np.sum(Jx*coords,axis=-1)
+    Py = np.sum(Jy*coords,axis=-1)
     
     return np.arctan2(Py,Px)
 
-def get_cyl_r_component(vectors, center, normal):
-    # The cross product of the normal (J) with a vector
+def get_cyl_r(coords, center, normal):
+    # The cross product of the normal (J) with a coordinate vector
     # gives a vector of magnitude equal to the cylindrical radius.
 
-    tile_shape = list(vector.shape)[:-1] + [1]
+    tile_shape = list(coords.shape)[:-1] + [1]
     J = np.tile(normal, tile_shape)
     
-    JcrossVectors = np.cross(J, vectors)
-    return np.sqrt(np.sum(JcrossVectors**2, axis=-1))
+    JcrossCoords = np.cross(J, coords)
+    return np.sqrt(np.sum(JcrossCoords**2, axis=-1))
 
-def get_cyl_z_component(vectors, center, normal):
-    # The dot product of the normal (J) with the vector gives
-    # the cylindrical height.
+def get_cyl_z(coords, center, normal):
+    # The dot product of the normal (J) with the coordinate vector 
+    # gives the cylindrical height.
     
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = list(coords.shape)[:-1] + [1]
     J = np.tile(normal, tile_shape)
 
-    return np.sum(J*vectors, axis=-1)  
+    return np.sum(J*coords, axis=-1)  
 
-def get_cyl_theta_component(vectors, center, normal):
+def get_cyl_theta(coords, center, normal):
     # This is identical to the spherical phi component
 
-    return get_sph_phi_component(vectors, center, normal):
+    return get_sph_phi(coords, center, normal)
+
+
+def get_cyl_r_component(vectors, coords, center, normal):
+    # The r of a vector is the vector dotted with rhat
+
+    theta = np.tile(get_cyl_theta(coords, center, normal), (3,1)).transpose()
+
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
+
+    tile_shape = list(vectors.shape)[:-1] + [1]
+    Jx = np.tile(xprime,tile_shape)
+    Jy = np.tile(yprime,tile_shape)
+
+    rhat = Jx*np.cos(theta) + Jy*np.sin(theta)
+
+    return np.sum(vectors*rhat,axis=-1)
+
+def get_cyl_theta_component(vectors, coords, center, normal):
+    # The theta component of a vector is the vector dotted with thetahat
+    
+    theta = np.tile(get_cyl_theta(coords, center, normal), (3,1)).transpose()
+
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
+
+    tile_shape = list(vectors.shape)[:-1] + [1]
+    Jx = np.tile(xprime,tile_shape)
+    Jy = np.tile(yprime,tile_shape)
+
+    thetahat = -Jx*np.sin(theta) + Jy*np.cos(theta)
+
+    return np.sum(vectors*thetahat, axis=-1)
+
+def get_cyl_z_component(vectors, center, normal):
+    # The z component of a vector is the vector dotted with zhat
+
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
+
+    tile_shape = list(vectors.shape)[:-1] + [1]
+    zhat = np.tile(zprime, tile_shape)
+
+    return np.sum(vectors*zhat, axis=-1)
+
+def get_sph_r_component(vectors, coords, center, normal):
+    # The r component of a vector is the vector dotted with rhat
+    
+    theta = get_sph_theta(coords, center, normal)
+    phi = get_sph_phi(coords, center, normal)
+    
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
+
+    tile_shape = list(vectors.shape)[:-1] + [1]
+    Jx = np.tile(xprime,tile_shape)
+    Jy = np.tile(yprime,tile_shape)
+    Jz = np.tile(zprime,tile_shape)
+
+    rhat = Jx*np.sin(theta)*np.cos(phi) + \
+           Jy*np.sin(theta)*np.sin(phi) + \
+           Jz*np.cos(theta)
+
+    return np.sum(vectors*rhat, axis=-1)
+
+def get_sph_phi_component(vectors, coords, center, normal):
+    # The phi component of a vector is the vector dotted with phihat
+
+    phi = get_sph_phi(coords, center, normal)
+
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
+
+    tile_shape = list(vectors.shape)[:-1] + [1]
+    Jx = np.tile(xprime,tile_shape)
+    Jy = np.tile(yprime,tile_shape)
+
+    phihat = -Jx*np.sin(phi) + Jy*np.cos(phi)
+
+    return np.sum(vectors*phihat, axis=-1)
+
+def get_sph_theta_component(vectors, coords, center, normal):
+    # The theta component of a vector is the vector dotted with thetahat
+    
+    theta = get_sph_theta(coords, center, normal)
+    phi = get_sph_phi(coords, center, normal)
+    
+    (xprime, yprime, zprime) = get_ortho_basis(normal)
+
+    tile_shape = list(vectors.shape)[:-1] + [1]
+    Jx = np.tile(xprime,tile_shape)
+    Jy = np.tile(yprime,tile_shape)
+    Jz = np.tile(zprime,tile_shape)
+
+    thetahat = Jx*np.cos(theta)*np.cos(phi) + \
+               Jy*np.cos(theta)*np.sin(theta) - \
+               Jz*np.sin(theta)
+
+    return np.sum(vectors*thetahat, axis=-1)
