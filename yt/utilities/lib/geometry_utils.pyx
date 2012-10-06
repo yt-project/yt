@@ -338,3 +338,45 @@ def obtain_rvec(data):
                     rg[2,i,j,k] = zg[i,j,k] - c[2]
         return rg
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def obtain_rv_vec(data):
+    # This is just to let the pointers exist and whatnot.  We can't cdef them
+    # inside conditionals.
+    cdef np.ndarray[np.float64_t, ndim=1] vxf
+    cdef np.ndarray[np.float64_t, ndim=1] vyf
+    cdef np.ndarray[np.float64_t, ndim=1] vzf
+    cdef np.ndarray[np.float64_t, ndim=2] rvf
+    cdef np.ndarray[np.float64_t, ndim=3] vxg
+    cdef np.ndarray[np.float64_t, ndim=3] vyg
+    cdef np.ndarray[np.float64_t, ndim=3] vzg
+    cdef np.ndarray[np.float64_t, ndim=4] rvg
+    cdef np.float64_t bv[3]
+    cdef int i, j, k
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
+    if len(data['x-velocity'].shape) == 1:
+        # One dimensional data
+        vxf = data['x-velocity']
+        vyf = data['y-velocity']
+        vzf = data['z-velocity']
+        rvf = np.empty((3, vxf.shape[0]), 'float64')
+        for i in range(vxf.shape[0]):
+            rvf[0, i] = vxf[i] - bv[0]
+            rvf[1, i] = vyf[i] - bv[1]
+            rvf[2, i] = vzf[i] - bv[2]
+        return rvf
+    else:
+        # Three dimensional data
+        vxg = data['x']
+        vyg = data['y']
+        vzg = data['z']
+        rvg = np.empty((3, vxg.shape[0], vxg.shape[1], vxg.shape[2]), 'float64')
+        for i in range(vxg.shape[0]):
+            for j in range(vxg.shape[1]):
+                for k in range(vxg.shape[2]):
+                    rvg[0,i,j,k] = vxg[i,j,k] - bv[0]
+                    rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
+                    rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
+        return rvg

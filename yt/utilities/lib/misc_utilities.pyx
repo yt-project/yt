@@ -233,49 +233,6 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def obtain_rvec(data):
-    # This is just to let the pointers exist and whatnot.  We can't cdef them
-    # inside conditionals.
-    cdef np.ndarray[np.float64_t, ndim=1] xf
-    cdef np.ndarray[np.float64_t, ndim=1] yf
-    cdef np.ndarray[np.float64_t, ndim=1] zf
-    cdef np.ndarray[np.float64_t, ndim=2] rf
-    cdef np.ndarray[np.float64_t, ndim=3] xg
-    cdef np.ndarray[np.float64_t, ndim=3] yg
-    cdef np.ndarray[np.float64_t, ndim=3] zg
-    cdef np.ndarray[np.float64_t, ndim=4] rg
-    cdef np.float64_t c[3]
-    cdef int i, j, k
-    center = data.get_field_parameter("center")
-    c[0] = center[0]; c[1] = center[1]; c[2] = center[2]
-    if len(data['x'].shape) == 1:
-        # One dimensional data
-        xf = data['x']
-        yf = data['y']
-        zf = data['z']
-        rf = np.empty((3, xf.shape[0]), 'float64')
-        for i in range(xf.shape[0]):
-            rf[0, i] = xf[i] - c[0]
-            rf[1, i] = yf[i] - c[1]
-            rf[2, i] = zf[i] - c[2]
-        return rf
-    else:
-        # Three dimensional data
-        xg = data['x']
-        yg = data['y']
-        zg = data['z']
-        rg = np.empty((3, xg.shape[0], xg.shape[1], xg.shape[2]), 'float64')
-        for i in range(xg.shape[0]):
-            for j in range(xg.shape[1]):
-                for k in range(xg.shape[2]):
-                    rg[0,i,j,k] = xg[i,j,k] - c[0]
-                    rg[1,i,j,k] = yg[i,j,k] - c[1]
-                    rg[2,i,j,k] = zg[i,j,k] - c[2]
-        return rg
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] l_corner,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
