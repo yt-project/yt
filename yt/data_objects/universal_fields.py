@@ -191,7 +191,7 @@ add_field("ParticleVelocityMagnitude", function=_ParticleVelocityMagnitude,
 
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
-    velocities = obtain_rv_vec(data)
+    velocities = obtain_rv_vec(data).transpose()
     return np.sqrt(np.sum(velocities**2,axis=-1))
 add_field("VelocityMagnitude", function=_VelocityMagnitude,
           take_log=False, units=r"\rm{cm}/\rm{s}")
