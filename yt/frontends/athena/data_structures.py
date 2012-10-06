@@ -326,7 +326,12 @@ class AthenaStaticOutput(StaticOutput):
         refine_by = None
         if refine_by is None: refine_by = 2
         self.refine_by = refine_by
-        self.dimensionality = 3
+        dimensionality = 3
+        if grid['dimensions'][2] == 1 :
+            dimensionality = 2
+        if grid['dimensions'][1] == 1 :
+            dimensionality = 1
+        self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self._handle.__hash__()
         self.cosmological_simulation = False
@@ -334,7 +339,9 @@ class AthenaStaticOutput(StaticOutput):
         self.field_ordering = 'fortran'
         self.boundary_conditions = [1]*6
 
-        self.nvtk = int(np.product(self.domain_dimensions/(grid['dimensions']-1)))
+        ND = self.dimensionality
+        print ND
+        self.nvtk = int(np.product(self.domain_dimensions[:ND]/(grid['dimensions'][:ND]-1)))
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
