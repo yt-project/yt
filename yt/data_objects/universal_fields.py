@@ -938,6 +938,25 @@ add_field("CuttingPlaneVelocityY",
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
 
+def _CuttingPlaneBx(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    return np.dot(x_vec, b_vec)
+add_field("CuttingPlaneBx", 
+          function=_CuttingPlaneBx,
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{Gauss}")
+def _CuttingPlaneBy(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    return np.dot(y_vec, b_vec)
+add_field("CuttingPlaneBy", 
+          function=_CuttingPlaneBy,
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{Gauss}")
+
 def _MeanMolecularWeight(field,data):
     return (data["Density"] / (mh *data["NumberDensity"]))
 add_field("MeanMolecularWeight",function=_MeanMolecularWeight,units=r"")
@@ -975,12 +994,37 @@ def _MagneticEnergy(field,data):
     units of Gauss. If you use MKS, make sure to write your own
     MagneticEnergy field to deal with non-unitary \mu_0.
     """
-    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/2.
+    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/(8*np.pi)
 add_field("MagneticEnergy",function=_MagneticEnergy,
-          units=r"",
-          validators = [ValidateDataField("Bx"),
-                        ValidateDataField("By"),
-                        ValidateDataField("Bz")])
+          units=r"\rm{ergs}\/\rm{cm}^{-3}",
+          display_name=r"\rm{Magnetic}\/\rm{Energy}")
+
+def _BMagnitude(field,data):
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    BMagnitude field to deal with non-unitary \mu_0.
+    """
+    return np.sqrt((data["Bx"]**2 + data["By"]**2 + data["Bz"]**2))
+add_field("BMagnitude",
+          function=_BMagnitude,
+          display_name=r"|B|", units=r"\rm{Gauss}")
+
+def _PlasmaBeta(field,data):
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    PlasmaBeta field to deal with non-unitary \mu_0.
+    """
+    return data['Pressure']/data['MagneticEnergy']
+add_field("PlasmaBeta",
+          function=_PlasmaBeta,
+          display_name=r"\rm{Plasma}\/\beta", units="")
+
+def _MagneticPressure(field,data):
+    return data['MagneticEnergy']
+add_field("MagneticPressure",
+          function=_MagneticPressure,
+          display_name=r"\rm{Magnetic}\/\rm{Energy}",
+          units="\rm{ergs}\/\rm{cm}^{-3}")
 
 def _VorticitySquared(field, data):
     mylog.debug("Generating vorticity on %s", data)

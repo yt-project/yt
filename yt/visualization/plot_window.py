@@ -1,4 +1,3 @@
-
 """
 A plotting mechanism based on the idea of a "window" into the data.
 
@@ -44,11 +43,11 @@ from .image_writer import \
     write_image, apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer
+    ObliqueFixedResolutionBuffer, \
+    OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
-from .volume_rendering.api import off_axis_projection
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
 
@@ -108,7 +107,10 @@ class CallbackWrapper(object):
         self.pf = frb.pf
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
-        self._type_name = ''
+        if 'Cutting' in self.data.__class__.__name__:
+            self._type_name = "CuttingPlane"
+        else:
+            self._type_name = ''
 
 class FieldTransform(object):
     def __init__(self, name, func, locator):
@@ -192,6 +194,7 @@ def GetOffAxisBoundsAndCenter(normal, center, width, pf, unit='1',depth=None):
         (normal,perp1,perp2) = ortho_find(normal)
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
+        width = width
     
         bounds = [-width[0]/2, width[0]/2, -width[1]/2, width[1]/2]
     else:
@@ -258,26 +261,14 @@ class PlotWindow(object):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
-        bounds = self.xlim+self.ylim
-        class_name = self.data_source.__class__.__name__
-        if 'OffAxisProjection' in class_name:
-            self._frb = OffAxisProjectionDummyFRB(self.data_source,
-                                                  bounds, self.buff_size,
-                                                  self.antialias,
-                                                  periodic=self._periodic)
-        elif 'Cutting' in class_name:
-            self._frb = ObliqueFixedResolutionBuffer(self.data_source, 
-                                                     bounds, self.buff_size, 
-                                                     self.antialias, 
-                                                     periodic=self._periodic)
-        elif 'AMRQuadTreeProj' in class_name or 'Slice' in class_name:
-            self._frb = FixedResolutionBuffer(self.data_source, 
-                                              bounds, self.buff_size, 
-                                              self.antialias, 
-                                              periodic=self._periodic)
+        if hasattr(self,'zlim'):
+            bounds = self.xlim+self.ylim+self.zlim
         else:
-            pdb.set_trace()
-            raise RuntimeError("Failed to repixelize.")
+            bounds = self.xlim+self.ylim
+        self._frb = self._frb_generator(self.data_source,
+                                        bounds, self.buff_size,
+                                        self.antialias,
+                                        periodic=self._periodic)
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:
@@ -318,6 +309,7 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
+                    
 
     @invalidate_data
     def pan(self, deltas):
@@ -364,12 +356,16 @@ class PlotWindow(object):
             dy = bounds[3] - bounds[2]
             self.xlim = (self.center[0] - dx/2., self.center[0] + dx/2.)
             self.ylim = (self.center[1] - dy/2., self.center[1] + dy/2.)
-            mylog.info("xlim = %f %f" %self.xlim)
-            mylog.info("ylim = %f %f" %self.ylim)
         else:
-            self.xlim = bounds[0:2]
-            self.ylim = bounds[2:4]
-            
+            self.xlim = tuple(bounds[0:2])
+            self.ylim = tuple(bounds[2:4])
+            if len(bounds) == 6:
+                self.zlim = tuple(bounds[4:6])
+        mylog.info("xlim = %f %f" %self.xlim)
+        mylog.info("ylim = %f %f" %self.ylim)
+        if hasattr(self,'zlim'):
+            mylog.info("zlim = %f %f" %self.zlim)
+
     @invalidate_data
     def set_width(self, width, unit = '1'):
         """set the width of the plot window
@@ -415,13 +411,19 @@ class PlotWindow(object):
         width = (Wx,Wy)
         width = [w / self.pf[unit] for w in width]
 
-        centerx = (self.xlim[1] + self.xlim[0])/2 
-        centery = (self.ylim[1] + self.ylim[0])/2 
+        centerx = (self.xlim[1] + self.xlim[0])/2.
+        centery = (self.ylim[1] + self.ylim[0])/2. 
         
         self.xlim = (centerx - width[0]/2.,
                      centerx + width[0]/2.)
         self.ylim = (centery - width[1]/2.,
                      centery + width[1]/2.)
+        
+        if hasattr(self,'zlim'):
+            centerz = (self.zlim[1] + self.zlim[0])/2.
+            mw = max(width)
+            self.zlim = (centerz - mw/2.,
+                         centerz + mw/2.)
         
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -753,8 +755,8 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{'+axis_labels[axis_index][i]+
                         axes_unit_label + r'}$' for i in (0,1)]
             else:
-                labels = [r'$\rm{x'+axes_unit_label+'}$',
-                          r'$\rm{y'+axes_unit_label+'}$']
+                labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
+                          r'$\rm{Image\/y'+axes_unit_label+'}$']
 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
@@ -850,16 +852,9 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         axis = axis_names[self.data_source.axis]
         weight = None
-        if 'Slice' in self.data_source.__class__.__name__:
-            type = 'Slice'
-        if 'Proj' in self.data_source.__class__.__name__:
-            if 'OffAxis' in self.data_source.__class__.__name__:
-                type = 'OffAxisProjection'
-            else:
-                type = 'Projection'
+        type = self._plot_type
+        if type in ['Projection','OffAxisProjection']:
             weight = self.data_source.weight_field
-        if 'Cutting' in self.data_source.__class__.__name__:
-            type = 'OffAxisSlice'
         names = []
         for k, v in self.plots.iteritems():
             if axis:
@@ -907,6 +902,9 @@ class PWViewerMPL(PWViewer):
             raise YTNotInsideNotebook
 
 class SlicePlot(PWViewerMPL):
+    _plot_type = 'Slice'
+    _frb_generator = FixedResolutionBuffer
+
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window'):
         r"""Creates a slice plot from a parameter file
@@ -982,6 +980,9 @@ class SlicePlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
+    _plot_type = 'Projection'
+    _frb_generator = FixedResolutionBuffer
+
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window'):
         r"""Creates a projection plot from a parameter file
@@ -1061,6 +1062,9 @@ class ProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
+    _plot_type = 'OffAxisSlice'
+    _frb_generator = ObliqueFixedResolutionBuffer
+
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  axes_unit=None, north_vector=None):
         r"""Creates an off axis slice plot from a parameter file
@@ -1108,32 +1112,10 @@ class OffAxisSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
         self.set_axes_unit(axes_unit)
 
-class OffAxisProjectionDummyFRB(FixedResolutionBuffer):
-    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
-                 periodic = False):
-        self.internal_dict = {}
-        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
-
-    def __getitem__(self, item):
-        try:
-            image = self.internal_dict[item]
-        except KeyError:
-            ds = self.data_source
-            image = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
-                                        ds.width, ds.resolution, item,
-                                        weight=ds.weight_field, volume=ds.volume,
-                                        no_ghost=ds.no_ghost, interpolated=ds.interpolated,
-                                        north_vector=ds.north_vector)
-            self.internal_dict[item] = image.T
-        return image
-    
-    def _get_data_source_fields(self):
-        for f in self.data_source.fields:
-            self[f] = None
-
 class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
     proj_style = 'integrate'
+    _key_fields = []
     def __init__(self, center, pf, normal_vector, width, fields, 
                  interpolated, resolution = (800,800), weight=None,  
                  volume=None, no_ghost=False, le=None, re=None, 
@@ -1154,6 +1136,9 @@ class OffAxisProjectionDummyDataSource(object):
         self.north_vector = north_vector
 
 class OffAxisProjectionPlot(PWViewerMPL):
+    _plot_type = 'OffAxisProjection'
+    _frb_generator = OffAxisProjectionFixedResolutionBuffer
+
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  depth=(1,'unitary'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
@@ -1204,7 +1189,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
             set, an arbitrary grid-aligned north-vector is chosen.
 
         """
-        self.OffAxisProjection = True
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf,depth=depth)
         # Hard-coding the resolution for now
         fields = ensure_list(fields)[:]
