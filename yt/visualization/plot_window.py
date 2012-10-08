@@ -828,11 +828,14 @@ class PWViewerMPL(PWViewer):
         >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
 
         """
+        names = []
+        if mpl_kwargs is None: mpl_kwargs = {}
         if name == None:
             name = str(self.pf)
         elif name.endswith('.png'):
-            return v.save(name)
-        if mpl_kwargs is None: mpl_kwargs = {}
+            for k, v in self.plots.iteritems():
+                names.append(v.save(name,mpl_kwargs))
+            return names
         axis = axis_names[self.data_source.axis]
         weight = None
         if 'Slice' in self.data_source.__class__.__name__:
@@ -842,7 +845,6 @@ class PWViewerMPL(PWViewer):
             weight = self.data_source.weight_field
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        names = []
         for k, v in self.plots.iteritems():
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
