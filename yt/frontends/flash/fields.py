@@ -98,7 +98,10 @@ for fn1, fn2 in translation_dict.items():
     if fn1.endswith("_Fraction"):
         add_field(fn1.split("_")[0] + "_Density",
                   function=_get_density(fn1), take_log=True,
-                  display_name="%s\/Density" % fn1.split("_")[0])
+                  display_name="%s\/Density" % fn1.split("_")[0],
+                  units = r"\rm{g}/\rm{cm}^3",
+                  projected_units = r"\rm{g}/\rm{cm}^2",
+                  )
 
 def _get_convert(fname):
     def _conv(data):
@@ -107,7 +110,8 @@ def _get_convert(fname):
 
 add_flash_field("dens", function=NullFunc, take_log=True,
                 convert_function=_get_convert("dens"),
-                units=r"\rm{g}/\rm{cm}^3")
+                units=r"\rm{g}/\rm{cm}^3",
+                projected_units = r"\rm{g}/\rm{cm}^2"),
 add_flash_field("velx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("velx"),
                 units=r"\rm{cm}/\rm{s}")
@@ -204,6 +208,7 @@ for f,v in translation_dict.items():
     add_field(f, TranslationFunc(v),
               take_log=KnownFLASHFields[v].take_log,
               units = ff._units, display_name=dname,
+              projected_units = ff._projected_units,
               particle_type = pfield)
 
 def _convertParticleMassMsun(data):
