@@ -420,8 +420,10 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     else:
         dpi = None
 
-    if filename[-4:] == '.png':
-        suffix = ''
+    if filename[-4:] in ['.png','.pdf','.eps']:
+        suffix = filename[-4:]
+    elif filename[-3:] == ['.ps']:
+        suffix = filename[-3:]
     else:
         suffix = '.png'
         filename = "%s%s" % (filename, suffix)
@@ -432,9 +434,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):
         canvas = FigureCanvasPS
-    else:
-        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas = FigureCanvasAgg(fig)
     canvas.print_figure(filename)
     return filename
 
