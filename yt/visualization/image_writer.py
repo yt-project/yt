@@ -379,7 +379,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          take_log=True)
     """
     import matplotlib
-    from ._mpl_imports import *
+    from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.
     if take_log:
@@ -427,14 +427,14 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     else:
         suffix = '.png'
         filename = "%s%s" % (filename, suffix)
-    mylog.info("Saving plot %s", fn)
+    mylog.info("Saving plot %s", filename)
     if suffix == ".png":
         canvas = FigureCanvasAgg(fig)
     elif suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):
         canvas = FigureCanvasPS
-    canvas.print_figure(filename)
+    canvas.print_figure(canvas,filename)
     return filename
 
 
