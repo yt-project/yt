@@ -216,3 +216,22 @@ class MinimalProjectDescription(MinimalRepresentation):
         metadata = self._attrs
         chunks = []
         return (metadata, ("chunks", []))
+
+class MinimalNotebook(MinimalRepresentation):
+    type = "notebook"
+    _attr_list = ("title",)
+
+    def __init__(self, filename, title = None):
+        # First we read in the data
+        if not os.path.isfile(filename):
+            raise IOError(filename)
+        self.data = open(filename).read()
+        if title is None:
+            title = json.loads(self.data)['metadata']['name']
+        self.title = title
+        self.data = na.fromstring(self.data, dtype='c')
+
+    def _generate_post(self):
+        metadata = self._attrs
+        chunks = [ ("notebook", self.data) ]
+        return (metadata, ("chunks", chunks))
