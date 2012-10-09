@@ -434,7 +434,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):
         canvas = FigureCanvasPS
-    canvas.print_figure(canvas,filename)
+    canvas.print_figure(filename)
     return filename
 
 
