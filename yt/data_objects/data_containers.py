@@ -855,6 +855,17 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for field in temp_data.keys():
             self[field] = temp_data[field]
 
+    def _get_pw_params(self, fields, center, width):
+        axis = self.axis
+        if fields == None:
+            if self.fields == None:
+                raise SyntaxError("The fields keyword argument must be set")
+        else:
+            self.fields = ensure_list(fields)
+        from yt.visualization.plot_window import GetBoundsAndCenter
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        return bounds
+
     def to_frb(self, width, resolution, center=None, height=None):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
@@ -915,26 +926,6 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                   center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
-
-    def to_pw(self):
-        r"""Create a :class:`~yt.visualization.plot_window.PlotWindow` from this
-        object.
-
-        This is a bare-bones mechanism of creating a plot window from this
-        object, which can then be moved around, zoomed, and on and on.  All
-        behavior of the plot window is relegated to that routine.
-        """
-        axis = self.axis
-        center = self.get_field_parameter("center")
-        if center is None:
-            center = (self.pf.domain_right_edge
-                    + self.pf.domain_left_edge)/2.0
-        width = (1.0, 'unitary')
-        from yt.visualization.plot_window import \
-            PWViewerMPL, GetBoundsAndCenter
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
-        pw = PWViewerMPL(self, bounds)
-        return pw
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
         """
@@ -1193,6 +1184,23 @@ class AMRSliceBase(AMR2DData):
     def hub_upload(self):
         self._mrep.upload()
 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        bounds = self._get_pw_params(fields, center, width)
+        from yt.visualization.plot_window import PWViewerMPL
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
+                         plot_type='Slice')
+        pw.set_axes_unit(axes_unit)
+        return pw
+
 class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -1354,6 +1362,30 @@ class AMRCuttingPlaneBase(AMR2DData):
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
+
+    def to_pw(self, fields, center='c', width=None, axes_unit=None):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        normal = self.normal
+        center = self.center
+        if fields == None:
+            if self.fields == None:
+                raise SyntaxError("The fields keyword argument must be set")
+        else:
+            self.fields = ensure_list(fields)
+        from yt.visualization.plot_window import \
+            GetOffAxisBoundsAndCenter, PWViewerMPL
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        (bounds, center_rot) = GetOffAxisBoundsAndCenter(normal, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds, origin='center-window', periodic=False, oblique=True,
+                         frb_generator=ObliqueFixedResolutionBuffer, plot_type='OffAxisSlice')
+        pw.set_axes_unit(axes_unit)
+        return pw
 
     def to_frb(self, width, resolution, height=None):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
@@ -2253,6 +2285,23 @@ class AMRProjBase(AMR2DData):
 
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass
+
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        bounds = self._get_pw_params(fields, center, width)
+        from yt.visualization.plot_window import PWViewerMPL
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
+                         plot_type='Projection')
+        pw.set_axes_unit(axes_unit)
+        return pw
 
     def _project_grid(self, grid, fields, zero_out):
         # We split this next bit into two sections to try to limit the IO load
