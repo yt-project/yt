@@ -1363,7 +1363,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
 
-    def to_pw(self, fields, center='c', width=None, axes_unit=None):
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
