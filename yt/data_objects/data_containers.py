@@ -855,16 +855,21 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for field in temp_data.keys():
             self[field] = temp_data[field]
 
-    def _get_pw_params(self, fields, center, width):
+    def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
         axis = self.axis
         if fields == None:
             if self.fields == None:
                 raise SyntaxError("The fields keyword argument must be set")
         else:
             self.fields = ensure_list(fields)
-        from yt.visualization.plot_window import GetBoundsAndCenter
+        from yt.visualization.plot_window import \
+            GetBoundsAndCenter, PWViewerMPL
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
-        return bounds
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
+                         plot_type=plot_type)
+        pw.set_axes_unit(axes_unit)
+        return pw
 
     def to_frb(self, width, resolution, center=None, height=None):
         r"""This function returns a FixedResolutionBuffer generated from this
@@ -1193,12 +1198,7 @@ class AMRSliceBase(AMR2DData):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        bounds = self._get_pw_params(fields, center, width)
-        from yt.visualization.plot_window import PWViewerMPL
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
-                         plot_type='Slice')
-        pw.set_axes_unit(axes_unit)
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Slice')
         return pw
 
 class AMRCuttingPlaneBase(AMR2DData):
@@ -1794,6 +1794,18 @@ class AMRQuadTreeProjBase(AMR2DData):
             convs[:] = 1.0
         return dls, convs
 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
+        return pw
+
     def get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
@@ -2295,12 +2307,7 @@ class AMRProjBase(AMR2DData):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        bounds = self._get_pw_params(fields, center, width)
-        from yt.visualization.plot_window import PWViewerMPL
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
-                         plot_type='Projection')
-        pw.set_axes_unit(axes_unit)
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
         return pw
 
     def _project_grid(self, grid, fields, zero_out):
