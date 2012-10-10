@@ -340,7 +340,6 @@ class AthenaStaticOutput(StaticOutput):
         self.boundary_conditions = [1]*6
 
         ND = self.dimensionality
-        print ND
         self.nvtk = int(np.product(self.domain_dimensions[:ND]/(grid['dimensions'][:ND]-1)))
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \

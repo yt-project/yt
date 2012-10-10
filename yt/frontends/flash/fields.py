@@ -36,7 +36,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    kboltz
+    kboltz, mh
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
