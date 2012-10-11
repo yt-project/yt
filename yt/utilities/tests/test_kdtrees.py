@@ -70,7 +70,7 @@ def test_fortran_tree():
     assert_array_equal(fKD.tags, tags)
 
 def test_cython_tree():
-    # This test makes sure that the fortran kdtree is finding the correct
+    # This test makes sure that the cython kdtree is finding the correct
     # nearest neighbors.
     # Four points.
     pos = np.empty((4, 3), dtype='float64')
