@@ -31,13 +31,13 @@ BRANCH="yt" # This is the branch to which we will forcibly update.
 
 INST_HG=1       # Install Mercurial or not?  If hg is not already
                 # installed, yt cannot be installed.
-INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
+INST_ZLIB=0     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
 INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
-INST_FTYPE=1    # Install FreeType2 locally?
+INST_FTYPE=0    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
@@ -220,11 +220,24 @@ function host_specific
         echo "  * libncurses5-dev"
         echo "  * zip"
         echo "  * uuid-dev"
+        echo "  * libfreetype6-dev"
+        echo "  * tk-dev"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev"
         echo
+        echo
+        echo " Additionally, if you want to put yt's lib dir in your LD_LIBRARY_PATH"
+        echo " so you can use yt without the activate script, you might "
+        echo " want to consider turning off LIBZ and FREETYPE in this"
+        echo " install script by editing this file and setting"
+        echo
+        echo " INST_ZLIB=0"
+        echo " INST_FTYPE=0"
+        echo 
+        echo " to avoid conflicts with other command-line programs "
+        echo " (like eog and evince, for example)."
     fi
     if [ ! -z "${CFLAGS}" ]
     then
