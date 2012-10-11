@@ -220,11 +220,24 @@ function host_specific
         echo "  * libncurses5-dev"
         echo "  * zip"
         echo "  * uuid-dev"
+        echo "  * libfreetype6-dev"
+        echo "  * tk-dev"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev"
         echo
+        echo
+        echo " Additionally, if you want to put yt's lib dir in your LD_LIBRARY_PATH"
+        echo " so you can use yt without the activate script, you might "
+        echo " want to consider turning off LIBZ and FREETYPE in this"
+        echo " install script by editing this file and setting"
+        echo
+        echo " INST_ZLIB=0"
+        echo " INST_FTYPE=0"
+        echo 
+        echo " to avoid conflicts with other command-line programs "
+        echo " (like eog and evince, for example)."
     fi
     if [ ! -z "${CFLAGS}" ]
     then

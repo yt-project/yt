@@ -695,6 +695,15 @@ class PWViewerMPL(PWViewer):
 
     """
     _current_field = None
+    _frb_generator = None
+    _plot_type = None
+
+    def __init__(self, *args, **kwargs):
+        if self._frb_generator == None:
+            self._frb_generator = kwargs.pop("frb_generator")
+        if self._plot_type == None:
+            self._plot_type = kwargs.pop("plot_type")
+        PWViewer.__init__(self, *args, **kwargs)
 
     def _setup_plots(self):
         if self._current_field is not None:
@@ -849,7 +858,8 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         if name == None:
             name = str(self.pf)
-        elif name.endswith('.png'):
+        suffix = os.path.splitext(name)[1]
+        if suffix != '':
             for k, v in self.plots.iteritems():
                 names.append(v.save(name,mpl_kwargs))
             return names
@@ -1224,6 +1234,7 @@ class PWViewerExtJS(PWViewer):
     _ext_widget_id = None
     _current_field = None
     _widget_name = "plot_window"
+    _frb_generator = FixedResolutionBuffer
 
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
@@ -1401,24 +1412,25 @@ class PlotMPL(object):
             self.cax = self.figure.add_axes(caxrect)
             
     def save(self, name, mpl_kwargs, canvas = None):
-        if name[-4:] == '.png':
-            suffix = ''
-        else:
+        suffix = os.path.splitext(name)[1]
+        
+        if suffix == '':
             suffix = '.png'
-        fn = "%s%s" % (name, suffix)
-        mylog.info("Saving plot %s", fn)
-        if canvas is None:
-            if suffix == ".png":
-                canvas = FigureCanvasAgg(self.figure)
-            elif suffix == ".pdf":
-                canvas = FigureCanvasPdf(self.figure)
-            elif suffix in (".eps", ".ps"):
-                canvas = FigureCanvasPS
-            else:
-                mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-                canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(fn,**mpl_kwargs)
-        return fn
+            name = "%s%s" % (name, suffix)
+        mylog.info("Saving plot %s", name)
+        if suffix == ".png":
+            canvas = FigureCanvasAgg(self.figure)
+        elif suffix == ".pdf":
+            canvas = FigureCanvasPdf(self.figure)
+        elif suffix in (".eps", ".ps"):
+            canvas = FigureCanvasPS(self.figure)
+        else:
+            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+            canvas = FigureCanvasAgg(self.figure)
+
+
+        canvas.print_figure(name,**mpl_kwargs)
+        return name
 
     def _get_best_layout(self, size):
         aspect = 1.0*size[0]/size[1]
