@@ -695,6 +695,15 @@ class PWViewerMPL(PWViewer):
 
     """
     _current_field = None
+    _frb_generator = None
+    _plot_type = None
+
+    def __init__(self, *args, **kwargs):
+        if self._frb_generator == None:
+            self._frb_generator = kwargs.pop("frb_generator")
+        if self._plot_type == None:
+            self._plot_type = kwargs.pop("plot_type")
+        PWViewer.__init__(self, *args, **kwargs)
 
     def _setup_plots(self):
         if self._current_field is not None:
