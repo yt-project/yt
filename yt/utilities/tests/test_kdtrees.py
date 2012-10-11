@@ -67,7 +67,7 @@ def test_fortran_tree():
     dist = np.array([2.43e-04, 3.63e-04, 1.083e-03, 7.47003e-01])
     tags = np.array([3, 0, 2, 1], dtype='int64')
     assert_array_almost_equal(fKD.dist, dist)
-    assert_array_almost_equal(fKD.tags, tags)
+    assert_array_equal(fKD.tags, tags)
 
 def test_cython_tree():
     # This test makes sure that the fortran kdtree is finding the correct
@@ -87,5 +87,5 @@ def test_cython_tree():
     dist = np.array([2.43e-04, 3.63e-04, 1.083e-03, 7.47003e-01])
     tags = np.array([3, 0, 2, 1], dtype='int64')
     assert_array_almost_equal(res[0], dist)
-    assert_array_almost_equal(res[1], tags)
+    assert_array_equal(res[1], tags)
 
