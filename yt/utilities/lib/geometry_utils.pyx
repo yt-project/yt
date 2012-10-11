@@ -355,6 +355,8 @@ def obtain_rv_vec(data):
     cdef np.float64_t bv[3]
     cdef int i, j, k
     bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = np.zeros(3)
     bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
     if len(data['x-velocity'].shape) == 1:
         # One dimensional data
