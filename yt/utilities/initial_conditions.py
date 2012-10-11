@@ -23,7 +23,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-class TopHatSphere(object):
+class FluidOperator(object):
+    def apply(self, pf):
+        for g in pf.h.grids: self(g)
+
+class TopHatSphere(FluidOperator):
     def __init__(self, radius, center, value, field = "Density"):
         self.radius = radius
         self.center = center
@@ -37,6 +41,3 @@ class TopHatSphere(object):
         np.sqrt(r, r)
         ind = (r <= self.radius)
         grid[self.field][ind] += self.value
-
-    def apply(self, pf):
-        for g in pf.h.grids: self(g)
