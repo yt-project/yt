@@ -698,6 +698,57 @@ class PWViewerMPL(PWViewer):
     """
     _current_field = None
 
+    def _setup_origin(self):
+        origin = self.origin
+        axis_index = self.data_source.axis
+        if isinstance(origin, basestring):
+            origin = tuple(origin.split('-'))[:3]
+        if 1 == len(origin):
+            origin = ('lower', 'left') + origin
+        elif 2 == len(origin) and origin[0] in set(['left','right','center']):
+            o0map = {'left': 'lower', 'right': 'upper', 'center': 'center'}
+            origin = (o0map[origin[0]],) + origin
+        elif 2 == len(origin) and origin[0] in set(['lower','upper','center']):
+            origin = (origin[0], 'center', origin[-1])
+        assert origin[-1] in ['window', 'domain']
+
+        if origin[2] == 'window':
+            xllim, xrlim = self.xlim
+            yllim, yrlim = self.ylim
+        elif origin[2] == 'domain':
+            xllim = self.pf.domain_left_edge[x_dict[axis_index]]
+            xrlim = self.pf.domain_right_edge[x_dict[axis_index]]
+            yllim = self.pf.domain_left_edge[y_dict[axis_index]]
+            yrlim = self.pf.domain_right_edge[y_dict[axis_index]]
+        else:
+            msg = ('origin keyword "{0}" not recognized, must have "domain" '
+                   'or "center" in last place.').format(self.origin)
+            raise RuntimeError(msg)
+
+        if origin[0] == 'lower':
+            yc = yllim
+        elif origin[0] == 'upper':
+            yc = yrlim
+        elif origin[0] == 'center':
+            yc = (yllim + yrlim)/2.0
+        else:
+            msg = ('origin keyword "{0}" not recognized, must have "lower" '
+                   '"upper" or "center" in first place.').format(self.origin)
+            raise RuntimeError(msg)
+
+        if origin[1] == 'left':
+            xc = xllim
+        elif origin[1] == 'right':
+            xc = xrlim
+        elif origin[1] == 'center':
+            xc = (xllim + xrlim)/2.0
+        else:
+            msg = ('origin keyword "{0}" not recognized, must have "left" '
+                   '"right" or "center" in second place.').format(self.origin)
+            raise RuntimeError(msg)
+
+        return xc, yc
+
     def _setup_plots(self):
         if self._current_field is not None:
             fields = [self._current_field]
@@ -708,20 +759,7 @@ class PWViewerMPL(PWViewer):
             md = self.get_metadata(f, strip_mathml = False, return_string = False)
             axis_index = self.data_source.axis
 
-            if self.origin == 'center-window':
-                xc = (self.xlim[0]+self.xlim[1])/2
-                yc = (self.ylim[0]+self.ylim[1])/2
-            elif self.origin == 'center-domain':
-                xc = (self.pf.domain_left_edge[x_dict[axis_index]]+
-                      self.pf.domain_right_edge[x_dict[axis_index]])/2
-                yc = (self.pf.domain_left_edge[y_dict[axis_index]]+
-                      self.pf.domain_right_edge[y_dict[axis_index]])/2
-            elif self.origin == 'left-domain':
-                xc = self.pf.domain_left_edge[x_dict[axis_index]]
-                yc = self.pf.domain_left_edge[y_dict[axis_index]]
-            else:
-                raise RuntimeError(
-                    'origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
+            xc, yc = self._setup_origin()
 
             extent = [self.xlim[i] - xc for i in (0,1)]
             extent.extend([self.ylim[i] - yc for i in (0,1)])
@@ -968,12 +1006,19 @@ class SlicePlot(PWViewerMPL):
             Defaults to None, which automatically picks an appropriate unit.
             If axes_unit is '1', 'u', or 'unitary', it will not display the 
             units, and only show the axes name.
-        origin : string
-             The location of the origin of the plot coordinate system.
-             Currently, can be set to three options: 'left-domain', corresponding
-             to the bottom-left hand corner of the simulation domain, 'center-domain',
-             corresponding the center of the simulation domain, or 'center-window' for 
-             the center of the plot window.
+        origin : string or length 1, 2, or 3 sequence of strings
+             The location of the origin of the plot coordinate system.  This is 
+             represented by '-' separated string or a tuple of strings.  In the
+             first index the y-location is given by 'lower', 'upper', or 'center'.
+             The second index is the x-location, given as 'left', 'right', or 
+             'center'.  Finally, the whether the origin is applied in 'domain' space
+             or plot 'window' space is given. For example, both 'upper-right-domain'
+             and ['upper', 'right', 'domain'] both place the origin in the upper
+             right hand corner of domain space. If x or y are not given, a value is 
+             inffered.  For instance, 'left-domain' corresponds to the lower-left 
+             hand corner of the simulation domain, 'center-domain' corresponds to the 
+             center of the simulation domain, or 'center-window' for the center of 
+             the plot window.
              
         Examples
         --------
@@ -1047,12 +1092,19 @@ class ProjectionPlot(PWViewerMPL):
             Defaults to None, which automatically picks an appropriate unit.
             If axes_unit is '1', 'u', or 'unitary', it will not display the 
             units, and only show the axes name.
-        origin : A string
-            The location of the origin of the plot coordinate system.
-            Currently, can be set to three options: 'left-domain', corresponding
-            to the bottom-left hand corner of the simulation domain, 'center-domain',
-            corresponding the center of the simulation domain, or 'center-window' for 
-            the center of the plot window.
+        origin : string or length 1, 2, or 3 sequence of strings
+             The location of the origin of the plot coordinate system.  This is 
+             represented by '-' separated string or a tuple of strings.  In the
+             first index the y-location is given by 'lower', 'upper', or 'center'.
+             The second index is the x-location, given as 'left', 'right', or 
+             'center'.  Finally, the whether the origin is applied in 'domain' space
+             or plot 'window' space is given. For example, both 'upper-right-domain'
+             and ['upper', 'right', 'domain'] both place the origin in the upper
+             right hand corner of domain space. If x or y are not given, a value is 
+             inffered.  For instance, 'left-domain' corresponds to the lower-left 
+             hand corner of the simulation domain, 'center-domain' corresponds to the 
+             center of the simulation domain, or 'center-window' for the center of 
+             the plot window.
         weight_field : string
             The name of the weighting field.  Set to None for no weight.
         max_level: int
