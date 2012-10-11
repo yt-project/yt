@@ -1225,6 +1225,7 @@ class PWViewerExtJS(PWViewer):
     _ext_widget_id = None
     _current_field = None
     _widget_name = "plot_window"
+    _frb_generator = FixedResolutionBuffer
 
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
