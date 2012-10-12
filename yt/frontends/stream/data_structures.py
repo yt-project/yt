@@ -353,7 +353,8 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
             psize = get_psize(np.array(data[key].shape), nprocs)
             grid_left_edges, grid_right_edges, temp[key] = \
                 decompose_array(data[key], psize, bbox)
-            grid_dimensions = np.array([grid.shape for grid in temp[key]])
+            grid_dimensions = np.array([grid.shape for grid in temp[key]],
+                                       dtype="int32")
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():
@@ -364,7 +365,7 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         sfh.update({0:data})
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
-        grid_dimensions = domain_dimensions.reshape(nprocs,3)
+        grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
 
     handler = StreamHandler(
         grid_left_edges,
