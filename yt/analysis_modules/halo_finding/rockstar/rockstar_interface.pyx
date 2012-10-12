@@ -310,7 +310,7 @@ cdef class RockstarInterface:
         self.data_source = data_source
 
     def setup_rockstar(self, char *server_address, char *server_port,
-                       int num_snaps, np.int64_t total_particles,
+                       int num_snaps, #np.int64_t total_particles,
                        int dm_type,
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
@@ -343,7 +343,7 @@ cdef class RockstarInterface:
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
-        TOTAL_PARTICLES = total_particles
+        #TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
         
         tpf = self.ts[0]

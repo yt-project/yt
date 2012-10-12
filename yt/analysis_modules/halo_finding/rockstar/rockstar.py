@@ -113,9 +113,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.comm.size > 1: 
             self.comm.barrier()            
         tpf = ts.__iter__().next()
-        dd = tpf.h.all_data()
-        total_particles = na.sum(dd['particle_type']==dm_type).astype('int64')
-        mylog.info("Found %i halo particles",total_particles)
+        def _particle_count(field,data):
+            return (data["particle_type"]==0).sum()
+        add_field("particle_count",function=_particle_count,particle_type=True)
+        #d = tpf.h.all_data()
+        #total_particles = dd.quantities['TotalQuantity']("particle_count")
+        #mylog.info("Found %i halo particles",total_particles)
         self.total_particles = -1
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
@@ -170,7 +173,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             raise NotImplementedError
         self._get_hosts()
         self.handler.setup_rockstar(self.server_address, self.port,
-                    len(self.ts), self.total_particles, self.dm_type,
+                    len(self.ts), #self.total_particles, 
+                    self.dm_type,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,

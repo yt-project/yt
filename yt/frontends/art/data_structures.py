@@ -127,8 +127,6 @@ class ARTGrid(AMRGridPatch):
             'particle_position_z':self.particle_position_z,
             'particle_age':self.particle_age,
             'particle_mass':self.particle_mass,
-            'particle_mass_initial':self.particle_mass_initial,
-            'particle_metallicity':self.particle_metallicity,
             'particle_velocity_x':self.particle_velocity_x,
             'particle_velocity_y':self.particle_velocity_y,
             'particle_velocity_z':self.particle_velocity_z,
@@ -142,7 +140,7 @@ class ARTGrid(AMRGridPatch):
             'star_velocity_y':self.star_velocity_y,
             'star_velocity_z':self.star_velocity_z,
             'star_age':self.star_age,
-            'star_metallicity':self.star_metallicity1 + grid.star_metallicity2,
+            'star_metallicity':self.star_metallicity1 + self.star_metallicity2,
             'star_metallicity1':self.star_metallicity1,
             'star_metallicity2':self.star_metallicity2,
             'star_mass_initial':self.star_mass_initial,
@@ -531,6 +529,7 @@ class ARTHierarchy(AMRHierarchy):
                     npa = clspecies[self.pf.only_particle_type]
                     npb = clspecies[self.pf.only_particle_type+1]
             nparticles = npb-npa
+            npt = nparticles
             #make sure we aren't going to throw out good particles
             if not np.all(self.pf.particle_position[npb:]==0.0):
                 print 'WARNING: unused particles discovered from lspecies'
@@ -544,14 +543,14 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_velocity   = self.pf.particle_velocity[npa:npb]
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
-            self.pf.particle_type         = np.zeros(np,dtype='uint8')
-            self.pf.particle_mass         = np.zeros(np,dtype='float64')
-            self.pf.particle_mass_initial = np.zeros(np,dtype='float64')-1
-            self.pf.particle_creation_time= np.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity  = np.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity1 = np.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity2 = np.zeros(np,dtype='float64')-1
-            self.pf.particle_age          = np.zeros(np,dtype='float64')-1
+            self.pf.particle_type         = np.zeros(nparticles,dtype='uint8')
+            self.pf.particle_mass         = np.zeros(nparticles,dtype='float64')
+            self.pf.particle_mass_initial = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_creation_time= np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_metallicity  = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_metallicity1 = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_metallicity2 = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_age          = np.zeros(nparticles,dtype='float64')-1
 
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
             self.pf.conversion_factors['particle_mass'] = 1.0 #solar mass in g
@@ -597,7 +596,7 @@ class ARTHierarchy(AMRHierarchy):
             do_stars = (self.pf.only_particle_type is None) or \
                        (self.pf.only_particle_type == -1) or \
                        (self.pf.only_particle_type == len(lspecies))
-            self.pf.do_stars = do_stars           
+            self.pf.do_stars = False
             if self.pf.file_star_data and do_stars: 
                 nstars_pa = nstars
                 (nstars_rs,), mass, imass, tbirth, metallicity1, metallicity2, \
