@@ -46,7 +46,7 @@ def test_fortran_tree():
     try:
         fKD.pos = np.empty((3, 4), dtype='float64', order='F')
     except NameError:
-        retur1n
+        return
     # Make four points by hand that, in particular, will allow us to test
     # the periodicity of the kdtree.
     points = np.array([0.01, 0.5, 0.98, 0.99])
