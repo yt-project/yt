@@ -364,10 +364,7 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor=6.0, nx=16, ny=16,
-                 xstart=(0,1), ystart=(0,1), nsample=256,
-                 start_at_xedge=False, start_at_yedge=False,
-                 plot_args=None):
+    def __init__(self, field_x, field_y, factor=16.0, density = 1, arrowsize=1, arrowstyle='-|>', color="#000000", normalize = False):
         """
         annotate_streamlines(field_x, field_y, factor=6.0, nx=16, ny=16,
                              xstart=(0,1), ystart=(0,1), nsample=256,
@@ -385,18 +382,13 @@ class StreamlineCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.xstart = xstart
-        self.ystart = ystart
-        self.nsample = nsample
+        self.bv_x = self.bv_y = 0
         self.factor = factor
-        if start_at_xedge:
-            self.data_size = (1,ny)
-        elif start_at_yedge:
-            self.data_size = (nx,1)
-        else:
-            self.data_size = (nx,ny)
-        if plot_args is None: plot_args = {'color':'k', 'linestyle':'-'}
-        self.plot_args = plot_args
+        self.dens = density
+        self.arrowsize = arrowsize
+        self.arrowstyle = arrowstyle
+        self.color = color
+        self.normalize = normalize
         
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -404,43 +396,29 @@ class StreamlineCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
+        nx = plot.image._A.shape[0] / self.factor
+        ny = plot.image._A.shape[1] / self.factor
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x],
+                             plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),)
+                           (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y],
+                             plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),)
-        r0 = np.mgrid[self.xstart[0]*nx:self.xstart[1]*nx:self.data_size[0]*1j,
-                      self.ystart[0]*ny:self.ystart[1]*ny:self.data_size[1]*1j]
-        lines = np.zeros((self.nsample, 2, self.data_size[0], self.data_size[1]))
-        lines[0,:,:,:] = r0
-        mag = np.sqrt(pixX**2 + pixY**2)
-        scale = np.sqrt(nx*ny) / (self.factor * mag.mean())
-        dt = 1.0 / (self.nsample-1)
-        for i in range(1,self.nsample):
-            xt = lines[i-1,0,:,:]
-            yt = lines[i-1,1,:,:]
-            ix = np.maximum(np.minimum((xt).astype('int'), nx-1), 0)
-            iy = np.maximum(np.minimum((yt).astype('int'), ny-1), 0)
-            lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
-            lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
-        # scale into data units
-        lines[:,0,:,:] = lines[:,0,:,:] * (xx1 - xx0) / nx + xx0
-        lines[:,1,:,:] = lines[:,1,:,:] * (yy1 - yy0) / ny + yy0
-        for i in range(self.data_size[0]):
-            for j in range(self.data_size[1]):
-                plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
-                                **self.plot_args)
+                           (x0, x1, y0, y1),).transpose()
+        X,Y = (na.linspace(xx0,xx1,nx,endpoint=True),
+                          na.linspace(yy0,yy1,ny,endpoint=True))
+        if self.normalize:
+            nn = na.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
+        plot._axes.streamplot(X,Y, pixX, pixY, density=self.dens, arrowsize=self.arrowsize, arrowstyle=self.arrowstyle, color=self.color, norm=self.normalize)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
