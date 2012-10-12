@@ -2,6 +2,10 @@ from yt.testing import *
 from yt.data_objects.profiles import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D
 
+def setup():
+    from yt.config import ytcfg
+    ytcfg["yt","__withintesting"] = "True"
+
 def test_projection():
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
