@@ -39,10 +39,14 @@ def setup():
     pass
 
 def test_fortran_tree():
-    # This test makes sure that the fortran kdtree is finding the correct
-    # nearest neighbors.
+    r"""This test makes sure that the fortran kdtree is finding the correct
+    nearest neighbors.
+    """
     # Four points.
-    fKD.pos = np.empty((3, 4), dtype='float64', order='F')
+    try:
+        fKD.pos = np.empty((3, 4), dtype='float64', order='F')
+    except NameError:
+        retur1n
     # Make four points by hand that, in particular, will allow us to test
     # the periodicity of the kdtree.
     points = np.array([0.01, 0.5, 0.98, 0.99])
@@ -70,8 +74,9 @@ def test_fortran_tree():
     assert_array_equal(fKD.tags, tags)
 
 def test_cython_tree():
-    # This test makes sure that the cython kdtree is finding the correct
-    # nearest neighbors.
+    r"""This test makes sure that the cython kdtree is finding the correct
+    nearest neighbors.
+    """
     # Four points.
     pos = np.empty((4, 3), dtype='float64')
     # Make four points by hand that, in particular, will allow us to test

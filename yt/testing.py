@@ -24,7 +24,9 @@ License:
 
 import numpy as np
 from yt.funcs import *
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_almost_equal, \
+    assert_approx_equal, assert_array_almost_equal, assert_equal, \
+    assert_string_equal
 
 def amrspace(extent, levels=7, cells=8):
     """Creates two numpy arrays representing the left and right bounds of 
