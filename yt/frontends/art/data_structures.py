@@ -119,6 +119,34 @@ class ARTGrid(AMRGridPatch):
         self.star_metallicity2 = na.array([])
         self.star_mass_initial = na.array([])
         self.star_mass = na.array([])
+
+        self.field_dict = { 'particle_index': self.particle_id,
+            'particle_type':self.particle_type,
+            'particle_position_x':self.particle_position_x,
+            'particle_position_y':self.particle_position_y,
+            'particle_position_z':self.particle_position_z,
+            'particle_age':self.particle_age,
+            'particle_mass':self.particle_mass,
+            'particle_mass_initial':self.particle_mass_initial,
+            'particle_metallicity':self.particle_metallicity,
+            'particle_velocity_x':self.particle_velocity_x,
+            'particle_velocity_y':self.particle_velocity_y,
+            'particle_velocity_z':self.particle_velocity_z,
+            
+            #stellar fields
+            'star_position_x':self.star_position_x,
+            'star_position_y':self.star_position_y,
+            'star_position_z':self.star_position_z,
+            'star_mass':self.star_mass,
+            'star_velocity_x':self.star_velocity_x,
+            'star_velocity_y':self.star_velocity_y,
+            'star_velocity_z':self.star_velocity_z,
+            'star_age':self.star_age,
+            'star_metallicity':self.star_metallicity1 + grid.star_metallicity2,
+            'star_metallicity1':self.star_metallicity1,
+            'star_metallicity2':self.star_metallicity2,
+            'star_mass_initial':self.star_mass_initial,
+            'star_mass':self.star_mass}
          
         #if child_mask is not None:
         #    self._set_child_mask(child_mask)
