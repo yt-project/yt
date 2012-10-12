@@ -721,8 +721,9 @@ class PWViewerMPL(PWViewer):
             yllim = self.pf.domain_left_edge[y_dict[axis_index]]
             yrlim = self.pf.domain_right_edge[y_dict[axis_index]]
         else:
-            msg = ('origin keyword "{0}" not recognized, must have "domain" '
-                   'or "center" in last place.').format(self.origin)
+            mylog.warn("origin = {0}".format(origin))
+            msg = ('origin keyword "{0}" not recognized, must declare "domain" '
+                   'or "center" as the last term in origin.').format(self.origin)
             raise RuntimeError(msg)
 
         if origin[0] == 'lower':
@@ -732,8 +733,10 @@ class PWViewerMPL(PWViewer):
         elif origin[0] == 'center':
             yc = (yllim + yrlim)/2.0
         else:
-            msg = ('origin keyword "{0}" not recognized, must have "lower" '
-                   '"upper" or "center" in first place.').format(self.origin)
+            mylog.warn("origin = {0}".format(origin))
+            msg = ('origin keyword "{0}" not recognized, must declare "lower" '
+                   '"upper" or "center" as the first term in origin.')
+            msg = msg.format(self.origin)
             raise RuntimeError(msg)
 
         if origin[1] == 'left':
@@ -743,8 +746,10 @@ class PWViewerMPL(PWViewer):
         elif origin[1] == 'center':
             xc = (xllim + xrlim)/2.0
         else:
-            msg = ('origin keyword "{0}" not recognized, must have "left" '
-                   '"right" or "center" in second place.').format(self.origin)
+            mylog.warn("origin = {0}".format(origin))
+            msg = ('origin keyword "{0}" not recognized, must declare "left" '
+                   '"right" or "center" as the second term in origin.')
+            msg = msg.format(self.origin)
             raise RuntimeError(msg)
 
         return xc, yc
@@ -1018,7 +1023,20 @@ class SlicePlot(PWViewerMPL):
              inffered.  For instance, 'left-domain' corresponds to the lower-left 
              hand corner of the simulation domain, 'center-domain' corresponds to the 
              center of the simulation domain, or 'center-window' for the center of 
-             the plot window.
+             the plot window.  Further examples:
+
+             ==================================     ============================
+             format                                 example                
+             ==================================     ============================
+             '{space}'                              'domain'
+             '{xloc}-{space}'                       'left-window'
+             '{yloc}-{space}'                       'upper-domain'
+             '{yloc}-{xloc}-{space}'                'lower-right-window'
+             ('{space}',)                           ('window',)
+             ('{xloc}', '{space}')                  ('right', 'domain')
+             ('{yloc}', '{space}')                  ('lower', 'window')
+             ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
+             ==================================     ============================
              
         Examples
         --------
@@ -1104,7 +1122,21 @@ class ProjectionPlot(PWViewerMPL):
              inffered.  For instance, 'left-domain' corresponds to the lower-left 
              hand corner of the simulation domain, 'center-domain' corresponds to the 
              center of the simulation domain, or 'center-window' for the center of 
-             the plot window.
+             the plot window.Further examples:
+
+             ==================================     ============================
+             format                                 example
+             ==================================     ============================ 
+             '{space}'                              'domain'
+             '{xloc}-{space}'                       'left-window'
+             '{yloc}-{space}'                       'upper-domain'
+             '{yloc}-{xloc}-{space}'                'lower-right-window'
+             ('{space}',)                           ('window',)
+             ('{xloc}', '{space}')                  ('right', 'domain')
+             ('{yloc}', '{space}')                  ('lower', 'window')
+             ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
+             ==================================     ============================
+             
         weight_field : string
             The name of the weighting field.  Set to None for no weight.
         max_level: int
