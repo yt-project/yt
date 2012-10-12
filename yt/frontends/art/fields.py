@@ -42,7 +42,7 @@ add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = ARTFieldInfo.add_field
 
-import numpy as na
+import numpy as np
 
 #these are just the hydro fields
 known_art_fields = [ 'Density','TotalEnergy',
@@ -179,7 +179,7 @@ def _temperature(field, data):
     #if data.id==460:
     #tr[di] = -1.0 #replace the zero-density points with zero temp
     #print tr.min()
-    #assert na.all(na.isfinite(tr))
+    #assert np.all(np.isfinite(tr))
     return tr
 def _converttemperature(data):
     #x = data.pf.conversion_factors["Temperature"]
@@ -252,8 +252,8 @@ def mass_dm(field, data):
     #make a dumb assumption that the mass is evenly spread out in the grid
     #must return an array the shape of the grid cells
     if na.sum(idx)>0:
-        tr /= na.prod(data['CellVolumeCode']*data.pf['mpchcm']**3.0) #divide by the volume
-        tr *= na.sum(data['particle_mass'][idx])*data.pf['Msun'] #Multiply by total contaiend mass
+        tr /= np.prod(data['CellVolumeCode']*data.pf['mpchcm']**3.0) #divide by the volume
+        tr *= np.sum(data['particle_mass'][idx])*data.pf['Msun'] #Multiply by total contaiend mass
         print tr.shape
         return tr
     else:

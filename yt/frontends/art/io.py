@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import struct
 
 import os
@@ -93,9 +93,9 @@ class IOHandlerART(BaseIOHandler):
         f.seek(self.level_offsets[level])
         ncells = 8*self.level_info[level]
         nvals = ncells * (self.nhydro_vars + 6) # 2 vars, 2 pads
-        arr = na.fromfile(f, dtype='>f', count=nvals)
+        arr = np.fromfile(f, dtype='>f', count=nvals)
         arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
-        assert na.all(arr[0,:]==arr[-1,:]) #pads must be equal
+        assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
         arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
         if field==None:
             self.level_data[level] = arr.astype('float32')
@@ -108,13 +108,13 @@ class IOHandlerART(BaseIOHandler):
         f.seek(self.level_offsets[0] + 4) # Ditch the header
         ncells = self.level_info[0]
         nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
-        hvar = na.fromfile(f, dtype='>f', count=nhvals).astype("float32")
+        hvar = np.fromfile(f, dtype='>f', count=nhvals).astype("float32")
         hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
-        na.fromfile(f,dtype='>i',count=2) #throw away the pads
+        np.fromfile(f,dtype='>i',count=2) #throw away the pads
         nvars = ncells * (2) # 0 vars, 0 pads
-        var = na.fromfile(f, dtype='>f', count=nvars).astype("float32")
+        var = np.fromfile(f, dtype='>f', count=nvars).astype("float32")
         var = var.reshape((2, ncells), order="F")
-        arr = na.concatenate((hvar,var))
+        arr = np.concatenate((hvar,var))
         self.level_data[0] = arr
 
     def clear_level(self, level):
@@ -189,10 +189,10 @@ class IOHandlerART(BaseIOHandler):
             tr = self.level_data[0][field_id,:].reshape(
                     pf.domain_dimensions, order="F").copy()
             return tr.swapaxes(0, 2).astype("float64")
-        tr = na.zeros(grid.ActiveDimensions, dtype='float32')
+        tr = np.zeros(grid.ActiveDimensions, dtype='float32')
         grids = [grid]
         l_delta = 0
-        filled = na.zeros(grid.ActiveDimensions, dtype='uint8')
+        filled = np.zeros(grid.ActiveDimensions, dtype='uint8')
         to_fill = grid.ActiveDimensions.prod()
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
@@ -219,9 +219,9 @@ def _count_art_octs(f, offset,
     level_child_offsets= [0,]
     f.seek(offset)
     nchild,ntot=8,0
-    Level = na.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-    iNOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-    iHOLL = na.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+    Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+    iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+    iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
     for Lev in xrange(MinLev + 1, MaxLevelNow+1):
         level_oct_offsets.append(f.tell())
 
@@ -263,20 +263,20 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #fortran indices start at 1
     
     #Skip all the oct hierarchy data
-    le     = na.zeros((nLevel,3),dtype='int64')
-    fl     = na.ones((nLevel,6),dtype='int64')
-    iocts  = na.zeros(nLevel+1,dtype='int64')
+    le     = np.zeros((nLevel,3),dtype='int64')
+    fl     = np.ones((nLevel,6),dtype='int64')
+    iocts  = np.zeros(nLevel+1,dtype='int64')
     idxa,idxb = 0,0
     chunk = long(1e6) #this is ~111MB for 15 dimensional 64 bit arrays
     left = nLevel
     while left > 0 :
         this_chunk = min(chunk,left)
         idxb=idxa+this_chunk
-        data = na.fromfile(f,dtype='>i',count=this_chunk*15)
+        data = np.fromfile(f,dtype='>i',count=this_chunk*15)
         data=data.reshape(this_chunk,15)
         left-=this_chunk
         le[idxa:idxb,:] = data[:,1:4]
-        fl[idxa:idxb,1] = na.arange(idxa,idxb)
+        fl[idxa:idxb,1] = np.arange(idxa,idxb)
         #pad byte is last, LL2, then ioct right before it
         iocts[idxa:idxb] = data[:,-3] 
         idxa=idxa+this_chunk
@@ -293,12 +293,12 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #now correct iocts for fortran indices start @ 1
     iocts = iocts-1
 
-    assert na.unique(iocts).shape[0] == nLevel
+    assert np.unique(iocts).shape[0] == nLevel
     
     #ioct tries to access arrays much larger than le & fl
     #just make sure they appear in the right order, skipping
     #the empty space in between
-    idx = na.argsort(iocts)
+    idx = np.argsort(iocts)
     
     #now rearrange le & fl in order of the ioct
     le = le[idx]
@@ -320,7 +320,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #now read the hvars and vars arrays
     #we are looking for iOctCh
     #we record if iOctCh is >0, in which it is subdivided
-    iOctCh  = na.zeros((nLevel+1,8),dtype='bool')
+    iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
     
     
     
@@ -334,9 +334,9 @@ def read_particles(file,Nrow):
     np_per_page = Nrow**2 # defined in ART a_setup.h
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
 
-    f = na.fromfile(file, dtype='>f4').astype('float32') # direct access
-    pages = na.vsplit(na.reshape(f, (num_pages, words, np_per_page)), num_pages)
-    data = na.squeeze(na.dstack(pages)).T # x,y,z,vx,vy,vz
+    f = np.fromfile(file, dtype='>f4').astype('float32') # direct access
+    pages = np.vsplit(np.reshape(f, (num_pages, words, np_per_page)), num_pages)
+    data = np.squeeze(np.dstack(pages)).T # x,y,z,vx,vy,vz
     return data[:,0:3],data[:,3:]
 
 def read_stars(file):
@@ -358,8 +358,8 @@ def read_stars(file):
 def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     f.seek(level_child_offsets[level])
     nvals = nLevel * (nhydro_vars + 6) # 2 vars, 2 pads
-    ioctch = na.zeros(nLevel,dtype='uint8')
-    idc = na.zeros(nLevel,dtype='int32')
+    ioctch = np.zeros(nLevel,dtype='uint8')
+    idc = np.zeros(nLevel,dtype='int32')
     
     chunk = long(1e6)
     left = nLevel
@@ -368,9 +368,9 @@ def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     while left > 0:
         chunk = min(chunk,left)
         b += chunk
-        arr = na.fromfile(f, dtype='>i', count=chunk*width)
+        arr = np.fromfile(f, dtype='>i', count=chunk*width)
         arr = arr.reshape((width, chunk), order="F")
-        assert na.all(arr[0,:]==arr[-1,:]) #pads must be equal
+        assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
         idc[a:b]    = arr[1,:]-1 #fix fortran indexing
         ioctch[a:b] = arr[2,:]==0 #if it is above zero, then refined info available
         #zero in the mask means there is refinement available
@@ -380,12 +380,12 @@ def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     return idc,ioctch
     
 nchem=8+2
-dtyp = na.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
+dtyp = np.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
                 ",>%sf4"%(2)+",>i4")
 def _read_art_child(f, level_child_offsets,level,nLevel,field):
     pos=f.tell()
     f.seek(level_child_offsets[level])
-    arr = na.fromfile(f, dtype='>f', count=nLevel * 8)
+    arr = np.fromfile(f, dtype='>f', count=nLevel * 8)
     arr = arr.reshape((nLevel,16), order="F")
     arr = arr[3:-1,:].astype("float64")
     f.seek(pos)
@@ -398,8 +398,8 @@ def _skip_record(f):
 
 def _read_frecord(f,fmt):
     s1 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
-    count = s1/na.dtype(fmt).itemsize
-    ss = na.fromfile(f,fmt,count=count)
+    count = s1/np.dtype(fmt).itemsize
+    ss = np.fromfile(f,fmt,count=count)
     s2 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
     assert s1==s2
     return ss
@@ -432,14 +432,14 @@ def _read_struct(f,structure,verbose=False):
 
 #All of these functions are to convert from hydro time var to 
 #proper time
-sqrt = na.sqrt
-sign = na.sign
+sqrt = np.sqrt
+sign = np.sign
 
 def find_root(f,a,b,tol=1e-6):
     c = (a+b)/2.0
-    last = -na.inf
+    last = -np.inf
     assert(sign(f(a)) != sign(f(b)))  
-    while na.abs(f(c)-last) > tol:
+    while np.abs(f(c)-last) > tol:
         last=f(c)
         if sign(last)==sign(f(b)):
             b=c
@@ -449,9 +449,9 @@ def find_root(f,a,b,tol=1e-6):
     return c
 
 def quad(fintegrand,xmin,xmax,n=1e4):
-    spacings = na.logspace(na.log10(xmin),na.log10(xmax),n)
+    spacings = np.logspace(np.log10(xmin),np.log10(xmax),n)
     integrand_arr = fintegrand(spacings)
-    val = na.trapz(integrand_arr,dx=na.diff(spacings))
+    val = np.trapz(integrand_arr,dx=np.diff(spacings))
     return val
 
 def a2b(at,Om0=0.27,Oml0=0.73,h=0.700):
@@ -476,14 +476,14 @@ def a2t(at,Om0=0.27,Oml0=0.73,h=0.700):
     integrand = lambda x : 1./(x*sqrt(Oml0+Om0*x**-3.0))
     #current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand,1e-4,at)
-    #spacings = na.logspace(-5,na.log10(at),1e5)
+    #spacings = np.logspace(-5,np.log10(at),1e5)
     #integrand_arr = integrand(spacings)
-    #current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
+    #current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
     current_time *= 9.779/h
     return current_time
 
 def b2t(tb,n = 1e2,logger=None,**kwargs):
-    tb = na.array(tb)
+    tb = np.array(tb)
     if type(tb) == type(1.1): 
         return a2t(b2a(tb))
     if tb.shape == (): 
@@ -491,14 +491,14 @@ def b2t(tb,n = 1e2,logger=None,**kwargs):
     if len(tb) < n: n= len(tb)
     age_min = a2t(b2a(tb.max(),**kwargs),**kwargs)
     age_max = a2t(b2a(tb.min(),**kwargs),**kwargs)
-    tbs  = -1.*na.logspace(na.log10(-tb.min()),
-                          na.log10(-tb.max()),n)
+    tbs  = -1.*np.logspace(np.log10(-tb.min()),
+                          np.log10(-tb.max()),n)
     ages = []
     for i,tbi in enumerate(tbs):
         ages += a2t(b2a(tbi)),
         if logger: logger(i)
-    ages = na.array(ages)
-    fb2t = na.interp(tb,tbs,ages)
+    ages = np.array(ages)
+    fb2t = np.interp(tb,tbs,ages)
     #fb2t = interp1d(tbs,ages)
     return fb2t
 

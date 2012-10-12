@@ -76,6 +76,30 @@ class YTSimulationNotIdentified(YTException):
     def __str__(self):
         return "Simulation time-series type %s not defined." % self.sim_type
 
+class YTCannotParseFieldDisplayName(YTException):
+    def __init__(self, field_name, display_name, mathtext_error):
+        self.field_name = field_name
+        self.display_name = display_name
+        self.mathtext_error = mathtext_error
+
+    def __str__(self):
+        return ("The display name \"%s\" "
+                "of the derived field %s " 
+                "contains the following LaTeX parser errors:\n" ) \
+                % (self.display_name, self.field_name) + self.mathtext_error
+
+class YTCannotParseUnitDisplayName(YTException):
+    def __init__(self, field_name, display_unit, mathtext_error):
+        self.field_name = field_name
+        self.unit_name = unit_name
+        self.mathtext_error = mathtext_error
+
+    def __str__(self):
+        return ("The unit display name \"%s\" "
+                "of the derived field %s " 
+                "contains the following LaTeX parser errors:\n" ) \
+            % (self.unit_name, self.field_name) + self.mathtext_error
+
 class AmbiguousOutputs(YTException):
     def __init__(self, pf):
         YTException.__init__(self, pf)
@@ -110,3 +134,15 @@ class YTNotDeclaredInsideNotebook(YTException):
         return "You have not declared yourself to be inside the IPython" + \
                "Notebook.  Do so with this command:\n\n" + \
                "ytcfg['yt','ipython_notebook'] = 'True'"
+
+class YTUnitNotRecognized(YTException):
+    def __init__(self, unit):
+        self.unit = unit
+
+    def __str__(self):
+        return "This parameter file doesn't recognize %s" % self.unit
+
+class YTHubRegisterError(YTException):
+    def __str__(self):
+        return "You must create an API key before uploading.  See " + \
+               "https://data.yt-project.org/getting_started.html"

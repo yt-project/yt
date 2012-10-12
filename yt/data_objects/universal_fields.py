@@ -26,7 +26,7 @@ License:
 """
 
 import types
-import numpy as na
+import numpy as np
 import inspect
 import copy
 
@@ -61,66 +61,66 @@ from yt.utilities.physical_constants import \
 
 def _dx(field, data):
     return data.dds[0]
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_field('dx', function=_dx, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
     return data.dds[1]
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_field('dy', function=_dy, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
     return data.dds[2]
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordX(field, data):
     dim = data.ActiveDimensions[0]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[0])[:,None,None]
             +0.5) * data['dx'] + data.LeftEdge[0]
 add_field('x', function=_coordX, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordY(field, data):
     dim = data.ActiveDimensions[1]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[1])[None,:,None]
             +0.5) * data['dy'] + data.LeftEdge[1]
 add_field('y', function=_coordY, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordZ(field, data):
     dim = data.ActiveDimensions[2]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[2])[None,None,:]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[2])[None,None,:]
             +0.5) * data['dz'] + data.LeftEdge[2]
 add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _GridLevel(field, data):
-    return na.ones(data.ActiveDimensions)*(data.Level)
+    return np.ones(data.ActiveDimensions)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)])
 
 def _GridIndices(field, data):
-    return na.ones(data["Ones"].shape)*(data.id-data._id_offset)
+    return np.ones(data["Ones"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
-    return na.ones(data["Ones"].shape,
+    return np.ones(data["Ones"].shape,
                    dtype=data["Density"].dtype)/data['dx']
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
 def _Ones(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64')
+    return np.ones(data.ActiveDimensions, dtype='float64')
 add_field("Ones", function=_Ones,
           validators=[ValidateSpatial(0)],
           projection_conversion="unitary",
@@ -130,7 +130,7 @@ add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
 
 def _SoundSpeed(field, data):
     if data.pf["EOSType"] == 1:
-        return na.ones(data["Density"].shape, dtype='float64') * \
+        return np.ones(data["Density"].shape, dtype='float64') * \
                 data.pf["EOSSoundSpeed"]
     return ( data.pf["Gamma"]*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
@@ -139,7 +139,7 @@ add_field("SoundSpeed", function=_SoundSpeed,
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""
-    return na.abs(data["RadialVelocity"]) / data["SoundSpeed"]
+    return np.abs(data["RadialVelocity"]) / data["SoundSpeed"]
 add_field("RadialMachNumber", function=_RadialMachNumber)
 
 def _MachNumber(field, data):
@@ -157,7 +157,7 @@ def _CourantTimeStep(field, data):
     t3 = data['dz'] / (
         data["SoundSpeed"] + \
         abs(data["z-velocity"]))
-    return na.minimum(na.minimum(t1,t2),t3)
+    return np.minimum(np.minimum(t1,t2),t3)
 def _convertCourantTimeStep(data):
     # SoundSpeed and z-velocity are in cm/s, dx is in code
     return data.convert("cm")
@@ -169,7 +169,7 @@ def _ParticleVelocityMagnitude(field, data):
     """M{|v|}"""
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
-        bulk_velocity = na.zeros(3)
+        bulk_velocity = np.zeros(3)
     return ( (data["particle_velocity_x"]-bulk_velocity[0])**2.0 + \
              (data["particle_velocity_y"]-bulk_velocity[1])**2.0 + \
              (data["particle_velocity_z"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
@@ -181,7 +181,7 @@ def _VelocityMagnitude(field, data):
     """M{|v|}"""
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
-        bulk_velocity = na.zeros(3)
+        bulk_velocity = np.zeros(3)
     return ( (data["x-velocity"]-bulk_velocity[0])**2.0 + \
              (data["y-velocity"]-bulk_velocity[1])**2.0 + \
              (data["z-velocity"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
@@ -189,13 +189,13 @@ add_field("VelocityMagnitude", function=_VelocityMagnitude,
           take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _TangentialOverVelocityMagnitude(field, data):
-    return na.abs(data["TangentialVelocity"])/na.abs(data["VelocityMagnitude"])
+    return np.abs(data["TangentialVelocity"])/np.abs(data["VelocityMagnitude"])
 add_field("TangentialOverVelocityMagnitude",
           function=_TangentialOverVelocityMagnitude,
           take_log=False)
 
 def _TangentialVelocity(field, data):
-    return na.sqrt(data["VelocityMagnitude"]**2.0
+    return np.sqrt(data["VelocityMagnitude"]**2.0
                  - data["RadialVelocity"]**2.0)
 add_field("TangentialVelocity", 
           function=_TangentialVelocity,
@@ -217,50 +217,181 @@ def _Entropy(field, data):
 add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
 
-def _Height(field, data):
-    # We take the dot product of the radius vector with the height-vector
+
+
+### spherical coordinates: r (radius)
+def _sph_r(field, data):
     center = data.get_field_parameter("center")
-    r_vec = na.array([data["x"] - center[0],
-                      data["y"] - center[1],
-                      data["z"] - center[2]])
-    h_vec = na.array(data.get_field_parameter("height_vector"))
-    h_vec = h_vec / na.sqrt(h_vec[0]**2.0+
-                            h_vec[1]**2.0+
-                            h_vec[2]**2.0)
-    height = r_vec[0,:] * h_vec[0] \
-           + r_vec[1,:] * h_vec[1] \
-           + r_vec[2,:] * h_vec[2]
-    return na.abs(height)
+      
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The spherical coordinates radius is simply the magnitude of the
+    ## coords vector.
+
+    return np.sqrt(np.sum(coords**2,axis=-1))
+
+def _Convert_sph_r_CGS(data):
+   return data.convert("cm")
+
+add_field("sph_r", function=_sph_r,
+         validators=[ValidateParameter("center")],
+         convert_function = _Convert_sph_r_CGS, units=r"\rm{cm}")
+
+
+### spherical coordinates: theta (angle with respect to normal)
+def _sph_theta(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The angle (theta) with respect to the normal (J), is the arccos
+    ## of the dot product of the normal with the normalized coords
+    ## vector.
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    J = np.tile(normal,tile_shape)
+
+    JdotCoords = np.sum(J*coords,axis=-1)
+    
+    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=-1)) )
+
+add_field("sph_theta", function=_sph_theta,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+
+### spherical coordinates: phi (angle in the plane perpendicular to the normal)
+def _sph_phi(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+    
+    ## We have freedom with respect to what axis (xprime) to define
+    ## the disk angle. Here I've chosen to use the axis that is
+    ## perpendicular to the normal and the y-axis. When normal ==
+    ## y-hat, then set xprime = z-hat. With this definition, when
+    ## normal == z-hat (as is typical), then xprime == x-hat.
+    ##
+    ## The angle is then given by the arctan of the ratio of the
+    ## yprime-component and the xprime-component of the coords vector.
+
+    xprime = np.cross([0.0,1.0,0.0],normal)
+    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
+    yprime = np.cross(normal,xprime)
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    Jx = np.tile(xprime,tile_shape)
+    Jy = np.tile(yprime,tile_shape)
+    
+    Px = np.sum(Jx*coords,axis=-1)
+    Py = np.sum(Jy*coords,axis=-1)
+    
+    return np.arctan2(Py,Px)
+
+add_field("sph_phi", function=_sph_phi,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+
+
+### cylindrical coordinates: R (radius in the cylinder's plane)
+def _cyl_R(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+      
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The cross product of the normal (J) with the coords vector
+    ## gives a vector of magnitude equal to the cylindrical radius.
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    J = np.tile(normal,tile_shape)
+
+    JcrossCoords = np.cross(J,coords)
+    return np.sqrt(np.sum(JcrossCoords**2,axis=-1))
+
+def _Convert_cyl_R_CGS(data):
+   return data.convert("cm")
+
+add_field("cyl_R", function=_cyl_R,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")],
+         convert_function = _Convert_cyl_R_CGS, units=r"\rm{cm}")
+
+
+### cylindrical coordinates: z (height above the cylinder's plane)
+def _cyl_z(field, data):
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = np.array([data['x'] - center[0],
+                       data['y'] - center[1],
+                       data['z'] - center[2]]).transpose()
+
+    ## The dot product of the normal (J) with the coords vector gives
+    ## the cylindrical height.
+    
+    tile_shape = list(coords.shape)[:-1] + [1]
+    J = np.tile(normal,tile_shape)
+
+    return np.sum(J*coords,axis=-1)  
+
+def _Convert_cyl_z_CGS(data):
+   return data.convert("cm")
+
+add_field("cyl_z", function=_cyl_z,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")],
+         convert_function = _Convert_cyl_z_CGS, units=r"\rm{cm}")
+
+
+### cylindrical coordinates: theta (angle in the cylinder's plane)
+### [This is identical to the spherical coordinate's 'phi' angle.]
+def _cyl_theta(field, data):
+    return data['sph_phi']
+
+add_field("cyl_theta", function=_cyl_theta,
+         validators=[ValidateParameter("center"),ValidateParameter("normal")])
+
+
+### The old field DiskAngle is the same as the spherical coordinates'
+### 'theta' angle. I'm keeping DiskAngle for backwards compatibility.
+def _DiskAngle(field, data):
+    return data['sph_theta']
+
+add_field("DiskAngle", function=_DiskAngle,
+          take_log=False,
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("normal")],
+          display_field=False)
+
+
+### The old field Height is the same as the cylindrical coordinates' z
+### field. I'm keeping Height for backwards compatibility.
+def _Height(field, data):
+    return data['cyl_z']
+
 def _convertHeight(data):
     return data.convert("cm")
 def _convertHeightAU(data):
     return data.convert("au")
 add_field("Height", function=_Height,
           convert_function=_convertHeight,
-          validators=[ValidateParameter("height_vector")],
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("normal")],
           units=r"cm", display_field=False)
 add_field("HeightAU", function=_Height,
           convert_function=_convertHeightAU,
-          validators=[ValidateParameter("height_vector")],
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("normal")],
           units=r"AU", display_field=False)
 
-def _DiskAngle(field, data):
-    # We make both r_vec and h_vec into unit vectors
-    center = data.get_field_parameter("center")
-    r_vec = na.array([data["x"] - center[0],
-                      data["y"] - center[1],
-                      data["z"] - center[2]])
-    r_vec = r_vec/na.sqrt((r_vec**2.0).sum(axis=0))
-    h_vec = na.array(data.get_field_parameter("height_vector"))
-    dp = r_vec[0,:] * h_vec[0] \
-       + r_vec[1,:] * h_vec[1] \
-       + r_vec[2,:] * h_vec[2]
-    return na.arccos(dp)
-add_field("DiskAngle", function=_DiskAngle,
-          take_log=False,
-          validators=[ValidateParameter("height_vector"),
-                      ValidateParameter("center")],
-          display_field=False)
 
 def _DynamicalTime(field, data):
     """
@@ -268,7 +399,7 @@ def _DynamicalTime(field, data):
     M{sqrt(3pi/(16*G*rho))} or M{sqrt(3pi/(16G))*rho^-(1/2)}
     Note that we return in our natural units already
     """
-    return (3.0*na.pi/(16*G*data["Density"]))**(1./2.)
+    return (3.0*np.pi/(16*G*data["Density"]))**(1./2.)
 add_field("DynamicalTime", function=_DynamicalTime,
            units=r"\rm{s}")
 
@@ -371,7 +502,7 @@ def _CellVolume(field, data):
     if data['dx'].size == 1:
         try:
             return data['dx']*data['dy']*data['dx']*\
-                na.ones(data.ActiveDimensions, dtype='float64')
+                np.ones(data.ActiveDimensions, dtype='float64')
         except AttributeError:
             return data['dx']*data['dy']*data['dx']
     return data["dx"]*data["dy"]*data["dz"]
@@ -389,7 +520,7 @@ add_field("CellVolume", units=r"\rm{cm}^3",
           convert_function=_ConvertCellVolumeCGS)
 
 def _ChandraEmissivity(field, data):
-    logT0 = na.log10(data["Temperature"]) - 7
+    logT0 = np.log10(data["Temperature"]) - 7
     return ((data["NumberDensity"].astype('float64')**2.0) \
             *(10**(-0.0103*logT0**8 \
                    +0.0417*logT0**7 \
@@ -448,15 +579,15 @@ add_field("SZY", function=_SZY, convert_function=_convertSZY)
 
 def _AveragedDensity(field, data):
     nx, ny, nz = data["Density"].shape
-    new_field = na.zeros((nx-2,ny-2,nz-2), dtype='float64')
-    weight_field = na.zeros((nx-2,ny-2,nz-2), dtype='float64')
-    i_i, j_i, k_i = na.mgrid[0:3,0:3,0:3]
+    new_field = np.zeros((nx-2,ny-2,nz-2), dtype='float64')
+    weight_field = np.zeros((nx-2,ny-2,nz-2), dtype='float64')
+    i_i, j_i, k_i = np.mgrid[0:3,0:3,0:3]
     for i,j,k in zip(i_i.ravel(),j_i.ravel(),k_i.ravel()):
         sl = [slice(i,nx-(2-i)),slice(j,ny-(2-j)),slice(k,nz-(2-k))]
         new_field += data["Density"][sl] * data["CellMass"][sl]
         weight_field += data["CellMass"][sl]
     # Now some fancy footwork
-    new_field2 = na.zeros((nx,ny,nz))
+    new_field2 = np.zeros((nx,ny,nz))
     new_field2[1:-1,1:-1,1:-1] = new_field/weight_field
     return new_field2
 add_field("AveragedDensity",
@@ -484,7 +615,7 @@ def _DivV(field, data):
         ds = div_fac * data['dz'].flat[0]
         f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
         f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
-    new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
+    new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
 def _convertDivV(data):
@@ -496,12 +627,12 @@ add_field("DivV", function=_DivV,
           convert_function=_convertDivV)
 
 def _AbsDivV(field, data):
-    return na.abs(data['DivV'])
+    return np.abs(data['DivV'])
 add_field("AbsDivV", function=_AbsDivV,
           units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
-    return -na.ones_like(data["Ones"])
+    return -np.ones_like(data["Ones"])
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_Contours)
 add_field("tempContours", function=_Contours,
@@ -511,7 +642,7 @@ add_field("tempContours", function=_Contours,
 def obtain_velocities(data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
-    else: bv = na.zeros(3, dtype='float64')
+    else: bv = np.zeros(3, dtype='float64')
     xv = data["x-velocity"] - bv[0]
     yv = data["y-velocity"] - bv[1]
     zv = data["z-velocity"] - bv[2]
@@ -563,18 +694,18 @@ def _ParticleSpecificAngularMomentum(field, data):
     """
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
-    else: bv = na.zeros(3, dtype='float64')
+    else: bv = np.zeros(3, dtype='float64')
     xv = data["particle_velocity_x"] - bv[0]
     yv = data["particle_velocity_y"] - bv[1]
     zv = data["particle_velocity_z"] - bv[2]
     center = data.get_field_parameter('center')
-    coords = na.array([data['particle_position_x'],
+    coords = np.array([data['particle_position_x'],
                        data['particle_position_y'],
                        data['particle_position_z']], dtype='float64')
     new_shape = tuple([3] + [1]*(len(coords.shape)-1))
-    r_vec = coords - na.reshape(center,new_shape)
-    v_vec = na.array([xv,yv,zv], dtype='float64')
-    return na.cross(r_vec, v_vec, axis=0)
+    r_vec = coords - np.reshape(center,new_shape)
+    v_vec = np.array([xv,yv,zv], dtype='float64')
+    return np.cross(r_vec, v_vec, axis=0)
 #add_field("ParticleSpecificAngularMomentum",
 #          function=_ParticleSpecificAngularMomentum, particle_type=True,
 #          convert_function=_convertSpecificAngularMomentum, vector_field=True,
@@ -589,7 +720,7 @@ def _convertSpecificAngularMomentumKMSMPC(data):
 def _ParticleSpecificAngularMomentumX(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
-    else: bv = na.zeros(3, dtype='float64')
+    else: bv = np.zeros(3, dtype='float64')
     center = data.get_field_parameter('center')
     y = data["particle_position_y"] - center[1]
     z = data["particle_position_z"] - center[2]
@@ -599,7 +730,7 @@ def _ParticleSpecificAngularMomentumX(field, data):
 def _ParticleSpecificAngularMomentumY(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
-    else: bv = na.zeros(3, dtype='float64')
+    else: bv = np.zeros(3, dtype='float64')
     center = data.get_field_parameter('center')
     x = data["particle_position_x"] - center[0]
     z = data["particle_position_z"] - center[2]
@@ -609,7 +740,7 @@ def _ParticleSpecificAngularMomentumY(field, data):
 def _ParticleSpecificAngularMomentumZ(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
-    else: bv = na.zeros(3, dtype='float64')
+    else: bv = np.zeros(3, dtype='float64')
     center = data.get_field_parameter('center')
     x = data["particle_position_x"] - center[0]
     y = data["particle_position_y"] - center[1]
@@ -657,20 +788,20 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = na.zeros(data["particle_position_x"].shape, dtype='float64')
+    radius = np.zeros(data["particle_position_x"].shape, dtype='float64')
     for i, ax in enumerate('xyz'):
-        r = na.abs(data["particle_position_%s" % ax] - center[i])
-        radius += na.minimum(r, na.abs(DW[i]-r))**2.0
-    na.sqrt(radius, radius)
+        r = np.abs(data["particle_position_%s" % ax] - center[i])
+        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
+    np.sqrt(radius, radius)
     return radius
 def _Radius(field, data):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = na.zeros(data["x"].shape, dtype='float64')
+    radius = np.zeros(data["x"].shape, dtype='float64')
     for i, ax in enumerate('xyz'):
-        r = na.abs(data[ax] - center[i])
-        radius += na.minimum(r, na.abs(DW[i]-r))**2.0
-    na.sqrt(radius, radius)
+        r = np.abs(data[ax] - center[i])
+        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
+    np.sqrt(radius, radius)
     return radius
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
@@ -755,16 +886,16 @@ def _RadialVelocity(field, data):
     center = data.get_field_parameter("center")
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
-        bulk_velocity = na.zeros(3)
+        bulk_velocity = np.zeros(3)
     new_field = ( (data['x']-center[0])*(data["x-velocity"]-bulk_velocity[0])
                 + (data['y']-center[1])*(data["y-velocity"]-bulk_velocity[1])
                 + (data['z']-center[2])*(data["z-velocity"]-bulk_velocity[2])
                 )/data["RadiusCode"]
-    if na.any(na.isnan(new_field)): # to fix center = point
-        new_field[na.isnan(new_field)] = 0.0
+    if np.any(np.isnan(new_field)): # to fix center = point
+        new_field[np.isnan(new_field)] = 0.0
     return new_field
 def _RadialVelocityABS(field, data):
-    return na.abs(_RadialVelocity(field, data))
+    return np.abs(_RadialVelocity(field, data))
 def _ConvertRadialVelocityKMS(data):
     return 1e-5
 add_field("RadialVelocity", function=_RadialVelocity,
@@ -785,10 +916,10 @@ def _CuttingPlaneVelocityX(field, data):
                            for ax in 'xyz']
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
-        bulk_velocity = na.zeros(3)
-    v_vec = na.array([data["%s-velocity" % ax] for ax in 'xyz']) \
-                - bulk_velocity[...,na.newaxis]
-    return na.dot(x_vec, v_vec)
+        bulk_velocity = np.zeros(3)
+    v_vec = np.array([data["%s-velocity" % ax] for ax in 'xyz']) \
+                - bulk_velocity[...,np.newaxis]
+    return np.dot(x_vec, v_vec)
 add_field("CuttingPlaneVelocityX", 
           function=_CuttingPlaneVelocityX,
           validators=[ValidateParameter("cp_%s_vec" % ax)
@@ -798,14 +929,33 @@ def _CuttingPlaneVelocityY(field, data):
                            for ax in 'xyz']
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
-        bulk_velocity = na.zeros(3)
-    v_vec = na.array([data["%s-velocity" % ax] for ax in 'xyz']) \
-                - bulk_velocity[...,na.newaxis]
-    return na.dot(y_vec, v_vec)
+        bulk_velocity = np.zeros(3)
+    v_vec = np.array([data["%s-velocity" % ax] for ax in 'xyz']) \
+                - bulk_velocity[...,np.newaxis]
+    return np.dot(y_vec, v_vec)
 add_field("CuttingPlaneVelocityY", 
           function=_CuttingPlaneVelocityY,
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
+
+def _CuttingPlaneBx(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    return np.dot(x_vec, b_vec)
+add_field("CuttingPlaneBx", 
+          function=_CuttingPlaneBx,
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{Gauss}")
+def _CuttingPlaneBy(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    return np.dot(y_vec, b_vec)
+add_field("CuttingPlaneBy", 
+          function=_CuttingPlaneBy,
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{Gauss}")
 
 def _MeanMolecularWeight(field,data):
     return (data["Density"] / (mh *data["NumberDensity"]))
@@ -824,32 +974,57 @@ add_field("JeansMassMsun",function=_JeansMassMsun,
 def _convertDensity(data):
     return data.convert("Density")
 def _pdensity(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
-    CICDeposit_3(data["particle_position_x"].astype(na.float64),
-                 data["particle_position_y"].astype(na.float64),
-                 data["particle_position_z"].astype(na.float64),
-                 data["particle_mass"].astype(na.float32),
-                 na.int64(data.NumberOfParticles),
-                 blank, na.array(data.LeftEdge).astype(na.float64),
-                 na.array(data.ActiveDimensions).astype(na.int32),
-                 na.float64(data['dx']))
+    CICDeposit_3(data["particle_position_x"].astype(np.float64),
+                 data["particle_position_y"].astype(np.float64),
+                 data["particle_position_z"].astype(np.float64),
+                 data["particle_mass"].astype(np.float32),
+                 np.int64(data.NumberOfParticles),
+                 blank, np.array(data.LeftEdge).astype(np.float64),
+                 np.array(data.ActiveDimensions).astype(np.int32),
+                 np.float64(data['dx']))
     return blank
 add_field("particle_density", function=_pdensity,
           validators=[ValidateGridType()], convert_function=_convertDensity,
-          display_name=r"\mathrm{Particle}\/\mathrm{Density})")
+          display_name=r"$\mathrm{Particle}\/\mathrm{Density}$")
 
 def _MagneticEnergy(field,data):
     """This assumes that your front end has provided Bx, By, Bz in
     units of Gauss. If you use MKS, make sure to write your own
     MagneticEnergy field to deal with non-unitary \mu_0.
     """
-    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/2.
+    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/(8*np.pi)
 add_field("MagneticEnergy",function=_MagneticEnergy,
-          units=r"",
-          validators = [ValidateDataField("Bx"),
-                        ValidateDataField("By"),
-                        ValidateDataField("Bz")])
+          units=r"\rm{ergs}\/\rm{cm}^{-3}",
+          display_name=r"\rm{Magnetic}\/\rm{Energy}")
+
+def _BMagnitude(field,data):
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    BMagnitude field to deal with non-unitary \mu_0.
+    """
+    return np.sqrt((data["Bx"]**2 + data["By"]**2 + data["Bz"]**2))
+add_field("BMagnitude",
+          function=_BMagnitude,
+          display_name=r"|B|", units=r"\rm{Gauss}")
+
+def _PlasmaBeta(field,data):
+    """This assumes that your front end has provided Bx, By, Bz in
+    units of Gauss. If you use MKS, make sure to write your own
+    PlasmaBeta field to deal with non-unitary \mu_0.
+    """
+    return data['Pressure']/data['MagneticEnergy']
+add_field("PlasmaBeta",
+          function=_PlasmaBeta,
+          display_name=r"\rm{Plasma}\/\beta", units="")
+
+def _MagneticPressure(field,data):
+    return data['MagneticEnergy']
+add_field("MagneticPressure",
+          function=_MagneticPressure,
+          display_name=r"\rm{Magnetic}\/\rm{Energy}",
+          units="\rm{ergs}\/\rm{cm}^{-3}")
 
 def _VorticitySquared(field, data):
     mylog.debug("Generating vorticity on %s", data)
@@ -862,7 +1037,7 @@ def _VorticitySquared(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["x-velocity"].shape)
+    new_field = np.zeros(data["x-velocity"].shape)
     dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
              data["z-velocity"][1:-1,sl_left,1:-1]) \
              / (div_fac*data["dy"].flat[0])
@@ -887,7 +1062,7 @@ def _VorticitySquared(field, data):
              / (div_fac*data["dy"].flat[0])
     new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
     del dvydx, dvxdy
-    new_field = na.abs(new_field)
+    new_field = np.abs(new_field)
     return new_field
 def _convertVorticitySquared(data):
     return data.convert("cm")**-2.0
@@ -907,7 +1082,7 @@ def _gradPressureX(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["Pressure"].shape, dtype='float64')
+    new_field = np.zeros(data["Pressure"].shape, dtype='float64')
     ds = div_fac * data['dx'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["Pressure"][sl_right,1:-1,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["Pressure"][sl_left ,1:-1,1:-1]/ds
@@ -922,7 +1097,7 @@ def _gradPressureY(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["Pressure"].shape, dtype='float64')
+    new_field = np.zeros(data["Pressure"].shape, dtype='float64')
     ds = div_fac * data['dy'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["Pressure"][1:-1,sl_right,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["Pressure"][1:-1,sl_left ,1:-1]/ds
@@ -937,7 +1112,7 @@ def _gradPressureZ(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["Pressure"].shape, dtype='float64')
+    new_field = np.zeros(data["Pressure"].shape, dtype='float64')
     ds = div_fac * data['dz'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["Pressure"][1:-1,1:-1,sl_right]/ds
     new_field[1:-1,1:-1,1:-1] -= data["Pressure"][1:-1,1:-1,sl_left ]/ds
@@ -952,7 +1127,7 @@ for ax in 'XYZ':
               units=r"\rm{dyne}/\rm{cm}^{3}")
 
 def _gradPressureMagnitude(field, data):
-    return na.sqrt(data["gradPressureX"]**2 +
+    return np.sqrt(data["gradPressureX"]**2 +
                    data["gradPressureY"]**2 +
                    data["gradPressureZ"]**2)
 add_field("gradPressureMagnitude", function=_gradPressureMagnitude,
@@ -969,7 +1144,7 @@ def _gradDensityX(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["Density"].shape, dtype='float64')
+    new_field = np.zeros(data["Density"].shape, dtype='float64')
     ds = div_fac * data['dx'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["Density"][sl_right,1:-1,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["Density"][sl_left ,1:-1,1:-1]/ds
@@ -984,7 +1159,7 @@ def _gradDensityY(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["Density"].shape, dtype='float64')
+    new_field = np.zeros(data["Density"].shape, dtype='float64')
     ds = div_fac * data['dy'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["Density"][1:-1,sl_right,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["Density"][1:-1,sl_left ,1:-1]/ds
@@ -999,7 +1174,7 @@ def _gradDensityZ(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["Density"].shape, dtype='float64')
+    new_field = np.zeros(data["Density"].shape, dtype='float64')
     ds = div_fac * data['dz'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["Density"][1:-1,1:-1,sl_right]/ds
     new_field[1:-1,1:-1,1:-1] -= data["Density"][1:-1,1:-1,sl_left ]/ds
@@ -1014,7 +1189,7 @@ for ax in 'XYZ':
               units=r"\rm{g}/\rm{cm}^{4}")
 
 def _gradDensityMagnitude(field, data):
-    return na.sqrt(data["gradDensityX"]**2 +
+    return np.sqrt(data["gradDensityX"]**2 +
                    data["gradDensityY"]**2 +
                    data["gradDensityZ"]**2)
 add_field("gradDensityMagnitude", function=_gradDensityMagnitude,
@@ -1040,7 +1215,7 @@ for ax in 'XYZ':
           units=r"\rm{s}^{-1}")
 
 def _BaroclinicVorticityMagnitude(field, data):
-    return na.sqrt(data["BaroclinicVorticityX"]**2 +
+    return np.sqrt(data["BaroclinicVorticityX"]**2 +
                    data["BaroclinicVorticityY"]**2 +
                    data["BaroclinicVorticityZ"]**2)
 add_field("BaroclinicVorticityMagnitude",
@@ -1058,7 +1233,7 @@ def _VorticityX(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["z-velocity"].shape, dtype='float64')
+    new_field = np.zeros(data["z-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = (data["z-velocity"][1:-1,sl_right,1:-1] -
                                  data["z-velocity"][1:-1,sl_left,1:-1]) \
                                  / (div_fac*data["dy"].flat[0])
@@ -1076,7 +1251,7 @@ def _VorticityY(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["z-velocity"].shape, dtype='float64')
+    new_field = np.zeros(data["z-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = (data["x-velocity"][1:-1,1:-1,sl_right] -
                                  data["x-velocity"][1:-1,1:-1,sl_left]) \
                                  / (div_fac*data["dz"].flat[0])
@@ -1094,7 +1269,7 @@ def _VorticityZ(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
+    new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = (data["y-velocity"][sl_right,1:-1,1:-1] -
                                  data["y-velocity"][sl_left,1:-1,1:-1]) \
                                  / (div_fac*data["dx"].flat[0])
@@ -1113,7 +1288,7 @@ for ax in 'XYZ':
               units=r"\rm{s}^{-1}")
 
 def _VorticityMagnitude(field, data):
-    return na.sqrt(data["VorticityX"]**2 +
+    return np.sqrt(data["VorticityX"]**2 +
                    data["VorticityY"]**2 +
                    data["VorticityZ"]**2)
 add_field("VorticityMagnitude", function=_VorticityMagnitude,
@@ -1132,7 +1307,7 @@ for ax in 'XYZ':
     add_field(n, function=eval("_%s" % n),
               validators=[ValidateSpatial(0)])
 def _VorticityStretchingMagnitude(field, data):
-    return na.sqrt(data["VorticityStretchingX"]**2 +
+    return np.sqrt(data["VorticityStretchingX"]**2 +
                    data["VorticityStretchingY"]**2 +
                    data["VorticityStretchingZ"]**2)
 add_field("VorticityStretchingMagnitude", 
@@ -1154,13 +1329,13 @@ for ax in 'XYZ':
                           ["x-velocity", "y-velocity", "z-velocity"])],
               units=r"\rm{s}^{-2}")
 def _VorticityGrowthMagnitude(field, data):
-    result = na.sqrt(data["VorticityGrowthX"]**2 +
+    result = np.sqrt(data["VorticityGrowthX"]**2 +
                      data["VorticityGrowthY"]**2 +
                      data["VorticityGrowthZ"]**2)
-    dot = na.zeros(result.shape)
+    dot = np.zeros(result.shape)
     for ax in "XYZ":
         dot += data["Vorticity%s" % ax] * data["VorticityGrowth%s" % ax]
-    result = na.sign(dot) * result
+    result = np.sign(dot) * result
     return result
 add_field("VorticityGrowthMagnitude", function=_VorticityGrowthMagnitude,
           validators=[ValidateSpatial(1, 
@@ -1168,7 +1343,7 @@ add_field("VorticityGrowthMagnitude", function=_VorticityGrowthMagnitude,
           units=r"\rm{s}^{-1}",
           take_log=False)
 def _VorticityGrowthMagnitudeABS(field, data):
-    return na.sqrt(data["VorticityGrowthX"]**2 +
+    return np.sqrt(data["VorticityGrowthX"]**2 +
                    data["VorticityGrowthY"]**2 +
                    data["VorticityGrowthZ"]**2)
 add_field("VorticityGrowthMagnitudeABS", function=_VorticityGrowthMagnitudeABS,
@@ -1180,7 +1355,7 @@ def _VorticityGrowthTimescale(field, data):
     domegax_dt = data["VorticityX"] / data["VorticityGrowthX"]
     domegay_dt = data["VorticityY"] / data["VorticityGrowthY"]
     domegaz_dt = data["VorticityZ"] / data["VorticityGrowthZ"]
-    return na.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt)
+    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt)
 add_field("VorticityGrowthTimescale", function=_VorticityGrowthTimescale,
           validators=[ValidateSpatial(1, 
                       ["x-velocity", "y-velocity", "z-velocity"])],
@@ -1213,7 +1388,7 @@ for ax in 'XYZ':
               units=r"\rm{s}^{-1}")
 
 def _VorticityRadPressureMagnitude(field, data):
-    return na.sqrt(data["VorticityRadPressureX"]**2 +
+    return np.sqrt(data["VorticityRadPressureX"]**2 +
                    data["VorticityRadPressureY"]**2 +
                    data["VorticityRadPressureZ"]**2)
 add_field("VorticityRadPressureMagnitude",
@@ -1238,13 +1413,13 @@ for ax in 'XYZ':
                        ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],
               units=r"\rm{s}^{-1}")
 def _VorticityRPGrowthMagnitude(field, data):
-    result = na.sqrt(data["VorticityRPGrowthX"]**2 +
+    result = np.sqrt(data["VorticityRPGrowthX"]**2 +
                      data["VorticityRPGrowthY"]**2 +
                      data["VorticityRPGrowthZ"]**2)
-    dot = na.zeros(result.shape)
+    dot = np.zeros(result.shape)
     for ax in "XYZ":
         dot += data["Vorticity%s" % ax] * data["VorticityGrowth%s" % ax]
-    result = na.sign(dot) * result
+    result = np.sign(dot) * result
     return result
 add_field("VorticityRPGrowthMagnitude", function=_VorticityGrowthMagnitude,
           validators=[ValidateSpatial(1, 
@@ -1252,7 +1427,7 @@ add_field("VorticityRPGrowthMagnitude", function=_VorticityGrowthMagnitude,
           units=r"\rm{s}^{-1}",
           take_log=False)
 def _VorticityRPGrowthMagnitudeABS(field, data):
-    return na.sqrt(data["VorticityRPGrowthX"]**2 +
+    return np.sqrt(data["VorticityRPGrowthX"]**2 +
                    data["VorticityRPGrowthY"]**2 +
                    data["VorticityRPGrowthZ"]**2)
 add_field("VorticityRPGrowthMagnitudeABS", 
@@ -1265,7 +1440,7 @@ def _VorticityRPGrowthTimescale(field, data):
     domegax_dt = data["VorticityX"] / data["VorticityRPGrowthX"]
     domegay_dt = data["VorticityY"] / data["VorticityRPGrowthY"]
     domegaz_dt = data["VorticityZ"] / data["VorticityRPGrowthZ"]
-    return na.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
+    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
 add_field("VorticityRPGrowthTimescale", function=_VorticityRPGrowthTimescale,
           validators=[ValidateSpatial(1, 
                       ["Density", "RadAccel1", "RadAccel2", "RadAccel3"])],

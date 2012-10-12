@@ -30,7 +30,7 @@ import OpenGL.GL.shaders as shaders
 from OpenGL.arrays import vbo, ArrayDatatype
 import Image
 import glob
-import numpy as na
+import numpy as np
 import time
 
 ESCAPE = '\033'
@@ -235,7 +235,7 @@ class FlatImage(object):
 
     @classmethod
     def from_image_file(cls, fn, tex_unit = GL.GL_TEXTURE0):
-        buffer = na.array(Image.open(fn))
+        buffer = np.array(Image.open(fn))
         print "Uploading buffer", buffer.min(), buffer.max(), buffer.shape, buffer.dtype
         obj = cls(tex_unit)
         obj.upload_image(buffer)
@@ -260,8 +260,8 @@ class StereoImagePair(FlatImage):
     @classmethod
     def from_image_files(cls, left_fn, right_fn, tex_unit = GL.GL_TEXTURE0):
         print "Uploading pairs from %s and %s" % (left_fn, right_fn)
-        left_buffer = na.array(Image.open(left_fn))
-        right_buffer = na.array(Image.open(right_fn))
+        left_buffer = np.array(Image.open(left_fn))
+        right_buffer = np.array(Image.open(right_fn))
         obj = cls(tex_unit)
         obj.left_image.upload_image(left_buffer)
         obj.right_image.upload_image(right_buffer)
@@ -294,7 +294,7 @@ class GridObject3DScene(GenericGLUTScene):
         GenericGLUTScene.__init__(self, 800, 800)
 
         num = len(pf.h.grids) * 6 * 4
-        self.v = na.fromiter(self._get_grid_vertices(offset),
+        self.v = np.fromiter(self._get_grid_vertices(offset),
                              dtype = 'float32', count = num * 3)
 
         self.vertices = vbo.VBO(self.v)
@@ -408,7 +408,7 @@ class GridSlice3DScene(GenericGLUTScene):
 
         GL.glActiveTexture(GL.GL_TEXTURE0)
         id_field = GL.glGenTextures(1)
-        upload = na.log10(grid["Density"].astype("float32")).copy()
+        upload = np.log10(grid["Density"].astype("float32")).copy()
         self.mi = min(upload.min(), self.mi)
         self.ma = max(upload.max(), self.ma)
         #upload = (255*(upload - -31.0) / (-25.0 - -31.0)).astype("uint8")
@@ -452,13 +452,13 @@ class GridSlice3DScene(GenericGLUTScene):
         GenericGLUTScene.__init__(self, 800, 800)
 
         num = len(pf.h.grids) * 6 * 4
-        self.v = na.fromiter(self._get_grid_vertices(offset),
+        self.v = np.fromiter(self._get_grid_vertices(offset),
                              dtype = 'float32', count = num * 3)
 
         self.vertices = vbo.VBO(self.v)
         self.ng = len(pf.h.grids)
-        self.position = na.zeros(3, dtype='float')
-        self.rotation = na.zeros(3, dtype='float')
+        self.position = np.zeros(3, dtype='float')
+        self.rotation = np.zeros(3, dtype='float')
         self.position[2] = -2 # Offset backwards a bit
 
         self._setup_grids()

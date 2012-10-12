@@ -30,7 +30,7 @@ import inspect
 import copy
 import itertools
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -151,8 +151,8 @@ class FieldDetector(defaultdict):
         self.ActiveDimensions = [nd,nd,nd]
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
-        self.dds = na.ones(3, "float64")
-        self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
+        self.dds = np.ones(3, "float64")
+        self['dx'] = self['dy'] = self['dz'] = np.array([1.0])
         class fake_parameter_file(defaultdict):
             pass
 
@@ -161,8 +161,8 @@ class FieldDetector(defaultdict):
             pf = fake_parameter_file(lambda: 1)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.hubble_constant = pf.cosmological_simulation = 0.0
-            pf.domain_left_edge = na.zeros(3, 'float64')
-            pf.domain_right_edge = na.ones(3, 'float64')
+            pf.domain_left_edge = np.zeros(3, 'float64')
+            pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
         self.pf = pf
 
@@ -180,12 +180,12 @@ class FieldDetector(defaultdict):
         self.requested_parameters = []
         if not self.flat:
             defaultdict.__init__(self,
-                lambda: na.ones((nd, nd, nd), dtype='float64')
-                + 1e-4*na.random.random((nd, nd, nd)))
+                lambda: np.ones((nd, nd, nd), dtype='float64')
+                + 1e-4*np.random.random((nd, nd, nd)))
         else:
             defaultdict.__init__(self, 
-                lambda: na.ones((nd * nd * nd), dtype='float64')
-                + 1e-4*na.random.random((nd * nd * nd)))
+                lambda: np.ones((nd * nd * nd), dtype='float64')
+                + 1e-4*np.random.random((nd * nd * nd)))
 
     def __missing__(self, item):
         FI = getattr(self.pf, "field_info", FieldInfo)
@@ -215,13 +215,13 @@ class FieldDetector(defaultdict):
         FI = getattr(self.pf, "field_info", FieldInfo)
         if FI.has_key(field_name) and FI[field_name].particle_type:
             self.requested.append(field_name)
-            return na.ones(self.NumberOfParticles)
+            return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
     def get_field_parameter(self, param):
         self.requested_parameters.append(param)
-        if param in ['bulk_velocity', 'center', 'height_vector']:
-            return na.random.random(3) * 1e-2
+        if param in ['bulk_velocity', 'center', 'normal']:
+            return np.random.random(3) * 1e-2
         else:
             return 0.0
     _num_ghost_zones = 0

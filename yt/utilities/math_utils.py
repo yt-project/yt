@@ -27,7 +27,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import math
 
 def periodic_dist(a, b, period):
@@ -48,20 +48,20 @@ def periodic_dist(a, b, period):
 
     Examples
     --------
-    >>> a = na.array([0.1, 0.1, 0.1])
-    >>> b = na.array([0.9, 0,9, 0.9])
+    >>> a = np.array([0.1, 0.1, 0.1])
+    >>> b = np.array([0.9, 0,9, 0.9])
     >>> period = 1.
     >>> dist = periodic_dist(a, b, 1.)
     >>> dist
     0.3464102
     """
-    a = na.array(a)
-    b = na.array(b)
+    a = np.array(a)
+    b = np.array(b)
     if a.size != b.size: RunTimeError("Arrays must be the same shape.")
-    c = na.empty((2, a.size), dtype="float64")
+    c = np.empty((2, a.size), dtype="float64")
     c[0,:] = abs(a - b)
     c[1,:] = period - abs(a - b)
-    d = na.amin(c, axis=0)**2
+    d = np.amin(c, axis=0)**2
     return math.sqrt(d.sum())
 
 def rotate_vector_3D(a, dim, angle):
@@ -87,8 +87,8 @@ def rotate_vector_3D(a, dim, angle):
     
     Examples
     --------
-    >>> a = na.array([[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1], [3, 4, 5]])
-    >>> b = rotate_vector_3D(a, 2, na.pi/2)
+    >>> a = np.array([[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1], [3, 4, 5]])
+    >>> b = rotate_vector_3D(a, 2, np.pi/2)
     >>> print b
     [[  1.00000000e+00  -1.00000000e+00   0.00000000e+00]
     [  6.12323400e-17  -1.00000000e+00   1.00000000e+00]
@@ -100,27 +100,27 @@ def rotate_vector_3D(a, dim, angle):
     mod = False
     if len(a.shape) == 1:
         mod = True
-        a = na.array([a])
+        a = np.array([a])
     if a.shape[1] !=3:
         raise SyntaxError("The second dimension of the array a must be == 3!")
     if dim == 0:
-        R = na.array([[1, 0,0],
-            [0, na.cos(angle), na.sin(angle)],
-            [0, -na.sin(angle), na.cos(angle)]])
+        R = np.array([[1, 0,0],
+            [0, np.cos(angle), np.sin(angle)],
+            [0, -np.sin(angle), np.cos(angle)]])
     elif dim == 1:
-        R = na.array([[na.cos(angle), 0, -na.sin(angle)],
+        R = np.array([[np.cos(angle), 0, -np.sin(angle)],
             [0, 1, 0],
-            [na.sin(angle), 0, na.cos(angle)]])
+            [np.sin(angle), 0, np.cos(angle)]])
     elif dim == 2:
-        R = na.array([[na.cos(angle), na.sin(angle), 0],
-            [-na.sin(angle), na.cos(angle), 0],
+        R = np.array([[np.cos(angle), np.sin(angle), 0],
+            [-np.sin(angle), np.cos(angle), 0],
             [0, 0, 1]])
     else:
         raise SyntaxError("dim must be 0, 1, or 2!")
     if mod:
-        return na.dot(R, a.T).T[0]
+        return np.dot(R, a.T).T[0]
     else:
-        return na.dot(R, a.T).T
+        return np.dot(R, a.T).T
     
 
 def modify_reference_frame(CoM, L, P, V):
@@ -164,9 +164,9 @@ def modify_reference_frame(CoM, L, P, V):
     
     Examples
     --------
-    >>> CoM = na.array([0.5, 0.5, 0.5])
-    >>> L = na.array([1, 0, 0])
-    >>> P = na.array([[1, 0.5, 0.5], [0, 0.5, 0.5], [0.5, 0.5, 0.5], [0, 0, 0]])
+    >>> CoM = np.array([0.5, 0.5, 0.5])
+    >>> L = np.array([1, 0, 0])
+    >>> P = np.array([[1, 0.5, 0.5], [0, 0.5, 0.5], [0.5, 0.5, 0.5], [0, 0, 0]])
     >>> V = p.copy()
     >>> LL, PP, VV = modify_reference_frame(CoM, L, P, V)
     >>> LL
@@ -183,7 +183,7 @@ def modify_reference_frame(CoM, L, P, V):
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
 
     """
-    if (L == na.array([0, 0, 1.])).all():
+    if (L == np.array([0, 0, 1.])).all():
         # Whew! Nothing to do!
         return L, P, V
     # First translate the positions to center of mass reference frame.
@@ -191,7 +191,7 @@ def modify_reference_frame(CoM, L, P, V):
     # Now find the angle between modified L and the x-axis.
     LL = L.copy()
     LL[2] = 0.
-    theta = na.arccos(na.inner(LL, [1.,0,0])/na.inner(LL,LL)**.5)
+    theta = np.arccos(np.inner(LL, [1.,0,0])/np.inner(LL,LL)**.5)
     if L[1] < 0:
         theta = -theta
     # Now rotate all the position, velocity, and L vectors by this much around
@@ -200,7 +200,7 @@ def modify_reference_frame(CoM, L, P, V):
     V = rotate_vector_3D(V, 2, theta)
     L = rotate_vector_3D(L, 2, theta)
     # Now find the angle between L and the z-axis.
-    theta = na.arccos(na.inner(L, [0,0,1])/na.inner(L,L)**.5)
+    theta = np.arccos(np.inner(L, [0,0,1])/np.inner(L,L)**.5)
     # This time we rotate around the y axis.
     P = rotate_vector_3D(P, 1, theta)
     V = rotate_vector_3D(V, 1, theta)
@@ -241,10 +241,10 @@ def compute_rotational_velocity(CoM, L, P, V):
     
     Examples
     --------
-    >>> CoM = na.array([0, 0, 0])
-    >>> L = na.array([0, 0, 1])
-    >>> P = na.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
-    >>> V = na.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
+    >>> CoM = np.array([0, 0, 0])
+    >>> L = np.array([0, 0, 1])
+    >>> P = np.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
+    >>> V = np.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
     >>> circV = compute_rotational_velocity(CoM, L, P, V)
     >>> circV
     array([ 1.        ,  0.        ,  0.        ,  1.41421356])
@@ -254,13 +254,13 @@ def compute_rotational_velocity(CoM, L, P, V):
     L, P, V = modify_reference_frame(CoM, L, P, V)
     # Find the vector in the plane of the galaxy for each position point
     # that is perpendicular to the radial vector.
-    radperp = na.cross([0, 0, 1], P)
+    radperp = np.cross([0, 0, 1], P)
     # Find the component of the velocity along the radperp vector.
     # Unf., I don't think there's a better way to do this.
-    res = na.empty(V.shape[0], dtype='float64')
+    res = np.empty(V.shape[0], dtype='float64')
     for i, rp in enumerate(radperp):
-        temp = na.dot(rp, V[i]) / na.dot(rp, rp) * rp
-        res[i] = na.dot(temp, temp)**0.5
+        temp = np.dot(rp, V[i]) / np.dot(rp, rp) * rp
+        res[i] = np.dot(temp, temp)**0.5
     return res
     
 def compute_parallel_velocity(CoM, L, P, V):
@@ -296,10 +296,10 @@ def compute_parallel_velocity(CoM, L, P, V):
     
     Examples
     --------
-    >>> CoM = na.array([0, 0, 0])
-    >>> L = na.array([0, 0, 1])
-    >>> P = na.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
-    >>> V = na.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
+    >>> CoM = np.array([0, 0, 0])
+    >>> L = np.array([0, 0, 1])
+    >>> P = np.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
+    >>> V = np.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
     >>> paraV = compute_parallel_velocity(CoM, L, P, V)
     >>> paraV
     array([10, -1,  1, -1])
@@ -342,10 +342,10 @@ def compute_radial_velocity(CoM, L, P, V):
     
     Examples
     --------
-    >>> CoM = na.array([0, 0, 0])
-    >>> L = na.array([0, 0, 1])
-    >>> P = na.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
-    >>> V = na.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
+    >>> CoM = np.array([0, 0, 0])
+    >>> L = np.array([0, 0, 1])
+    >>> P = np.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
+    >>> V = np.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
     >>> radV = compute_radial_velocity(CoM, L, P, V)
     >>> radV
     array([ 1.        ,  1.41421356 ,  0.        ,  0.])
@@ -357,10 +357,10 @@ def compute_radial_velocity(CoM, L, P, V):
     # with the cylindrical radial vector for this point.
     # Unf., I don't think there's a better way to do this.
     P[:,2] = 0
-    res = na.empty(V.shape[0], dtype='float64')
+    res = np.empty(V.shape[0], dtype='float64')
     for i, rad in enumerate(P):
-        temp = na.dot(rad, V[i]) / na.dot(rad, rad) * rad
-        res[i] = na.dot(temp, temp)**0.5
+        temp = np.dot(rad, V[i]) / np.dot(rad, rad) * rad
+        res[i] = np.dot(temp, temp)**0.5
     return res
 
 def compute_cylindrical_radius(CoM, L, P, V):
@@ -396,10 +396,10 @@ def compute_cylindrical_radius(CoM, L, P, V):
     
     Examples
     --------
-    >>> CoM = na.array([0, 0, 0])
-    >>> L = na.array([0, 0, 1])
-    >>> P = na.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
-    >>> V = na.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
+    >>> CoM = np.array([0, 0, 0])
+    >>> L = np.array([0, 0, 1])
+    >>> P = np.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
+    >>> V = np.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
     >>> cyl_r = compute_cylindrical_radius(CoM, L, P, V)
     >>> cyl_r
     array([ 1.        ,  1.41421356,  0.        ,  1.41421356])
@@ -409,7 +409,7 @@ def compute_cylindrical_radius(CoM, L, P, V):
     # Demote all the positions to the z=0 plane, which makes the distance
     # calculation very easy.
     P[:,2] = 0
-    return na.sqrt((P * P).sum(axis=1))
+    return np.sqrt((P * P).sum(axis=1))
     
 def ortho_find(vec1):
     r"""Find two complementary orthonormal vectors to a given vector.
@@ -489,9 +489,9 @@ def ortho_find(vec1):
     >>> c
     array([-0.16903085,  0.84515425, -0.50709255])
     """
-    vec1 = na.array(vec1, dtype=na.float64)
+    vec1 = np.array(vec1, dtype=np.float64)
     # Normalize
-    norm = na.sqrt(na.vdot(vec1, vec1))
+    norm = np.sqrt(np.vdot(vec1, vec1))
     if norm == 0:
         raise ValueError("Zero vector used as input.")
     vec1 /= norm
@@ -513,9 +513,9 @@ def ortho_find(vec1):
         z2 = 0.0
         x2 = -(y1 / x1)
         norm2 = (1.0 + z2 ** 2.0) ** (0.5)
-    vec2 = na.array([x2,y2,z2])
+    vec2 = np.array([x2,y2,z2])
     vec2 /= norm2
-    vec3 = na.cross(vec1, vec2)
+    vec3 = np.cross(vec1, vec2)
     return vec1, vec2, vec3
 
 def quartiles(a, axis=None, out=None, overwrite_input=False):
@@ -570,7 +570,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
 
     Examples
     --------
-    >>> a = na.arange(100).reshape(10,10)
+    >>> a = np.arange(100).reshape(10,10)
     >>> a
     array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
            [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
@@ -601,7 +601,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
             a.sort(axis=axis)
             sorted = a
     else:
-        sorted = na.sort(a, axis=axis)
+        sorted = np.sort(a, axis=axis)
     if axis is None:
         axis = 0
     indexer = [slice(None)] * sorted.ndim
@@ -619,8 +619,8 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
             indexer[axis] = slice(index, index+1)
         # Use mean in odd and even case to coerce data type
         # and check, use out array.
-        result.append(na.mean(sorted[indexer], axis=axis, out=out))
-    return na.array(result)
+        result.append(np.mean(sorted[indexer], axis=axis, out=out))
+    return np.array(result)
 
 def get_rotation_matrix(theta, rot_vector):
     """
@@ -656,20 +656,20 @@ def get_rotation_matrix(theta, rot_vector):
     array([[ 0.70710678,  0.        ,  0.70710678],
            [ 0.        ,  1.        ,  0.        ],
            [-0.70710678,  0.        ,  0.70710678]])
-    >>> na.dot(rot,a)
+    >>> np.dot(rot,a)
     array([ 0.,  1.,  0.])
     # since a is an eigenvector by construction
-    >>> na.dot(rot,[1,0,0])
+    >>> np.dot(rot,[1,0,0])
     array([ 0.70710678,  0.        , -0.70710678])
     """
 
     ux = rot_vector[0]
     uy = rot_vector[1]
     uz = rot_vector[2]
-    cost = na.cos(theta)
-    sint = na.sin(theta)
+    cost = np.cos(theta)
+    sint = np.sin(theta)
     
-    R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
+    R = np.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
                   [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
                   [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
     

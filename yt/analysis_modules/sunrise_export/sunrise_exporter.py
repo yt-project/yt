@@ -32,7 +32,7 @@ except ImportError:
     pass
 
 import time
-import numpy as na
+import numpy as np
 import numpy.linalg as linalg
 import collections
 
@@ -76,14 +76,14 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     """
 
-    fc = na.array(fc)
-    fwidth = na.array(fwidth)
+    fc = np.array(fc)
+    fwidth = np.array(fwidth)
     
     #we must round the dle,dre to the nearest root grid cells
     ile,ire,super_level,ncells_wide= \
             round_ncells_wide(pf.domain_dimensions,fc-fwidth,fc+fwidth,nwide=ncells_wide)
 
-    assert na.all((ile-ire)==(ile-ire)[0])
+    assert np.all((ile-ire)==(ile-ire)[0])
     mylog.info("rounding specified region:")
     mylog.info("from [%1.5f %1.5f %1.5f]-[%1.5f %1.5f %1.5f]"%(tuple(fc-fwidth)+tuple(fc+fwidth)))
     mylog.info("to   [%07i %07i %07i]-[%07i %07i %07i]"%(tuple(ile)+tuple(ire)))
@@ -151,7 +151,7 @@ def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
         print "[%03i %03i %03i] "%tuple(dre),
         print " with %i halos"%num_halos
         dle,dre = domain
-        dle, dre = na.array(dle),na.array(dre)
+        dle, dre = np.array(dle),np.array(dre)
         fn = fni 
         fn += "%03i_%03i_%03i-"%tuple(dle)
         fn += "%03i_%03i_%03i"%tuple(dre)
@@ -176,7 +176,7 @@ def domains_from_halos(pf,halo_list,frvir=0.15):
     dn = pf.domain_dimensions
     for halo in halo_list:
         fle, fre = halo.CoM-frvir*halo.Rvir,halo.CoM+frvir*halo.Rvir
-        dle,dre = na.floor(fle*dn), na.ceil(fre*dn)
+        dle,dre = np.floor(fle*dn), np.ceil(fre*dn)
         dle,dre = tuple(dle.astype('int')),tuple(dre.astype('int'))
         if (dle,dre) in domains.keys():
             domains[(dle,dre)] += halo,
@@ -209,7 +209,7 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     del field_data
 
     #first we cast every cell as an oct
-    #ngrids = na.max([g.id for g in pf._grids])
+    #ngrids = np.max([g.id for g in pf._grids])
     grids = {}
     levels_all = {} 
     levels_finest = {}
@@ -218,13 +218,13 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
         levels_all[l]=0
     pbar = get_pbar("Initializing octs ",len(pf.h.grids))
     for gi,g in enumerate(pf.h.grids):
-        ff = na.array([g[f] for f in fields])
+        ff = np.array([g[f] for f in fields])
         og = amr_utils.OctreeGrid(
                 g.child_index_mask.astype('int32'),
                 ff.astype("float64"),
                 g.LeftEdge.astype("float64"),
                 g.ActiveDimensions.astype("int32"),
-                na.ones(1,dtype="float64")*g.dds[0],
+                np.ones(1,dtype="float64")*g.dds[0],
                 g.Level,
                 g.id)
         grids[g.id] = og
@@ -244,11 +244,11 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     #oct_list =  amr_utils.OctreeGridList(grids)
     
     #initialize arrays to be passed to the recursion algo
-    o_length = na.sum(levels_all.values())
-    r_length = na.sum(levels_all.values())
-    output   = na.zeros((o_length,len(fields)), dtype='float64')
-    refined  = na.zeros(r_length, dtype='int32')
-    levels   = na.zeros(r_length, dtype='int32')
+    o_length = np.sum(levels_all.values())
+    r_length = np.sum(levels_all.values())
+    output   = np.zeros((o_length,len(fields)), dtype='float64')
+    refined  = np.zeros(r_length, dtype='int32')
+    levels   = np.zeros(r_length, dtype='int32')
     pos = position()
     hs       = hilbert_state()
     start_time = time.time()
@@ -334,7 +334,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
         #calculate the floating point LE of the children
         #then translate onto the subgrid integer index 
         parent_fle  = grid.left_edges + cell_index*grid.dx
-        subgrid_ile = na.floor((parent_fle - subgrid.left_edges)/subgrid.dx)
+        subgrid_ile = np.floor((parent_fle - subgrid.left_edges)/subgrid.dx)
         for i, (vertex,hilbert_child) in enumerate(hilbert):
             #vertex is a combination of three 0s and 1s to 
             #denote each of the 8 octs
@@ -342,7 +342,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
                 subgrid = grid #we don't actually descend if we're a superlevel
                 child_ile = cell_index + na.array(vertex)*2**(-level)
             else:
-                child_ile = subgrid_ile+na.array(vertex)
+                child_ile = subgrid_ile+np.array(vertex)
                 child_ile = child_ile.astype('int')
 
             RecurseOctreeDepthFirstHilbert(child_ile,pos,
@@ -383,17 +383,17 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
     col_list.append(pyfits.Column("mass_metals", format='D',
                     array=fd['MetalMass'], unit="Msun"))
     # col_list.append(pyfits.Column("mass_stars", format='D',
-    #                 array=na.zeros(size,dtype='D'),unit="Msun"))
+    #                 array=np.zeros(size,dtype='D'),unit="Msun"))
     # col_list.append(pyfits.Column("mass_stellar_metals", format='D',
-    #                 array=na.zeros(size,dtype='D'),unit="Msun"))
+    #                 array=np.zeros(size,dtype='D'),unit="Msun"))
     # col_list.append(pyfits.Column("age_m", format='D',
-    #                 array=na.zeros(size,dtype='D'),unit="yr*Msun"))
+    #                 array=np.zeros(size,dtype='D'),unit="yr*Msun"))
     # col_list.append(pyfits.Column("age_l", format='D',
-    #                 array=na.zeros(size,dtype='D'),unit="yr*Msun"))
+    #                 array=np.zeros(size,dtype='D'),unit="yr*Msun"))
     # col_list.append(pyfits.Column("L_bol", format='D',
-    #                 array=na.zeros(size,dtype='D')))
+    #                 array=np.zeros(size,dtype='D')))
     # col_list.append(pyfits.Column("L_lambda", format='D',
-    #                 array=na.zeros(size,dtype='D')))
+    #                 array=np.zeros(size,dtype='D')))
     # The units for gas_temp are really K*Msun. For older Sunrise versions
     # you must set the unit to just K  
     col_list.append(pyfits.Column("gas_temp_m", format='D',
@@ -404,7 +404,7 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
                     array=fd['CellVolumeCode'].astype('float64')*pf['kpc']**3.0,
                     unit="kpc^3"))
     col_list.append(pyfits.Column("SFR", format='D',
-                    array=na.zeros(size, dtype='D')))
+                    array=np.zeros(size, dtype='D')))
     cols = pyfits.ColDefs(col_list)
     mg_table = pyfits.new_table(cols)
     mg_table.header.update("M_g_tot", tm)
@@ -413,7 +413,7 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
     mg_table.name = "GRIDDATA"
 
     # Add a dummy Primary; might be a better way to do this!
-    col_list = [pyfits.Column("dummy", format="F", array=na.zeros(1, dtype='float32'))]
+    col_list = [pyfits.Column("dummy", format="F", array=np.zeros(1, dtype='float32'))]
     cols = pyfits.ColDefs(col_list)
     md_table = pyfits.new_table(cols)
     md_table.header.update("snaptime", pf.current_time*pf['years'])
@@ -439,12 +439,12 @@ def nearest_power(x):
 
 def round_ncells_wide(dds,fle,fre,nwide=None):
     fc = (fle+fre)/2.0
-    assert na.all(fle < fc)
-    assert na.all(fre > fc)
-    ic = na.rint(fc*dds) #nearest vertex to the center
+    assert np.all(fle < fc)
+    assert np.all(fre > fc)
+    ic = np.rint(fc*dds) #nearest vertex to the center
     ile,ire = ic.astype('int'),ic.astype('int')
     cfle,cfre = fc.copy(),fc.copy()
-    idx = na.array([0,0,0]) #just a random non-equal array
+    idx = np.array([0,0,0]) #just a random non-equal array
     width = 0.0
     if nwide is None:
         #expand until borders are included and
@@ -452,41 +452,41 @@ def round_ncells_wide(dds,fle,fre,nwide=None):
         idxq,out=False,True
         while not out or not idxq:
             cfle,cfre = fc-width, fc+width
-            ile = na.rint(cfle*dds).astype('int')
-            ire = na.rint(cfre*dds).astype('int')
+            ile = np.rint(cfle*dds).astype('int')
+            ire = np.rint(cfre*dds).astype('int')
             idx = ire-ile
             width += 0.1/dds
             #quit if idxq is true:
-            idxq = idx[0]>0 and na.all(idx==idx[0])
-            out  = na.all(fle>cfle) and na.all(fre<cfre) 
+            idxq = idx[0]>0 and np.all(idx==idx[0])
+            out  = np.all(fle>cfle) and np.all(fre<cfre) 
             assert width[0] < 1.1 #can't go larger than the simulation volume
         nwide = idx[0]
     else:
         #expand until we are nwide cells span
-        while not na.all(idx==nwide):
-            assert na.any(idx<=nwide)
+        while not np.all(idx==nwide):
+            assert np.any(idx<=nwide)
             cfle,cfre = fc-width, fc+width
-            ile = na.rint(cfle*dds).astype('int')
-            ire = na.rint(cfre*dds).astype('int')
+            ile = np.rint(cfle*dds).astype('int')
+            ire = np.rint(cfre*dds).astype('int')
             idx = ire-ile
             width += 1e-2*1.0/dds
-    assert na.all(idx==nwide)
+    assert np.all(idx==nwide)
     assert idx[0]>0
-    maxlevel = -na.rint(na.log2(nwide)).astype('int')
-    assert abs(na.log2(nwide)-na.rint(na.log2(nwide)))<1e-5 #nwide should be a power of 2
+    maxlevel = -np.rint(np.log2(nwide)).astype('int')
+    assert abs(np.log2(nwide)-np.rint(np.log2(nwide)))<1e-5 #nwide should be a power of 2
     return ile,ire,maxlevel,nwide
 
 def round_nearest_edge(pf,fle,fre):
     dds = pf.domain_dimensions
-    ile = na.floor(fle*dds).astype('int')
-    ire = na.ceil(fre*dds).astype('int') 
+    ile = np.floor(fle*dds).astype('int')
+    ire = np.ceil(fre*dds).astype('int') 
     
     #this is the number of cells the super octree needs to expand to
     #must round to the nearest power of 2
-    width = na.max(ire-ile)
+    width = np.max(ire-ile)
     width = nearest_power(width)
     
-    maxlevel = -na.rint(na.log2(width)).astype('int')
+    maxlevel = -np.rint(np.log2(width)).astype('int')
     return ile,ire,maxlevel
 
 def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
@@ -502,15 +502,15 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     #make sure we select more than a single particle
     assert na.sum(idxst)>0
     if pos is None:
-        pos = na.array([dd["particle_position_%s" % ax]
+        pos = np.array([dd["particle_position_%s" % ax]
                         for ax in 'xyz']).transpose()
-    idx = idxst & na.all(pos>fle,axis=1) & na.all(pos<fre,axis=1)
-    assert na.sum(idx)>0
+    idx = idxst & np.all(pos>fle,axis=1) & np.all(pos<fre,axis=1)
+    assert np.sum(idx)>0
     pos = pos[idx]*pf['kpc'] #unitary units -> kpc
     if age is None:
         age = dd["particle_age"][idx]*pf['years'] # seconds->years
     if vel is None:
-        vel = na.array([dd["particle_velocity_%s" % ax][idx]
+        vel = np.array([dd["particle_velocity_%s" % ax][idx]
                         for ax in 'xyz']).transpose()
         # Velocity is cm/s, we want it to be kpc/yr
         #vel *= (pf["kpc"]/pf["cm"]) / (365*24*3600.)
@@ -531,8 +531,8 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     formation_time = pf.current_time*pf['years']-age
     #create every column
     col_list = []
-    col_list.append(pyfits.Column("ID", format="J", array=na.arange(current_mass.size).astype('int32')))
-    col_list.append(pyfits.Column("parent_ID", format="J", array=na.arange(current_mass.size).astype('int32')))
+    col_list.append(pyfits.Column("ID", format="J", array=np.arange(current_mass.size).astype('int32')))
+    col_list.append(pyfits.Column("parent_ID", format="J", array=np.arange(current_mass.size).astype('int32')))
     col_list.append(pyfits.Column("position", format="3D", array=pos, unit="kpc"))
     col_list.append(pyfits.Column("velocity", format="3D", array=vel, unit="kpc/yr"))
     col_list.append(pyfits.Column("creation_mass", format="D", array=initial_mass, unit="Msun"))
@@ -546,7 +546,7 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     col_list.append(pyfits.Column("metallicity", format="D",
         array=metallicity,unit="Msun")) 
     #col_list.append(pyfits.Column("L_bol", format="D",
-    #    array=na.zeros(current_mass.size)))
+    #    array=np.zeros(current_mass.size)))
     
     #make the table
     cols = pyfits.ColDefs(col_list)
@@ -579,7 +579,7 @@ def add_fields():
                 / data["dynamical_time"])
         xv2 = ((data.pf["InitialTime"] + dtForSFR - data["creation_time"])
                 / data["dynamical_time"])
-        denom = (1.0 - star_mass_ejection_fraction * (1.0 - (1.0 + xv1)*na.exp(-xv1)))
+        denom = (1.0 - star_mass_ejection_fraction * (1.0 - (1.0 + xv1)*np.exp(-xv1)))
         minitial = data["ParticleMassMsun"] / denom
         return minitial
 
@@ -707,14 +707,14 @@ def generate_sunrise_camera_position(pf,sim_center,sim_axis_short=None,sim_axis_
     camera_positions in Sunrise.
     """
 
-    sim_center = na.array(sim_center)
+    sim_center = np.array(sim_center)
     if sim_sphere_radius is None:
         sim_sphere_radius = 10.0/pf['kpc']
     if sim_axis_short is None:
         if dd is None:
             dd = pf.h.all_data()
-        pos = na.array([dd["particle_position_%s"%i] for i in "xyz"]).T
-        idx = na.sqrt(na.sum((pos-sim_center)**2.0,axis=1))<sim_sphere_radius
+        pos = np.array([dd["particle_position_%s"%i] for i in "xyz"]).T
+        idx = np.sqrt(np.sum((pos-sim_center)**2.0,axis=1))<sim_sphere_radius
         mas = dd["particle_mass"]
         pos = pos[idx]
         mas = mas[idx]
@@ -731,14 +731,14 @@ def generate_sunrise_camera_position(pf,sim_center,sim_axis_short=None,sim_axis_
     if scene_distance is  None:
         scene_distance = 1e4/pf['kpc'] #this is how far the camera is from the target
     if scene_fov is None:
-        radii = na.sqrt(na.sum((pos-sim_center)**2.0,axis=1))
+        radii = np.sqrt(np.sum((pos-sim_center)**2.0,axis=1))
         #idx= radii < sim_halo_radius*0.10
         #radii = radii[idx]
         #mass  = mas[idx] #copying mass into mas
-        si = na.argsort(radii)
+        si = np.argsort(radii)
         radii = radii[si]
         mass  = mas[si]
-        idx, = na.where(na.cumsum(mass)>mass.sum()/2.0)
+        idx, = np.where(np.cumsum(mass)>mass.sum()/2.0)
         re = radii[idx[0]]
         scene_fov = 5*re
         scene_fov = max(scene_fov,3.0/pf['kpc']) #min size is 3kpc
@@ -754,11 +754,11 @@ def generate_sunrise_camera_position(pf,sim_center,sim_axis_short=None,sim_axis_
     
     #rotate the camera
     if scene_rot :
-        irotation = na.eye(3)
-    sunrise_pos = matmul(irotation,na.array(scene_position)*scene_distance) #do NOT include sim center
+        irotation = np.eye(3)
+    sunrise_pos = matmul(irotation,np.array(scene_position)*scene_distance) #do NOT include sim center
     sunrise_up  = matmul(irotation,scene_up)
     sunrise_direction = -sunrise_pos
-    sunrise_afov = 2.0*na.arctan((scene_fov/2.0)/scene_distance)#convert from distance FOV to angular
+    sunrise_afov = 2.0*np.arctan((scene_fov/2.0)/scene_distance)#convert from distance FOV to angular
 
     #change to physical kpc
     sunrise_pos *= pf['kpc']
@@ -772,11 +772,11 @@ def matmul(m, v):
     use this to muliply two matricies, it will think that you're
     trying to multiply by a set of vectors and all hell will break
     loose."""    
-    assert type(v) is not na.matrix
-    v = na.asarray(v)
-    m, vs = [na.asmatrix(a) for a in (m, v)]
+    assert type(v) is not np.matrix
+    v = np.asarray(v)
+    m, vs = [np.asmatrix(a) for a in (m, v)]
 
-    result = na.asarray(na.transpose(m * na.transpose(vs)))    
+    result = np.asarray(np.transpose(m * np.transpose(vs)))    
     if len(v.shape) == 1:
         return result[0]
     return result
@@ -784,14 +784,14 @@ def matmul(m, v):
 
 def mag(vs):
     """Compute the norms of a set of vectors or a single vector."""
-    vs = na.asarray(vs)
+    vs = np.asarray(vs)
     if len(vs.shape) == 1:
-        return na.sqrt( (vs**2).sum() )
-    return na.sqrt( (vs**2).sum(axis=1) )
+        return np.sqrt( (vs**2).sum() )
+    return np.sqrt( (vs**2).sum(axis=1) )
 
 def mag2(vs):
     """Compute the norms of a set of vectors or a single vector."""
-    vs = na.asarray(vs)
+    vs = np.asarray(vs)
     if len(vs.shape) == 1:
         return (vs**2).sum()
     return (vs**2).sum(axis=1)
@@ -800,25 +800,25 @@ def mag2(vs):
 def position_moment(rs, ms=None, axes=None):
     """Find second position moment tensor.
     If axes is specified, weight by the elliptical radius (Allgood 2005)"""
-    rs = na.asarray(rs)
+    rs = np.asarray(rs)
     Npart, N = rs.shape
-    if ms is None: ms = na.ones(Npart)
-    else: ms = na.asarray(ms)    
+    if ms is None: ms = np.ones(Npart)
+    else: ms = np.asarray(ms)    
     if axes is not None:
-        axes = na.asarray(axes,dtype=float64)
+        axes = np.asarray(axes,dtype=float64)
         axes = axes/axes.max()
         norms2 = mag2(rs/axes)
     else:
-        norms2 = na.ones(Npart)
+        norms2 = np.ones(Npart)
     M = ms.sum()
-    result = na.zeros((N,N))
+    result = np.zeros((N,N))
     # matrix is symmetric, so only compute half of it then fill in the
     # other half
     for i in range(N):
         for j in range(i+1):
             result[i,j] = ( rs[:,i] * rs[:,j] * ms / norms2).sum() / M
         
-    result = result + result.transpose() - na.identity(N)*result
+    result = result + result.transpose() - np.identity(N)*result
     return result
     
 
@@ -835,7 +835,7 @@ def find_half_euler_angles(v,w,check=True):
     make the long axis line up with the x axis and the short axis line
     up with the x (z) axis for the 2 (3) dimensional case."""
     # Make sure the vectors are normalized and orthogonal
-    mag = lambda x: na.sqrt(na.sum(x**2.0))
+    mag = lambda x: np.sqrt(np.sum(x**2.0))
     v = v/mag(v)
     w = w/mag(w)    
     if check:
@@ -852,7 +852,7 @@ def find_half_euler_angles(v,w,check=True):
     w_prime = euler_passive(w,phi,theta,0.)
     if w_prime[0] < 0: w_prime = -w_prime
     # Now last Euler angle should just be this:
-    psi = na.arctan2(w_prime[1],w_prime[0])
+    psi = np.arctan2(w_prime[1],w_prime[0])
     return phi, theta, psi
 
 def find_euler_phi_theta(v):
@@ -860,19 +860,19 @@ def find_euler_phi_theta(v):
     direction"""
     # Make sure the vector is normalized
     v = v/mag(v)
-    theta = na.arccos(v[2])
-    phi = na.arctan2(v[0],-v[1])
+    theta = np.arccos(v[2])
+    phi = np.arctan2(v[0],-v[1])
     return phi,theta
 
 def euler_matrix(phi, the, psi):
     """Make an Euler transformation matrix"""
-    cpsi=na.cos(psi)
-    spsi=na.sin(psi)
-    cphi=na.cos(phi)
-    sphi=na.sin(phi)
-    cthe=na.cos(the)
-    sthe=na.sin(the)
-    m = na.mat(na.zeros((3,3)))
+    cpsi=np.cos(psi)
+    spsi=np.sin(psi)
+    cphi=np.cos(phi)
+    sphi=np.sin(phi)
+    cthe=np.cos(the)
+    sthe=np.sin(the)
+    m = np.mat(np.zeros((3,3)))
     m[0,0] = cpsi*cphi - cthe*sphi*spsi
     m[0,1] = cpsi*sphi + cthe*cphi*spsi
     m[0,2] = spsi*sthe
@@ -921,9 +921,9 @@ cameraset_vertex = collections.OrderedDict([
 cameraset_ring = collections.OrderedDict()
 
 segments = 20
-for angle in na.linspace(0,360,segments):
-    pos = [na.cos(angle),0.,na.sin(angle)]
-    vc  = [na.cos(90-angle),0.,na.sin(90-angle)] 
+for angle in np.linspace(0,360,segments):
+    pos = [np.cos(angle),0.,np.sin(angle)]
+    vc  = [np.cos(90-angle),0.,np.sin(90-angle)] 
     cameraset_ring['02i'%angle]=(pos,vc)
             
 

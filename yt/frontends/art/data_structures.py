@@ -25,8 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
-import numpy as na
+import numpy as np
 import stat
 import weakref
 import cPickle
@@ -133,7 +132,7 @@ class ARTGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] \
@@ -148,10 +147,10 @@ class ARTGrid(AMRGridPatch):
             return self.start_index
         if len(self.Parent) == 0:
             start_index = self.LeftEdge / self.dds
-            return na.rint(start_index).astype('int64').ravel()
+            return np.rint(start_index).astype('int64').ravel()
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+                       np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
         self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
@@ -169,7 +168,7 @@ class ARTHierarchy(AMRHierarchy):
         self.max_level = pf.max_level
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self.float_type = na.float64
+        self.float_type = np.float64
         AMRHierarchy.__init__(self,pf,data_style)
         if 'particle_position' in dir(self.pf):
             self._setup_particle_grids()
@@ -300,9 +299,9 @@ class ARTHierarchy(AMRHierarchy):
                           self.pf.child_grid_offset,
                           self.pf.min_level, self.pf.max_level)
         self.pf.level_info[0]=self.pf.ncell
-        self.pf.level_info = na.array(self.pf.level_info)        
+        self.pf.level_info = np.array(self.pf.level_info)        
         self.pf.level_offsets = self.pf.level_child_offsets
-        self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
+        self.pf.level_offsets = np.array(self.pf.level_offsets, dtype='int64')
         self.pf.level_offsets[0] = self.pf.root_grid_offset
         
         self.pf.level_art_child_masks = {}
@@ -312,10 +311,10 @@ class ARTHierarchy(AMRHierarchy):
         del cm
         
         root_psg = _ramses_reader.ProtoSubgrid(
-                        na.zeros(3, dtype='int64'), # left index of PSG
+                        np.zeros(3, dtype='int64'), # left index of PSG
                         self.pf.domain_dimensions, # dim of PSG
-                        na.zeros((1,3), dtype='int64'), # left edges of grids
-                        na.zeros((1,6), dtype='int64') # empty
+                        np.zeros((1,3), dtype='int64'), # left edges of grids
+                        np.zeros((1,6), dtype='int64') # empty
                         )
         
         self.proto_grids = [[root_psg],]
@@ -351,8 +350,8 @@ class ARTHierarchy(AMRHierarchy):
             #compute the hilbert indices up to a certain level
             #the indices will associate an oct grid to the nearest
             #hilbert index?
-            base_level = int( na.log10(self.pf.domain_dimensions.max()) /
-                              na.log10(2))
+            base_level = int( np.log10(self.pf.domain_dimensions.max()) /
+                              np.log10(2))
             hilbert_indices = _ramses_reader.get_hilbert_indices(
                                     level + base_level, left_index)
             #print base_level, hilbert_indices.max(),
@@ -361,7 +360,7 @@ class ARTHierarchy(AMRHierarchy):
             
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
-            unique_indices = na.unique(hilbert_indices)
+            unique_indices = np.unique(hilbert_indices)
             mylog.info("Level % 2i has % 10i unique indices for %0.3e octs",
                         level, unique_indices.size, hilbert_indices.size)
             
@@ -387,15 +386,15 @@ class ARTHierarchy(AMRHierarchy):
                 #why would we ever have non-unique octs?
                 #perhaps the hilbert ordering may visit the same
                 #oct multiple times - review only unique octs 
-                #for idomain in na.unique(ddfl[:,1]):
+                #for idomain in np.unique(ddfl[:,1]):
                 #dom_ind = ddfl[:,1] == idomain
                 #dleft_index = ddleft_index[dom_ind,:]
                 #dfl = ddfl[dom_ind,:]
                 
                 dleft_index = ddleft_index
                 dfl = ddfl
-                initial_left = na.min(dleft_index, axis=0)
-                idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
+                initial_left = np.min(dleft_index, axis=0)
+                idims = (np.max(dleft_index, axis=0) - initial_left).ravel()+2
                 #this creates a grid patch that doesn't cover the whole level
                 #necessarily, but with other patches covers all the regions
                 #with octs. This object automatically shrinks its size
@@ -425,8 +424,8 @@ class ARTHierarchy(AMRHierarchy):
                 
                 step+=1
                 pbar.update(step)
-            eff_mean = na.mean(psg_eff)
-            eff_nmin = na.sum([e<=min_eff*tol for e in psg_eff])
+            eff_mean = np.mean(psg_eff)
+            eff_nmin = np.sum([e<=min_eff*tol for e in psg_eff])
             eff_nall = len(psg_eff)
             mylog.info("Average subgrid efficiency %02.1f %%",
                         eff_mean*100.0)
@@ -470,14 +469,14 @@ class ARTHierarchy(AMRHierarchy):
                 self.grid_dimensions[gi,:] = gd
                 assert na.all(self.grid_left_edge[gi,:]<=1.0)    
                 self.grid_levels[gi,:] = level
-                child_mask = na.zeros(props[2,:],'uint8')
+                child_mask = np.zeros(props[2,:],'uint8')
                 amr_utils.fill_child_mask(fl,start_index,
                     self.pf.level_art_child_masks[level],
                     child_mask)
                 grids.append(self.grid(gi, self, level, fl, 
                     start_index,le,re,gd))
                 gi += 1
-        self.grids = na.empty(len(grids), dtype='object')
+        self.grids = np.empty(len(grids), dtype='object')
         
 
         if self.pf.file_particle_data:
@@ -497,7 +496,7 @@ class ARTHierarchy(AMRHierarchy):
             pbar.update(1)
             npa,npb=0,0
             npb = lspecies[-1]
-            clspecies = na.concatenate(([0,],lspecies))
+            clspecies = np.concatenate(([0,],lspecies))
             if self.pf.only_particle_type is not None:
                 npb = lspecies[0]
                 if type(self.pf.only_particle_type)==type(5):
@@ -518,16 +517,15 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_velocity   = self.pf.particle_velocity[npa:npb]
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
-            self.pf.particle_type         = na.zeros(np,dtype='uint8')
-            self.pf.particle_mass         = na.zeros(np,dtype='float64')
-            self.pf.particle_mass_initial = na.zeros(np,dtype='float64')-1
-            self.pf.particle_creation_time= na.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity  = na.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity1 = na.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity2 = na.zeros(np,dtype='float64')-1
-            self.pf.particle_age          = na.zeros(np,dtype='float64')-1
+            self.pf.particle_type         = np.zeros(np,dtype='uint8')
+            self.pf.particle_mass         = np.zeros(np,dtype='float64')
+            self.pf.particle_mass_initial = np.zeros(np,dtype='float64')-1
+            self.pf.particle_creation_time= np.zeros(np,dtype='float64')-1
+            self.pf.particle_metallicity  = np.zeros(np,dtype='float64')-1
+            self.pf.particle_metallicity1 = np.zeros(np,dtype='float64')-1
+            self.pf.particle_metallicity2 = np.zeros(np,dtype='float64')-1
+            self.pf.particle_age          = np.zeros(np,dtype='float64')-1
 
-            
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
             self.pf.conversion_factors['particle_mass'] = 1.0 #solar mass in g
             self.pf.conversion_factors['particle_mass_initial'] = 1.0
@@ -635,12 +633,11 @@ class ARTHierarchy(AMRHierarchy):
         for gi,g in enumerate(grids):    
             self.grids[gi]=g
                     
-
     def _get_grid_parents(self, grid, LE, RE):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(LE, RE)
         mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
+        mask = np.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
         return self.grids[mask]
 
     def _populate_grid_objects(self):
@@ -672,7 +669,7 @@ class ARTHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
         pb.finish()
-        #self.max_level = self.grid_levels.max()
+        self.max_level = self.grid_levels.max()
 
     def _setup_field_list(self):
         if self.parameter_file.use_particles:
@@ -737,7 +734,7 @@ class ARTStaticOutput(StaticOutput):
         self.spread = spread
         
         if limit_level is None:
-            self.limit_level = na.inf
+            self.limit_level = np.inf
         else:
             limit_level = int(limit_level)
             mylog.info("Using maximum level: %i",limit_level)
@@ -813,7 +810,7 @@ class ARTStaticOutput(StaticOutput):
         wmu = self["wmu"]
         #ng = self.domain_dimensions[0]
         #r0 = self["cmh"]/ng # comoving cm h^-1
-        #t0 = 6.17e17/(self.hubble_constant + na.sqrt(self.omega_matter))
+        #t0 = 6.17e17/(self.hubble_constant + np.sqrt(self.omega_matter))
         #v0 = r0 / t0
         #rho0 = 1.8791e-29 * self.hubble_constant**2.0 * self.omega_matter
         #e0 = v0**2.0
@@ -824,7 +821,7 @@ class ARTStaticOutput(StaticOutput):
         hubble = self.hubble_constant
         ng = self.domain_dimensions[0]
         self.r0 = boxh/ng
-        self.v0 =  self.r0 * 50.0*1.0e5 * na.sqrt(self.omega_matter)  #cm/s
+        self.v0 =  self.r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
         self.t0 = self.r0/self.v0
         # this is 3H0^2 / (8pi*G) *h*Omega0 with H0=100km/s. 
         # ie, critical density 
@@ -861,8 +858,8 @@ class ARTStaticOutput(StaticOutput):
     def _parse_parameter_file(self):
         # We set our domain to run from 0 .. 1 since we are otherwise
         # unconstrained.
-        self.domain_left_edge = na.zeros(3, dtype="float64")
-        self.domain_right_edge = na.ones(3, dtype="float64")
+        self.domain_left_edge = np.zeros(3, dtype="float64")
+        self.domain_right_edge = np.ones(3, dtype="float64")
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters = {}
@@ -943,10 +940,10 @@ class ARTStaticOutput(StaticOutput):
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         #self.hubble_time /= 3.168876e7 #Gyr in s 
         # def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
-        #     return 1./(x*na.sqrt(oml+omb*x**-3.0))
-        # spacings = na.logspace(-5,na.log10(self.parameters['aexpn']),1e5)
+        #     return 1./(x*np.sqrt(oml+omb*x**-3.0))
+        # spacings = np.logspace(-5,np.log10(self.parameters['aexpn']),1e5)
         # integrand_arr = integrand(spacings)
-        # self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
+        # self.current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
         # self.current_time *= self.hubble_time
         self.current_time = b2t(self.current_time_raw)*1.0e9*365*3600*24         
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
@@ -955,7 +952,7 @@ class ARTStaticOutput(StaticOutput):
         
         Om0 = self.parameters['Om0']
         hubble = self.parameters['hubble']
-        dummy = 100.0 * hubble * na.sqrt(Om0)
+        dummy = 100.0 * hubble * np.sqrt(Om0)
         ng = self.parameters['ng']
         wmu = self.parameters["wmu"]
         boxh = header_vals['boxh'] 
@@ -967,7 +964,7 @@ class ARTStaticOutput(StaticOutput):
         self.parameters["t0"] = 2.0 / dummy * 3.0856e19 / 3.15e7
         #velocity velocity units in km/s
         self.parameters["v0"] = 50.0*self.parameters["r0"]*\
-                na.sqrt(self.parameters["Om0"])
+                np.sqrt(self.parameters["Om0"])
         #density = 3H0^2 * Om0 / (8*pi*G) - unit of density in Msun/Mpc^3
         self.parameters["rho0"] = 2.776e11 * hubble**2.0 * Om0
         rho0 = self.parameters["rho0"]
@@ -988,10 +985,10 @@ class ARTStaticOutput(StaticOutput):
     
         (self.ncell,) = struct.unpack('>l', _read_record(f))
         # Try to figure out the root grid dimensions
-        est = int(na.rint(self.ncell**(1.0/3.0)))
+        est = int(np.rint(self.ncell**(1.0/3.0)))
         # Note here: this is the number of *cells* on the root grid.
         # This is not the same as the number of Octs.
-        self.domain_dimensions = na.ones(3, dtype='int64')*est 
+        self.domain_dimensions = np.ones(3, dtype='int64')*est 
 
         self.root_grid_mask_offset = f.tell()
         #_skip_record(f) # iOctCh
@@ -1059,10 +1056,10 @@ class ARTStaticOutput(StaticOutput):
         seek_extras = 137
         fh.seek(seek_extras)
         n = self.parameters['Nspecies']
-        self.parameters['wspeciesf'] = na.fromfile(fh,dtype='>f',count=10)
-        self.parameters['lspeciesf'] = na.fromfile(fh,dtype='>i',count=10)
-        assert na.all(self.parameters['lspeciesf'][n:]==0.0)
-        assert na.all(self.parameters['wspeciesf'][n:]==0.0)
+        self.parameters['wspeciesf'] = np.fromfile(fh,dtype='>f',count=10)
+        self.parameters['lspeciesf'] = np.fromfile(fh,dtype='>i',count=10)
+        assert np.all(self.parameters['lspeciesf'][n:]==0.0)
+        assert np.all(self.parameters['wspeciesf'][n:]==0.0)
         self.parameters['wspecies'] = self.parameters['wspeciesf'][:n]
         self.parameters['lspecies'] = self.parameters['lspeciesf'][:n]
         fh.close()
