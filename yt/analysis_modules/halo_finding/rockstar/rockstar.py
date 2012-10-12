@@ -116,9 +116,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         def _particle_count(field,data):
             return (data["particle_type"]==0).sum()
         add_field("particle_count",function=_particle_count,particle_type=True)
-        #d = tpf.h.all_data()
-        #total_particles = dd.quantities['TotalQuantity']("particle_count")
-        #mylog.info("Found %i halo particles",total_particles)
         self.total_particles = -1
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
