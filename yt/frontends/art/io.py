@@ -257,7 +257,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #le = le/2**(root_level-1-level)-1
 
     #try to find the root_level first
-    root_level=na.floor(na.log2(le.max()*1.0/coarse_grid))
+    root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
     root_level = root_level.astype('int64')
 
     #try without the -1
@@ -450,11 +450,11 @@ def b2t(tb,n = 1e2,logger=None,**kwargs):
 
 def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
     #stars are formed in lumps; spread out the ages linearly
-    da= na.diff(ages)
-    assert na.all(da<=0)
+    da= np.diff(ages)
+    assert np.all(da<=0)
     #ages should always be decreasing, and ordered so
-    agesd = na.zeros(ages.shape)
-    idx, = na.where(da<0)
+    agesd = np.zeros(ages.shape)
+    idx, = np.where(da<0)
     idx+=1 #mark the right edges
     #spread this age evenly out to the next age
     lidx=0
@@ -463,7 +463,7 @@ def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
         n = i-lidx #n stars affected
         rage = ages[i]
         lage = max(rage-spread,0.0)
-        agesd[lidx:i]=na.linspace(lage,rage,n)
+        agesd[lidx:i]=np.linspace(lage,rage,n)
         lidx=i
         #lage=rage
         if logger: logger(i)
@@ -472,5 +472,5 @@ def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
     n = i-lidx #n stars affected
     rage = ages[i]
     lage = max(rage-spread,0.0)
-    agesd[lidx:i]=na.linspace(lage,rage,n)
+    agesd[lidx:i]=np.linspace(lage,rage,n)
     return agesd
