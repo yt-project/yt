@@ -122,35 +122,7 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
-
-        fields={'particle_index': grid.particle_id,
-        'particle_type':grid.particle_type,
-        'particle_position_x':grid.particle_position_x,
-        'particle_position_y':grid.particle_position_y,
-        'particle_position_z':grid.particle_position_z,
-        'particle_age':grid.particle_age,
-        'particle_mass':grid.particle_mass,
-        'particle_mass_initial':grid.particle_mass_initial,
-        'particle_metallicity':grid.particle_metallicity,
-        'particle_velocity_x':grid.particle_velocity_x,
-        'particle_velocity_y':grid.particle_velocity_y,
-        'particle_velocity_z':grid.particle_velocity_z,
-        
-        #stellar fields
-        'star_position_x':grid.star_position_x,
-        'star_position_y':grid.star_position_y,
-        'star_position_z':grid.star_position_z,
-        'star_mass':grid.star_mass,
-        'star_velocity_x':grid.star_velocity_x,
-        'star_velocity_y':grid.star_velocity_y,
-        'star_velocity_z':grid.star_velocity_z,
-        'star_age':grid.star_age,
-        'star_metallicity':grid.star_metallicity1 + grid.star_metallicity2,
-        'star_metallicity1':grid.star_metallicity1,
-        'star_metallicity2':grid.star_metallicity2,
-        'star_mass_initial':grid.star_mass_initial,
-        'star_mass':grid.star_mass}
-        return fields[field] 
+        return grid.field_dict[field]
 
         
     def _read_data_set(self, grid, field):
