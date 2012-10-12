@@ -24,7 +24,9 @@ License:
 
 import numpy as np
 from yt.funcs import *
-from numpy.testing import assert_array_equal, assert_equal, assert_almost_equal
+from numpy.testing import assert_array_equal, assert_almost_equal, \
+    assert_approx_equal, assert_array_almost_equal, assert_equal, \
+    assert_string_equal
 
 def assert_rel_equal(a1, a2, decimels):
     return assert_almost_equal(a1/a2, 1.0, decimels)
