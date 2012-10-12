@@ -122,61 +122,35 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_field(self, grid, field):
         #This will be cleaned up later
-        if field == 'particle_index':
-            return grid.particle_id
-        if field == 'particle_type':
-            return grid.particle_type
-        if field == 'particle_position_x':
-            return grid.particle_position_x
-        if field == 'particle_position_y':
-            return grid.particle_position_y
-        if field == 'particle_position_z':
-            return grid.particle_position_z
-        if field == 'particle_age':
-            return grid.particle_age
-        if field == 'particle_mass':
-            return grid.particle_mass
-        if field == 'particle_mass_initial':
-            return grid.particle_mass_initial
-        if field == 'particle_metallicity':
-            return grid.particle_metallicity
-        if field == 'particle_velocity_x':
-            return grid.particle_velocity_x
-        if field == 'particle_velocity_y':
-            return grid.particle_velocity_y
-        if field == 'particle_velocity_z':
-            return grid.particle_velocity_z
+
+        fields={'particle_index': grid.particle_id,
+        'particle_type':grid.particle_type,
+        'particle_position_x':grid.particle_position_x,
+        'particle_position_y':grid.particle_position_y,
+        'particle_position_z':grid.particle_position_z,
+        'particle_age':grid.particle_age,
+        'particle_mass':grid.particle_mass,
+        'particle_mass_initial':grid.particle_mass_initial,
+        'particle_metallicity':grid.particle_metallicity,
+        'particle_velocity_x':grid.particle_velocity_x,
+        'particle_velocity_y':grid.particle_velocity_y,
+        'particle_velocity_z':grid.particle_velocity_z,
         
         #stellar fields
-        if field == 'star_position_x':
-            return grid.star_position_x
-        if field == 'star_position_y':
-            return grid.star_position_y
-        if field == 'star_position_z':
-            return grid.star_position_z
-        if field == 'star_mass':
-            return grid.star_mass
-        if field == 'star_velocity_x':
-            return grid.star_velocity_x
-        if field == 'star_velocity_y':
-            return grid.star_velocity_y
-        if field == 'star_velocity_z':
-            return grid.star_velocity_z
-        if field == 'star_age':
-            return grid.star_age
-        if field == 'star_metallicity':
-            return grid.star_metallicity1 +\
-                   grid.star_metallicity2
-        if field == 'star_metallicity1':
-            return grid.star_metallicity1
-        if field == 'star_metallicity2':
-            return grid.star_metallicity2
-        if field == 'star_mass_initial':
-            return grid.star_mass_initial
-        if field == 'star_mass':
-            return grid.star_mass
-        
-        raise 'Should have matched one of the particle fields...'
+        'star_position_x':grid.star_position_x,
+        'star_position_y':grid.star_position_y,
+        'star_position_z':grid.star_position_z,
+        'star_mass':grid.star_mass,
+        'star_velocity_x':grid.star_velocity_x,
+        'star_velocity_y':grid.star_velocity_y,
+        'star_velocity_z':grid.star_velocity_z,
+        'star_age':grid.star_age,
+        'star_metallicity':grid.star_metallicity1 + grid.star_metallicity2,
+        'star_metallicity1':grid.star_metallicity1,
+        'star_metallicity2':grid.star_metallicity2,
+        'star_mass_initial':grid.star_mass_initial,
+        'star_mass':grid.star_mass}
+        return fields[field] 
 
         
     def _read_data_set(self, grid, field):
