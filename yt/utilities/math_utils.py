@@ -717,7 +717,7 @@ def get_sph_phi(coords, normal):
     tile_shape = list(coords.shape)[:-1] + [1]
     Jx = np.tile(xprime,tile_shape)
     Jy = np.tile(yprime,tile_shape)
-    
+
     Px = np.sum(Jx*coords,axis=-1)
     Py = np.sum(Jy*coords,axis=-1)
     
@@ -802,8 +802,6 @@ def get_sph_r_component(vectors, theta, phi, normal):
 def get_sph_phi_component(vectors, phi, normal):
     # The phi component of a vector is the vector dotted with phihat
 
-    phi = get_sph_phi(coords, normal)
-
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     tile_shape = list(vectors.shape)[:-1] + [1]
@@ -817,18 +815,15 @@ def get_sph_phi_component(vectors, phi, normal):
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
     
-    theta = get_sph_theta(coords, normal)
-    phi = get_sph_phi(coords, normal)
-    
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     tile_shape = list(vectors.shape)[:-1] + [1]
     Jx = np.tile(xprime,tile_shape)
     Jy = np.tile(yprime,tile_shape)
     Jz = np.tile(zprime,tile_shape)
-
+    
     thetahat = Jx*np.cos(theta)*np.cos(phi) + \
-               Jy*np.cos(theta)*np.sin(theta) - \
+               Jy*np.cos(theta)*np.sin(phi) - \
                Jz*np.sin(theta)
 
     return np.sum(vectors*thetahat, axis=-1)
