@@ -1,4 +1,4 @@
-from yt.utilities.kdtree import \
+from fKDpy import \
     chainHOP_tags_dens, \
     create_tree, \
     fKD, \
