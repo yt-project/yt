@@ -25,6 +25,7 @@ License:
 
 import logging
 import os
+import shelve
 
 from yt.testing import *
 from yt.utilities.command_line import get_yt_version
@@ -60,6 +61,32 @@ class AnswerTesting(Plugin):
         super(AnswerTesting, self).configure(options, conf)
         if not self.enabled:
             return
+        AnswerTestingTest.result_storage = shelve.Shelf(
+            os.path.join(options.storage_dir,
+                         options.this_name))
+        if options.compare_name is not None:
+            AnswerTestingTest.reference_storage = shelve.Shelf(
+                os.path.join(options.storage_dir,
+                            options.compare_name))
 
     def finalize(self, result):
+        pass
+
+class AnswerTestingTest(object):
+    reference_storage = None
+
+    description = None
+    def __init__(self, name, pf_fn):
+        self.pf = load(pf_fn)
+        self.name = "%s_%s" % (pf, name)
+
+    def __call__(self):
+        if self.reference_storage is not None:
+            ov = self.reference_storage.get(self.name, None)
+        else:
+            ov = None
+        nv = self.run()
+        return self.compare(nv, ov)
+
+    def compare(self, new_result, old_result):
         pass
