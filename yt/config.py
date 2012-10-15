@@ -38,6 +38,7 @@ ytcfgDefaults = dict(
     inline = 'False',
     numthreads = '-1',
     __withinreason = 'False',
+    __withintesting = 'False',
     __parallel = 'False',
     __global_parallel_rank = '0',
     __global_parallel_size = '1',
