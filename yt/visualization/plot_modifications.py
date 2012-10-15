@@ -364,20 +364,17 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor=16.0, density = 1, arrowsize=1, arrowstyle='-|>', color="#000000", normalize = False):
+    def __init__(self, field_x, field_y, factor = 16,
+                 density = 1, arrowsize = 1, arrowstyle = None,
+                 color = None, normalize = False):
         """
-        annotate_streamlines(field_x, field_y, factor=6.0, nx=16, ny=16,
-                             xstart=(0,1), ystart=(0,1), nsample=256,
-                             start_at_xedge=False, start_at_yedge=False,
-                             plot_args=None):
+        annotate_streamlines(field_x, field_y, factor = 16, density = 1,
+                             arrowsize = 1, arrowstyle = None,
+                             color = None, normalize = False):
 
         Add streamlines to any plot, using the *field_x* and *field_y*
-        from the associated data, using *nx* and *ny* starting points
-        that are bounded by *xstart* and *ystart*.  To begin
-        streamlines from the left edge of the plot, set
-        *start_at_xedge* to True; for the bottom edge, use
-        *start_at_yedge*.  A line with the qmean vector magnitude will
-        cover 1.0/*factor* of the image.
+        from the associated data, skipping every *factor* datapoints like
+        'quiver'. *density* is the index of the amount of the streamlines.
         """
         PlotCallback.__init__(self)
         self.field_x = field_x
@@ -386,7 +383,9 @@ class StreamlineCallback(PlotCallback):
         self.factor = factor
         self.dens = density
         self.arrowsize = arrowsize
+        if arrowstyle is None : arrowstyle='-|>'
         self.arrowstyle = arrowstyle
+        if color is None : color = "#000000"
         self.color = color
         self.normalize = normalize
         
@@ -418,7 +417,9 @@ class StreamlineCallback(PlotCallback):
             nn = na.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
-        plot._axes.streamplot(X,Y, pixX, pixY, density=self.dens, arrowsize=self.arrowsize, arrowstyle=self.arrowstyle, color=self.color, norm=self.normalize)
+        plot._axes.streamplot(X,Y, pixX, pixY, density=self.dens,
+                              arrowsize=self.arrowsize, arrowstyle=self.arrowstyle,
+                              color=self.color, norm=self.normalize)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
