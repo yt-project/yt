@@ -54,6 +54,7 @@ ytcfgDefaults = dict(
     pasteboard_repo = '',
     reconstruct_hierarchy = 'False',
     test_storage_dir = '/does/not/exist',
+    data_storage_dir = '/does/not/exist',
     enzo_db = '',
     hub_url = 'https://hub.yt-project.org/upload',
     hub_api_key = '',
