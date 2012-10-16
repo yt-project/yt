@@ -72,8 +72,8 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
     ideal_bsize = eff_dim * (pieces * np.product(n_d) ** (eff_dim - 1)
                              ) ** (1.0 / eff_dim)
     mask = np.where(n_d > 1)
-    nd = np.array(n_d, dtype=np.float64)[mask]
-    bsize = int(np.sum(ldom[mask] / nd * np.product(nd)))
+    nd_arr = np.array(n_d, dtype=np.float64)[mask]
+    bsize = int(np.sum(ldom[mask] / nd_arr * np.product(nd_arr)))
     load_balance = float(np.product(n_d)) / \
         (float(pieces) * np.product((n_d - 1) / ldom + 1))
 
@@ -143,8 +143,9 @@ def split_array(tab, psize):
     for i in range(psize[0]):
         for j in range(psize[1]):
             for k in range(psize[2]):
-                pc = np.array((i, j, k), dtype=np.int64)
-                le = n_d * pc / psize
-                re = n_d * (pc + np.ones(3, dtype=np.int64)) / psize
-                slices.append(np.s_[le[0]:re[0], le[1]:re[1], le[2]:re[2]])
-    return [tab[sl] for sl in slices]
+                piece = np.array((i, j, k), dtype=np.int64)
+                lei = n_d * piece / psize
+                rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
+                slices.append(np.s_[lei[0]:rei[0], lei[1]:
+                                    rei[1], lei[2]:rei[2]])
+    return [tab[slc] for slc in slices]
