@@ -69,7 +69,8 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
     """ Evaluate longest to shortest edge ratio
         BEWARE: lot's of magic here """
     eff_dim = (n_d > 1).sum()
-    ideal_bsize = eff_dim * (pieces * np.product(n_d) ** (eff_dim-1)) ** (1.0 / eff_dim)
+    ideal_bsize = eff_dim * (pieces * np.product(n_d) ** (eff_dim - 1)
+                             ) ** (1.0 / eff_dim)
     mask = np.where(n_d > 1)
     nd = np.array(n_d, dtype=np.float64)[mask]
     bsize = int(np.sum(ldom[mask] / nd * np.product(nd)))
@@ -143,20 +144,7 @@ def split_array(tab, psize):
         for j in range(psize[1]):
             for k in range(psize[2]):
                 pc = np.array((i, j, k), dtype=np.int64)
-                le = n_d * pc / psize 
+                le = n_d * pc / psize
                 re = n_d * (pc + np.ones(3, dtype=np.int64)) / psize
-                slices.append(np.s_[le[0]:re[0], le[1]:re[1], le[2]:re[2]] )
+                slices.append(np.s_[le[0]:re[0], le[1]:re[1], le[2]:re[2]])
     return [tab[sl] for sl in slices]
-
-
-if __name__ == "__main__":
-
-    NPROC = 12
-    ARRAY = np.zeros((128, 128, 129))
-    BBOX = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
-
-    PROCS = get_psize(np.array(ARRAY.shape), NPROC)
-    LE, RE, DATA = decompose_array(ARRAY, PROCS, BBOX)
-
-    for idx in range(NPROC):
-        print LE[idx, :], RE[idx, :], DATA[idx].shape
