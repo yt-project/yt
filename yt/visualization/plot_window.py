@@ -891,11 +891,13 @@ class PWViewerMPL(PWViewer):
         >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
 
         """
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
         if name == None:
             name = str(self.pf)
         elif name.endswith('.png'):
-            return v.save(name)
-        if mpl_kwargs is None: mpl_kwargs = {}
+            #import pdb; pdb.set_trace()
+            return self.plots.values()[0].save(name, mpl_kwargs)
         axis = axis_names[self.data_source.axis]
         weight = None
         type = self._plot_type
@@ -903,7 +905,8 @@ class PWViewerMPL(PWViewer):
             weight = self.data_source.weight_field
         names = []
         for k, v in self.plots.iteritems():
-            if isinstance(k, types.TupleType): k = k[1]
+            if isinstance(k, types.TupleType):
+                k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k)
             else:
