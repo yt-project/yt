@@ -241,7 +241,7 @@ def _sph_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = obtain_rvec(data).transepose()
+    coords = obtain_rvec(data).transpose()
 
     return get_sph_theta(coords, normal)
 
