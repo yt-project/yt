@@ -32,6 +32,8 @@ import contextlib
 from yt.testing import *
 from yt.utilities.command_line import get_yt_version
 from yt.config import ytcfg
+from yt.utilities.logger import \
+    disable_stream_logging
 from nose.plugins import Plugin
 from yt.mods import *
 
@@ -64,6 +66,9 @@ class AnswerTesting(Plugin):
         super(AnswerTesting, self).configure(options, conf)
         if not self.enabled:
             return
+        disable_stream_logging()
+        from yt.config import ytcfg
+        ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = shelve.open(
             os.path.join(options.storage_dir,
                          options.this_name))
@@ -139,34 +144,32 @@ class AnswerTestingTest(object):
         
 class FieldValuesTest(AnswerTestingTest):
 
-    def __init__(self, name, pf_fn, field, obj_type = None):
+    def __init__(self, pf_fn, field, obj_type = None):
+        name = "%s_%s" % (pf_fn, field)
         super(FieldValuesTest, self).__init__(name, pf_fn)
         self.obj_type = obj_type
         self.field = field
 
     def run(self):
         obj = self.create_obj(self.pf, self.obj_type)
-        return obj[self.field].sort()
+        return np.sort(obj[self.field])
 
     def compare(self, new_result, old_result):
         assert_equal(new_result, old_result)
 
-def _try_load(pf_fn):
-    try:
-        load(pf_fn)
-    except:
-        return False
-    return True
-
-def assert_fields(pf_fn, fields, data_obj = None):
-    if AnswerTestingTest.result_storage is None: return 
-    for field in fields:
-        yield FieldValuesTest("FieldValues_%s" % field, pf_fn,
-                              field, data_obj)
+def can_run_pf(pf_fn):
+    path = ytcfg.get("yt", "data_storage_dir")
+    with temp_cwd(path):
+        try:
+            load(pf_fn)
+        except:
+            return False
+    return AnswerTestingTest.result_storage is not None
 
 class ProjectionValuesTest(AnswerTestingTest):
-    def __init__(self, name, pf_fn, axis, field,
+    def __init__(self, pf_fn, axis, field,
                  weight_field = None, data_source = None):
+        name = "%s_%s_%s_%s" % (pf_fn, axis, field, weight_field)
         super(ProjectionValuesTest, self).__init__(name, pf_fn)
         self.axis = axis
         self.field = field

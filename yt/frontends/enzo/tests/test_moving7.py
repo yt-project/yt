@@ -24,11 +24,24 @@ License:
 """
 
 from yt.testing import *
-from yt.utilities.answer_testing.framework import assert_fields
+from yt.utilities.answer_testing.framework import \
+    can_run_pf, ProjectionValuesTest, FieldValuesTest
 from yt.frontends.enzo.api import EnzoStaticOutput
 
-_fields = ("Temperature", "Density", "VelocityMagnitude")
+_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV",
+           "particle_density")
+
+pf_fn = "DD0010/moving7_0010"
 
 def test_moving7():
-    for k in assert_fields("DD0010/moving7_0010", _fields):
-        yield k
+    if not can_run_pf(pf_fn): return
+    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    for field in _fields:
+        for axis in [0, 1, 2]:
+            for ds in dso:
+                for weight_field in [None, "Density"]:
+                    yield ProjectionValuesTest(
+                        pf_fn, axis, field, weight_field,
+                        ds)
+                yield FieldValuesTest(
+                        pf_fn, field, ds)
