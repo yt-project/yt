@@ -447,12 +447,12 @@ add_pol_field("CellVolume", function=_CylindricalVolume)
 ## Derived FLASH Fields
 def _nele(field, data):
     return data['ye'] * data['dens'] * data['sumy'] * 6.022E23
-add_field('nele', function=_nele, take_log=True, units=r"\rm{n}/\rm{cm}^3")
-add_field('edens', function=_nele, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+add_field('nele', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
+add_field('edens', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
 
 def _nion(field, data):
     return data['dens'] * data['sumy'] * 6.022E23
-add_field('nion', function=_nion, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 
 
 def _abar(field, data):
