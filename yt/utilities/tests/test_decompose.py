@@ -23,7 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.testing import *
+from yt.testing import assert_array_equal, assert_almost_equal
+import numpy as np
 import yt.utilities.decompose as dec
 
 
@@ -49,6 +50,8 @@ def test_decomposition_2d():
     array = np.ones((7, 5, 1))
     bbox = np.array([[-0.7, 0.0], [1.5, 2.0], [0.0, 0.7]])
     ledge, redge, data = dec.decompose_array(array, np.array([2, 3, 1]), bbox)
+
+    assert_array_equal(data[1].shape, np.array([3, 2, 1]))
 
     gold_le = np.array([
                        [-0.7, 1.5, 0.0], [-0.7, 1.6, 0.0],
