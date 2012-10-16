@@ -134,13 +134,17 @@ def get_psize(n_d, pieces):
 
 
 def split_array(tab, psize):
-    """ Split array into px*py*pz subarrays using internal numpy routine. """
-    temp = [np.array_split(array, psize[1], axis=1)
-            for array in np.array_split(tab, psize[2], axis=2)]
-    temp = [item for sublist in temp for item in sublist]
-    temp = [np.array_split(array, psize[0], axis=0) for array in temp]
-    temp = [item for sublist in temp for item in sublist]
-    return temp
+    """ Split array into px*py*pz subarrays. """
+    n_d = np.array(tab.shape, dtype=np.int64)
+    slices = []
+    for i in range(psize[0]):
+        for j in range(psize[1]):
+            for k in range(psize[2]):
+                pc = np.array((i, j, k), dtype=np.int64)
+                le = n_d * pc / psize 
+                re = n_d * (pc + np.ones(3, dtype=np.int64)) / psize
+                slices.append(np.s_[le[0]:re[0], le[1]:re[1], le[2]:re[2]] )
+    return [tab[sl] for sl in slices]
 
 
 if __name__ == "__main__":
