@@ -220,11 +220,24 @@ function host_specific
         echo "  * libncurses5-dev"
         echo "  * zip"
         echo "  * uuid-dev"
+        echo "  * libfreetype6-dev"
+        echo "  * tk-dev"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev"
         echo
+        echo
+        echo " Additionally, if you want to put yt's lib dir in your LD_LIBRARY_PATH"
+        echo " so you can use yt without the activate script, you might "
+        echo " want to consider turning off LIBZ and FREETYPE in this"
+        echo " install script by editing this file and setting"
+        echo
+        echo " INST_ZLIB=0"
+        echo " INST_FTYPE=0"
+        echo 
+        echo " to avoid conflicts with other command-line programs "
+        echo " (like eog and evince, for example)."
     fi
     if [ ! -z "${CFLAGS}" ]
     then
@@ -400,7 +413,7 @@ cd ${DEST_DIR}/src
 
 echo '2c1933ab31246b4f4eba049d3288156e0a72f1730604e3ed7357849967cdd329e4647cf236c9442ecfb06d0aff03e6fc892a7ba2a5c1cf5c011b7ab9c619acec  Cython-0.16.tar.gz' > Cython-0.16.tar.gz.sha512
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
-echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
+echo 'b981f8464575bb24c297631c87a3b9172312804a0fc14ce1fa7cb41ce2b0d2fd383cd1c816d6e10c36467d18bf9492d6faf557c81c04ff3b22debfa93f30ad0b  Python-2.7.3.tgz' > Python-2.7.3.tgz.sha512
 echo 'c017d3d59dd324ac91af0edc178c76b60a5f90fbb775cf843e39062f95bd846238f2c53705f8890ed3f34bc0e6e75671a73d13875eb0287d6201cb45f0a2d338  bzip2-1.0.5.tar.gz' > bzip2-1.0.5.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d6f69042b4c87c58c881ee2aaa279561ea0f0f48d5842155f4de9de  freetype-2.4.4.tar.gz' > freetype-2.4.4.tar.gz.sha512
@@ -429,7 +442,7 @@ echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ad
 [ $INST_0MQ -eq 1 ] && get_ytproject zeromq-2.2.0.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject pyzmq-2.1.11.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject tornado-2.2.tar.gz
-get_ytproject Python-2.7.2.tgz
+get_ytproject Python-2.7.3.tgz
 get_ytproject numpy-1.6.1.tar.gz
 get_ytproject matplotlib-1.1.0.tar.gz
 get_ytproject mercurial-2.2.2.tar.gz
@@ -554,11 +567,11 @@ then
     fi
 fi
 
-if [ ! -e Python-2.7.2/done ]
+if [ ! -e Python-2.7.3/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.7.2 ] && tar xfz Python-2.7.2.tgz
-    cd Python-2.7.2
+    [ ! -e Python-2.7.3 ] && tar xfz Python-2.7.3.tgz
+    cd Python-2.7.3
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit

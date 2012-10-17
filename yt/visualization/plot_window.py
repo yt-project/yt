@@ -1,4 +1,4 @@
-""" 
+"""
 A plotting mechanism based on the idea of a "window" into the data.
 
 Author: J. S. Oishi <jsoishi@gmail.com>
@@ -309,6 +309,7 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
+                    
 
     @invalidate_data
     def pan(self, deltas):
@@ -697,6 +698,15 @@ class PWViewerMPL(PWViewer):
 
     """
     _current_field = None
+    _frb_generator = None
+    _plot_type = None
+
+    def __init__(self, *args, **kwargs):
+        if self._frb_generator == None:
+            self._frb_generator = kwargs.pop("frb_generator")
+        if self._plot_type == None:
+            self._plot_type = kwargs.pop("plot_type")
+        PWViewer.__init__(self, *args, **kwargs)
 
     def _setup_origin(self):
         origin = self.origin
@@ -890,19 +900,22 @@ class PWViewerMPL(PWViewer):
         >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
 
         """
-        if mpl_kwargs is None:
-            mpl_kwargs = {}
+        names = []
+        if mpl_kwargs is None: mpl_kwargs = {}
         if name == None:
             name = str(self.pf)
-        elif name.endswith('.png'):
-            #import pdb; pdb.set_trace()
-            return self.plots.values()[0].save(name, mpl_kwargs)
+        suffix = os.path.splitext(name)[1]
+        if suffix != '':
+            for k, v in self.plots.iteritems():
+                names.append(v.save(name,mpl_kwargs))
+            return names
         axis = axis_names[self.data_source.axis]
         weight = None
         type = self._plot_type
         if type in ['Projection','OffAxisProjection']:
             weight = self.data_source.weight_field
-        names = []
+        if 'Cutting' in self.data_source.__class__.__name__:
+            type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
             if isinstance(k, types.TupleType):
                 k = k[1]
@@ -1498,24 +1511,25 @@ class PlotMPL(object):
             self.cax = self.figure.add_axes(caxrect)
             
     def save(self, name, mpl_kwargs, canvas = None):
-        if name[-4:] == '.png':
-            suffix = ''
-        else:
+        suffix = os.path.splitext(name)[1]
+        
+        if suffix == '':
             suffix = '.png'
-        fn = "%s%s" % (name, suffix)
-        mylog.info("Saving plot %s", fn)
-        if canvas is None:
-            if suffix == ".png":
-                canvas = FigureCanvasAgg(self.figure)
-            elif suffix == ".pdf":
-                canvas = FigureCanvasPdf(self.figure)
-            elif suffix in (".eps", ".ps"):
-                canvas = FigureCanvasPS
-            else:
-                mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-                canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(fn,**mpl_kwargs)
-        return fn
+            name = "%s%s" % (name, suffix)
+        mylog.info("Saving plot %s", name)
+        if suffix == ".png":
+            canvas = FigureCanvasAgg(self.figure)
+        elif suffix == ".pdf":
+            canvas = FigureCanvasPdf(self.figure)
+        elif suffix in (".eps", ".ps"):
+            canvas = FigureCanvasPS(self.figure)
+        else:
+            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+            canvas = FigureCanvasAgg(self.figure)
+
+
+        canvas.print_figure(name,**mpl_kwargs)
+        return name
 
     def _get_best_layout(self, size):
         aspect = 1.0*size[0]/size[1]

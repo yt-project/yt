@@ -284,6 +284,18 @@ class YTSliceBase(YTSelectionContainer2D):
     def hub_upload(self):
         self._mrep.upload()
 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Slice')
+        return pw
+
 class YTCuttingPlaneBase(YTSelectionContainer2D):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -356,52 +368,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     @property
     def normal(self):
         return self._norm_vec
-
-    def to_frb(self, width, resolution):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
-
-        An ObliqueFixedResolutionBuffer is an object that accepts a
-        variable-resolution 2D object and transforms it into an NxM bitmap that
-        can be plotted, examined or processed.  This is a convenience function
-        to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other YTSelectionContainer2D objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
-
-        Parameters
-        ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
-        resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
-
-        Returns
-        -------
-        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
-            A fixed resolution buffer, which can be queried for fields.
-
-        Examples
-        --------
-
-        >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, (100.0, 'au'))
-        >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.h.cutting(L, c)
-        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
-        """
-        if iterable(width):
-            w, u = width
-            width = w/self.pf[u]
-        if not iterable(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
-        return frb
 
     def to_frb(self, width, resolution, height=None):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
@@ -494,6 +460,83 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             return self._current_chunk.fwidth[:,2] * 0.5
         else:
             raise KeyError(field)
+
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        normal = self.normal
+        center = self.center
+        if fields == None:
+            if self.fields == None:
+                raise SyntaxError("The fields keyword argument must be set")
+        else:
+            self.fields = ensure_list(fields)
+        from yt.visualization.plot_window import \
+            GetOffAxisBoundsAndCenter, PWViewerMPL
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        (bounds, center_rot) = GetOffAxisBoundsAndCenter(normal, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds, origin='center-window', periodic=False, oblique=True,
+                         frb_generator=ObliqueFixedResolutionBuffer, plot_type='OffAxisSlice')
+        pw.set_axes_unit(axes_unit)
+        return pw
+
+    def to_frb(self, width, resolution, height=None):
+        r"""This function returns an ObliqueFixedResolutionBuffer generated
+        from this object.
+
+        An ObliqueFixedResolutionBuffer is an object that accepts a
+        variable-resolution 2D object and transforms it into an NxM bitmap that
+        can be plotted, examined or processed.  This is a convenience function
+        to return an FRB directly from an existing 2D data object.  Unlike the
+        corresponding to_frb function for other AMR2DData objects, this does
+        not accept a 'center' parameter as it is assumed to be centered at the
+        center of the cutting plane.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        height : height specifier, optional
+            This will be the height of the FRB, by default it is equal to width.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> cutting = pf.h.cutting(L, c)
+        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
+        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
+        """
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if height is None:
+            height = width
+        elif iterable(height):
+            h, u = height
+            height = h/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
 
 class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     """
@@ -665,9 +708,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
                 self._get_data_from_grid(grid, field)
             self[field] = self.comm.mpi_allreduce(\
                 self[field], op='sum').reshape([self.dims]*2).transpose()
-
-    def interpolate_discretize(self, *args, **kwargs):
-        pass
 
     def _calc_vertex_centered_data(self, grid, field):
         #return grid.retrieve_ghost_zones(1, field, smoothed=False)

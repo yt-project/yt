@@ -62,7 +62,7 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection
+    ParticleTrajectoryCollection, ImageArray
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info

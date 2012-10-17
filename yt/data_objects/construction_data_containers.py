@@ -349,6 +349,18 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         ilevel = chunk.ires
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
+        return pw
+
 class YTOverlapProjBase(YTSelectionContainer2D):
     _top_node = "/Projections"
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
@@ -728,7 +740,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
 class YTCoveringGridBase(YTSelectionContainer3D):
     _spatial = True
     _type_name = "covering_grid"
-    _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
+    _con_args = ('level', 'left_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """A 3D region with all data extracted to a single, specified
@@ -755,8 +767,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
-        self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
-        self.ActiveDimensions = np.array(dims,dtype='int32')
+        rdx = self.pf.domain_dimensions*self.pf.refine_by**level
+        self.dds = self.pf.domain_width/rdx.astype("float64")
+        self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar

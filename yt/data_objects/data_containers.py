@@ -122,6 +122,7 @@ class YTDataContainer(object):
         self.field_parameters = {}
         self.set_field_parameter("center",np.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
+        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
 
     def _set_center(self, center):
         if center is None:
@@ -537,6 +538,23 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _convert_field_name(self, field):
         return field
 
+    def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
+        axis = self.axis
+        if fields == None:
+            if self.fields == None:
+                raise SyntaxError("The fields keyword argument must be set")
+        else:
+            self.fields = ensure_list(fields)
+        from yt.visualization.plot_window import \
+            GetBoundsAndCenter, PWViewerMPL
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
+                         plot_type=plot_type)
+        pw.set_axes_unit(axes_unit)
+        return pw
+
+
     def to_frb(self, width, resolution, center=None, height=None):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
@@ -602,26 +620,6 @@ class YTSelectionContainer2D(YTSelectionContainer):
                   center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution)
         return frb
-
-    def to_pw(self):
-        r"""Create a :class:`~yt.visualization.plot_window.PlotWindow` from this
-        object.
- 
-        This is a bare-bones mechanism of creating a plot window from this
-        object, which can then be moved around, zoomed, and on and on.  All
-        behavior of the plot window is relegated to that routine.
-        """
-        axis = self.axis
-        center = self.get_field_parameter("center")
-        if center is None:
-            center = (self.pf.domain_right_edge
-                    + self.pf.domain_left_edge)/2.0
-        width = (1.0, 'unitary')
-        from yt.visualization.plot_window import \
-            PWViewerMPL, GetBoundsAndCenter
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
-        pw = PWViewerMPL(self, bounds)
-        return pw
 
 class YTSelectionContainer3D(YTSelectionContainer):
     _key_fields = ['x','y','z','dx','dy','dz']

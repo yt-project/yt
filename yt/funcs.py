@@ -310,7 +310,8 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       ytcfg.getboolean("yt", "ipython_notebook"):
+       ytcfg.getboolean("yt", "ipython_notebook") or \
+       ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar

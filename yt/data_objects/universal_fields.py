@@ -32,7 +32,7 @@ import copy
 
 from yt.funcs import *
 
-from yt.utilities.lib import CICDeposit_3, obtain_rvec
+from yt.utilities.lib import CICDeposit_3, obtain_rvec, obtain_rv_vec
 from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
@@ -54,7 +54,19 @@ from yt.utilities.physical_constants import \
      kboltz, \
      G, \
      rho_crit_now, \
-     speed_of_light_cgs
+     speed_of_light_cgs, \
+     km_per_cm
+
+from yt.utilities.math_utils import \
+    get_sph_r_component, \
+    get_sph_theta_component, \
+    get_sph_phi_component, \
+    get_cyl_r_component, \
+    get_cyl_z_component, \
+    get_cyl_theta_component, \
+    get_cyl_r, get_cyl_theta, \
+    get_cyl_z, get_sph_r, \
+    get_sph_theta, get_sph_phi
      
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
@@ -174,12 +186,8 @@ add_field("ParticleVelocityMagnitude", function=_ParticleVelocityMagnitude,
 
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity == None:
-        bulk_velocity = np.zeros(3)
-    return ( (data["x-velocity"]-bulk_velocity[0])**2.0 + \
-             (data["y-velocity"]-bulk_velocity[1])**2.0 + \
-             (data["z-velocity"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
+    velocities = obtain_rv_vec(data)
+    return np.sqrt(np.sum(velocities**2,axis=0))
 add_field("VelocityMagnitude", function=_VelocityMagnitude,
           take_log=False, units=r"\rm{cm}/\rm{s}")
 
@@ -188,13 +196,6 @@ def _TangentialOverVelocityMagnitude(field, data):
 add_field("TangentialOverVelocityMagnitude",
           function=_TangentialOverVelocityMagnitude,
           take_log=False)
-
-def _TangentialVelocity(field, data):
-    return np.sqrt(data["VelocityMagnitude"]**2.0
-                 - data["RadialVelocity"]**2.0)
-add_field("TangentialVelocity", 
-          function=_TangentialVelocity,
-          take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
@@ -218,14 +219,9 @@ add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
 def _sph_r(field, data):
     center = data.get_field_parameter("center")
       
-    coords = np.array([data['x'] - center[0],
-                       data['y'] - center[1],
-                       data['z'] - center[2]]).transpose()
+    coords = obtain_rvec(data).transpose()
 
-    ## The spherical coordinates radius is simply the magnitude of the
-    ## coords vector.
-
-    return np.sqrt(np.sum(coords**2,axis=-1))
+    return get_sph_r(vectors, center)
 
 def _Convert_sph_r_CGS(data):
    return data.convert("cm")
@@ -240,20 +236,9 @@ def _sph_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = np.array([data['x'] - center[0],
-                       data['y'] - center[1],
-                       data['z'] - center[2]]).transpose()
+    coords = obtain_rvec(data).transpose()
 
-    ## The angle (theta) with respect to the normal (J), is the arccos
-    ## of the dot product of the normal with the normalized coords
-    ## vector.
-    
-    tile_shape = list(coords.shape)[:-1] + [1]
-    J = np.tile(normal,tile_shape)
-
-    JdotCoords = np.sum(J*coords,axis=-1)
-    
-    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=-1)) )
+    return get_sph_theta(coords, normal)
 
 add_field("sph_theta", function=_sph_theta,
          validators=[ValidateParameter("center"),ValidateParameter("normal")])
@@ -264,54 +249,21 @@ def _sph_phi(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = np.array([data['x'] - center[0],
-                       data['y'] - center[1],
-                       data['z'] - center[2]]).transpose()
-    
-    ## We have freedom with respect to what axis (xprime) to define
-    ## the disk angle. Here I've chosen to use the axis that is
-    ## perpendicular to the normal and the y-axis. When normal ==
-    ## y-hat, then set xprime = z-hat. With this definition, when
-    ## normal == z-hat (as is typical), then xprime == x-hat.
-    ##
-    ## The angle is then given by the arctan of the ratio of the
-    ## yprime-component and the xprime-component of the coords vector.
+    coords = obtain_rvec(data).transpose()
 
-    xprime = np.cross([0.0,1.0,0.0],normal)
-    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
-    yprime = np.cross(normal,xprime)
-    
-    tile_shape = list(coords.shape)[:-1] + [1]
-    Jx = np.tile(xprime,tile_shape)
-    Jy = np.tile(yprime,tile_shape)
-    
-    Px = np.sum(Jx*coords,axis=-1)
-    Py = np.sum(Jy*coords,axis=-1)
-    
-    return np.arctan2(Py,Px)
+    return get_sph_phi(coords, normal)
 
 add_field("sph_phi", function=_sph_phi,
          validators=[ValidateParameter("center"),ValidateParameter("normal")])
-
-
 
 ### cylindrical coordinates: R (radius in the cylinder's plane)
 def _cyl_R(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
       
-    coords = np.array([data['x'] - center[0],
-                       data['y'] - center[1],
-                       data['z'] - center[2]]).transpose()
+    coords = obtain_rvec(data).transpose()
 
-    ## The cross product of the normal (J) with the coords vector
-    ## gives a vector of magnitude equal to the cylindrical radius.
-    
-    tile_shape = list(coords.shape)[:-1] + [1]
-    J = np.tile(normal,tile_shape)
-
-    JcrossCoords = np.cross(J,coords)
-    return np.sqrt(np.sum(JcrossCoords**2,axis=-1))
+    return get_cyl_r(coords, normal)
 
 def _Convert_cyl_R_CGS(data):
    return data.convert("cm")
@@ -319,6 +271,9 @@ def _Convert_cyl_R_CGS(data):
 add_field("cyl_R", function=_cyl_R,
          validators=[ValidateParameter("center"),ValidateParameter("normal")],
          convert_function = _Convert_cyl_R_CGS, units=r"\rm{cm}")
+add_field("cyl_RCode", function=_cyl_R,
+          validators=[ValidateParameter("center"),ValidateParameter("normal")],
+          units=r"Radius (code)")
 
 
 ### cylindrical coordinates: z (height above the cylinder's plane)
@@ -326,17 +281,9 @@ def _cyl_z(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = np.array([data['x'] - center[0],
-                       data['y'] - center[1],
-                       data['z'] - center[2]]).transpose()
+    coords = obtain_rvec(data).transpose()
 
-    ## The dot product of the normal (J) with the coords vector gives
-    ## the cylindrical height.
-    
-    tile_shape = list(coords.shape)[:-1] + [1]
-    J = np.tile(normal,tile_shape)
-
-    return np.sum(J*coords,axis=-1)  
+    return get_cyl_z(coords, normal)
 
 def _Convert_cyl_z_CGS(data):
    return data.convert("cm")
@@ -347,13 +294,16 @@ add_field("cyl_z", function=_cyl_z,
 
 
 ### cylindrical coordinates: theta (angle in the cylinder's plane)
-### [This is identical to the spherical coordinate's 'phi' angle.]
 def _cyl_theta(field, data):
-    return data['sph_phi']
+    center = data.get_field_parameter("center")
+    normal = data.get_field_parameter("normal")
+    
+    coords = obtain_rvec(data).transpose()
+
+    return get_cyl_theta(coords, normal)
 
 add_field("cyl_theta", function=_cyl_theta,
          validators=[ValidateParameter("center"),ValidateParameter("normal")])
-
 
 ### The old field DiskAngle is the same as the spherical coordinates'
 ### 'theta' angle. I'm keeping DiskAngle for backwards compatibility.
@@ -387,6 +337,54 @@ add_field("HeightAU", function=_Height,
                       ValidateParameter("normal")],
           units=r"AU", display_field=False)
 
+def _cyl_RadialVelocity(field, data):
+    normal = data.get_field_parameter("normal")
+    velocities = obtain_rv_vec(data).transpose()
+
+    theta = np.tile(data['cyl_theta'], (3, 1)).transpose()
+
+    return get_cyl_r_component(velocities, theta, normal)
+
+def _cyl_RadialVelocityABS(field, data):
+    return np.abs(_cyl_RadialVelocity(field, data))
+def _Convert_cyl_RadialVelocityKMS(data):
+    return km_per_cm
+add_field("cyl_RadialVelocity", function=_cyl_RadialVelocity,
+          units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+add_field("cyl_RadialVelocityABS", function=_cyl_RadialVelocityABS,
+          units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+add_field("cyl_RadialVelocityKMS", function=_cyl_RadialVelocity,
+          convert_function=_Convert_cyl_RadialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+add_field("cyl_RadialVelocityKMSABS", function=_cyl_RadialVelocityABS,
+          convert_function=_Convert_cyl_RadialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+
+def _cyl_TangentialVelocity(field, data):
+    normal = data.get_field_parameter("normal")
+    velocities = obtain_rv_vec(data).transpose()
+    theta = np.tile(data['cyl_theta'], (3, 1)).transpose()
+
+    return get_cyl_theta_component(velocities, theta, normal)
+
+def _cyl_TangentialVelocityABS(field, data):
+    return np.abs(_cyl_TangentialVelocity(field, data))
+def _Convert_cyl_TangentialVelocityKMS(data):
+    return km_per_cm
+add_field("cyl_TangentialVelocity", function=_cyl_TangentialVelocity,
+          units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+add_field("cyl_TangentialVelocityABS", function=_cyl_TangentialVelocityABS,
+          units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+add_field("cyl_TangentialVelocityKMS", function=_cyl_TangentialVelocity,
+          convert_function=_Convert_cyl_TangentialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("normal")])
+add_field("cyl_TangentialVelocityKMSABS", function=_cyl_TangentialVelocityABS,
+          convert_function=_Convert_cyl_TangentialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("normal")])
 
 def _DynamicalTime(field, data):
     """
@@ -635,13 +633,7 @@ add_field("tempContours", function=_Contours,
           take_log=False, display_field=False)
 
 def obtain_velocities(data):
-    if data.has_field_parameter("bulk_velocity"):
-        bv = data.get_field_parameter("bulk_velocity")
-    else: bv = np.zeros(3, dtype='float64')
-    xv = data["x-velocity"] - bv[0]
-    yv = data["y-velocity"] - bv[1]
-    zv = data["z-velocity"] - bv[2]
-    return xv, yv, zv
+    return obtain_rv_vec(data)
 
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
@@ -706,7 +698,7 @@ def _ParticleSpecificAngularMomentum(field, data):
 #          convert_function=_convertSpecificAngularMomentum, vector_field=True,
 #          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
-    return data.convert("mpc")/1e5
+    return km_per_cm*data.convert("mpc")
 #add_field("ParticleSpecificAngularMomentumKMSMPC",
 #          function=_ParticleSpecificAngularMomentum, particle_type=True,
 #          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
@@ -878,33 +870,32 @@ add_field("RadiusCode", function=_Radius,
           display_name = "Radius (code)")
 
 def _RadialVelocity(field, data):
-    center = data.get_field_parameter("center")
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity == None:
-        bulk_velocity = np.zeros(3)
-    new_field = ( (data['x']-center[0])*(data["x-velocity"]-bulk_velocity[0])
-                + (data['y']-center[1])*(data["y-velocity"]-bulk_velocity[1])
-                + (data['z']-center[2])*(data["z-velocity"]-bulk_velocity[2])
-                )/data["RadiusCode"]
-    if np.any(np.isnan(new_field)): # to fix center = point
-        new_field[np.isnan(new_field)] = 0.0
-    return new_field
+    normal = data.get_field_parameter("normal")
+    velocities = obtain_rv_vec(data).transpose()    
+    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
+    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+
+    return get_sph_r_component(velocities, theta, phi, normal)
+
 def _RadialVelocityABS(field, data):
     return np.abs(_RadialVelocity(field, data))
 def _ConvertRadialVelocityKMS(data):
-    return 1e-5
+    return km_per_cm
 add_field("RadialVelocity", function=_RadialVelocity,
-          units=r"\rm{cm}/\rm{s}",
-          validators=[ValidateParameter("center")])
+          units=r"\rm{cm}/\rm{s}")
 add_field("RadialVelocityABS", function=_RadialVelocityABS,
-          units=r"\rm{cm}/\rm{s}",
-          validators=[ValidateParameter("center")])
+          units=r"\rm{cm}/\rm{s}")
 add_field("RadialVelocityKMS", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
-          validators=[ValidateParameter("center")])
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}")
 add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
-          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
-          validators=[ValidateParameter("center")])
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}")
+
+def _TangentialVelocity(field, data):
+    return np.sqrt(data["VelocityMagnitude"]**2.0
+                 - data["RadialVelocity"]**2.0)
+add_field("TangentialVelocity", 
+          function=_TangentialVelocity,
+          take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _CuttingPlaneVelocityX(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
@@ -1020,6 +1011,47 @@ add_field("MagneticPressure",
           function=_MagneticPressure,
           display_name=r"\rm{Magnetic}\/\rm{Energy}",
           units="\rm{ergs}\/\rm{cm}^{-3}")
+
+def _BPoloidal(field,data):
+    normal = data.get_field_parameter("normal")
+
+    Bfields = np.array([data['Bx'], data['By'], data['Bz']])
+
+    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
+    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+
+    return get_sph_theta_component(Bfields, theta, phi, normal)
+
+add_field("BPoloidal", function=_BPoloidal,
+          units=r"\rm{Gauss}",
+          validators=[ValidateParameter("normal")])
+
+def _BToroidal(field,data):
+    normal = data.get_field_parameter("normal")
+
+    Bfields = np.array([data['Bx'], data['By'], data['Bz']])
+
+    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+
+    return get_sph_phi_component(Bfields, phi, normal)
+
+add_field("BToroidal", function=_BToroidal,
+          units=r"\rm{Gauss}",
+          validators=[ValidateParameter("normal")])
+
+def _BRadial(field,data):
+    normal = data.get_field_parameter("normal")
+
+    Bfields = np.array([data['Bx'], data['By'], data['Bz']])
+
+    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
+    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+
+    return get_sph_r_component(Bfields, theta, phi, normal)
+
+add_field("BRadial", function=_BPoloidal,
+          units=r"\rm{Gauss}",
+          validators=[ValidateParameter("normal")])
 
 def _VorticitySquared(field, data):
     mylog.debug("Generating vorticity on %s", data)

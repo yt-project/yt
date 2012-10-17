@@ -149,7 +149,9 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+            qcb = CuttingQuiverCallback("CuttingPlaneBx",
+                                        "CuttingPlaneBy",
+                                        self.factor)
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
@@ -211,7 +213,8 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     _type_name = "contour"
-    def __init__(self, field, ncont=5, factor=4, clim=None, plot_args=None):
+    def __init__(self, field, ncont=5, factor=4, clim=None,
+                 plot_args = None):
         """ 
         annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
                          plot_args = None):
@@ -360,39 +363,30 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor=6.0, nx=16, ny=16,
-                 xstart=(0,1), ystart=(0,1), nsample=256,
-                 start_at_xedge=False, start_at_yedge=False,
-                 plot_args=None):
+    def __init__(self, field_x, field_y, factor = 16,
+                 density = 1, arrowsize = 1, arrowstyle = None,
+                 color = None, normalize = False):
         """
-        annotate_streamlines(field_x, field_y, factor=6.0, nx=16, ny=16,
-                             xstart=(0,1), ystart=(0,1), nsample=256,
-                             start_at_xedge=False, start_at_yedge=False,
-                             plot_args=None):
+        annotate_streamlines(field_x, field_y, factor = 16, density = 1,
+                             arrowsize = 1, arrowstyle = None,
+                             color = None, normalize = False):
 
         Add streamlines to any plot, using the *field_x* and *field_y*
-        from the associated data, using *nx* and *ny* starting points
-        that are bounded by *xstart* and *ystart*.  To begin
-        streamlines from the left edge of the plot, set
-        *start_at_xedge* to True; for the bottom edge, use
-        *start_at_yedge*.  A line with the qmean vector magnitude will
-        cover 1.0/*factor* of the image.
+        from the associated data, skipping every *factor* datapoints like
+        'quiver'. *density* is the index of the amount of the streamlines.
         """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.xstart = xstart
-        self.ystart = ystart
-        self.nsample = nsample
+        self.bv_x = self.bv_y = 0
         self.factor = factor
-        if start_at_xedge:
-            self.data_size = (1,ny)
-        elif start_at_yedge:
-            self.data_size = (nx,1)
-        else:
-            self.data_size = (nx,ny)
-        if plot_args is None: plot_args = {'color':'k', 'linestyle':'-'}
-        self.plot_args = plot_args
+        self.dens = density
+        self.arrowsize = arrowsize
+        if arrowstyle is None : arrowstyle='-|>'
+        self.arrowstyle = arrowstyle
+        if color is None : color = "#000000"
+        self.color = color
+        self.normalize = normalize
         
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -400,40 +394,31 @@ class StreamlineCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
+        nx = plot.image._A.shape[0] / self.factor
+        ny = plot.image._A.shape[1] / self.factor
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x],
+                             plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),)
+                           (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y],
+                             plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),)
-        r0 = np.mgrid[self.xstart[0]*nx:self.xstart[1]*nx:self.data_size[0]*1j,
-                      self.ystart[0]*ny:self.ystart[1]*ny:self.data_size[1]*1j]
-        lines = np.zeros((self.nsample, 2, self.data_size[0], self.data_size[1]))
-        lines[0,:,:,:] = r0
-        mag = np.sqrt(pixX**2 + pixY**2)
-        scale = np.sqrt(nx*ny) / (self.factor * mag.mean())
-        dt = 1.0 / (self.nsample-1)
-        for i in range(1,self.nsample):
-            xt = lines[i-1,0,:,:]
-            yt = lines[i-1,1,:,:]
-            ix = np.maximum(np.minimum((xt).astype('int'), nx-1), 0)
-            iy = np.maximum(np.minimum((yt).astype('int'), ny-1), 0)
-            lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
-            lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
-        for i in range(self.data_size[0]):
-            for j in range(self.data_size[1]):
-                plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
-                                **self.plot_args)
+                           (x0, x1, y0, y1),).transpose()
+        X,Y = (na.linspace(xx0,xx1,nx,endpoint=True),
+                          na.linspace(yy0,yy1,ny,endpoint=True))
+        if self.normalize:
+            nn = na.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
+        plot._axes.streamplot(X,Y, pixX, pixY, density=self.dens,
+                              arrowsize=self.arrowsize, arrowstyle=self.arrowstyle,
+                              color=self.color, norm=self.normalize)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -453,6 +438,30 @@ class LabelCallback(PlotCallback):
                                      left=0.0, right=1.0)
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
+
+class TimeCallback(PlotCallback):
+    _type_name = "time"
+    def __init__(self, format_code='10.7e'):
+        """
+        This annotates the plot with the current simulation time.
+        For now, the time is displayed in seconds.
+        *format_code* can be optionally set, allowing a custom 
+        c-style format code for the time display.
+        """
+        self.format_code = format_code
+        PlotCallback.__init__(self)
+    
+    def __call__(self, plot):
+        current_time = plot.pf.current_time/plot.pf['Time']
+        timestring = format(current_time,self.format_code)
+        base = timestring[:timestring.find('e')]
+        exponent = timestring[timestring.find('e')+1:]
+        if exponent[0] == '+':
+            exponent = exponent[1:]
+        timestring = r'$t\/=\/'+base+''+r'\times\,10^{'+exponent+r'}\, \rm{s}$'
+        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
+        at = AnchoredText(timestring, prop=dict(size=12), frameon=True, loc=4)
+        plot._axes.add_artist(at)
 
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
@@ -697,9 +706,13 @@ class ArrowCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        if len(self.pos) == 3:
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
+        else: pos = self.pos
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
-        x, y = self.convert_to_plot(plot, self.pos)
+        x, y = self.convert_to_plot(plot, pos)
         dx, dy = self.convert_to_plot(plot, self.code_size, False)
         arrow = Arrow(x, y, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
@@ -719,12 +732,13 @@ class PointAnnotateCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-
-
+        if len(self.pos) == 3:
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
+        else: pos = self.pos
         width,height = plot.image._A.shape
-        x,y = self.convert_to_plot(plot, self.pos)
-        x,y = x/width,y/height
-
+        x,y = self.convert_to_plot(plot, pos)
+        
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
