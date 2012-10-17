@@ -764,7 +764,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
         """
         YTSelectionContainer3D.__init__(self, center=kwargs.pop("center", None),
-                           fields=fields, pf=pf, **kwargs)
+                           pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
@@ -776,7 +776,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.global_startindex = np.rint((self.left_edge-self.pf.domain_left_edge)/self.dds).astype('int64')
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
-        self._refresh_data()
+        self.get_data(fields)
 
     def _get_list_of_grids(self, buffer = 0.0):
         if self._grids is not None: return

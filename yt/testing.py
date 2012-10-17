@@ -134,6 +134,7 @@ def amrspace(extent, levels=7, cells=8):
 
 def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
                    negative = False, nprocs = 1):
+    from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]

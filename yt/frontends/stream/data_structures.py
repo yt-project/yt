@@ -131,29 +131,8 @@ class StreamHierarchy(GridGeometryHandler):
         self.directory = os.getcwd()
         GridGeometryHandler.__init__(self, pf, data_style)
 
-    def _initialize_data_storage(self):
-        pass
-
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
-
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                def external_wrapper(f):
-                    def _convert_function(data):
-                        return data.convert(f)
-                    return _convert_function
-                cf = external_wrapper(field)
-            # Note that we call add_field on the field_info directly.  This
-            # will allow the same field detection mechanism to work for 1D, 2D
-            # and 3D fields.
-            self.pf.field_info.add_field(
-                    field, lambda a, b: None,
-                    convert_function=cf, take_log=False)
 
     def _parse_hierarchy(self):
         self.grid_dimensions = self.stream_handler.dimensions
@@ -211,30 +190,12 @@ class StreamHierarchy(GridGeometryHandler):
         GridGeometryHandler._initialize_grid_arrays(self)
         self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
-    def save_data(self, *args, **kwargs):
-        pass
-
-    def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = np.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
+
+    def _detect_fields(self):
+        self.field_list = list(set(self.stream_handler.get_fields()))
 
     def _populate_grid_objects(self):
         for g in self.grids:

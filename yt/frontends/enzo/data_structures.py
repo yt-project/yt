@@ -30,10 +30,6 @@ import os
 import stat
 import string
 import re
-try:
-    from pyhdf_np import SD
-except ImportError:
-    pass
 
 from itertools import izip
 

@@ -27,6 +27,7 @@ from collections import defaultdict
 
 import exceptions
 import os
+import numpy as np
 
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
@@ -51,19 +52,29 @@ class IOHandlerStream(BaseIOHandler):
         # New in-place unit conversion breaks if we don't copy first
         return tr
 
-    def modify(self, field):
-        return field
-
-    def _read_field_names(self, grid):
-        return self.fields[grid.id].keys()
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        sl = tuple(reversed(sl))
-        tr = self.fields[grid.id][field][sl].swapaxes(0,2)
-        # In-place unit conversion requires we return a copy
-        return tr.copy()
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = np.empty(size, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [f2 for f1, f2 in fields], ng)
+        for field in fields:
+            ftype, fname = field
+            ind = 0
+            for chunk in chunks:
+                for g in chunk.objs:
+                    mask = g.select(selector) # caches
+                    if mask is None: continue
+                    ds = self.fields[g.id][fname]
+                    data = ds[mask]
+                    rv[field][ind:ind+data.size] = data
+                    ind += data.size
+        return rv
 
     @property
     def _read_exception(self):
