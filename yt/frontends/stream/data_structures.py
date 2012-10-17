@@ -103,7 +103,7 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields, io = None):
+                 fields, io = None, storage_filename = None):
         self.left_edges = left_edges
         self.right_edges = right_edges
         self.dimensions = dimensions
@@ -114,6 +114,7 @@ class StreamHandler(object):
         self.num_grids = self.levels.size
         self.fields = fields
         self.io = io
+        self.storage_filename = storage_filename
 
     def get_fields(self):
         return self.fields.all_fields
