@@ -237,6 +237,7 @@ class AMRData(object):
     def __set_default_field_parameters(self):
         self.set_field_parameter("center",np.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
+        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
 
     def _set_center(self, center):
         if center is None:

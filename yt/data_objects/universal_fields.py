@@ -876,8 +876,6 @@ add_field("RadiusCode", function=_Radius,
 
 def _RadialVelocity(field, data):
     normal = data.get_field_parameter("normal")
-    if normal == None:
-        normal = [0,0,1]
     velocities = obtain_rv_vec(data).transpose()    
     theta = np.tile(data['sph_theta'], (3, 1)).transpose()
     phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
