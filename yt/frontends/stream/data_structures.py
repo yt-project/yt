@@ -103,7 +103,7 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields, io = None, storage_filename = None):
+                 fields, io = None):
         self.left_edges = left_edges
         self.right_edges = right_edges
         self.dimensions = dimensions
@@ -114,7 +114,6 @@ class StreamHandler(object):
         self.num_grids = self.levels.size
         self.fields = fields
         self.io = io
-        self.storage_filename = storage_filename
 
     def get_fields(self):
         return self.fields.all_fields
@@ -215,7 +214,7 @@ class StreamStaticOutput(StaticOutput):
     _fieldinfo_known = KnownStreamFields
     _data_style = 'stream'
 
-    def __init__(self, stream_handler):
+    def __init__(self, stream_handler, storage_filename = None):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
@@ -223,6 +222,7 @@ class StreamStaticOutput(StaticOutput):
 
         self.stream_handler = stream_handler
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
+        self.storage_filename = storage_filename
 
         self.units = {}
         self.time_units = {}
