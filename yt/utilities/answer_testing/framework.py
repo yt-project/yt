@@ -25,9 +25,9 @@ License:
 
 import logging
 import os
-import shelve
 import hashlib
 import contextlib
+import urllib2
 
 from yt.testing import *
 from yt.utilities.command_line import get_yt_version
@@ -36,31 +36,29 @@ from yt.utilities.logger import \
     disable_stream_logging
 from nose.plugins import Plugin
 from yt.mods import *
+import cPickle
 
-log = logging.getLogger('nose.plugins.answer-testing')
+mylog = logging.getLogger('nose.plugins.answer-testing')
+
+_latest = "SomeValue"
+_url_path = "http://yt_answer_tests.s3-website-us-east-1.amazonaws.com/%s"
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
 
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
-        test_storage_directory = ytcfg.get("yt", "test_storage_dir")
         try:
             my_hash = get_yt_version()
         except:
             my_hash = "UNKNOWN%s" % (time.time())
-        parser.add_option("--answer-parameter-file", dest="parameter_file",
-            default=os.path.join(os.getcwd(), "tests/DD0010/moving7_0010"),
-            help="The parameter file value to feed to 'load' to test against")
-        parser.add_option("--answer-output", dest="storage_dir",
-            default=test_storage_directory,
-            help="Base directory for storing test output.")
         parser.add_option("--answer-compare", dest="compare_name",
-            default=None,
-            help="The name against which we will compare")
+            default=None, help="The name against which we will compare")
         parser.add_option("--answer-name", dest="this_name",
             default=my_hash,
             help="The name we'll call this set of tests")
+        parser.add_option("--answer-store", dest="store_results",
+            default=False, action="store_true")
 
     def configure(self, options, conf):
         super(AnswerTesting, self).configure(options, conf)
@@ -69,16 +67,31 @@ class AnswerTesting(Plugin):
         disable_stream_logging()
         from yt.config import ytcfg
         ytcfg["yt","__withintesting"] = "True"
-        AnswerTestingTest.result_storage = shelve.open(
-            os.path.join(options.storage_dir,
-                         options.this_name))
+        AnswerTestingTest.result_storage = \
+            self.result_storage = defaultdict(dict)
         if options.compare_name is not None:
-            AnswerTestingTest.reference_storage = shelve.open(
-                os.path.join(options.storage_dir,
-                            options.compare_name))
+            # Now we grab from our S3 store
+            if options.compare_name == "latest":
+                options.compare_name = _latest
+            #AnswerTestingTest.reference_storage = urllib2
+        self.answer_name = options.this_name
+        self.store_results = options.store_results
 
     def finalize(self, result):
-        pass
+        # This is where we dump our result storage up to Amazon, if we are able
+        # to.
+        if self.store_results is False: return
+        import boto
+        from boto.s3.key import Key
+        c = boto.connect_s3()
+        bucket = c.get_bucket("yt_answer_tests")
+        for pf_name in self.result_storage:
+            rs = cPickle.dumps(self.result_storage[pf_name])
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
+            if tk is not None: tk.delete()
+            k = Key(bucket)
+            k.key = "%s_%s" % (self.answer_name, pf_name)
+            k.set_contents_from_string(rs)
 
 @contextlib.contextmanager
 def temp_cwd(cwd):
@@ -92,7 +105,7 @@ class AnswerTestingTest(object):
 
     description = None
     def __init__(self, name, pf_fn):
-        path = ytcfg.get("yt", "data_storage_dir")
+        path = ytcfg.get("yt", "test_data_dir")
         with temp_cwd(path):
             self.pf = load(pf_fn)
             self.pf.h
@@ -100,7 +113,7 @@ class AnswerTestingTest(object):
 
     def __call__(self):
         nv = self.run()
-        self.result_storage[self.name] = nv
+        self.result_storage[str(self.pf)][self.name] = nv
         if self.reference_storage is not None:
             ov = self.reference_storage.get(self.name, None)
             return self.compare(nv, ov)
@@ -158,7 +171,7 @@ class FieldValuesTest(AnswerTestingTest):
         assert_equal(new_result, old_result)
 
 def can_run_pf(pf_fn):
-    path = ytcfg.get("yt", "data_storage_dir")
+    path = ytcfg.get("yt", "test_data_dir")
     with temp_cwd(path):
         try:
             load(pf_fn)
