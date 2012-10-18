@@ -448,7 +448,7 @@ add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3
 
 # This is rho_total / rho_cr(z).
 def _Convert_Overdensity(data):
-    return 1 / (rho_crit_now * data.pf.hubble_constant**2 * 
+    return 1.0 / (rho_crit_now * data.pf.hubble_constant**2 * 
                 (1+data.pf.current_redshift)**3)
 add_field("Overdensity",function=_Matter_Density,
           convert_function=_Convert_Overdensity, units=r"")
@@ -468,8 +468,8 @@ def _Baryon_Overdensity(field, data):
     else:
         omega_baryon_now = 0.0441
     return data['Density'] / (omega_baryon_now * rho_crit_now * 
-                              (data.pf['CosmologyHubbleConstantNow']**2) * 
-                              ((1+data.pf['CosmologyCurrentRedshift'])**3))
+                              (data.pf.hubble_constant**2) * 
+                              ((1+data.pf.current_redshift)**3))
 add_field("Baryon_Overdensity", function=_Baryon_Overdensity, 
           units=r"")
 
