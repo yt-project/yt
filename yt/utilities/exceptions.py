@@ -148,3 +148,11 @@ class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \
                "https://data.yt-project.org/getting_started.html"
+
+class YTNoOldAnswer(YTException):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "There is no old answer available.\n" + \
+               str(self.path)
