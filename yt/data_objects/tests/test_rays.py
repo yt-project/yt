@@ -9,7 +9,7 @@ def test_ray():
     p2 = np.random.random(3)
 
     my_ray = pf.h.ray(p1, p2)
-    assert_equal(my_ray['dts'].sum(), 1.0)
+    assert_rel_equal(my_ray['dts'].sum(), 1.0, 14)
     ray_cells = my_ray['dts'] > 0
 
     # find cells intersected by the ray
@@ -26,6 +26,6 @@ def test_ray():
     tout = tout.min(axis=0)
     my_cells = (tin < tout) & (tin < 1) & (tout > 0)
 
-    assert_equal(ray_cells.sum(), my_cells.sum())
-    assert_equal(my_ray['Density'][ray_cells].sum(),
-                 my_all['Density'][my_cells].sum())           
+    assert_rel_equal(ray_cells.sum(), my_cells.sum(), 14)
+    assert_rel_equal(my_ray['Density'][ray_cells].sum(),
+                     my_all['Density'][my_cells].sum(), 14)
