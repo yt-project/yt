@@ -247,8 +247,9 @@ class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
     _attrs = ("field",)
 
-    def __init__(self, name, pf_fn, field):
+    def __init__(self, pf_fn, field):
         super(GridValuesTest, self).__init__(pf_fn)
+        self.field = field
 
     def run(self):
         hashes = {}
@@ -264,7 +265,7 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
-class TestGridHierarchy(AnswerTestingTest):
+class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
     _attrs = ()
 
@@ -280,7 +281,7 @@ class TestGridHierarchy(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
-class TestParentageRelationships(AnswerTestingTest):
+class ParentageRelationshipsTest(AnswerTestingTest):
     _type_name = "ParentageRelationships"
     _attrs = ()
     def run(self):

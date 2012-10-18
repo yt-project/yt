@@ -25,7 +25,9 @@ License:
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    can_run_pf, ProjectionValuesTest, FieldValuesTest
+    can_run_pf, ProjectionValuesTest, FieldValuesTest, \
+    GridHierarchyTest, ParentageRelationshipsTest, \
+    GridValuesTest
 from yt.frontends.enzo.api import EnzoStaticOutput
 
 _fields = ("Temperature", "Density", "VelocityMagnitude", "DivV",
@@ -36,7 +38,10 @@ pf_fn = "DD0010/moving7_0010"
 def test_moving7():
     if not can_run_pf(pf_fn): return
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    yield GridHierarchyTest(pf_fn)
+    yield ParentageRelationshipsTest(pf_fn)
     for field in _fields:
+        yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
                 for weight_field in [None, "Density"]:
