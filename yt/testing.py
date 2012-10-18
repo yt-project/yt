@@ -28,8 +28,8 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp
 
-def assert_rel_equal(a1, a2, decimels):
-    return assert_almost_equal(a1/a2, 1.0, decimels)
+def assert_rel_equal(a1, a2, decimals):
+    return assert_almost_equal(a1/a2, 1.0, decimals)
 
 def amrspace(extent, levels=7, cells=8):
     """Creates two numpy arrays representing the left and right bounds of 
