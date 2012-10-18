@@ -131,27 +131,30 @@ def can_run_pf(pf_fn):
             return False
     return AnswerTestingTest.result_storage is not None
 
+def data_dir_load(pf_fn):
+    path = ytcfg.get("yt", "test_data_dir")
+    with temp_cwd(path):
+        pf = load(pf_fn)
+        pf.h
+        return pf
+
 class AnswerTestingTest(object):
     reference_storage = None
 
     description = None
     def __init__(self, pf_fn):
-        path = ytcfg.get("yt", "test_data_dir")
-        with temp_cwd(path):
-            self.pf = load(pf_fn)
-            self.pf.h
+        self.pf = data_dir_load(pf_fn)
 
     def __call__(self):
         nv = self.run()
-        self.result_storage[str(self.pf)][self.name] = nv
         if self.reference_storage is not None:
             dd = self.reference_storage.get(str(self.pf))
             if dd is None: raise YTNoOldAnswer()
             ov = dd[self.name]
-            return self.compare(nv, ov)
+            self.compare(nv, ov)
         else:
             ov = None
-            return True
+        self.result_storage[str(self.pf)][self.name] = nv
 
     def compare(self, new_result, old_result):
         raise RuntimeError
@@ -308,13 +311,15 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 def requires_pf(pf_fn):
     def ffalse(func):
         return lambda: None
-    if not can_run_pf(pf_fn):
-        return ffalse
     def ftrue(func):
         return func
-    return ftrue
+    if not can_run_pf(pf_fn):
+        return ffalse
+    else:
+        return ftrue
 
 def standard_patch_amr(pf_fn, fields):
+    if not can_run_pf(pf_fn): return
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     yield GridHierarchyTest(pf_fn)
     yield ParentageRelationshipsTest(pf_fn)
