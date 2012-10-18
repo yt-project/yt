@@ -18,7 +18,7 @@ coords = np.array([[-0.41503037, -0.22102472, -0.55774212],
                    [ 0.73186508, -0.3109153 ,  0.75728738],
                    [ 0.8757989 , -0.41475119, -0.57039201],
                    [ 0.58040762,  0.81969082,  0.46759728],
-                   [-0.89983356, -0.9853683 , -0.38355343]])
+                   [-0.89983356, -0.9853683 , -0.38355343]]).T
 
 def test_spherical_coordinate_conversion():
     normal = [0, 0, 1]
@@ -85,44 +85,41 @@ def test_cylindrical_coordiante_conversion():
 def test_spherical_coordinate_projections():
     normal = [0, 0, 1]
     theta = get_sph_theta(coords, normal)
-    theta_pass = np.tile(theta, (3, 1)).T
     phi = get_sph_phi(coords, normal)
-    phi_pass = np.tile(phi, (3, 1)).T
-    zero = np.tile(0,coords.shape[0])
+    zero = np.tile(0,coords.shape[1])
 
     # Purely radial field
-    vecs = np.array([np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)]).T
-    assert_array_almost_equal(zero, get_sph_theta_component(vecs, theta_pass, phi_pass, normal))
-    assert_array_almost_equal(zero, get_sph_phi_component(vecs, phi_pass, normal))
+    vecs = np.array([np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)])
+    assert_array_almost_equal(zero, get_sph_theta_component(vecs, theta, phi, normal))
+    assert_array_almost_equal(zero, get_sph_phi_component(vecs, phi, normal))
 
     # Purely toroidal field
-    vecs = np.array([-np.sin(phi), np.cos(phi), zero]).T
-    assert_array_almost_equal(zero, get_sph_theta_component(vecs, theta_pass, phi_pass, normal))
-    assert_array_almost_equal(zero, get_sph_r_component(vecs, theta_pass, phi_pass, normal))
+    vecs = np.array([-np.sin(phi), np.cos(phi), zero])
+    assert_array_almost_equal(zero, get_sph_theta_component(vecs, theta, phi, normal))
+    assert_array_almost_equal(zero, get_sph_r_component(vecs, theta, phi, normal))
 
     # Purely poloidal field
-    vecs = np.array([np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi), -np.sin(theta)]).T
-    assert_array_almost_equal(zero, get_sph_phi_component(vecs, phi_pass, normal))
-    assert_array_almost_equal(zero, get_sph_r_component(vecs, theta_pass, phi_pass, normal))
+    vecs = np.array([np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi), -np.sin(theta)])
+    assert_array_almost_equal(zero, get_sph_phi_component(vecs, phi, normal))
+    assert_array_almost_equal(zero, get_sph_r_component(vecs, theta, phi, normal))
 
 def test_cylindrical_coordinate_projections():
     normal = [0, 0, 1]
     theta = get_cyl_theta(coords, normal)
-    theta_pass = np.tile(theta, (3, 1)).T
     z = get_cyl_z(coords, normal)
-    zero = np.tile(0, coords.shape[0])
+    zero = np.tile(0, coords.shape[1])
 
     # Purely radial field
-    vecs = np.array([np.cos(theta), np.sin(theta), zero]).T
-    assert_array_almost_equal(zero, get_cyl_theta_component(vecs, theta_pass, normal))
+    vecs = np.array([np.cos(theta), np.sin(theta), zero])
+    assert_array_almost_equal(zero, get_cyl_theta_component(vecs, theta, normal))
     assert_array_almost_equal(zero, get_cyl_z_component(vecs, normal))
 
     # Purely toroidal field
-    vecs = np.array([-np.sin(theta), np.cos(theta), zero]).T
+    vecs = np.array([-np.sin(theta), np.cos(theta), zero])
     assert_array_almost_equal(zero, get_cyl_z_component(vecs, normal))
-    assert_array_almost_equal(zero, get_cyl_r_component(vecs, theta_pass, normal))
+    assert_array_almost_equal(zero, get_cyl_r_component(vecs, theta, normal))
 
     # Purely z field
-    vecs = np.array([zero, zero, z]).T
-    assert_array_almost_equal(zero, get_cyl_theta_component(vecs, theta_pass, normal))
-    assert_array_almost_equal(zero, get_cyl_r_component(vecs, theta_pass, normal))
+    vecs = np.array([zero, zero, z])
+    assert_array_almost_equal(zero, get_cyl_theta_component(vecs, theta, normal))
+    assert_array_almost_equal(zero, get_cyl_r_component(vecs, theta, normal))
