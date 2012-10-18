@@ -41,7 +41,27 @@ import cPickle
 mylog = logging.getLogger('nose.plugins.answer-testing')
 
 _latest = "SomeValue"
-_url_path = "http://yt_answer_tests.s3-website-us-east-1.amazonaws.com/%s"
+_url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
+
+class AnswerTestOpener(object):
+    def __init__(self, reference_name):
+        self.reference_name = reference_name
+        self.cache = {}
+
+    def get(self, pf_name, default = None):
+        if pf_name in self.cache: return self.cache[pf_name]
+        url = _url_path % (self.reference_name, pf_name)
+        try:
+            resp = urllib2.urlopen(url)
+            # This is dangerous, but we have a controlled S3 environment
+            data = resp.read()
+            rv = cPickle.loads(data)
+        except urllib2.HTTPError as ex:
+            raise YTNoOldAnswer(url)
+            mylog.warning("Missing %s (%s)", url, ex)
+            rv = default
+        self.cache[pf_name] = rv
+        return rv
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
@@ -73,7 +93,8 @@ class AnswerTesting(Plugin):
             # Now we grab from our S3 store
             if options.compare_name == "latest":
                 options.compare_name = _latest
-            #AnswerTestingTest.reference_storage = urllib2
+            AnswerTestingTest.reference_storage = \
+                AnswerTestOpener(options.compare_name)
         self.answer_name = options.this_name
         self.store_results = options.store_results
 
@@ -84,7 +105,7 @@ class AnswerTesting(Plugin):
         import boto
         from boto.s3.key import Key
         c = boto.connect_s3()
-        bucket = c.get_bucket("yt_answer_tests")
+        bucket = c.get_bucket("yt-answer-tests")
         for pf_name in self.result_storage:
             rs = cPickle.dumps(self.result_storage[pf_name])
             tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
@@ -92,6 +113,7 @@ class AnswerTesting(Plugin):
             k = Key(bucket)
             k.key = "%s_%s" % (self.answer_name, pf_name)
             k.set_contents_from_string(rs)
+            k.set_acl("public-read")
 
 @contextlib.contextmanager
 def temp_cwd(cwd):
@@ -100,22 +122,32 @@ def temp_cwd(cwd):
     yield
     os.chdir(oldcwd)
 
+def can_run_pf(pf_fn):
+    path = ytcfg.get("yt", "test_data_dir")
+    with temp_cwd(path):
+        try:
+            load(pf_fn)
+        except:
+            return False
+    return AnswerTestingTest.result_storage is not None
+
 class AnswerTestingTest(object):
     reference_storage = None
 
     description = None
-    def __init__(self, name, pf_fn):
+    def __init__(self, pf_fn):
         path = ytcfg.get("yt", "test_data_dir")
         with temp_cwd(path):
             self.pf = load(pf_fn)
             self.pf.h
-        self.name = "%s_%s" % (self.pf, name)
 
     def __call__(self):
         nv = self.run()
         self.result_storage[str(self.pf)][self.name] = nv
         if self.reference_storage is not None:
-            ov = self.reference_storage.get(self.name, None)
+            dd = self.reference_storage.get(str(self.pf))
+            if dd is None: raise YTNoOldAnswer()
+            ov = dd[self.name]
             return self.compare(nv, ov)
         else:
             ov = None
@@ -154,56 +186,69 @@ class AnswerTestingTest(object):
         Return an unsorted array of values that cover the entire domain.
         """
         return self.pf.h.all_data()
+
+    @property
+    def name(self):
+        obj_type = getattr(self, "obj_type", None)
+        if obj_type is None:
+            oname = "all"
+        else:
+            oname = "_".join((str(s) for s in obj_type))
+        args = [self._type_name, str(self.pf), oname]
+        args += [str(getattr(self, an)) for an in self._attrs]
+        return "_".join(args)
         
 class FieldValuesTest(AnswerTestingTest):
+    _type_name = "FieldValues"
+    _attrs = ("field", )
 
     def __init__(self, pf_fn, field, obj_type = None):
-        name = "%s_%s" % (pf_fn, field)
-        super(FieldValuesTest, self).__init__(name, pf_fn)
+        super(FieldValuesTest, self).__init__(pf_fn)
         self.obj_type = obj_type
         self.field = field
 
     def run(self):
         obj = self.create_obj(self.pf, self.obj_type)
-        return np.sort(obj[self.field])
+        return obj[self.field]
 
     def compare(self, new_result, old_result):
         assert_equal(new_result, old_result)
 
-def can_run_pf(pf_fn):
-    path = ytcfg.get("yt", "test_data_dir")
-    with temp_cwd(path):
-        try:
-            load(pf_fn)
-        except:
-            return False
-    return AnswerTestingTest.result_storage is not None
-
 class ProjectionValuesTest(AnswerTestingTest):
-    def __init__(self, pf_fn, axis, field,
-                 weight_field = None, data_source = None):
-        name = "%s_%s_%s_%s" % (pf_fn, axis, field, weight_field)
-        super(ProjectionValuesTest, self).__init__(name, pf_fn)
+    _type_name = "ProjectionValues"
+    _attrs = ("field", "axis", "weight_field")
+
+    def __init__(self, pf_fn, axis, field, weight_field = None,
+                 obj_type = None):
+        super(ProjectionValuesTest, self).__init__(pf_fn)
         self.axis = axis
         self.field = field
         self.weight_field = field
-        self.data_source = None
+        self.obj_type = obj_type
 
     def run(self):
+        if self.obj_type is not None:
+            obj = self.create_obj(self.pf, self.obj_type)
+        else:
+            obj = None
         proj = self.pf.h.proj(self.axis, self.field,
-                              weight_field=self.weight_field)
-        return proj
+                              weight_field=self.weight_field,
+                              data_source = obj)
+        return proj.field_data
 
     def compare(self, new_result, old_result):
-        assert(len(new_result.field_data) == len(old_result.field_data))
-        for k in new_result.field_data:
-            assert (k in old_result.field_data)
+        assert(len(new_result) == len(old_result))
+        for k in new_result:
+            assert (k in old_result)
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
 class GridValuesTest(AnswerTestingTest):
+    _type_name = "GridValues"
+    _attrs = ("field",)
+
     def __init__(self, name, pf_fn, field):
-        super(GridValuesTest, self).__init__(name, pf_fn)
+        super(GridValuesTest, self).__init__(pf_fn)
 
     def run(self):
         hashes = {}
@@ -220,6 +265,9 @@ class GridValuesTest(AnswerTestingTest):
             assert_equal(new_result[k], old_result[k])
 
 class TestGridHierarchy(AnswerTestingTest):
+    _type_name = "GridHierarchy"
+    _attrs = ()
+
     def run(self):
         result = {}
         result["grid_dimensions"] = self.pf.h.grid_dimensions
@@ -233,6 +281,8 @@ class TestGridHierarchy(AnswerTestingTest):
             assert_equal(new_result[k], old_result[k])
 
 class TestParentageRelationships(AnswerTestingTest):
+    _type_name = "ParentageRelationships"
+    _attrs = ()
     def run(self):
         result = {}
         result["parents"] = []
