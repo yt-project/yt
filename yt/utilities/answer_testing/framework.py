@@ -304,3 +304,27 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
+
+def requires_pf(pf_fn):
+    def ffalse(func):
+        return lambda: None
+    if not can_run_pf(pf_fn):
+        return ffalse
+    def ftrue(func):
+        return func
+    return ftrue
+
+def standard_patch_amr(pf_fn, fields):
+    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    yield GridHierarchyTest(pf_fn)
+    yield ParentageRelationshipsTest(pf_fn)
+    for field in fields:
+        yield GridValuesTest(pf_fn, field)
+        for axis in [0, 1, 2]:
+            for ds in dso:
+                for weight_field in [None, "Density"]:
+                    yield ProjectionValuesTest(
+                        pf_fn, axis, field, weight_field,
+                        ds)
+                yield FieldValuesTest(
+                        pf_fn, field, ds)

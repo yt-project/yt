@@ -25,9 +25,8 @@ License:
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    can_run_pf, ProjectionValuesTest, FieldValuesTest, \
-    GridHierarchyTest, ParentageRelationshipsTest, \
-    GridValuesTest
+    requires_pf, \
+    standard_patch_amr
 from yt.frontends.enzo.api import EnzoStaticOutput
 
 _fields = ("Temperature", "Density", "VelocityMagnitude", "DivV",
@@ -35,18 +34,7 @@ _fields = ("Temperature", "Density", "VelocityMagnitude", "DivV",
 
 pf_fn = "DD0010/moving7_0010"
 
+@requires_pf(pf_fn)
 def test_moving7():
-    if not can_run_pf(pf_fn): return
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    yield GridHierarchyTest(pf_fn)
-    yield ParentageRelationshipsTest(pf_fn)
-    for field in _fields:
-        yield GridValuesTest(pf_fn, field)
-        for axis in [0, 1, 2]:
-            for ds in dso:
-                for weight_field in [None, "Density"]:
-                    yield ProjectionValuesTest(
-                        pf_fn, axis, field, weight_field,
-                        ds)
-                yield FieldValuesTest(
-                        pf_fn, field, ds)
+    for test in standard_patch_amr(pf_fn, _fields):
+        yield test
