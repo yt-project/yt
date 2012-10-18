@@ -224,9 +224,9 @@ add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
 def _sph_r(field, data):
     center = data.get_field_parameter("center")
       
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data)
 
-    return get_sph_r(vectors, center)
+    return get_sph_r(coords)
 
 def _Convert_sph_r_CGS(data):
    return data.convert("cm")
@@ -241,7 +241,7 @@ def _sph_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data)
 
     return get_sph_theta(coords, normal)
 
@@ -254,7 +254,7 @@ def _sph_phi(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data)
 
     return get_sph_phi(coords, normal)
 
@@ -266,7 +266,7 @@ def _cyl_R(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
       
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data)
 
     return get_cyl_r(coords, normal)
 
@@ -286,7 +286,7 @@ def _cyl_z(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data)
 
     return get_cyl_z(coords, normal)
 
@@ -303,7 +303,7 @@ def _cyl_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
     
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data)
 
     return get_cyl_theta(coords, normal)
 
@@ -344,9 +344,9 @@ add_field("HeightAU", function=_Height,
 
 def _cyl_RadialVelocity(field, data):
     normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data).transpose()
+    velocities = obtain_rv_vec(data)
 
-    theta = np.tile(data['cyl_theta'], (3, 1)).transpose()
+    theta = data['cyl_theta']
 
     return get_cyl_r_component(velocities, theta, normal)
 
@@ -369,8 +369,8 @@ add_field("cyl_RadialVelocityKMSABS", function=_cyl_RadialVelocityABS,
 
 def _cyl_TangentialVelocity(field, data):
     normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data).transpose()
-    theta = np.tile(data['cyl_theta'], (3, 1)).transpose()
+    velocities = obtain_rv_vec(data)
+    theta = data['cyl_theta']
 
     return get_cyl_theta_component(velocities, theta, normal)
 
@@ -876,9 +876,9 @@ add_field("RadiusCode", function=_Radius,
 
 def _RadialVelocity(field, data):
     normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data).transpose()    
-    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
-    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+    velocities = obtain_rv_vec(data)    
+    theta = data['sph_theta']
+    phi   = data['sph_phi']
 
     return get_sph_r_component(velocities, theta, phi, normal)
 
@@ -1022,8 +1022,8 @@ def _BPoloidal(field,data):
 
     Bfields = np.array([data['Bx'], data['By'], data['Bz']])
 
-    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
-    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+    theta = data['sph_theta']
+    phi   = data['sph_phi']
 
     return get_sph_theta_component(Bfields, theta, phi, normal)
 
@@ -1036,7 +1036,7 @@ def _BToroidal(field,data):
 
     Bfields = np.array([data['Bx'], data['By'], data['Bz']])
 
-    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+    phi   = data['sph_phi']
 
     return get_sph_phi_component(Bfields, phi, normal)
 
@@ -1049,8 +1049,8 @@ def _BRadial(field,data):
 
     Bfields = np.array([data['Bx'], data['By'], data['Bz']])
 
-    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
-    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
+    theta = data['sph_theta']
+    phi   = data['sph_phi']
 
     return get_sph_r_component(Bfields, theta, phi, normal)
 
