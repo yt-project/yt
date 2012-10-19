@@ -1,3 +1,3 @@
-include distribute_setup.py
+include distribute_setup.py README* CREDITS FUNDING LICENSE.txt
 recursive-include yt/gui/reason/html *.html *.png *.ico *.js
-recursive-include yt *.pyx *.pxd *.hh *.h README* CREDITS FUNDING LICENSE
+recursive-include yt *.pyx *.pxd *.hh *.h README*
