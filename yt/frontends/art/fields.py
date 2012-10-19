@@ -174,7 +174,7 @@ def _temperature(field, data):
     dd /= data.pf.conversion_factors["Density"]
     tr = dg/dd*data.pf.tr
     #ghost cells have zero density?
-    tr[na.isnan(tr)] = 0.0
+    tr[np.isnan(tr)] = 0.0
     #dd[di] = -1.0
     #if data.id==460:
     #tr[di] = -1.0 #replace the zero-density points with zero temp
@@ -247,11 +247,11 @@ ARTFieldInfo["Metal_Density"]._projected_units = r""
 #Derived particle fields
 
 def mass_dm(field, data):
-    tr = na.ones(data.ActiveDimensions, dtype='float32')
+    tr = np.ones(data.ActiveDimensions, dtype='float32')
     idx = data["particle_type"]<5
     #make a dumb assumption that the mass is evenly spread out in the grid
     #must return an array the shape of the grid cells
-    if na.sum(idx)>0:
+    if np.sum(idx)>0:
         tr /= np.prod(data['CellVolumeCode']*data.pf['mpchcm']**3.0) #divide by the volume
         tr *= np.sum(data['particle_mass'][idx])*data.pf['Msun'] #Multiply by total contaiend mass
         print tr.shape
@@ -265,7 +265,7 @@ add_field("particle_cell_mass_dm", function=mass_dm, units = r"\mathrm{M_{sun}}"
         projection_conversion="1")
 
 def _spdensity(field, data):
-    grid_mass = na.zeros(data.ActiveDimensions, dtype='float32')
+    grid_mass = np.zeros(data.ActiveDimensions, dtype='float32')
     if data.star_mass.shape[0] ==0 : return grid_mass 
     amr_utils.CICDeposit_3(data.star_position_x,
                            data.star_position_y,
@@ -273,16 +273,16 @@ def _spdensity(field, data):
                            data.star_mass.astype('float32'),
                            data.star_mass.shape[0],
                            grid_mass, 
-                           na.array(data.LeftEdge).astype(na.float64),
-                           na.array(data.ActiveDimensions).astype(na.int32), 
-                           na.float64(data['dx']))
+                           np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
     return grid_mass 
 
 #add_field("star_density", function=_spdensity,
 #          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 def _simple_density(field,data):
-    mass = na.sum(data.star_mass)
+    mass = np.sum(data.star_mass)
     volume = data['dx']*data.ActiveDimensions.prod().astype('float64')
     return mass/volume
 
