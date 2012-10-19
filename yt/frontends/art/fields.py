@@ -235,7 +235,7 @@ ARTFieldInfo["z-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
 def _metal_density(field, data):
     tr  = data["MetalDensitySNIa"]
-    tr = data["MetalDensitySNII"]
+    tr += data["MetalDensitySNII"]
     return tr
 add_field("Metal_Density", function=_metal_density, units = r"\mathrm{K}",take_log=True)
 ARTFieldInfo["Metal_Density"]._units = r""
