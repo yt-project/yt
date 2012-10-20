@@ -136,3 +136,23 @@ class YTGeometryNotSupported(YTException):
 class YTCoordinateNotImplemented(YTException):
     def __str__(self):
         return "This coordinate is not implemented for this geometry type."
+
+class YTUnitNotRecognized(YTException):
+    def __init__(self, unit):
+        self.unit = unit
+
+    def __str__(self):
+        return "This parameter file doesn't recognize %s" % self.unit
+
+class YTHubRegisterError(YTException):
+    def __str__(self):
+        return "You must create an API key before uploading.  See " + \
+               "https://data.yt-project.org/getting_started.html"
+
+class YTNoOldAnswer(YTException):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "There is no old answer available.\n" + \
+               str(self.path)

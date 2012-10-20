@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import string, re, gc, time, cPickle
 import weakref
 
@@ -79,11 +79,11 @@ class GridGeometryHandler(GeometryHandler):
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+        self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
     def clear_all_data(self):
         """
@@ -111,13 +111,13 @@ class GridGeometryHandler(GeometryHandler):
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
         for level in xrange(self.max_level+1):
-            self.level_stats[level]['numgrids'] = na.sum(self.grid_levels == level)
+            self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
 
     @property
     def grid_corners(self):
-        return na.array([
+        return np.array([
           [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
@@ -169,7 +169,7 @@ class GridGeometryHandler(GeometryHandler):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
             grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
-            dobj._chunk_info = na.array(grids, dtype='object')
+            dobj._chunk_info = np.array(grids, dtype='object')
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
             dobj.shape = (dobj.size,)

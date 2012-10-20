@@ -5,7 +5,7 @@
 ##
 
 import math
-import numpy as na
+import numpy as np
 
 def is_decade(x,base=10):
     if x == 0.0:
@@ -40,7 +40,7 @@ class LogLocator(object):
         if subs is None:
             self._subs = None  # autosub
         else:
-            self._subs = na.asarray(subs)+0.0
+            self._subs = np.asarray(subs)+0.0
 
     def _set_numticks(self):
         self.numticks = 15  # todo; be smart here; this is just for dev
@@ -62,9 +62,9 @@ class LogLocator(object):
         numdec = math.floor(vmax)-math.ceil(vmin)
 
         if self._subs is None: # autosub
-            if numdec>10: subs = na.array([1.0])
-            elif numdec>6: subs = na.arange(2.0, b, 2.0)
-            else: subs = na.arange(2.0, b)
+            if numdec>10: subs = np.array([1.0])
+            elif numdec>6: subs = np.arange(2.0, b, 2.0)
+            else: subs = np.arange(2.0, b)
         else:
             subs = self._subs
 
@@ -72,7 +72,7 @@ class LogLocator(object):
         while numdec/stride+1 > self.numticks:
             stride += 1
 
-        decades = na.arange(math.floor(vmin),
+        decades = np.arange(math.floor(vmin),
                              math.ceil(vmax)+stride, stride)
         if len(subs) > 1 or (len(subs == 1) and subs[0] != 1.0):
             ticklocs = []
@@ -81,7 +81,7 @@ class LogLocator(object):
         else:
             ticklocs = b**decades
 
-        return na.array(ticklocs)
+        return np.array(ticklocs)
 
 
 class LinearLocator(object):
@@ -122,7 +122,7 @@ class LinearLocator(object):
 
 
         if self.numticks==0: return []
-        ticklocs = na.linspace(vmin, vmax, self.numticks)
+        ticklocs = np.linspace(vmin, vmax, self.numticks)
 
         #return self.raise_if_exceeds(ticklocs)
         return ticklocs

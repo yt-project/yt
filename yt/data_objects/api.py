@@ -1,4 +1,4 @@
-"""
+""" 
 API for yt.data_objects
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -61,6 +61,9 @@ import selection_data_containers as __sdc
 from derived_quantities import \
     quantity_info, \
     add_quantity
+
+from image_array import \
+    ImageArray
 
 from field_info_container import \
     FieldInfoContainer, \

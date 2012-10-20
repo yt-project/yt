@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import time, threading, random
 
 from yt.funcs import *
@@ -142,8 +142,8 @@ def task_queue(func, tasks, njobs=0):
                     njobs, (my_size - 1))
         raise RunTimeError
     my_rank = comm.rank
-    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
-    all_new_comms.insert(0, na.array([0]))
+    all_new_comms = np.array_split(np.arange(1, my_size), njobs)
+    all_new_comms.insert(0, np.array([0]))
     for i,comm_set in enumerate(all_new_comms):
         if my_rank in comm_set:
             my_new_id = i
@@ -170,8 +170,8 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None):
                     njobs, (my_size - 1))
         raise RunTimeError
     my_rank = comm.rank
-    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
-    all_new_comms.insert(0, na.array([0]))
+    all_new_comms = np.array_split(np.arange(1, my_size), njobs)
+    all_new_comms.insert(0, np.array([0]))
     for i,comm_set in enumerate(all_new_comms):
         if my_rank in comm_set:
             my_new_id = i

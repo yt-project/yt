@@ -36,7 +36,7 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     kboltz
-import numpy as na
+import numpy as np
 from yt.utilities.exceptions import *
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
@@ -105,7 +105,10 @@ for fn1, fn2 in translation_dict.items():
     if fn1.endswith("_Fraction"):
         add_field(fn1.split("_")[0] + "_Density",
                   function=_get_density(fn1), take_log=True,
-                  display_name="%s\/Density" % fn1.split("_")[0])
+                  display_name="%s\/Density" % fn1.split("_")[0],
+                  units = r"\rm{g}/\rm{cm}^3",
+                  projected_units = r"\rm{g}/\rm{cm}^2",
+                  )
 
 def _get_convert(fname):
     def _conv(data):
@@ -114,7 +117,8 @@ def _get_convert(fname):
 
 add_flash_field("dens", function=NullFunc, take_log=True,
                 convert_function=_get_convert("dens"),
-                units=r"\rm{g}/\rm{cm}^3")
+                units=r"\rm{g}/\rm{cm}^3",
+                projected_units = r"\rm{g}/\rm{cm}^2"),
 add_flash_field("velx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("velx"),
                 units=r"\rm{cm}/\rm{s}")
@@ -241,7 +245,8 @@ add_flash_field("cham", function=NullFunc, take_log=False,
 add_flash_field("targ", function=NullFunc, take_log=False,
                 display_name="Target Material Fraction")
 add_flash_field("sumy", function=NullFunc, take_log=False)
-add_flash_field("mgdc", function=NullFunc, take_log=False)
+add_flash_field("mgdc", function=NullFunc, take_log=False,
+                display_name="Emission Minus Absorption Diffusion Terms")
 
 for i in range(1, 1000):
     add_flash_field("r{0:03}".format(i), function=NullFunc, take_log=False,
@@ -263,6 +268,7 @@ for f,v in translation_dict.items():
     add_field(f, TranslationFunc(v),
               take_log=KnownFLASHFields[v].take_log,
               units = ff._units, display_name=dname,
+              projected_units = ff._projected_units,
               particle_type = pfield)
 
 def _convertParticleMassMsun(data):
@@ -315,6 +321,46 @@ def _GasEnergy(fields, data) :
 add_field("GasEnergy", function=_GasEnergy, 
           units=r"\rm{ergs}/\rm{g}")
 
+# See http://flash.uchicago.edu/pipermail/flash-users/2012-October/001180.html
+# along with the attachment to that e-mail for details
+def GetMagRescalingFactor(pf):
+    if pf['unitsystem'].lower() == "cgs":
+         factor = 1
+    if pf['unitsystem'].lower() == "si":
+         factor = np.sqrt(4*np.pi/1e7)
+    if pf['unitsystem'].lower() == "none":
+         factor = np.sqrt(4*np.pi)
+    else:
+        raise RuntimeError("Runtime parameter unitsystem with"
+                           "value %s is unrecognized" % pf['unitsystem'])
+    return factor
+
+def _Bx(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magx']*factor
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_x")
+
+def _By(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magy']*factor
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_y")
+
+def _Bz(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magz']*factor
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_z")
+
+def _DivB(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['divb']*factor
+add_field("DivB", function=_DivB, take_log=False,
+          units=r"\rm{Gauss}\/\rm{cm}^{-1}")
+
+
+
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
 add_cyl_field("dx", function=_unknown_coord)
@@ -323,40 +369,40 @@ add_cyl_field("x", function=_unknown_coord)
 add_cyl_field("y", function=_unknown_coord)
 
 def _dr(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_cyl_field('dr', function=_dr, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_cyl_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _dtheta(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_cyl_field('dtheta', function=_dtheta,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordR(field, data):
     dim = data.ActiveDimensions[0]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[0])[:,None,None]
             +0.5) * data['dr'] + data.LeftEdge[0]
 add_cyl_field('r', function=_coordR, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordZ(field, data):
     dim = data.ActiveDimensions[1]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[1])[None,:,None]
             +0.5) * data['dz'] + data.LeftEdge[1]
 add_cyl_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordTheta(field, data):
     dim = data.ActiveDimensions[2]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[2])[None,None,:]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[2])[None,None,:]
             +0.5) * data['dtheta'] + data.LeftEdge[2]
 add_cyl_field('theta', function=_coordTheta, display_field=False,
           validators=[ValidateSpatial(0)])
@@ -373,27 +419,27 @@ add_pol_field("x", function=_unknown_coord)
 add_pol_field("y", function=_unknown_coord)
 
 def _dr(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_pol_field('dr', function=_dr, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dtheta(field, data):
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_pol_field('dtheta', function=_dtheta,
           display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordR(field, data):
     dim = data.ActiveDimensions[0]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[0])[:,None,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[0])[:,None,None]
             +0.5) * data['dr'] + data.LeftEdge[0]
 add_pol_field('r', function=_coordR, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordTheta(field, data):
     dim = data.ActiveDimensions[2]
-    return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[1])[None,:,None]
+    return (np.ones(data.ActiveDimensions, dtype='float64')
+                   * np.arange(data.ActiveDimensions[1])[None,:,None]
             +0.5) * data['dtheta'] + data.LeftEdge[1]
 add_pol_field('theta', function=_coordTheta, display_field=False,
           validators=[ValidateSpatial(0)])
@@ -406,12 +452,12 @@ add_pol_field("CellVolume", function=_CylindricalVolume)
 ## Derived FLASH Fields
 def _nele(field, data):
     return data['ye'] * data['dens'] * data['sumy'] * 6.022E23
-add_field('nele', function=_nele, take_log=True, units=r"\rm{n}/\rm{cm}^3")
-add_field('edens', function=_nele, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+add_field('nele', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
+add_field('edens', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
 
 def _nion(field, data):
     return data['dens'] * data['sumy'] * 6.022E23
-add_field('nion', function=_nion, take_log=True, units=r"\rm{n}/\rm{cm}^3")
+add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 
 
 def _abar(field, data):

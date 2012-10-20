@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import string, re, gc, time, cPickle
 import weakref
 

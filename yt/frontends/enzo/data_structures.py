@@ -25,15 +25,11 @@ License:
 
 import h5py
 import weakref
-import numpy as na
+import numpy as np
 import os
 import stat
 import string
 import re
-try:
-    from pyhdf_np import SD
-except ImportError:
-    pass
 
 from itertools import izip
 
@@ -90,7 +86,7 @@ class EnzoGrid(AMRGridPatch):
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
-        ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
+        ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
@@ -179,7 +175,7 @@ class EnzoGridGZ(EnzoGrid):
                 if self.pf.field_info[field].particle_type: continue
                 temp = self.hierarchy.io._read_raw_data_set(self, field)
                 temp = temp.swapaxes(0, 2)
-                cube.field_data[field] = na.multiply(temp, conv_factor, temp)[sl]
+                cube.field_data[field] = np.multiply(temp, conv_factor, temp)[sl]
         return cube
 
 class EnzoHierarchy(GridGeometryHandler):
@@ -291,7 +287,7 @@ class EnzoHierarchy(GridGeometryHandler):
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
-        si, ei, LE, RE, fn, np = [], [], [], [], [], []
+        si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         if self.parameter_file.parameters["VersionNumber"] > 2.0:
@@ -310,19 +306,19 @@ class EnzoHierarchy(GridGeometryHandler):
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
             fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
-            np.append(int(_next_token_line("NumberOfParticles", f)[0]))
+            npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if active_particles:
                 ta = int(_next_token_line( "NumberOfActiveParticles", f)[0])
                 nap.append(ta)
-            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
+            if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
             for line in f:
                 if len(line) < 2: break
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
         pbar.finish()
-        self._fill_arrays(ei, si, LE, RE, np, nap)
-        temp_grids = na.empty(self.num_grids, dtype='object')
+        self._fill_arrays(ei, si, LE, RE, npart, nap)
+        temp_grids = np.empty(self.num_grids, dtype='object')
         temp_grids[:] = self.grids
         self.grids = temp_grids
         self.filenames = fn
@@ -331,15 +327,15 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _initialize_grid_arrays(self):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
-        self.grid_active_particle_count = na.zeros((self.num_grids,1), 'int32')
+        self.grid_active_particle_count = np.zeros((self.num_grids,1), 'int32')
 
-    def _fill_arrays(self, ei, si, LE, RE, np, nap):
+    def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions.flat[:] = ei
-        self.grid_dimensions -= na.array(si, self.float_type)
+        self.grid_dimensions -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE
-        self.grid_particle_count.flat[:] = np
+        self.grid_particle_count.flat[:] = npart
         if nap is not None:
             self.grid_active_particle_count.flat[:] = nap
 
@@ -394,7 +390,7 @@ class EnzoHierarchy(GridGeometryHandler):
             if Pid > -1:
                 grids[Pid-1]._children_ids.append(grid.id)
             self.filenames.append(pmap[P])
-        self.grids = na.array(grids, dtype='object')
+        self.grids = np.array(grids, dtype='object')
         f.close()
         mylog.info("Finished with binary hierarchy reading")
         return True
@@ -423,9 +419,9 @@ class EnzoHierarchy(GridGeometryHandler):
             procs.append(int(self.filenames[i][0][-4:]))
             levels.append(g.Level)
 
-        parents = na.array(parents, dtype='int64')
-        procs = na.array(procs, dtype='int64')
-        levels = na.array(levels, dtype='int64')
+        parents = np.array(parents, dtype='int64')
+        procs = np.array(procs, dtype='int64')
+        levels = np.array(levels, dtype='int64')
         f.create_dataset("/ParentIDs", data=parents)
         f.create_dataset("/Processor", data=procs)
         f.create_dataset("/Level", data=levels)
@@ -440,7 +436,7 @@ class EnzoHierarchy(GridGeometryHandler):
         mylog.info("Rebuilding grids on level %s", level)
         cmask = (self.grid_levels.flat == (level + 1))
         cmsum = cmask.sum()
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         for grid in self.select_grids(level):
             mask[:] = 0
             LE = self.grid_left_edge[grid.id - grid._id_offset]
@@ -456,13 +452,15 @@ class EnzoHierarchy(GridGeometryHandler):
         mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
+        reconstruct = ytcfg.getboolean("yt","reconstruct_hierarchy")
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
             g.NumberOfActiveParticles = \
                 self.grid_active_particle_count[g.id - g._id_offset,0]
             g._setup_dx()
             g.set_filename(f[0])
-            #if g.Parent is not None: g._guess_properties_from_parent()
+            if reconstruct:
+                if g.Parent is not None: g._guess_properties_from_parent()
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
@@ -517,20 +515,20 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
-            starter = na.random.randint(0, 20)
-            random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            starter = np.random.randint(0, 20)
+            random_sample = np.mgrid[starter:len(self.grids)-1:20j].astype("int32")
             # We also add in a bit to make sure that some of the grids have
             # particles
             gwp = self.grid_particle_count > 0
-            if na.any(gwp) and not na.any(gwp[(random_sample,)]):
+            if np.any(gwp) and not np.any(gwp[(random_sample,)]):
                 # We just add one grid.  This is not terribly efficient.
-                first_grid = na.where(gwp)[0][0]
+                first_grid = np.where(gwp)[0][0]
                 random_sample.resize((21,))
                 random_sample[-1] = first_grid
                 mylog.debug("Added additional grid %s", first_grid)
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
-            random_sample = na.mgrid[0:max(len(self.grids),1)].astype("int32")
+            random_sample = np.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
@@ -558,7 +556,7 @@ class EnzoHierarchy(GridGeometryHandler):
         pstore = []
         for level in range(self.max_level, -1, -1):
             for grid in self.select_grids(level):
-                index = na.where(grid['particle_type'] == ptype)[0]
+                index = np.where(grid['particle_type'] == ptype)[0]
                 total += len(index)
                 pstore.append(index)
                 if total >= max_num: break
@@ -567,7 +565,7 @@ class EnzoHierarchy(GridGeometryHandler):
         if total > 0:
             result = {}
             for p in pfields:
-                result[p] = na.zeros(total, 'float64')
+                result[p] = np.zeros(total, 'float64')
             # Now we retrieve data for each field
             ig = count = 0
             for level in range(self.max_level, -1, -1):
@@ -630,7 +628,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
                 grids[pid-1]._children_ids.append(grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
-        self.grids = na.empty(len(grids), dtype='object')
+        self.grids = np.empty(len(grids), dtype='object')
         for i, grid in enumerate(grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
@@ -641,7 +639,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _initialize_grid_arrays(self):
         EnzoHierarchy._initialize_grid_arrays(self)
-        self.grid_procs = na.zeros((self.num_grids,1),'int32')
+        self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
     def _copy_hierarchy_structure(self):
         # Dimensions are important!
@@ -678,18 +676,18 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
         if len(my_grids) > 40:
-            starter = na.random.randint(0, 20)
-            random_sample = na.mgrid[starter:len(my_grids)-1:20j].astype("int32")
+            starter = np.random.randint(0, 20)
+            random_sample = np.mgrid[starter:len(my_grids)-1:20j].astype("int32")
             mylog.debug("Checking grids: %s", random_sample.tolist())
         else:
-            random_sample = na.mgrid[0:max(len(my_grids)-1,1)].astype("int32")
+            random_sample = np.mgrid[0:max(len(my_grids)-1,1)].astype("int32")
         return my_grids[(random_sample,)]
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
     def _fill_arrays(self, ei, si, LE, RE, np):
         self.grid_dimensions[:,:1] = ei
-        self.grid_dimensions[:,:1] -= na.array(si, self.float_type)
+        self.grid_dimensions[:,:1] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge[:,:1] = LE
         self.grid_right_edge[:,:1] = RE
@@ -702,7 +700,7 @@ class EnzoHierarchy2D(EnzoHierarchy):
 
     def _fill_arrays(self, ei, si, LE, RE, np):
         self.grid_dimensions[:,:2] = ei
-        self.grid_dimensions[:,:2] -= na.array(si, self.float_type)
+        self.grid_dimensions[:,:2] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge[:,:2] = LE
         self.grid_right_edge[:,:2] = RE
@@ -743,39 +741,22 @@ class EnzoStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
-        rp = os.path.join(self.directory, "rates.out")
-        if os.path.exists(rp):
-            try:
-                self.rates = EnzoTable(rp, rates_out_key)
-            except:
-                pass
-        cp = os.path.join(self.directory, "cool_rates.out")
-        if os.path.exists(cp):
-            try:
-                self.cool = EnzoTable(cp, cool_out_key)
-            except:
-                pass
-
-        # Now fixes for different types of Hierarchies
-        # This includes changing the fieldinfo class!
-        if self["TopGridRank"] == 1: self._setup_1d()
-        elif self["TopGridRank"] == 2: self._setup_2d()
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
         self._fieldinfo_fallback = Enzo1DFieldInfo
         self.domain_left_edge = \
-            na.concatenate([[self.domain_left_edge], [0.0, 0.0]])
+            np.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
-            na.concatenate([[self.domain_right_edge], [1.0, 1.0]])
+            np.concatenate([[self.domain_right_edge], [1.0, 1.0]])
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
         self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
-            na.concatenate([self["DomainLeftEdge"], [0.0]])
+            np.concatenate([self["DomainLeftEdge"], [0.0]])
         self.domain_right_edge = \
-            na.concatenate([self["DomainRightEdge"], [1.0]])
+            np.concatenate([self["DomainRightEdge"], [1.0]])
 
     def get_parameter(self,parameter,type=None):
         """
@@ -868,7 +849,7 @@ class EnzoStaticOutput(StaticOutput):
             elif len(vals) == 1:
                 vals = pcast(vals[0])
             else:
-                vals = na.array([pcast(i) for i in vals if i != "-99999"])
+                vals = np.array([pcast(i) for i in vals if i != "-99999"])
             if param.startswith("Append") and param not in self.parameters:
                 self.parameters[param] = []
             if param.startswith("Append"):
@@ -888,17 +869,17 @@ class EnzoStaticOutput(StaticOutput):
             if len(self.domain_dimensions) < 3:
                 tmp = self.domain_dimensions.tolist()
                 tmp.append(1)
-                self.domain_dimensions = na.array(tmp)
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                self.domain_dimensions = np.array(tmp)
+            self.domain_left_edge = np.array(self.parameters["DomainLeftEdge"],
                                              "float64").copy()
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+            self.domain_right_edge = np.array(self.parameters["DomainRightEdge"],
                                              "float64").copy()
         else:
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+            self.domain_left_edge = np.array(self.parameters["DomainLeftEdge"],
                                              "float64")
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+            self.domain_right_edge = np.array(self.parameters["DomainRightEdge"],
                                              "float64")
-            self.domain_dimensions = na.array([self.parameters["TopGridDimensions"],1,1])
+            self.domain_dimensions = np.array([self.parameters["TopGridDimensions"],1,1])
 
         self.current_time = self.parameters["InitialTime"]
         # To be enabled when we can break old pickles:
@@ -918,6 +899,11 @@ class EnzoStaticOutput(StaticOutput):
         self.particle_types = ["all"]
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
+
+        if self.dimensionality == 1:
+            self._setup_1d()
+        elif self.dimensionality == 2:
+            self._setup_2d()
 
     def _set_units(self):
         """
@@ -986,7 +972,7 @@ class EnzoStaticOutput(StaticOutput):
         with fortran code.
         """
         k = {}
-        k["utim"] = 2.52e17/na.sqrt(self.omega_matter)\
+        k["utim"] = 2.52e17/np.sqrt(self.omega_matter)\
                        / self.hubble_constant \
                        / (1+self.parameters["CosmologyInitialRedshift"])**1.5
         k["urho"] = 1.88e-29 * self.omega_matter \
@@ -998,8 +984,8 @@ class EnzoStaticOutput(StaticOutput):
                (1.0 + self.current_redshift)
         k["uaye"] = 1.0/(1.0 + self.parameters["CosmologyInitialRedshift"])
         k["uvel"] = 1.225e7*self.parameters["CosmologyComovingBoxSize"] \
-                      *na.sqrt(self.omega_matter) \
-                      *na.sqrt(1+ self.parameters["CosmologyInitialRedshift"])
+                      *np.sqrt(self.omega_matter) \
+                      *np.sqrt(1+ self.parameters["CosmologyInitialRedshift"])
         k["utem"] = 1.88e6 * (self.parameters["CosmologyComovingBoxSize"]**2) \
                       * self.omega_matter \
                       * (1.0 + self.parameters["CosmologyInitialRedshift"])
@@ -1039,7 +1025,7 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         self.conversion_factors.update(enzo.conversion_factors)
         for i in self.parameters:
             if isinstance(self.parameters[i], types.TupleType):
-                self.parameters[i] = na.array(self.parameters[i])
+                self.parameters[i] = np.array(self.parameters[i])
             if i.endswith("Units") and not i.startswith("Temperature"):
                 dataType = i[:-5]
                 self.conversion_factors[dataType] = self.parameters[i]
@@ -1047,7 +1033,7 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         self.domain_right_edge = self.parameters["DomainRightEdge"].copy()
         for i in self.conversion_factors:
             if isinstance(self.conversion_factors[i], types.TupleType):
-                self.conversion_factors[i] = na.array(self.conversion_factors[i])
+                self.conversion_factors[i] = np.array(self.conversion_factors[i])
         for p, v in self._parameter_override.items():
             self.parameters[p] = v
         for p, v in self._conversion_override.items():

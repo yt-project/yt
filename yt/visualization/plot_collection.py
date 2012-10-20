@@ -1,4 +1,4 @@
-"""
+""" 
 All of the base-level stuff for plotting.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -26,7 +26,7 @@ License:
 from matplotlib import figure
 import shutil
 import tempfile
-import numpy as na
+import numpy as np
 import os
 
 from yt.funcs import *
@@ -71,7 +71,7 @@ class ImageCollection(object):
 
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
-        self.images.append((os.path.basename(fn), na.fromfile(fn, dtype='c')))
+        self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
     __id_counter = 0
@@ -122,7 +122,7 @@ class PlotCollection(object):
         elif center == "center" or center == "c":
             self.c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         else:
-            self.c = na.array(center, dtype='float64')
+            self.c = np.array(center, dtype='float64')
         mylog.info("Created plot collection with default plot-center = %s",
                     list(self.c))
 
@@ -1504,7 +1504,7 @@ class PlotCollection(object):
     @rootonly
     def save_book(self, filename, author = None, title = None, keywords = None,
                   subject = None, creator = None, producer = None,
-                  creation_data = None):
+                  creation_date = None):
         r"""Save a multipage PDF of all the current plots, rather than
         individual image files.
 
@@ -1551,15 +1551,21 @@ class PlotCollection(object):
         >>> dd = pf.h.all_data()
         >>> pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
         ...                     weight = None)
-        >>> pc.save_book("my_plots.pdf", author="Matthew Turk", 
+        >>> pc.save_book("my_plots.pdf", author="Yours Truly",
         ...              title="Fun plots")
         """
         from matplotlib.backends.backend_pdf import PdfPages
         outfile = PdfPages(filename)
         for plot in self.plots:
             plot.save_to_pdf(outfile)
-        if info is not None:
-            outfile._file.writeObject(outfile._file.infoObject, info)
+        pdf_keys = ['Title', 'Author', 'Subject', 'Keywords', 'Creator',
+            'Producer', 'CreationDate']
+        pdf_values = [title, author, subject, keywords, creator, producer,
+            creation_date]
+        metadata = outfile.infodict()
+        for key, val in zip(pdf_keys, pdf_values):
+            if isinstance(val, str):
+                metadata[key] = val
         outfile.close()
 
 def wrap_pylab_newplot(func):
@@ -1849,7 +1855,7 @@ def matplotlib_widget(data_source, field, npix):
         norm = matplotlib.colors.Normalize()
     ax = pylab.figure().gca()
     ax.autoscale(False)
-    axi = ax.imshow(na.random.random((npix, npix)),
+    axi = ax.imshow(np.random.random((npix, npix)),
                     extent = extent, norm = norm,
                     origin = 'lower')
     cb = pylab.colorbar(axi, norm = norm)

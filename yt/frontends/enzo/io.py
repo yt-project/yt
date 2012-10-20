@@ -32,7 +32,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 import h5py
 
-import numpy as na
+import numpy as np
 from yt.funcs import *
 
 class IOHandlerPackedHDF5(BaseIOHandler):
@@ -72,7 +72,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         read_fields = fields[:]
         for field in fields:
             # TODO: figure out dataset types
-            rv[field] = na.empty(size, dtype='float64')
+            rv[field] = np.empty(size, dtype='float64')
         for pfield in pfields:
             if pfield not in fields: read_fields.append(pfield)
         ind = 0
@@ -118,7 +118,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         read_fields = fields[:]
         for field in fields:
             # TODO: figure out dataset types
-            rv[field] = na.empty(size, dtype='float64')
+            rv[field] = np.empty(size, dtype='float64')
         for pfield in pfields:
             if pfield not in fields: read_fields.append(pfield)
         ng = sum(len(c.objs) for c in chunks)
@@ -149,7 +149,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             fsize = size
-            rv[field] = na.empty(fsize, dtype="float64")
+            rv[field] = np.empty(fsize, dtype="float64")
         ind = 0
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",

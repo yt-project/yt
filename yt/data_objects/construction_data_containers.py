@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import math
 import weakref
 import exceptions
@@ -99,11 +99,11 @@ class YTStreamlineBase(YTSelectionContainer1D):
         """
         YTSelectionContainer1D.__init__(self, pf, fields, **kwargs)
         self.positions = positions
-        self.dts = na.empty_like(positions[:,0])
-        self.dts[:-1] = na.sqrt(na.sum((self.positions[1:]-
+        self.dts = np.empty_like(positions[:,0])
+        self.dts[:-1] = np.sqrt(np.sum((self.positions[1:]-
                                         self.positions[:-1])**2,axis=1))
         self.dts[-1] = self.dts[-1]
-        self.ts = na.add.accumulate(self.dts)
+        self.ts = np.add.accumulate(self.dts)
         self._set_center(self.positions[0])
         self.set_field_parameter('center', self.positions[0])
         self._dts, self._ts = {}, {}
@@ -114,27 +114,27 @@ class YTStreamlineBase(YTSelectionContainer1D):
         LE = self.pf.h.grid_left_edge
         RE = self.pf.h.grid_right_edge
         # Check left faces first
-        min_streampoint = na.min(self.positions, axis=0)
-        max_streampoint = na.max(self.positions, axis=0)
-        p = na.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
+        min_streampoint = np.min(self.positions, axis=0)
+        max_streampoint = np.max(self.positions, axis=0)
+        p = np.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
         self._grids = self.hierarchy.grids[p]
 
     #@restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        mask = na.logical_and(self._get_cut_mask(grid),
+        mask = np.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
         if field == 'dts': return self._dts[grid.id][mask]
         if field == 't': return self._ts[grid.id][mask]
         return grid[field][mask]
 
     def _get_cut_mask(self, grid):
-        mask = na.zeros(grid.ActiveDimensions, dtype='int')
-        dts = na.zeros(grid.ActiveDimensions, dtype='float64')
-        ts = na.zeros(grid.ActiveDimensions, dtype='float64')
+        mask = np.zeros(grid.ActiveDimensions, dtype='int')
+        dts = np.zeros(grid.ActiveDimensions, dtype='float64')
+        ts = np.zeros(grid.ActiveDimensions, dtype='float64')
         #pdb.set_trace()
-        points_in_grid = na.all(self.positions > grid.LeftEdge, axis=1) & \
-                         na.all(self.positions <= grid.RightEdge, axis=1)
-        pids = na.where(points_in_grid)[0]
+        points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
+                         np.all(self.positions <= grid.RightEdge, axis=1)
+        pids = np.where(points_in_grid)[0]
         for i, pos in zip(pids, self.positions[points_in_grid]):
             if not points_in_grid[i]: continue
             ci = ((pos - grid.LeftEdge)/grid.dds).astype('int')
@@ -223,10 +223,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self.proj_style = style
         if style == "mip":
-            self.func = na.max
+            self.func = np.max
             op = "max"
         elif style == "integrate":
-            self.func = na.sum # for the future
+            self.func = np.sum # for the future
             op = "sum"
         else:
             raise NotImplementedError(style)
@@ -248,13 +248,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
-        return QuadTree(na.array([xd,yd], dtype='int64'), nvals,
+        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
                         style = self.proj_style)
 
     def _get_conv(self, fields):
         # Place holder for a time when maybe we will not be doing just
         # a single dx for every field.
-        convs = na.empty(len(fields), dtype="float64")
+        convs = np.empty(len(fields), dtype="float64")
         fields = self._determine_fields(fields)
         for i, field in enumerate(fields):
             fi = self._get_field_info(*field)
@@ -292,16 +292,16 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         px, py, pdx, pdy, nvals, nwvals = tree.get_all(False)
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
-        na.multiply(px, self.pf.domain_width[x_dict[self.axis]], px)
-        na.add(px, ox, px)
-        na.multiply(pdx, self.pf.domain_width[x_dict[self.axis]], pdx)
+        np.multiply(px, self.pf.domain_width[x_dict[self.axis]], px)
+        np.add(px, ox, px)
+        np.multiply(pdx, self.pf.domain_width[x_dict[self.axis]], pdx)
 
-        na.multiply(py, self.pf.domain_width[y_dict[self.axis]], py)
-        na.add(py, oy, py)
-        na.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
+        np.multiply(py, self.pf.domain_width[y_dict[self.axis]], py)
+        np.add(py, oy, py)
+        np.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
 
         if self.weight_field is not None:
-            na.divide(nvals, nwvals[:,None], nvals)
+            np.divide(nvals, nwvals[:,None], nvals)
         if self.weight_field is None:
             convs = self._get_conv(fields)
             nvals *= convs[None,:]
@@ -315,7 +315,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
         fd = data['fields']
-        field_data = na.hsplit(data.pop('fields'), len(fields))
+        field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             mylog.debug("Setting field %s", field)
             self[field] = field_data[fi].ravel()
@@ -334,20 +334,32 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             dl = 1.0
         else:
             dl = chunk.fwidth[:, self.axis]
-        v = na.empty((chunk.size, len(fields)), dtype="float64")
+        v = np.empty((chunk.size, len(fields)), dtype="float64")
         for i in range(len(fields)):
             v[:,i] = chunk[fields[i]] * dl
         if self.weight_field is not None:
             w = chunk[self.weight_field]
-            na.multiply(v, w[:,None], v)
-            na.multiply(w, dl, w)
+            np.multiply(v, w[:,None], v)
+            np.multiply(w, dl, w)
         else:
-            w = na.ones(chunk.size, dtype="float64")
+            w = np.ones(chunk.size, dtype="float64")
         icoords = chunk.icoords
         i1 = icoords[:,0]
         i2 = icoords[:,1]
         ilevel = chunk.ires
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
+
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
+        return pw
 
 class YTOverlapProjBase(YTSelectionContainer2D):
     _top_node = "/Projections"
@@ -432,7 +444,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
         self._max_level = max_level
         self._weight = weight_field
         self.preload_style = preload_style
-        self.func = na.sum # for the future
+        self.func = np.sum # for the future
         self.__retval_coords = {}
         self.__retval_fields = {}
         self.__retval_coarse = {}
@@ -490,7 +502,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
             if field is None: continue
             dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
             convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
-        return na.array(dls), na.array(convs)
+        return np.array(dls), np.array(convs)
 
     def __project_level(self, level, fields):
         grids_to_project = self.source.select_grids(level)
@@ -519,12 +531,12 @@ class YTOverlapProjBase(YTSelectionContainer2D):
             field_data.append([pi[fine] for pi in self.__retval_fields[grid.id]])
             self.__retval_coords[grid.id] = [pi[coarse] for pi in self.__retval_coords[grid.id]]
             self.__retval_fields[grid.id] = [pi[coarse] for pi in self.__retval_fields[grid.id]]
-        coord_data = na.concatenate(coord_data, axis=1)
-        field_data = na.concatenate(field_data, axis=1)
+        coord_data = np.concatenate(coord_data, axis=1)
+        field_data = np.concatenate(field_data, axis=1)
         if self._weight is not None:
             field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
         else:
-            field_data *= convs[...,na.newaxis]
+            field_data *= convs[...,np.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
         pdx = grids_to_project[0].dds[x_dict[self.axis]] # this is our dl
@@ -549,7 +561,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                 args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                 args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                 args.append(1) # Refinement factor
-                args.append(na.ones(args[0].shape, dtype='int64'))
+                args.append(np.ones(args[0].shape, dtype='int64'))
                 kk = CombineGrids(*args)
                 goodI = args[-1].astype('bool')
                 self.__retval_coords[grid2.id] = \
@@ -576,8 +588,8 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                     # that this complicated rounding is because sometimes
                     # epsilon differences in dds between the grids causes this
                     # to round to up or down from the expected value.
-                    args.append(int(na.rint(grid2.dds / grid1.dds)[0]))
-                    args.append(na.ones(args[0].shape, dtype='int64'))
+                    args.append(int(np.rint(grid2.dds / grid1.dds)[0]))
+                    args.append(np.ones(args[0].shape, dtype='int64'))
                     kk = CombineGrids(*args)
                     goodI = args[-1].astype('bool')
                     self.__retval_coords[grid2.id] = \
@@ -618,8 +630,8 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                 self.__project_level(level, fields)
             coord_data.append(my_coords)
             field_data.append(my_fields)
-            pdxs.append(my_pdx * na.ones(my_coords.shape[1], dtype='float64'))
-            pdys.append(my_pdx * na.ones(my_coords.shape[1], dtype='float64'))
+            pdxs.append(my_pdx * np.ones(my_coords.shape[1], dtype='float64'))
+            pdys.append(my_pdx * np.ones(my_coords.shape[1], dtype='float64'))
             if self._check_region and False:
                 check=self.__cleanup_level(level - 1)
                 if len(check) > 0: all_data.append(check)
@@ -630,10 +642,10 @@ class YTOverlapProjBase(YTSelectionContainer2D):
                 del self.__overlap_masks[grid.id]
             mylog.debug("End of projecting level level %s, memory usage %0.3e",
                         level, get_memory_usage()/1024.)
-        coord_data = na.concatenate(coord_data, axis=1)
-        field_data = na.concatenate(field_data, axis=1)
-        pdxs = na.concatenate(pdxs, axis=1)
-        pdys = na.concatenate(pdys, axis=1)
+        coord_data = np.concatenate(coord_data, axis=1)
+        field_data = np.concatenate(field_data, axis=1)
+        pdxs = np.concatenate(pdxs, axis=1)
+        pdys = np.concatenate(pdys, axis=1)
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = pdxs; del pdxs
@@ -649,7 +661,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
         data = self.comm.par_combine_object(data, datatype='dict', op='cat')
-        field_data = na.vsplit(data.pop('fields'), len(fields))
+        field_data = np.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
             if self.serialize: self._store_fields(field, self._node_name)
@@ -665,7 +677,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
         # in _get_data_from_grid *and* we attempt not to load weight data
         # independently of the standard field data.
         if self._weight is None:
-            weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
+            weight_data = np.ones(grid.ActiveDimensions, dtype='float64')
             if zero_out: weight_data[grid.child_indices] = 0
             masked_data = [fd.astype('float64') * weight_data
                            for fd in self._get_data_from_grid(grid, fields)]
@@ -683,18 +695,18 @@ class YTOverlapProjBase(YTSelectionContainer2D):
         weight_proj = self.func(weight_data, axis=self.axis)
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+            used_points = np.where(np.logical_or.reduce(used_data, self.axis))
         else:
-            used_data = na.array([1.0], dtype='bool')
+            used_data = np.array([1.0], dtype='bool')
             used_points = slice(None)
         if zero_out:
-            subgrid_mask = na.logical_and.reduce(
-                                na.logical_or(grid.child_mask,
+            subgrid_mask = np.logical_and.reduce(
+                                np.logical_or(grid.child_mask,
                                              ~used_data),
                                 self.axis).astype('int64')
         else:
-            subgrid_mask = na.ones(full_proj[0].shape, dtype='int64')
-        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
+            subgrid_mask = np.ones(full_proj[0].shape, dtype='int64')
+        xind, yind = [arr[used_points].ravel() for arr in np.indices(full_proj[0].shape)]
         start_index = grid.get_global_startindex()
         xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
@@ -705,7 +717,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
 
     def _get_points_in_region(self, grid):
         pointI = self.source._get_point_indices(grid, use_child_mask=False)
-        point_mask = na.zeros(grid.ActiveDimensions)
+        point_mask = np.zeros(grid.ActiveDimensions)
         point_mask[pointI] = 1.0
         if self._field_cuts is not None:
             for cut in self._field_cuts:
@@ -728,7 +740,7 @@ class YTOverlapProjBase(YTSelectionContainer2D):
 class YTCoveringGridBase(YTSelectionContainer3D):
     _spatial = True
     _type_name = "covering_grid"
-    _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
+    _con_args = ('level', 'left_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """A 3D region with all data extracted to a single, specified
@@ -752,23 +764,24 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
         """
         YTSelectionContainer3D.__init__(self, center=kwargs.pop("center", None),
-                           fields=fields, pf=pf, **kwargs)
-        self.left_edge = na.array(left_edge)
+                           pf=pf, **kwargs)
+        self.left_edge = np.array(left_edge)
         self.level = level
-        self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
-        self.ActiveDimensions = na.array(dims,dtype='int32')
+        rdx = self.pf.domain_dimensions*self.pf.refine_by**level
+        self.dds = self.pf.domain_width/rdx.astype("float64")
+        self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = na.rint((self.left_edge-self.pf.domain_left_edge)/self.dds).astype('int64')
-        self.domain_width = na.rint((self.pf.domain_right_edge -
+        self.global_startindex = np.rint((self.left_edge-self.pf.domain_left_edge)/self.dds).astype('int64')
+        self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
-        self._refresh_data()
+        self.get_data(fields)
 
     def _get_list_of_grids(self, buffer = 0.0):
         if self._grids is not None: return
-        if na.any(self.left_edge - buffer < self.pf.domain_left_edge) or \
-           na.any(self.right_edge + buffer > self.pf.domain_right_edge):
+        if np.any(self.left_edge - buffer < self.pf.domain_left_edge) or \
+           np.any(self.right_edge + buffer > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
                             self.left_edge - buffer,
                             self.right_edge + buffer, self.level)
@@ -776,14 +789,14 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             grids,ind = self.pf.hierarchy.get_box_grids_below_level(
                 self.left_edge - buffer,
                 self.right_edge + buffer, self.level)
-        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind])
+        sort_ind = np.argsort(self.pf.h.grid_levels.ravel()[ind])
         self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)][::-1]
 
     def _refresh_data(self):
         YTSelectionContainer3D._refresh_data(self)
-        self['dx'] = self.dds[0] * na.ones(self.ActiveDimensions, dtype='float64')
-        self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
-        self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dx'] = self.dds[0] * np.ones(self.ActiveDimensions, dtype='float64')
+        self['dy'] = self.dds[1] * np.ones(self.ActiveDimensions, dtype='float64')
+        self['dz'] = self.dds[2] * np.ones(self.ActiveDimensions, dtype='float64')
 
     def get_data(self, fields):
         if self._grids is None:
@@ -800,7 +813,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                 except NeedsOriginalGrid, ngt_exception:
                     pass
             obtain_fields.append(field)
-            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
+            self[field] = np.zeros(self.ActiveDimensions, dtype='float64') -999
         if len(obtain_fields) == 0: return
         mylog.debug("Getting fields %s from %s possible grids",
                    obtain_fields, len(self._grids))
@@ -812,9 +825,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             count -= self._get_data_from_grid(grid, obtain_fields)
             if count <= 0: break
         if self._use_pbar: pbar.finish()
-        if count > 0 or na.any(self[obtain_fields[0]] == -999):
+        if count > 0 or np.any(self[obtain_fields[0]] == -999):
             # and self.dx < self.hierarchy.grids[0].dx:
-            n_bad = na.where(self[obtain_fields[0]]==-999)[0].size
+            n_bad = np.where(self[obtain_fields[0]]==-999)[0].size
             mylog.error("Covering problem: %s cells are uncovered", n_bad)
             raise KeyError(n_bad)
 
@@ -855,7 +868,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         g_fields = []
         for field in fields:
             if not grid.has_key(field): grid[field] = \
-               na.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
+               np.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
             g_fields.append(grid[field])
         c_fields = [self[field] for field in fields]
         FillRegion(ref_ratio,
@@ -949,7 +962,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         if self.level > 0:
             for field in fields_to_get:
                 self[field] = self[field][1:-1,1:-1,1:-1]
-                if na.any(self[field] == -999):
+                if np.any(self[field] == -999):
                     # and self.dx < self.hierarchy.grids[0].dx:
                     n_bad = (self[field]==-999).sum()
                     mylog.error("Covering problem: %s cells are uncovered", n_bad)
@@ -963,35 +976,35 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         self.field_data['cdz'] = dx[2]
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
-        self.global_startindex = na.rint(LL / dx).astype('int64') - 1
-        self.domain_width = na.rint((self.pf.domain_right_edge -
+        self.global_startindex = np.rint(LL / dx).astype('int64') - 1
+        self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
+            idims = np.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
             fields = ensure_list(fields)
             for field in fields:
-                self.field_data[field] = na.zeros(idims,dtype='float64')-999
+                self.field_data[field] = np.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
         elif level == 0 and self.level == 0:
             DLE = self.pf.domain_left_edge
-            self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
+            self.global_startindex = np.array(np.floor(LL/ dx), dtype='int64')
+            idims = np.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
-                self.field_data[field] = na.zeros(idims,dtype='float64')-999
+                self.field_data[field] = np.zeros(idims,dtype='float64')-999
             self._cur_dims = idims.astype("int32")
 
     def _refine(self, dlevel, fields):
         rf = float(self.pf.refine_by**dlevel)
 
         input_left = (self._old_global_startindex + 0.5) * rf 
-        dx = na.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = na.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
+        dx = np.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
+        output_dims = np.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
 
         for field in fields:
-            output_field = na.zeros(output_dims, dtype="float64")
+            output_field = np.zeros(output_dims, dtype="float64")
             output_left = self.global_startindex + 0.5
             ghost_zone_interpolate(rf, self[field], input_left,
                                    output_field, output_left)
@@ -1056,30 +1069,30 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
         >>> print fproj["Density"]
         """
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
-        self.left_edge = na.array(left_edge)
+        self.left_edge = np.array(left_edge)
         self.level = level
         self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
-        self.dims = na.array([dims]*2)
-        self.ActiveDimensions = na.array([dims]*3, dtype='int32')
+        self.dims = np.array([dims]*2)
+        self.ActiveDimensions = np.array([dims]*3, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
-        self.global_startindex = na.rint((self.left_edge - self.pf.domain_left_edge)
+        self.global_startindex = np.rint((self.left_edge - self.pf.domain_left_edge)
                                          /self.dds).astype('int64')
         self._dls = {}
-        self.domain_width = na.rint((self.pf.domain_right_edge -
+        self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._refresh_data()
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        if na.any(self.left_edge < self.pf.domain_left_edge) or \
-           na.any(self.right_edge > self.pf.domain_right_edge):
+        if np.any(self.left_edge < self.pf.domain_left_edge) or \
+           np.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
         level_ind = (self.pf.hierarchy.grid_levels.ravel()[ind] <= self.level)
-        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
+        sort_ind = np.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
 
     def _generate_coords(self):
@@ -1087,9 +1100,9 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
         yax = y_dict[self.axis]
         ci = self.left_edge + self.dds*0.5
         cf = self.left_edge + self.dds*(self.ActiveDimensions-0.5)
-        cx = na.mgrid[ci[xax]:cf[xax]:self.ActiveDimensions[xax]*1j]
-        cy = na.mgrid[ci[yax]:cf[yax]:self.ActiveDimensions[yax]*1j]
-        blank = na.ones( (self.ActiveDimensions[xax],
+        cx = np.mgrid[ci[xax]:cf[xax]:self.ActiveDimensions[xax]*1j]
+        cy = np.mgrid[ci[yax]:cf[yax]:self.ActiveDimensions[yax]*1j]
+        blank = np.ones( (self.ActiveDimensions[xax],
                           self.ActiveDimensions[yax]), dtype='float64')
         self['px'] = cx[None,:] * blank
         self['py'] = cx[:,None] * blank
@@ -1108,7 +1121,7 @@ class YTFixedResProjectionBase(YTSelectionContainer2D):
         if len(fields_to_get) == 0: return
         temp_data = {}
         for field in fields_to_get:
-            self[field] = na.zeros(self.dims, dtype='float64')
+            self[field] = np.zeros(self.dims, dtype='float64')
         dls = self.__setup_dls(fields_to_get)
         for i,grid in enumerate(self._get_grids()):
             mylog.debug("Getting fields from %s", i)

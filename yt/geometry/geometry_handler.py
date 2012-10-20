@@ -1,4 +1,4 @@
-"""
+""" 
 Geometry container base class.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -29,7 +29,7 @@ import weakref
 import h5py
 from exceptions import IOError, TypeError
 from types import ClassType
-import numpy as na
+import numpy as np
 import abc
 
 from yt.funcs import *
@@ -141,7 +141,7 @@ class GeometryHandler(ParallelAnalysisInterface):
                 self.parameter_file.field_dependencies[field] = fd
             except:
                 continue
-            available = na.all([f in self.field_list for f in fd.requested])
+            available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -324,7 +324,7 @@ class GeometryHandler(ParallelAnalysisInterface):
             ftype, fname = field
             finfo = dobj._get_field_info(*field)
             conv_factor = finfo._convert_function(self)
-            na.multiply(fields_to_return[field], conv_factor,
+            np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         return fields_to_return, fields_to_generate
 
@@ -352,7 +352,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         for field in fields_to_read:
             ftype, fname = field
             conv_factor = self.pf.field_info[fname]._convert_function(self)
-            na.multiply(fields_to_return[field], conv_factor,
+            np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
@@ -391,7 +391,7 @@ class YTDataChunk(object):
     @property
     def fcoords(self):
         if self._fcoords is not None: return self._fcoords
-        ci = na.empty((self.data_size, 3), dtype='float64')
+        ci = np.empty((self.data_size, 3), dtype='float64')
         self._fcoords = ci
         if self.data_size == 0: return self._fcoords
         ind = 0
@@ -406,7 +406,7 @@ class YTDataChunk(object):
     @property
     def icoords(self):
         if self._icoords is not None: return self._icoords
-        ci = na.empty((self.data_size, 3), dtype='int64')
+        ci = np.empty((self.data_size, 3), dtype='int64')
         self._icoords = ci
         if self.data_size == 0: return self._icoords
         ind = 0
@@ -421,7 +421,7 @@ class YTDataChunk(object):
     @property
     def fwidth(self):
         if self._fwidth is not None: return self._fwidth
-        ci = na.empty((self.data_size, 3), dtype='float64')
+        ci = np.empty((self.data_size, 3), dtype='float64')
         self._fwidth = ci
         if self.data_size == 0: return self._fwidth
         ind = 0
@@ -436,7 +436,7 @@ class YTDataChunk(object):
     @property
     def ires(self):
         if self._ires is not None: return self._ires
-        ci = na.empty(self.data_size, dtype='int64')
+        ci = np.empty(self.data_size, dtype='int64')
         self._ires = ci
         if self.data_size == 0: return self._ires
         ind = 0

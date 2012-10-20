@@ -1,4 +1,4 @@
-"""
+""" 
 Data containers based on geometric selection
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -28,13 +28,14 @@ License:
 """
 
 import types
-import numpy as na
+import numpy as np
 from exceptions import ValueError, SyntaxError
 
 from yt.funcs import *
 from yt.utilities.lib import \
     VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, \
     grid_points_in_volume
+from yt.utilities.lib.alt_ray_tracers import clyindrical_ray_trace
 from yt.utilities.orientation import Orientation
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
@@ -52,8 +53,8 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
-    def __init__(self, axis, coords, pf=None, field_parameters = None):
-        """
+    def __init__(self, axis, coords, pf=None, field_parameters=None):
+        """ 
         This is an orthogonal ray cast through the entire domain, at a specific
         coordinate.
 
@@ -102,8 +103,8 @@ class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     sort_by = 't'
-    def __init__(self, start_point, end_point, pf=None, field_parameters = None):
-        """
+    def __init__(self, start_point, end_point, pf=None, field_parameters=None):
+        """ 
         This is an arbitrarily-aligned ray cast through the entire domain, at a
         specific coordinate.
 
@@ -135,32 +136,55 @@ class YTRayBase(YTSelectionContainer1D):
         >>> print ray["Density"], ray["t"], ray["dts"]
         """
         super(YTRayBase, self).__init__(pf, field_parameters)
-        self.start_point = na.array(start_point, dtype='float64')
-        self.end_point = na.array(end_point, dtype='float64')
+        self.start_point = np.array(start_point, dtype='float64')
+        self.end_point = np.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
-        #self.vec /= na.sqrt(na.dot(self.vec, self.vec))
+        #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
-        self._dts, self._ts = {}, {}
+        self._dts, self._ts, self._masks = {}, {}, {}
 
     def _get_data_from_grid(self, grid, field):
-        mask = na.logical_and(self._get_cut_mask(grid),
-                              grid.child_mask)
-        if field == 'dts': return self._dts[grid.id][mask]
-        if field == 't': return self._ts[grid.id][mask]
+        if self.pf.geometry == "cylindrical":
+            if grid.id in self._masks:
+                mask = self._masks[grid.id] 
+            else:
+                mask = self._get_cut_mask(grid)
+            ts, dts = self._ts[grid.id], self._dts[grid.id]
+        else:
+            mask = np.logical_and(self._get_cut_mask(grid), grid.child_mask)
+            ts, dts = self._ts[grid.id][mask], self._dts[grid.id][mask]
+
+        if field == 'dts':
+            return dts
+        if field == 't': 
+            return ts
+
         gf = grid[field]
         if not iterable(gf):
-            gf = gf * na.ones(grid.child_mask.shape)
+            gf = gf * np.ones(grid.child_mask.shape)
         return gf[mask]
 
     def _get_cut_mask(self, grid):
-        mask = na.zeros(grid.ActiveDimensions, dtype='int')
-        dts = na.zeros(grid.ActiveDimensions, dtype='float64')
-        ts = na.zeros(grid.ActiveDimensions, dtype='float64')
-        VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
-                       grid.dds, self.center, self.vec)
-        self._dts[grid.id] = na.abs(dts)
-        self._ts[grid.id] = na.abs(ts)
+        if self.pf.geometry == "cylindrical":
+            _ = clyindrical_ray_trace(self.start_point, self.end_point, 
+                                      grid.LeftEdge, grid.RightEdge)
+            ts, s, rzt, mask = _
+            dts = np.empty(ts.shape, dtype='float64')
+            dts[0], dts[1:] = 0.0, ts[1:] - ts[:-1]
+            grid['r'], grid['z'], grid['theta'] = rzt[:,0], rzt[:,1], rzt[:,2]
+            grid['s'] = s
+        else:
+            mask = np.zeros(grid.ActiveDimensions, dtype='int')
+            dts = np.zeros(grid.ActiveDimensions, dtype='float64')
+            ts = np.zeros(grid.ActiveDimensions, dtype='float64')
+            VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
+                           grid.dds, self.center, self.vec)
+            dts = np.abs(dts) 
+            ts = np.abs(ts)
+        self._dts[grid.id] = dts
+        self._ts[grid.id] = ts
+        self._masks[grid.id] = masks
         return mask
 
 
@@ -260,6 +284,18 @@ class YTSliceBase(YTSelectionContainer2D):
     def hub_upload(self):
         self._mrep.upload()
 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Slice')
+        return pw
+
 class YTCuttingPlaneBase(YTSelectionContainer2D):
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -317,14 +353,14 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         # ax + by + cz + d = 0
         self.orienter = Orientation(normal, north_vector = north_vector)
         self._norm_vec = self.orienter.normal_vector
-        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._d = -1.0 * np.dot(self._norm_vec, self.center)
         self._x_vec = self.orienter.unit_vectors[0]
         self._y_vec = self.orienter.unit_vectors[1]
-        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._d = -1.0 * np.dot(self._norm_vec, self.center)
         # First we try all three, see which has the best result:
-        vecs = na.identity(3)
-        self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
-        self._inv_mat = na.linalg.pinv(self._rot_mat)
+        vecs = np.identity(3)
+        self._rot_mat = np.array([self._x_vec,self._y_vec,self._norm_vec])
+        self._inv_mat = np.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
         self.set_field_parameter('cp_y_vec',self._y_vec)
         self.set_field_parameter('cp_z_vec',self._norm_vec)
@@ -332,52 +368,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     @property
     def normal(self):
         return self._norm_vec
-
-    def to_frb(self, width, resolution):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
-
-        An ObliqueFixedResolutionBuffer is an object that accepts a
-        variable-resolution 2D object and transforms it into an NxM bitmap that
-        can be plotted, examined or processed.  This is a convenience function
-        to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other YTSelectionContainer2D objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
-
-        Parameters
-        ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
-        resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
-
-        Returns
-        -------
-        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
-            A fixed resolution buffer, which can be queried for fields.
-
-        Examples
-        --------
-
-        >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, (100.0, 'au'))
-        >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.h.cutting(L, c)
-        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(na.log10(frb["Density"]), 'density_1pc.png')
-        """
-        if iterable(width):
-            w, u = width
-            width = w/self.pf[u]
-        if not iterable(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        bounds = (-width/2.0, width/2.0, -width/2.0, width/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
-        return frb
 
     def to_frb(self, width, resolution, height=None):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
@@ -415,7 +405,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         >>> L = sp.quantities["AngularMomentumVector"]()
         >>> cutting = pf.h.cutting(L, c)
         >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(na.log10(frb["Density"]), 'density_1pc.png')
+        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
         """
         if iterable(width):
             w, u = width
@@ -439,7 +429,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = na.zeros(self.size, dtype='float64')
+            tr = np.zeros(self.size, dtype='float64')
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
@@ -448,7 +438,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = na.zeros(self.size, dtype='float64')
+            tr = np.zeros(self.size, dtype='float64')
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
@@ -457,7 +447,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = na.zeros(self.size, dtype='float64')
+            tr = np.zeros(self.size, dtype='float64')
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
             tr += z * self._norm_vec[2]
@@ -470,6 +460,83 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             return self._current_chunk.fwidth[:,2] * 0.5
         else:
             raise KeyError(field)
+
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        normal = self.normal
+        center = self.center
+        if fields == None:
+            if self.fields == None:
+                raise SyntaxError("The fields keyword argument must be set")
+        else:
+            self.fields = ensure_list(fields)
+        from yt.visualization.plot_window import \
+            GetOffAxisBoundsAndCenter, PWViewerMPL
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        (bounds, center_rot) = GetOffAxisBoundsAndCenter(normal, center, width, self.pf)
+        pw = PWViewerMPL(self, bounds, origin='center-window', periodic=False, oblique=True,
+                         frb_generator=ObliqueFixedResolutionBuffer, plot_type='OffAxisSlice')
+        pw.set_axes_unit(axes_unit)
+        return pw
+
+    def to_frb(self, width, resolution, height=None):
+        r"""This function returns an ObliqueFixedResolutionBuffer generated
+        from this object.
+
+        An ObliqueFixedResolutionBuffer is an object that accepts a
+        variable-resolution 2D object and transforms it into an NxM bitmap that
+        can be plotted, examined or processed.  This is a convenience function
+        to return an FRB directly from an existing 2D data object.  Unlike the
+        corresponding to_frb function for other AMR2DData objects, this does
+        not accept a 'center' parameter as it is assumed to be centered at the
+        center of the cutting plane.
+
+        Parameters
+        ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
+        height : height specifier, optional
+            This will be the height of the FRB, by default it is equal to width.
+        resolution : int or tuple of ints
+            The number of pixels on a side of the final FRB.
+
+        Returns
+        -------
+        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+            A fixed resolution buffer, which can be queried for fields.
+
+        Examples
+        --------
+
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> cutting = pf.h.cutting(L, c)
+        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
+        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
+        """
+        if iterable(width):
+            w, u = width
+            width = w/self.pf[u]
+        if height is None:
+            height = width
+        elif iterable(height):
+            h, u = height
+            height = h/self.pf[u]
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        return frb
 
 class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     """
@@ -498,34 +565,34 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         self.width = width
         self.dims = dims
         self.dds = self.width / self.dims
-        self.bounds = na.array([0.0,1.0,0.0,1.0])
+        self.bounds = np.array([0.0,1.0,0.0,1.0])
 
         self.set_field_parameter('center', center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
-        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
-        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._norm_vec = normal/np.sqrt(np.dot(normal,normal))
+        self._d = -1.0 * np.dot(self._norm_vec, self.center)
         # First we try all three, see which has the best result:
-        vecs = na.identity(3)
-        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
+        vecs = np.identity(3)
+        _t = np.cross(self._norm_vec, vecs).sum(axis=1)
         ax = _t.argmax()
-        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
-        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
-        self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
-        self._inv_mat = na.linalg.pinv(self._rot_mat)
+        self._x_vec = np.cross(vecs[ax,:], self._norm_vec).ravel()
+        self._x_vec /= np.sqrt(np.dot(self._x_vec, self._x_vec))
+        self._y_vec = np.cross(self._norm_vec, self._x_vec).ravel()
+        self._y_vec /= np.sqrt(np.dot(self._y_vec, self._y_vec))
+        self._rot_mat = np.array([self._x_vec,self._y_vec,self._norm_vec])
+        self._inv_mat = np.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
         self.set_field_parameter('cp_y_vec',self._y_vec)
         self.set_field_parameter('cp_z_vec',self._norm_vec)
 
         # Calculate coordinates of each pixel
         _co = self.dds * \
-              (na.mgrid[-self.dims/2 : self.dims/2,
+              (np.mgrid[-self.dims/2 : self.dims/2,
                         -self.dims/2 : self.dims/2] + 0.5)
-        self._coord = self.center + na.outer(_co[0,:,:], self._x_vec) + \
-                      na.outer(_co[1,:,:], self._y_vec)
-        self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
+        self._coord = self.center + np.outer(_co[0,:,:], self._x_vec) + \
+                      np.outer(_co[1,:,:], self._y_vec)
+        self._pixelmask = np.ones(self.dims*self.dims, dtype='int8')
 
         if node_name is not False:
             if node_name is True: self._deserialize()
@@ -540,11 +607,11 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         # within width/2 of the center.
         vertices = self.hierarchy.gridCorners
         # Shape = (8,3,n_grid)
-        D = na.sum(self._norm_vec.reshape((1,3,1)) * vertices, axis=1) + self._d
-        valid_grids = na.where(na.logical_not(na.all(D<0,axis=0) |
-                                              na.all(D>0,axis=0) ))[0]
+        D = np.sum(self._norm_vec.reshape((1,3,1)) * vertices, axis=1) + self._d
+        valid_grids = np.where(np.logical_not(np.all(D<0,axis=0) |
+                                              np.all(D>0,axis=0) ))[0]
         # Now restrict these grids to a rect. prism that bounds the slice
-        sliceCorners = na.array([ \
+        sliceCorners = np.array([ \
             self.center + 0.5*self.width * (+self._x_vec + self._y_vec),
             self.center + 0.5*self.width * (+self._x_vec - self._y_vec),
             self.center + 0.5*self.width * (-self._x_vec - self._y_vec),
@@ -552,12 +619,12 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         sliceLeftEdge = sliceCorners.min(axis=0)
         sliceRightEdge = sliceCorners.max(axis=0)
         # Check for bounding box and grid overlap
-        leftOverlap = na.less(self.hierarchy.gridLeftEdge[valid_grids],
+        leftOverlap = np.less(self.hierarchy.gridLeftEdge[valid_grids],
                               sliceRightEdge).all(axis=1)
-        rightOverlap = na.greater(self.hierarchy.gridRightEdge[valid_grids],
+        rightOverlap = np.greater(self.hierarchy.gridRightEdge[valid_grids],
                                   sliceLeftEdge).all(axis=1)
         self._grids = self.hierarchy.grids[valid_grids[
-            na.where(leftOverlap & rightOverlap)]]
+            np.where(leftOverlap & rightOverlap)]]
         self._grids = self._grids[::-1]
 
     def _generate_coords(self):
@@ -573,7 +640,7 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
             pointI = self._get_point_indices(grid)
             if len(pointI) == 0: return
             vc = self._calc_vertex_centered_data(grid, field)
-            bds = na.array(zip(grid.LeftEdge,
+            bds = np.array(zip(grid.LeftEdge,
                                grid.RightEdge)).ravel()
             interp = TrilinearFieldInterpolator(vc, bds, ['x', 'y', 'z'])
             self[field][pointI] = interp( \
@@ -599,27 +666,27 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         self.width = width
         self.dds = self.width / self.dims
         self.set_field_parameter('center', center)
-        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
-        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._norm_vec = normal/np.sqrt(np.dot(normal,normal))
+        self._d = -1.0 * np.dot(self._norm_vec, self.center)
         # First we try all three, see which has the best result:
-        vecs = na.identity(3)
-        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
+        vecs = np.identity(3)
+        _t = np.cross(self._norm_vec, vecs).sum(axis=1)
         ax = _t.argmax()
-        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
-        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
+        self._x_vec = np.cross(vecs[ax,:], self._norm_vec).ravel()
+        self._x_vec /= np.sqrt(np.dot(self._x_vec, self._x_vec))
+        self._y_vec = np.cross(self._norm_vec, self._x_vec).ravel()
+        self._y_vec /= np.sqrt(np.dot(self._y_vec, self._y_vec))
         self.set_field_parameter('cp_x_vec',self._x_vec)
         self.set_field_parameter('cp_y_vec',self._y_vec)
         self.set_field_parameter('cp_z_vec',self._norm_vec)
         # Calculate coordinates of each pixel
         _co = self.dds * \
-              (na.mgrid[-self.dims/2 : self.dims/2,
+              (np.mgrid[-self.dims/2 : self.dims/2,
                         -self.dims/2 : self.dims/2] + 0.5)
 
-        self._coord = self.center + na.outer(_co[0,:,:], self._x_vec) + \
-                      na.outer(_co[1,:,:], self._y_vec)
-        self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
+        self._coord = self.center + np.outer(_co[0,:,:], self._x_vec) + \
+                      np.outer(_co[1,:,:], self._y_vec)
+        self._pixelmask = np.ones(self.dims*self.dims, dtype='int8')
 
     def get_data(self, fields):
         """
@@ -636,14 +703,11 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
-            self[field] = na.zeros(_size, dtype='float64')
+            self[field] = np.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
             self[field] = self.comm.mpi_allreduce(\
                 self[field], op='sum').reshape([self.dims]*2).transpose()
-
-    def interpolate_discretize(self, *args, **kwargs):
-        pass
 
     def _calc_vertex_centered_data(self, grid, field):
         #return grid.retrieve_ghost_zones(1, field, smoothed=False)
@@ -677,34 +741,34 @@ class YTDiskBase(YTSelectionContainer3D):
         within the cylinder will be selected.
         """
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
-        self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
-        self.set_field_parameter("height_vector", self._norm_vec)
+        self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
+        self.set_field_parameter("normal", self._norm_vec)
         self._height = fix_length(height, self.pf)
         self._radius = fix_length(radius, self.pf)
-        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
     def _get_list_of_grids(self):
-        H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.grid_corners,
+        H = np.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.grid_corners,
                    axis=1) + self._d
-        D = na.sqrt(na.sum((self.pf.h.grid_corners -
+        D = np.sqrt(np.sum((self.pf.h.grid_corners -
                            self.center.reshape((1,3,1)))**2.0,axis=1))
-        R = na.sqrt(D**2.0-H**2.0)
+        R = np.sqrt(D**2.0-H**2.0)
         self._grids = self.hierarchy.grids[
-            ( (na.any(na.abs(H)<self._height,axis=0))
-            & (na.any(R<self._radius,axis=0)
-            & (na.logical_not((na.all(H>0,axis=0) | (na.all(H<0, axis=0)))) )
+            ( (np.any(np.abs(H)<self._height,axis=0))
+            & (np.any(R<self._radius,axis=0)
+            & (np.logical_not((np.all(H>0,axis=0) | (np.all(H<0, axis=0)))) )
             ) ) ]
         self._grids = self.hierarchy.grids
 
     def _is_fully_enclosed(self, grid):
         corners = grid._corners.reshape((8,3,1))
-        H = na.sum(self._norm_vec.reshape((1,3,1)) * corners,
+        H = np.sum(self._norm_vec.reshape((1,3,1)) * corners,
                    axis=1) + self._d
-        D = na.sqrt(na.sum((corners -
+        D = np.sqrt(np.sum((corners -
                            self.center.reshape((1,3,1)))**2.0,axis=1))
-        R = na.sqrt(D**2.0-H**2.0)
-        return (na.all(na.abs(H) < self._height, axis=0) \
-            and na.all(R < self._radius, axis=0))
+        R = np.sqrt(D**2.0-H**2.0)
+        return (np.all(np.abs(H) < self._height, axis=0) \
+            and np.all(R < self._radius, axis=0))
 
     def _get_cut_mask(self, grid):
         if self._is_fully_enclosed(grid):
@@ -714,13 +778,13 @@ class YTDiskBase(YTSelectionContainer3D):
               + grid['y'] * self._norm_vec[1] \
               + grid['z'] * self._norm_vec[2] \
               + self._d
-            d = na.sqrt(
+            d = np.sqrt(
                 (grid['x'] - self.center[0])**2.0
               + (grid['y'] - self.center[1])**2.0
               + (grid['z'] - self.center[2])**2.0
                 )
-            r = na.sqrt(d**2.0-h**2.0)
-            cm = ( (na.abs(h) <= self._height)
+            r = np.sqrt(d**2.0-h**2.0)
+            cm = ( (np.abs(h) <= self._height)
                  & (r <= self._radius))
         return cm
 
@@ -738,8 +802,8 @@ class YTInclinedBoxBase(YTSelectionContainer3D):
         describe the box.  No checks are done to ensure that the box satisfies
         a right-hand rule, but if it doesn't, behavior is undefined.
         """
-        self.origin = na.array(origin)
-        self.box_vectors = na.array(box_vectors, dtype='float64')
+        self.origin = np.array(origin)
+        self.box_vectors = np.array(box_vectors, dtype='float64')
         self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
         center = origin + 0.5*self.box_vectors.sum(axis=0)
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
@@ -749,11 +813,11 @@ class YTInclinedBoxBase(YTSelectionContainer3D):
         xv = self.box_vectors[0,:]
         yv = self.box_vectors[1,:]
         zv = self.box_vectors[2,:]
-        self._x_vec = xv / na.sqrt(na.dot(xv, xv))
-        self._y_vec = yv / na.sqrt(na.dot(yv, yv))
-        self._z_vec = zv / na.sqrt(na.dot(zv, zv))
-        self._rot_mat = na.array([self._x_vec,self._y_vec,self._z_vec])
-        self._inv_mat = na.linalg.pinv(self._rot_mat)
+        self._x_vec = xv / np.sqrt(np.dot(xv, xv))
+        self._y_vec = yv / np.sqrt(np.dot(yv, yv))
+        self._z_vec = zv / np.sqrt(np.dot(zv, zv))
+        self._rot_mat = np.array([self._x_vec,self._y_vec,self._z_vec])
+        self._inv_mat = np.linalg.pinv(self._rot_mat)
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
@@ -771,7 +835,7 @@ class YTInclinedBoxBase(YTSelectionContainer3D):
                                       grid.RightEdge, grid.dds,
                                       grid.child_mask, 1)
             if v: grids.append(grid)
-        self._grids = na.empty(len(grids), dtype='object')
+        self._grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self._grids[gi] = g
 
 
@@ -784,7 +848,7 @@ class YTInclinedBoxBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid):
         if self._is_fully_enclosed(grid):
             return True
-        pm = na.zeros(grid.ActiveDimensions, dtype='int32')
+        pm = np.zeros(grid.ActiveDimensions, dtype='int32')
         grid_points_in_volume(self.box_lengths, self.origin,
                               self._rot_mat, grid.LeftEdge,
                               grid.RightEdge, grid.dds, pm, 0)
@@ -844,13 +908,13 @@ class YTGridCollectionBase(YTSelectionContainer3D):
         return True
 
     def _get_cut_mask(self, grid):
-        return na.ones(grid.ActiveDimensions, dtype='bool')
+        return np.ones(grid.ActiveDimensions, dtype='bool')
 
     def _get_point_indices(self, grid, use_child_mask=True):
-        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        k = np.ones(grid.ActiveDimensions, dtype='bool')
         if use_child_mask:
             k[grid.child_indices] = False
-        pointI = na.where(k == True)
+        pointI = np.where(k == True)
         return pointI
 
 class YTGridCollectionMaxLevelBase(YTSelectionContainer3D):
@@ -876,13 +940,13 @@ class YTGridCollectionMaxLevelBase(YTSelectionContainer3D):
         return True
 
     def _get_cut_mask(self, grid):
-        return na.ones(grid.ActiveDimensions, dtype='bool')
+        return np.ones(grid.ActiveDimensions, dtype='bool')
 
     def _get_point_indices(self, grid, use_child_mask=True):
-        k = na.ones(grid.ActiveDimensions, dtype='bool')
+        k = np.ones(grid.ActiveDimensions, dtype='bool')
         if use_child_mask and grid.Level < self.max_level:
             k[grid.child_indices] = False
-        pointI = na.where(k == True)
+        pointI = np.where(k == True)
         return pointI
 
 class YTSphereBase(YTSelectionContainer3D):
@@ -929,7 +993,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         can define a ellipsoid of any proportion.  Only cells whose centers are
         within the ellipsoid will be selected.
         """
-        AMR3DData.__init__(self, na.array(center), fields, pf, **kwargs)
+        AMR3DData.__init__(self, np.array(center), fields, pf, **kwargs)
         # make sure the smallest side is not smaller than dx
         if C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
@@ -940,12 +1004,12 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self._tilt = tilt
         
         # find the t1 angle needed to rotate about z axis to align e0 to x
-        t1 = na.arctan(e0[1] / e0[0])
+        t1 = np.arctan(e0[1] / e0[0])
         # rotate e0 by -t1
         RZ = get_rotation_matrix(t1, (0,0,1)).transpose()
         r1 = (e0 * RZ).sum(axis = 1)
         # find the t2 angle needed to rotate about y axis to align e0 to x
-        t2 = na.arctan(-r1[2] / r1[0])
+        t2 = np.arctan(-r1[2] / r1[0])
         """
         calculate the original e1
         given the tilt about the x axis when e0 was aligned 
@@ -957,7 +1021,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         e1 = ((0, 1, 0) * RX).sum(axis = 1)
         e1 = (e1 * RY).sum(axis = 1)
         e1 = (e1 * RZ).sum(axis = 1)
-        e2 = na.cross(e0, e1)
+        e2 = np.cross(e0, e1)
 
         self._e1 = e1
         self._e2 = e2
@@ -987,7 +1051,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
                                   x.LeftEdge[0], \
                                   x.LeftEdge[1], \
                                   x.LeftEdge[2]))
-        self._grids = na.array(grids, dtype = 'object')
+        self._grids = np.array(grids, dtype = 'object')
 
     def _is_fully_enclosed(self, grid):
         """
@@ -997,18 +1061,18 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         vr = (grid._corners - self.center)
         # 3 possible cases of locations taking periodic BC into account
         # just listing the components, find smallest later
-        dotarr=na.array([vr, vr + self.DW, vr - self.DW])
+        dotarr=np.array([vr, vr + self.DW, vr - self.DW])
         # these vrdote# finds the product of vr components with e#
         # square the results
         # find the smallest
         # sums it
-        vrdote0_2 = (na.multiply(dotarr, self._e0)**2).min(axis \
+        vrdote0_2 = (np.multiply(dotarr, self._e0)**2).min(axis \
                                                            = 0).sum(axis = 1)
-        vrdote1_2 = (na.multiply(dotarr, self._e1)**2).min(axis \
+        vrdote1_2 = (np.multiply(dotarr, self._e1)**2).min(axis \
                                                            = 0).sum(axis = 1)
-        vrdote2_2 = (na.multiply(dotarr, self._e2)**2).min(axis \
+        vrdote2_2 = (np.multiply(dotarr, self._e2)**2).min(axis \
                                                            = 0).sum(axis = 1)
-        return na.all(vrdote0_2 / self._A**2 + \
+        return np.all(vrdote0_2 / self._A**2 + \
                       vrdote1_2 / self._B**2 + \
                       vrdote2_2 / self._C**2 <=1.0)
 
@@ -1023,21 +1087,21 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
            and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
-        Inside = na.zeros(grid["x"].shape, dtype = 'float64')
+        Inside = np.zeros(grid["x"].shape, dtype = 'float64')
         dim = grid["x"].shape
         # need this to take into account non-cube root grid tiles
-        dot_evec = na.zeros([3, dim[0], dim[1], dim[2]])
+        dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
         for i, ax in enumerate('xyz'):
             # distance to center
             ar  = grid[ax]-self.center[i]
             # cases to take into account periodic BC
-            case = na.array([ar, ar + self.DW[i], ar - self.DW[i]])
+            case = np.array([ar, ar + self.DW[i], ar - self.DW[i]])
             # find which of the 3 cases is smallest in magnitude
-            index = na.abs(case).argmin(axis = 0)
+            index = np.abs(case).argmin(axis = 0)
             # restrict distance to only the smallest cases
-            vec = na.choose(index, case)
+            vec = np.choose(index, case)
             # sum up to get the dot product with e_vectors
-            dot_evec += na.array([vec * self._e0[i], \
+            dot_evec += np.array([vec * self._e0[i], \
                                   vec * self._e1[i], \
                                   vec * self._e2[i]])
         # Calculate the eqn of ellipsoid, if it is inside

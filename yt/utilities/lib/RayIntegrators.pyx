@@ -1,4 +1,4 @@
-"""
+""" 
 Simle integrators for the radiative transfer equation
 
 Author: Matthew Turk <matthewturk@gmail.com>

@@ -53,6 +53,9 @@ cdef class OctreeContainer:
     cdef np.float64_t DLE[3], DRE[3]
     cdef public int nocts
     cdef public int max_domain
+    cdef Oct* get(self, ppos)
+    cdef void neighbors(self, Oct *, Oct **)
+    cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains

@@ -1,4 +1,4 @@
-"""
+""" 
 Geometry selection routines.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -723,6 +723,66 @@ cdef class OrthoRaySelector(SelectorObject):
         check[0] = 0
 
 ortho_ray_selector = OrthoRaySelector
+
+cdef class RaySelector(SelectorObject):
+
+    cdef np.float64_t p1[3]
+    cdef np.float64_t p2[3]
+    cdef np.float64_t vec[3]
+
+    def __init__(self, dobj):
+        cdef int i
+        for i in range(3):
+            self.vec[i] = dobj.vec[i]
+        if (0.0 <= self.vec[0]) and (0.0 <= self.vec[1]) and (0.0 <= self.vec[2]):
+            for i in range(3):
+                self.p1[i] = dobj.start_point[i]
+                self.p2[i] = dobj.end_point[i]
+        else:
+            for i in range(3):
+                self.p1[i] = dobj.end_point[i]
+                self.p2[i] = dobj.start_point[i]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        if ((self.p1[0] <= left_edge[0]) and (self.p2[0] > right_edge[0]) and 
+            (self.p1[1] <= left_edge[1]) and (self.p2[1] > right_edge[1]) and 
+            (self.p1[2] <= left_edge[2]) and (self.p2[2] > right_edge[2])):
+            return 1
+        return 0
+
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        if ((self.p1[0] <= pos[0] - 0.5*dds[0]) and 
+            (self.p2[0] >  pos[0] + 0.5*dds[0]) and 
+            (self.p1[1] <= pos[1] - 0.5*dds[1]) and 
+            (self.p2[1] >  pos[1] + 0.5*dds[1]) and 
+            (self.p1[2] <= pos[2] - 0.5*dds[2]) and 
+            (self.p2[2] >  pos[2] + 0.5*dds[2])):
+            return 1
+        return 0
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        cdef int i
+        for i in range(3):
+            ind[i][0] = <int> ((self.p1[i] - left_edge[i])/dds[i])
+            ind[i][1] = ind[i][0] + 1
+        check[0] = 0
+
+ray_selector = RaySelector
 
 cdef class GridCollectionSelector(SelectorObject):
 

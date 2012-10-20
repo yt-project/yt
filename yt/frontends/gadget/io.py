@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -38,9 +38,9 @@ class IOHandlerGadget(BaseIOHandler):
             address = '/data/grid_%010i/particles/%s/%s' % (grid.id, ptype, field)
             data.append(fh[address][:])
         if len(data) > 0:
-            data = na.concatenate(data)
+            data = np.concatenate(data)
         fh.close()
-        return na.array(data)
+        return np.array(data)
     def _read_field_names(self,grid): 
         adr = grid.Address
         fh = h5py.File(grid.filename,mode='r')

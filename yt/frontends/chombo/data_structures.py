@@ -28,7 +28,7 @@ import h5py
 import re
 import os
 import weakref
-import numpy as na
+import numpy as np
 
 from collections import \
      defaultdict
@@ -81,25 +81,16 @@ class ChomboGrid(AMRGridPatch):
         if self.Parent == []:
             iLE = self.LeftEdge - self.pf.domain_left_edge
             start_index = iLE / self.dds
-            return na.rint(start_index).astype('int64').ravel()
+            return np.rint(start_index).astype('int64').ravel()
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
-            na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+            np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
         self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
     def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        # has already been read in and stored in hierarchy
+        self.dds = self.hierarchy.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(GridGeometryHandler):
@@ -137,18 +128,18 @@ class ChomboHierarchy(GridGeometryHandler):
                 coord = [particle_position_x, particle_position_y, particle_position_z]
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py                                                                                                             
-                mask=na.ones(self.num_grids)
+                mask=np.ones(self.num_grids)
                 for i in xrange(len(coord)):
-                    na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                ind = na.where(mask == 1)
+                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                ind = np.where(mask == 1)
                 selected_grids = self.grids[ind]
                 # in orion, particles always live on the finest level.
                 # so, we want to assign the particle to the finest of
                 # the grids we just found
                 if len(selected_grids) != 0:
                     grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = na.where(self.grids == grid)[0][0]
+                    ind = np.where(self.grids == grid)[0][0]
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
 
@@ -176,14 +167,16 @@ class ChomboHierarchy(GridGeometryHandler):
         # 'Chombo_global'
         levels = f.keys()[1:]
         grids = []
+        self.dds_list = []
         i = 0
         for lev in levels:
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
+            self.dds_list.append(dx * np.ones(3))
             for level_id, box in enumerate(boxes):
-                si = na.array([box['lo_%s' % ax] for ax in 'ijk'])
-                ei = na.array([box['hi_%s' % ax] for ax in 'ijk'])
+                si = np.array([box['lo_%s' % ax] for ax in 'ijk'])
+                ei = np.array([box['hi_%s' % ax] for ax in 'ijk'])
                 pg = self.grid(len(grids),self,level=level_number,
                                start = si, stop = ei)
                 grids.append(pg)
@@ -193,7 +186,7 @@ class ChomboHierarchy(GridGeometryHandler):
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
-        self.grids = na.empty(len(grids), dtype='object')
+        self.grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _populate_grid_objects(self):
@@ -211,7 +204,7 @@ class ChomboHierarchy(GridGeometryHandler):
         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
@@ -315,21 +308,21 @@ class ChomboStaticOutput(StaticOutput):
     def __calc_left_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        LE = dx0*((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
         fileh.close()
         return LE
 
     def __calc_right_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
         fileh.close()
         return RE
                   
     def __calc_domain_dimensions(self):
         fileh = h5py.File(self.parameter_filename,'r')
-        L_index = ((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        R_index = ((na.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
         return R_index - L_index
  
     @classmethod

@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import math, time
 
 from yt.funcs import *
@@ -186,7 +186,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         f = open(self.halo_file,'r')
         line = f.readline()
         if line == "":
-            self.haloes = na.array([])
+            self.haloes = np.array([])
             return
         while line[0] == '#':
             line = f.readline()
@@ -198,16 +198,16 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.haloes.append(float(line[self.mass_column]))
             line = f.readline()
         f.close()
-        self.haloes = na.array(self.haloes)
+        self.haloes = np.array(self.haloes)
 
     def bin_haloes(self):
         """
         With the list of virial masses, find the halo mass function.
         """
-        bins = na.logspace(self.log_mass_min,
+        bins = np.logspace(self.log_mass_min,
             self.log_mass_max,self.num_sigma_bins)
         avgs = (bins[1:]+bins[:-1])/2.
-        dis, bins = na.histogram(self.haloes,bins)
+        dis, bins = np.histogram(self.haloes,bins)
         # add right to left
         for i,b in enumerate(dis):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
@@ -246,13 +246,13 @@ class HaloMassFcn(ParallelAnalysisInterface):
 
         # output arrays
         # 1) log10 of mass (Msolar, NOT Msolar/h)
-        self.Rarray = na.empty(self.num_sigma_bins,dtype='float64')
+        self.Rarray = np.empty(self.num_sigma_bins,dtype='float64')
         # 2) mass (Msolar/h)
-        self.logmassarray = na.empty(self.num_sigma_bins, dtype='float64')
+        self.logmassarray = np.empty(self.num_sigma_bins, dtype='float64')
         # 3) spatial scale corresponding to that radius (Mpc/h)
-        self.massarray = na.empty(self.num_sigma_bins, dtype='float64')
+        self.massarray = np.empty(self.num_sigma_bins, dtype='float64')
         # 4) sigma(M, z=0, where mass is in Msun/h)
-        self.sigmaarray = na.empty(self.num_sigma_bins, dtype='float64')
+        self.sigmaarray = np.empty(self.num_sigma_bins, dtype='float64')
 
         # get sigma_8 normalization
         R = 8.0;  # in units of Mpc/h (comoving)
@@ -305,9 +305,9 @@ class HaloMassFcn(ParallelAnalysisInterface):
         
         # output arrays
         # 5) (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-        self.dn_M_z = na.empty(self.num_sigma_bins, dtype='float64')
+        self.dn_M_z = np.empty(self.num_sigma_bins, dtype='float64')
         # 6) cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
-        self.nofmz_cum = na.zeros(self.num_sigma_bins, dtype='float64')
+        self.nofmz_cum = np.zeros(self.num_sigma_bins, dtype='float64')
         
         for j in xrange(self.num_sigma_bins - 1):
             i = (self.num_sigma_bins - 2) - j
@@ -360,7 +360,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
 
         Rcom = self.R;  # this is R in comoving Mpc/h
 
-        f = k*k*self.PofK(k)*na.power( abs(self.WofK(Rcom,k)), 2.0);
+        f = k*k*self.PofK(k)*np.power( abs(self.WofK(Rcom,k)), 2.0);
 
         return f
 
@@ -369,7 +369,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         /* returns power spectrum as a function of wavenumber k */
         """
 
-        thisPofK = na.power(k, self.primordial_index) * na.power( self.TofK(k), 2.0);
+        thisPofK = np.power(k, self.primordial_index) * np.power( self.TofK(k), 2.0);
 
         return thisPofK;
 
@@ -389,7 +389,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
 
         x = R*k;
 
-        thisWofK = 3.0 * ( na.sin(x) - x*na.cos(x) ) / (x*x*x);
+        thisWofK = 3.0 * ( np.sin(x) - x*np.cos(x) ) / (x*x*x);
 
         return thisWofK;
 
@@ -660,22 +660,22 @@ class TransferFunction(object):
         self.y_freestream = 17.2*self.f_hdm*(1+0.488*math.pow(self.f_hdm,-7.0/6.0))* \
             SQR(self.num_degen_hdm*self.qq/self.f_hdm);
         temp1 = math.pow(self.growth_k0, 1.0-self.p_cb);
-        temp2 = na.power(self.growth_k0/(1+self.y_freestream),0.7);
-        self.growth_cb = na.power(1.0+temp2, self.p_cb/0.7)*temp1;
-        self.growth_cbnu = na.power(na.power(self.f_cb,0.7/self.p_cb)+temp2, self.p_cb/0.7)*temp1;
+        temp2 = np.power(self.growth_k0/(1+self.y_freestream),0.7);
+        self.growth_cb = np.power(1.0+temp2, self.p_cb/0.7)*temp1;
+        self.growth_cbnu = np.power(np.power(self.f_cb,0.7/self.p_cb)+temp2, self.p_cb/0.7)*temp1;
     
         # Compute the master function
         self.gamma_eff = self.omhh*(self.alpha_gamma+(1-self.alpha_gamma)/ \
             (1+SQR(SQR(kk*self.sound_horizon_fit*0.43))));
         self.qq_eff = self.qq*self.omhh/self.gamma_eff;
     
-        tf_sup_L = na.log(2.71828+1.84*self.beta_c*self.alpha_gamma*self.qq_eff);
-        tf_sup_C = 14.4+325/(1+60.5*na.power(self.qq_eff,1.11));
+        tf_sup_L = np.log(2.71828+1.84*self.beta_c*self.alpha_gamma*self.qq_eff);
+        tf_sup_C = 14.4+325/(1+60.5*np.power(self.qq_eff,1.11));
         self.tf_sup = tf_sup_L/(tf_sup_L+tf_sup_C*SQR(self.qq_eff));
     
         self.qq_nu = 3.92*self.qq*math.sqrt(self.num_degen_hdm/self.f_hdm);
         self.max_fs_correction = 1+1.2*math.pow(self.f_hdm,0.64)*math.pow(self.num_degen_hdm,0.3+0.6*self.f_hdm)/ \
-            (na.power(self.qq_nu,-1.6)+na.power(self.qq_nu,0.8));
+            (np.power(self.qq_nu,-1.6)+np.power(self.qq_nu,0.8));
         self.tf_master = self.tf_sup*self.max_fs_correction;
     
         # Now compute the CDM+HDM+baryon transfer functions
@@ -707,21 +707,21 @@ def integrate_inf(fcn, error=1e-3, initial_guess=10):
     changes by less than *error*. Hopefully someday we can do something
     better than this!
     """
-    xvals = na.logspace(0,na.log10(initial_guess), initial_guess+1)-.9
+    xvals = np.logspace(0,np.log10(initial_guess), initial_guess+1)-.9
     yvals = fcn(xvals)
     xdiffs = xvals[1:] - xvals[:-1]
-    # Trapezoid rule, but with different dxes between values, so na.trapz
+    # Trapezoid rule, but with different dxes between values, so np.trapz
     # will not work.
     areas = (yvals[1:] + yvals[:-1]) * xdiffs / 2.0
-    area0 = na.sum(areas)
+    area0 = np.sum(areas)
     # Next guess.
     next_guess = 10 * initial_guess
-    xvals = na.logspace(0,na.log10(next_guess), 2*initial_guess**2+1)-.99
+    xvals = np.logspace(0,np.log10(next_guess), 2*initial_guess**2+1)-.99
     yvals = fcn(xvals)
     xdiffs = xvals[1:] - xvals[:-1]
     # Trapezoid rule.
     areas = (yvals[1:] + yvals[:-1]) * xdiffs / 2.0
-    area1 = na.sum(areas)
+    area1 = np.sum(areas)
     # Now we refine until the error is smaller than *error*.
     diff = area1 - area0
     area_final = area1
@@ -729,12 +729,12 @@ def integrate_inf(fcn, error=1e-3, initial_guess=10):
     one_pow = 3
     while diff > error:
         next_guess *= 10
-        xvals = na.logspace(0,na.log10(next_guess), one_pow*initial_guess**one_pow+1) - (1 - 0.1**one_pow)
+        xvals = np.logspace(0,np.log10(next_guess), one_pow*initial_guess**one_pow+1) - (1 - 0.1**one_pow)
         yvals = fcn(xvals)
         xdiffs = xvals[1:] - xvals[:-1]
         # Trapezoid rule.
         areas = (yvals[1:] + yvals[:-1]) * xdiffs / 2.0
-        area_next = na.sum(areas)
+        area_next = np.sum(areas)
         diff = area_next - area_last
         area_last = area_next
         one_pow+=1

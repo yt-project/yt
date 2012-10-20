@@ -1,4 +1,4 @@
-"""
+""" 
 Callbacks to add additional functionality on to plots.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -7,9 +7,12 @@ Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
 Affiliation: UC Berkeley
 Author: Stephen Skory <s@skory.us>
 Affiliation: UC San Diego
+Author: Anthony Scopatz <scopatz@gmail.com>
+Affiliation: The University of Chicago
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
+  Copyright (C) 2008-2012 Matthew Turk, JS Oishi, Stephen Skory, Anthony Scopatz.  
+  All Rights Reserved.
 
   This file is part of yt.
 
@@ -27,7 +30,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from _mpl_imports import *
@@ -52,25 +55,25 @@ class PlotCallback(object):
     def convert_to_plot(self, plot, coord, offset = True):
         # coord should be a 2 x ncoord array-like datatype.
         try:
-            ncoord = na.array(coord).shape[1]
+            ncoord = np.array(coord).shape[1]
         except IndexError:
             ncoord = 1
 
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = na.tile(plot.xlim[0],ncoord)
-        x1 = na.tile(plot.xlim[1],ncoord)
-        xx0 = na.tile(plot._axes.get_xlim()[0],ncoord)
-        xx1 = na.tile(plot._axes.get_xlim()[1],ncoord)
+        x0 = np.tile(plot.xlim[0],ncoord)
+        x1 = np.tile(plot.xlim[1],ncoord)
+        xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
+        xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
         
-        y0 = na.tile(plot.ylim[0],ncoord)
-        y1 = na.tile(plot.ylim[1],ncoord)
-        yy0 = na.tile(plot._axes.get_ylim()[0],ncoord)
-        yy1 = na.tile(plot._axes.get_ylim()[1],ncoord)
+        y0 = np.tile(plot.ylim[0],ncoord)
+        y1 = np.tile(plot.ylim[1],ncoord)
+        yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
+        yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
         
         # We need a special case for when we are only given one coordinate.
-        if na.array(coord).shape == (2,):
+        if np.array(coord).shape == (2,):
             return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
@@ -146,7 +149,9 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+            qcb = CuttingQuiverCallback("CuttingPlaneBx",
+                                        "CuttingPlaneBy",
+                                        self.factor)
         else:
             xv = "B%s" % (x_names[plot.data.axis])
             yv = "B%s" % (y_names[plot.data.axis])
@@ -195,10 +200,10 @@ class QuiverCallback(PlotCallback):
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
-        X,Y = na.meshgrid(na.linspace(xx0,xx1,nx,endpoint=True),
-                          na.linspace(yy0,yy1,ny,endpoint=True))
+        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
+                          np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
-            nn = na.sqrt(pixX**2 + pixY**2)
+            nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
@@ -210,7 +215,7 @@ class ContourCallback(PlotCallback):
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args = None):
-        """
+        """ 
         annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
                          plot_args = None):
 
@@ -250,12 +255,12 @@ class ContourCallback(PlotCallback):
         #appropriate shift to the coppied field.  
 
         #set the cumulative arrays for the periodic shifting.
-        AllX = na.zeros(plot.data["px"].size, dtype='bool')
-        AllY = na.zeros(plot.data["py"].size, dtype='bool')
+        AllX = np.zeros(plot.data["px"].size, dtype='bool')
+        AllY = np.zeros(plot.data["py"].size, dtype='bool')
         XShifted = plot.data["px"].copy()
         YShifted = plot.data["py"].copy()
         dom_x, dom_y = plot._period
-        for shift in na.mgrid[-1:1:3j]:
+        for shift in np.mgrid[-1:1:3j]:
             xlim = ((plot.data["px"] + shift*dom_x >= x0)
                  &  (plot.data["px"] + shift*dom_x <= x1))
             ylim = ((plot.data["py"] + shift*dom_y >= y0)
@@ -269,24 +274,24 @@ class ContourCallback(PlotCallback):
         wI = (AllX & AllY)
 
         # We want xi, yi in plot coordinates
-        xi, yi = na.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),\
+        xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),\
                           yy0:yy1:numPoints_y/(self.factor*1j)]
 
         # This converts XShifted and YShifted into plot coordinates
         x = (XShifted[wI]-x0)*dx + xx0
         y = (YShifted[wI]-y0)*dy + yy0
         z = plot.data[self.field][wI]
-        if plot.pf.field_info[self.field].take_log: z=na.log10(z)
+        if plot.pf.field_info[self.field].take_log: z=np.log10(z)
 
         # Both the input and output from the triangulator are in plot
         # coordinates
         zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
         
         if plot.pf.field_info[self.field].take_log and self.clim is not None: 
-            self.clim = (na.log10(self.clim[0]), na.log10(self.clim[1]))
+            self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
         if self.clim is not None: 
-            self.ncont = na.linspace(self.clim[0], self.clim[1], ncont)
+            self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
         
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -296,7 +301,7 @@ class ContourCallback(PlotCallback):
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
     def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
-        """
+        """ 
         annotate_grids(alpha=1.0, min_pix=1, annotate=False, periodic=True)
 
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
@@ -323,11 +328,11 @@ class GridBoundaryCallback(PlotCallback):
         py_index = y_dict[plot.data.axis]
         dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
         if self.periodic:
-            pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+            pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
         else:
-            pxs, pys = na.mgrid[0:0:1j,0:0:1j]
-        GLE = plot.data.grid_left_edge
-        GRE = plot.data.grid_right_edge
+            pxs, pys = np.mgrid[0:0:1j,0:0:1j]
+        GLE = plot.data.pf.h.grid_left_edge
+        GRE = plot.data.pf.h.grid_right_edge
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
@@ -335,11 +340,11 @@ class GridBoundaryCallback(PlotCallback):
             left_edge_py = (GLE[:,py_index]+pyo-y0)*dy
             right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
             right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
-            verts = na.array(
+            verts = np.array(
                 [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                  (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-            visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
-                       ( right_edge_px - left_edge_px > self.min_pix )
+            visible =  (right_edge_px - left_edge_px > self.min_pix) & \
+                       (right_edge_px - left_edge_px > self.min_pix)
             verts=verts.transpose()[visible,:,:]
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
@@ -358,39 +363,30 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor=6.0, nx=16, ny=16,
-                 xstart=(0,1), ystart=(0,1), nsample=256,
-                 start_at_xedge=False, start_at_yedge=False,
-                 plot_args=None):
+    def __init__(self, field_x, field_y, factor = 16,
+                 density = 1, arrowsize = 1, arrowstyle = None,
+                 color = None, normalize = False):
         """
-        annotate_streamlines(field_x, field_y, factor=6.0, nx=16, ny=16,
-                             xstart=(0,1), ystart=(0,1), nsample=256,
-                             start_at_xedge=False, start_at_yedge=False,
-                             plot_args=None):
+        annotate_streamlines(field_x, field_y, factor = 16, density = 1,
+                             arrowsize = 1, arrowstyle = None,
+                             color = None, normalize = False):
 
         Add streamlines to any plot, using the *field_x* and *field_y*
-        from the associated data, using *nx* and *ny* starting points
-        that are bounded by *xstart* and *ystart*.  To begin
-        streamlines from the left edge of the plot, set
-        *start_at_xedge* to True; for the bottom edge, use
-        *start_at_yedge*.  A line with the qmean vector magnitude will
-        cover 1.0/*factor* of the image.
+        from the associated data, skipping every *factor* datapoints like
+        'quiver'. *density* is the index of the amount of the streamlines.
         """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.xstart = xstart
-        self.ystart = ystart
-        self.nsample = nsample
+        self.bv_x = self.bv_y = 0
         self.factor = factor
-        if start_at_xedge:
-            self.data_size = (1,ny)
-        elif start_at_yedge:
-            self.data_size = (nx,1)
-        else:
-            self.data_size = (nx,ny)
-        if plot_args is None: plot_args = {'color':'k', 'linestyle':'-'}
-        self.plot_args = plot_args
+        self.dens = density
+        self.arrowsize = arrowsize
+        if arrowstyle is None : arrowstyle='-|>'
+        self.arrowstyle = arrowstyle
+        if color is None : color = "#000000"
+        self.color = color
+        self.normalize = normalize
         
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -398,40 +394,31 @@ class StreamlineCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
+        nx = plot.image._A.shape[0] / self.factor
+        ny = plot.image._A.shape[1] / self.factor
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x],
+                             plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),)
+                           (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y],
+                             plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),)
-        r0 = na.mgrid[self.xstart[0]*nx:self.xstart[1]*nx:self.data_size[0]*1j,
-                      self.ystart[0]*ny:self.ystart[1]*ny:self.data_size[1]*1j]
-        lines = na.zeros((self.nsample, 2, self.data_size[0], self.data_size[1]))
-        lines[0,:,:,:] = r0
-        mag = na.sqrt(pixX**2 + pixY**2)
-        scale = na.sqrt(nx*ny) / (self.factor * mag.mean())
-        dt = 1.0 / (self.nsample-1)
-        for i in range(1,self.nsample):
-            xt = lines[i-1,0,:,:]
-            yt = lines[i-1,1,:,:]
-            ix = na.maximum(na.minimum((xt).astype('int'), nx-1), 0)
-            iy = na.maximum(na.minimum((yt).astype('int'), ny-1), 0)
-            lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
-            lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
-        for i in range(self.data_size[0]):
-            for j in range(self.data_size[1]):
-                plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
-                                **self.plot_args)
+                           (x0, x1, y0, y1),).transpose()
+        X,Y = (na.linspace(xx0,xx1,nx,endpoint=True),
+                          na.linspace(yy0,yy1,ny,endpoint=True))
+        if self.normalize:
+            nn = na.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
+        plot._axes.streamplot(X,Y, pixX, pixY, density=self.dens,
+                              arrowsize=self.arrowsize, arrowstyle=self.arrowstyle,
+                              color=self.color, norm=self.normalize)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -451,6 +438,30 @@ class LabelCallback(PlotCallback):
                                      left=0.0, right=1.0)
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
+
+class TimeCallback(PlotCallback):
+    _type_name = "time"
+    def __init__(self, format_code='10.7e'):
+        """
+        This annotates the plot with the current simulation time.
+        For now, the time is displayed in seconds.
+        *format_code* can be optionally set, allowing a custom 
+        c-style format code for the time display.
+        """
+        self.format_code = format_code
+        PlotCallback.__init__(self)
+    
+    def __call__(self, plot):
+        current_time = plot.pf.current_time/plot.pf['Time']
+        timestring = format(current_time,self.format_code)
+        base = timestring[:timestring.find('e')]
+        exponent = timestring[timestring.find('e')+1:]
+        if exponent[0] == '+':
+            exponent = exponent[1:]
+        timestring = r'$t\/=\/'+base+''+r'\times\,10^{'+exponent+r'}\, \rm{s}$'
+        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
+        at = AnchoredText(timestring, prop=dict(size=12), frameon=True, loc=4)
+        plot._axes.add_artist(at)
 
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
@@ -489,18 +500,18 @@ class UnitBoundaryCallback(PlotCallback):
         max_dx = plot.data['pdx'].max()
         w_min_x = 250.0 * min_dx
         w_max_x = 1.0 / self.factor
-        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[self.unit])
-                           /na.log10(self.factor))
-        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[self.unit])
-                            /na.log10(self.factor))
+        min_exp_x = np.ceil(np.log10(w_min_x*plot.data.pf[self.unit])
+                           /np.log10(self.factor))
+        max_exp_x = np.floor(np.log10(w_max_x*plot.data.pf[self.unit])
+                            /np.log10(self.factor))
         n_x = max_exp_x - min_exp_x + 1
-        widths = na.logspace(min_exp_x, max_exp_x, num = n_x, base=self.factor)
+        widths = np.logspace(min_exp_x, max_exp_x, num = n_x, base=self.factor)
         widths /= plot.data.pf[self.unit]
         left_edge_px = (center[xi] - widths/2.0 - x0)*dx
         left_edge_py = (center[yi] - widths/2.0 - y0)*dy
         right_edge_px = (center[xi] + widths/2.0 - x0)*dx
         right_edge_py = (center[yi] + widths/2.0 - y0)*dy
-        verts = na.array(
+        verts = np.array(
                 [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                  (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
         visible =  ( right_edge_px - left_edge_px > 25 ) & \
@@ -607,7 +618,7 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
-        indices = na.argsort(plot.data['dx'])[::-1]
+        indices = np.argsort(plot.data['dx'])[::-1]
         pixX = _MPL.CPixelize( plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
@@ -622,8 +633,8 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data[self.field_y],
                                int(nx), int(ny),
                                (x0, x1, y0, y1),).transpose()
-        X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
-        Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        X = np.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
+        Y = np.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
         plot._axes.quiver(X,Y, pixX, pixY)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -659,7 +670,7 @@ class ClumpContourCallback(PlotCallback):
         DomainWidth = DomainRight - DomainLeft
         
         nx, ny = plot.image._A.shape
-        buff = na.zeros((nx,ny),dtype='float64')
+        buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.debug("Pixelizing contour %s", i)
 
@@ -673,7 +684,7 @@ class ClumpContourCallback(PlotCallback):
                                  clump['dx']*0.0+i+1, # inits inside Pixelize
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
-            buff = na.maximum(temp, buff)
+            buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
                                      **self.plot_args)
         plot._axes.hold(False)
@@ -695,9 +706,13 @@ class ArrowCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        if len(self.pos) == 3:
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
+        else: pos = self.pos
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
-        x, y = self.convert_to_plot(plot, self.pos)
+        x, y = self.convert_to_plot(plot, pos)
         dx, dy = self.convert_to_plot(plot, self.code_size, False)
         arrow = Arrow(x, y, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
@@ -717,12 +732,13 @@ class PointAnnotateCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
-
-
+        if len(self.pos) == 3:
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
+        else: pos = self.pos
         width,height = plot.image._A.shape
-        x,y = self.convert_to_plot(plot, self.pos)
-        x,y = x/width,y/height
-
+        x,y = self.convert_to_plot(plot, pos)
+        
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
@@ -817,7 +833,7 @@ class HopCircleCallback(PlotCallback):
             if size < self.min_size or size > self.max_size: continue
             # This could use halo.maximum_radius() instead of width
             if self.width is not None and \
-                na.abs(halo.center_of_mass() - 
+                np.abs(halo.center_of_mass() - 
                        plot.data.center)[plot.data.axis] > \
                    self.width:
                 continue
@@ -1065,8 +1081,8 @@ class ParticleCallback(PlotCallback):
         LE[zax] = data.center[zax] - self.width*0.5
         RE[zax] = data.center[zax] + self.width*0.5
         if self.region is not None \
-            and na.all(self.region.left_edge <= LE) \
-            and na.all(self.region.right_edge >= RE):
+            and np.all(self.region.left_edge <= LE) \
+            and np.all(self.region.right_edge >= RE):
             return self.region
         self.region = data.pf.h.periodic_region(
             data.center, LE, RE)
@@ -1089,35 +1105,149 @@ class TitleCallback(PlotCallback):
 
 class FlashRayDataCallback(PlotCallback):
     _type_name = "flash_ray_data"
-    def __init__(self, pf, cmap_name='bone', sample=None):
-        """
-        annotate_flash_ray_data(pf, cmap_name='bone', sample=None)
+    def __init__(self, cmap_name='bone', sample=None):
+        """ 
+        annotate_flash_ray_data(cmap_name='bone', sample=None)
 
-        Accepts a *pf* and adds ray trace data to the plot.  *cmap_name* is the
-        name of the color map ('bone', 'jet', 'hot', etc).  *sample* dictates 
-        the amount of down sampling to do to prevent all of the rays from being 
-        plotted.  This may be None (plot all rays, default), an integer (step size), 
-        or a slice object.
+        Adds ray trace data to the plot.  *cmap_name* is the name of the color map 
+        ('bone', 'jet', 'hot', etc).  *sample* dictates the amount of down sampling 
+        to do to prevent all of the rays from being  plotted.  This may be None 
+        (plot all rays, default), an integer (step size), or a slice object.
         """
-        self.ray_data = pf._handle["RayData"][:]
-        idx = self.ray_data[:,0].argsort(kind="mergesort")
-        self.ray_data = self.ray_data[idx]
         self.cmap_name = cmap_name
         self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
 
     def __call__(self, plot):
-        tags = self.ray_data[:,0]
-        coords = self.ray_data[:,1:3]
-        power = self.ray_data[:,4]
+        ray_data = plot.data.pf._handle["RayData"][:]
+        idx = ray_data[:,0].argsort(kind="mergesort")
+        ray_data = ray_data[idx]
+
+        tags = ray_data[:,0]
+        coords = ray_data[:,1:3]
+        power = ray_data[:,4]
         power /= power.max()
         cx, cy = self.convert_to_plot(plot, coords.T)
         coords[:,0], coords[:,1] = cx, cy
-        splitidx = na.argwhere(0 < (tags[1:] - tags[:-1])) + 1
-        coords = na.split(coords, splitidx.flat)[self.sample]
-        power = na.split(power, splitidx.flat)[self.sample]
+        splitidx = np.argwhere(0 < (tags[1:] - tags[:-1])) + 1
+        coords = np.split(coords, splitidx.flat)[self.sample]
+        power = np.split(power, splitidx.flat)[self.sample]
         cmap = matplotlib.cm.get_cmap(self.cmap_name)
 
         plot._axes.hold(True)
-        lc = matplotlib.collections.LineCollection(coords, colors=[cmap(p.max()) for p in power])
+        colors = [cmap(p.max()) for p in power]
+        lc = matplotlib.collections.LineCollection(coords, colors=colors)
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
+
+
+class TimestampCallback(PlotCallback):
+    _type_name = "timestamp"
+    _time_conv = {
+          'as': 1e-18,
+          'attosec': 1e-18,
+          'attosecond': 1e-18,
+          'attoseconds': 1e-18,
+          'fs': 1e-15,
+          'femtosec': 1e-15,
+          'femtosecond': 1e-15,
+          'femtoseconds': 1e-15,
+          'ps': 1e-12,
+          'picosec': 1e-12,
+          'picosecond': 1e-12,
+          'picoseconds': 1e-12,
+          'ns': 1e-9,
+          'nanosec': 1e-9,
+          'nanosecond':1e-9,
+          'nanoseconds' : 1e-9,
+          'us': 1e-6,
+          'microsec': 1e-6,
+          'microsecond': 1e-6,
+          'microseconds': 1e-6,
+          'ms': 1e-3,
+          'millisec': 1e-3,
+          'millisecond': 1e-3,
+          'milliseconds': 1e-3,
+          's': 1.0,
+          'sec': 1.0,
+          'second':1.0,
+          'seconds': 1.0,
+          'm': 60.0,
+          'min': 60.0,
+          'minute': 60.0,
+          'minutes': 60.0,
+          'h': 3600.0,
+          'hour': 3600.0,
+          'hours': 3600.0,
+          'd': 86400.0,
+          'day': 86400.0,
+          'days': 86400.0,
+          'y': 86400.0*365.25,
+          'year': 86400.0*365.25,
+          'years': 86400.0*365.25,
+          'ev': 1e-9 * 7.6e-8 / 6.03,
+          'kev': 1e-12 * 7.6e-8 / 6.03,
+          'mev': 1e-15 * 7.6e-8 / 6.03,
+          }
+
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}", **kwargs):
+        """ 
+        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs)
+
+        Adds the current time to the plot at point given by *x* and *y*.  If *units* 
+        is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
+        *units* is None, it will attempt to figure out the correct value by which to 
+        scale.  The *format* keyword is a template string that will be evaluated and 
+        displayed on the plot.  All other *kwargs* will be passed to the text() 
+        method on the plot axes.  See matplotlib's text() functions for more 
+        information.
+        """
+        self.x = x
+        self.y = y
+        self.format = format
+        self.units = units
+        self.kwargs = {'color': 'w'}
+        self.kwargs.update(kwargs)
+
+    def __call__(self, plot):
+        if self.units is None:
+            t = plot.data.pf.current_time
+            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
+            self.units = 's'
+            for k in scale_keys:
+                if t < self._time_conv[k]:
+                    break
+                self.units = k
+        t = plot.data.pf.current_time / self._time_conv[self.units.lower()]
+        if self.units == 'us':
+            self.units = '$\\mu s$'
+        s = self.format.format(time=t, units=self.units)
+        plot._axes.hold(True)
+        plot._axes.text(self.x, self.y, s, **self.kwargs)
+        plot._axes.hold(False)
+
+
+class MaterialBoundaryCallback(ContourCallback):
+    _type_name = "material_boundary"
+    def __init__(self, field='targ', ncont=1, factor=4, clim=(0.9, 1.0), **kwargs):
+        """ 
+        annotate_material_boundary(self, field='targ', ncont=1, factor=4, 
+                                   clim=(0.9, 1.0), **kwargs):
+
+        Add the limiting contours of *field* to the plot.  Nominally, *field* is 
+        the target material but may be any other field present in the hierarchy.
+        The number of contours generated is given by *ncount*, *factor* governs 
+        the number of points used in the interpolation, and *clim* gives the 
+        (upper, lower) limits for contouring.  For this to truly be the boundary
+        *clim* should be close to the edge.  For example the default is (0.9, 1.0)
+        for 'targ' which is defined on the range [0.0, 1.0].  All other *kwargs* 
+        will be passed to the contour() method on the plot axes.  See matplotlib
+        for more information.
+        """
+        plot_args = {'colors': 'w'}
+        plot_args.update(kwargs)
+        super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont, 
+                                                       factor=factor, clim=clim,
+                                                       plot_args=plot_args)
+
+    def __call__(self, plot):
+        super(MaterialBoundaryCallback, self).__call__(plot)

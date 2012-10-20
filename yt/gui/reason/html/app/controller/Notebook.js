@@ -73,9 +73,11 @@ Ext.define('Reason.controller.Notebook', {
     },
 
     addRequest: function(request_id, command) {
+        /*console.log("Adding request " + request_id);*/
         this.getRequestsStore().add({
             request_id: request_id, command: command,
         });
+        reason.pending.update([this.getRequestsStore().count()]);
     },
 
     addCell: function(cell) {
@@ -85,6 +87,7 @@ Ext.define('Reason.controller.Notebook', {
             var ind = this.getRequestsStore().find(
                 'request_id', cell['result_id']);
             if (ind != -1) {
+                /*console.log("Removing request " + cell['result_id']);*/
                 var rec = this.getRequestsStore().removeAt(ind);
             }
             reason.pending.update([this.getRequestsStore().count()]);

@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import h5py
 
 from yt.utilities.io_handler import \
@@ -52,27 +52,10 @@ class IOHandlerFLASH(BaseIOHandler):
             count_list, conv_factors):
         pass
 
-    def _select_particles(self, grid, field):
-        f = self._handle
-        npart = f["/tracer particles"].shape[0]
-        total_selected = 0
-        start = 0
-        stride = 1e6
-        blki = self._particle_fields["particle_blk"]
-        bi = grid.id - grid._id_offset
-        fi = self._particle_fields[field]
-        tr = []
-        while start < npart:
-            end = min(start + stride - 1, npart)
-            gi = f["/tracer particles"][start:end,blki] == bi
-            tr.append(f["/tracer particles"][gi,fi])
-            start = end
-        return na.concatenate(tr)
-
     def _read_data_set(self, grid, field):
         f = self._handle
         if field in self._particle_fields:
-            if grid.NumberOfParticles == 0: return na.array([], dtype='float64')
+            if grid.NumberOfParticles == 0: return np.array([], dtype='float64')
             start = self.pf.h._particle_indices[grid.id - grid._id_offset]
             end = self.pf.h._particle_indices[grid.id - grid._id_offset + 1]
             fi = self._particle_fields[field]
@@ -96,7 +79,7 @@ class IOHandlerFLASH(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            rv[field] = na.empty(size, dtype=f["/%s" % fname].dtype)
+            rv[field] = np.empty(size, dtype=f["/%s" % fname].dtype)
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)

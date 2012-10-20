@@ -25,7 +25,7 @@ License:
 
 import h5py
 import stat
-import numpy as na
+import numpy as np
 import weakref
 
 from yt.config import ytcfg
@@ -42,11 +42,11 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
-
+from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields, \
     CylindricalFLASHFieldInfo, PolarFLASHFieldInfo
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
-     ValidateDataField
+     ValidateDataField, TranslationFunc
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -78,7 +78,7 @@ class FLASHHierarchy(GridGeometryHandler):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._handle = pf._handle
 
-        self.float_type = na.float64
+        self.float_type = np.float64
         GridGeometryHandler.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
@@ -131,36 +131,39 @@ class FLASHHierarchy(GridGeometryHandler):
             self.grid_particle_count[:] = f["/localnp"][:][:,None]
         except KeyError:
             self.grid_particle_count[:] = 0.0
-        self._particle_indices = na.zeros(self.num_grids + 1, dtype='int64')
-        na.add.accumulate(self.grid_particle_count.squeeze(),
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        np.add.accumulate(self.grid_particle_count.squeeze(),
                           out=self._particle_indices[1:])
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
         self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
-        self.grids = na.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
         
 
         # This is a possibly slow and verbose fix, and should be re-examined!
-        rdx = (self.parameter_file.domain_right_edge -
-                self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
+        rdx = (self.parameter_file.domain_width /
+                self.parameter_file.domain_dimensions)
         nlevels = self.grid_levels.max()
-        dxs = na.zeros((nlevels+1,3),dtype='float64')
+        dxs = np.ones((nlevels+1,3),dtype='float64')
         for i in range(nlevels+1):
-            dxs[i] = rdx/self.parameter_file.refine_by**i
+            dxs[i,:ND] = rdx[:ND]/self.parameter_file.refine_by**i
        
+        if ND < 3:
+            dxs[:,ND:] = rdx[ND:]
+
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
-            self.grid_left_edge[i] = na.rint(self.grid_left_edge[i]/dx)*dx
-            self.grid_right_edge[i] = na.rint(self.grid_right_edge[i]/dx)*dx
+            self.grid_left_edge[i][:ND] = np.rint(self.grid_left_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            self.grid_right_edge[i][:ND] = np.rint(self.grid_right_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
         offset = 7
-        ii = na.argsort(self.grid_levels.flat)
+        ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
         first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
         for g in self.grids[ii].flat:
@@ -192,11 +195,16 @@ class FLASHHierarchy(GridGeometryHandler):
                 self.derived_field_list.append(field)
             if (field not in KnownFLASHFields and
                 field.startswith("particle")) :
-                self.parameter_file.field_info.add_field(field,
-                                                         function=NullFunc,
-                                                         take_log=False,
-                                                         validators = [ValidateDataField(field)],
-                                                         particle_type=True)
+                self.parameter_file.field_info.add_field(
+                        field, function=NullFunc, take_log=False,
+                        validators = [ValidateDataField(field)],
+                        particle_type=True)
+
+        for field in self.derived_field_list:
+            f = self.parameter_file.field_info[field]
+            if f._function.func_name == "_TranslationFunc":
+                # Translating an already-converted field
+                self.parameter_file.conversion_factors[field] = 1.0 
                 
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
@@ -218,6 +226,7 @@ class FLASHStaticOutput(StaticOutput):
                  storage_filename = None,
                  conversion_override = None):
 
+        if self._handle is not None: return
         self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
@@ -244,13 +253,13 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         if "EOSType" not in self.parameters:
             self.parameters["EOSType"] = -1
-        if self.cosmological_simulation == 1:
-            self._setup_comoving_units()
         if "pc_unitsbase" in self.parameters:
             if self.parameters["pc_unitsbase"] == "CGS":
                 self._setup_cgs_units()
         else:
             self._setup_nounits_units()
+        if self.cosmological_simulation == 1:
+            self._setup_comoving_units()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / \
@@ -267,10 +276,10 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['velx'] = (1.0 + self.current_redshift)**-1.0
         self.conversion_factors['vely'] = self.conversion_factors['velx']
         self.conversion_factors['velz'] = self.conversion_factors['velx']
-        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)**-1.0
         self.conversion_factors['particle_vely'] = \
             self.conversion_factors['particle_velx']
         self.conversion_factors['particle_velz'] = \
@@ -280,7 +289,8 @@ class FLASHStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+            self.units[unit] /= (1.0+self.current_redshift)
+            
     def _setup_cgs_units(self):
         self.conversion_factors['dens'] = 1.0
         self.conversion_factors['pres'] = 1.0
@@ -378,9 +388,9 @@ class FLASHStaticOutput(StaticOutput):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
-        self.domain_left_edge = na.array(
+        self.domain_left_edge = np.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
-        self.domain_right_edge = na.array(
+        self.domain_right_edge = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         self.min_level = self.parameters.get("lrefine_min", 1) - 1
 
@@ -417,7 +427,7 @@ class FLASHStaticOutput(StaticOutput):
         nblocky = self.parameters["nblocky"]
         nblockz = self.parameters["nblockz"]
         self.domain_dimensions = \
-            na.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+            np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
         try:
             self.parameters["Gamma"] = self.parameters["gamma"]
         except:
@@ -433,6 +443,7 @@ class FLASHStaticOutput(StaticOutput):
             self.omega_lambda = self.parameters['cosmologicalconstant']
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']
+            self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
@@ -443,7 +454,7 @@ class FLASHStaticOutput(StaticOutput):
     def _setup_cylindrical_coordinates(self):
         if self.dimensionality == 2:
             self.domain_left_edge[2] = 0.0
-            self.domain_right_edge[2] = 2.0 * na.pi
+            self.domain_right_edge[2] = 2.0 * np.pi
 
     def _setup_polar_coordinates(self):
         pass
@@ -474,3 +485,5 @@ class FLASHStaticOutput(StaticOutput):
         except:
             pass
         return False
+
+

@@ -26,7 +26,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 from itertools import izip
 
 from yt.funcs import *
@@ -104,7 +104,7 @@ class GadgetHierarchy(GridGeometryHandler):
         
     def _parse_hierarchy(self):
         f = self._handle # shortcut
-        npa = na.array
+        npa = np.array
         DLE = self.parameter_file.domain_left_edge
         DRE = self.parameter_file.domain_right_edge
         DW = (DRE - DLE)
@@ -119,12 +119,12 @@ class GadgetHierarchy(GridGeometryHandler):
                                 + dxs *(1 + self.grid_dimensions)
         self.grid_particle_count.flat[:] = f['/grid_particle_count'][:].astype("int32")
         grid_parent_id = f['/grid_parent_id'][:]
-        self.max_level = na.max(self.grid_levels)
+        self.max_level = np.max(self.grid_levels)
         
         args = izip(xrange(self.num_grids), self.grid_levels.flat,
                     grid_parent_id, LI,
                     self.grid_dimensions, self.grid_particle_count.flat)
-        self.grids = na.empty(len(args), dtype='object')
+        self.grids = np.empty(len(args), dtype='object')
         for gi, (j,lvl,p, le, d, n) in enumerate(args):
             self.grids[gi] = self.grid(self,j,d,le,lvl,p,n)
         
