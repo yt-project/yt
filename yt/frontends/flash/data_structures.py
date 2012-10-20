@@ -43,8 +43,7 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
-from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields, \
-    CylindricalFLASHFieldInfo, PolarFLASHFieldInfo
+from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField, TranslationFunc
 
@@ -218,7 +217,7 @@ class FLASHHierarchy(GridGeometryHandler):
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
-    #_fieldinfo_fallback = FLASHFieldInfo # Now a property
+    _fieldinfo_fallback = FLASHFieldInfo
     _fieldinfo_known = KnownFLASHFields
     _handle = None
     
@@ -414,14 +413,9 @@ class FLASHStaticOutput(StaticOutput):
         self.dimensionality = dimensionality
 
         self.geometry = self.parameters["geometry"]
-        if self.geometry == "cartesian":
-            self._setup_cartesian_coordinates()
-        elif self.geometry == "cylindrical":
-            self._setup_cylindrical_coordinates()
-        elif self.geometry == "polar":
-            self._setup_polar_coordinates()
-        else:
-            raise YTGeometryNotSupported(self.geometry)
+        if self.geometry == "cylindrical" and self.dimensionality == 2:
+            self.domain_left_edge[2] = 0.0
+            self.domain_right_edge[2] = 2.0 * np.pi
 
         nblockx = self.parameters["nblockx"]
         nblocky = self.parameters["nblocky"]
@@ -447,29 +441,6 @@ class FLASHStaticOutput(StaticOutput):
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
-
-    def _setup_cartesian_coordinates(self):
-        pass
-
-    def _setup_cylindrical_coordinates(self):
-        if self.dimensionality == 2:
-            self.domain_left_edge[2] = 0.0
-            self.domain_right_edge[2] = 2.0 * np.pi
-
-    def _setup_polar_coordinates(self):
-        pass
-
-    @property
-    def _fieldinfo_fallback(self):
-        geom = self.parameters.get("geometry", "cartesian")
-        if geom == "cartesian":
-            return FLASHFieldInfo
-        elif geom == "cylindrical":
-            return CylindricalFLASHFieldInfo
-        elif geom == "polar":
-            return PolarFLASHFieldInfo
-        else:
-            raise RuntimeError
 
     def __del__(self):
         self._handle.close()

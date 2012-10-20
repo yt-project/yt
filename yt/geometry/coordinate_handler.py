@@ -38,7 +38,10 @@ from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
 import yt.visualization._MPL
 
-class CoordinatesHandler(object):
+from .cartesian_fields import CartesianFieldInfo
+from .cylindrical_fields import CylindricalFieldInfo, PolarFieldInfo
+
+class CoordinateHandler(object):
     
     def __init__(self, pf):
         self.pf = weakref.proxy(pf)
@@ -111,14 +114,14 @@ def cylindrical_to_cartesian(coord, center = (0,0,0)):
     c2[...,2] = coord[...,2]
     return c2
 
-class CartesianCoordinatesHandler(CoordinatesHandler):
+class CartesianCoordinateHandler(CoordinateHandler):
 
     def __init__(self, pf):
-        super(CartesianCoordinatesHandler, self).__init__(pf)
+        super(CartesianCoordinateHandler, self).__init__(pf)
 
 
     def coordinate_fields(self):
-        pass
+        return CartesianFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
         if dimension < 3:
@@ -184,15 +187,15 @@ class CartesianCoordinatesHandler(CoordinatesHandler):
     def period(self):
         return self.pf.domain_width
 
-class PolarCoordinatesHandler(CoordinatesHandler):
+class PolarCoordinateHandler(CoordinateHandler):
 
     def __init__(self, pf, ordering = 'rzt'):
         if ordering != 'rzt': raise NotImplementedError
-        super(PolarCoordinatesHandler, self).__init__(pf)
+        super(PolarCoordinateHandler, self).__init__(pf)
 
     def coordinate_fields(self):
         # return the fields for r, z, theta
-        pass
+        return PolarFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
         raise NotImplementedError
@@ -215,6 +218,79 @@ class PolarCoordinatesHandler(CoordinatesHandler):
         return buff
 
     def _polar_pixelize(self, data_source, field, bounds, size, antialias):
+        buff = pixelize_cylinder(data_source['r'],
+                                 data_source['dr']/2.0,
+                                 data_source['theta'],
+                                 data_source['dtheta']/2.0,
+                                 size[0], field, bounds[0])
+        return buff
+
+    axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
+                 'r' : 'r', 'z' : 'z', 'theta' : 'theta',
+                 'R' : 'r', 'Z' : 'z', 'Theta' : 'theta'}
+
+    axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
+                 0  : 0,  1  : 1,  2  : 2}
+
+    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
+                0  : 1,  1  : 0,  2  : 0}
+
+    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
+                0  : 2,  1  : 2,  2  : 1}
+
+    def convert_from_cartesian(self, coord):
+        return cartesian_to_cylindrical(coord)
+
+    def convert_to_cartesian(self, coord):
+        return cylindrical_to_cartesian(coord)
+
+    def convert_to_cylindrical(self, coord):
+        return coord
+
+    def convert_from_cylindrical(self, coord):
+        return coord
+
+    def convert_to_spherical(self, coord):
+        raise NotImplementedError
+
+    def convert_from_spherical(self, coord):
+        raise NotImplementedError
+
+    @property
+    def period(self):
+        return na.array([0.0, 0.0, 2.0*np.pi])
+
+class CylindricalCoordinateHandler(CoordinateHandler):
+
+    def __init__(self, pf, ordering = 'rtz'):
+        if ordering != 'rtz': raise NotImplementedError
+        super(CylindricalCoordinateHandler, self).__init__(pf)
+
+    def coordinate_fields(self):
+        # return the fields for r, z, theta
+        return CylindricalFieldInfo
+
+    def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
+        raise NotImplementedError
+        if dimension == 1:
+            return self._ortho_pixelize(data_source, field, bounds, size,
+                                        antialias)
+        elif dimension == 2:
+            return self._cyl_pixelize(data_source, field, bounds, size,
+                                        antialias)
+        else:
+            # Pixelizing along a cylindrical surface is a bit tricky
+            raise NotImplementedError
+
+    def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
+        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
+                             data_source['pdx'], data_source['pdy'],
+                             data_source[field], size[0], size[1],
+                             bounds, int(antialias),
+                             True, self.period).transpose()
+        return buff
+
+    def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
         buff = pixelize_cylinder(data_source['r'],
                                  data_source['dr']/2.0,
                                  data_source['theta'],

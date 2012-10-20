@@ -68,48 +68,6 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi
      
-# Note that, despite my newfound efforts to comply with PEP-8,
-# I violate it here in order to keep the name/func_name relationship
-
-def _dx(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
-add_field('dx', function=_dx, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _dy(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
-add_field('dy', function=_dy, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _dz(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
-add_field('dz', function=_dz,
-          display_field=False, validators=[ValidateSpatial(0)])
-
-def _coordX(field, data):
-    dim = data.ActiveDimensions[0]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[0])[:,None,None]
-            +0.5) * data['dx'] + data.LeftEdge[0]
-add_field('x', function=_coordX, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _coordY(field, data):
-    dim = data.ActiveDimensions[1]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[1])[None,:,None]
-            +0.5) * data['dy'] + data.LeftEdge[1]
-add_field('y', function=_coordY, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _coordZ(field, data):
-    dim = data.ActiveDimensions[2]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[2])[None,None,:]
-            +0.5) * data['dz'] + data.LeftEdge[2]
-add_field('z', function=_coordZ, display_field=False,
-          validators=[ValidateSpatial(0)])
-
 def _GridLevel(field, data):
     return np.ones(data.ActiveDimensions)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
