@@ -173,7 +173,8 @@ class FieldDetector(defaultdict):
             # required attrs
             pf = fake_parameter_file(lambda: 1)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
-                pf.hubble_constant = pf.cosmological_simulation = 0.0
+                pf.cosmological_simulation = 0.0
+            pf.hubble_constant = 0.7
             pf.domain_left_edge = np.zeros(3, 'float64')
             pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
