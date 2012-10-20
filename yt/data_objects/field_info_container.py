@@ -87,7 +87,7 @@ class FieldInfoContainer(dict): # Resistance has utility
     def __iter__(self):
         for f in dict.__iter__(self):
             yield f
-        if self.fallback:
+        if self.fallback is not None:
             for f in self.fallback: yield f
 
     def keys(self):

@@ -926,7 +926,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         if self._grids is not None: return
         buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
                  / self.pf.domain_dimensions).max()
-        AMRCoveringGridBase._get_list_of_grids(self, buffer)
+        YTCoveringGridBase._get_list_of_grids(self, buffer)
         # We reverse the order to ensure that coarse grids are first
         self._grids = self._grids[::-1]
 
