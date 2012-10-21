@@ -279,6 +279,7 @@ class GridHierarchyTest(AnswerTestingTest):
         result["grid_right_edges"] = self.pf.h.grid_right_edge
         result["grid_levels"] = self.pf.h.grid_levels
         result["grid_particle_count"] = self.pf.h.grid_particle_count
+        return result
 
     def compare(self, new_result, old_result):
         for k in new_result:
