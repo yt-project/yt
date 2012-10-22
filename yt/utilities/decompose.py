@@ -68,9 +68,12 @@ def decompose_array(arr, psize, bbox):
 def evaluate_domain_decomposition(n_d, pieces, ldom):
     """ Evaluate longest to shortest edge ratio
         BEWARE: lot's of magic here """
-    ideal_bsize = 3.0 * (pieces * np.product(n_d) ** 2) ** (1.0 / 3.0)
-    bsize = int(np.sum(
-        ldom / np.array(n_d, dtype=np.float64) * np.product(n_d)))
+    eff_dim = (n_d > 1).sum()
+    ideal_bsize = eff_dim * (pieces * np.product(n_d) ** (eff_dim - 1)
+                             ) ** (1.0 / eff_dim)
+    mask = np.where(n_d > 1)
+    nd_arr = np.array(n_d, dtype=np.float64)[mask]
+    bsize = int(np.sum(ldom[mask] / nd_arr * np.product(nd_arr)))
     load_balance = float(np.product(n_d)) / \
         (float(pieces) * np.product((n_d - 1) / ldom + 1))
 
@@ -134,23 +137,15 @@ def get_psize(n_d, pieces):
 
 
 def split_array(tab, psize):
-    """ Split array into px*py*pz subarrays using internal numpy routine. """
-    temp = [np.array_split(array, psize[1], axis=1)
-            for array in np.array_split(tab, psize[2], axis=2)]
-    temp = [item for sublist in temp for item in sublist]
-    temp = [np.array_split(array, psize[0], axis=0) for array in temp]
-    temp = [item for sublist in temp for item in sublist]
-    return temp
-
-
-if __name__ == "__main__":
-
-    NPROC = 12
-    ARRAY = np.zeros((128, 128, 129))
-    BBOX = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
-
-    PROCS = get_psize(np.array(ARRAY.shape), NPROC)
-    LE, RE, DATA = decompose_array(ARRAY, PROCS, BBOX)
-
-    for idx in range(NPROC):
-        print LE[idx, :], RE[idx, :], DATA[idx].shape
+    """ Split array into px*py*pz subarrays. """
+    n_d = np.array(tab.shape, dtype=np.int64)
+    slices = []
+    for i in range(psize[0]):
+        for j in range(psize[1]):
+            for k in range(psize[2]):
+                piece = np.array((i, j, k), dtype=np.int64)
+                lei = n_d * piece / psize
+                rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
+                slices.append(np.s_[lei[0]:rei[0], lei[1]:
+                                    rei[1], lei[2]:rei[2]])
+    return [tab[slc] for slc in slices]

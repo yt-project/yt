@@ -26,10 +26,7 @@ License:
 from yt.testing import *
 
 try:
-    from yt.utilities.kdtree import \
-        chainHOP_tags_dens, \
-        create_tree, fKD, find_nn_nearest_neighbors, \
-        free_tree, find_chunk_nearest_neighbors
+    from yt.utilities.kdtree.api import *
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 

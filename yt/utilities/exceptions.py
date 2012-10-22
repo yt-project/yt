@@ -147,6 +147,14 @@ class YTHubRegisterError(YTException):
         return "You must create an API key before uploading.  See " + \
                "https://data.yt-project.org/getting_started.html"
 
+class YTNoFilenamesMatchPattern(YTException):
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def __str__(self):
+        return "No filenames were found to match the pattern: " + \
+               "'%s'" % (self.pattern)
+
 class YTNoOldAnswer(YTException):
     def __init__(self, path):
         self.path = path
