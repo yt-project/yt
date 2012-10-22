@@ -140,8 +140,6 @@ def data_dir_load(pf_fn):
 
 class AnswerTestingTest(object):
     reference_storage = None
-
-    description = None
     def __init__(self, pf_fn):
         self.pf = data_dir_load(pf_fn)
 
@@ -150,11 +148,11 @@ class AnswerTestingTest(object):
         if self.reference_storage is not None:
             dd = self.reference_storage.get(str(self.pf))
             if dd is None: raise YTNoOldAnswer()
-            ov = dd[self.name]
+            ov = dd[self.descrption]
             self.compare(nv, ov)
         else:
             ov = None
-        self.result_storage[str(self.pf)][self.name] = nv
+        self.result_storage[str(self.pf)][self.description] = nv
 
     def compare(self, new_result, old_result):
         raise RuntimeError
@@ -191,7 +189,7 @@ class AnswerTestingTest(object):
         return self.pf.h.all_data()
 
     @property
-    def name(self):
+    def description(self):
         obj_type = getattr(self, "obj_type", None)
         if obj_type is None:
             oname = "all"
@@ -212,7 +210,10 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = self.create_obj(self.pf, self.obj_type)
-        return obj[self.field]
+        avg = obj.quantities["WeightedAverageQuantity"](self.field,
+                             weight="Ones")
+        (mi, ma), = obj.quantities["Extrema"](self.field)
+        return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
         assert_equal(new_result, old_result)
@@ -245,6 +246,41 @@ class ProjectionValuesTest(AnswerTestingTest):
             assert (k in old_result)
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
+
+class PixelizedProjectionValuesTest(AnswerTestingTest):
+    _type_name = "PixelizedProjectionValues"
+    _attrs = ("field", "axis", "weight_field")
+
+    def __init__(self, pf_fn, axis, field, weight_field = None,
+                 obj_type = None):
+        super(PixelizedProjectionValuesTest, self).__init__(pf_fn)
+        self.axis = axis
+        self.field = field
+        self.weight_field = field
+        self.obj_type = obj_type
+
+    def run(self):
+        if self.obj_type is not None:
+            obj = self.create_obj(self.pf, self.obj_type)
+        else:
+            obj = None
+        proj = self.pf.h.proj(self.axis, self.field,
+                              weight_field=self.weight_field,
+                              data_source = obj)
+        frb = proj.to_frb((1.0, 'unitary'), 256)
+        frb[self.field]
+        frb[self.weight_field]
+        d = frb.data
+        d.update( dict( (("%s_sum" % f, proj[f].sum(dtype="float64"))
+                         for f in proj.field_data.keys()) ) )
+        return d
+
+    def compare(self, new_result, old_result):
+        assert(len(new_result) == len(old_result))
+        for k in new_result:
+            assert (k in old_result)
+        for k in new_result:
+            assert_rel_equal(new_result[k], old_result[k], 10)
 
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
@@ -319,7 +355,7 @@ def requires_pf(pf_fn):
     else:
         return ftrue
 
-def standard_patch_amr(pf_fn, fields):
+def small_patch_amr(pf_fn, fields):
     if not can_run_pf(pf_fn): return
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     yield GridHierarchyTest(pf_fn)
@@ -334,3 +370,17 @@ def standard_patch_amr(pf_fn, fields):
                         ds)
                 yield FieldValuesTest(
                         pf_fn, field, ds)
+
+def big_patch_amr(pf_fn, fields):
+    if not can_run_pf(pf_fn): return
+    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    yield GridHierarchyTest(pf_fn)
+    yield ParentageRelationshipsTest(pf_fn)
+    for field in fields:
+        yield GridValuesTest(pf_fn, field)
+        for axis in [0, 1, 2]:
+            for ds in dso:
+                for weight_field in [None, "Density"]:
+                    yield PixelizedProjectionValuesTest(
+                        pf_fn, axis, field, weight_field,
+                        ds)
