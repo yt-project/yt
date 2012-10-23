@@ -161,8 +161,30 @@ class GridGeometryHandler(GeometryHandler):
         for unit in u:
             print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
 
-    def find_max(self, field):
-        raise NotImplementedError
+    def find_max(self, field, finest_levels = 3):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if (field, finest_levels) in self._max_locations:
+            return self._max_locations[(field, finest_levels)]
+        mv, pos = self.find_max_cell_location(field, finest_levels)
+        self._max_locations[(field, finest_levels)] = (mv, pos)
+        return mv, pos
+
+    def find_max_cell_location(self, field, finest_levels = 3):
+        if finest_levels is not False:
+            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
+            source = self.data_collection([0.0]*3, self.grids[gi])
+        else:
+            source = self.all_data()
+        mylog.debug("Searching for maximum value of %s", field)
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        self.parameters["Max%sValue" % (field)] = max_val
+        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        return max_val, np.array((mx,my,mz), dtype='float64')
 
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
