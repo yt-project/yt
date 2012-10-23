@@ -3502,10 +3502,7 @@ class AMRSphereBase(AMR3DData):
         for gi, g in enumerate(grids): self._grids[gi] = g
 
     def _is_fully_enclosed(self, grid):
-        r = np.abs(grid._corners - self.center)
-        r = np.minimum(r, np.abs(self.DW[None,:]-r))
-        corner_radius = np.sqrt((r**2.0).sum(axis=1))
-        return np.all(corner_radius <= self.radius)
+        return False
 
     @restore_grid_state # Pains me not to decorate with cache_mask here
     def _get_cut_mask(self, grid, field=None):
