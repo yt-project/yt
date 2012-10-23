@@ -294,7 +294,7 @@ class ContourCallback(PlotCallback):
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
         if self.clim is not None: 
-            self.ncont = np.linspace(self.clim[0], self.clim[1], ncont)
+            self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
         
         cset = plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
