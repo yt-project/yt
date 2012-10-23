@@ -170,4 +170,6 @@ def setup_package():
     return
 
 if __name__ == '__main__':
+    if "nosetests" in sys.argv: 
+        from yt.utilities.answer_testing.plugin import AnswerTesting
     setup_package()
