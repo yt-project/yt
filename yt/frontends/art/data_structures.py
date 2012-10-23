@@ -570,7 +570,7 @@ class ARTHierarchy(AMRHierarchy):
             do_stars = (self.pf.only_particle_type is None) or \
                        (self.pf.only_particle_type == -1) or \
                        (self.pf.only_particle_type == len(lspecies))
-            self.pf.do_stars = False
+            self.pf.do_stars = do_stars 
             if self.pf.file_star_data and do_stars: 
                 nstars_pa = nstars
                 (nstars_rs,), mass, imass, tbirth, metallicity1, metallicity2, \
