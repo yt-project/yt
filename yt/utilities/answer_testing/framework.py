@@ -28,17 +28,80 @@ import os
 import hashlib
 import contextlib
 import urllib2
+import cPickle
 
-from .plugin import AnswerTesting, run_big_data
+from nose.plugins import Plugin
 from yt.testing import *
 from yt.config import ytcfg
 from yt.mods import *
 import cPickle
 
-mylog = logging.getLogger('nose.plugins.answer-testing')
+from yt.utilities.logger import disable_stream_logging
+from yt.utilities.command_line import get_yt_version
 
-_latest = "SomeValue"
+mylog = logging.getLogger('nose.plugins.answer-testing')
+run_big_data = False
+
+_latest = "gold001"
 _url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
+
+class AnswerTesting(Plugin):
+    name = "answer-testing"
+
+    def options(self, parser, env=os.environ):
+        super(AnswerTesting, self).options(parser, env=env)
+        parser.add_option("--answer-compare", dest="compare_name",
+            default=_latest, help="The name against which we will compare")
+        parser.add_option("--answer-big-data", dest="big_data",
+            default=False, help="Should we run against big data, too?",
+            action="store_true")
+        parser.add_option("--answer-name", dest="this_name",
+            default=None,
+            help="The name we'll call this set of tests")
+        parser.add_option("--answer-store", dest="store_results",
+            default=False, action="store_true")
+
+    def configure(self, options, conf):
+        super(AnswerTesting, self).configure(options, conf)
+        if not self.enabled:
+            return
+        disable_stream_logging()
+        try:
+            my_hash = get_yt_version()
+        except:
+            my_hash = "UNKNOWN%s" % (time.time())
+        if options.this_name is None: options.this_name = my_hash
+        from yt.config import ytcfg
+        ytcfg["yt","__withintesting"] = "True"
+        AnswerTestingTest.result_storage = \
+            self.result_storage = defaultdict(dict)
+        if options.compare_name is not None:
+            # Now we grab from our S3 store
+            if options.compare_name == "latest":
+                options.compare_name = _latest
+            AnswerTestingTest.reference_storage = \
+                AnswerTestOpener(options.compare_name)
+        self.answer_name = options.this_name
+        self.store_results = options.store_results
+        global run_big_data
+        run_big_data = options.big_data
+
+    def finalize(self, result):
+        # This is where we dump our result storage up to Amazon, if we are able
+        # to.
+        if self.store_results is False: return
+        import boto
+        from boto.s3.key import Key
+        c = boto.connect_s3()
+        bucket = c.get_bucket("yt-answer-tests")
+        for pf_name in self.result_storage:
+            rs = cPickle.dumps(self.result_storage[pf_name])
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
+            if tk is not None: tk.delete()
+            k = Key(bucket)
+            k.key = "%s_%s" % (self.answer_name, pf_name)
+            k.set_contents_from_string(rs)
+            k.set_acl("public-read")
 
 class AnswerTestOpener(object):
     def __init__(self, reference_name):

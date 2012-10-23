@@ -156,7 +156,7 @@ def setup_package():
                             'yt = yt.utilities.command_line:run_main',
                       ],
                       'nose.plugins.0.10': [
-                            'answer-testing = yt.utilities.answer_testing.api:AnswerTesting'
+                            'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
                       ]
         },
         author="Matthew J. Turk",
@@ -170,6 +170,4 @@ def setup_package():
     return
 
 if __name__ == '__main__':
-    if "nosetests" in sys.argv: 
-        from yt.utilities.answer_testing.plugin import AnswerTesting
     setup_package()
