@@ -2,11 +2,15 @@ from yt.testing import *
 from yt.data_objects.profiles import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D
 
+def setup():
+    from yt.config import ytcfg
+    ytcfg["yt","__withintesting"] = "True"
+
 def test_projection():
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
         # parallelism isn't broken
-        pf = fake_random_pf(64, nprocs = 1)
+        pf = fake_random_pf(64, nprocs = nprocs)
         dims = pf.domain_dimensions
         xn, yn, zn = pf.domain_dimensions
         xi, yi, zi = pf.domain_left_edge + 1.0/(pf.domain_dimensions * 2)

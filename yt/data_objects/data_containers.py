@@ -237,6 +237,7 @@ class AMRData(object):
     def __set_default_field_parameters(self):
         self.set_field_parameter("center",np.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
+        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
 
     def _set_center(self, center):
         if center is None:
@@ -3658,7 +3659,7 @@ class AMREllipsoidBase(AMR3DData):
 class AMRCoveringGridBase(AMR3DData):
     _spatial = True
     _type_name = "covering_grid"
-    _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
+    _con_args = ('level', 'left_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """A 3D region with all data extracted to a single, specified
@@ -3685,8 +3686,9 @@ class AMRCoveringGridBase(AMR3DData):
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
-        self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
-        self.ActiveDimensions = np.array(dims,dtype='int32')
+        rdx = self.pf.domain_dimensions*self.pf.refine_by**level
+        self.dds = self.pf.domain_width/rdx.astype("float64")
+        self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar

@@ -31,7 +31,7 @@ import gc
 from yt.funcs import *
 from yt.utilities.performance_counters import yt_counters, time_function
 try:
-    from yt.utilities.kdtree import \
+    from yt.utilities.kdtree.api import \
         chainHOP_tags_dens, \
         create_tree, fKD, find_nn_nearest_neighbors, \
         free_tree, find_chunk_nearest_neighbors
