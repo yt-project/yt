@@ -231,6 +231,8 @@ class ContourCallback(PlotCallback):
         if plot_args is None: plot_args = {'colors':'k'}
         self.plot_args = plot_args
         self.label = label
+        if label_args is None:
+            label_args = {}
         self.label_args = label_args
 
     def __call__(self, plot):
