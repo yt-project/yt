@@ -74,6 +74,9 @@ class AnswerTesting(Plugin):
             my_hash = "UNKNOWN%s" % (time.time())
         parser.add_option("--answer-compare", dest="compare_name",
             default=None, help="The name against which we will compare")
+        parser.add_option("--answer-big-data", dest="big_data",
+            default=False, help="Should we run against big data, too?",
+            action="store_true")
         parser.add_option("--answer-name", dest="this_name",
             default=my_hash,
             help="The name we'll call this set of tests")
@@ -97,6 +100,8 @@ class AnswerTesting(Plugin):
                 AnswerTestOpener(options.compare_name)
         self.answer_name = options.this_name
         self.store_results = options.store_results
+        global run_big_data
+        run_big_data = options.big_data
 
     def finalize(self, result):
         # This is where we dump our result storage up to Amazon, if we are able
@@ -148,7 +153,7 @@ class AnswerTestingTest(object):
         if self.reference_storage is not None:
             dd = self.reference_storage.get(str(self.pf))
             if dd is None: raise YTNoOldAnswer()
-            ov = dd[self.descrption]
+            ov = dd[self.description]
             self.compare(nv, ov)
         else:
             ov = None
@@ -345,12 +350,15 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
-def requires_pf(pf_fn):
+def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
-    if not can_run_pf(pf_fn):
+    global run_big_data
+    if run_big_data == False and big_data == True:
+        return ffalse
+    elif not can_run_pf(pf_fn):
         return ffalse
     else:
         return ftrue

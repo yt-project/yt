@@ -43,7 +43,7 @@ def test_moving7():
         yield test
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-@requires_pf(g30)
+@requires_pf(g30, big_data=True)
 def test_galaxy0030():
     pf = data_dir_load(g30)
     yield assert_equal, str(pf), "galaxy0030"
