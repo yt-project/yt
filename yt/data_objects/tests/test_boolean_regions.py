@@ -1,5 +1,5 @@
 from yt.testing import *
-from yt.mods import *
+from yt.data_objects.api import add_field
 
 def setup():
     from yt.config import ytcfg
