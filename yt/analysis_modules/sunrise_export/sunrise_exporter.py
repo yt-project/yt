@@ -75,7 +75,6 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
     http://sunrise.googlecode.com/ for more information.
 
     """
-
     fc = np.array(fc)
     fwidth = np.array(fwidth)
     
@@ -192,16 +191,22 @@ def domains_from_halos(pf,halo_list,frvir=0.15):
     return domains_list
 
 def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
-    add_fields() #add the metal mass field that sunrise wants
+    if dd is None:
+        #we keep passing dd around to not regenerate the data all the time
+        dd = pf.h.all_data()
+    try:
+        dd['MetalMass']
+    except KeyError:
+        add_fields() #add the metal mass field that sunrise wants
+    def _temp_times_mass(field, data):
+        return data["Temperature"]*data["CellMassMsun"]
+    add_field("TemperatureTimesCellMassMsun", function=_temp_times_mass)
     fields = ["CellMassMsun","TemperatureTimesCellMassMsun", 
               "MetalMass","CellVolumeCode"]
     
     #gather the field data from octs
     pbar = get_pbar("Retrieving field data",len(fields))
     field_data = [] 
-    if dd is None:
-        #we keep passing dd around to not regenerate the data all the time
-        dd = pf.h.all_data()
     for fi,f in enumerate(fields):
         field_data += dd[f],
         pbar.update(fi)
@@ -249,6 +254,7 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     output   = np.zeros((o_length,len(fields)), dtype='float64')
     refined  = np.zeros(r_length, dtype='int32')
     levels   = np.zeros(r_length, dtype='int32')
+    ids      = np.zeros(r_length, dtype='int32')
     pos = position()
     hs       = hilbert_state()
     start_time = time.time()
@@ -257,7 +263,7 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
             c = center*pf['kpc']
         else:
             c = ile*1.0/pf.domain_dimensions*pf['kpc']
-        printing = lambda x: print_oct(x,pf['kpc'],c)
+        printing = lambda x: print_oct(x)
     else:
         printing = None
     pbar = get_pbar("Building Hilbert DFO octree",len(refined))
@@ -269,6 +275,7 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
             output,refined,levels,
             grids,
             start_level,
+            ids,
             debug=printing,
             tracker=pbar)
     pbar.finish()
@@ -286,6 +293,7 @@ def print_oct(data,nd=None,nc=None):
     ci = data['cell_index']
     l  = data['level']
     g  = data['grid']
+    o  = g.offset
     fle = g.left_edges+g.dx*ci
     fre = g.left_edges+g.dx*(ci+1)
     if nd is not None:
@@ -294,13 +302,14 @@ def print_oct(data,nd=None,nc=None):
         if nc is not None:
             fle -= nc
             fre -= nc
-    txt  = '%1i '
-    txt += '%1.3f '*3+'- '
-    txt += '%1.3f '*3
+    txt  = '%+1i '
+    txt += '%+1i '
+    txt += '%+1.3f '*3+'- '
+    txt += '%+1.3f '*3
     if l<2:
-        print txt%((l,)+tuple(fle)+tuple(fre))
+        print txt%((l,)+(o,)+tuple(fle)+tuple(fre))
 
-def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the grids[grid_index]
+def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the [grid_index]
                             pos, #the output hydro data position and refinement position
                             grid,  #grid that this oct lives on (not its children)
                             hilbert,  #the hilbert state
@@ -309,6 +318,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
                             levels, #For a given Oct, what is the level
                             grids, #list of all patch grids available to us
                             level, #starting level of the oct (not the children)
+                            ids, #record the oct ID
                             debug=None,tracker=True):
     if tracker is not None:
         if pos.refined_pos%1000 == 500 : tracker.update(pos.refined_pos)
@@ -316,9 +326,10 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
         debug(vars())
     child_grid_index = grid.child_indices[cell_index[0],cell_index[1],cell_index[2]]
     #record the refinement state
-    levels[pos.output_pos]  = level
+    levels[pos.refined_pos]  = level
     is_leaf = (child_grid_index==-1) and (level>0)
     refined[pos.refined_pos] = not is_leaf #True is oct, False is leaf
+    ids[pos.refined_pos] = child_grid_index #True is oct, False is leaf
     pos.refined_pos+= 1 
     if is_leaf: #never subdivide if we are on a superlevel
         #then we have hit a leaf cell; write it out
@@ -340,13 +351,16 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
             #denote each of the 8 octs
             if level < 0:
                 subgrid = grid #we don't actually descend if we're a superlevel
-                child_ile = cell_index + na.array(vertex)*2**(-level)
+                #child_ile = cell_index + np.array(vertex)*2**(-level)
+                child_ile = cell_index + np.array(vertex)*2**(-(level+1))
+                child_ile = child_ile.astype('int')
             else:
                 child_ile = subgrid_ile+np.array(vertex)
                 child_ile = child_ile.astype('int')
 
             RecurseOctreeDepthFirstHilbert(child_ile,pos,
-                subgrid,hilbert_child,output,refined,levels,grids,level+1,
+                subgrid,hilbert_child,output,refined,levels,grids,
+                level+1,ids = ids,
                 debug=debug,tracker=tracker)
 
 
@@ -362,8 +376,6 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
     for i,a in enumerate('xyz'):
         st_table.header.update("min%s" % a, fle[i] * pf['kpc'])
         st_table.header.update("max%s" % a, fre[i] * pf['kpc'])
-        #st_table.header.update("min%s" % a, 0) #WARNING: this is for debugging
-        #st_table.header.update("max%s" % a, 2) #
         st_table.header.update("n%s" % a, fdx[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "OCTREE", "Type of grid subdivision")
@@ -524,8 +536,7 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     if metallicity is None:
         #this should be in dimensionless units, metals mass / particle mass
         metallicity = dd["particle_metallicity"][idx]
-        #metallicity *=0.0198
-        #print 'WARNING: multiplying metallicirt by 0.0198'
+        assert np.all(metallicity>0.0)
     if radius is None:
         radius = initial_mass*0.0+10.0/1000.0 #10pc radius
     formation_time = pf.current_time*pf['years']-age
@@ -540,13 +551,10 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     col_list.append(pyfits.Column("radius", format="D", array=radius, unit="kpc"))
     col_list.append(pyfits.Column("mass", format="D", array=current_mass, unit="Msun"))
     col_list.append(pyfits.Column("age", format="D", array=age,unit='yr'))
-    #col_list.append(pyfits.Column("age_l", format="D", array=age, unit = 'yr'))
     #For particles, Sunrise takes 
     #the dimensionless metallicity, not the mass of the metals
     col_list.append(pyfits.Column("metallicity", format="D",
         array=metallicity,unit="Msun")) 
-    #col_list.append(pyfits.Column("L_bol", format="D",
-    #    array=np.zeros(current_mass.size)))
     
     #make the table
     cols = pyfits.ColDefs(col_list)
@@ -565,10 +573,8 @@ def add_fields():
         
     def _convMetalMass(data):
         return 1.0
-    
     add_field("MetalMass", function=_MetalMass,
               convert_function=_convMetalMass)
-
     def _initial_mass_cen_ostriker(field, data):
         # SFR in a cell. This assumes stars were created by the Cen & Ostriker algorithm
         # Check Grid_AddToDiskProfile.C and star_maker7.src
@@ -585,9 +591,6 @@ def add_fields():
 
     add_field("InitialMassCenOstriker", function=_initial_mass_cen_ostriker)
 
-    def _temp_times_mass(field, data):
-        return data["Temperature"]*data["CellMassMsun"]
-    add_field("TemperatureTimesCellMassMsun", function=_temp_times_mass)
 
 class position:
     def __init__(self):
