@@ -86,6 +86,9 @@ def test_all_fields():
         if field.startswith("particle"): continue
         if field.startswith("CIC"): continue
         if field.startswith("WeakLensingConvergence"): continue
+        if any(hasattr(v, "ghost_zones")
+               for v in FieldInfo[field].validators):
+            continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
             yield TestFieldAccess(field, nproc)
