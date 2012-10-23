@@ -161,6 +161,9 @@ class GridGeometryHandler(GeometryHandler):
         for unit in u:
             print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
 
+    def find_max(self, field):
+        raise NotImplementedError
+
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
 

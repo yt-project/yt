@@ -885,69 +885,22 @@ class YTRegionBase(YTSelectionContainer3D):
         self.left_edge = left_edge
         self.right_edge = right_edge
 
-class YTGridCollectionBase(YTSelectionContainer3D):
+class YTDataCollectionBase(YTSelectionContainer3D):
     """
-    An arbitrary selection of grids, within which we accept all points.
+    An arbitrary selection of chunks of data, within which we accept all
+    points.
     """
-    _type_name = "grid_collection"
-    _con_args = ("center", "grid_list")
-    def __init__(self, center, grid_list, fields = None,
-                 pf = None, **kwargs):
+    _type_name = "data_collection"
+    _con_args = ("obj_list",)
+    def __init__(self, center, obj_list, pf = None, field_parameters = None):
         """
-        By selecting an arbitrary *grid_list*, we can act on those grids.
+        By selecting an arbitrary *object_list*, we can act on those grids.
         Child cells are not returned.
         """
-        YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
-        self._grids = grid_list
-        self.grid_list = self._grids
-
-    def _get_list_of_grids(self):
-        pass
-
-    def _is_fully_enclosed(self, grid):
-        return True
-
-    def _get_cut_mask(self, grid):
-        return np.ones(grid.ActiveDimensions, dtype='bool')
-
-    def _get_point_indices(self, grid, use_child_mask=True):
-        k = np.ones(grid.ActiveDimensions, dtype='bool')
-        if use_child_mask:
-            k[grid.child_indices] = False
-        pointI = np.where(k == True)
-        return pointI
-
-class YTGridCollectionMaxLevelBase(YTSelectionContainer3D):
-    _type_name = "grid_collection_max_level"
-    _con_args = ("center", "max_level")
-    def __init__(self, center, max_level, fields = None,
-                 pf = None, **kwargs):
-        """
-        By selecting an arbitrary *max_level*, we can act on those grids.
-        Child cells are masked when the level of the grid is below the max
-        level.
-        """
-        AMR3DData.__init__(self, center, fields, pf, **kwargs)
-        self.max_level = max_level
-        self._refresh_data()
-
-    def _get_list_of_grids(self):
-        if self._grids is not None: return
-        gi = (self.pf.h.grid_levels <= self.max_level)[:,0]
-        self._grids = self.pf.h.grids[gi]
-
-    def _is_fully_enclosed(self, grid):
-        return True
-
-    def _get_cut_mask(self, grid):
-        return np.ones(grid.ActiveDimensions, dtype='bool')
-
-    def _get_point_indices(self, grid, use_child_mask=True):
-        k = np.ones(grid.ActiveDimensions, dtype='bool')
-        if use_child_mask and grid.Level < self.max_level:
-            k[grid.child_indices] = False
-        pointI = np.where(k == True)
-        return pointI
+        YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
+        self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
+                                dtype="int64")
+        self._obj_list = obj_list
 
 class YTSphereBase(YTSelectionContainer3D):
     """
