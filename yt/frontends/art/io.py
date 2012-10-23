@@ -150,7 +150,7 @@ class IOHandlerART(BaseIOHandler):
         psi = grid.pf.particle_star_index
         if field not in field_dict.keys() and starfield in field_dict.keys():
             particle_field = np.zeros(grid.particle_mass.shape)                    
-            particle_field[grid.particle_id==psi]=field_dict[starfield]
+            particle_field[grid.particle_type==psi]=field_dict[starfield]
             return particle_field
         else:
             return field_dict[field]
