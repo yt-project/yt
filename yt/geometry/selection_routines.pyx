@@ -675,6 +675,8 @@ ortho_ray_selector = OrthoRaySelector
 cdef struct IntegrationAccumulator:
     np.float64_t *t
     np.float64_t *dt
+    np.uint8_t *child_mask
+    int hits
 
 cdef void dt_sampler(
              VolumeContainer *vc,
@@ -686,6 +688,9 @@ cdef void dt_sampler(
              void *data) nogil:
     cdef IntegrationAccumulator *am = <IntegrationAccumulator *> data
     cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
+    if am.child_mask[di] == 0 or enter_t == exit_t:
+        return
+    am.hits += 1
     am.t[di] = enter_t
     am.dt[di] = (exit_t - enter_t)
 
@@ -719,7 +724,8 @@ cdef class RaySelector(SelectorObject):
             if left_edge[i1] <= vs[i1] and \
                right_edge[i1] >= vs[i1] and \
                left_edge[i2] <= vs[i2] and \
-               right_edge[i2] >= vs[i2]:
+               right_edge[i2] >= vs[i2] and \
+               0.0 <= t <= 1.0:
                 return 1
             t = (right_edge[ax] - self.p1[ax])/self.vec[ax]
             for i in range(3):
@@ -727,7 +733,8 @@ cdef class RaySelector(SelectorObject):
             if left_edge[i1] <= vs[i1] and \
                right_edge[i1] >= vs[i1] and \
                left_edge[i2] <= vs[i2] and \
-               right_edge[i2] >= vs[i2]:
+               right_edge[i2] >= vs[i2] and\
+               0.0 <= t <= 1.0:
                 return 1
         # if the point is fully enclosed, we count the grid
         if left_edge[0] <= self.p1[0] and \
@@ -757,47 +764,69 @@ cdef class RaySelector(SelectorObject):
         cdef VolumeContainer vc
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
-        dt = np.zeros(gobj.ActiveDimensions, dtype="float64")
+        dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
         child_mask = gobj.child_mask
         ia.t = <np.float64_t *> t.data
         ia.dt = <np.float64_t *> dt.data
+        ia.child_mask = <np.uint8_t *> child_mask.data
+        ia.hits = 0
         for i in range(3):
             vc.left_edge[i] = gobj.LeftEdge[i]
             vc.right_edge[i] = gobj.RightEdge[i]
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
-            vc.dims[i] = dt.shape[0]
+            vc.dims[i] = dt.shape[i]
         walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
-                    if dt[i,j,k] > 0.0 and child_mask[i,j,k] == 1:
+                    if dt[i,j,k] >= 0:
                         mask[i,j,k] = 1
         return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        return self.fill_mask(gobj).sum()
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def get_dt(self, gobj):
         cdef np.ndarray[np.float64_t, ndim=3] t, dt
+        cdef np.ndarray[np.float64_t, ndim=1] tr, dtr
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef int i
+        cdef int i, j, k, ni
         cdef IntegrationAccumulator ia
         cdef VolumeContainer vc
-        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
-        dt = np.zeros(gobj.ActiveDimensions, dtype="float64")
+        dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
         child_mask = gobj.child_mask
         ia.t = <np.float64_t *> t.data
         ia.dt = <np.float64_t *> dt.data
+        ia.child_mask = <np.uint8_t *> child_mask.data
+        ia.hits = 0
         for i in range(3):
             vc.left_edge[i] = gobj.LeftEdge[i]
             vc.right_edge[i] = gobj.RightEdge[i]
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
-            vc.dims[i] = dt.shape[0]
+            vc.dims[i] = dt.shape[i]
         walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
-        return dt, t
+        tr = np.zeros(ia.hits, dtype="float64")
+        dtr = np.zeros(ia.hits, dtype="float64")
+        ni = 0
+        for i in range(dt.shape[0]):
+            for j in range(dt.shape[1]):
+                for k in range(dt.shape[2]):
+                    if dt[i,j,k] >= 0:
+                        tr[ni] = t[i,j,k]
+                        dtr[ni] = dt[i,j,k]
+                        ni += 1
+        if not (ni == ia.hits):
+            print ni, ia.hits
+        return dtr, tr
     
 ray_selector = RaySelector
 
