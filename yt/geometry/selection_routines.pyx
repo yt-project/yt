@@ -232,22 +232,6 @@ cdef class SelectorObject:
                             count += child_mask[i,j,k]
         return count
 
-    def walk_ray(self, gobj):
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        child_mask = gobj.child_mask
-        cdef np.ndarray[np.uint8_t, ndim=3] mask 
-        cdef int ind[3][2]
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef int i, j, k
-        cdef np.float64_t dds[3], pos[3]
-        for i in range(3):
-            dds[i] = odds[i]
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
-        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)

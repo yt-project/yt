@@ -542,6 +542,12 @@ class AMRGridPatch(object):
         coords[:] = self.Level
         return coords
 
+    def tcoords(self, dobj):
+        mask = self.select(dobj.selector)
+        if mask is None: return np.empty(0, dtype='int64')
+        dt, t = dobj.selector.get_dt(self)
+        return dt[mask], t[mask]
+
     def select(self, selector):
         if id(selector) == self._last_selector_id:
             return self._last_mask

@@ -102,7 +102,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
 class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
-    sort_by = 't'
+    _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, pf=None, field_parameters=None):
         """ 
         This is an arbitrarily-aligned ray cast through the entire domain, at a
@@ -148,9 +148,9 @@ class YTRayBase(YTSelectionContainer1D):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
         if field == "dts":
-            raise NotImplementedError
+            return self._current_chunk.dtcoords
         elif field == "t":
-            raise NotImplementedError
+            return self._current_chunk.tcoords
         else:
             raise KeyError(field)
 

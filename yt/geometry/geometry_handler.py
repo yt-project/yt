@@ -447,3 +447,27 @@ class YTDataChunk(object):
             ind += c.size
         return ci
 
+    _tcoords = None
+    @property
+    def tcoords(self):
+        if self._tcoords is None:
+            self.dtcoords
+        return self._tcoords
+
+    _dtcoords = None
+    @property
+    def dtcoords(self):
+        if self._dtcoords is not None: return self._dtcoords
+        ct = np.empty(self.data_size, dtype='float64')
+        cdt = np.empty(self.data_size, dtype='float64')
+        self._tcoords = ct
+        self._dtcoords = cdt
+        if self.data_size == 0: return self._dtcoords
+        ind = 0
+        for obj in self.objs:
+            gdt, gt = obj.tcoords(self.dobj)
+            if gt.shape == 0: continue
+            ct[ind:ind+gt.size] = gt
+            cdt[ind:ind+gdt.size] = gdt
+            ind += gt.size
+        return cdt
