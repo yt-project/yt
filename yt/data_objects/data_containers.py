@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
-Author: Geoffrey So <gsiisg@gmail.com> (AMREllipsoidBase)
+Author: Geoffrey So <gsiisg@gmail.com>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
