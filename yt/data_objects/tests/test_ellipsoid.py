@@ -15,7 +15,7 @@ def test_ellipsoid():
         min_dx = 2.0/pf.domain_dimensions
         ABC = np.random.random((3, 12)) * 0.1
         e0s = np.random.random((3, 12))
-        tilts = np.random.random((3, 12))
+        tilts = np.random.random(12)
         ABC[:,0] = 0.1
         for i in range(12):
             for c in cs:
@@ -24,7 +24,7 @@ def test_ellipsoid():
                 B = max(B, min_dx[1])
                 C = max(C, min_dx[2])
                 e0 = e0s[:,i]
-                tilt = tilts[:,i]
+                tilt = tilts[i]
                 ell = pf.h.ellipsoid(c, A, B, C, e0, tilt)
                 yield assert_equal, np.all(ell["Radius"] <= A), True
                 pos = np.array([ell[ax] for ax in 'xyz'])
