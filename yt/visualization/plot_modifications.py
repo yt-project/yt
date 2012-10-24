@@ -450,30 +450,6 @@ class LabelCallback(PlotCallback):
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
 
-class TimeCallback(PlotCallback):
-    _type_name = "time"
-    def __init__(self, format_code='10.7e'):
-        """
-        This annotates the plot with the current simulation time.
-        For now, the time is displayed in seconds.
-        *format_code* can be optionally set, allowing a custom 
-        c-style format code for the time display.
-        """
-        self.format_code = format_code
-        PlotCallback.__init__(self)
-    
-    def __call__(self, plot):
-        current_time = plot.pf.current_time/plot.pf['Time']
-        timestring = format(current_time,self.format_code)
-        base = timestring[:timestring.find('e')]
-        exponent = timestring[timestring.find('e')+1:]
-        if exponent[0] == '+':
-            exponent = exponent[1:]
-        timestring = r'$t\/=\/'+base+''+r'\times\,10^{'+exponent+r'}\, \rm{s}$'
-        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
-        at = AnchoredText(timestring, prop=dict(size=12), frameon=True, loc=4)
-        plot._axes.add_artist(at)
-
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
     good_u = None
