@@ -23,10 +23,12 @@ def test_ellipsoid():
                 tilt = tilts[:,i]
                 ell = pf.h.ellipsoid(c, A, B, C, e0, tilt)
                 yield assert_equal, np.all(ell["Radius"] <= A), True
+                all_in = True
                 for i in xrange(ell["Radius"].size):
                     pos = np.array([ell[ax][i] for ax in 'xyz'])
                     v = 0.0
                     v += (pos * ell._e0).sum() / ell._A
                     v += (pos * ell._e1).sum() / ell._B
                     v += (pos * ell._e2).sum() / ell._C
-                    yield assert_equal, (v <= 1.0), True
+                    all_in = (v <= 1.0) and all_in
+                yield assert_equal, all_in, True
