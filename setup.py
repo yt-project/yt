@@ -156,7 +156,7 @@ def setup_package():
                             'yt = yt.utilities.command_line:run_main',
                       ],
                       'nose.plugins.0.10': [
-                            'answer-testing = yt.utilities.answer_testing.api:AnswerTesting'
+                            'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
                       ]
         },
         author="Matthew J. Turk",

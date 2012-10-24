@@ -28,20 +28,80 @@ import os
 import hashlib
 import contextlib
 import urllib2
+import cPickle
 
-from yt.testing import *
-from yt.utilities.command_line import get_yt_version
-from yt.config import ytcfg
-from yt.utilities.logger import \
-    disable_stream_logging
 from nose.plugins import Plugin
+from yt.testing import *
+from yt.config import ytcfg
 from yt.mods import *
 import cPickle
 
-mylog = logging.getLogger('nose.plugins.answer-testing')
+from yt.utilities.logger import disable_stream_logging
+from yt.utilities.command_line import get_yt_version
 
-_latest = "SomeValue"
+mylog = logging.getLogger('nose.plugins.answer-testing')
+run_big_data = False
+
+_latest = "gold001"
 _url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
+
+class AnswerTesting(Plugin):
+    name = "answer-testing"
+
+    def options(self, parser, env=os.environ):
+        super(AnswerTesting, self).options(parser, env=env)
+        parser.add_option("--answer-compare", dest="compare_name",
+            default=_latest, help="The name against which we will compare")
+        parser.add_option("--answer-big-data", dest="big_data",
+            default=False, help="Should we run against big data, too?",
+            action="store_true")
+        parser.add_option("--answer-name", dest="this_name",
+            default=None,
+            help="The name we'll call this set of tests")
+        parser.add_option("--answer-store", dest="store_results",
+            default=False, action="store_true")
+
+    def configure(self, options, conf):
+        super(AnswerTesting, self).configure(options, conf)
+        if not self.enabled:
+            return
+        disable_stream_logging()
+        try:
+            my_hash = get_yt_version()
+        except:
+            my_hash = "UNKNOWN%s" % (time.time())
+        if options.this_name is None: options.this_name = my_hash
+        from yt.config import ytcfg
+        ytcfg["yt","__withintesting"] = "True"
+        AnswerTestingTest.result_storage = \
+            self.result_storage = defaultdict(dict)
+        if options.compare_name is not None:
+            # Now we grab from our S3 store
+            if options.compare_name == "latest":
+                options.compare_name = _latest
+            AnswerTestingTest.reference_storage = \
+                AnswerTestOpener(options.compare_name)
+        self.answer_name = options.this_name
+        self.store_results = options.store_results
+        global run_big_data
+        run_big_data = options.big_data
+
+    def finalize(self, result):
+        # This is where we dump our result storage up to Amazon, if we are able
+        # to.
+        if self.store_results is False: return
+        import boto
+        from boto.s3.key import Key
+        c = boto.connect_s3()
+        bucket = c.get_bucket("yt-answer-tests")
+        for pf_name in self.result_storage:
+            rs = cPickle.dumps(self.result_storage[pf_name])
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
+            if tk is not None: tk.delete()
+            k = Key(bucket)
+            k.key = "%s_%s" % (self.answer_name, pf_name)
+            k.set_contents_from_string(rs)
+            k.set_acl("public-read")
 
 class AnswerTestOpener(object):
     def __init__(self, reference_name):
@@ -62,58 +122,6 @@ class AnswerTestOpener(object):
             rv = default
         self.cache[pf_name] = rv
         return rv
-
-class AnswerTesting(Plugin):
-    name = "answer-testing"
-
-    def options(self, parser, env=os.environ):
-        super(AnswerTesting, self).options(parser, env=env)
-        try:
-            my_hash = get_yt_version()
-        except:
-            my_hash = "UNKNOWN%s" % (time.time())
-        parser.add_option("--answer-compare", dest="compare_name",
-            default=None, help="The name against which we will compare")
-        parser.add_option("--answer-name", dest="this_name",
-            default=my_hash,
-            help="The name we'll call this set of tests")
-        parser.add_option("--answer-store", dest="store_results",
-            default=False, action="store_true")
-
-    def configure(self, options, conf):
-        super(AnswerTesting, self).configure(options, conf)
-        if not self.enabled:
-            return
-        disable_stream_logging()
-        from yt.config import ytcfg
-        ytcfg["yt","__withintesting"] = "True"
-        AnswerTestingTest.result_storage = \
-            self.result_storage = defaultdict(dict)
-        if options.compare_name is not None:
-            # Now we grab from our S3 store
-            if options.compare_name == "latest":
-                options.compare_name = _latest
-            AnswerTestingTest.reference_storage = \
-                AnswerTestOpener(options.compare_name)
-        self.answer_name = options.this_name
-        self.store_results = options.store_results
-
-    def finalize(self, result):
-        # This is where we dump our result storage up to Amazon, if we are able
-        # to.
-        if self.store_results is False: return
-        import boto
-        from boto.s3.key import Key
-        c = boto.connect_s3()
-        bucket = c.get_bucket("yt-answer-tests")
-        for pf_name in self.result_storage:
-            rs = cPickle.dumps(self.result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
-            if tk is not None: tk.delete()
-            k = Key(bucket)
-            k.key = "%s_%s" % (self.answer_name, pf_name)
-            k.set_contents_from_string(rs)
-            k.set_acl("public-read")
 
 @contextlib.contextmanager
 def temp_cwd(cwd):
@@ -140,8 +148,6 @@ def data_dir_load(pf_fn):
 
 class AnswerTestingTest(object):
     reference_storage = None
-    result_storage = None
-    description = None
     def __init__(self, pf_fn):
         self.pf = data_dir_load(pf_fn)
 
@@ -150,11 +156,11 @@ class AnswerTestingTest(object):
         if self.reference_storage is not None:
             dd = self.reference_storage.get(str(self.pf))
             if dd is None: raise YTNoOldAnswer()
-            ov = dd[self.name]
+            ov = dd[self.description]
             self.compare(nv, ov)
         else:
             ov = None
-        self.result_storage[str(self.pf)][self.name] = nv
+        self.result_storage[str(self.pf)][self.description] = nv
 
     def compare(self, new_result, old_result):
         raise RuntimeError
@@ -191,7 +197,7 @@ class AnswerTestingTest(object):
         return self.pf.h.all_data()
 
     @property
-    def name(self):
+    def description(self):
         obj_type = getattr(self, "obj_type", None)
         if obj_type is None:
             oname = "all"
@@ -212,7 +218,10 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = self.create_obj(self.pf, self.obj_type)
-        return obj[self.field]
+        avg = obj.quantities["WeightedAverageQuantity"](self.field,
+                             weight="Ones")
+        (mi, ma), = obj.quantities["Extrema"](self.field)
+        return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
         assert_equal(new_result, old_result)
@@ -234,7 +243,7 @@ class ProjectionValuesTest(AnswerTestingTest):
             obj = self.create_obj(self.pf, self.obj_type)
         else:
             obj = None
-        proj = self.pf.h.proj(self.field, self.axis,
+        proj = self.pf.h.proj(self.field, self.axis, 
                               weight_field=self.weight_field,
                               data_source = obj)
         return proj.field_data
@@ -245,6 +254,41 @@ class ProjectionValuesTest(AnswerTestingTest):
             assert (k in old_result)
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
+
+class PixelizedProjectionValuesTest(AnswerTestingTest):
+    _type_name = "PixelizedProjectionValues"
+    _attrs = ("field", "axis", "weight_field")
+
+    def __init__(self, pf_fn, axis, field, weight_field = None,
+                 obj_type = None):
+        super(PixelizedProjectionValuesTest, self).__init__(pf_fn)
+        self.axis = axis
+        self.field = field
+        self.weight_field = field
+        self.obj_type = obj_type
+
+    def run(self):
+        if self.obj_type is not None:
+            obj = self.create_obj(self.pf, self.obj_type)
+        else:
+            obj = None
+        proj = self.pf.h.proj(self.field, self.axis, 
+                              weight_field=self.weight_field,
+                              data_source = obj)
+        frb = proj.to_frb((1.0, 'unitary'), 256)
+        frb[self.field]
+        frb[self.weight_field]
+        d = frb.data
+        d.update( dict( (("%s_sum" % f, proj[f].sum(dtype="float64"))
+                         for f in proj.field_data.keys()) ) )
+        return d
+
+    def compare(self, new_result, old_result):
+        assert(len(new_result) == len(old_result))
+        for k in new_result:
+            assert (k in old_result)
+        for k in new_result:
+            assert_rel_equal(new_result[k], old_result[k], 10)
 
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
@@ -309,17 +353,19 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
-def requires_pf(pf_fn):
+def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
-    if not can_run_pf(pf_fn):
+    if run_big_data == False and big_data == True:
+        return ffalse
+    elif not can_run_pf(pf_fn):
         return ffalse
     else:
         return ftrue
 
-def standard_patch_amr(pf_fn, fields):
+def small_patch_amr(pf_fn, fields):
     if not can_run_pf(pf_fn): return
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     yield GridHierarchyTest(pf_fn)
@@ -334,3 +380,17 @@ def standard_patch_amr(pf_fn, fields):
                         ds)
                 yield FieldValuesTest(
                         pf_fn, field, ds)
+
+def big_patch_amr(pf_fn, fields):
+    if not can_run_pf(pf_fn): return
+    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    yield GridHierarchyTest(pf_fn)
+    yield ParentageRelationshipsTest(pf_fn)
+    for field in fields:
+        yield GridValuesTest(pf_fn, field)
+        for axis in [0, 1, 2]:
+            for ds in dso:
+                for weight_field in [None, "Density"]:
+                    yield PixelizedProjectionValuesTest(
+                        pf_fn, axis, field, weight_field,
+                        ds)

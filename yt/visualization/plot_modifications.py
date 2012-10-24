@@ -214,8 +214,8 @@ class QuiverCallback(PlotCallback):
 class ContourCallback(PlotCallback):
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args = None):
-        """ 
+                 plot_args = None, label = False, label_args = None):
+        """
         annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
                          plot_args = None):
 
@@ -233,6 +233,10 @@ class ContourCallback(PlotCallback):
         self.clim = clim
         if plot_args is None: plot_args = {'colors':'k'}
         self.plot_args = plot_args
+        self.label = label
+        if label_args is None:
+            label_args = {}
+        self.label_args = label_args
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -293,10 +297,14 @@ class ContourCallback(PlotCallback):
         if self.clim is not None: 
             self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
         
-        plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
+        cset = plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
+        
+        if self.label:
+            plot._axes.clabel(cset, **self.label_args)
+        
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
