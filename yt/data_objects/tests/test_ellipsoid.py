@@ -7,9 +7,9 @@ def setup():
 
 def test_ellipsoid():
     # We decompose in different ways
-    cs = [[0.5, 0.5, 0.5],
-          [0.1, 0.2, 0.3],
-          [0.8, 0.8, 0.8]]
+    cs = [np.array([0.5, 0.5, 0.5]),
+          np.array([0.1, 0.2, 0.3]),
+          np.array([0.8, 0.8, 0.8])]
     for nprocs in [1, 2, 4, 8]:
         pf = fake_random_pf(64, nprocs = nprocs)
         min_dx = 2.0/pf.domain_dimensions
@@ -30,7 +30,7 @@ def test_ellipsoid():
                 all_in = True
                 pos = np.array([ell[ax] for ax in 'xyz'])
                 v  = np.zeros_like(ell["Radius"])
-                v += (pos * ell._e0[:,None]).sum(axis=0) / ell._A
-                v += (pos * ell._e1[:,None]).sum(axis=0) / ell._B
-                v += (pos * ell._e2[:,None]).sum(axis=0) / ell._C
+                v += ((pos - c[:,None]) * ell._e0[:,None]).sum(axis=0) / ell._A
+                v += ((pos - c[:,None]) * ell._e1[:,None]).sum(axis=0) / ell._B
+                v += ((pos - c[:,None]) * ell._e2[:,None]).sum(axis=0) / ell._C
                 yield assert_equal, np.all(v <= 1.0), True
