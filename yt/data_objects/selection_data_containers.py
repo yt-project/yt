@@ -142,7 +142,17 @@ class YTRayBase(YTSelectionContainer1D):
         #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
-        self._dts, self._ts, self._masks = {}, {}, {}
+        self._dts, self._ts = None, None
+
+    def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
+        if field == "dts":
+            raise NotImplementedError
+        elif field == "t":
+            raise NotImplementedError
+        else:
+            raise KeyError(field)
 
     def _get_data_from_grid(self, grid, field):
         if self.pf.geometry == "cylindrical":
