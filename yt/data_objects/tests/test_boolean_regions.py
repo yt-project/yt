@@ -322,21 +322,17 @@ def test_boolean_mix_periodicity():
         re = pf.h.region([0.5]*3, [0.0]*3, [1]*3) # whole thing
         sp = pf.h.sphere([0.95]*3, 0.3) # wraps around
         cyl = pf.h.disk([0.05]*3, [1,1,1], 0.1, 0.4) # wraps around
-        ell = pf.h.ellipsoid([0.35]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3)) # no wrap
         # Get original indices
         rei = re['ID']
         spi = sp['ID']
         cyli = cyl['ID']
-        elli = ell['ID']
         # Make some booleans
         # whole box minux spherical bites at corners
         bo1 = pf.h.boolean([re, "NOT", sp])
         # sphere plus cylinder
         bo2 = pf.h.boolean([sp, "OR", cyl])
-        # a big jumble, the region minus the ell+cyl (scepter shaped?), plus the
-        # sphere which should add back some of what the ell+cyl took out.
-        bo3 = pf.h.boolean([re, "NOT", "(", ell, "OR", cyl, ")", "OR", sp])
+        # a jumble, the region minus the sp+cyl
+        bo3 = pf.h.boolean([re, "NOT", "(", sp, "OR", cyl, ")"])
         # Now make sure the indices also behave as we expect.
         expect = np.setdiff1d(rei, spi)
         ii = bo1['ID']
@@ -348,9 +344,8 @@ def test_boolean_mix_periodicity():
         ii.sort()
         yield assert_array_equal, expect, ii
         #
-        expect = np.union1d(elli, cyli)
+        expect = np.union1d(spi, cyli)
         expect = np.setdiff1d(rei, expect)
-        expect = np.union1d(expect, spi)
         ii = bo3['ID']
         ii.sort()
         yield assert_array_equal, expect, ii
