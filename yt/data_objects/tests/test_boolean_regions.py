@@ -6,13 +6,14 @@ def setup():
     ytcfg["yt","__withintesting"] = "True"
     def _ID(field, data):
         width = data.pf.domain_right_edge - data.pf.domain_left_edge
-        delta = width / data.pf.h.get_smallest_dx()
-        x = data['x'] - data.pf.h.get_smallest_dx() / 2.
-        y = data['y'] - data.pf.h.get_smallest_dx() / 2.
-        z = data['z'] - data.pf.h.get_smallest_dx() / 2.
-        xi = x / data.pf.h.get_smallest_dx()
-        yi = y / data.pf.h.get_smallest_dx()
-        zi = z / data.pf.h.get_smallest_dx()
+        min_dx = 1.0/8192
+        delta = width / min_dx
+        x = data['x'] - min_dx / 2.
+        y = data['y'] - min_dx / 2.
+        z = data['z'] - min_dx / 2.
+        xi = x / min_dx
+        yi = y / min_dx
+        zi = z / min_dx
         index = xi + delta[0] * (yi + delta[1] * zi)
         index = index.astype('int64')
         return index
