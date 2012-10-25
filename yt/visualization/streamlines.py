@@ -118,7 +118,9 @@ class Streamlines(ParallelAnalysisInterface):
         if length is None:
             length = np.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
         self.length = length
-        self.steps = int(length/dx)
+        self.steps = int(length/dx)+1
+        # Fix up the dx.
+        self.dx = 1.0*self.length/self.steps
         self.streamlines = np.zeros((self.N,self.steps,3), dtype='float64')
         self.magnitudes = None
         if self.get_magnitude:
