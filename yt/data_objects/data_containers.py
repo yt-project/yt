@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
-Author: Geoffrey So <gsiisg@gmail.com> (AMREllipsoidBase)
+Author: Geoffrey So <gsiisg@gmail.com>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
@@ -3566,7 +3566,7 @@ class AMREllipsoidBase(AMR3DData):
         self._A = A
         self._B = B
         self._C = C
-        self._e0 = e0
+        self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         
         # find the t1 angle needed to rotate about z axis to align e0 to x
