@@ -5,7 +5,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <Britton.Smith@colorado.edu>
 Affiliation: University of Colorado at Boulder
-Author: Geoffrey So <gsiisg@gmail.com> (AMREllipsoidBase)
+Author: Geoffrey So <gsiisg@gmail.com>
 Affiliation: UCSD Physics/CASS
 Homepage: http://yt-project.org/
 License:
@@ -71,7 +71,7 @@ from .field_info_container import \
 def force_array(item, shape):
     try:
         sh = item.shape
-        return item
+        return item.copy()
     except AttributeError:
         if item:
             return np.ones(shape, dtype='bool')
@@ -3502,10 +3502,7 @@ class AMRSphereBase(AMR3DData):
         for gi, g in enumerate(grids): self._grids[gi] = g
 
     def _is_fully_enclosed(self, grid):
-        r = np.abs(grid._corners - self.center)
-        r = np.minimum(r, np.abs(self.DW[None,:]-r))
-        corner_radius = np.sqrt((r**2.0).sum(axis=1))
-        return np.all(corner_radius <= self.radius)
+        return False
 
     @restore_grid_state # Pains me not to decorate with cache_mask here
     def _get_cut_mask(self, grid, field=None):
@@ -3531,17 +3528,45 @@ class AMREllipsoidBase(AMR3DData):
                  pf=None, **kwargs):
         """
         By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
-        can define a ellipsoid of any proportion.  Only cells whose centers are
-        within the ellipsoid will be selected.
+        can define a ellipsoid of any proportion.  Only cells whose
+        centers are within the ellipsoid will be selected.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the ellipsoid.
+        A : float
+            The magnitude of the largest semi-major axis of the ellipsoid.
+        B : float
+            The magnitude of the medium semi-major axis of the ellipsoid.
+        C : float
+            The magnitude of the smallest semi-major axis of the ellipsoid.
+        e0 : array_like (automatically normalized)
+            the direction of the largest semi-major axis of the ellipsoid
+        tilt : float
+            After the rotation about the z-axis to allign e0 to x in the x-y
+            plane, and then rotating about the y-axis to align e0 completely
+            to the x-axis, tilt is the angle in radians remaining to
+            rotate about the x-axis to align both e1 to the y-axis and e2 to
+            the z-axis.
+        Examples
+        --------
+        >>> pf = load("DD####/DD####")
+        >>> c = [0.5,0.5,0.5]
+        >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
         """
+
         AMR3DData.__init__(self, np.array(center), fields, pf, **kwargs)
+        # make sure the magnitudes of semi-major axes are in order
+        if A<B or B<C:
+            raise YTEllipsoidOrdering(pf, A, B, C)
         # make sure the smallest side is not smaller than dx
         if C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
         self._A = A
         self._B = B
         self._C = C
-        self._e0 = e0
+        self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         
         # find the t1 angle needed to rotate about z axis to align e0 to x
