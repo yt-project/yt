@@ -29,6 +29,7 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 from .volume_rendering.api import off_axis_projection
+from yt.data_objects.image_array import ImageArray
 import _MPL
 import numpy as np
 import weakref
@@ -133,8 +134,9 @@ class FixedResolutionBuffer(object):
                              self.bounds, int(self.antialias),
                              self._period, int(self.periodic),
                              ).transpose()
-        self[item] = buff
-        return buff
+        ia = ImageArray(buff, info=self._get_info(item))
+        self[item] = ia
+        return ia 
 
     def __setitem__(self, item, val):
         self.data[item] = val
@@ -144,6 +146,28 @@ class FixedResolutionBuffer(object):
         for f in self.data_source.fields:
             if f not in exclude:
                 self[f]
+
+    def _get_info(self, item):
+        info = {}
+        info['data_source'] = self.data_source.__str__()  
+        info['axis'] = self.data_source.axis
+        info['field'] = str(item)
+        info['units'] = self.data_source.pf.field_info[item].get_units()
+        info['xlim'] = self.bounds[:2]
+        info['ylim'] = self.bounds[2:]
+        info['length_to_cm'] = self.data_source.pf['cm']
+        info['projected_units'] = \
+                self.data_source.pf.field_info[item].get_projected_units()
+        info['center'] = self.data_source.center
+        try:
+            info['coord'] = self.data_source.coord
+        except AttributeError:
+            pass
+        try:
+            info['weight_field'] = self.data_source.weight_field
+        except AttributeError:
+            pass
+        return info
 
     def convert_to_pixel(self, coords):
         r"""This function converts coordinates in code-space to pixel-space.
