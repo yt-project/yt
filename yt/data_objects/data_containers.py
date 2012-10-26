@@ -709,7 +709,7 @@ class AMRStreamlineBase(AMR1DData):
     _type_name = "streamline"
     _con_args = ('positions')
     sort_by = 't'
-    def __init__(self, positions, fields=None, pf=None, **kwargs):
+    def __init__(self, positions, length = 1.0, fields=None, pf=None, **kwargs):
         """
         This is a streamline, which is a set of points defined as
         being parallel to some vector field.
@@ -725,6 +725,8 @@ class AMRStreamlineBase(AMR1DData):
         ----------
         positions : array-like
             List of streamline positions
+        length : float
+            The magnitude of the distance; dts will be divided by this
         fields : list of strings, optional
             If you want the object to pre-retrieve a set of fields, supply them
             here.  This is not necessary.
@@ -750,6 +752,8 @@ class AMRStreamlineBase(AMR1DData):
         self.dts[:-1] = np.sqrt(np.sum((self.positions[1:]-
                                         self.positions[:-1])**2,axis=1))
         self.dts[-1] = self.dts[-2]
+        self.length = length
+        self.dts /= length
         self.ts = np.add.accumulate(self.dts)
         self._set_center(self.positions[0])
         self.set_field_parameter('center', self.positions[0])

@@ -208,5 +208,6 @@ class Streamlines(ParallelAnalysisInterface):
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
         
         """
-        return AMRStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
+        return self.pf.h.streamline(self.streamlines[streamline_id],
+                                    length = self.length)
         
