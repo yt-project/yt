@@ -749,7 +749,7 @@ class AMRStreamlineBase(AMR1DData):
         self.dts = np.empty_like(positions[:,0])
         self.dts[:-1] = np.sqrt(np.sum((self.positions[1:]-
                                         self.positions[:-1])**2,axis=1))
-        self.dts[-1] = self.dts[-1]
+        self.dts[-1] = self.dts[-2]
         self.ts = np.add.accumulate(self.dts)
         self._set_center(self.positions[0])
         self.set_field_parameter('center', self.positions[0])
