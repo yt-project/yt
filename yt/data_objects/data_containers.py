@@ -788,11 +788,10 @@ class AMRStreamlineBase(AMR1DData):
             ci = ((pos - grid.LeftEdge)/grid.dds).astype('int')
             for j in range(3):
                 ci[j] = min(ci[j], grid.ActiveDimensions[j]-1)
-            if mask[ci[0], ci[1], ci[2]]:
-                continue
+            if not mask[ci[0], ci[1], ci[2]]:
+                ts[ci[0], ci[1], ci[2]] = self.ts[i]
             mask[ci[0], ci[1], ci[2]] = 1
-            dts[ci[0], ci[1], ci[2]] = self.dts[i]
-            ts[ci[0], ci[1], ci[2]] = self.ts[i]
+            dts[ci[0], ci[1], ci[2]] += self.dts[i]
         self._dts[grid.id] = dts
         self._ts[grid.id] = ts
         return mask
