@@ -745,10 +745,10 @@ class MarkerAnnotateCallback(PlotCallback):
     def __call__(self, plot):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        if na.array(self.pos).shape == (3,):
+        if np.array(self.pos).shape == (3,):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
-        elif na.array(self.pos).shape == (2,):
+        elif np.array(self.pos).shape == (2,):
             pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
