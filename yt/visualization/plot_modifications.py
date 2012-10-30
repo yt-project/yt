@@ -374,9 +374,11 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor = 16, density = 1, plot_args=None):
+    def __init__(self, field_x, field_y, factor = 16,
+                 density = 1, plot_args=None):
         """
-        annotate_streamlines(field_x, field_y, factor = 16, plot_args=None):
+        annotate_streamlines(field_x, field_y, factor = 16,
+                             density = 1, plot_args=None):
 
         Add streamlines to any plot, using the *field_x* and *field_y*
         from the associated data, skipping every *factor* datapoints like
