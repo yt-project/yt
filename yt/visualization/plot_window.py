@@ -783,15 +783,13 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseFieldDisplayName(f,field_name,str(err))
 
-            if md['units'] != None and md['units'] != '': 
+            if md['units'] == None or md['units'] == '':
+                label = field_name
+            else:
                 try:
                     parser.parse(r'$'+md['units']+r'$')
                 except ParseFatalException, err:
                     raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
-
-            if md['units'] == None or md['units'] == '':
-                label = field_name
-            else:
                 label = field_name+r'$\/\/('+md['units']+r')$'
 
             self.plots[f].cb.set_label(label)
