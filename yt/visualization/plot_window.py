@@ -783,10 +783,11 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseFieldDisplayName(f,field_name,str(err))
 
-            try:
-                parser.parse(r'$'+md['units']+r'$')
-            except ParseFatalException, err:
-                raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
+            if md['units'] != None and md['units'] != '': 
+                try:
+                    parser.parse(r'$'+md['units']+r'$')
+                except ParseFatalException, err:
+                    raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
 
             if md['units'] == None or md['units'] == '':
                 label = field_name
