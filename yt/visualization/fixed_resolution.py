@@ -164,9 +164,7 @@ class FixedResolutionBuffer(object):
         except AttributeError:
             pass
         try:
-            weight = self.data_source.weight_field
-            if weight is None: weight = 'None'
-            info['weight_field'] = weight
+            info['weight_field'] = self.data_source.weight_field
         except AttributeError:
             pass
         return info
