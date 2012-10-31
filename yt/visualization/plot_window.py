@@ -773,10 +773,9 @@ class PWViewerMPL(PWViewer):
             field_name = self.data_source.pf.field_info[f].display_name
 
             if field_name is None:
-                field_name = f
+                field_name = r'$\rm{'+f+r'}$'
             elif field_name.find('$') == -1:
-                field_name = field_name
-            field_name=r'$\rm{'+field_name+r'}$'
+                field_name = r'$\rm{'+field_name+r'}$'
             
             parser = MathTextParser('Agg')
             try:
