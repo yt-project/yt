@@ -60,6 +60,10 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    GroupOwnership
+from yt.data_objects.time_series import \
+    TimeSeriesData
 
 def invalidate_data(f):
     @wraps(f)
@@ -253,6 +257,13 @@ class PlotWindow(object):
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
             self.set_center(center)
         self._initfinished = True
+
+    def _initialize_dataset(self, ts):
+        if not isinstance(ts, TimeSeriesData):
+            if not iterable(ts): ts = [ts]
+            ts = TimeSeriesData(ts)
+        self.controller = TimeSeriesPlotController(ts, self)
+        return self.controller.item
 
     def __getitem__(self, item):
         return self.plots[item]
@@ -987,6 +998,8 @@ class SlicePlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        # tHis will handle time series data and controllers
+        pf = self._initialize_dataset(pf) 
         axis = fix_axis(axis)
         (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
         slc = pf.h.slice(axis, center[axis], fields=fields)
@@ -1493,3 +1506,18 @@ class WindowPlotMPL(PlotMPL):
                                       vmax = self.zmax, cmap = cmap)
         self.image.axes.ticklabel_format(scilimits=(-4,3))
 
+class TimeSeriesPlotController(GroupOwnership):
+    def __init__(self, ts, pw):
+        GroupOwnership.__init__(self, ts)
+        self.pw = pw
+
+    def switch(self):
+        ds = self.pw.data_source
+        new_pf = self.item
+        name = ds._type_name
+        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
+        new_ds = getattr(new_pf.h, name)(**kwargs)
+        self.pw.data_source = new_ds
+        self.pw._data_valid = self.pw._plot_valid = False
+        self.pw._recreate_frb()
+        self.pw._setup_plots()
