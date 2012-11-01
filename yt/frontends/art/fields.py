@@ -211,21 +211,21 @@ add_field("Metallicity", function=_metallicity, units = r"\mathrm{K}",take_log=T
 ARTFieldInfo["Metallicity"]._units = r""
 ARTFieldInfo["Metallicity"]._projected_units = r""
 
-def _x_velocity(data):
+def _x_velocity(field,data):
     tr  = data["XMomentumDensity"]/data["Density"]
     return tr
 add_field("x-velocity", function=_x_velocity, units = r"\mathrm{cm/s}",take_log=False)
 ARTFieldInfo["x-velocity"]._units = r"\rm{cm}/\rm{s}"
 ARTFieldInfo["x-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
-def _y_velocity(data):
+def _y_velocity(field,data):
     tr  = data["YMomentumDensity"]/data["Density"]
     return tr
 add_field("y-velocity", function=_y_velocity, units = r"\mathrm{cm/s}",take_log=False)
 ARTFieldInfo["y-velocity"]._units = r"\rm{cm}/\rm{s}"
 ARTFieldInfo["y-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
-def _z_velocity(data):
+def _z_velocity(field,data):
     tr  = data["ZMomentumDensity"]/data["Density"]
     return tr
 add_field("z-velocity", function=_z_velocity, units = r"\mathrm{cm/s}",take_log=False)
@@ -243,6 +243,11 @@ ARTFieldInfo["Metal_Density"]._projected_units = r""
 
 
 #Particle fields
+
+def ParticleMass(field,data):
+    return data['particle_mass']
+add_field("ParticleMass",function=ParticleMass,units=r"\rm{g}",particle_type=True)
+
 
 #Derived particle fields
 
