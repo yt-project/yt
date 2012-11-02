@@ -46,7 +46,7 @@ class TopHatSphere(FluidOperator):
         for field, val in self.fields.iteritems():
             grid[field][r < self.radius] = val
 
-class RandomFluctuation(DataModifier):
+class RandomFluctuation(FluidOperator):
     def __init__(self, fields):
         self.fields = fields
 
