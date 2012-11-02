@@ -213,7 +213,7 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
-                 periodic=True, origin='center-window', oblique=False):
+                 periodic=True, origin='center-window', oblique=False, fontsize=15):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
         
@@ -253,6 +253,7 @@ class PlotWindow(object):
         self.antialias = True
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
+        self.fontsize = fontsize
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
             self.set_center(center)
@@ -798,8 +799,10 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
                           r'$\rm{Image\/y'+axes_unit_label+'}$']
 
-            self.plots[f].axes.set_xlabel(labels[0])
-            self.plots[f].axes.set_ylabel(labels[1])
+            self.plots[f].axes.set_xlabel(labels[0],fontsize=self.fontsize)
+            self.plots[f].axes.set_ylabel(labels[1],fontsize=self.fontsize)
+
+            self.plots[f].axes.tick_params(labelsize=self.fontsize)
 
             field_name = self.data_source.pf.field_info[f].display_name
 
@@ -823,7 +826,9 @@ class PWViewerMPL(PWViewer):
                     raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
                 label = field_name+r'$\/\/('+md['units']+r')$'
 
-            self.plots[f].cb.set_label(label)
+            self.plots[f].cb.set_label(label,fontsize=self.fontsize)
+
+            self.plots[f].cb.ax.tick_params(labelsize=self.fontsize)
 
             self.run_callbacks(f)
 
@@ -950,7 +955,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window'):
+                 origin='center-window', fontsize=15):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -1006,6 +1011,8 @@ class SlicePlot(PWViewerMPL):
              to the bottom-left hand corner of the simulation domain, 'center-domain',
              corresponding the center of the simulation domain, or 'center-window' for 
              the center of the plot window.
+        fontsize : integer
+             The size of the fonts for the axis, colorbar, and tick labels.
              
         Examples
         --------
@@ -1032,7 +1039,7 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window'):
+                 weight_field=None, max_level=None, origin='center-window', fontsize=15):
         r"""Creates a projection plot from a parameter file
         
         Given a pf object, an axis to project along, and a field name
@@ -1092,6 +1099,8 @@ class ProjectionPlot(PWViewerMPL):
             The name of the weighting field.  Set to None for no weight.
         max_level: int
             The maximum level to project to.
+        fontsize : integer
+             The size of the fonts for the axis, colorbar, and tick labels.
         
         Examples
         --------
@@ -1117,7 +1126,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     _frb_generator = ObliqueFixedResolutionBuffer
 
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
-                 axes_unit=None, north_vector=None):
+                 axes_unit=None, north_vector=None, fontsize=15):
         r"""Creates an off axis slice plot from a parameter file
 
         Given a pf object, a normal vector defining a slicing plane, and
@@ -1154,7 +1163,8 @@ class OffAxisSlicePlot(PWViewerMPL):
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
             set, an arbitrary grid-aligned north-vector is chosen.
-
+        fontsize : integer
+             The size of the fonts for the axis, colorbar, and tick labels.
         """
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
         cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
@@ -1193,7 +1203,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  depth=(1,'unitary'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
-                 le=None, re=None, interpolated=False):
+                 le=None, re=None, interpolated=False, fontsize=15):
         r"""Creates an off axis projection plot from a parameter file
 
         Given a pf object, a normal vector to project along, and
