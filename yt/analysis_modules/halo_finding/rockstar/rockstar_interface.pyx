@@ -237,32 +237,38 @@ def print_rockstar_settings():
     print "SINGLE_SNAP =", SINGLE_SNAP
 
 cdef class RockstarInterface
-
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
-    print 'reading from particle filename %s'%filename # should print ./inline.0
+    global SCALE_NOW
+    pf = rh.tsl.next()
+    print 'reading from particle filename %s: %s'%(filename,pf.basename)
     cdef np.float64_t conv[6], left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
     block = int(str(filename).rsplit(".")[-1])
+    
 
     # Now we want to grab data from only a subset of the grids.
     n = rh.block_ratio
-    dd = rh.pf.h.all_data()
+    dd = pf.h.all_data()
+    SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     grids = np.array_split(dd._grids, NUM_BLOCKS)[block]
-    tnpart = 0
-    for g in grids:
-        tnpart += dd._get_data_from_grid(g, "particle_index").size
+    tnpart = TOTAL_PARTICLES
+    print "Loading indices: size = ", tnpart
     p[0] = <particle *> malloc(sizeof(particle) * tnpart)
-    #print "Loading indices: size = ", tnpart
-    conv[0] = conv[1] = conv[2] = rh.pf["mpchcm"]
+    conv[0] = conv[1] = conv[2] = pf["mpchcm"]
     conv[3] = conv[4] = conv[5] = 1e-5
-    left_edge[0] = rh.pf.domain_left_edge[0]
-    left_edge[1] = rh.pf.domain_left_edge[1]
-    left_edge[2] = rh.pf.domain_left_edge[2]
+    left_edge[0] = pf.domain_left_edge[0]
+    left_edge[1] = pf.domain_left_edge[1]
+    left_edge[2] = pf.domain_left_edge[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     for g in grids:
+        try:
+            iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
+        except KeyError:
+            iddm = np.ones_like(dd._get_data_from_grid(g, "particle_index")).astype('bool')
         arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
+        arri = arri[iddm] #pick only DM
         npart = arri.size
         for i in range(npart):
             p[0][i+pi].id = arri[i]
@@ -272,38 +278,54 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                       "particle_velocity_x", "particle_velocity_y",
                       "particle_velocity_z"]:
             arr = dd._get_data_from_grid(g, field).astype("float64")
+            arr = arr[iddm] #pick DM
             for i in range(npart):
                 p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
             fi += 1
-        pi += npart
+        print pi
     num_p[0] = tnpart
-    print "Block #%i | Particles %i | Grids %i"%\
-            ( block, pi, len(grids))
+    #print 'first particle coordinates'
+    #for i in range(3):
+    #    print p[0][0].pos[i],
+    #print ""
+    #print 'last particle coordinates'
+    #for i in range(3):
+    #    print p[0][tnpart-1].pos[i],
+    #print ""
+    print "done"
 
 cdef class RockstarInterface:
 
-    cdef public object pf
     cdef public object data_source
+    cdef public object ts
+    cdef public object tsl
     cdef int rank
     cdef int size
     cdef public int block_ratio
+    cdef public int dm_type
+    cdef public int total_particles
 
-    def __cinit__(self, pf, data_source):
-        self.pf = pf
+    def __cinit__(self, ts, data_source):
+        self.ts = ts
+        self.tsl = ts.__iter__() #timseries generator used by read
         self.data_source = data_source
 
     def setup_rockstar(self, char *server_address, char *server_port,
+                       int num_snaps, np.int64_t total_particles,
+                       int dm_type,
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
-                       int periodic = 1, int num_snaps = 1,
+                       int periodic = 1, 
                        int min_halo_size = 25, outbase = "None"):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
         global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE
+        global OVERLAP_LENGTH, TOTAL_PARTICLES
+        OVERLAP_LENGTH = 0.0
         if parallel:
             PARALLEL_IO = 1
             PARALLEL_IO_SERVER_ADDRESS = server_address
@@ -319,29 +341,28 @@ cdef class RockstarInterface:
         OUTPUT_FORMAT = "ASCII"
         NUM_SNAPS = num_snaps
         NUM_READERS = num_readers
-        NUM_SNAPS = 1
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
+        TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
-
-        h0 = self.pf.hubble_constant
-        Ol = self.pf.omega_lambda
-        Om = self.pf.omega_matter
-        SCALE_NOW = 1.0/(self.pf.current_redshift+1.0)
+        
+        tpf = self.ts[0]
+        h0 = tpf.hubble_constant
+        Ol = tpf.omega_lambda
+        Om = tpf.omega_matter
+        SCALE_NOW = 1.0/(tpf.current_redshift+1.0)
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
             #workaround is to make a new directory
-            print 'using %s as outbase'%outbase
             OUTBASE = outbase 
 
         if particle_mass < 0:
-            print "Assuming single-mass particle."
-            particle_mass = self.pf.h.grids[0]["ParticleMassMsun"][0] / h0
+            particle_mass = tpf.h.grids[0]["ParticleMassMsun"][0] / h0
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
-        BOX_SIZE = (self.pf.domain_right_edge[0] -
-                    self.pf.domain_left_edge[0]) * self.pf['mpchcm']
+        BOX_SIZE = (tpf.domain_right_edge[0] -
+                    tpf.domain_left_edge[0]) * tpf['mpchcm']
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles

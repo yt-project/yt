@@ -547,7 +547,6 @@ class RockstarHalo(Halo):
            Most defaults are removed since we don't read in which halos
            particles belong to. 
         """
-        #we can still use get_sphere!
         self.ID = ID #from rockstar
         self.id = index #index in the halo list
         self.pf = halo_list.pf
@@ -574,11 +573,10 @@ class RockstarHalo(Halo):
         self.size=Np 
         self.CoM=np.array([X,Y,Z])
         self.max_dens_point=-1
-        self.group_total_mass=-1
+        self.group_total_mass=Mvir
         self.max_radius=Rvir
         self.bulk_vel=np.array([VX,VY,VZ])*1e5
-        self.rms_vel=-1
-        self.group_total_mass = -1 #not implemented 
+        self.rms_vel=Vrms
     
     def maximum_density(self):
         r"""Not implemented."""
@@ -587,14 +585,6 @@ class RockstarHalo(Halo):
     def maximum_density_location(self):
         r"""Not implemented."""
         return self.center_of_mass()
-
-    def total_mass(self):
-        r"""Not implemented."""
-        return -1
-
-    def get_size(self):
-        r"""Return the number of particles belonging to the halo."""
-        return self.Np
 
     def write_particle_list(self,handle):
         r"""Not implemented."""
@@ -607,18 +597,6 @@ class RockstarHalo(Halo):
     def virial_radius(self):
         r"""Virial radius in Mpc/h comoving"""
         return self.Rvir
-
-    def virial_bin(self):
-        r"""Not implemented"""
-        return -1
-
-    def virial_density(self):
-        r"""Not implemented """
-        return -1
-
-    def virial_info(self):
-        r"""Not implemented"""
-        return -1 
 
     def __getitem__(self,key):
         r"""Not implemented"""
@@ -1318,6 +1296,8 @@ class HaloList(object):
         f.close()
 
 class RockstarHaloList(HaloList):
+    _name = "Rockstar"
+    _halo_class = RockstarHalo
     #because we don't yet no halo-particle affiliations
     #most of the halo list methods are not implemented
     #furthermore, Rockstar only accepts DM particles of
@@ -1362,7 +1342,7 @@ class RockstarHaloList(HaloList):
         names = lines[0].replace('#','').split(' ')
         for j,line in enumerate(lines):
             if not line.startswith('#'): break
-
+        
         #find out the table datatypes but evaluating the first data line
         splits = filter(lambda x: len(x.strip()) > 0 ,line.split(' '))
         for num in splits:
@@ -1371,43 +1351,36 @@ class RockstarHaloList(HaloList):
             else:
                 formats += np.dtype('float'),
         assert len(formats) == len(names)
-
+        
         #Jc = 1.98892e33/pf['mpchcm']*1e5
         Jc = 1.0
         conv = dict(X=1.0/pf['mpchcm'],
                     Y=1.0/pf['mpchcm'],
                     Z=1.0/pf['mpchcm'], #to unitary
-                    VX=1e0,VY=1e0,VZ=1e0, #to km/s
+                    VX=1e0, VY=1e0, VZ=1e0, #to km/s
                     Mvir=1.0, #Msun/h
                     Vmax=1e0,Vrms=1e0,
                     Rvir=1.0/pf['kpchcm'],
                     Rs=1.0/pf['kpchcm'],
-                    JX=Jc,JY=Jc,JZ=Jc)
+                    JX=Jc, JY=Jc, JZ=Jc)
         dtype = {'names':names,'formats':formats}
         halo_table = np.loadtxt(out_list,skiprows=j-1,dtype=dtype,comments='#')            
-        #convert position units  
+        # Sort halos by Mvir.
+        halo_table.sort(order='Mvir')
+        halo_table = np.flipud(halo_table)
+        #convert position units
         for name in names:
             halo_table[name]=halo_table[name]*conv.get(name,1)
-        
-        for k,row in enumerate(halo_table):
+        # Store the halos in the halo list.
+        for i, row in enumerate(halo_table):
             args = tuple([val for val in row])
-            halo = RockstarHalo(self,k,*args)
+            halo = RockstarHalo(self, i, *args)
             self._groups.append(halo)
-    
-
-    #len is ok
-    #iter is OK
-    #getitem is ok
-    #nn is ok I think
-    #nn2d is ok I think
 
     def write_out(self):
         pass
     def write_particle_list(self):
         pass
-    
-
-    
 
 class HOPHaloList(HaloList):
 
@@ -2627,3 +2600,25 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
             3.28392048e14
         """
         TextHaloList.__init__(self, pf, filename, columns, comment)
+
+LoadTextHalos = LoadTextHaloes
+
+class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
+    def __init__(self, pf, filename = None):
+        r"""Load Rockstar halos off disk from Rockstar-output format.
+
+        Parameters
+        ----------
+        fname : String
+            The name of the Rockstar file to read in. Default = 
+            "(dataset_name)_rockstar/out_0.list' where (dataset_name)
+            is equal to str(pf).
+
+        Examples
+        --------
+        >>> pf = load("data0005")
+        >>> halos = LoadRockstarHalos(pf, "other_name.out")
+        """
+        if filename is None:
+            filename = str(pf) + '_rockstar/out_0.list'
+        RockstarHaloList.__init__(self, pf, filename)
