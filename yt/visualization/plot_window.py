@@ -262,8 +262,29 @@ class PlotWindow(object):
         if not isinstance(ts, TimeSeriesData):
             if not iterable(ts): ts = [ts]
             ts = TimeSeriesData(ts)
-        self.controller = TimeSeriesPlotController(ts, self)
-        return self.controller.item
+        return ts
+
+    def __iter__(self):
+        for pf in self.ts:
+            mylog.warning("Switching to %s", pf)
+            self._switch_pf(pf)
+            yield self
+
+    def piter(self, *args, **kwargs):
+        for pf in self.ts.piter(*args, **kwargs):
+            self._switch_pf(pf)
+            yield self
+
+    def _switch_pf(self, new_pf):
+        ds = self.data_source
+        name = ds._type_name
+        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
+        new_ds = getattr(new_pf.h, name)(**kwargs)
+        self.pf = new_pf
+        self.data_source = new_ds
+        self._data_valid = self._plot_valid = False
+        self._recreate_frb()
+        self._setup_plots()
 
     def __getitem__(self, item):
         return self.plots[item]
@@ -284,7 +305,6 @@ class PlotWindow(object):
             self._frb._get_data_source_fields()
         else:
             for key in old_fields: self._frb[key]
-        self.pf = self._frb.pf
         self._data_valid = True
         
     def _setup_plots(self):
@@ -999,9 +1019,11 @@ class SlicePlot(PWViewerMPL):
         
         """
         # tHis will handle time series data and controllers
-        pf = self._initialize_dataset(pf) 
+        ts = self._initialize_dataset(pf) 
+        self.ts = ts
+        pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
         slc = pf.h.slice(axis, center[axis], fields=fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
         self.set_axes_unit(axes_unit)
@@ -1082,8 +1104,11 @@ class ProjectionPlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        ts = self._initialize_dataset(pf) 
+        self.ts = ts
+        pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
         self.set_axes_unit(axes_unit)
@@ -1505,19 +1530,3 @@ class WindowPlotMPL(PlotMPL):
                                       norm = norm, vmin = self.zmin, 
                                       vmax = self.zmax, cmap = cmap)
         self.image.axes.ticklabel_format(scilimits=(-4,3))
-
-class TimeSeriesPlotController(GroupOwnership):
-    def __init__(self, ts, pw):
-        GroupOwnership.__init__(self, ts)
-        self.pw = pw
-
-    def switch(self):
-        ds = self.pw.data_source
-        new_pf = self.item
-        name = ds._type_name
-        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
-        new_ds = getattr(new_pf.h, name)(**kwargs)
-        self.pw.data_source = new_ds
-        self.pw._data_valid = self.pw._plot_valid = False
-        self.pw._recreate_frb()
-        self.pw._setup_plots()
