@@ -606,6 +606,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
+            if os.path.exists(filename): os.remove(filename)
             if filename.endswith('.h5'):
                 profile.write_out_h5(filename)
             else:
@@ -717,7 +718,9 @@ class HaloProfiler(ParallelAnalysisInterface):
             Default=True.
         njobs : int
             The number of jobs over which to split the projections.  Set
-            to -1 so that each halo is done by a single processor.
+            to -1 so that each halo is done by a single processor.  Halo 
+            projections do not currently work in parallel, so this must 
+            be set to -1.
             Default: -1.
         dynamic : bool
             If True, distribute halos using a task queue.  If False,
@@ -731,6 +734,12 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         """
 
+        # Halo projections cannot run in parallel because they are done by 
+        # giving a data source to the projection object.
+        if njobs > 0:
+            mylog.warn("Halo projections cannot use more than one processor per halo, setting njobs to -1.")
+            njobs = -1
+        
         # Get list of halos for projecting.
         if halo_list == 'filtered':
             halo_projection_list = self.filtered_halos

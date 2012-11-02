@@ -65,6 +65,9 @@ from derived_quantities import \
     quantity_info, \
     add_quantity
 
+from image_array import \
+    ImageArray
+
 from field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \

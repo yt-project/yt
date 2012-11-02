@@ -37,6 +37,7 @@ from yt.utilities.lib import \
     arr_ang2pix_nest, arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
+from yt.data_objects.api import ImageArray
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -347,14 +348,20 @@ class Camera(ParallelAnalysisInterface):
 
     def save_image(self, fn, clip_ratio, image):
         if self.comm.rank is 0 and fn is not None:
-            if clip_ratio is not None:
-                write_bitmap(image, fn, clip_ratio * image.std())
-            else:
-                write_bitmap(image, fn)
-
+            image.write_png(fn, clip_ratio=clip_ratio)
 
     def initialize_source(self):
         return self.volume.initialize_source()
+
+    def get_information(self):
+        info_dict = {'fields':self.fields,
+                     'type':self.__class__.__name__,
+                     'east_vector':self.orienter.unit_vectors[0],
+                     'north_vector':self.orienter.unit_vectors[1],
+                     'normal_vector':self.orienter.unit_vectors[2],
+                     'width':self.width,
+                     'dataset':self.pf.fullpath}
+        return info_dict
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0):
@@ -390,7 +397,9 @@ class Camera(ParallelAnalysisInterface):
         args = self.get_sampler_args(image)
         sampler = self.get_sampler(args)
         self.initialize_source()
-        image = self._render(double_check, num_threads, image, sampler)
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
         self.save_image(fn, clip_ratio, image)
         return image
 
@@ -670,7 +679,7 @@ data_object_registry["interactive_camera"] = InteractiveCamera
 class PerspectiveCamera(Camera):
     expand_factor = 1.0
     def __init__(self, *args, **kwargs):
-        expand_factor = kwargs.pop('expand_factor', 1.0)
+        self.expand_factor = kwargs.pop('expand_factor', 1.0)
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
@@ -708,6 +717,27 @@ class PerspectiveCamera(Camera):
                 np.zeros(3, dtype='float64'), 
                 self.transfer_function, self.sub_samples)
         return args
+
+    def _render(self, double_check, num_threads, image, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        view_pos = self.front_center
+        for brick in self.volume.traverse(view_pos, self.front_center, image):
+            sampler(brick, num_threads=num_threads)
+            total_cells += np.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+
+        pbar.finish()
+        image = sampler.aimage
+        self.finalize_image(image)
+        return image
+
 
     def finalize_image(self, image):
         image.shape = self.resolution[0], self.resolution[0], 3
@@ -801,6 +831,15 @@ class HEALpixCamera(Camera):
 
         return image
 
+    def get_information(self):
+        info_dict = {'fields':self.fields,
+                     'type':self.__class__.__name__,
+                     'center':self.center,
+                     'radius':self.radius,
+                     'dataset':self.pf.fullpath}
+        return info_dict
+
+
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0, clim = None, label = None):
         r"""Ray-cast the camera.
@@ -828,7 +867,9 @@ class HEALpixCamera(Camera):
         args = self.get_sampler_args(image)
         sampler = self.get_sampler(args)
         self.volume.initialize_source()
-        image = self._render(double_check, num_threads, image, sampler)
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
         self.save_image(fn, clim, image, label = label)
         return image
 
@@ -1264,8 +1305,9 @@ class MosaicFisheyeCamera(Camera):
 
         if self.image is not None:
             del self.image
+        image = ImageArray(image,
+                           info=self.get_information())
         self.image = image
-       
         return image
 
     def save_image(self, fn, clip_ratio=None):
@@ -1407,7 +1449,7 @@ class MosaicFisheyeCamera(Camera):
             yield self.snapshot()
 
 def allsky_projection(pf, center, radius, nside, field, weight = None,
-                      inner_radius = 10, rotation = None):
+                      inner_radius = 10, rotation = None, source = None):
     r"""Project through a parameter file, through an allsky-method
     decomposition from HEALpix, and return the image plane.
 
@@ -1442,6 +1484,9 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         If supplied, the vectors will be rotated by this.  You can construct
         this by, for instance, calling np.array([v1,v2,v3]) where those are the
         three reference planes of an orthogonal frame (see ortho_find).
+    source : data container, default None
+        If this is supplied, this gives the data source from which the all sky
+        projection pulls its data from.
 
     Returns
     -------
@@ -1485,12 +1530,20 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     positions += inner_radius * dx * vs
     vs *= radius
     uv = np.ones(3, dtype='float64')
-    grids = pf.h.sphere(center, radius)._grids
+    if source is not None:
+        grids = source._grids
+    else:
+        grids = pf.h.sphere(center, radius)._grids
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
-        data = [grid[field] * grid.child_mask.astype('float64')
+        if source is not None:
+            data = [grid[field] * source._get_cut_mask(grid) * \
+                grid.child_mask.astype('float64')
+                for field in fields]
+        else:
+            data = [grid[field] * grid.child_mask.astype('float64')
                 for field in fields]
         pg = PartitionedGrid(
             grid.id, data,
@@ -1670,7 +1723,9 @@ class ProjectionCamera(Camera):
 
         self.initialize_source()
 
-        image = self._render(double_check, num_threads, image, sampler)
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
 
         self.save_image(fn, clip_ratio, image)
 

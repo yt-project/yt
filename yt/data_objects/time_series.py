@@ -258,8 +258,11 @@ class TimeSeriesData(object):
 
         """
         if isinstance(filenames, types.StringTypes):
+            pattern = filenames
             filenames = glob.glob(filenames)
             filenames.sort()
+            if len(filenames) == 0:
+                raise YTNoFilenamesMatchPattern(pattern)
         obj = cls(filenames[:], parallel = parallel)
         return obj
 
