@@ -23,21 +23,37 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as np
+
 class FluidOperator(object):
     def apply(self, pf):
         for g in pf.h.grids: self(g)
 
 class TopHatSphere(FluidOperator):
-    def __init__(self, radius, center, value, field = "Density"):
+    def __init__(self, radius, center, fields):
         self.radius = radius
         self.center = center
-        self.value = value
-        self.field = field
+        self.fields = fields
         
-    def __call__(self, grid):
+    def __call__(self, grid, sub_select = None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
         for i, ax in enumerate("xyz"):
             np.add(r, (grid[ax] - self.center[i])**2.0, r)
         np.sqrt(r, r)
         ind = (r <= self.radius)
-        grid[self.field][ind] += self.value
+        if sub_select is not None:
+            ind &= sub_select
+        for field, val in self.fields.iteritems():
+            grid[field][r < self.radius] = val
+
+class RandomFluctuation(DataModifier):
+    def __init__(self, fields):
+        self.fields = fields
+
+    def __call__(self, grid, sub_select = None):
+        if sub_select is None:
+            sub_select = Ellipsis
+        for field, mag in self.fields.iteritems():
+            vals = grid[field][sub_select]
+            rc = 1.0 + (np.random.random(vals.shape) - 0.5) * mag
+            grid[field][sub_select] *= rc
