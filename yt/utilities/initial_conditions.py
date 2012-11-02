@@ -44,7 +44,28 @@ class TopHatSphere(FluidOperator):
         if sub_select is not None:
             ind &= sub_select
         for field, val in self.fields.iteritems():
-            grid[field][r < self.radius] = val
+            grid[field][ind] = val
+
+class CoredSphere(FluidOperator):
+    def __init__(self, core_radius, radius, center, fields):
+        self.radius = radius
+        self.center = center
+        self.fields = fields
+        self.core_radius = core_radius
+
+    def __call__(self, grid, sub_select = None):
+        r = np.zeros(grid.ActiveDimensions, dtype="float64")
+        r2 = self.radius**2
+        cr2 = self.core_radius**2
+        for i, ax in enumerate("xyz"):
+            np.add(r, (grid[ax] - self.center[i])**2.0, r)
+        np.maximum(r, cr2, r)
+        ind = (r <= r2)
+        if sub_select is not None:
+            ind &= sub_select
+        for field, (outer_val, inner_val) in self.fields.iteritems():
+            val = ((r[ind] - cr2) / (r2 - cr2))**0.5 * (outer_val - inner_val)
+            grid[field][ind] = val + inner_val
 
 class RandomFluctuation(FluidOperator):
     def __init__(self, fields):

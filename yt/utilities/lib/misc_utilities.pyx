@@ -291,3 +291,25 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
     # Return out unique values
     return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")
 
+
+def grow_flagging_field(oofield):
+    cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")
+    cdef np.ndarray[np.uint8_t, ndim=3] nfield
+    nfield = np.zeros_like(ofield)
+    cdef int i, j, k, ni, nj, nk
+    cdef int oi, oj, ok
+    for ni in range(ofield.shape[0]):
+        for nj in range(ofield.shape[1]):
+            for nk in range(ofield.shape[2]):
+                for oi in range(3):
+                    i = ni + (oi - 1)
+                    if i < 0 or i >= ofield.shape[0]: continue
+                    for oj in range(3):
+                        j = nj + (oj - 1)
+                        if j < 0 or j >= ofield.shape[1]: continue
+                        for ok in range(3):
+                            k = nk + (ok - 1)
+                            if k < 0 or k >= ofield.shape[2]: continue
+                            if ofield[i, j, k] == 1:
+                                nfield[ni, nj, nk] = 1
+    return nfield.astype("bool")
