@@ -21,7 +21,7 @@ def test_slice():
             xax = x_dict[ax]
             yax = y_dict[ax]
             for wf in ["Density", None]:
-                slc = pf.h.slice(ax, slc_pos, ["Ones", "Density"])
+                slc = pf.h.slice(ax, slc_pos)
                 yield assert_equal, slc["Ones"].sum(), slc["Ones"].size
                 yield assert_equal, slc["Ones"].min(), 1.0
                 yield assert_equal, slc["Ones"].max(), 1.0
