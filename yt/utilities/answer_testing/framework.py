@@ -148,6 +148,7 @@ def data_dir_load(pf_fn):
 
 class AnswerTestingTest(object):
     reference_storage = None
+    result_storage = None
     def __init__(self, pf_fn):
         self.pf = data_dir_load(pf_fn)
 
