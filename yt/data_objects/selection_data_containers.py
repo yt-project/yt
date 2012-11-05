@@ -953,18 +953,45 @@ class YTEllipsoidBase(YTSelectionContainer3D):
                  pf=None, field_parameters = None):
         """
         By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
-        can define a ellipsoid of any proportion.  Only cells whose centers are
-        within the ellipsoid will be selected.
+        can define a ellipsoid of any proportion.  Only cells whose
+        centers are within the ellipsoid will be selected.
+
+        Parameters
+        ----------
+        center : array_like
+            The center of the ellipsoid.
+        A : float
+            The magnitude of the largest semi-major axis of the ellipsoid.
+        B : float
+            The magnitude of the medium semi-major axis of the ellipsoid.
+        C : float
+            The magnitude of the smallest semi-major axis of the ellipsoid.
+        e0 : array_like (automatically normalized)
+            the direction of the largest semi-major axis of the ellipsoid
+        tilt : float
+            After the rotation about the z-axis to allign e0 to x in the x-y
+            plane, and then rotating about the y-axis to align e0 completely
+            to the x-axis, tilt is the angle in radians remaining to
+            rotate about the x-axis to align both e1 to the y-axis and e2 to
+            the z-axis.
+        Examples
+        --------
+        >>> pf = load("DD####/DD####")
+        >>> c = [0.5,0.5,0.5]
+        >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
         """
         YTSelectionContainer3D.__init__(self, np.array(center), pf,
                                         field_parameters)
+        # make sure the magnitudes of semi-major axes are in order
+        if A<B or B<C:
+            raise YTEllipsoidOrdering(pf, A, B, C)
         # make sure the smallest side is not smaller than dx
         if C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
         self._A = A
         self._B = B
         self._C = C
-        self._e0 = e0
+        self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         
         # find the t1 angle needed to rotate about z axis to align e0 to x
@@ -996,85 +1023,3 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self.set_field_parameter('e0', e0)
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
-        self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
-        self._refresh_data()
-
-        """
-        Having another function find_ellipsoid_grids is too much work, 
-        can just use the sphere one and forget about checking orientation
-        but feed in the A parameter for radius
-        """
-    def _get_list_of_grids(self, field = None):
-        """
-        This returns the grids that are possibly within the ellipse
-        """
-        grids,ind = self.hierarchy.find_sphere_grids(self.center, self._A)
-        # Now we sort by level
-        grids = grids.tolist()
-        grids.sort(key=lambda x: (x.Level, \
-                                  x.LeftEdge[0], \
-                                  x.LeftEdge[1], \
-                                  x.LeftEdge[2]))
-        self._grids = np.array(grids, dtype = 'object')
-
-    def _is_fully_enclosed(self, grid):
-        """
-        check if all grid corners are inside the ellipsoid
-        """
-        # vector from corner to center
-        vr = (grid._corners - self.center)
-        # 3 possible cases of locations taking periodic BC into account
-        # just listing the components, find smallest later
-        dotarr=np.array([vr, vr + self.DW, vr - self.DW])
-        # these vrdote# finds the product of vr components with e#
-        # square the results
-        # find the smallest
-        # sums it
-        vrdote0_2 = (np.multiply(dotarr, self._e0)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        vrdote1_2 = (np.multiply(dotarr, self._e1)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        vrdote2_2 = (np.multiply(dotarr, self._e2)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        return np.all(vrdote0_2 / self._A**2 + \
-                      vrdote1_2 / self._B**2 + \
-                      vrdote2_2 / self._C**2 <=1.0)
-
-    def _get_cut_mask(self, grid, field = None):
-        """
-        This checks if each cell is inside the ellipsoid
-        """
-        # We have the *property* center, which is not necessarily
-        # the same as the field_parameter
-        if self._is_fully_enclosed(grid):
-            return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
-           and grid.id in self._cut_masks:
-            return self._cut_masks[grid.id]
-        Inside = np.zeros(grid["x"].shape, dtype = 'float64')
-        dim = grid["x"].shape
-        # need this to take into account non-cube root grid tiles
-        dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
-        for i, ax in enumerate('xyz'):
-            # distance to center
-            ar  = grid[ax]-self.center[i]
-            # cases to take into account periodic BC
-            case = np.array([ar, ar + self.DW[i], ar - self.DW[i]])
-            # find which of the 3 cases is smallest in magnitude
-            index = np.abs(case).argmin(axis = 0)
-            # restrict distance to only the smallest cases
-            vec = np.choose(index, case)
-            # sum up to get the dot product with e_vectors
-            dot_evec += np.array([vec * self._e0[i], \
-                                  vec * self._e1[i], \
-                                  vec * self._e2[i]])
-        # Calculate the eqn of ellipsoid, if it is inside
-        # then result should be <= 1.0
-        Inside = dot_evec[0]**2 / self._A**2 + \
-                 dot_evec[1]**2 / self._B**2 + \
-                 dot_evec[2]**2 / self._C**2
-        cm = ((Inside <= 1.0) & grid.child_mask)
-        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
-            self._cut_masks[grid.id] = cm
-        return cm
-

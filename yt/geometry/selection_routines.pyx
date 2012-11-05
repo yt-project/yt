@@ -880,3 +880,66 @@ cdef class DataCollectionSelector(SelectorObject):
 
 data_collection_selector = DataCollectionSelector
 
+cdef class EllipsoidSelector(SelectorObject):
+    cdef np.float64_t vec[3][3]
+    cdef np.float64_t mag[3]
+    cdef np.float64_t center[3]
+
+    def __init__(self, dobj):
+        cdef int i
+        for i in range(3):
+            self.center[i] = dobj.center[i]
+            self.vec[0][i] = dobj._e0[i]
+            self.vec[1][i] = dobj._e1[i]
+            self.vec[2][i] = dobj._e2[i]
+        self.mag[0] = dobj._A
+        self.mag[1] = dobj._B
+        self.mag[2] = dobj._C
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # This is the sphere selection
+        cdef np.float64_t radius2, box_center, relcenter, closest, dist, edge
+        return 1
+        radius2 = self.mag[0] * self.mag[0]
+        cdef int id
+        if (left_edge[0] <= self.center[0] <= right_edge[0] and
+            left_edge[1] <= self.center[1] <= right_edge[1] and
+            left_edge[2] <= self.center[2] <= right_edge[2]):
+            return 1
+        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
+        dist = 0
+        for i in range(3):
+            box_center = (right_edge[i] + left_edge[i])/2.0
+            relcenter = self.center[i] - box_center
+            edge = right_edge[i] - left_edge[i]
+            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
+            dist += closest * closest
+        if dist < radius2: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        cdef np.float64_t dot_evec[3]
+        cdef np.float64_t dist
+        cdef int i, j
+        dot_evec[0] = dot_evec[1] = dot_evec[2] = 0
+        # Calculate the rotated dot product
+        for i in range(3): # axis
+            dist = pos[i] - self.center[i]
+            for j in range(3):
+                dot_evec[j] += dist * self.vec[j][i]
+        dist = 0.0
+        for i in range(3):
+            dist += (dot_evec[i] * dot_evec[i])/(self.mag[i] * self.mag[i])
+        if dist <= 1.0: return 1
+        return 0
+
+ellipsoid_selector = EllipsoidSelector
+
