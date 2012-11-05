@@ -936,8 +936,22 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def get_data(self, field):
         self._get_list_of_grids()
         # We don't generate coordinates here.
-        fields_to_get = ensure_list(field)
-        fields_to_get = [f for f in fields_to_get if f not in self.field_data]
+        if field == None:
+            fields = self.fields[:]
+        else:
+            fields = ensure_list(field)
+        fields_to_get = []
+        for field in fields:
+            if self.field_data.has_key(field): continue
+            if field not in self.hierarchy.field_list:
+                try:
+                    #print "Generating", field
+                    self._generate_field(field)
+                    continue
+                except NeedsOriginalGrid, ngt_exception:
+                    pass
+            fields_to_get.append(field)
+        if len(fields_to_get) == 0: return
         # Note that, thanks to some trickery, we have different dimensions
         # on the field than one might think from looking at the dx and the
         # L/R edges.
