@@ -243,6 +243,10 @@ class PlotWindow(object):
             rendering is used during data deposition.
 
         """
+        if not hasattr(self, "pf"):
+            self.pf = data_source.pf
+            ts = self._initialize_dataset(self.pf) 
+        self.ts = ts
         self._initfinished = False
         self.center = None
         self.plots = {}
