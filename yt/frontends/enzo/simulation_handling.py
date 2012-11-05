@@ -589,6 +589,8 @@ class EnzoSimulation(SimulationTimeSeries):
         if outputs is None:
             outputs = self.all_outputs
         my_outputs = []
+        if not outputs:
+            return my_outputs
         for value in values:
             outputs.sort(key=lambda obj:np.fabs(value - obj[key]))
             if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
