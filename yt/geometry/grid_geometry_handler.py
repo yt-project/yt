@@ -209,9 +209,15 @@ class GridGeometryHandler(GeometryHandler):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size)
         
-    def _chunk_spatial(self, dobj, ngz):
+    def _chunk_spatial(self, dobj, ngz, sort = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i,og in enumerate(gobjs):
+        if sort in ("+level", "level"):
+            giter = sorted(gobjs, key = g.Level)
+        elif sort == "-level":
+            giter = sorted(gobjs, key = -g.Level)
+        elif sort is None:
+            giter = gobjs
+        for i,og in enumerate(giter):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:

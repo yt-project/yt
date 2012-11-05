@@ -358,18 +358,18 @@ class GeometryHandler(ParallelAnalysisInterface):
         return fields_to_return, fields_to_generate
 
 
-    def _chunk(self, dobj, chunking_style, ngz = 0):
+    def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:
             self._identify_base_chunk(dobj)
         if ngz != 0 and chunking_style != "spatial":
             raise NotImplementedError
         if chunking_style == "all":
-            return self._chunk_all(dobj)
+            return self._chunk_all(dobj, **kwargs)
         elif chunking_style == "spatial":
-            return self._chunk_spatial(dobj, ngz)
+            return self._chunk_spatial(dobj, ngz, **kwargs)
         elif chunking_style == "io":
-            return self._chunk_io(dobj)
+            return self._chunk_io(dobj, **kwargs)
         else:
             raise NotImplementedError
 
