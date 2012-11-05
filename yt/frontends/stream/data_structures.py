@@ -357,3 +357,103 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
     return spf
+
+def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
+                   sim_time=0.0, number_of_particles=0):
+    r"""Load a set of grids of data into yt as a
+    :class:`~yt.frontends.stream.data_structures.StreamHandler`.
+
+    This should allow a sequence of grids of varying resolution of data to be
+    loaded directly into yt and analyzed as would any others.  This comes with
+    several caveats:
+        * Units will be incorrect unless the data has already been converted to
+          cgs.
+        * Some functions may behave oddly, and parallelism will be
+          disappointing or non-existent in most cases.
+        * Particles may be difficult to integrate.
+        * No consistency checks are performed on the hierarchy
+
+    Parameters
+    ----------
+    grid_data : list of dicts
+        This is a list of dicts.  Each dict must have entries "left_edge",
+        "right_edge", "dimensions", "level", and then any remaining entries are
+        assumed to be fields.  This will be modified in place and can't be
+        assumed to be static..
+    domain_dimensions : array_like
+        This is the domain dimensions of the grid
+    sim_unit_to_cm : float
+        Conversion factor from simulation units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units sim_unit_to_cm
+    sim_time : float, optional
+        The simulation time in seconds
+    number_of_particles : int, optional
+        If particle fields are included, set this to the number of particles
+
+    Examples
+    --------
+
+    >>> grid_data = [
+    ...     dict(left_edge = [0.0, 0.0, 0.0],
+    ...          right_edge = [1.0, 1.0, 1.],
+    ...          level = 0,
+    ...          dimensions = [32, 32, 32]),
+    ...     dict(left_edge = [0.25, 0.25, 0.25],
+    ...          right_edge = [0.75, 0.75, 0.75],
+    ...          level = 1,
+    ...          dimensions = [32, 32, 32])
+    ... ]
+    ... 
+    >>> for g in grid_data:
+    ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...
+    >>> pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+    """
+
+    domain_dimensions = np.array(domain_dimensions)
+    ngrids = len(grid_data)
+    if bbox is None:
+        bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    domain_left_edge = np.array(bbox[:, 0], 'float64')
+    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    grid_levels = np.zeros((ngrids, 1), dtype='int32')
+    grid_left_edges = np.zeros((ngrids, 3), dtype="float32")
+    grid_right_edges = np.zeros((ngrids, 3), dtype="float32")
+    grid_dimensions = np.zeros((ngrids, 3), dtype="int32")
+    sfh = StreamDictFieldHandler()
+    for i, g in enumerate(grid_data):
+        grid_left_edges[i,:] = g.pop("left_edge")
+        grid_right_edges[i,:] = g.pop("right_edge")
+        grid_dimensions[i,:] = g.pop("dimensions")
+        grid_levels[i,:] = g.pop("level")
+        sfh[i] = g
+
+    handler = StreamHandler(
+        grid_left_edges,
+        grid_right_edges,
+        grid_dimensions,
+        grid_levels,
+        None, # parent_ids is none
+        number_of_particles*np.ones(ngrids, dtype='int64').reshape(ngrids,1),
+        np.zeros(ngrids).reshape((ngrids,1)),
+        sfh,
+    )
+
+    handler.name = "AMRGridData"
+    handler.domain_left_edge = domain_left_edge
+    handler.domain_right_edge = domain_right_edge
+    handler.refine_by = 2
+    handler.dimensionality = 3
+    handler.domain_dimensions = domain_dimensions
+    handler.simulation_time = sim_time
+    handler.cosmology_simulation = 0
+
+    spf = StreamStaticOutput(handler)
+    spf.units["cm"] = sim_unit_to_cm
+    spf.units['1'] = 1.0
+    spf.units["unitary"] = 1.0
+    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    for unit in mpc_conversion.keys():
+        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+    return spf

@@ -62,7 +62,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
     _type_name = "streamline"
     _con_args = ('positions')
     sort_by = 't'
-    def __init__(self, positions, fields=None, pf=None, **kwargs):
+    def __init__(self, positions, length = 1.0, fields=None, pf=None, **kwargs):
         """
         This is a streamline, which is a set of points defined as
         being parallel to some vector field.
@@ -78,6 +78,8 @@ class YTStreamlineBase(YTSelectionContainer1D):
         ----------
         positions : array-like
             List of streamline positions
+        length : float
+            The magnitude of the distance; dts will be divided by this
         fields : list of strings, optional
             If you want the object to pre-retrieve a set of fields, supply them
             here.  This is not necessary.
@@ -91,11 +93,11 @@ class YTStreamlineBase(YTSelectionContainer1D):
         --------
 
         >>> from yt.visualization.api import Streamlines
-        >>> streamlines = Streamlines(pf, [0.5]*3)
+        >>> streamlines = Streamlines(pf, [0.5]*3) 
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-
+        
         """
         YTSelectionContainer1D.__init__(self, pf, fields, **kwargs)
         self.positions = positions
@@ -103,6 +105,8 @@ class YTStreamlineBase(YTSelectionContainer1D):
         self.dts[:-1] = np.sqrt(np.sum((self.positions[1:]-
                                         self.positions[:-1])**2,axis=1))
         self.dts[-1] = self.dts[-1]
+        self.length = length
+        self.dts /= length
         self.ts = np.add.accumulate(self.dts)
         self._set_center(self.positions[0])
         self.set_field_parameter('center', self.positions[0])
@@ -119,32 +123,31 @@ class YTStreamlineBase(YTSelectionContainer1D):
         p = np.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
         self._grids = self.hierarchy.grids[p]
 
-    #@restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        mask = np.logical_and(self._get_cut_mask(grid),
-                              grid.child_mask)
-        if field == 'dts': return self._dts[grid.id][mask]
-        if field == 't': return self._ts[grid.id][mask]
-        return grid[field][mask]
+        # No child masking here; it happens inside the mask cut
+        mask = self._get_cut_mask(grid) 
+        if field == 'dts': return self._dts[grid.id]
+        if field == 't': return self._ts[grid.id]
+        return grid[field].flat[mask]
+        
 
     def _get_cut_mask(self, grid):
-        mask = np.zeros(grid.ActiveDimensions, dtype='int')
-        dts = np.zeros(grid.ActiveDimensions, dtype='float64')
-        ts = np.zeros(grid.ActiveDimensions, dtype='float64')
         #pdb.set_trace()
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
-                         np.all(self.positions <= grid.RightEdge, axis=1)
+                         np.all(self.positions <= grid.RightEdge, axis=1) 
         pids = np.where(points_in_grid)[0]
-        for i, pos in zip(pids, self.positions[points_in_grid]):
+        mask = np.zeros(points_in_grid.sum(), dtype='int')
+        dts = np.zeros(points_in_grid.sum(), dtype='float64')
+        ts = np.zeros(points_in_grid.sum(), dtype='float64')
+        for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
             if not points_in_grid[i]: continue
             ci = ((pos - grid.LeftEdge)/grid.dds).astype('int')
+            if grid.child_mask[ci[0], ci[1], ci[2]] == 0: continue
             for j in range(3):
                 ci[j] = min(ci[j], grid.ActiveDimensions[j]-1)
-            if mask[ci[0], ci[1], ci[2]]:
-                continue
-            mask[ci[0], ci[1], ci[2]] = 1
-            dts[ci[0], ci[1], ci[2]] = self.dts[i]
-            ts[ci[0], ci[1], ci[2]] = self.ts[i]
+            mask[mi] = np.ravel_multi_index(ci, grid.ActiveDimensions)
+            dts[mi] = self.dts[i]
+            ts[mi] = self.ts[i]
         self._dts[grid.id] = dts
         self._ts[grid.id] = ts
         return mask

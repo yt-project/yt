@@ -578,7 +578,9 @@ class Communicator(object):
                     ncols, size = data.shape
             ncols = self.comm.allreduce(ncols, op=MPI.MAX)
             if ncols == 0:
-                    data = np.zeros(0, dtype=dtype) # This only works for
+                data = np.zeros(0, dtype=dtype) # This only works for
+            elif data is None:
+                data = np.zeros((ncols, 0), dtype=dtype)
             size = data.shape[-1]
             sizes = np.zeros(self.comm.size, dtype='int64')
             outsize = np.array(size, dtype='int64')
@@ -1055,3 +1057,49 @@ class ParallelAnalysisInterface(object):
                 nextdim = (nextdim + 1) % 3
         return cuts
     
+class GroupOwnership(ParallelAnalysisInterface):
+    def __init__(self, items):
+        ParallelAnalysisInterface.__init__(self)
+        self.num_items = len(items)
+        self.items = items
+        assert(self.num_items >= self.comm.size)
+        self.owned = range(self.comm.size)
+        self.pointer = 0
+        if parallel_capable:
+            communication_system.push_with_ids([self.comm.rank])
+
+    def __del__(self):
+        if parallel_capable:
+            communication_system.pop()
+
+    def inc(self, n = -1):
+        old_item = self.item
+        if n == -1: n = self.comm.size
+        for i in range(n):
+            if self.pointer >= self.num_items - self.comm.size: break
+            self.owned[self.pointer % self.comm.size] += self.comm.size
+            self.pointer += 1
+        if self.item is not old_item:
+            self.switch()
+            
+    def dec(self, n = -1):
+        old_item = self.item
+        if n == -1: n = self.comm.size
+        for i in range(n):
+            if self.pointer == 0: break
+            self.owned[(self.pointer - 1) % self.comm.size] -= self.comm.size
+            self.pointer -= 1
+        if self.item is not old_item:
+            self.switch()
+
+    _last = None
+    @property
+    def item(self):
+        own = self.owned[self.comm.rank]
+        if self._last != own:
+            self._item = self.items[own]
+            self._last = own
+        return self._item
+
+    def switch(self):
+        pass

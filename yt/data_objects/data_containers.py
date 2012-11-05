@@ -53,7 +53,7 @@ import yt.geometry.selection_routines
 def force_array(item, shape):
     try:
         sh = item.shape
-        return item
+        return item.copy()
     except AttributeError:
         if item:
             return np.ones(shape, dtype='bool')

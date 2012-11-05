@@ -60,6 +60,10 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    GroupOwnership
+from yt.data_objects.time_series import \
+    TimeSeriesData
 
 def invalidate_data(f):
     @wraps(f)
@@ -254,6 +258,34 @@ class PlotWindow(object):
             self.set_center(center)
         self._initfinished = True
 
+    def _initialize_dataset(self, ts):
+        if not isinstance(ts, TimeSeriesData):
+            if not iterable(ts): ts = [ts]
+            ts = TimeSeriesData(ts)
+        return ts
+
+    def __iter__(self):
+        for pf in self.ts:
+            mylog.warning("Switching to %s", pf)
+            self._switch_pf(pf)
+            yield self
+
+    def piter(self, *args, **kwargs):
+        for pf in self.ts.piter(*args, **kwargs):
+            self._switch_pf(pf)
+            yield self
+
+    def _switch_pf(self, new_pf):
+        ds = self.data_source
+        name = ds._type_name
+        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
+        new_ds = getattr(new_pf.h, name)(**kwargs)
+        self.pf = new_pf
+        self.data_source = new_ds
+        self._data_valid = self._plot_valid = False
+        self._recreate_frb()
+        self._setup_plots()
+
     def __getitem__(self, item):
         return self.plots[item]
 
@@ -273,7 +305,6 @@ class PlotWindow(object):
             self._frb._get_data_source_fields()
         else:
             for key in old_fields: self._frb[key]
-        self.pf = self._frb.pf
         self._data_valid = True
         
     def _setup_plots(self):
@@ -1063,8 +1094,12 @@ class SlicePlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        # tHis will handle time series data and controllers
+        ts = self._initialize_dataset(pf) 
+        self.ts = ts
+        pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
         slc = pf.h.slice(axis, center[axis])
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
@@ -1167,8 +1202,11 @@ class ProjectionPlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        ts = self._initialize_dataset(pf) 
+        self.ts = ts
+        pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
         proj = pf.h.proj(fields, axis, weight_field=weight_field, center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
         self.set_axes_unit(axes_unit)
@@ -1332,6 +1370,7 @@ class PWViewerExtJS(PWViewer):
     _ext_widget_id = None
     _current_field = None
     _widget_name = "plot_window"
+    _frb_generator = FixedResolutionBuffer
 
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
