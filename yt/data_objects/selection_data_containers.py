@@ -950,13 +950,14 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
-                 pf=None, **kwargs):
+                 pf=None, field_parameters = None):
         """
         By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
         can define a ellipsoid of any proportion.  Only cells whose centers are
         within the ellipsoid will be selected.
         """
-        AMR3DData.__init__(self, np.array(center), fields, pf, **kwargs)
+        YTSelectionContainer3D.__init__(self, np.array(center), pf,
+                                        field_parameters)
         # make sure the smallest side is not smaller than dx
         if C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())

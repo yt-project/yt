@@ -666,7 +666,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         as the points in `this` data object with the given *indices*.
         """
         fp = self.field_parameters.copy()
-        return YTSelectedIndicesBase(self, indices, **fp)
+        return YTSelectedIndicesBase(self, indices, field_parameters = fp)
 
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):
