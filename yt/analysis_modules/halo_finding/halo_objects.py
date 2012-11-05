@@ -1305,6 +1305,7 @@ class RockstarHaloList(HaloList):
     #Still, we inherit from HaloList because in the future
     #we might implement halo-particle affiliations
     def __init__(self,pf,out_list):
+        ParallelAnalysisInterface.__init__(self)
         mylog.info("Initializing Rockstar List")
         self._data_source = None
         self._groups = []
@@ -1377,8 +1378,6 @@ class RockstarHaloList(HaloList):
             halo = RockstarHalo(self, i, *args)
             self._groups.append(halo)
 
-    def write_out(self):
-        pass
     def write_particle_list(self):
         pass
 
