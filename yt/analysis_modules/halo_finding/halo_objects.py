@@ -81,6 +81,7 @@ class Halo(object):
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
         bulk_vel=None, tasks=None, rms_vel=None, supp=None):
+        self.halo_list = halo_list
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
@@ -108,6 +109,10 @@ class Halo(object):
             self.supp = {}
         else:
             self.supp = supp
+        # Used for Loaded and RockstarHalos
+        self.saved_fields = {}
+        self.particle_mask = None
+        self.ds_sort = None
 
     def center_of_mass(self):
         r"""Calculate and return the center of mass.
@@ -564,10 +569,62 @@ class RockstarHalo(Halo):
         r"""Virial radius in Mpc/h comoving"""
         return self.supp['r']
 
-    def __getitem__(self,key):
-        r"""Not implemented"""
-        return None
+    def __getitem__(self, key):
+        # This function will try to get particle data in one of three ways,
+        # in descending preference.
+        # 1. From saved_fields, e.g. we've already got it.
+        # 2. From the halo binary files off disk.
+        # 3. Use the unique particle indexes of the halo to select a missing
+        # field from an AMR Sphere.
+        try:
+            # We've already got it.
+            return self.saved_fields[key]
+        except KeyError:
+            # Gotta go get it from the Rockstar binary file.
+            if key == 'particle_index':
+                IDs = self._get_particle_data(self.supp['id'],
+                    self.halo_list.halo_to_fname, self.size, key)
+                IDs = IDs[IDs.argsort()]
+                self.saved_fields[key] = IDs
+                return self.saved_fields[key]
+            else:
+                # Dynamically create the masking array for particles, and get
+                # the data using standard yt methods. The > 1 is there to
+                # account for the fact that 'r' for Rockstar halos is the
+                # virial radius, not maximum radius. 4 might be a bit
+                # too generous, but it's safer this way.
+                ds = self.pf.h.sphere(self.CoM, 4 * self.max_radius)
+                if self.particle_mask is None:
+                    # This is from disk.
+                    pid = self.__getitem__('particle_index')
+                    # This is from the sphere.
+                    sp_pid = ds['particle_index']
+                    self.ds_sort = sp_pid.argsort()
+                    sp_pid = sp_pid[self.ds_sort]
+                    # This matches them up.
+                    self.particle_mask = np.in1d(sp_pid, pid)
+                # We won't store this field below in saved_fields because
+                # that would mean keeping two copies of it, one in the yt
+                # machinery and one here.
+                return ds[key][self.ds_sort][self.particle_mask]
 
+    def _get_particle_data(self, halo, fnames, size, field):
+        # Given a list of file names, a halo, its size, and the desired field,
+        # this returns the particle indices for that halo.
+        file = fnames[halo]
+        mylog.info("Getting %d particles from Rockstar binary file %s." % (self.supp['num_p'], file))
+        fp = open(file, 'rb')
+        # We need to skip past the header and all the halos.
+        fp.seek(self.halo_list.header_dt.itemsize + \
+            self.halo_list.fname_halos[file] * \
+            self.halo_list.halo_dt.itemsize, os.SEEK_CUR)
+        # Now we skip ahead to where this halos particles begin.
+        fp.seek(self.supp['p_start'] * 8, os.SEEK_CUR)
+        # And finally, read in the ids.
+        IDs = np.fromfile(fp, dtype=np.int64, count=self.supp['num_p'])
+        fp.close()
+        print IDs.shape
+        return IDs
 
     def get_ellipsoid_parameters(self):
         r"""Calculate the parameters that describe the ellipsoid of
@@ -772,9 +829,6 @@ class LoadedHalo(Halo):
         self.fnames = fnames
         self.bin_count = None
         self.overdensity = None
-        self.saved_fields = {}
-        self.particle_mask = None
-        self.ds_sort = None
         self.indices = np.array([])  # Never used for a LoadedHalo.
         # A supplementary data dict.
         if supp is None:
@@ -796,8 +850,9 @@ class LoadedHalo(Halo):
             # Gotta go get it from the halo h5 files.
             field_data = self._get_particle_data(self.id, self.fnames,
                 self.size, key)
-            #if key == 'particle_position_x': field_data = None
             if field_data is not None:
+                if key == 'particle_index':
+                    field_data = field_data[field_data.argsort()]
                 self.saved_fields[key] = field_data
                 return self.saved_fields[key]
             else:
@@ -812,10 +867,8 @@ class LoadedHalo(Halo):
                     sp_pid = ds['particle_index']
                     self.ds_sort = sp_pid.argsort()
                     sp_pid = sp_pid[self.ds_sort]
-                    # The result of searchsorted is an array with the positions
-                    # of the indexes in pid as they are in sp_pid. This is
-                    # because each element of pid is in sp_pid only once.
-                    self.particle_mask = np.searchsorted(sp_pid, pid)
+                    # This matches them up.
+                    self.particle_mask = np.in1d(sp_pid, pid)
                 # We won't store this field below in saved_fields because
                 # that would mean keeping two copies of it, one in the yt
                 # machinery and one here.
@@ -1328,6 +1381,7 @@ class RockstarHaloList(HaloList):
         """
         halos = None
         self.halo_to_fname = {}
+        self.fname_halos = {}
         for file in files:
             fp = open(file, 'rb')
             # read the header
@@ -1338,6 +1392,8 @@ class RockstarHaloList(HaloList):
             # Record which binary file holds these halos.
             for halo in new_halos['id']:
                 self.halo_to_fname[halo] = file
+            # Record how many halos are stored in each binary file.
+            self.fname_halos[file] = header['num_halos']
             # Add to existing.
             if halos is not None:
                 halos = np.concatenate((new_halos, halos))
