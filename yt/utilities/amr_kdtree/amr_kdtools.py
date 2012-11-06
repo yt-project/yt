@@ -73,12 +73,12 @@ def add_grids(node, gles, gres, gids, rank, size):
         else:
             less_ids = gles[:,node.split.dim] < node.split.pos
             if len(less_ids) > 0:
-                add_grids(node.left, gles[less_ids], gres[less_ids], 
+                add_grids(node.left, gles[less_ids], gres[less_ids],
                           gids[less_ids], rank, size)
 
             greater_ids = gres[:,node.split.dim] > node.split.pos
             if len(greater_ids) > 0:
-                add_grids(node.right, gles[greater_ids], gres[greater_ids], 
+                add_grids(node.right, gles[greater_ids], gres[greater_ids],
                           gids[greater_ids], rank, size)
 
 def insert_grids(node, gles, gres, grid_ids, rank, size):
@@ -94,14 +94,25 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
                 return
 
         # Split the grids
-        split_grids(node, gles, gres, grid_ids, rank, size)
+        check = split_grids(node, gles, gres, grid_ids, rank, size)
+        # If check is -1, then we have found a place where there are no choices.
+        # Exit out and set the node to None.
+        if check == -1:
+            node.grid = None
     return
 
 def split_grids(node, gles, gres, grid_ids, rank, size):
     # Find a Split
-    data = na.array([(gles[i,:], gres[i,:]) for i in xrange(grid_ids.shape[0])], copy=False)
+    data = na.array([(gles[i,:], gres[i,:]) for i in
+        xrange(grid_ids.shape[0])], copy=False)
     best_dim, split_pos, less_ids, greater_ids = \
         kdtree_get_choices(data, node.left_edge, node.right_edge)
+
+    # If best_dim is -1, then we have found a place where there are no choices.
+    # Exit out and set the node to None.
+    if best_dim == -1:
+        return -1
+
     split = Split(best_dim, split_pos)
 
     del data, best_dim, split_pos
