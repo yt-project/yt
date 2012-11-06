@@ -64,6 +64,10 @@ class Tree(object):
         self.comm_size = comm_size
         self.trunk = Node(None, None, None,
                 left, right, None, 1)
+        if grids is None:
+            self.grids = pf.h.region((left+right)/2., left, right)._grids
+        else:
+            self.grids = grids
         self.build(grids)
 
     def add_grids(self, grids):
@@ -77,10 +81,10 @@ class Tree(object):
                 except:
                     break
                 if grids[0].Level not in lvl_range: continue
-                gles = na.array([g.LeftEdge for g in grids])
-                gres = na.array([g.RightEdge for g in grids])
-                gids = na.array([g.id for g in grids])
-                my_break() 
+                gles = na.array([g.LeftEdge for g in grids if g in self.grids])
+                gres = na.array([g.RightEdge for g in grids if g in self.grids])
+                gids = na.array([g.id for g in grids if g in self.grids])
+                my_break()
                 add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
                 del gles, gres, gids, grids
         else:
