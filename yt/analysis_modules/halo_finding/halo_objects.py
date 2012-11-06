@@ -34,6 +34,8 @@ import math
 import numpy as np
 import random
 import sys
+import glob
+import os
 import os.path as path
 from collections import defaultdict
 
@@ -540,43 +542,7 @@ class Halo(object):
             e0_vector[2], tilt)
 
 class RockstarHalo(Halo):
-    def __init__(self,halo_list,index,ID, DescID, Mvir, Vmax, Vrms, Rvir, Rs, Np, 
-                  X, Y, Z, VX, VY, VZ, JX, JY, JZ, Spin):
-        """Implement the properties reported by Rockstar: ID, Descendant ID,
-           Mvir, Vmax, Vrms, Rvir, Rs, Np, XYZ, VXYZ, JXYZ, and spin.
-           Most defaults are removed since we don't read in which halos
-           particles belong to. 
-        """
-        self.ID = ID #from rockstar
-        self.id = index #index in the halo list
-        self.pf = halo_list.pf
-
-        self.DescID = DescID
-        self.Mvir = Mvir
-        self.Vmax = Vmax
-        self.Vrms = Vrms
-        self.Rvir = Rvir
-        self.Rs   = Rs
-        self.Np   = Np
-        self.X    = X
-        self.Y    = Y
-        self.Z    = Z
-        self.VX   = VX
-        self.VY   = VY
-        self.VZ   = VZ
-        self.JX   = JX
-        self.JY   = JY
-        self.JZ   = JZ
-        self.Spin = Spin
-
-        #Halo.__init__(self,halo_list,index,
-        self.size=Np 
-        self.CoM=np.array([X,Y,Z])
-        self.max_dens_point=-1
-        self.group_total_mass=Mvir
-        self.max_radius=Rvir
-        self.bulk_vel=np.array([VX,VY,VZ])*1e5
-        self.rms_vel=Vrms
+    _name = "RockstarHalo"
     
     def maximum_density(self):
         r"""Not implemented."""
@@ -592,11 +558,11 @@ class RockstarHalo(Halo):
 
     def virial_mass(self):
         r"""Virial mass in Msun/h"""
-        return self.Mvir
+        return self.supp['m']
 
     def virial_radius(self):
         r"""Virial radius in Mpc/h comoving"""
-        return self.Rvir
+        return self.supp['r']
 
     def __getitem__(self,key):
         r"""Not implemented"""
@@ -1304,17 +1270,47 @@ class RockstarHaloList(HaloList):
     #a fixed mass, so we don't allow stars at all
     #Still, we inherit from HaloList because in the future
     #we might implement halo-particle affiliations
-    def __init__(self,pf,out_list):
+    def __init__(self, pf, out_list):
         ParallelAnalysisInterface.__init__(self)
         mylog.info("Initializing Rockstar List")
+        self._setup()
         self._data_source = None
         self._groups = []
         self._max_dens = -1
         self.pf = pf
         self.out_list = out_list
+        self._data_source = pf.h.all_data()
         mylog.info("Parsing Rockstar halo list")
-        self._parse_output(out_list)
+        self._parse_output()
         mylog.info("Finished %s"%out_list)
+
+    def _setup(self):
+        """ A few things we'll need later."""
+        # see io_internal.h in Rockstar.
+        BINARY_HEADER_SIZE=256
+        self.header_dt = np.dtype([('magic', np.uint64), ('snap', np.int64),
+            ('chunk', np.int64), ('scale', np.float32), ('Om', np.float32),
+            ('Ol', np.float32), ('h0', np.float32),
+            ('bounds', (np.float32, 6)), ('num_halos', np.int64),
+            ('num_particles', np.int64), ('box_size', np.float32),
+            ('particle_mass', np.float32), ('particle_type', np.int64),
+            ('unused', (np.byte, BINARY_HEADER_SIZE - 4*12 - 8*6))])
+        # see halo.h.
+        self.halo_dt = np.dtype([('id', np.int64), ('pos', (np.float32, 6)),
+            ('corevel', (np.float32, 3)), ('bulkvel', (np.float32, 3)),
+            ('m', np.float32), ('r', np.float32), ('child_r', np.float32),
+            ('mgrav', np.float32), ('vmax', np.float32),
+            ('rvmax', np.float32), ('rs', np.float32),
+            ('vrms', np.float32), ('J', (np.float32, 3)),
+            ('energy', np.float32), ('spin', np.float32),
+            ('padding1', np.float32), ('num_p', np.int64),
+            ('num_child_particles', np.int64), ('p_start', np.int64),
+            ('desc', np.int64), ('flags', np.int64), ('n_core', np.int64),
+            ('min_pos_err', np.float32), ('min_vel_err', np.float32),
+            ('min_bulkvel_err', np.float32), ('padding2', np.float32),])
+        # Above, padding1&2 are due to c byte ordering which pads between
+        # 4 and 8 byte values in the struct as to not overlap memory registers.
+        self.tocleanup = ['padding1', 'padding2']
 
     def _run_finder(self):
         pass
@@ -1325,57 +1321,67 @@ class RockstarHaloList(HaloList):
     def _get_dm_indices(self):
         pass
 
-    def _parse_output(self,out_list=None):
+    def _get_halos_binary(self, files):
+        """
+        Parse the binary files to get information about halos in higher
+        precision than the text file.
+        """
+        halos = None
+        self.halo_to_fname = {}
+        for file in files:
+            fp = open(file, 'rb')
+            # read the header
+            header = np.fromfile(fp, dtype=self.header_dt, count=1)
+            # read the halo information
+            new_halos = np.fromfile(fp, dtype=self. halo_dt,
+                count=header['num_halos'])
+            # Record which binary file holds these halos.
+            for halo in new_halos['id']:
+                self.halo_to_fname[halo] = file
+            # Add to existing.
+            if halos is not None:
+                halos = np.concatenate((new_halos, halos))
+            else:
+                halos = new_halos.copy()
+            fp.close()
+        # Sort them by mass.
+        halos.sort(order='m')
+        halos = np.flipud(halos)
+        return halos
+
+    def _parse_output(self):
         """
         Read the out_*.list text file produced
         by Rockstar into memory."""
         
         pf = self.pf
-
-        if out_list is None:
-            out_list = self.out_list
-
-        lines = open(out_list).readlines()
-        names = []
-        formats = []
-        
-        #find the variables names from the first defining line
-        names = lines[0].replace('#','').split(' ')
-        for j,line in enumerate(lines):
-            if not line.startswith('#'): break
-        
-        #find out the table datatypes but evaluating the first data line
-        splits = filter(lambda x: len(x.strip()) > 0 ,line.split(' '))
-        for num in splits:
-            if 'nan' not in num:
-                formats += np.array(eval(num)).dtype,
-            else:
-                formats += np.dtype('float'),
-        assert len(formats) == len(names)
+        out_list = self.out_list
+        # We need to also get the binary files.
+        basedir = os.path.dirname(out_list)
+        files = glob.glob(basedir + '/halos*bin')
+        halos = self._get_halos_binary(files)
         
         #Jc = 1.98892e33/pf['mpchcm']*1e5
         Jc = 1.0
-        conv = dict(X=1.0/pf['mpchcm'],
-                    Y=1.0/pf['mpchcm'],
-                    Z=1.0/pf['mpchcm'], #to unitary
-                    VX=1e0, VY=1e0, VZ=1e0, #to km/s
-                    Mvir=1.0, #Msun/h
-                    Vmax=1e0,Vrms=1e0,
-                    Rvir=1.0/pf['kpchcm'],
-                    Rs=1.0/pf['kpchcm'],
-                    JX=Jc, JY=Jc, JZ=Jc)
-        dtype = {'names':names,'formats':formats}
-        halo_table = np.loadtxt(out_list,skiprows=j-1,dtype=dtype,comments='#')            
-        # Sort halos by Mvir.
-        halo_table.sort(order='Mvir')
-        halo_table = np.flipud(halo_table)
-        #convert position units
-        for name in names:
-            halo_table[name]=halo_table[name]*conv.get(name,1)
+        length = 1.0 / pf['mpchcm']
+        conv = dict(pos = np.array([length, length, length,
+                                    1, 1, 1]), # to unitary
+                    r=1.0/pf['kpchcm'], # to unitary
+                    rs=1.0/pf['kpchcm'], # to unitary
+                    )
+        #convert units
+        for name in self.halo_dt.names:
+            halos[name]=halos[name]*conv.get(name,1)
         # Store the halos in the halo list.
-        for i, row in enumerate(halo_table):
-            args = tuple([val for val in row])
-            halo = RockstarHalo(self, i, *args)
+        for i, row in enumerate(halos):
+            supp = {name:row[name] for name in self.halo_dt.names}
+            # Delete the padding columns. 'supp' below will contain
+            # repeated information, but that's OK.
+            for item in self.tocleanup: del supp[item]
+            halo = RockstarHalo(self, i, size=row['num_p'],
+                CoM=row['pos'][0:3], group_total_mass=row['m'],
+                max_radius=row['r'], bulk_vel=row['bulkvel'],
+                rms_vel=row['vrms'], supp=supp)
             self._groups.append(halo)
 
     def write_particle_list(self):
