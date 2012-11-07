@@ -76,6 +76,8 @@ class AnswerTesting(Plugin):
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
             self.result_storage = defaultdict(dict)
+        if options.compare_name == "SKIP":
+            options.compare_name = None
         if options.compare_name is not None:
             # Now we grab from our S3 store
             if options.compare_name == "latest":
