@@ -162,19 +162,24 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo"):
 
 class AnswerTestingTest(object):
     reference_storage = None
+    prefix = ""
     def __init__(self, pf_fn):
         self.pf = data_dir_load(pf_fn)
 
     def __call__(self):
         nv = self.run()
         if self.reference_storage is not None:
-            dd = self.reference_storage.get(str(self.pf))
+            dd = self.reference_storage.get(self.storage_name)
             if dd is None: raise YTNoOldAnswer()
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
             ov = None
-        self.result_storage[str(self.pf)][self.description] = nv
+        self.result_storage[self.storage_name][self.description] = nv
+
+    @property
+    def storage_name(self):
+        return "%s_%s" % (self.prefix, self.pf)
 
     def compare(self, new_result, old_result):
         raise RuntimeError
@@ -383,11 +388,16 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
-def requires_outputlog(path = "."):
+def requires_outputlog(path = ".", prefix = ""):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
-        return func
+        def fyielder(*args, **kwargs):
+            for t in func(*args, **kwargs):
+                if isinstance(t, AnswerTestingTest):
+                    t.prefix = prefix
+                yield t
+        return fyielder
     if os.path.exists("OutputLog"):
         return ftrue
     with temp_cwd(path):
