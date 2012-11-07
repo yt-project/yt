@@ -1170,10 +1170,11 @@ class TimestampCallback(PlotCallback):
           }
     _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black', 'alpha': 1.0}
 
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized = False, 
-                 bbox_dict = None, **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
+                 bbox_dict=None, **kwargs):
         """ 
-        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs)
+        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
+                           normalized=False, bbox_dict=None)
 
         Adds the current time to the plot at point given by *x* and *y*.  If *units* 
         is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
