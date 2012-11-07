@@ -117,9 +117,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.comm.barrier()            
         tpf = ts.__iter__().next()
         dd = tpf.h.all_data()
-        total_particles = na.sum(dd['particle_type']==dm_type).astype('int64')
-        mylog.info("Found %i halo particles",total_particles)
-        self.total_particles = total_particles
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
@@ -138,6 +135,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         data_source = tpf.h.all_data()
         self.comm.barrier()
         self.force_res = force_res
+        def _pcount(field,data):
+            return (data["particle_type"]=dm_type).sum()
+        add_field("pcount",function=_pcount,particle_type=True)
+        total_particles = dd.quantities['TotalQuantity']('pcount')
+        self.total_particles = total_particles
+        mylog.info("Found %i halo particles",total_particles)
         self.handler = rockstar_interface.RockstarInterface(
                 self.ts, data_source)
 
