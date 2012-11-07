@@ -150,6 +150,14 @@ def data_dir_load(pf_fn):
         pf.h
         return pf
 
+def sim_dir_load(sim_fn, path = None, sim_type = "Enzo"):
+    if path is None and not os.path.exists(sim_fn):
+        raise IOError
+    if os.path.exists(sim_fn) or not path:
+        path = "."
+    with temp_cwd(path):
+        return Simulation(sim_fn, sim_type = sim_type)
+
 class AnswerTestingTest(object):
     reference_storage = None
     def __init__(self, pf_fn):
@@ -373,13 +381,16 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
-def requires_outputlog():
+def requires_outputlog(path = "."):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
     if os.path.exists("OutputLog"):
         return ftrue
+    with temp_cwd(path):
+        if os.path.exists("OutputLog"):
+            return ftrue
     return ffalse
 
 def requires_pf(pf_fn, big_data = False):
