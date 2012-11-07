@@ -310,20 +310,23 @@ cdef class RockstarInterface:
         self.data_source = data_source
 
     def setup_rockstar(self, char *server_address, char *server_port,
-                       int num_snaps, #np.int64_t total_particles,
+                       int num_snaps, np.int64_t total_particles,
                        int dm_type,
                        np.float64_t particle_mass = -1.0,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
-                       int periodic = 1, 
+                       int periodic = 1, force_res=None,
                        int min_halo_size = 25, outbase = "None"):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
         global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE
-        global OVERLAP_LENGTH
+        global OVERLAP_LENGTH, FORCE_RES
+        if force_res is not None:
+            FORCE_RES=np.float64(force_res)
+            print "set force res to ",FORCE_RES
         OVERLAP_LENGTH = 0.0
         if parallel:
             PARALLEL_IO = 1
@@ -343,7 +346,7 @@ cdef class RockstarInterface:
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
-        #TOTAL_PARTICLES = total_particles
+        TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
         
         tpf = self.ts[0]
