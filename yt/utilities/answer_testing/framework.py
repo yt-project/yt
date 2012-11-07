@@ -392,6 +392,7 @@ def requires_outputlog(path = ".", prefix = ""):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
+        @wraps(func)
         def fyielder(*args, **kwargs):
             for t in func(*args, **kwargs):
                 if isinstance(t, AnswerTestingTest):
