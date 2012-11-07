@@ -60,6 +60,7 @@ for f in known_art_fields:
 #Density
 #Temperature
 #metallicities
+#MetalDensity SNII + SNia
 
 #Hydro Fields that need to be tested:
 #TotalEnergy
@@ -67,7 +68,6 @@ for f in known_art_fields:
 #Pressure
 #Gamma
 #GasEnergy
-#MetalDensity SNII + SNia
 #Potentials
 #xyzvelocity
 
@@ -232,7 +232,6 @@ add_field("z-velocity", function=_z_velocity, units = r"\mathrm{cm/s}",take_log=
 ARTFieldInfo["z-velocity"]._units = r"\rm{cm}/\rm{s}"
 ARTFieldInfo["z-velocity"]._projected_units = r"\rm{cm}/\rm{s}"
 
-
 def _metal_density(field, data):
     tr  = data["MetalDensitySNIa"]
     tr += data["MetalDensitySNII"]
@@ -250,6 +249,17 @@ add_field("ParticleMass",function=ParticleMass,units=r"\rm{g}",particle_type=Tru
 
 
 #Derived particle fields
+
+def ParticleMassMsun(field,data):
+    return data['particle_mass']*data.pf['Msun']
+add_field("ParticleMassMsun",function=ParticleMassMsun,units=r"\rm{g}",particle_type=True)
+
+def _creation_time(field,data):
+    pa = data["particle_age"]
+    tr = np.zeros(pa.shape,dtype='float')-1.0
+    tr[pa>0] = pa[pa>0]
+    return tr
+add_field("creation_time",function=_creation_time,units=r"\rm{s}",particle_type=True)
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')
