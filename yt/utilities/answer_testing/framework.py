@@ -179,7 +179,9 @@ class AnswerTestingTest(object):
 
     @property
     def storage_name(self):
-        return "%s_%s" % (self.prefix, self.pf)
+        if self.prefix != "":
+            return "%s_%s" % (self.prefix, self.pf)
+        return str(self.pf)
 
     def compare(self, new_result, old_result):
         raise RuntimeError
