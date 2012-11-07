@@ -478,7 +478,7 @@ class EnzoSimulation(SimulationTimeSeries):
         self.parameters['TopGridRank'] = 3
         self.parameters['DomainLeftEdge'] = np.zeros(self.parameters['TopGridRank'])
         self.parameters['DomainRightEdge'] = np.ones(self.parameters['TopGridRank'])
-        self.parameters['Refineby'] = 2 # technically not the enzo default
+        self.parameters['RefineBy'] = 2 # technically not the enzo default
         self.parameters['StopCycle'] = 100000
         self.parameters['dtDataDump'] = 0.
         self.parameters['CycleSkipDataDump'] = 0.

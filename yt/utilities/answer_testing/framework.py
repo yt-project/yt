@@ -156,7 +156,7 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo"):
     if os.path.exists(sim_fn) or not path:
         path = "."
     with temp_cwd(path):
-        return Simulation(sim_fn, sim_type = sim_type)
+        return simulation(sim_fn, sim_type)
 
 class AnswerTestingTest(object):
     reference_storage = None
