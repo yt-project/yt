@@ -315,6 +315,22 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
+class VerifySimulationSameTest(AnswerTestingTest):
+    _type_name = "VerifySimulationSame"
+    _attrs = ()
+
+    def __init__(self, simulation_obj):
+        self.pf = simulation_obj
+
+    def run(self):
+        result = [ds.current_time for ds in self.pf]
+        return result
+
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result))
+        for i in range(len(new_result)):
+            assert_equal(new_result[i], old_result[i])
+        
 class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
     _attrs = ()
