@@ -826,7 +826,7 @@ class HopCircleCallback(PlotCallback):
             (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
 
             (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
-            color = np.ones(3) * (0.3 * (num - halo.id)/ num) + 0.6
+            color = np.ones(3) * (0.4 * (num - halo.id)/ num) + 0.6
             cir = Circle((center_x, center_y), radius, fill=False, color=color)
             plot._axes.add_patch(cir)
             if self.annotate:
