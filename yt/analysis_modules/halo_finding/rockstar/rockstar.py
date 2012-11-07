@@ -46,7 +46,7 @@ class DomainDecomposer(ParallelAnalysisInterface):
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None, 
-            outbase=None,particle_mass=-1.0,dm_type=1):
+            outbase=None,particle_mass=-1.0,dm_type=1,force_res=None):
         r"""Spawns the Rockstar Halo finder, distributes dark matter
         particles and finds halos.
 
@@ -78,6 +78,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         dm_type: 1
             In order to exclude stars and other particle types, define
             the dm_type. Default is 1, as Enzo has the DM particle type=1.
+        force_res: None
+            The default force resolution is 0.0012 comoving Mpc/H
+            This overrides Rockstars' defaults
 
         Returns
         -------
@@ -113,10 +116,10 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.comm.size > 1: 
             self.comm.barrier()            
         tpf = ts.__iter__().next()
-        def _particle_count(field,data):
-            return (data["particle_type"]==0).sum()
-        add_field("particle_count",function=_particle_count,particle_type=True)
-        self.total_particles = -1
+        dd = tpf.h.all_data()
+        total_particles = na.sum(dd['particle_type']==dm_type).astype('int64')
+        mylog.info("Found %i halo particles",total_particles)
+        self.total_particles = total_particles
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
@@ -134,6 +137,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         data_source = tpf.h.all_data()
         self.comm.barrier()
+        self.force_res = force_res
         self.handler = rockstar_interface.RockstarInterface(
                 self.ts, data_source)
 
@@ -170,14 +174,14 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             raise NotImplementedError
         self._get_hosts()
         self.handler.setup_rockstar(self.server_address, self.port,
-                    len(self.ts), #self.total_particles, 
-                    self.dm_type,
+                    len(self.ts), self.total_particles, self.dm_type,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
                     writing_port = -1,
                     block_ratio = block_ratio,
                     outbase = self.outbase,
+                    force_res=self.force_res,
                     particle_mass = float(self.particle_mass),
                     **kwargs)
         #because rockstar *always* write to exactly the same
