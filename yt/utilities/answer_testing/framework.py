@@ -132,6 +132,8 @@ def temp_cwd(cwd):
 
 def can_run_pf(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput):
+        return AnswerTestingTest.result_storage is not None
     with temp_cwd(path):
         try:
             load(pf_fn)
@@ -141,6 +143,7 @@ def can_run_pf(pf_fn):
 
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput): return pf
     with temp_cwd(path):
         pf = load(pf_fn)
         pf.h
@@ -352,6 +355,15 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
+
+def requires_outputlog():
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if os.path.exists("OutputLog"):
+        return ftrue
+    return ffalse
 
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
