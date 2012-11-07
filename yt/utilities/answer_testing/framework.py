@@ -34,6 +34,7 @@ from nose.plugins import Plugin
 from yt.testing import *
 from yt.config import ytcfg
 from yt.mods import *
+from yt.data_objects.static_output import StaticOutput
 import cPickle
 
 from yt.utilities.logger import disable_stream_logging
