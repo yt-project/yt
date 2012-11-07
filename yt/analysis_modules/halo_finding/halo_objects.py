@@ -1317,12 +1317,7 @@ class HaloList(object):
 class RockstarHaloList(HaloList):
     _name = "Rockstar"
     _halo_class = RockstarHalo
-    #because we don't yet no halo-particle affiliations
-    #most of the halo list methods are not implemented
-    #furthermore, Rockstar only accepts DM particles of
-    #a fixed mass, so we don't allow stars at all
-    #Still, we inherit from HaloList because in the future
-    #we might implement halo-particle affiliations
+
     def __init__(self, pf, out_list):
         ParallelAnalysisInterface.__init__(self)
         mylog.info("Initializing Rockstar List")
@@ -1411,12 +1406,15 @@ class RockstarHaloList(HaloList):
         by Rockstar into memory."""
         
         pf = self.pf
-        out_list = self.out_list
-        # We need to also get the binary files.
-        basedir = os.path.dirname(out_list)
-        files = glob.glob(basedir + '/halos*bin')
+        # In order to read the binary data, we need to figure out which 
+        # binary files belong to this output.
+        basedir = os.path.dirname(self.out_list)
+        s = self.out_list.split('_')[-1]
+        s = s.rstrip('.list')
+        n = int(s)
+        fglob = path.join(basedir, 'halos_%d.*.bin' % n)
+        files = glob.glob(fglob)
         halos = self._get_halos_binary(files)
-        
         #Jc = 1.98892e33/pf['mpchcm']*1e5
         Jc = 1.0
         length = 1.0 / pf['mpchcm']

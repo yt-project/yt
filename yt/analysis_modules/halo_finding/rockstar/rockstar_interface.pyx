@@ -365,6 +365,7 @@ cdef class RockstarInterface:
                     tpf.domain_left_edge[0]) * tpf['mpchcm']
         setup_config()
         rh = self
+        rh.dm_type = dm_type
         cdef LPG func = rh_read_particles
         set_load_particles_generic(func)
 

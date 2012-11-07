@@ -26,6 +26,7 @@ License:
 from yt.mods import *
 from os import environ
 from os import mkdir
+from os import path
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 
@@ -74,7 +75,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             The default is set comm.size-num_readers-1.
         outbase: str
             This is where the out*list files that Rockstar makes should be
-            placed. Default is str(pf)+'_rockstar'.
+            placed. Default is 'rockstar_halos'.
         particle_mass: float
             This sets the DM particle mass used in Rockstar.
         dm_type: 1
@@ -112,26 +113,24 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             ts = TimeSeriesData([ts])
         self.ts = ts
         self.dm_type = dm_type
-        if self.comm.size > 1: 
-            self.comm.barrier()            
         tpf = ts.__iter__().next()
-        def _particle_count(field,data):
+        def _particle_count(field, data):
             try:
-                return (data["particle_type"]==dm_type)
+                return (data["particle_type"]==dm_type).sum()
             except KeyError:
-                return np.ones_like(data["particle_position_x"]).astype('bool')
+                return np.prod(data["particle_position_x"].shape)
         add_field("particle_count",function=_particle_count, not_in_all=True,
-        particle_type=True)
+            particle_type=True)
         # Get total_particles in parallel.
         dd = tpf.h.all_data()
-        self.total_particles = dd.quantities['TotalQuantity']('particle_count')[0]
+        self.total_particles = int(dd.quantities['TotalQuantity']('particle_count')[0])
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         data_source = tpf.h.all_data()
         if outbase is None:
-            outbase = str(tpf)+'_rockstar'
-        self.outbase = outbase        
+            outbase = 'rockstar_halos'
+        self.outbase = outbase
         if num_writers is None:
             num_writers = self.comm.size - num_readers -1
         self.num_readers = num_readers
@@ -147,9 +146,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         data_source = tpf.h.all_data()
         self.handler = rockstar_interface.RockstarInterface(
                 ts, data_source)
-        if outbase is None:
-            outbase = str(tpf)+'_rockstar'
-        self.outbase = outbase        
 
     def __del__(self):
         self.pool.free_all()
@@ -201,6 +197,15 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.workgroup.name == "server":
             if not os.path.exists(self.outbase):
                 os.mkdir(self.outbase)
+            # Make a record of which dataset corresponds to which set of
+            # output files because it will be easy to lose this connection.
+            fp = open(self.outbase + '/pfs.txt', 'w')
+            fp.write("# pfname\tindex\n")
+            for i, pf in enumerate(self.ts):
+                pfloc = path.join(path.relpath(pf.fullpath), pf.basename)
+                line = "%s\t%d\n" % (pfloc, i)
+                fp.write(line)
+            fp.close()
         if self.comm.size == 1:
             self.handler.call_rockstar()
         else:
@@ -215,7 +220,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 self.handler.start_client()
             self.pool.free_all()
         self.comm.barrier()
-        #quickly rename the out_0.list 
     
     def halo_list(self,file_name='out_0.list'):
         """
