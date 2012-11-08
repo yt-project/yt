@@ -398,10 +398,11 @@ def requires_outputlog(path = ".", prefix = ""):
     def ftrue(func):
         @wraps(func)
         def fyielder(*args, **kwargs):
-            for t in func(*args, **kwargs):
-                if isinstance(t, AnswerTestingTest):
-                    t.prefix = prefix
-                yield t
+            with temp_cwd(path):
+                for t in func(*args, **kwargs):
+                    if isinstance(t, AnswerTestingTest):
+                        t.prefix = prefix
+                    yield t
         return fyielder
     if os.path.exists("OutputLog"):
         return ftrue
