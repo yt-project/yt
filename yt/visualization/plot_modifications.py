@@ -633,6 +633,9 @@ class ClumpContourCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+
+        extent = [xx0,xx1,yy0,yy1]
+
         plot._axes.hold(True)
 
         px_index = x_dict[plot.data.axis]
@@ -662,7 +665,7 @@ class ClumpContourCallback(PlotCallback):
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
-                                     **self.plot_args)
+                                     extent=extent,**self.plot_args)
         plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
