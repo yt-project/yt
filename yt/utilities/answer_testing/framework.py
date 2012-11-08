@@ -152,13 +152,15 @@ def data_dir_load(pf_fn):
         pf.h
         return pf
 
-def sim_dir_load(sim_fn, path = None, sim_type = "Enzo"):
+def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
+                 find_outputs=False):
     if path is None and not os.path.exists(sim_fn):
         raise IOError
     if os.path.exists(sim_fn) or not path:
         path = "."
     with temp_cwd(path):
-        return simulation(sim_fn, sim_type)
+        return simulation(sim_fn, sim_type,
+                          find_outputs=find_outputs)
 
 class AnswerTestingTest(object):
     reference_storage = None
