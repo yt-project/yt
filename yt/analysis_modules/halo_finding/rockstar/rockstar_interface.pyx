@@ -292,7 +292,6 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     #for i in range(3):
     #    print p[0][tnpart-1].pos[i],
     #print ""
-    print "done"
 
 cdef class RockstarInterface:
 
@@ -317,14 +316,17 @@ cdef class RockstarInterface:
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
-                       int periodic = 1, 
+                       int periodic = 1, force_res=None,
                        int min_halo_size = 25, outbase = "None"):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
         global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE
-        global OVERLAP_LENGTH, TOTAL_PARTICLES
+        global OVERLAP_LENGTH, TOTAL_PARTICLES, FORCE_RES
+        if force_res is not None:
+            FORCE_RES=np.float64(force_res)
+            print "set force res to ",FORCE_RES
         OVERLAP_LENGTH = 0.0
         if parallel:
             PARALLEL_IO = 1

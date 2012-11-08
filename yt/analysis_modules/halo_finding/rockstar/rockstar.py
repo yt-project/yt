@@ -49,7 +49,7 @@ class DomainDecomposer(ParallelAnalysisInterface):
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None, 
-            outbase=None,particle_mass=-1.0,dm_type=1):
+            outbase=None,particle_mass=-1.0,dm_type=1,force_res=None):
         r"""Spawns the Rockstar Halo finder, distributes dark matter
         particles and finds halos.
 
@@ -81,6 +81,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         dm_type: 1
             In order to exclude stars and other particle types, define
             the dm_type. Default is 1, as Enzo has the DM particle type=1.
+        force_res: None
+            The default force resolution is 0.0012 comoving Mpc/H
+            This overrides Rockstars' defaults
 
         Returns
         -------
@@ -136,6 +139,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.num_readers = num_readers
         self.num_writers = num_writers
         self.particle_mass = particle_mass
+        self.force_res = force_res
         self.le = tpf.domain_left_edge
         self.re = tpf.domain_right_edge
         if self.num_readers + self.num_writers + 1 != self.comm.size:
@@ -145,7 +149,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         data_source = tpf.h.all_data()
         self.handler = rockstar_interface.RockstarInterface(
-                ts, data_source)
+                self.ts, data_source)
 
     def __del__(self):
         self.pool.free_all()
@@ -188,6 +192,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     writing_port = -1,
                     block_ratio = block_ratio,
                     outbase = self.outbase,
+                    force_res=self.force_res,
                     particle_mass = float(self.particle_mass),
                     **kwargs)
         #because rockstar *always* write to exactly the same
@@ -220,6 +225,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 self.handler.start_client()
             self.pool.free_all()
         self.comm.barrier()
+        self.pool.free_all()
     
     def halo_list(self,file_name='out_0.list'):
         """
