@@ -452,3 +452,44 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+class ShockTubeTest(object):
+    def __init__(self, data_file, solution_file, fields, 
+                 left_edges, right_edges, rtol, atol):
+        self.solution_file = solution_file
+        self.data_file = data_file
+        self.fields = fields
+        self.left_edges = left_edges
+        self.right_edges = right_edges
+        self.rtol = rtol
+        self.atol = atol
+
+    def __call__(self):
+        # Read in the pf
+        pf = load(self.data_file)  
+        exact = self.get_analytical_solution() 
+
+        ad = pf.h.all_data()
+        position = ad['x']
+        for k in self.fields:
+            field = ad[k]
+            for xmin, xmax in zip(self.left_edges, self.right_edges):
+                mask = (position >= xmin)*(position <= xmax)
+                exact_field = np.interp(position[mask], exact['pos'], exact[k]) 
+                # yield test vs analytical solution 
+                yield assert_allclose, field[mask], exact_field, \
+                    self.rtol, self.atol
+
+    def get_analytical_solution(self):
+        # Reads in from file 
+        pos, dens, vel, pres, inte = \
+                np.loadtxt(self.solution_file, unpack=True)
+        exact = {}
+        exact['pos'] = pos
+        exact['Density'] = dens
+        exact['x-velocity'] = vel
+        exact['Pressure'] = pres
+        exact['ThermalEnergy'] = inte
+        return exact
+
+
