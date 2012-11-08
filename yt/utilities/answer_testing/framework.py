@@ -164,6 +164,7 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
 
 class AnswerTestingTest(object):
     reference_storage = None
+    result_storage = None
     prefix = ""
     def __init__(self, pf_fn):
         self.pf = data_dir_load(pf_fn)
