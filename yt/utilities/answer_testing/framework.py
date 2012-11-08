@@ -34,6 +34,7 @@ from nose.plugins import Plugin
 from yt.testing import *
 from yt.config import ytcfg
 from yt.mods import *
+from yt.data_objects.static_output import StaticOutput
 import cPickle
 
 from yt.utilities.logger import disable_stream_logging
@@ -75,6 +76,8 @@ class AnswerTesting(Plugin):
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
             self.result_storage = defaultdict(dict)
+        if options.compare_name == "SKIP":
+            options.compare_name = None
         if options.compare_name is not None:
             # Now we grab from our S3 store
             if options.compare_name == "latest":
@@ -132,6 +135,8 @@ def temp_cwd(cwd):
 
 def can_run_pf(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput):
+        return AnswerTestingTest.result_storage is not None
     with temp_cwd(path):
         try:
             load(pf_fn)
@@ -141,26 +146,44 @@ def can_run_pf(pf_fn):
 
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput): return pf_fn
     with temp_cwd(path):
         pf = load(pf_fn)
         pf.h
         return pf
 
+def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
+                 find_outputs=False):
+    if path is None and not os.path.exists(sim_fn):
+        raise IOError
+    if os.path.exists(sim_fn) or not path:
+        path = "."
+    with temp_cwd(path):
+        return simulation(sim_fn, sim_type,
+                          find_outputs=find_outputs)
+
 class AnswerTestingTest(object):
     reference_storage = None
+    prefix = ""
     def __init__(self, pf_fn):
         self.pf = data_dir_load(pf_fn)
 
     def __call__(self):
         nv = self.run()
         if self.reference_storage is not None:
-            dd = self.reference_storage.get(str(self.pf))
+            dd = self.reference_storage.get(self.storage_name)
             if dd is None: raise YTNoOldAnswer()
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
             ov = None
-        self.result_storage[str(self.pf)][self.description] = nv
+        self.result_storage[self.storage_name][self.description] = nv
+
+    @property
+    def storage_name(self):
+        if self.prefix != "":
+            return "%s_%s" % (self.prefix, self.pf)
+        return str(self.pf)
 
     def compare(self, new_result, old_result):
         raise RuntimeError
@@ -312,6 +335,22 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
+class VerifySimulationSameTest(AnswerTestingTest):
+    _type_name = "VerifySimulationSame"
+    _attrs = ()
+
+    def __init__(self, simulation_obj):
+        self.pf = simulation_obj
+
+    def run(self):
+        result = [ds.current_time for ds in self.pf]
+        return result
+
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result))
+        for i in range(len(new_result)):
+            assert_equal(new_result[i], old_result[i])
+        
 class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
     _attrs = ()
@@ -352,6 +391,25 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
+
+def requires_outputlog(path = ".", prefix = ""):
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        @wraps(func)
+        def fyielder(*args, **kwargs):
+            with temp_cwd(path):
+                for t in func(*args, **kwargs):
+                    if isinstance(t, AnswerTestingTest):
+                        t.prefix = prefix
+                    yield t
+        return fyielder
+    if os.path.exists("OutputLog"):
+        return ftrue
+    with temp_cwd(path):
+        if os.path.exists("OutputLog"):
+            return ftrue
+    return ffalse
 
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):

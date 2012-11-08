@@ -375,12 +375,10 @@ class GridBoundaryCallback(PlotCallback):
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
     def __init__(self, field_x, field_y, factor = 16,
-                 density = 1, arrowsize = 1, arrowstyle = None,
-                 color = None, normalize = False):
+                 density = 1, plot_args=None):
         """
-        annotate_streamlines(field_x, field_y, factor = 16, density = 1,
-                             arrowsize = 1, arrowstyle = None,
-                             color = None, normalize = False):
+        annotate_streamlines(field_x, field_y, factor = 16,
+                             density = 1, plot_args=None):
 
         Add streamlines to any plot, using the *field_x* and *field_y*
         from the associated data, skipping every *factor* datapoints like
@@ -392,12 +390,8 @@ class StreamlineCallback(PlotCallback):
         self.bv_x = self.bv_y = 0
         self.factor = factor
         self.dens = density
-        self.arrowsize = arrowsize
-        if arrowstyle is None : arrowstyle='-|>'
-        self.arrowstyle = arrowstyle
-        if color is None : color = "#000000"
-        self.color = color
-        self.normalize = normalize
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
         
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -421,15 +415,10 @@ class StreamlineCallback(PlotCallback):
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
-        X,Y = (na.linspace(xx0,xx1,nx,endpoint=True),
-                          na.linspace(yy0,yy1,ny,endpoint=True))
-        if self.normalize:
-            nn = na.sqrt(pixX**2 + pixY**2)
-            pixX /= nn
-            pixY /= nn
-        plot._axes.streamplot(X,Y, pixX, pixY, density=self.dens,
-                              arrowsize=self.arrowsize, arrowstyle=self.arrowstyle,
-                              color=self.color, norm=self.normalize)
+        X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
+                          np.linspace(yy0,yy1,ny,endpoint=True))
+        plot._axes.streamplot(X,Y, pixX, pixY, density = self.dens,
+                              **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -743,13 +732,18 @@ class MarkerAnnotateCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        if len(self.pos) == 3:
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        if np.array(self.pos).shape == (3,):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
-        else: pos = self.pos
+        elif np.array(self.pos).shape == (2,):
+            pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
-        plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
+        plot._axes.scatter(x,y, marker = self.marker, **self.plot_args)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
 class SphereCallback(PlotCallback):
@@ -815,6 +809,7 @@ class HopCircleCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
+        num = len(self.hop_output[:self.max_number])
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
             if size < self.min_size or size > self.max_size: continue
@@ -831,18 +826,19 @@ class HopCircleCallback(PlotCallback):
             (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
 
             (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
-            cir = Circle((center_x, center_y), radius, fill=False)
+            color = np.ones(3) * (0.4 * (num - halo.id)/ num) + 0.6
+            cir = Circle((center_x, center_y), radius, fill=False, color=color)
             plot._axes.add_patch(cir)
             if self.annotate:
                 if self.print_halo_size:
-                    plot._axes.text(center_x, center_y, "%s" % size,
-                    fontsize=self.font_size)
+                    plot._axes.text(center_x+radius, center_y+radius, "%s" % size,
+                    fontsize=self.font_size, color=color)
                 elif self.print_halo_mass:
-                    plot._axes.text(center_x, center_y, "%s" % halo.total_mass(),
-                    fontsize=self.font_size)
+                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.total_mass(),
+                    fontsize=self.font_size, color=color)
                 else:
-                    plot._axes.text(center_x, center_y, "%s" % halo.id,
-                    fontsize=self.font_size)
+                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.id,
+                    fontsize=self.font_size, color=color)
 
 class HopParticleCallback(PlotCallback):
     _type_name = "hop_particles"
@@ -1174,41 +1170,59 @@ class TimestampCallback(PlotCallback):
           'kev': 1e-12 * 7.6e-8 / 6.03,
           'mev': 1e-15 * 7.6e-8 / 6.03,
           }
+    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black', 'alpha': 1.0}
 
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}", **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
+                 bbox_dict=None, **kwargs):
         """ 
-        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs)
+        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
+                           normalized=False, bbox_dict=None)
 
         Adds the current time to the plot at point given by *x* and *y*.  If *units* 
         is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
         *units* is None, it will attempt to figure out the correct value by which to 
         scale.  The *format* keyword is a template string that will be evaluated and 
-        displayed on the plot.  All other *kwargs* will be passed to the text() 
-        method on the plot axes.  See matplotlib's text() functions for more 
-        information.
+        displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted 
+        as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right) 
+        otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict* 
+        is an optional dict of arguments for the bbox that frames the timestamp, see 
+        matplotlib's text annotation guide for more details. All other *kwargs* will 
+        be passed to the text() method on the plot axes.  See matplotlib's text() 
+        functions for more information.
         """
         self.x = x
         self.y = y
         self.format = format
         self.units = units
+        self.normalized = normalized
+        if bbox_dict is not None:
+            self.bbox_dict = bbox_dict
+        else:
+            self.bbox_dict = self._bbox_dict
         self.kwargs = {'color': 'w'}
         self.kwargs.update(kwargs)
 
     def __call__(self, plot):
         if self.units is None:
-            t = plot.data.pf.current_time
+            t = plot.data.pf.current_time * plot.data.pf['Time']
             scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
             self.units = 's'
             for k in scale_keys:
                 if t < self._time_conv[k]:
                     break
                 self.units = k
-        t = plot.data.pf.current_time / self._time_conv[self.units.lower()]
+        t = plot.data.pf.current_time * plot.data.pf['Time'] 
+        t /= self._time_conv[self.units.lower()]
         if self.units == 'us':
             self.units = '$\\mu s$'
         s = self.format.format(time=t, units=self.units)
         plot._axes.hold(True)
-        plot._axes.text(self.x, self.y, s, **self.kwargs)
+        if self.normalized:
+            plot._axes.text(self.x, self.y, s, horizontalalignment='center',
+                            verticalalignment='center', 
+                            transform = plot._axes.transAxes, bbox=self.bbox_dict)
+        else:
+            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict, **self.kwargs)
         plot._axes.hold(False)
 
 
