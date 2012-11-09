@@ -172,3 +172,11 @@ class YTEllipsoidOrdering(YTException):
 
     def __str__(self):
         return "Must have A>=B>=C"
+
+class EnzoTestOutputFileNonExistent(YTException):
+    def __init__(self, testname):
+        self.testname = testname
+
+    def __str__(self):
+        return "Enzo test output file (OutputLog) not generated for: " + \
+            "'%s'" % (self.testname) + ".\nTest did not complete."
