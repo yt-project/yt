@@ -27,10 +27,18 @@ License:
 import base64
 import matplotlib.figure
 from matplotlib.mathtext import MathTextParser
+
+# Some magic for dealing with pyparsing being included or not
+# included in matplotlib (not in gentoo, yes in everything else)
+# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    from matplotlib.pyparsing import ParseFatalException
+    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
+        from matplotlib.pyparsing import ParseFatalException
+    else:
+        from matplotlib.pyparsing_py2 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
+
 import cStringIO
 import types
 import __builtin__
