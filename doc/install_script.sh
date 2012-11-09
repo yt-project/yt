@@ -723,12 +723,6 @@ then
     ${DEST_DIR}/bin/pip install readline 1>> ${LOG_FILE}
 fi
 
-if !(${DEST_DIR}/bin/python2.7 -c "import nose" >> ${LOG_FILE})
-then
-    echo "Installing pure-python nose"
-    ${DEST_DIR}/bin/pip install nose 1>> ${LOG_FILE}
-fi
-
 if [ $INST_ENZO -eq 1 ]
 then
     echo "Cloning a copy of Enzo."
