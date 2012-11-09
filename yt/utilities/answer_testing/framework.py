@@ -94,9 +94,6 @@ class AnswerTesting(Plugin):
             AnswerTestingTest.reference_storage = \
                 self.storage = AnswerTestCloudStorage(options.compare_name, not options.store_results)
 
-        self.storage_compare_name = options.compare_name
-        self.output_dir = options.output_dir
-        self.answer_name = options.this_name
         self.store_results = options.store_results
         self.store_local_results = options.store_local_results
         global run_big_data
