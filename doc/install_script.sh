@@ -432,7 +432,7 @@ echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254
 echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ade5e8db944ecde6bfb111211ab218aa414ee90aafbb81f1491b3b93  Forthon-0.8.10.tar.gz' > Forthon-0.8.10.tar.gz.sha512
 echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065ae4f21b662e87f2aaedf6ea424ea58dfa9d3d73c06281f806d15dd  nose-1.2.1.tar.gz' > nose-1.2.1.tar.gz.sha512
 echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
-echo '58cb029385557667465f6631c4a93aa3be10345bf56e3d6cdd6d1846c95655cf3a377c38cbb75ceb761000efe69fac256a77db4788369d6c205549af6fd18ccf  sympy-0.7.2-py3.3.tar.gz' > sympy-0.7.2-py3.3.tar.gz.sha512
+echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
 
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
@@ -456,7 +456,7 @@ get_ytproject reason-js-20120623.zip
 get_ytproject Forthon-0.8.10.tar.gz
 get_ytproject nose-1.2.1.tar.gz 
 get_ytproject python-hglib-0.2.tar.gz
-get_ytproject sympy-0.7.2-py3.3.tar.gz
+get_ytproject sympy-0.7.2.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e bzip2-1.0.5/done ]
@@ -696,7 +696,7 @@ do_setup_py Cython-0.17.1
 do_setup_py Forthon-0.8.10
 do_setup_py nose-1.2.1
 do_setup_py python-hglib-0.2
-do_setup_py sympy-0.7.2-py3.3
+do_setup_py sympy-0.7.2
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
