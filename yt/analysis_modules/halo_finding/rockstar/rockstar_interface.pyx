@@ -247,14 +247,25 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     block = int(str(filename).rsplit(".")[-1])
     
 
-    # Now we want to grab data from only a subset of the grids.
+    # Now we want to grab data from only a subset of the grids for each reader.
     n = rh.block_ratio
     dd = pf.h.all_data()
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
-    grids = np.array_split(dd._grids, NUM_BLOCKS)[block]
-    tnpart = TOTAL_PARTICLES
-    print "Loading indices: size = ", tnpart
-    p[0] = <particle *> malloc(sizeof(particle) * tnpart)
+    grids = dd._grids[block::NUM_BLOCKS]
+
+    # First we need to find out how many this reader is going to read in.
+    local_parts = 0
+    for g in grids:
+        try:
+            iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
+        except KeyError:
+            iddm = np.ones_like(dd._get_data_from_grid(g, "particle_index")).astype('bool')
+        arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
+        arri = arri[iddm] #pick only DM
+        local_parts += arri.size
+    print "Loading indices: size = ", local_parts
+    p[0] = <particle *> malloc(sizeof(particle) * local_parts)
+
     conv[0] = conv[1] = conv[2] = pf["mpchcm"]
     conv[3] = conv[4] = conv[5] = 1e-5
     left_edge[0] = pf.domain_left_edge[0]
@@ -283,15 +294,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                 p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
             fi += 1
         pi += npart
-    num_p[0] = tnpart
-    #print 'first particle coordinates'
-    #for i in range(3):
-    #    print p[0][0].pos[i],
-    #print ""
-    #print 'last particle coordinates'
-    #for i in range(3):
-    #    print p[0][tnpart-1].pos[i],
-    #print ""
+    num_p[0] = local_parts
+    print "Done loading particles."
 
 cdef class RockstarInterface:
 
