@@ -26,7 +26,8 @@ import numpy as np
 from yt.funcs import *
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
-    assert_array_less, assert_string_equal, assert_array_almost_equal_nulp
+    assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
+    assert_allclose
 
 def assert_rel_equal(a1, a2, decimals):
     # We have nan checks in here because occasionally we have fields that get

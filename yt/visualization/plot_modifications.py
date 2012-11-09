@@ -633,6 +633,9 @@ class ClumpContourCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+
+        extent = [xx0,xx1,yy0,yy1]
+
         plot._axes.hold(True)
 
         px_index = x_dict[plot.data.axis]
@@ -662,7 +665,7 @@ class ClumpContourCallback(PlotCallback):
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
-                                     **self.plot_args)
+                                     extent=extent,**self.plot_args)
         plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
@@ -1170,41 +1173,59 @@ class TimestampCallback(PlotCallback):
           'kev': 1e-12 * 7.6e-8 / 6.03,
           'mev': 1e-15 * 7.6e-8 / 6.03,
           }
+    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black', 'alpha': 1.0}
 
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}", **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
+                 bbox_dict=None, **kwargs):
         """ 
-        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs)
+        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
+                           normalized=False, bbox_dict=None)
 
         Adds the current time to the plot at point given by *x* and *y*.  If *units* 
         is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
         *units* is None, it will attempt to figure out the correct value by which to 
         scale.  The *format* keyword is a template string that will be evaluated and 
-        displayed on the plot.  All other *kwargs* will be passed to the text() 
-        method on the plot axes.  See matplotlib's text() functions for more 
-        information.
+        displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted 
+        as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right) 
+        otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict* 
+        is an optional dict of arguments for the bbox that frames the timestamp, see 
+        matplotlib's text annotation guide for more details. All other *kwargs* will 
+        be passed to the text() method on the plot axes.  See matplotlib's text() 
+        functions for more information.
         """
         self.x = x
         self.y = y
         self.format = format
         self.units = units
+        self.normalized = normalized
+        if bbox_dict is not None:
+            self.bbox_dict = bbox_dict
+        else:
+            self.bbox_dict = self._bbox_dict
         self.kwargs = {'color': 'w'}
         self.kwargs.update(kwargs)
 
     def __call__(self, plot):
         if self.units is None:
-            t = plot.data.pf.current_time
+            t = plot.data.pf.current_time * plot.data.pf['Time']
             scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
             self.units = 's'
             for k in scale_keys:
                 if t < self._time_conv[k]:
                     break
                 self.units = k
-        t = plot.data.pf.current_time / self._time_conv[self.units.lower()]
+        t = plot.data.pf.current_time * plot.data.pf['Time'] 
+        t /= self._time_conv[self.units.lower()]
         if self.units == 'us':
             self.units = '$\\mu s$'
         s = self.format.format(time=t, units=self.units)
         plot._axes.hold(True)
-        plot._axes.text(self.x, self.y, s, **self.kwargs)
+        if self.normalized:
+            plot._axes.text(self.x, self.y, s, horizontalalignment='center',
+                            verticalalignment='center', 
+                            transform = plot._axes.transAxes, bbox=self.bbox_dict)
+        else:
+            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict, **self.kwargs)
         plot._axes.hold(False)
 
 
