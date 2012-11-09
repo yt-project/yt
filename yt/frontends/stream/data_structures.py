@@ -44,6 +44,8 @@ from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.flagging_methods import \
+    FlaggingGrid
 
 from .fields import \
     StreamFieldInfo, \
@@ -353,7 +355,8 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
             psize = get_psize(np.array(data[key].shape), nprocs)
             grid_left_edges, grid_right_edges, temp[key] = \
                 decompose_array(data[key], psize, bbox)
-            grid_dimensions = np.array([grid.shape for grid in temp[key]])
+            grid_dimensions = np.array([grid.shape for grid in temp[key]],
+                                       dtype="int32")
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():
@@ -364,7 +367,7 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         sfh.update({0:data})
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
-        grid_dimensions = domain_dimensions.reshape(nprocs,3)
+        grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
 
     handler = StreamHandler(
         grid_left_edges,
@@ -394,3 +397,168 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
     return spf
+
+def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
+                   sim_time=0.0, number_of_particles=0):
+    r"""Load a set of grids of data into yt as a
+    :class:`~yt.frontends.stream.data_structures.StreamHandler`.
+
+    This should allow a sequence of grids of varying resolution of data to be
+    loaded directly into yt and analyzed as would any others.  This comes with
+    several caveats:
+        * Units will be incorrect unless the data has already been converted to
+          cgs.
+        * Some functions may behave oddly, and parallelism will be
+          disappointing or non-existent in most cases.
+        * Particles may be difficult to integrate.
+        * No consistency checks are performed on the hierarchy
+
+    Parameters
+    ----------
+    grid_data : list of dicts
+        This is a list of dicts.  Each dict must have entries "left_edge",
+        "right_edge", "dimensions", "level", and then any remaining entries are
+        assumed to be fields.  This will be modified in place and can't be
+        assumed to be static..
+    domain_dimensions : array_like
+        This is the domain dimensions of the grid
+    sim_unit_to_cm : float
+        Conversion factor from simulation units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units sim_unit_to_cm
+    sim_time : float, optional
+        The simulation time in seconds
+    number_of_particles : int, optional
+        If particle fields are included, set this to the number of particles
+
+    Examples
+    --------
+
+    >>> grid_data = [
+    ...     dict(left_edge = [0.0, 0.0, 0.0],
+    ...          right_edge = [1.0, 1.0, 1.],
+    ...          level = 0,
+    ...          dimensions = [32, 32, 32]),
+    ...     dict(left_edge = [0.25, 0.25, 0.25],
+    ...          right_edge = [0.75, 0.75, 0.75],
+    ...          level = 1,
+    ...          dimensions = [32, 32, 32])
+    ... ]
+    ... 
+    >>> for g in grid_data:
+    ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...
+    >>> pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+    """
+
+    domain_dimensions = np.array(domain_dimensions)
+    ngrids = len(grid_data)
+    if bbox is None:
+        bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    domain_left_edge = np.array(bbox[:, 0], 'float64')
+    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    grid_levels = np.zeros((ngrids, 1), dtype='int32')
+    grid_left_edges = np.zeros((ngrids, 3), dtype="float32")
+    grid_right_edges = np.zeros((ngrids, 3), dtype="float32")
+    grid_dimensions = np.zeros((ngrids, 3), dtype="int32")
+    sfh = StreamDictFieldHandler()
+    for i, g in enumerate(grid_data):
+        grid_left_edges[i,:] = g.pop("left_edge")
+        grid_right_edges[i,:] = g.pop("right_edge")
+        grid_dimensions[i,:] = g.pop("dimensions")
+        grid_levels[i,:] = g.pop("level")
+        sfh[i] = g
+
+    handler = StreamHandler(
+        grid_left_edges,
+        grid_right_edges,
+        grid_dimensions,
+        grid_levels,
+        None, # parent_ids is none
+        number_of_particles*np.ones(ngrids, dtype='int64').reshape(ngrids,1),
+        np.zeros(ngrids).reshape((ngrids,1)),
+        sfh,
+    )
+
+    handler.name = "AMRGridData"
+    handler.domain_left_edge = domain_left_edge
+    handler.domain_right_edge = domain_right_edge
+    handler.refine_by = 2
+    handler.dimensionality = 3
+    handler.domain_dimensions = domain_dimensions
+    handler.simulation_time = sim_time
+    handler.cosmology_simulation = 0
+
+    spf = StreamStaticOutput(handler)
+    spf.units["cm"] = sim_unit_to_cm
+    spf.units['1'] = 1.0
+    spf.units["unitary"] = 1.0
+    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    for unit in mpc_conversion.keys():
+        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+    return spf
+
+def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
+               callback = None):
+    r"""Given a base parameter file, repeatedly apply refinement criteria and
+    fluid operators until a maximum level is reached.
+
+    Parameters
+    ----------
+    base_pf : StaticOutput
+        This is any static output.  It can also be a stream static output, for
+        instance as returned by load_uniform_data.
+    refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
+        These criteria will be applied in sequence to identify cells that need
+        to be refined.
+    fluid_operators : list of :class:`~yt.utilities.initial_conditions.FluidOperator`
+        These fluid operators will be applied in sequence to all resulting
+        grids.
+    max_level : int
+        The maximum level to which the data will be refined
+    callback : function, optional
+        A function that will be called at the beginning of each refinement
+        cycle, with the current parameter file.
+
+    Examples
+    --------
+    >>> domain_dims = (32, 32, 32)
+    >>> data = np.zeros(domain_dims) + 0.25
+    >>> fo = [ic.CoredSphere(0.05, 0.3, [0.7,0.4,0.75], {"Density": (0.25, 100.0)})]
+    >>> rc = [fm.flagging_method_registry["overdensity"](8.0)]
+    >>> ug = load_uniform_grid({'Density': data}, domain_dims, 1.0)
+    >>> pf = refine_amr(ug, rc, fo, 5)
+    """
+    last_gc = base_pf.h.num_grids
+    cur_gc = -1
+    pf = base_pf    
+    while pf.h.max_level < max_level and last_gc != cur_gc:
+        mylog.info("Refining another level.  Current max level: %s",
+                  pf.h.max_level)
+        last_gc = pf.h.grids.size
+        for m in fluid_operators: m.apply(pf)
+        if callback is not None: callback(pf)
+        grid_data = []
+        for g in pf.h.grids:
+            gd = dict( left_edge = g.LeftEdge,
+                       right_edge = g.RightEdge,
+                       level = g.Level,
+                       dimensions = g.ActiveDimensions )
+            for field in pf.h.field_list:
+                gd[field] = g[field]
+            grid_data.append(gd)
+            if g.Level < pf.h.max_level: continue
+            fg = FlaggingGrid(g, refinement_criteria)
+            nsg = fg.find_subgrids()
+            for sg in nsg:
+                LE = sg.left_index * g.dds
+                dims = sg.dimensions * pf.refine_by
+                grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
+                gd = dict(left_edge = LE, right_edge = grid.right_edge,
+                          level = g.Level + 1, dimensions = dims)
+                for field in pf.h.field_list:
+                    gd[field] = grid[field]
+                grid_data.append(gd)
+        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0)
+        cur_gc = pf.h.num_grids
+    return pf

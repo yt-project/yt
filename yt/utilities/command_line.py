@@ -1095,8 +1095,12 @@ class YTLoadCmd(YTCommand):
                   )
         else:
             from IPython.config.loader import Config
+            import sys
             cfg = Config()
+            # prepend sys.path with current working directory
+            sys.path.insert(0,'')
             IPython.embed(config=cfg,user_ns=local_ns)
+            
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",

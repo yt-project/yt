@@ -598,16 +598,16 @@ def _Extrema(data, fields, non_zero = False, filter=None):
                     continue
             else:
                 nz_filter = None
-            mins.append(data[field][nz_filter].min())
-            maxs.append(data[field][nz_filter].max())
+            mins.append(np.nanmin(data[field][nz_filter]))
+            maxs.append(np.nanmax(data[field][nz_filter]))
         else:
             if this_filter.any():
                 if non_zero:
                     nz_filter = ((this_filter) &
                                  (data[field][this_filter] > 0.0))
                 else: nz_filter = this_filter
-                mins.append(data[field][nz_filter].min())
-                maxs.append(data[field][nz_filter].max())
+                mins.append(np.nanmin(data[field][nz_filter]))
+                maxs.append(np.nanmax(data[field][nz_filter]))
             else:
                 mins.append(1e90)
                 maxs.append(-1e90)

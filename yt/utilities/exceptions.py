@@ -146,3 +146,37 @@ class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \
                "https://data.yt-project.org/getting_started.html"
+
+class YTNoFilenamesMatchPattern(YTException):
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def __str__(self):
+        return "No filenames were found to match the pattern: " + \
+               "'%s'" % (self.pattern)
+
+class YTNoOldAnswer(YTException):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "There is no old answer available.\n" + \
+               str(self.path)
+
+class YTEllipsoidOrdering(YTException):
+    def __init__(self, pf, A, B, C):
+        YTException.__init__(self, pf)
+        self._A = A
+        self._B = B
+        self._C = C
+
+    def __str__(self):
+        return "Must have A>=B>=C"
+
+class EnzoTestOutputFileNonExistent(YTException):
+    def __init__(self, testname):
+        self.testname = testname
+
+    def __str__(self):
+        return "Enzo test output file (OutputLog) not generated for: " + \
+            "'%s'" % (self.testname) + ".\nTest did not complete."
