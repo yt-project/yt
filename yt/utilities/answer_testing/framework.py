@@ -85,7 +85,7 @@ class AnswerTesting(Plugin):
             options.compare_name = _latest
 
         # We only either store or test.
-        if options.store_local_results:
+        if options.store_local_results == 'True':
             AnswerTestingTest.reference_storage = \
                 self.storage = \
                     AnswerTestLocalStorage("%s/%s" % \
@@ -219,8 +219,7 @@ class AnswerTestingTest(object):
 
     def __call__(self):
         nv = self.run()
-        if self.reference_storage is not None and \
-           self.reference_storage.read:
+        if self.reference_storage is not None and self.reference_storage.read:
             dd = self.reference_storage.get(self.storage_name)
             if dd is None: raise YTNoOldAnswer(self.storage_name)
             ov = dd[self.description]
