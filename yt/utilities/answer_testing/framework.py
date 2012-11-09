@@ -99,7 +99,7 @@ class AnswerTesting(Plugin):
         global run_big_data
         run_big_data = options.big_data
 
-    def finalize(self):
+    def finalize(self, result=None):
         if self.store_results is False: return
         self.storage.dump(self.result_storage)        
 
