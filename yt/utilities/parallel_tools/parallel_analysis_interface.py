@@ -585,7 +585,9 @@ class Communicator(object):
                     ncols, size = data.shape
             ncols = self.comm.allreduce(ncols, op=MPI.MAX)
             if ncols == 0:
-                    data = np.zeros(0, dtype=dtype) # This only works for
+                data = np.zeros(0, dtype=dtype) # This only works for
+            elif data is None:
+                data = np.zeros((ncols, 0), dtype=dtype)
             size = data.shape[-1]
             sizes = np.zeros(self.comm.size, dtype='int64')
             outsize = np.array(size, dtype='int64')
