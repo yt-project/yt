@@ -451,7 +451,7 @@ get_ytproject matplotlib-1.2.0.tar.gz
 get_ytproject mercurial-2.4.tar.gz
 get_ytproject ipython-0.13.1.tar.gz
 get_ytproject h5py-2.1.0.tar.gz
-get_ytproject Cython-0.17.tar.gz
+get_ytproject Cython-0.17.1.tar.gz
 get_ytproject reason-js-20120623.zip
 get_ytproject Forthon-0.8.10.tar.gz
 get_ytproject nose-1.2.1.tar.gz 
@@ -692,7 +692,7 @@ fi
 
 do_setup_py ipython-0.13.1
 do_setup_py h5py-2.1.0
-do_setup_py Cython-0.17
+do_setup_py Cython-0.17.1
 do_setup_py Forthon-0.8.10
 do_setup_py nose-1.2.1
 do_setup_py python-hglib-0.2
