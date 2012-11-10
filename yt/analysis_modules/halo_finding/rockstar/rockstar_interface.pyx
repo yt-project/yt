@@ -253,17 +253,22 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     grids = dd._grids[block::NUM_BLOCKS]
 
-    # First we need to find out how many this reader is going to read in.
-    local_parts = 0
-    for g in grids:
-        try:
-            iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
-        except KeyError:
-            iddm = np.ones_like(dd._get_data_from_grid(g, "particle_index")).astype('bool')
-        arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
-        arri = arri[iddm] #pick only DM
-        local_parts += arri.size
-    print "Loading indices: size = ", local_parts
+    # First we need to find out how many this reader is going to read in
+    # if the number of readers > 1.
+    if NUM_BLOCKS > 1:
+        local_parts = 0
+        for g in grids:
+            try:
+                iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
+            except KeyError:
+                iddm = np.ones_like(dd._get_data_from_grid(g, "particle_index")).astype('bool')
+            arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
+            arri = arri[iddm] #pick only DM
+            local_parts += arri.size
+    else:
+        local_parts = TOTAL_PARTICLES
+
+    print "Loading particles: size = ", local_parts
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
     conv[0] = conv[1] = conv[2] = pf["mpchcm"]
