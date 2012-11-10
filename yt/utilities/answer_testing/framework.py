@@ -280,10 +280,12 @@ class FieldValuesTest(AnswerTestingTest):
     _type_name = "FieldValues"
     _attrs = ("field", )
 
-    def __init__(self, pf_fn, field, obj_type = None):
+    def __init__(self, pf_fn, field, obj_type = None,
+                 decimals = None):
         super(FieldValuesTest, self).__init__(pf_fn)
         self.obj_type = obj_type
         self.field = field
+        self.decimals = decimals
 
     def run(self):
         obj = self.create_obj(self.pf, self.obj_type)
@@ -293,19 +295,26 @@ class FieldValuesTest(AnswerTestingTest):
         return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
-        assert_equal(new_result, old_result)
+        err_msg = "Field values for %s not equal." % self.field
+        if self.decimals is None:
+            assert_equal(new_result, old_result, 
+                         err_msg=err_msg, verbose=True)
+        else:
+            assert_rel_equal(new_result, old_result, self.decimals,
+                             err_msg=err_msg, verbose=True)
 
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
 
     def __init__(self, pf_fn, axis, field, weight_field = None,
-                 obj_type = None):
+                 obj_type = None, decimals = None):
         super(ProjectionValuesTest, self).__init__(pf_fn)
         self.axis = axis
         self.field = field
         self.weight_field = field
         self.obj_type = obj_type
+        self.decimals = decimals
 
     def run(self):
         if self.obj_type is not None:
@@ -322,7 +331,14 @@ class ProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
-            assert_equal(new_result[k], old_result[k])
+            err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
+              (k, self.field, self.weight_field, self.axis)
+            if self.decimals is None:
+                assert_equal(new_result[k], old_result[k],
+                             err_msg=err_msg)
+            else:
+                assert_rel_equal(new_result[k], old_result[k], 
+                                 self.decimals, err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"
@@ -393,9 +409,13 @@ class VerifySimulationSameTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        assert_equal(len(new_result), len(old_result))
+        assert_equal(len(new_result), len(old_result),
+                     err_msg="Number of outputs not equal.",
+                     verbose=True)
         for i in range(len(new_result)):
-            assert_equal(new_result[i], old_result[i])
+            assert_equal(new_result[i], old_result[i],
+                         err_msg="Output times not equal.",
+                         verbose=True)
         
 class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
