@@ -59,7 +59,8 @@ class AMRGridPatch(object):
                  'start_index', 'filename', '__weakref__', 'dds',
                  '_child_mask', '_child_indices', '_child_index_mask',
                  '_parent_id', '_children_ids',
-                 '_last_mask', '_last_selector_id']
+                 '_last_mask', '_last_selector_id',
+                 '_current_particle_type', '_current_fluid_type']
 
     def __init__(self, id, filename=None, hierarchy=None):
         self.field_data = YTFieldData()
@@ -71,6 +72,8 @@ class AMRGridPatch(object):
         self.start_index = None
         self._last_mask = None
         self._last_selector_id = None
+        self._current_particle_type = 'all'
+        self._current_fluid_type = self.pf.default_fluid_type
 
     def get_global_startindex(self):
         """

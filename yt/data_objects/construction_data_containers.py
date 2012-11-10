@@ -260,7 +260,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         convs = np.empty(len(fields), dtype="float64")
         fields = self._determine_fields(fields)
         for i, field in enumerate(fields):
-            fi = self._get_field_info(*field)
+            fi = self.pf._get_field_info(*field)
             convs[i] = (self.pf.units[fi.projection_conversion])
         return convs
 

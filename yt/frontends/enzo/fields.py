@@ -531,8 +531,7 @@ add_field("ParticleAge", function=_ParticleAge,
           particle_type=True, convert_function=_convertParticleAge)
 
 def _ParticleMass(field, data):
-    ftype = _check_ftype(field)
-    particles = data[ftype, "particle_mass"].astype('float64') * \
+    particles = data["particle_mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles

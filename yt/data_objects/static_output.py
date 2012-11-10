@@ -244,6 +244,13 @@ class StaticOutput(object):
         else:
             raise YTGeometryNotSupported(self.geometry)
 
+    def _get_field_info(self, ftype, fname):
+        if (ftype, fname) in self.field_info:
+            return self.field_info[(ftype, fname)]
+        if fname in self.field_info:
+            return self.field_info[fname]
+        raise YTFieldNotFound((fname, ftype), self)
+
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
