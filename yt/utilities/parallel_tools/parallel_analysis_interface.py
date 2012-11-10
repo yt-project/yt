@@ -279,12 +279,12 @@ class ProcessorPool(object):
     ranks = None
     available_ranks = None
     tasks = None
-    workgroups = []
     def __init__(self):
         self.comm = communication_system.communicators[-1]
         self.size = self.comm.size
         self.ranks = range(self.size)
         self.available_ranks = range(self.size)
+        self.workgroups = []
     
     def add_workgroup(self, size=None, ranks=None, name=None):
         if size is None:
@@ -296,7 +296,7 @@ class ProcessorPool(object):
             ranks = [self.available_ranks.pop(0) for i in range(size)]
         # Default name to the workgroup number.
         if name is None: 
-            name = string(len(workgroups))
+            name = string(len(self.workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
@@ -304,16 +304,20 @@ class ProcessorPool(object):
         self.workgroups.append(Workgroup(len(ranks), ranks, new_comm, name))
     
     def free_workgroup(self, workgroup):
+        # If you want to actually delete the workgroup you will need to
+        # pop it out of the self.workgroups list so you don't have references
+        # that are left dangling, e.g. see free_all() below.
         for i in workgroup.ranks:
             if self.comm.rank == i:
                 communication_system.communicators.pop()
             self.available_ranks.append(i) 
-        del workgroup
         self.available_ranks.sort()
 
     def free_all(self):
         for wg in self.workgroups:
             self.free_workgroup(wg)
+        for i in range(len(self.workgroups)):
+            self.workgroups.pop(0)
 
     @classmethod
     def from_sizes(cls, sizes):
