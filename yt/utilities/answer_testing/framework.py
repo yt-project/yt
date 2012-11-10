@@ -181,7 +181,7 @@ def temp_cwd(cwd):
 def can_run_pf(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
-        retrun False
+        return False
     if isinstance(pf_fn, StaticOutput):
         return AnswerTestingTest.result_storage is not None
     with temp_cwd(path):
@@ -194,7 +194,7 @@ def can_run_pf(pf_fn):
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
-        retrun False
+        return False
     if isinstance(pf_fn, StaticOutput): return pf_fn
     with temp_cwd(path):
         pf = load(pf_fn)
