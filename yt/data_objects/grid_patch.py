@@ -32,7 +32,7 @@ import numpy as np
 from yt.funcs import *
 from yt.utilities.definitions import x_dict, y_dict
 
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.data_containers import YTFieldData, YTDataContainer
 from yt.utilities.definitions import x_dict, y_dict
 from .field_info_container import \
     NeedsGridType, \
@@ -42,7 +42,7 @@ from .field_info_container import \
     NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
 
-class AMRGridPatch(object):
+class AMRGridPatch(YTDataContainer):
     _spatial = True
     _num_ghost_zones = 0
     _grids = None
@@ -52,15 +52,6 @@ class AMRGridPatch(object):
     _skip_add = True
     _con_args = ('id', 'filename')
     OverlappingSiblings = None
-
-    __slots__ = ['field_data', 'field_parameters', 'id', 'hierarchy', 'pf',
-                 'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
-                 'NumberOfParticles', 'Children', 'Parent',
-                 'start_index', 'filename', '__weakref__', 'dds',
-                 '_child_mask', '_child_indices', '_child_index_mask',
-                 '_parent_id', '_children_ids',
-                 '_last_mask', '_last_selector_id',
-                 '_current_particle_type', '_current_fluid_type']
 
     def __init__(self, id, filename=None, hierarchy=None):
         self.field_data = YTFieldData()
