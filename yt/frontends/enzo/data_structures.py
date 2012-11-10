@@ -375,6 +375,9 @@ class EnzoHierarchy(GridGeometryHandler):
         self.grid_left_edge[:] = f["/LeftEdges"][:]
         self.grid_right_edge[:] = f["/RightEdges"][:]
         self.grid_particle_count[:,0] = f["/NumberOfParticles"][:]
+        if "NumberOfActiveParticles" in f:
+            self.grid_active_particle_count[:,0] = \
+                f["/NumberOfActiveParticles"][:]
         levels = f["/Level"][:]
         parents = f["/ParentIDs"][:]
         procs = f["/Processor"][:]
@@ -428,6 +431,7 @@ class EnzoHierarchy(GridGeometryHandler):
 
         f.create_dataset("/ActiveDimensions", data=self.grid_dimensions)
         f.create_dataset("/NumberOfParticles", data=self.grid_particle_count[:,0])
+        f.create_dataset("/NumberOfActiveParticles", data=self.grid_active_particle_count[:,0])
 
         f.close()
 
@@ -506,7 +510,7 @@ class EnzoHierarchy(GridGeometryHandler):
                     field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.parameter_file.parameters:
                 ap_fields = self._detect_active_particle_fields()
-                field_list = field_list.union(ap_fields)
+                field_list = list(set(field_list).union(ap_fields))
         else:
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
