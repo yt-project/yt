@@ -230,7 +230,7 @@ class YTDataContainer(object):
             gen_obj = self._current_chunk.objs[0]
         try:
             self.pf.field_info[fname].check_available(gen_obj)
-        except NeedsGridType, ngt_exception:
+        except NeedsGridType as ngt_exception:
             rv = np.empty(self.size, dtype="float64")
             ind = 0
             ngz = ngt_exception.ghost_zones
@@ -259,7 +259,7 @@ class YTDataContainer(object):
         try:
             finfo = self._get_field_info(*field)
             finfo.check_available(gen_obj)
-        except NeedsGridType, ngt_exception:
+        except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
                 raise NotImplementedError
             size = self._count_particles(ftype)
@@ -269,6 +269,7 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks(field, "spatial")):
                     x, y, z = (self[ftype, 'particle_position_%s' % ax]
                                for ax in 'xyz')
+                    if x.size == 0: continue
                     mask = self._current_chunk.objs[0].select_particles(
                         self.selector, x, y, z)
                     if mask is None: continue
@@ -289,6 +290,7 @@ class YTDataContainer(object):
             for i,chunk in enumerate(self.chunks([], "spatial")):
                 x, y, z = (self[ftype, 'particle_position_%s' % ax]
                             for ax in 'xyz')
+                if x.size == 0: continue
                 size += self._current_chunk.objs[0].count_particles(
                     self.selector, x, y, z)
         return size
@@ -351,7 +353,7 @@ class YTDataContainer(object):
         if (ftype, fname) in self.pf.field_info:
             return self.pf.field_info[(ftype, fname)]
         if fname in self.pf.field_info:
-           return self.pf.field_info[fname]
+            return self.pf.field_info[fname]
         raise YTFieldNotFound((fname, ftype), self.pf)
 
     def _determine_fields(self, fields):

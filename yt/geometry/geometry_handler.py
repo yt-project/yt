@@ -375,11 +375,12 @@ class GeometryHandler(ParallelAnalysisInterface):
 
 class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size):
+    def __init__(self, dobj, chunk_type, objs, data_size, field_type = None):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
         self._data_size = data_size
+        self._field_type = field_type
 
     @property
     def data_size(self):

@@ -490,6 +490,18 @@ class EnzoHierarchy(GridGeometryHandler):
         if handle is not None: handle.close()
         return set(fields)
 
+    def _setup_derived_fields(self):
+        super(EnzoHierarchy, self)._setup_derived_fields()
+        aps = self.parameter_file.parameters["AppendActiveParticleType"]
+        for fname, field in self.pf.field_info.items():
+            if not field.particle_type: continue
+            if isinstance(fname, tuple): continue
+            if field._function is NullFunc: continue
+            for apt in aps:
+                dd = field._copy_def()
+                dd.pop("name")
+                add_field((apt, fname), **dd)
+
     def _detect_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.

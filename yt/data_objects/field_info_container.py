@@ -292,6 +292,23 @@ class DerivedField(object):
         self.display_name = display_name
         self.not_in_all = not_in_all
 
+    def _copy_def(self):
+        dd = {}
+        dd['name'] = self.name
+        dd['convert_function'] = self._convert_function
+        dd['particle_convert_function'] = self._particle_convert_function
+        dd['units'] = self._units
+        dd['projected_units'] = self._projected_units,
+        dd['take_log'] = self.take_log
+        dd['validators'] = self.validators.copy()
+        dd['particle_type'] = self.particle_type
+        dd['vector_field'] = self.vector_field
+        dd['display_field'] = True
+        dd['not_in_all'] = self.not_in_all
+        dd['display_name'] = self.display_name
+        dd['projection_conversion'] = self.projection_conversion
+        return dd
+
     def check_available(self, data):
         """
         This raises an exception of the appropriate type if the set of
