@@ -357,14 +357,13 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front):
         front = image
         back = arr2
 
-    ta = 1.0 - image[:,:,3]
+    ta = 1.0 - front[:,:,3]
     ta[ta<0.0] = 0.0
-    for i in range(3):
+    for i in range(4):
         # This is the new way: alpha corresponds to opacity of a given
         # slice.  Previously it was ill-defined, but represented some
         # measure of emissivity.
-        image[:,:,i  ] = image[:,:,i] + ta*arr2[:,:,i]
-    image[:,:,3] = image[:,:,3] + ta*arr2[:,:,3]
+        image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
     return image
 
 def send_to_parent(comm, outgoing_rank, image):

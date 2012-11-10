@@ -223,8 +223,9 @@ class AMRKDTree(HomogenizedVolume):
             if owners[node.parent.id] == myrank:
                 split = node.parent.split
                 left_in_front = viewpoint[split.dim] < node.parent.split.pos
-                add_to_front = left_in_front == (node == node.parent.right)
-                image = receive_and_reduce(self.comm, owners[node.parent.right.id], 
+                #add_to_front = (left_in_front == (node == node.parent.right))
+                add_to_front = not left_in_front
+                image = receive_and_reduce(self.comm, owners[node.parent.right.id],
                                   image, add_to_front)
                 if node.parent.id == 1: break
                 else: node = node.parent
