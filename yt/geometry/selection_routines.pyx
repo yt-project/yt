@@ -983,5 +983,13 @@ cdef class GridSelector(SelectorObject):
         mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
         return mask.astype("bool")
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        return 1
+
+
 grid_selector = GridSelector
 
