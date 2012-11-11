@@ -307,6 +307,30 @@ class FieldValuesTest(AnswerTestingTest):
             assert_rel_equal(new_result, old_result, self.decimals,
                              err_msg=err_msg, verbose=True)
 
+class AllFieldValuesTest(AnswerTestingTest):
+    _type_name = "AllFieldValues"
+    _attrs = ("field", )
+
+    def __init__(self, pf_fn, field, obj_type = None,
+                 decimals = None):
+        super(AllFieldValuesTest, self).__init__(pf_fn)
+        self.obj_type = obj_type
+        self.field = field
+        self.decimals = decimals
+
+    def run(self):
+        obj = self.create_obj(self.pf, self.obj_type)
+        return obj[self.field]
+
+    def compare(self, new_result, old_result):
+        err_msg = "All field values for %s not equal." % self.field
+        if self.decimals is None:
+            assert_equal(new_result, old_result, 
+                         err_msg=err_msg, verbose=True)
+        else:
+            assert_rel_equal(new_result, old_result, self.decimals,
+                             err_msg=err_msg, verbose=True)
+            
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
