@@ -492,7 +492,8 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _setup_derived_fields(self):
         super(EnzoHierarchy, self)._setup_derived_fields()
-        aps = self.parameter_file.parameters["AppendActiveParticleType"]
+        aps = self.parameter_file.parameters.get(
+            "AppendActiveParticleType", [])
         for fname, field in self.pf.field_info.items():
             if not field.particle_type: continue
             if isinstance(fname, tuple): continue

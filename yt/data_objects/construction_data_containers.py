@@ -924,14 +924,14 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         self.global_endindex = None
         YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
-
-    def _get_list_of_grids(self):
-        if self._grids is not None: return
+        # We need a buffer region to allow for zones that contribute to the
+        # interpolation but are not directly inside our bounds
         buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
                  / self.pf.domain_dimensions).max()
-        YTCoveringGridBase._get_list_of_grids(self, buffer)
-        # We reverse the order to ensure that coarse grids are first
-        self._grids = self._grids[::-1]
+        self._base_region = self.pf.geometry.region(
+            self.center,
+            self.left_edge - buffer,
+            self.right_edge + buffer)
 
     def get_data(self, field):
         self._get_list_of_grids()

@@ -303,18 +303,23 @@ class GeometryHandler(ParallelAnalysisInterface):
         obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
 
-    def _read_particle_fields(self, fields, dobj, chunk = None):
-        if len(fields) == 0: return {}, []
-        selector = dobj.selector
-        if chunk is None:
-            self._identify_base_chunk(dobj)
-        fields_to_return = {}
+    def _split_fields(self, fields):
+        # This will split fields into either generated or read fields
         fields_to_read, fields_to_generate = [], []
         for ftype, fname in fields:
             if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
             else:
                 fields_to_generate.append((ftype, fname))
+        return fields_to_read, fields_to_generate
+
+    def _read_particle_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        selector = dobj.selector
+        if chunk is None:
+            self._identify_base_chunk(dobj)
+        fields_to_return = {}
+        fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(
@@ -337,12 +342,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         else:
             chunk_size = chunk.data_size
         fields_to_return = {}
-        fields_to_read, fields_to_generate = [], []
-        for ftype, fname in fields:
-            if fname in self.field_list:
-                fields_to_read.append((ftype, fname))
-            else:
-                fields_to_generate.append((ftype, fname))
+        fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
