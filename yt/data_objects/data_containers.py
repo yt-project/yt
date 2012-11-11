@@ -353,6 +353,19 @@ class YTDataContainer(object):
                        for i in self._con_args])
         return s
 
+    @contextmanager
+    def _field_type_state(self, ftype, finfo, obj = None):
+        if obj is None: obj = self
+        old_particle_type = obj._current_particle_type
+        old_fluid_type = obj._current_fluid_type
+        if finfo.particle_type:
+            obj._current_particle_type = ftype
+        else:
+            obj._current_fluid_type = ftype
+        yield
+        obj._current_particle_type = old_particle_type
+        obj._current_fluid_type = old_fluid_type
+
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
         explicit_fields = []
@@ -468,23 +481,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                     for f in gip.fields:
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)
-
-    @contextmanager
-    def _field_type_state(self, ftype, finfo, obj = None):
-        if obj is None: obj = self
-        old_particle_type = obj._current_particle_type
-        mylog.debug("Old particle type: %s", old_particle_type)
-        old_fluid_type = obj._current_fluid_type
-        mylog.debug("Old fluid type: %s", old_fluid_type)
-        if finfo.particle_type:
-            obj._current_particle_type = ftype
-        else:
-            obj._current_fluid_type = ftype
-        mylog.debug("New particle type: %s", obj._current_particle_type)
-        mylog.debug("New fluid type: %s", obj._current_fluid_type)
-        yield
-        obj._current_particle_type = old_particle_type
-        obj._current_fluid_type = old_fluid_type
 
     @contextmanager
     def _field_lock(self):

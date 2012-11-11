@@ -26,7 +26,7 @@ License:
 import exceptions
 import pdb
 import weakref
-
+import itertools
 import numpy as np
 
 from yt.funcs import *
@@ -85,29 +85,6 @@ class AMRGridPatch(YTDataContainer):
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
-    def get_field_parameter(self, name, default=None):
-        """
-        This is typically only used by derived field functions, but it returns
-        parameters used to generate fields.
-
-        """
-        if self.field_parameters.has_key(name):
-            return self.field_parameters[name]
-        else:
-            return default
-
-    def set_field_parameter(self, name, val):
-        """
-        Here we set up dictionaries that get passed up and down and ultimately
-        to derived fields.
-
-        """
-        self.field_parameters[name] = val
-
-    def has_field_parameter(self, name):
-        """ Checks if a field parameter is set. """
-        return self.field_parameters.has_key(name)
-
     def convert(self, datatype):
         """
         This will attempt to convert a given unit to cgs from code units. It
@@ -116,87 +93,71 @@ class AMRGridPatch(YTDataContainer):
         """
         return self.pf[datatype]
 
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
-        s += ", ".join(["%s=%s" % (i, getattr(self,i))
-                        for i in self._con_args])
-        return s
-
     def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator
-            try:
-                self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # This is only going to be raised if n_gz > 0
-                n_gz = ngt_exception.ghost_zones
-                f_gz = ngt_exception.fields
-                if f_gz is None:
-                    f_gz = self.pf.field_info[field].get_dependencies(
-                            pf = self.pf).requested
-                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
-                temp_array = self.pf.field_info[field](gz_grid)
-                sl = [slice(n_gz, -n_gz)] * 3
-                self[field] = temp_array[sl]
+        ftype, fname = field
+        finfo = self.pf._get_field_info(*field)
+        with self._field_type_state(ftype, finfo):
+            if fname in self._container_fields:
+                return self._generate_container_field(field)
+            if finfo.particle_type:
+                return self._generate_particle_field(field)
             else:
-                self[field] = self.pf.field_info[field](self)
-        else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+                return self._generate_fluid_field(field)
 
-    def has_key(self, key):
-        return (key in self.field_data)
+    def _generate_fluid_field(self, field):
+        ftype, fname = field
+        # First we check the validator
+        try:
+            self.pf.field_info[field].check_available(self)
+        except NeedsGridType, ngt_exception:
+            # This is only going to be raised if n_gz > 0
+            n_gz = ngt_exception.ghost_zones
+            f_gz = ngt_exception.fields
+            if f_gz is None:
+                f_gz = self.pf.field_info[field].get_dependencies(
+                        pf = self.pf).requested
+            gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
+            temp_array = self.pf.field_info[field](gz_grid)
+            sl = [slice(n_gz, -n_gz)] * 3
+            self[field] = temp_array[sl]
+        else:
+            self[field] = self.pf.field_info[field](self)
 
-    def __getitem__(self, key):
-        """
-        Returns a single field.  Will add if necessary.
-        """
-        if not self.field_data.has_key(key):
-            self.get_data(key)
-        return self.field_data[key]
+    def _generate_particle_field(self, field):
+        ftype, fname = field
+        finfo = self.pf._get_field_info(*field)
+        finfo.check_available(self)
+        with self._field_type_state(ftype, finfo, self):
+            rv = self.pf._get_field_info(*field)(self)
+        return rv
 
-    def __setitem__(self, key, val):
-        """
-        Sets a field to be some other value.
-        """
-        self.field_data[key] = val
-
-    def __delitem__(self, key):
-        """
-        Deletes a field
-        """
-        del self.field_data[key]
-
-    def keys(self):
-        return self.field_data.keys()
-
-    def get_data(self, field, convert = True):
+    def get_data(self, fields = None, convert = True):
         """
         Returns a field or set of fields for a key or set of keys
         """
-        if not self.field_data.has_key(field):
-            if field in self.hierarchy.field_list:
+        if fields is None: return
+        fields = self._determine_fields(fields)
+        fields_to_get = [f for f in fields if f not in self.field_data]
+        if len(fields_to_get) == 0:
+            return
+        inspected = 0
+        for field in itertools.cycle(fields_to_get):
+            ftype, fname = field
+            finfo = self.pf._get_field_info(ftype, fname)
+            if fname in self.hierarchy.field_list or \
+               (ftype, fname) in self.hierarchy.field_list:
                 conv_factor = 1.0
-                if self.pf.field_info.has_key(field) and convert == True:
-                    conv_factor = self.pf.field_info[field]._convert_function(self)
-                if self.pf.field_info[field].particle_type and \
-                   self.NumberOfParticles == 0:
-                    # because this gets upcast to float
-                    self[field] = np.array([],dtype='int64')
-                    return self.field_data[field]
-                try:
-                    temp = self.hierarchy.io.pop(self, field)
-                    self[field] = np.multiply(temp, conv_factor, temp)
-                except self.hierarchy.io._read_exception, exc:
-                    if field in self.pf.field_info:
-                        if self.pf.field_info[field].not_in_all:
-                            self[field] = np.zeros(self.ActiveDimensions, dtype='float64')
-                        else:
-                            raise
-                    else: raise
+                if convert == True:
+                    conv_factor = finfo._convert_function(self)
+                if finfo.particle_type:
+                    temp = self.hierarchy.io._read_particle_data_by_type(
+                            self, (ftype, fname))
+                else:
+                    temp = self.hierarchy.io.pop(self, fieldfname)
+                mylog.debug("Setting %s (%s)", field, self)
+                self[field] = np.multiply(temp, conv_factor, temp)
             else:
                 self._generate_field(field)
-        return self.field_data[field]
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -256,9 +217,9 @@ class AMRGridPatch(YTDataContainer):
         all field parameters.
 
         """
+        super(AMRGridPatch, self).clear_data()
         self._del_child_mask()
         self._del_child_indices()
-        self.field_data.clear()
         self._setup_dx()
 
     def check_child_masks(self):
@@ -314,10 +275,6 @@ class AMRGridPatch(YTDataContainer):
             del self.retVal
         self.field_data = YTFieldData()
         self.clear_derived_quantities()
-
-    def clear_derived_quantities(self):
-        """ Clears coordinates, child_indices, child_mask. """
-        # Access the property raw-values here
         del self.child_mask
         del self.child_ind
 

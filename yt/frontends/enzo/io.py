@@ -46,6 +46,13 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         handle.close()
         return tr.swapaxes(0, 2)
 
+    def _read_particle_data_by_type(self, grid, field):
+        handle = h5py.File(grid.filename)
+        ftype, fname = field
+        tr = handle["/Grid%08i/%s/%s/%s" % (grid.id, field, ftype, fname)][:]
+        handle.close()
+        return tr
+
     def _read_field_names(self, grid):
         return hdf5_light_reader.ReadListOfDatasets(
                     grid.filename, "/Grid%08i" % grid.id)

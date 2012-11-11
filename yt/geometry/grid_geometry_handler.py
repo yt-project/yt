@@ -194,7 +194,9 @@ class GridGeometryHandler(GeometryHandler):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
             grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
-            dobj._chunk_info = np.array(grids, dtype='object')
+            dobj._chunk_info = np.empty(len(grids), dtype='object')
+            for i, g in enumerate(grids):
+                dobj._chunk_info[i] = g
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
             dobj.shape = (dobj.size,)
