@@ -32,7 +32,10 @@ import numpy as np
 from yt.funcs import *
 from yt.utilities.definitions import x_dict, y_dict
 
-from yt.data_objects.data_containers import YTFieldData, YTDataContainer
+from yt.data_objects.data_containers import \
+    YTFieldData, \
+    YTDataContainer, \
+    YTSelectionContainer
 from yt.utilities.definitions import x_dict, y_dict
 from .field_info_container import \
     NeedsGridType, \
@@ -42,7 +45,7 @@ from .field_info_container import \
     NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
 
-class AMRGridPatch(YTDataContainer):
+class AMRGridPatch(YTSelectionContainer):
     _spatial = True
     _num_ghost_zones = 0
     _grids = None
@@ -93,72 +96,6 @@ class AMRGridPatch(YTDataContainer):
         """
         return self.pf[datatype]
 
-    def _generate_field(self, field):
-        ftype, fname = field
-        finfo = self.pf._get_field_info(*field)
-        with self._field_type_state(ftype, finfo):
-            if fname in self._container_fields:
-                return self._generate_container_field(field)
-            if finfo.particle_type:
-                return self._generate_particle_field(field)
-            else:
-                return self._generate_fluid_field(field)
-
-    def _generate_fluid_field(self, field):
-        ftype, fname = field
-        # First we check the validator
-        try:
-            self.pf.field_info[field].check_available(self)
-        except NeedsGridType, ngt_exception:
-            # This is only going to be raised if n_gz > 0
-            n_gz = ngt_exception.ghost_zones
-            f_gz = ngt_exception.fields
-            if f_gz is None:
-                f_gz = self.pf.field_info[field].get_dependencies(
-                        pf = self.pf).requested
-            gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
-            temp_array = self.pf.field_info[field](gz_grid)
-            sl = [slice(n_gz, -n_gz)] * 3
-            self[field] = temp_array[sl]
-        else:
-            self[field] = self.pf.field_info[field](self)
-
-    def _generate_particle_field(self, field):
-        ftype, fname = field
-        finfo = self.pf._get_field_info(*field)
-        finfo.check_available(self)
-        with self._field_type_state(ftype, finfo, self):
-            rv = self.pf._get_field_info(*field)(self)
-        return rv
-
-    def get_data(self, fields = None, convert = True):
-        """
-        Returns a field or set of fields for a key or set of keys
-        """
-        if fields is None: return
-        fields = self._determine_fields(fields)
-        fields_to_get = [f for f in fields if f not in self.field_data]
-        if len(fields_to_get) == 0:
-            return
-        inspected = 0
-        for field in itertools.cycle(fields_to_get):
-            ftype, fname = field
-            finfo = self.pf._get_field_info(ftype, fname)
-            if fname in self.hierarchy.field_list or \
-               (ftype, fname) in self.hierarchy.field_list:
-                conv_factor = 1.0
-                if convert == True:
-                    conv_factor = finfo._convert_function(self)
-                if finfo.particle_type:
-                    temp = self.hierarchy.io._read_particle_data_by_type(
-                            self, (ftype, fname))
-                else:
-                    temp = self.hierarchy.io.pop(self, fieldfname)
-                mylog.debug("Setting %s (%s)", field, self)
-                self[field] = np.multiply(temp, conv_factor, temp)
-            else:
-                self._generate_field(field)
-
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz, at least here.  We probably do elsewhere.
@@ -185,10 +122,6 @@ class AMRGridPatch(YTDataContainer):
             [self.RightEdge[0], self.LeftEdge[1],  self.RightEdge[2]],
             [self.LeftEdge[0],  self.RightEdge[1], self.LeftEdge[2]],
             ], dtype='float64')
-
-    @property
-    def shape(self):
-        return tuple(self.ActiveDimensions)
 
     def _generate_overlap_masks(self, axis, LE, RE):
         """

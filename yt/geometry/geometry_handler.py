@@ -322,7 +322,7 @@ class GeometryHandler(ParallelAnalysisInterface):
                     fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
-            finfo = dobj._get_field_info(*field)
+            finfo = self.pf._get_field_info(*field)
             conv_factor = finfo._convert_function(self)
             np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
