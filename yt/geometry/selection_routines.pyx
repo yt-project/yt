@@ -979,9 +979,7 @@ cdef class GridSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_mask(self, gobj):
-        cdef np.ndarray[np.uint8_t, ndim=3] mask 
-        mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
-        return mask.astype("bool")
+        return None
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

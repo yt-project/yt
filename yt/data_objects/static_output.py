@@ -244,11 +244,20 @@ class StaticOutput(object):
         else:
             raise YTGeometryNotSupported(self.geometry)
 
+    _last_freq = None
+    _last_finfo = None
     def _get_field_info(self, ftype, fname):
-        if (ftype, fname) in self.field_info:
-            return self.field_info[(ftype, fname)]
+        field = (ftype, fname)
+        if field == self._last_freq:
+            return self._last_finfo
+        if field in self.field_info:
+            self._last_freq = field
+            self._last_finfo = self.field_info[(ftype, fname)]
+            return self._last_finfo
         if fname in self.field_info:
-            return self.field_info[fname]
+            self._last_freq = field
+            self._last_finfo = self.field_info[fname]
+            return self._last_finfo
         raise YTFieldNotFound((fname, ftype), self)
 
 def _reconstruct_pf(*args, **kwargs):

@@ -190,7 +190,10 @@ class GridGeometryHandler(GeometryHandler):
         return self.parameter_file.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
-        if getattr(dobj, "_grids", None) is None:
+        if dobj._type_name == "grid":
+            dobj._chunk_info = np.empty(1, dtype='object')
+            dobj._chunk_info[0] = dobj
+        elif getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
             grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
