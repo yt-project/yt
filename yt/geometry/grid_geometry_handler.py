@@ -199,6 +199,7 @@ class GridGeometryHandler(GeometryHandler):
                 dobj._chunk_info[i] = g
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
+        if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 

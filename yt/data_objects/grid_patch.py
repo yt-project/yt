@@ -54,6 +54,7 @@ class AMRGridPatch(YTSelectionContainer):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
+    _container_fields = ("dx", "dy", "dz")
     OverlappingSiblings = None
 
     def __init__(self, id, filename=None, hierarchy=None):
@@ -88,6 +89,17 @@ class AMRGridPatch(YTSelectionContainer):
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
+    def __getitem__(self, key):
+        tr = super(AMRGridPatch, self).__getitem__(key)
+        try:
+            fields = self._determine_fields(key)
+        except YTFieldTypeNotFound:
+            return tr
+        finfo = self.pf._get_field_info(*fields[0])
+        if not finfo.particle_type:
+            return tr.reshape(self.ActiveDimensions)
+        return tr
+
     def convert(self, datatype):
         """
         This will attempt to convert a given unit to cgs from code units. It
@@ -95,6 +107,20 @@ class AMRGridPatch(YTSelectionContainer):
 
         """
         return self.pf[datatype]
+
+    @property
+    def shape(self):
+        return self.ActiveDimensions
+
+    def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
+        if field == "dx":
+            return self._current_chunk.fwidth[:,0]
+        elif field == "dy":
+            return self._current_chunk.fwidth[:,1]
+        elif field == "dz":
+            return self._current_chunk.fwidth[:,2]
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -108,7 +134,6 @@ class AMRGridPatch(YTSelectionContainer):
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
         if self.pf.dimensionality < 3: self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     @property
     def _corners(self):
@@ -172,9 +197,6 @@ class AMRGridPatch(YTSelectionContainer):
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
-
-    def __len__(self):
-        return np.prod(self.ActiveDimensions)
 
     def find_max(self, field):
         """ Returns value, index of maximum value of *field* in this grid. """
