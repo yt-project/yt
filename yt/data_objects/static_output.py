@@ -244,11 +244,11 @@ class StaticOutput(object):
         else:
             raise YTGeometryNotSupported(self.geometry)
 
-    _last_freq = None
+    _last_freq = (None, None)
     _last_finfo = None
     def _get_field_info(self, ftype, fname):
         field = (ftype, fname)
-        if field == self._last_freq:
+        if field == self._last_freq or fname == self._last_freq[1]:
             return self._last_finfo
         if field in self.field_info:
             self._last_freq = field

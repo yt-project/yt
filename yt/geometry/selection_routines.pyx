@@ -81,6 +81,24 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
                     cpos += 1
     return indices
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
+              np.int64_t offset,
+              np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
+              np.ndarray[np.float64_t, ndim=3] vals):
+    cdef np.int64_t count = 0
+    cdef int i, j, k
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            for k in range(mask.shape[2]):
+                if mask[i,j,k] == 1:
+                    out[offset + count] = vals[i,j,k]
+                    count += 1
+    return count
+
 # Inclined Box
 
 cdef class SelectorObject:

@@ -30,6 +30,7 @@ from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
+from yt.geometry.selection_routines import mask_fill
 import h5py
 
 import numpy as np
@@ -155,11 +156,12 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             for g in chunk.objs:
                 mask = g.select(selector)
                 if mask is None: continue
+                nd = mask.sum()
                 for field in fields:
                     ftype, fname = field
-                    gdata = data[g.id].pop(fname).swapaxes(0,2)[mask]
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
+                    gdata = data[g.id].pop(fname).swapaxes(0,2)
+                    nd = mask_fill(rv[field], ind, mask, gdata)
+                ind += nd
                 data.pop(g.id)
         return rv
 
