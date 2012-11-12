@@ -241,9 +241,13 @@ class EnzoSimulation(SimulationTimeSeries):
             if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
             my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
 
-        TimeSeriesData.__init__(self, outputs=[output['filename'] for output in my_outputs],
-                                parallel=parallel)
-        mylog.info("%d outputs loaded into time series." % len(my_outputs))
+        init_outputs = []
+        for output in my_outputs:
+            if os.path.exists(output['filename']):
+                init_outputs.append(output['filename'])
+            
+        TimeSeriesData.__init__(self, outputs=init_outputs, parallel=parallel)
+        mylog.info("%d outputs loaded into time series." % len(init_outputs))
 
     def _parse_parameter_file(self):
         """
@@ -585,6 +589,8 @@ class EnzoSimulation(SimulationTimeSeries):
         if outputs is None:
             outputs = self.all_outputs
         my_outputs = []
+        if not outputs:
+            return my_outputs
         for value in values:
             outputs.sort(key=lambda obj:np.fabs(value - obj[key]))
             if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
