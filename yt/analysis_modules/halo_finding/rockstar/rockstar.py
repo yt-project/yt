@@ -145,7 +145,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.num_writers = num_writers
         self.particle_mass = particle_mass
         if force_res is None:
-            self.force_res = ts[-1].h.get_smallest_dx() * pf['mpch']
+            self.force_res = ts[-1].h.get_smallest_dx() * ts[-1]['mpch']
         else:
             self.force_res = force_res
         self.le = tpf.domain_left_edge
