@@ -63,7 +63,7 @@ class AnswerTesting(Plugin):
         parser.add_option("--answer-store", dest="store_results",
             default=False, action="store_true")
         parser.add_option("--local-store", dest="store_local_results",
-            default=False)
+            default=False, action="store_true", help="Store/Load local results?")
 
     def configure(self, options, conf):
         super(AnswerTesting, self).configure(options, conf)
@@ -85,7 +85,7 @@ class AnswerTesting(Plugin):
             options.compare_name = _latest
 
         # We only either store or test.
-        if options.store_local_results == 'True':
+        if options.store_local_results:
             AnswerTestingTest.reference_storage = \
                 self.storage = \
                     AnswerTestLocalStorage("%s/%s" % \
