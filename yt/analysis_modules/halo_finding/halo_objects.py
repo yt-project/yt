@@ -2670,8 +2670,7 @@ class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
         ----------
         fname : String
             The name of the Rockstar file to read in. Default = 
-            "(dataset_name)_rockstar/out_0.list' where (dataset_name)
-            is equal to str(pf).
+            "rockstar_halos/out_0.list'.
 
         Examples
         --------
@@ -2679,5 +2678,5 @@ class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
         >>> halos = LoadRockstarHalos(pf, "other_name.out")
         """
         if filename is None:
-            filename = str(pf) + '_rockstar/out_0.list'
+            filename = 'rockstar_halos/out_0.list'
         RockstarHaloList.__init__(self, pf, filename)
