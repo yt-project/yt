@@ -997,7 +997,7 @@ cdef class GridSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_mask(self, gobj):
-        return None
+        return np.ones(gobj.ActiveDimensions, dtype='bool')
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
