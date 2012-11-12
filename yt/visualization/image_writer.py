@@ -420,7 +420,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     else:
         dpi = None
 
-    suffix = os.path.splitext(filename)[1]
+    suffix = os.path.splitext(filename)[-1]
 
     if suffix == '':
         suffix = '.png'
