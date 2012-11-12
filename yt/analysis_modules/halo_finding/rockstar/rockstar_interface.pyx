@@ -335,7 +335,7 @@ cdef class RockstarInterface:
         global OVERLAP_LENGTH, TOTAL_PARTICLES, FORCE_RES
         if force_res is not None:
             FORCE_RES=np.float64(force_res)
-            print "set force res to ",FORCE_RES
+            #print "set force res to ",FORCE_RES
         OVERLAP_LENGTH = 0.0
         if parallel:
             PARALLEL_IO = 1

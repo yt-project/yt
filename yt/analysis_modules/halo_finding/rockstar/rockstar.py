@@ -81,10 +81,15 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         dm_type: 1
             In order to exclude stars and other particle types, define
             the dm_type. Default is 1, as Enzo has the DM particle type=1.
-        force_res: None
-            The default force resolution is 0.0012 comoving Mpc/H
-            This overrides Rockstars' defaults
-
+        force_res: float
+            This parameter specifies the force resolution that Rockstar uses
+            in units of Mpc/h.
+            If no value is provided, this parameter is automatically set to
+            the width of the smallest grid element in the simulation from the
+            last data snapshot (i.e. the one where time has evolved the
+            longest) in the time series:
+            ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+            
         Returns
         -------
         None
@@ -139,7 +144,10 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.num_readers = num_readers
         self.num_writers = num_writers
         self.particle_mass = particle_mass
-        self.force_res = force_res
+        if force_res is None:
+            self.force_res = ts[-1].h.get_smallest_dx() * pf['mpch']
+        else:
+            self.force_res = force_res
         self.le = tpf.domain_left_edge
         self.re = tpf.domain_right_edge
         if self.num_readers + self.num_writers + 1 != self.comm.size:
