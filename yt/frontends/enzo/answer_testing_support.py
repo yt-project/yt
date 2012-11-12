@@ -63,6 +63,7 @@ def standard_small_simulation(pf_fn, fields):
     yield ParentageRelationshipsTest(pf_fn)
     for field in fields:
         yield GridValuesTest(pf_fn, field)
+        if 'particle' in field: continue
         for axis in [0, 1, 2]:
             for ds in dso:
                 for weight_field in [None, "Density"]:
