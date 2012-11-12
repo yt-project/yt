@@ -44,6 +44,8 @@ from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.flagging_methods import \
+    FlaggingGrid
 
 from .fields import \
     StreamFieldInfo, \
@@ -495,3 +497,68 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
     return spf
+
+def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
+               callback = None):
+    r"""Given a base parameter file, repeatedly apply refinement criteria and
+    fluid operators until a maximum level is reached.
+
+    Parameters
+    ----------
+    base_pf : StaticOutput
+        This is any static output.  It can also be a stream static output, for
+        instance as returned by load_uniform_data.
+    refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
+        These criteria will be applied in sequence to identify cells that need
+        to be refined.
+    fluid_operators : list of :class:`~yt.utilities.initial_conditions.FluidOperator`
+        These fluid operators will be applied in sequence to all resulting
+        grids.
+    max_level : int
+        The maximum level to which the data will be refined
+    callback : function, optional
+        A function that will be called at the beginning of each refinement
+        cycle, with the current parameter file.
+
+    Examples
+    --------
+    >>> domain_dims = (32, 32, 32)
+    >>> data = np.zeros(domain_dims) + 0.25
+    >>> fo = [ic.CoredSphere(0.05, 0.3, [0.7,0.4,0.75], {"Density": (0.25, 100.0)})]
+    >>> rc = [fm.flagging_method_registry["overdensity"](8.0)]
+    >>> ug = load_uniform_grid({'Density': data}, domain_dims, 1.0)
+    >>> pf = refine_amr(ug, rc, fo, 5)
+    """
+    last_gc = base_pf.h.num_grids
+    cur_gc = -1
+    pf = base_pf    
+    while pf.h.max_level < max_level and last_gc != cur_gc:
+        mylog.info("Refining another level.  Current max level: %s",
+                  pf.h.max_level)
+        last_gc = pf.h.grids.size
+        for m in fluid_operators: m.apply(pf)
+        if callback is not None: callback(pf)
+        grid_data = []
+        for g in pf.h.grids:
+            gd = dict( left_edge = g.LeftEdge,
+                       right_edge = g.RightEdge,
+                       level = g.Level,
+                       dimensions = g.ActiveDimensions )
+            for field in pf.h.field_list:
+                gd[field] = g[field]
+            grid_data.append(gd)
+            if g.Level < pf.h.max_level: continue
+            fg = FlaggingGrid(g, refinement_criteria)
+            nsg = fg.find_subgrids()
+            for sg in nsg:
+                LE = sg.left_index * g.dds
+                dims = sg.dimensions * pf.refine_by
+                grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
+                gd = dict(left_edge = LE, right_edge = grid.right_edge,
+                          level = g.Level + 1, dimensions = dims)
+                for field in pf.h.field_list:
+                    gd[field] = grid[field]
+                grid_data.append(gd)
+        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0)
+        cur_gc = pf.h.num_grids
+    return pf
