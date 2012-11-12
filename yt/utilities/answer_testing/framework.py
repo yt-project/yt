@@ -86,10 +86,14 @@ class AnswerTesting(Plugin):
 
         # We only either store or test.
         if options.store_local_results:
+            if options.compare_name is not None:
+                options.compare_name = "%s/%s" % \
+                        (os.path.realpath(options.output_dir), 
+                         options.compare_name)
             AnswerTestingTest.reference_storage = \
                 self.storage = \
-                    AnswerTestLocalStorage("%s/%s" % \
-                        (os.path.realpath(options.output_dir), options.compare_name), not options.store_results)
+                    AnswerTestLocalStorage(options.compare_name, 
+                                           not options.store_results)
         else:
             AnswerTestingTest.reference_storage = \
                 self.storage = AnswerTestCloudStorage(options.compare_name, not options.store_results)
@@ -109,9 +113,9 @@ class AnswerTestStorage(object):
         self.cache = {}
         self.read = read
     def dump(self, result_storage, result):
-        pass
+        raise NotImplementedError 
     def get(self, pf_name, default=None):
-        pass
+        raise NotImplementedError 
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, pf_name, default = None):
@@ -220,7 +224,8 @@ class AnswerTestingTest(object):
 
     def __call__(self):
         nv = self.run()
-        if self.reference_storage is not None and self.reference_storage.read:
+        if self.reference_storage.read and \
+           self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
             if dd is None: raise YTNoOldAnswer(self.storage_name)
             ov = dd[self.description]
