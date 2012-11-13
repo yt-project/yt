@@ -1,5 +1,5 @@
 """
-API for yt.frontends.ramses
+API for yt.frontends.artio
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD

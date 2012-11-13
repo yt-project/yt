@@ -1,5 +1,5 @@
 """
-API for yt.frontends.ramses
+API for yt.frontends.artio
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -29,11 +29,11 @@ License:
 """
 
 from .data_structures import \
-      RAMSESStaticOutput
+      ARTIOStaticOutput
 
 from .fields import \
-      RAMSESFieldInfo, \
-      add_ramses_field
+      ARTIOFieldInfo, \
+      add_artio_field
 
 from .io import \
-      IOHandlerRAMSES
+      IOHandlerARTIO

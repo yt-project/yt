@@ -1,5 +1,5 @@
 """
-RAMSES-specific IO
+ARTIO-specific IO
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -32,8 +32,8 @@ from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.fortran_utils as fpu
 import cStringIO
 
-class IOHandlerRAMSES(BaseIOHandler):
-    _data_style = "ramses"
+class IOHandlerARTIO(BaseIOHandler):
+    _data_style = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects

@@ -1,5 +1,5 @@
 """
-Definitions for RAMSES files
+Definitions for ARTIO files
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
@@ -23,9 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# These functions are RAMSES-specific
+# These functions are ARTIO-specific
 
-def ramses_header(hvals):
+def artio_header(hvals):
     header = ( ('ncpu', 1, 'i'),
                ('ndim', 1, 'i'),
                ('nx', 3, 'i'),

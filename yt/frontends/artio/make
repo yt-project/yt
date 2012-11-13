@@ -1,9 +1,0 @@
-#!/bin/bash
-
-rm -f artio_caller.c
-rm -f *.so *.o
-
-#templates for linking and flagging:
-CFLAGS="-I/usr/local/include"  \ 
-LDFLAGS="-L/usr/local/lib"     \
- python setup.artio.py build_ext --inplace #--pyrex-gdb

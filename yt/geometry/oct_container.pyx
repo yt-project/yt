@@ -274,6 +274,274 @@ cdef class OctreeContainer:
                 bounds[i, 3+ii] = size[ii]
         return bounds
 
+cdef class ARTIOOctreeContainer(OctreeContainer):
+
+    def allocate_domains(self, domain_counts):
+        cdef int count, i
+        cdef OctAllocationContainer *cur = self.cont
+        assert(cur == NULL)
+        self.max_domain = len(domain_counts) # 1-indexed
+        self.domains = <OctAllocationContainer **> malloc(
+            sizeof(OctAllocationContainer *) * len(domain_counts))
+        for i, count in enumerate(domain_counts):
+            cur = allocate_octs(count, cur)
+            if self.cont == NULL: self.cont = cur
+            self.domains[i] = cur
+        
+    def __dealloc__(self):
+        # This gets called BEFORE the superclass deallocation.  But, both get
+        # called.
+        if self.domains != NULL: free(self.domains)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count(self, np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
+                     split = False):
+        cdef int n = mask.shape[0]
+        cdef int i, dom
+        cdef OctAllocationContainer *cur
+        cdef np.ndarray[np.int64_t, ndim=1] count
+        count = np.zeros(self.max_domain, 'int64')
+        # This is the idiom for iterating over many containers.
+        cur = self.cont
+        for i in range(n):
+            if i - cur.offset >= cur.n: cur = cur.next
+            if mask[i] == 1:
+                count[cur.my_octs[i - cur.offset].domain - 1] += 1
+        return count
+
+    def check(self, int curdom):
+        cdef int dind, pi
+        cdef Oct oct
+        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
+        cdef int nbad = 0
+        for pi in range(cont.n_assigned):
+            oct = cont.my_octs[pi]
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if oct.children[i][j][k] != NULL and \
+                           oct.children[i][j][k].level != oct.level + 1:
+                            if curdom == 61:
+                                print pi, oct.children[i][j][k].level,
+                                print oct.level
+                            nbad += 1
+        print "DOMAIN % 3i HAS % 9i BAD OCTS (%s / %s / %s)" % (curdom, nbad, 
+            cont.n - cont.n_assigned, cont.n_assigned, cont.n)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def add(self, int curdom, int curlevel, int ng,
+            np.ndarray[np.float64_t, ndim=2] pos,
+            int local_domain, int skip_boundary = 1):
+        cdef int level, no, p, i, j, k, ind[3]
+        cdef int local = (local_domain == curdom)
+        cdef Oct *cur, *next = NULL
+        cdef np.float64_t pp[3], cp[3], dds[3]
+        no = pos.shape[0] #number of octs
+        if curdom > self.max_domain: curdom = local_domain
+        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
+        cdef int initial = cont.n_assigned
+        cdef int in_boundary = 0
+        # How do we bootstrap ourselves?
+        for p in range(no):
+            #for every oct we're trying to add find the 
+            #floating point unitary position on this level
+            in_boundary = 0
+            for i in range(3):
+                pp[i] = pos[p, i]
+                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                cp[i] = (ind[i] + 0.5) * dds[i]
+                if ind[i] < 0 or ind[i] >= self.nn[i]:
+                    in_boundary = 1
+            if skip_boundary == in_boundary == 1: continue
+            cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
+            if cur == NULL:
+                if curlevel != 0:
+                    raise RuntimeError
+                cur = &cont.my_octs[cont.n_assigned]
+                cur.parent = NULL
+                cur.level = 0
+                for i in range(3):
+                    cur.pos[i] = ind[i]
+                cont.n_assigned += 1
+                self.nocts += 1
+                self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
+            # Now we find the location we want
+            # Note that ARTIO I think 1-findiceses levels, but we don't.
+            for level in range(curlevel):
+                # At every level, find the cell this oct
+                # lives inside
+                for i in range(3):
+                    #as we get deeper, oct size halves
+                    dds[i] = dds[i] / 2.0
+                    if cp[i] > pp[i]: 
+                        ind[i] = 0
+                        cp[i] -= dds[i]/2.0
+                    else:
+                        ind[i] = 1
+                        cp[i] += dds[i]/2.0
+                # Check if it has not been allocated
+                next = cur.children[ind[0]][ind[1]][ind[2]]
+                if next == NULL:
+                    next = &cont.my_octs[cont.n_assigned]
+                    cur.children[ind[0]][ind[1]][ind[2]] = next
+                    cont.n_assigned += 1
+                    next.parent = cur
+                    for i in range(3):
+                        next.pos[i] = ind[i] + (cur.pos[i] << 1)
+                    next.level = level + 1
+                    self.nocts += 1
+                cur = next
+            cur.domain = curdom
+            if local == 1:
+                cur.ind = p
+            cur.level = curlevel
+        return cont.n_assigned - initial
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def icoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                np.int64_t cell_count,
+                np.ndarray[np.int64_t, ndim=1] level_counts):
+        # Wham, bam, it's a scam
+        cdef np.int64_t i, j, k, oi, ci, n, ii, level
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        n = mask.shape[0]
+        cdef np.ndarray[np.int64_t, ndim=2] coords
+        coords = np.empty((cell_count, 3), dtype="int64")
+        for oi in range(cur.n):
+            o = &cur.my_octs[oi]
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        if mask[o.local_ind, ii] == 0: continue
+                        ci = level_counts[o.level]
+                        coords[ci, 0] = (o.pos[0] << 1) + i
+                        coords[ci, 1] = (o.pos[1] << 1) + j
+                        coords[ci, 2] = (o.pos[2] << 1) + k
+                        level_counts[o.level] += 1
+        return coords
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def ires(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                np.int64_t cell_count,
+                np.ndarray[np.int64_t, ndim=1] level_counts):
+        # Wham, bam, it's a scam
+        cdef np.int64_t i, j, k, oi, ci, n
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        n = mask.shape[0]
+        cdef np.ndarray[np.int64_t, ndim=1] levels
+        levels = np.empty(cell_count, dtype="int64")
+        ci = 0
+        for oi in range(cur.n):
+            o = &cur.my_octs[oi]
+            for i in range(8):
+                if mask[oi + cur.offset, i] == 0: continue
+                ci = level_counts[o.level]
+                levels[ci] = o.level
+                level_counts[o.level] += 1
+        return levels
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_levels(self, int max_level, int domain_id,
+                     np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef np.ndarray[np.int64_t, ndim=1] level_count
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        cdef int oi, i
+        level_count = np.zeros(max_level+1, 'int64')
+        for oi in range(cur.n):
+            o = &cur.my_octs[oi]
+            for i in range(8):
+                if mask[o.local_ind, i] == 0: continue
+                level_count[o.level] += 1
+        return level_count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fcoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                np.int64_t cell_count,
+                np.ndarray[np.int64_t, ndim=1] level_counts):
+        # Wham, bam, it's a scam
+        cdef np.int64_t i, j, k, oi, ci, n, ii
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        cdef np.float64_t pos[3]
+        cdef np.float64_t base_dx[3], dx[3]
+        n = mask.shape[0]
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        coords = np.empty((cell_count, 3), dtype="float64")
+        for i in range(3):
+            # This is the base_dx, but not the base distance from the center
+            # position.  Note that the positions will also all be offset by
+            # dx/2.0.  This is also for *oct grids*, not cells.
+            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+        for oi in range(cur.n):
+            o = &cur.my_octs[oi]
+            for i in range(3):
+                # This gives the *grid* width for this level
+                dx[i] = base_dx[i] / (1 << o.level)
+                # o.pos is the *grid* index, so pos[i] is the center of the
+                # first cell in the grid
+                pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
+                dx[i] = dx[i] / 2.0 # This is now the *offset* 
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        if mask[o.local_ind, ii] == 0: continue
+                        ci = level_counts[o.level]
+                        coords[ci, 0] = pos[0] + dx[0] * i
+                        coords[ci, 1] = pos[1] + dx[1] * j
+                        coords[ci, 2] = pos[2] + dx[2] * k
+                        level_counts[o.level] += 1
+        return coords
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_level(self, int domain, int level, dest_fields, source_fields,
+                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
+        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef OctAllocationContainer *dom = self.domains[domain - 1]
+        cdef Oct *o
+        cdef int n
+        cdef int i, j, k, ii
+        cdef int local_pos, local_filled
+        cdef np.float64_t val
+        for key in dest_fields:
+            local_filled = 0
+            dest = dest_fields[key]
+            source = source_fields[key]
+            for n in range(dom.n):
+                o = &dom.my_octs[n]
+                if o.level != level: continue
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            ii = ((k*2)+j)*2+i
+                            if mask[o.local_ind, ii] == 0: continue
+                            dest[local_filled + offset] = source[o.ind, ii]
+                            local_filled += 1
+        return local_filled
+
 cdef class RAMSESOctreeContainer(OctreeContainer):
 
     def allocate_domains(self, domain_counts):

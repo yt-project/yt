@@ -1,5 +1,5 @@
 """
-RAMSES-specific data structures
+ARTIO-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -38,7 +38,7 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from .definitions import ramses_header
+from .definitions import artio_header
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib import \
@@ -49,10 +49,10 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
-    RAMSESOctreeContainer
-from .fields import RAMSESFieldInfo, KnownRAMSESFields
+    ARTIOOctreeContainer
+from .fields import ARTIOFieldInfo, KnownARTIOFields
 
-class RAMSESDomainFile(object):
+class ARTIODomainFile(object):
     _last_mask = None
     _last_selector_id = None
     nvar = 6
@@ -149,7 +149,7 @@ class RAMSESDomainFile(object):
     def _read_amr_header(self):
         hvals = {}
         f = open(self.amr_fn, "rb")
-        for header in ramses_header(hvals):
+        for header in artio_header(hvals):
             hvals.update(fpu.read_attrs(f, header))
         # That's the header, now we skip a few.
         hvals['numbl'] = np.array(hvals['numbl']).reshape(
@@ -242,7 +242,7 @@ class RAMSESDomainFile(object):
         self.select(selector)
         return self.count(selector)
 
-class RAMSESDomainSubset(object):
+class ARTIODomainSubset(object):
     def __init__(self, domain, mask, cell_count):
         self.mask = mask
         self.domain = domain
@@ -312,9 +312,9 @@ class RAMSESDomainSubset(object):
         #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
         return tr
 
-class RAMSESGeometryHandler(OctreeGeometryHandler):
+class ARTIOGeometryHandler(OctreeGeometryHandler):
 
-    def __init__(self, pf, data_style='ramses'):
+    def __init__(self, pf, data_style='artio'):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -323,17 +323,17 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.max_level = pf.max_level
 
         self.float_type = np.float64
-        super(RAMSESGeometryHandler, self).__init__(pf, data_style)
+        super(ARTIOGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
-        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
+        self.domains = [ARTIODomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.num_grids = total_octs
         #this merely allocates space for the oct tree
         #and nothing else
-        self.oct_handler = RAMSESOctreeContainer(
+        self.oct_handler = ARTIOOctreeContainer(
             self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
@@ -359,14 +359,14 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(RAMSESGeometryHandler, self)._setup_classes(dd)
+        super(ARTIOGeometryHandler, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
             counts = self.oct_handler.count_cells(dobj.selector, mask)
-            subsets = [RAMSESDomainSubset(d, mask, c)
+            subsets = [ARTIODomainSubset(d, mask, c)
                        for d, c in zip(self.domains, counts) if c > 0]
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
@@ -385,12 +385,12 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
-class RAMSESStaticOutput(StaticOutput):
-    _hierarchy_class = RAMSESGeometryHandler
-    _fieldinfo_fallback = RAMSESFieldInfo
-    _fieldinfo_known = KnownRAMSESFields
+class ARTIOStaticOutput(StaticOutput):
+    _hierarchy_class = ARTIOGeometryHandler
+    _fieldinfo_fallback = ARTIOFieldInfo
+    _fieldinfo_known = KnownARTIOFields
     
-    def __init__(self, filename, data_style='ramses',
+    def __init__(self, filename, data_style='artio',
                  storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
         StaticOutput.__init__(self, filename, data_style)
@@ -431,7 +431,7 @@ class RAMSESStaticOutput(StaticOutput):
         # generalization.
         self.dimensionality = 3
         self.refine_by = 2
-        self.parameters["HydroMethod"] = 'ramses'
+        self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1. # default unit is 1...
 
         self.unique_identifier = \
@@ -449,7 +449,7 @@ class RAMSESStaticOutput(StaticOutput):
         f.readline()
         read_rhs(str)
         # This next line deserves some comment.  We specify a min_level that
-        # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
+        # corresponds to the minimum level in the ARTIO simulation.  ARTIO is
         # one-indexed, but it also does refer to the *oct* dimensions -- so
         # this means that a levelmin of 1 would have *1* oct in it.  So a
         # levelmin of 2 would have 8 octs at the root mesh level.
@@ -469,7 +469,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
-        mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
+        mylog.warning("No current mechanism of distinguishing cosmological simulations in ARTIO!")
         self.cosmological_simulation = 1
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
@@ -479,8 +479,8 @@ class RAMSESStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.basename(args[0]).startswith("info_"): return False
-        fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
+        if not os.path.basename(args[0]).startswith("inf0_"): return False
+        fn = args[0].replace("inf0_", "amr_").replace(".txt", ".out00001")
         print fn
         return os.path.exists(fn)
 

@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# Cython wrapping code for Oliver Hahn's RAMSES reader
+# Cython wrapping code for Oliver Hahn's ARTIO reader
 from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdlib cimport malloc, free, abs, calloc, labs
 
@@ -69,10 +69,10 @@ cdef extern from "string" namespace "std":
         char *c_str()
         string operator*()
 
-cdef extern from "RAMSES_typedefs.h":
+cdef extern from "ARTIO_typedefs.h":
     pass
 
-cdef extern from "RAMSES_info.hh" namespace "RAMSES":
+cdef extern from "ARTIO_info.hh" namespace "ARTIO":
     enum codeversion:
         version1
         version2
@@ -112,7 +112,7 @@ cdef extern from "RAMSES_info.hh" namespace "RAMSES":
     #void hilbert3d(vector[double] &x, vector[double] &y, vector[double] &z,
     #               vector[double] &order, unsigned bit_length)
 
-cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
+cdef extern from "ARTIO_amr_data.hh" namespace "ARTIO::AMR":
     cdef cppclass vec[real_t]:
         real_t x, y, z
         vec( real_t x_, real_t y_, real_t z_)
@@ -134,7 +134,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         bint is_refined(int ison)
 
-    cdef cppclass RAMSES_cell:
+    cdef cppclass ARTIO_cell:
         unsigned m_neighbour[6]
         unsigned m_father
         unsigned m_son[8]
@@ -143,7 +143,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         char m_pos
 
-        RAMSES_cell()
+        ARTIO_cell()
 
         bint is_refined(int ison)
 
@@ -180,9 +180,9 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         Cell_& operator[]( unsigned i)
         unsigned size()
 
-    cdef cppclass RAMSES_level:
+    cdef cppclass ARTIO_level:
         unsigned m_ilevel
-        vector[RAMSES_cell] m_level_cells
+        vector[ARTIO_cell] m_level_cells
         double m_xc[8]
         double m_yc[8]
         double m_zc[8]
@@ -191,13 +191,13 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         double m_dx
         unsigned m_nx
-        RAMSES_level (unsigned ilevel)
+        ARTIO_level (unsigned ilevel)
 
-        void register_cell( RAMSES_cell cell )
-        vector[RAMSES_cell].iterator begin()
-        vector[RAMSES_cell].iterator end()
+        void register_cell( ARTIO_cell cell )
+        vector[ARTIO_cell].iterator begin()
+        vector[ARTIO_cell].iterator end()
 
-        RAMSES_cell& operator[]( unsigned i)
+        ARTIO_cell& operator[]( unsigned i)
         unsigned size()
 
     # This class definition is out of date.  I have unrolled the template
@@ -239,9 +239,9 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         tree (snapshot &snap, int cpu, int maxlevel, int minlevel = 1)
 
-    cppclass tree_iterator "RAMSES::AMR::RAMSES_tree::iterator":
+    cppclass tree_iterator "ARTIO::AMR::ARTIO_tree::iterator":
         tree_iterator operator*()
-        RAMSES_cell operator*()
+        ARTIO_cell operator*()
         tree_iterator begin()
         tree_iterator end()
         tree_iterator to_parent()
@@ -253,7 +253,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         int get_absolute_position()
         int get_domain()
 
-    cdef cppclass RAMSES_tree:
+    cdef cppclass ARTIO_tree:
         # This is, strictly speaking, not a header.  But, I believe it is
         # going to work alright.
         cppclass header:
@@ -276,7 +276,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
             double t
             double mass_sph
 
-        vector[RAMSES_level] m_AMR_levels
+        vector[ARTIO_level] m_AMR_levels
         vector[unsigned] mheadl, m_numbl, m_taill
 
         int m_cpu
@@ -292,7 +292,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         # typedef proto_iterator<const tree*> const_iterator;
         # typedef proto_iterator<tree *> iterator;
 
-        RAMSES_tree(snapshot &snap, int cpu, int maxlevel, int minlevel)
+        ARTIO_tree(snapshot &snap, int cpu, int maxlevel, int minlevel)
         void read()
 
         tree_iterator begin(int ilevel)
@@ -306,7 +306,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         vec[float] cell_pos_float "cell_pos<float>" (tree_iterator it, unsigned ind) 
         vec[float] grid_pos_float "grid_pos<float>" (tree_iterator it)
 
-cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
+cdef extern from "ARTIO_amr_data.hh" namespace "ARTIO::HYDRO":
     enum hydro_var:
         density
         velocity_x
@@ -315,7 +315,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
         pressure
         metallicit
 
-    char ramses_hydro_variables[][64]
+    char artio_hydro_variables[][64]
 
     # There are a number of classes here that we could wrap and utilize.
     # However, I will only wrap the methods I know we need.
@@ -348,7 +348,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
         #_OutputIterator get_var_names[_OutputIterator](_OutputIterator names)
         void read(string varname)
 
-    cdef cppclass RAMSES_hydro_data:
+    cdef cppclass ARTIO_hydro_data:
         cppclass header:
             unsigned ncpu
             unsigned nvar
@@ -366,18 +366,18 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
         vector[string] m_varnames
         map[string, unsigned] m_var_name_map
 
-        RAMSES_hydro_data(RAMSES_tree &AMRtree)
+        ARTIO_hydro_data(ARTIO_tree &AMRtree)
         #_OutputIterator get_var_names[_OutputIterator](_OutputIterator names)
         void read(string varname)
 
         vector[vector[double]] m_var_array
 
-cdef class RAMSES_tree_proxy:
+cdef class ARTIO_tree_proxy:
     cdef string *snapshot_name
     cdef snapshot *rsnap
 
-    cdef RAMSES_tree** trees
-    cdef RAMSES_hydro_data*** hydro_datas
+    cdef ARTIO_tree** trees
+    cdef ARTIO_hydro_data*** hydro_datas
 
     cdef int **loaded
 
@@ -390,30 +390,30 @@ cdef class RAMSES_tree_proxy:
     
     def __cinit__(self, char *fn):
         cdef int idomain, ifield, ii
-        cdef RAMSES_tree *local_tree
-        cdef RAMSES_hydro_data *local_hydro_data
+        cdef ARTIO_tree *local_tree
+        cdef ARTIO_hydro_data *local_hydro_data
         self.snapshot_name = new string(fn)
         self.rsnap = new snapshot(deref(self.snapshot_name), version3)
         # We now have to get our field names to fill our array
-        self.trees = <RAMSES_tree**>\
-            malloc(sizeof(RAMSES_tree*) * self.rsnap.m_header.ncpu)
+        self.trees = <ARTIO_tree**>\
+            malloc(sizeof(ARTIO_tree*) * self.rsnap.m_header.ncpu)
         for ii in range(self.ndomains): self.trees[ii] = NULL
-        self.hydro_datas = <RAMSES_hydro_data ***>\
-                       malloc(sizeof(RAMSES_hydro_data**) * self.rsnap.m_header.ncpu)
+        self.hydro_datas = <ARTIO_hydro_data ***>\
+                       malloc(sizeof(ARTIO_hydro_data**) * self.rsnap.m_header.ncpu)
         self.ndomains = self.rsnap.m_header.ncpu
         
         # Note we don't do ncpu + 1
         for idomain in range(self.rsnap.m_header.ncpu):
             # we don't delete local_tree
-            local_tree = new RAMSES_tree(deref(self.rsnap), idomain + 1,
+            local_tree = new ARTIO_tree(deref(self.rsnap), idomain + 1,
                                          self.rsnap.m_header.levelmax, 0)
             local_tree.read()
-            local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-            self.hydro_datas[idomain] = <RAMSES_hydro_data **>\
-                malloc(sizeof(RAMSES_hydro_data*) * local_hydro_data.m_nvars)
+            local_hydro_data = new ARTIO_hydro_data(deref(local_tree))
+            self.hydro_datas[idomain] = <ARTIO_hydro_data **>\
+                malloc(sizeof(ARTIO_hydro_data*) * local_hydro_data.m_nvars)
             for ii in range(local_hydro_data.m_nvars):
                 self.hydro_datas[idomain][ii] = \
-                    new RAMSES_hydro_data(deref(local_tree))
+                    new ARTIO_hydro_data(deref(local_tree))
             self.trees[idomain] = local_tree
             # We do not delete the final snapshot, which we'll use later
             #if idomain + 1 < self.rsnap.m_header.ncpu:
@@ -447,8 +447,8 @@ cdef class RAMSES_tree_proxy:
         cdef int idomain, ifield
         # To ensure that 'delete' is used, not 'free',
         # we allocate temporary variables.
-        cdef RAMSES_tree *temp_tree
-        cdef RAMSES_hydro_data *temp_hdata
+        cdef ARTIO_tree *temp_tree
+        cdef ARTIO_hydro_data *temp_hdata
         for idomain in range(self.ndomains):
             for ifield in range(self.nfields):
                 temp_hdata = self.hydro_datas[idomain][ifield]
@@ -469,9 +469,9 @@ cdef class RAMSES_tree_proxy:
         # We need to do simulation domains here
 
         cdef unsigned idomain, ilevel
-        cdef RAMSES_tree *local_tree
-        cdef RAMSES_hydro_data *local_hydro_data
-        cdef RAMSES_level *local_level
+        cdef ARTIO_tree *local_tree
+        cdef ARTIO_hydro_data *local_hydro_data
+        cdef ARTIO_level *local_level
         cdef tree_iterator grid_it, grid_end
 
         # All the loop-local pointers must be declared up here
@@ -512,12 +512,12 @@ cdef class RAMSES_tree_proxy:
         # We delete and re-create
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
-        cdef RAMSES_hydro_data *temp_hdata
+        cdef ARTIO_hydro_data *temp_hdata
         if self.loaded[domain_index][varindex] == 1:
             temp_hdata = self.hydro_datas[domain_index][varindex]
             del temp_hdata
             self.hydro_datas[domain_index][varindex] = \
-                new RAMSES_hydro_data(deref(self.trees[domain_index]))
+                new ARTIO_hydro_data(deref(self.trees[domain_index]))
             self.loaded[domain_index][varindex] = 0
         del field_name
 
@@ -570,8 +570,8 @@ cdef class RAMSES_tree_proxy:
         cdef unsigned idomain, ilevel
 
         # All the loop-local pointers must be declared up here
-        cdef RAMSES_tree *local_tree
-        cdef RAMSES_hydro_data *local_hydro_data
+        cdef ARTIO_tree *local_tree
+        cdef ARTIO_hydro_data *local_hydro_data
         cdef unsigned father
 
         cdef tree_iterator grid_it, grid_end, father_it
@@ -641,8 +641,8 @@ cdef class RAMSES_tree_proxy:
         cdef tree_iterator grid_it, grid_end
         cdef double* data = <double*> tr.data
 
-        cdef RAMSES_tree *local_tree = self.trees[domain - 1]
-        cdef RAMSES_hydro_data *local_hydro_data = self.hydro_datas[domain - 1][varindex]
+        cdef ARTIO_tree *local_tree = self.trees[domain - 1]
+        cdef ARTIO_hydro_data *local_hydro_data = self.hydro_datas[domain - 1][varindex]
 
         #inline ValueType_& cell_value( const typename TreeType_::iterator& it,
         #                               int ind )
@@ -666,8 +666,8 @@ cdef class RAMSES_tree_proxy:
                   np.ndarray[np.int32_t, ndim=3] filled,
                   int level, int ref_factor,
                   np.ndarray[np.int64_t, ndim=2] component_grid_info):
-        cdef RAMSES_tree *local_tree = NULL
-        cdef RAMSES_hydro_data *local_hydro_data = NULL
+        cdef ARTIO_tree *local_tree = NULL
+        cdef ARTIO_hydro_data *local_hydro_data = NULL
 
         cdef int gi, i, j, k, domain, offset
         cdef int ir, jr, kr
@@ -1153,3 +1153,110 @@ def recursive_patch_splitting(ProtoSubgrid psg,
     else:
         rv_r = [R]
     return rv_r + rv_l
+
+
+##############################snl snl ARTIO reader
+from cython.operator cimport dereference as deref, preincrement as inc
+from libc.stdlib cimport malloc, free, abs, calloc, labs
+
+import numpy as np
+#cimport numpy as np
+cimport cython
+
+cdef extern from "math.h":
+    double ceil(double x)
+
+#struct artio_context_struct {
+#        MPI_Comm comm;
+#};
+cdef struct artio_context_struct: #in artio_mpi.h MPI_Comm
+    int comm
+
+#typedef struct artio_context_struct * artio_context;
+ctypedef artio_context_struct * artio_context
+
+cdef extern from "artio_headers/artio.c":
+
+     ctypedef int int64_t 
+
+     ctypedef struct param: 
+         int key_length
+         char key[64]
+         int val_length
+         int type 
+         char *value
+         
+     ctypedef struct list: 
+         param * head
+         param * tail
+         param * cursor
+         int iterate_flag 
+         int endian_swap 
+
+     #    artio_internal.h
+     ctypedef struct artio_particle_file:
+        #	artio_fh *ffh
+        int num_particle_files
+        int64_t *file_sfc_index
+        int64_t cache_sfc_begin
+        int64_t cache_sfc_end
+        int64_t *sfc_offset_table
+        
+        #/* maintained for consistency and user-error detection */
+        int num_species
+        int cur_file
+        int cur_species
+        int cur_particle
+        int64_t cur_sfc
+        int *num_primary_variables
+        int *num_secondary_variables
+        int *num_particles_per_species
+        
+     ctypedef struct artio_grid_file:
+        #        artio_fh *ffh
+        int num_grid_variables
+        int num_grid_files
+        int64_t *file_sfc_index
+        int64_t cache_sfc_begin
+        int64_t cache_sfc_end
+        int64_t *sfc_offset_table
+        
+        int file_max_level
+        #/* maintained for consistency and user-error detection */
+        int cur_file
+        int cur_num_levels
+        int cur_level
+        int cur_octs
+        int64_t cur_sfc
+        int *octs_per_level
+        
+        
+     ctypedef struct artio_file:
+        char file_prefix[256]
+        int endian_swap
+        int open_type
+        int open_mode
+        int rank
+        int num_procs
+        artio_context context #artio_mpi.h MPI_Comm
+        
+        int64_t *proc_sfc_index
+        int64_t proc_sfc_begin
+        int64_t proc_sfc_end
+        int64_t num_root_cells
+        
+        list param_list
+        artio_grid_file grid
+        artio_particle_file particle
+        
+        
+     artio_file artio_fileset_open(char * file_prefix, int type, artio_context context) 
+
+     void wrap_artio_fileset_open(char *file_prefix, int type)
+   
+
+#python only passes numbers and strings... no pointers or structures
+cpdef read_header(char * file_prefix, int type): 
+     wrap_artio_fileset_open(file_prefix, type)
+        
+

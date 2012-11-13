@@ -1,5 +1,5 @@
 """
-RAMSES-specific fields
+ARTIO-specific fields
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -35,13 +35,13 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
-add_field = RAMSESFieldInfo.add_field
+ARTIOFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
+add_field = ARTIOFieldInfo.add_field
 
-KnownRAMSESFields = FieldInfoContainer()
-add_ramses_field = KnownRAMSESFields.add_field
+KnownARTIOFields = FieldInfoContainer()
+add_artio_field = KnownARTIOFields.add_field
 
-known_ramses_fields = [
+known_artio_fields = [
     "Density",
     "x-velocity",
     "y-velocity",
@@ -50,9 +50,9 @@ known_ramses_fields = [
     "Metallicity",
 ]
 
-for f in known_ramses_fields:
-    if f not in KnownRAMSESFields:
-        add_ramses_field(f, function=NullFunc, take_log=True,
+for f in known_artio_fields:
+    if f not in KnownARTIOFields:
+        add_artio_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)])
 
 def dx(field, data):
@@ -69,19 +69,19 @@ add_field("dz", function=dz)
 
 def _convertDensity(data):
     return data.convert("Density")
-KnownRAMSESFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
-KnownRAMSESFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
-KnownRAMSESFields["Density"]._convert_function=_convertDensity
+KnownARTIOFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
+KnownARTIOFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+KnownARTIOFields["Density"]._convert_function=_convertDensity
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
-    f = KnownRAMSESFields["%s-velocity" % ax]
+    f = KnownARTIOFields["%s-velocity" % ax]
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
 
-known_ramses_particle_fields = [
+known_artio_particle_fields = [
     "particle_position_x",
     "particle_position_y",
     "particle_position_z",
@@ -93,8 +93,8 @@ known_ramses_particle_fields = [
     "particle_refinement_level",
 ]
 
-for f in known_ramses_particle_fields:
-    if f not in KnownRAMSESFields:
-        add_ramses_field(f, function=NullFunc, take_log=True,
+for f in known_artio_particle_fields:
+    if f not in KnownARTIOFields:
+        add_artio_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)],
                   particle_type = True)

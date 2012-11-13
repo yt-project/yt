@@ -57,6 +57,9 @@ cdef class OctreeContainer:
     cdef void neighbors(self, Oct *, Oct **)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
 
+cdef class ARTIOOctreeContainer(OctreeContainer):
+    cdef OctAllocationContainer **domains
+
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
 
