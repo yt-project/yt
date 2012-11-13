@@ -310,7 +310,7 @@ class FieldValuesTest(AnswerTestingTest):
                          err_msg=err_msg, verbose=True)
         else:
             assert_rel_equal(new_result, old_result, self.decimals,
-                             err_msg=err_msg)
+                             err_msg=err_msg, verbose=True)
 
 class AllFieldValuesTest(AnswerTestingTest):
     _type_name = "AllFieldValues"
@@ -334,7 +334,7 @@ class AllFieldValuesTest(AnswerTestingTest):
                          err_msg=err_msg, verbose=True)
         else:
             assert_rel_equal(new_result, old_result, self.decimals,
-                             err_msg=err_msg)
+                             err_msg=err_msg, verbose=True)
             
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
