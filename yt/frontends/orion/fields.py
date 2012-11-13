@@ -126,19 +126,19 @@ def _ThermalEnergy(field, data):
         data["x-velocity"]**2.0
         + data["y-velocity"]**2.0
         + data["z-velocity"]**2.0 )
-add_orion_field("ThermalEnergy", function=_ThermalEnergy,
-                units=r"\rm{ergs}/\rm{cm^3}")
+add_field("ThermalEnergy", function=_ThermalEnergy,
+          units=r"\rm{ergs}/\rm{cm^3}")
 
 def _Pressure(field,data):
     """M{(Gamma-1.0)*e, where e is thermal energy density
        NB: this will need to be modified for radiation
     """
     return (data.pf["Gamma"] - 1.0)*data["ThermalEnergy"]
-add_orion_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
+add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Temperature(field,data):
     return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
-add_orion_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
+add_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
 
 # particle fields
 
