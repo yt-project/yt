@@ -27,10 +27,20 @@ License:
 import base64
 import matplotlib.figure
 from matplotlib.mathtext import MathTextParser
+from distutils import version
+import matplotlib
+
+# Some magic for dealing with pyparsing being included or not
+# included in matplotlib (not in gentoo, yes in everything else)
+# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    from matplotlib.pyparsing import ParseFatalException
+    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
+        from matplotlib.pyparsing import ParseFatalException
+    else:
+        from matplotlib.pyparsing_py2 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
+
 import cStringIO
 import types
 import __builtin__
@@ -60,6 +70,10 @@ from yt.utilities.definitions import \
     axis_labels
 from yt.utilities.math_utils import \
     ortho_find
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    GroupOwnership
+from yt.data_objects.time_series import \
+    TimeSeriesData
 
 def invalidate_data(f):
     @wraps(f)
@@ -209,7 +223,7 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
-                 periodic=True, origin='center-window', oblique=False):
+                 periodic=True, origin='center-window', oblique=False, fontsize=15):
         r"""
         PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
         
@@ -239,6 +253,10 @@ class PlotWindow(object):
             rendering is used during data deposition.
 
         """
+        if not hasattr(self, "pf"):
+            self.pf = data_source.pf
+            ts = self._initialize_dataset(self.pf) 
+            self.ts = ts
         self._initfinished = False
         self.center = None
         self.plots = {}
@@ -249,10 +267,39 @@ class PlotWindow(object):
         self.antialias = True
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
+        self.fontsize = fontsize
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
             self.set_center(center)
         self._initfinished = True
+
+    def _initialize_dataset(self, ts):
+        if not isinstance(ts, TimeSeriesData):
+            if not iterable(ts): ts = [ts]
+            ts = TimeSeriesData(ts)
+        return ts
+
+    def __iter__(self):
+        for pf in self.ts:
+            mylog.warning("Switching to %s", pf)
+            self._switch_pf(pf)
+            yield self
+
+    def piter(self, *args, **kwargs):
+        for pf in self.ts.piter(*args, **kwargs):
+            self._switch_pf(pf)
+            yield self
+
+    def _switch_pf(self, new_pf):
+        ds = self.data_source
+        name = ds._type_name
+        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
+        new_ds = getattr(new_pf.h, name)(**kwargs)
+        self.pf = new_pf
+        self.data_source = new_ds
+        self._data_valid = self._plot_valid = False
+        self._recreate_frb()
+        self._setup_plots()
 
     def __getitem__(self, item):
         return self.plots[item]
@@ -273,7 +320,6 @@ class PlotWindow(object):
             self._frb._get_data_source_fields()
         else:
             for key in old_fields: self._frb[key]
-        self.pf = self._frb.pf
         self._data_valid = True
         
     def _setup_plots(self):
@@ -767,8 +813,10 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{Image\/x'+axes_unit_label+'}$',
                           r'$\rm{Image\/y'+axes_unit_label+'}$']
 
-            self.plots[f].axes.set_xlabel(labels[0])
-            self.plots[f].axes.set_ylabel(labels[1])
+            self.plots[f].axes.set_xlabel(labels[0],fontsize=self.fontsize)
+            self.plots[f].axes.set_ylabel(labels[1],fontsize=self.fontsize)
+
+            self.plots[f].axes.tick_params(labelsize=self.fontsize)
 
             field_name = self.data_source.pf.field_info[f].display_name
 
@@ -783,17 +831,18 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseFieldDisplayName(f,field_name,str(err))
 
-            try:
-                parser.parse(r'$'+md['units']+r'$')
-            except ParseFatalException, err:
-                raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
-
             if md['units'] == None or md['units'] == '':
                 label = field_name
             else:
+                try:
+                    parser.parse(r'$'+md['units']+r'$')
+                except ParseFatalException, err:
+                    raise YTCannotParseUnitDisplayName(f, md['units'],str(err))
                 label = field_name+r'$\/\/('+md['units']+r')$'
 
-            self.plots[f].cb.set_label(label)
+            self.plots[f].cb.set_label(label,fontsize=self.fontsize)
+
+            self.plots[f].cb.ax.tick_params(labelsize=self.fontsize)
 
             self.run_callbacks(f)
 
@@ -920,7 +969,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window'):
+                 origin='center-window', fontsize=15):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -976,6 +1025,8 @@ class SlicePlot(PWViewerMPL):
              to the bottom-left hand corner of the simulation domain, 'center-domain',
              corresponding the center of the simulation domain, or 'center-window' for 
              the center of the plot window.
+        fontsize : integer
+             The size of the fonts for the axis, colorbar, and tick labels.
              
         Examples
         --------
@@ -987,8 +1038,12 @@ class SlicePlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        # tHis will handle time series data and controllers
+        ts = self._initialize_dataset(pf) 
+        self.ts = ts
+        pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis, center, width, pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
         slc = pf.h.slice(axis, center[axis], fields=fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
         self.set_axes_unit(axes_unit)
@@ -998,7 +1053,7 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window'):
+                 weight_field=None, max_level=None, origin='center-window', fontsize=15):
         r"""Creates a projection plot from a parameter file
         
         Given a pf object, an axis to project along, and a field name
@@ -1058,6 +1113,8 @@ class ProjectionPlot(PWViewerMPL):
             The name of the weighting field.  Set to None for no weight.
         max_level: int
             The maximum level to project to.
+        fontsize : integer
+             The size of the fonts for the axis, colorbar, and tick labels.
         
         Examples
         --------
@@ -1069,8 +1126,11 @@ class ProjectionPlot(PWViewerMPL):
         >>> p.save('sliceplot')
         
         """
+        ts = self._initialize_dataset(pf) 
+        self.ts = ts
+        pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds,center) = GetBoundsAndCenter(axis,center,width,pf)
+        (bounds, center) = GetBoundsAndCenter(axis, center, width, pf)
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
         self.set_axes_unit(axes_unit)
@@ -1080,7 +1140,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     _frb_generator = ObliqueFixedResolutionBuffer
 
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
-                 axes_unit=None, north_vector=None):
+                 axes_unit=None, north_vector=None, fontsize=15):
         r"""Creates an off axis slice plot from a parameter file
 
         Given a pf object, a normal vector defining a slicing plane, and
@@ -1117,7 +1177,8 @@ class OffAxisSlicePlot(PWViewerMPL):
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
             set, an arbitrary grid-aligned north-vector is chosen.
-
+        fontsize : integer
+             The size of the fonts for the axis, colorbar, and tick labels.
         """
         (bounds,center_rot) = GetOffAxisBoundsAndCenter(normal,center,width,pf)
         cutting = pf.h.cutting(normal,center,fields=fields,north_vector=north_vector)
@@ -1156,7 +1217,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
                  depth=(1,'unitary'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
-                 le=None, re=None, interpolated=False):
+                 le=None, re=None, interpolated=False, fontsize=15):
         r"""Creates an off axis projection plot from a parameter file
 
         Given a pf object, a normal vector to project along, and
@@ -1492,4 +1553,3 @@ class WindowPlotMPL(PlotMPL):
                                       norm = norm, vmin = self.zmin, 
                                       vmax = self.zmax, cmap = cmap)
         self.image.axes.ticklabel_format(scilimits=(-4,3))
-

@@ -84,6 +84,7 @@ from field_info_container import \
     ValidateSpatial, \
     ValidateGridType, \
     add_field, \
+    add_grad, \
     derived_field
 
 from particle_trajectories import \

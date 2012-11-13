@@ -25,6 +25,7 @@ License:
 
 # We don't need to import 'exceptions'
 #import exceptions
+import os.path
 
 class YTException(Exception):
     def __init__(self, pf = None):
@@ -172,3 +173,12 @@ class YTEllipsoidOrdering(YTException):
 
     def __str__(self):
         return "Must have A>=B>=C"
+
+class EnzoTestOutputFileNonExistent(YTException):
+    def __init__(self, filename):
+        self.filename = filename
+        self.testname = os.path.basename(os.path.dirname(filename))
+
+    def __str__(self):
+        return "Enzo test output file (OutputLog) not generated for: " + \
+            "'%s'" % (self.testname) + ".\nTest did not complete."
