@@ -62,9 +62,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 TINY = 1.e-40
 
-# Ellipsoid funtions.
-# Rotation Matrixes should already be imported at top
-
 class Halo(object):
     """
     A data source that returns particle information about the members of a
@@ -77,6 +74,11 @@ class Halo(object):
     indices = None
     dont_wrap = ["get_sphere", "write_particle_list"]
     extra_wrap = ["__getitem__"]
+
+    # Used for Loaded and RockstarHalos
+    _saved_fields = {}
+    _ds_sort = None
+    _particle_mask = None
 
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
@@ -109,10 +111,26 @@ class Halo(object):
             self.supp = {}
         else:
             self.supp = supp
-        # Used for Loaded and RockstarHalos
-        self.saved_fields = {}
-        self.particle_mask = None
-        self.ds_sort = None
+
+    @property
+    def particle_mask(self):
+        # Dynamically create the masking array for particles, and get
+        # the data using standard yt methods.
+        if self._particle_mask is not None:
+            return self._particle_mask
+        # This is from disk.
+        pid = self.__getitem__('particle_index')
+        # This is from the sphere.
+        if self._name is "RockstarHalo":
+            ds = self.pf.h.sphere(self.CoM, self._radjust * self.max_radius)
+        elif self._name is "LoadedHalo":
+            ds = self.pf.h.sphere(self.CoM, self._radjust * self.max_radius)
+        sp_pid = ds['particle_index']
+        self._ds_sort = sp_pid.argsort()
+        sp_pid = sp_pid[self._ds_sort]
+        # This matches them up.
+        self._particle_mask = np.in1d(sp_pid, pid)
+        return self._particle_mask
 
     def center_of_mass(self):
         r"""Calculate and return the center of mass.
@@ -548,6 +566,8 @@ class Halo(object):
 
 class RockstarHalo(Halo):
     _name = "RockstarHalo"
+    # See particle_mask
+    _radjust = 4.
     
     def maximum_density(self):
         r"""Not implemented."""
@@ -576,54 +596,37 @@ class RockstarHalo(Halo):
         # 2. From the halo binary files off disk.
         # 3. Use the unique particle indexes of the halo to select a missing
         # field from an AMR Sphere.
-        try:
+        if key in self._saved_fields:
             # We've already got it.
-            return self.saved_fields[key]
-        except KeyError:
-            # Gotta go get it from the Rockstar binary file.
-            if key == 'particle_index':
-                IDs = self._get_particle_data(self.supp['id'],
-                    self.halo_list.halo_to_fname, self.size, key)
-                IDs = IDs[IDs.argsort()]
-                self.saved_fields[key] = IDs
-                return self.saved_fields[key]
-            else:
-                # Dynamically create the masking array for particles, and get
-                # the data using standard yt methods. The > 1 is there to
-                # account for the fact that 'r' for Rockstar halos is the
-                # virial radius, not maximum radius. 4 might be a bit
-                # too generous, but it's safer this way.
-                ds = self.pf.h.sphere(self.CoM, 4 * self.max_radius)
-                if self.particle_mask is None:
-                    # This is from disk.
-                    pid = self.__getitem__('particle_index')
-                    # This is from the sphere.
-                    sp_pid = ds['particle_index']
-                    self.ds_sort = sp_pid.argsort()
-                    sp_pid = sp_pid[self.ds_sort]
-                    # This matches them up.
-                    self.particle_mask = np.in1d(sp_pid, pid)
-                # We won't store this field below in saved_fields because
-                # that would mean keeping two copies of it, one in the yt
-                # machinery and one here.
-                return ds[key][self.ds_sort][self.particle_mask]
+            return self._saved_fields[key]
+        # Gotta go get it from the Rockstar binary file.
+        if key == 'particle_index':
+            IDs = self._get_particle_data(self.supp['id'],
+                self.halo_list.halo_to_fname, self.size, key)
+            IDs = IDs[IDs.argsort()]
+            self._saved_fields[key] = IDs
+            return self._saved_fields[key]
+        # We won't store this field below in saved_fields because
+        # that would mean keeping two copies of it, one in the yt
+        # machinery and one here.
+        ds = self.pf.h.sphere(self.CoM, 4 * self.max_radius)
+        return np.take(ds[key][self._ds_sort], self.particle_mask)
 
     def _get_particle_data(self, halo, fnames, size, field):
         # Given a list of file names, a halo, its size, and the desired field,
         # this returns the particle indices for that halo.
         file = fnames[halo]
-        mylog.info("Getting %d particles from Rockstar binary file %s." % (self.supp['num_p'], file))
+        mylog.info("Getting %d particles from Rockstar binary file %s.", self.supp['num_p'], file)
         fp = open(file, 'rb')
         # We need to skip past the header and all the halos.
-        fp.seek(self.halo_list.header_dt.itemsize + \
+        fp.seek(self.halo_list._header_dt.itemsize + \
             self.halo_list.fname_halos[file] * \
-            self.halo_list.halo_dt.itemsize, os.SEEK_CUR)
+            self.halo_list._halo_dt.itemsize, os.SEEK_CUR)
         # Now we skip ahead to where this halos particles begin.
         fp.seek(self.supp['p_start'] * 8, os.SEEK_CUR)
         # And finally, read in the ids.
         IDs = np.fromfile(fp, dtype=np.int64, count=self.supp['num_p'])
         fp.close()
-        print IDs.shape
         return IDs
 
     def get_ellipsoid_parameters(self):
@@ -803,6 +806,10 @@ class FOFHalo(Halo):
 
 
 class LoadedHalo(Halo):
+    _name = "LoadedHalo"
+    # See particle_mask
+    _radjust = 1.05
+
     def __init__(self, pf, id, size=None, CoM=None,
 
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
@@ -843,36 +850,22 @@ class LoadedHalo(Halo):
         # 2. From the halo h5 files off disk.
         # 3. Use the unique particle indexes of the halo to select a missing
         # field from an AMR Sphere.
-        try:
+        if key in self._saved_fields:
             # We've already got it.
-            return self.saved_fields[key]
-        except KeyError:
-            # Gotta go get it from the halo h5 files.
-            field_data = self._get_particle_data(self.id, self.fnames,
-                self.size, key)
-            if field_data is not None:
-                if key == 'particle_index':
-                    field_data = field_data[field_data.argsort()]
-                self.saved_fields[key] = field_data
-                return self.saved_fields[key]
-            else:
-                # Dynamically create the masking array for particles, and get
-                # the data using standard yt methods. The 1.05 is there to
-                # account for possible silliness having to do with whether
-                # the maximum density or center of mass was used to calculate
-                # the maximum radius.
-                ds = self.pf.h.sphere(self.CoM, 1.05 * self.max_radius)
-                if self.particle_mask is None:
-                    pid = self.__getitem__('particle_index')
-                    sp_pid = ds['particle_index']
-                    self.ds_sort = sp_pid.argsort()
-                    sp_pid = sp_pid[self.ds_sort]
-                    # This matches them up.
-                    self.particle_mask = np.in1d(sp_pid, pid)
-                # We won't store this field below in saved_fields because
-                # that would mean keeping two copies of it, one in the yt
-                # machinery and one here.
-                return ds[key][self.ds_sort][self.particle_mask]
+            return self._saved_fields[key]
+        # Gotta go get it from the halo h5 files.
+        field_data = self._get_particle_data(self.id, self.fnames,
+            self.size, key)
+        if field_data is not None:
+            if key == 'particle_index':
+                field_data = field_data[field_data.argsort()]
+            self._saved_fields[key] = field_data
+            return self._saved_fields[key]
+        # We won't store this field below in saved_fields because
+        # that would mean keeping two copies of it, one in the yt
+        # machinery and one here.
+        ds = self.pf.h.sphere(self.CoM, 1.05 * self.max_radius)
+        return np.take(ds[key][self._ds_sort], self.particle_mask)
 
     def _get_particle_data(self, halo, fnames, size, field):
         # Given a list of file names, a halo, its size, and the desired field,
@@ -1317,11 +1310,35 @@ class HaloList(object):
 class RockstarHaloList(HaloList):
     _name = "Rockstar"
     _halo_class = RockstarHalo
+    # see io_internal.h in Rockstar.
+    BINARY_HEADER_SIZE=256
+    _header_dt = np.dtype([('magic', np.uint64), ('snap', np.int64),
+        ('chunk', np.int64), ('scale', np.float32), ('Om', np.float32),
+        ('Ol', np.float32), ('h0', np.float32),
+        ('bounds', (np.float32, 6)), ('num_halos', np.int64),
+        ('num_particles', np.int64), ('box_size', np.float32),
+        ('particle_mass', np.float32), ('particle_type', np.int64),
+        ('unused', (np.byte, BINARY_HEADER_SIZE - 4*12 - 8*6))])
+    # see halo.h.
+    _halo_dt = np.dtype([('id', np.int64), ('pos', (np.float32, 6)),
+        ('corevel', (np.float32, 3)), ('bulkvel', (np.float32, 3)),
+        ('m', np.float32), ('r', np.float32), ('child_r', np.float32),
+        ('mgrav', np.float32), ('vmax', np.float32),
+        ('rvmax', np.float32), ('rs', np.float32),
+        ('vrms', np.float32), ('J', (np.float32, 3)),
+        ('energy', np.float32), ('spin', np.float32),
+        ('padding1', np.float32), ('num_p', np.int64),
+        ('num_child_particles', np.int64), ('p_start', np.int64),
+        ('desc', np.int64), ('flags', np.int64), ('n_core', np.int64),
+        ('min_pos_err', np.float32), ('min_vel_err', np.float32),
+        ('min_bulkvel_err', np.float32), ('padding2', np.float32),])
+    # Above, padding1&2 are due to c byte ordering which pads between
+    # 4 and 8 byte values in the struct as to not overlap memory registers.
+    _tocleanup = ['padding1', 'padding2']
 
     def __init__(self, pf, out_list):
         ParallelAnalysisInterface.__init__(self)
         mylog.info("Initializing Rockstar List")
-        self._setup()
         self._data_source = None
         self._groups = []
         self._max_dens = -1
@@ -1331,34 +1348,6 @@ class RockstarHaloList(HaloList):
         mylog.info("Parsing Rockstar halo list")
         self._parse_output()
         mylog.info("Finished %s"%out_list)
-
-    def _setup(self):
-        """ A few things we'll need later."""
-        # see io_internal.h in Rockstar.
-        BINARY_HEADER_SIZE=256
-        self.header_dt = np.dtype([('magic', np.uint64), ('snap', np.int64),
-            ('chunk', np.int64), ('scale', np.float32), ('Om', np.float32),
-            ('Ol', np.float32), ('h0', np.float32),
-            ('bounds', (np.float32, 6)), ('num_halos', np.int64),
-            ('num_particles', np.int64), ('box_size', np.float32),
-            ('particle_mass', np.float32), ('particle_type', np.int64),
-            ('unused', (np.byte, BINARY_HEADER_SIZE - 4*12 - 8*6))])
-        # see halo.h.
-        self.halo_dt = np.dtype([('id', np.int64), ('pos', (np.float32, 6)),
-            ('corevel', (np.float32, 3)), ('bulkvel', (np.float32, 3)),
-            ('m', np.float32), ('r', np.float32), ('child_r', np.float32),
-            ('mgrav', np.float32), ('vmax', np.float32),
-            ('rvmax', np.float32), ('rs', np.float32),
-            ('vrms', np.float32), ('J', (np.float32, 3)),
-            ('energy', np.float32), ('spin', np.float32),
-            ('padding1', np.float32), ('num_p', np.int64),
-            ('num_child_particles', np.int64), ('p_start', np.int64),
-            ('desc', np.int64), ('flags', np.int64), ('n_core', np.int64),
-            ('min_pos_err', np.float32), ('min_vel_err', np.float32),
-            ('min_bulkvel_err', np.float32), ('padding2', np.float32),])
-        # Above, padding1&2 are due to c byte ordering which pads between
-        # 4 and 8 byte values in the struct as to not overlap memory registers.
-        self.tocleanup = ['padding1', 'padding2']
 
     def _run_finder(self):
         pass
@@ -1380,9 +1369,9 @@ class RockstarHaloList(HaloList):
         for file in files:
             fp = open(file, 'rb')
             # read the header
-            header = np.fromfile(fp, dtype=self.header_dt, count=1)
+            header = np.fromfile(fp, dtype=self._header_dt, count=1)
             # read the halo information
-            new_halos = np.fromfile(fp, dtype=self. halo_dt,
+            new_halos = np.fromfile(fp, dtype=self._halo_dt,
                 count=header['num_halos'])
             # Record which binary file holds these halos.
             for halo in new_halos['id']:
@@ -1424,14 +1413,14 @@ class RockstarHaloList(HaloList):
                     rs=1.0/pf['kpchcm'], # to unitary
                     )
         #convert units
-        for name in self.halo_dt.names:
+        for name in self._halo_dt.names:
             halos[name]=halos[name]*conv.get(name,1)
         # Store the halos in the halo list.
         for i, row in enumerate(halos):
-            supp = {name:row[name] for name in self.halo_dt.names}
+            supp = {name:row[name] for name in self._halo_dt.names}
             # Delete the padding columns. 'supp' below will contain
             # repeated information, but that's OK.
-            for item in self.tocleanup: del supp[item]
+            for item in self._tocleanup: del supp[item]
             halo = RockstarHalo(self, i, size=row['num_p'],
                 CoM=row['pos'][0:3], group_total_mass=row['m'],
                 max_radius=row['r'], bulk_vel=row['bulkvel'],

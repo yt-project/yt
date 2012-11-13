@@ -25,6 +25,7 @@ License:
 
 import numpy as np
 import os, sys
+from yt.config import ytcfg
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc
@@ -245,30 +246,48 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
     block = int(str(filename).rsplit(".")[-1])
-    
-
-    # Now we want to grab data from only a subset of the grids for each reader.
     n = rh.block_ratio
-    dd = pf.h.all_data()
+
+    all_grids = pf.h.grids
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
-    grids = dd._grids[block::NUM_BLOCKS]
+    # Now we want to grab data from only a subset of the grids for each reader.
+    # We will want to select on filename or proc_num depending on
+    # which is available.
+    if NUM_BLOCKS == 1:
+        grids = all_grids #dd._grids
+    else:
+        if hasattr(all_grids[0], 'proc_num'):
+            # This should happen when we're running inline.
+            # We select by cpu. There should be a 1:1 relationship of
+            # myid:block.
+            myid = ytcfg.getint('yt','__topcomm_parallel_rank')
+            grids = [g for g in all_grids if g.proc_num == myid]
+        else:
+            # This should happen when we're reading off disk.
+            # We select by filename.
+            fnames = np.array([g.filename for g in all_grids])
+            sort = fnames.argsort()
+            grids = np.array_split(all_grids[sort], NUM_BLOCKS)[block]
+    
+    all_fields = set(pf.h.derived_field_list + pf.h.field_list)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
     if NUM_BLOCKS > 1:
         local_parts = 0
         for g in grids:
-            try:
-                iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
-            except KeyError:
-                iddm = np.ones_like(dd._get_data_from_grid(g, "particle_index")).astype('bool')
-            arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
+            if g.NumberOfParticles == 0: continue
+            if "particle_type" in all_fields:
+                #iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
+                iddm = g["particle_type"] == rh.dm_type
+            else:
+                iddm = Ellipsis
+            arri = g["particle_index"].astype("int64")
             arri = arri[iddm] #pick only DM
             local_parts += arri.size
     else:
         local_parts = TOTAL_PARTICLES
 
-    print "Loading particles: size = ", local_parts
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
     conv[0] = conv[1] = conv[2] = pf["mpchcm"]
@@ -279,11 +298,12 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     for g in grids:
-        try:
-            iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
-        except KeyError:
-            iddm = np.ones_like(dd._get_data_from_grid(g, "particle_index")).astype('bool')
-        arri = dd._get_data_from_grid(g, "particle_index").astype("int64")
+        if g.NumberOfParticles == 0: continue
+        if "particle_type" in all_fields:
+            iddm = g["particle_type"] == rh.dm_type
+        else:
+            iddm = Ellipsis
+        arri = g["particle_index"].astype("int64")
         arri = arri[iddm] #pick only DM
         npart = arri.size
         for i in range(npart):
@@ -293,14 +313,13 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                       "particle_position_z",
                       "particle_velocity_x", "particle_velocity_y",
                       "particle_velocity_z"]:
-            arr = dd._get_data_from_grid(g, field).astype("float64")
+            arr = g[field].astype("float64")
             arr = arr[iddm] #pick DM
             for i in range(npart):
                 p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
             fi += 1
         pi += npart
     num_p[0] = local_parts
-    print "Done loading particles."
 
 cdef class RockstarInterface:
 

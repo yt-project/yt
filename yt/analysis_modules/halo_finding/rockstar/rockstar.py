@@ -135,7 +135,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
-        data_source = tpf.h.all_data()
         if outbase is None:
             outbase = 'rockstar_halos'
         self.outbase = outbase
@@ -148,16 +147,15 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.force_res = ts[-1].h.get_smallest_dx() * ts[-1]['mpch']
         else:
             self.force_res = force_res
-        self.le = tpf.domain_left_edge
-        self.re = tpf.domain_right_edge
+        self.left_edge = tpf.domain_left_edge
+        self.right_edge = tpf.domain_right_edge
         if self.num_readers + self.num_writers + 1 != self.comm.size:
             print '%i reader + %i writers != %i mpi'%\
                     (self.num_readers, self.num_writers, self.comm.size)
             raise RuntimeError
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
-        data_source = tpf.h.all_data()
         self.handler = rockstar_interface.RockstarInterface(
-                self.ts, data_source)
+                self.ts, dd)
 
     def __del__(self):
         self.pool.free_all()
