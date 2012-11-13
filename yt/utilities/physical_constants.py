@@ -20,6 +20,7 @@ charge_proton_cgs = 4.803e-10  # esu = 1.602e-19  Coulombs
 boltzmann_constant_cgs = 1.3806504e-16  # erg K^-1
 gravitational_constant_cgs  = 6.67428e-8  # cm^3 g^-1 s^-2
 planck_constant_cgs   = 6.62606896e-27  # erg s
+stefan_boltzmann_constant_cgs = 5.670373e-5 # erg cm^-2 s^-1 K^-4
 rho_crit_now = 1.8788e-29  # g times h^2 (critical mass for closure, Cosmology)
 
 # Misc. Approximations
