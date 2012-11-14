@@ -397,9 +397,15 @@ class FLASHStaticOutput(StaticOutput):
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
 
-        nblockx = self.parameters["nblockx"]
-        nblocky = self.parameters["nblocky"]
-        nblockz = self.parameters["nblockz"]
+        if 'lrefine_min' in self.parameters.keys() : # PARAMESH
+            nblockx = self.parameters["nblockx"]
+            nblocky = self.parameters["nblocky"]
+            nblockz = self.parameters["nblockz"]
+        else : # Uniform Grid
+            nblockx = self.parameters["iprocs"]
+            nblocky = self.parameters["jprocs"]
+            nblockz = self.parameters["kprocs"]
+                        
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
