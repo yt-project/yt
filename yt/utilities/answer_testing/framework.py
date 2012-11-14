@@ -309,7 +309,7 @@ class FieldValuesTest(AnswerTestingTest):
             assert_equal(new_result, old_result, 
                          err_msg=err_msg, verbose=True)
         else:
-            assert_rel_equal(new_result, old_result, self.decimals,
+            assert_allclose(new_result, old_result, 10.**(-self.decimals),
                              err_msg=err_msg, verbose=True)
 
 class AllFieldValuesTest(AnswerTestingTest):
@@ -370,8 +370,8 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_equal(new_result[k], old_result[k],
                              err_msg=err_msg)
             else:
-                assert_rel_equal(new_result[k], old_result[k], 
-                                 self.decimals, err_msg=err_msg)
+                assert_allclose(new_result[k], old_result[k], 
+                                 10.**-(self.decimals), err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"

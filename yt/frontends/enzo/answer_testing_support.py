@@ -59,18 +59,17 @@ def requires_outputlog(path = ".", prefix = ""):
 def standard_small_simulation(pf_fn, fields):
     if not can_run_pf(pf_fn): return
     dso = [None]
-    yield GridHierarchyTest(pf_fn)
-    yield ParentageRelationshipsTest(pf_fn)
     for field in fields:
         yield GridValuesTest(pf_fn, field)
-        for axis in [0, 1, 2]:
-            for ds in dso:
+        if 'particle' in field: continue
+        for ds in dso:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
-                        ds)
-                yield FieldValuesTest(
-                        pf_fn, field, ds)
+                        ds, decimals=3)
+            yield FieldValuesTest(
+                    pf_fn, field, ds, decimals=3)
                     
 class ShockTubeTest(object):
     def __init__(self, data_file, solution_file, fields, 
