@@ -1,4 +1,6 @@
 # warning: this may not be portable
+from cpython.cobject cimport PyCObject_FromVoidPtr, PyCObject_AsVoidPtr
+
 from libc.stdint cimport int32_t, int64_t
 
 cdef extern from "artio.h" :
@@ -19,21 +21,27 @@ cdef extern from "artio.h" :
 
     artio_file artio_fileset_open(char *file_prefix, int type, artio_context context )
     int artio_fileset_close( artio_file handle )
+    int artio_fileset_open_grid( artio_file )
+    int artio_fileset_open_particle( artio_file )
 
     # parameter functions
-    cdef int artio_parameter_iterate( artio_file handle, char *key, int *type, int *length )
-    cdef int artio_parameter_get_array_length(artio_file handle, char * key, int *length)
+    int artio_parameter_iterate( artio_file handle, char *key, int *type, int *length )
+    int artio_parameter_get_array_length(artio_file handle, char * key, int *length)
 
-    cdef int artio_parameter_get_int(artio_file handle, char * key, int32_t * value)
-    cdef int artio_parameter_get_int_array(artio_file handle, char * key, int length,
+    int artio_parameter_get_int(artio_file handle, char * key, int32_t * value)
+    int artio_parameter_get_int_array(artio_file handle, char * key, int length,
             int32_t *values)
 
-cpdef artio_is_valid( char *file_prefix ) :
-    cdef artio_file handle = artio_fileset_open( file_prefix, 
-                ARTIO_OPEN_HEADER, artio_context_global )
-    if handle == NULL :
-        print "Handle is null"
+class artio_fileset :
+    def __init__(self, char *file_prefix) :
+        self.handle = PyCObject_FromVoidPtr(artio_fileset_open( file_prefix,
+                ARTIO_OPEN_HEADER, artio_context_global ),NULL)
+
+def artio_is_valid( char *file_prefix ) :
+    cdef artio_file local_handle = artio_fileset_open( file_prefix, 
+            ARTIO_OPEN_HEADER, artio_context_global )
+    if local_handle == NULL :
         return False;
     else :
-        artio_fileset_close(handle) 
+        artio_fileset_close(local_handle) 
     return True
