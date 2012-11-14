@@ -147,12 +147,14 @@ log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
 def StandardWidth(axis, width, depth, pf):
-    if width == None:
+    if width is None:
         # Default to code units
         if not iterable(axis):
             width = ((pf.domain_width[x_dict[axis]], '1'),
                      (pf.domain_width[y_dict[axis]], '1'))
         else:
+            # axis is actually the normal vector
+            # for an off-axis data object.
             width = ((pf.domain_width.min(), '1'),
                      (pf.domain_width.min(), '1'))
     elif iterable(width): 
@@ -162,7 +164,7 @@ def StandardWidth(axis, width, depth, pf):
             pass
     else:
         width = ((width, '1'), (width, '1'))
-    if depth != None:
+    if depth is not None:
         if iterable(depth) and isinstance(depth[1], str):
             depth = (depth,)
         elif iterable(depth):
@@ -181,7 +183,6 @@ def StandardCenter(center, pf):
         else:
             raise RuntimeError('center keyword \"%s\" not recognized'%center)
     return center
-
 
 def GetWindowParameters(axis, center, width, pf):
     width = StandardWidth(axis, width, None, pf)
@@ -205,14 +206,14 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
     
-        units = [width[0][1], width[1][1]]
-        bounds = [-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2, 
-                  -width[1][0]/pf[units[1]]/2, width[1][0]/pf[units[1]]/2]
+        units = (width[0][1], width[1][1])
+        bounds = (-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2, 
+                  -width[1][0]/pf[units[1]]/2, width[1][0]/pf[units[1]]/2)
     else:
-        units = [width[0][1], width[1][1], width[2][1]]
-        bounds = [-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2, 
+        units = (width[0][1], width[1][1], width[2][1])
+        bounds = (-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2, 
                   -width[1][0]/pf[units[1]]/2, width[1][0]/pf[units[1]]/2, 
-                  -width[2][0]/pf[units[2]]/2, width[2][0]/pf[units[2]]/2]
+                  -width[2][0]/pf[units[2]]/2, width[2][0]/pf[units[2]]/2)
     return (bounds, center, units)
 
 class PlotWindow(object):
@@ -434,42 +435,43 @@ class PlotWindow(object):
              wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
              that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
              the y axis.  In the other two examples, code units are assumed, for example
-             (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
-             in code units.  the width of the image.
+             (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3 
+             in code units.  If units are provided the resulting plot axis labels will  
+             use the supplied units.
         unit : str
-            the unit the width has been specified in.
-            defaults to code units.  If width is a tuple this 
-            argument is ignored
+             the unit the width has been specified in.
+             defaults to code units.  If width is a tuple this 
+             argument is ignored
 
         """
-        if iterable(width): 
-            if isinstance(width[1],str):
-                w, unit = width
-                width = (w, w)
-            elif isinstance(width[1], tuple):
-                wx,unitx = width[0]
-                wy,unity = width[1]
-                width = (wx/self.pf[unitx],wy/self.pf[unity])
+        if width is not None:
+            set_axes_unit = True
         else:
-            width = (width, width)
-        Wx, Wy = width
-        width = (Wx,Wy)
-        width = [w / self.pf[unit] for w in width]
+            set_axes_unit = False
+
+        width = StandardWidth(self._frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2. 
         
-        self.xlim = (centerx - width[0]/2.,
-                     centerx + width[0]/2.)
-        self.ylim = (centery - width[1]/2.,
-                     centery + width[1]/2.)
+        units = (width[0][1], width[1][1])
+
+        if set_axes_unit:
+            self._axes_unit_names = units
+        else:
+            self._axes_unit_names = None
+
+        self.xlim = (centerx - width[0][0]/self.pf[units[0]]/2.,
+                     centerx + width[0][0]/self.pf[units[0]]/2.)
+        self.ylim = (centery - width[1][0]/self.pf[units[1]]/2.,
+                     centery + width[1][0]/self.pf[units[1]]/2.)
         
         if hasattr(self,'zlim'):
             centerz = (self.zlim[1] + self.zlim[0])/2.
-            mw = max(width)
+            mw = max([width[0][0], width[1][0]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
-        
+
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
         """Sets a new center for the plot window
@@ -707,7 +709,6 @@ class PWViewer(PlotWindow):
             center[y_dict[self._frb.axis]] = 0.5 * (
                 self.ylim[0] + self.ylim[1])
             xc, yc, zc = center
-        pdb.set_trace()
         if return_string:
             md = _metadata_template % dict(
                 pf = self.pf,
@@ -749,9 +750,9 @@ class PWViewerMPL(PWViewer):
     _plot_type = None
 
     def __init__(self, *args, **kwargs):
-        if self._frb_generator == None:
+        if self._frb_generator is None:
             self._frb_generator = kwargs.pop("frb_generator")
-        if self._plot_type == None:
+        if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         PWViewer.__init__(self, *args, **kwargs)
 
@@ -844,7 +845,7 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseFieldDisplayName(f,field_name,str(err))
 
-            if md['colorbar_unit'] == None or md['colorbar_unit'] == '':
+            if md['colorbar_unit'] is None or md['colorbar_unit'] == '':
                 label = field_name
             else:
                 try:
@@ -918,7 +919,7 @@ class PWViewerMPL(PWViewer):
         """
         names = []
         if mpl_kwargs is None: mpl_kwargs = {}
-        if name == None:
+        if name is None:
             name = str(self.pf)
         suffix = os.path.splitext(name)[1]
         if suffix != '':
@@ -1025,13 +1026,14 @@ class SlicePlot(PWViewerMPL):
              wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
              that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
              the y axis.  In the other two examples, code units are assumed, for example
-             (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
-             in code units.  
+             (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3 
+             in code units.  If units are provided the resulting plot axis labels will
+             use the supplied units.
         axes_unit : A string
-            The name of the unit for the tick labels on the x and y axes.  
-            Defaults to None, which automatically picks an appropriate unit.
-            If axes_unit is '1', 'u', or 'unitary', it will not display the 
-            units, and only show the axes name.
+             The name of the unit for the tick labels on the x and y axes.  
+             Defaults to None, which automatically picks an appropriate unit.
+             If axes_unit is '1', 'u', or 'unitary', it will not display the 
+             units, and only show the axes name.
         origin : string
              The location of the origin of the plot coordinate system.
              Currently, can be set to three options: 'left-domain', corresponding
@@ -1111,23 +1113,24 @@ class ProjectionPlot(PWViewerMPL):
              wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
              that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
              the y axis.  In the other two examples, code units are assumed, for example
-             (0.2, 0.3) requests a plot that has and x width of 0.2 and a y width of 0.3 
-             in code units.
+             (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3 
+             in code units.  If units are provided the resulting plot axis labels will 
+             use the supplied units.
         axes_unit : A string
-            The name of the unit for the tick labels on the x and y axes.  
-            Defaults to None, which automatically picks an appropriate unit.
-            If axes_unit is '1', 'u', or 'unitary', it will not display the 
-            units, and only show the axes name.
+             The name of the unit for the tick labels on the x and y axes.  
+             Defaults to None, which automatically picks an appropriate unit.
+             If axes_unit is '1', 'u', or 'unitary', it will not display the 
+             units, and only show the axes name.
         origin : A string
-            The location of the origin of the plot coordinate system.
-            Currently, can be set to three options: 'left-domain', corresponding
-            to the bottom-left hand corner of the simulation domain, 'center-domain',
-            corresponding the center of the simulation domain, or 'center-window' for 
-            the center of the plot window.
+             The location of the origin of the plot coordinate system.
+             Currently, can be set to three options: 'left-domain', corresponding
+             to the bottom-left hand corner of the simulation domain, 'center-domain',
+             corresponding the center of the simulation domain, or 'center-window' for 
+             the center of the plot window.
         weight_field : string
-            The name of the weighting field.  Set to None for no weight.
+             The name of the weighting field.  Set to None for no weight.
         max_level: int
-            The maximum level to project to.
+             The maximum level to project to.
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
         
@@ -1156,7 +1159,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     _plot_type = 'OffAxisSlice'
     _frb_generator = ObliqueFixedResolutionBuffer
 
-    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
+    def __init__(self, pf, normal, fields, center='c', width=None, 
                  axes_unit=None, north_vector=None, fontsize=15):
         r"""Creates an off axis slice plot from a parameter file
 
@@ -1233,8 +1236,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
 
-    def __init__(self, pf, normal, fields, center='c', width=(1,'unitary'), 
-                 depth=(1,'unitary'), axes_unit=None, weight_field=None, 
+    def __init__(self, pf, normal, fields, center='c', width=None, 
+                 depth=(1, '1'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
                  le=None, re=None, interpolated=False, fontsize=15):
         r"""Creates an off axis projection plot from a parameter file
@@ -1284,7 +1287,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
         """
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
-        if axes_unit is None and units != ('1', '1'):
+        if axes_unit is None and units != ('1', '1', '1'):
             axes_unit = units[:2]
         fields = ensure_list(fields)[:]
         width = np.array((bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4]))
