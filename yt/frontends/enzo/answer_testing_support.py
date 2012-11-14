@@ -62,14 +62,14 @@ def standard_small_simulation(pf_fn, fields):
     for field in fields:
         yield GridValuesTest(pf_fn, field)
         if 'particle' in field: continue
-        for axis in [0, 1, 2]:
-            for ds in dso:
+        for ds in dso:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds, decimals=3)
-                yield FieldValuesTest(
-                        pf_fn, field, ds, decimals=3)
+            yield FieldValuesTest(
+                    pf_fn, field, ds, decimals=3)
                     
 class ShockTubeTest(object):
     def __init__(self, data_file, solution_file, fields, 
