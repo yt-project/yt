@@ -25,7 +25,6 @@ License:
 
 import numpy as np
 import os, sys
-from yt.config import ytcfg
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc
@@ -251,23 +250,12 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     all_grids = pf.h.grids
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
-    # We will want to select on filename or proc_num depending on
-    # which is available.
     if NUM_BLOCKS == 1:
         grids = all_grids #dd._grids
     else:
-        if hasattr(all_grids[0], 'proc_num'):
-            # This should happen when we're running inline.
-            # We select by cpu. There should be a 1:1 relationship of
-            # myid:block.
-            myid = ytcfg.getint('yt','__topcomm_parallel_rank')
-            grids = [g for g in all_grids if g.proc_num == myid]
-        else:
-            # This should happen when we're reading off disk.
-            # We select by filename.
-            fnames = np.array([g.filename for g in all_grids])
-            sort = fnames.argsort()
-            grids = np.array_split(all_grids[sort], NUM_BLOCKS)[block]
+        fnames = np.array([g.filename for g in all_grids])
+        sort = fnames.argsort()
+        grids = np.array_split(all_grids[sort], NUM_BLOCKS)[block]
     
     all_fields = set(pf.h.derived_field_list + pf.h.field_list)
 

@@ -35,18 +35,6 @@ import rockstar_interface
 import socket
 import time
 
-class DomainDecomposer(ParallelAnalysisInterface):
-    def __init__(self, pf, comm):
-        ParallelAnalysisInterface.__init__(self, comm=comm)
-        self.pf = pf
-        self.hierarchy = pf.h
-        self.center = (pf.domain_left_edge + pf.domain_right_edge)/2.0
-
-    def decompose(self):
-        dd = self.pf.h.all_data()
-        check, LE, RE, data_source = self.partition_hierarchy_3d(dd)
-        return data_source
-
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None, 
             outbase=None,particle_mass=-1.0,dm_type=1,force_res=None):
