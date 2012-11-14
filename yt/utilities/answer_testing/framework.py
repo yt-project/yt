@@ -101,12 +101,16 @@ class AnswerTesting(Plugin):
             # Fix up filename for local storage 
             if options.compare_name is not None:
                 options.compare_name = "%s/%s/%s" % \
-                        (os.path.realpath(options.output_dir), 
-                         options.compare_name, options.compare_name)
+                    (options.output_dir, options.compare_name, 
+                     options.compare_name)
             if options.this_name is not None:
-                options.this_name= "%s/%s/%s" % \
-                        (os.path.realpath(options.output_dir), 
-                         options.this_name, options.this_name)
+                name_dir_path = "%s/%s" % \
+                    (os.path.realpath(options.output_dir), 
+                    options.this_name)
+                if not os.path.isdir(name_dir_path):
+                    os.mkdir(name_dir_path)
+                options.this_name= "%s/%s" % \
+                        (name_dir_path, options.this_name)
         else:
             storage_class = AnswerTestCloudStorage
 
