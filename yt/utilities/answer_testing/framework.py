@@ -68,16 +68,15 @@ class AnswerTesting(Plugin):
 
     @property
     def my_version(self, version=None):
-        if self._my_version is None:
-            if version is not None:
-                self._my_version = version
-            else:
-                try:
-                    self._my_version = get_yt_version()
-                except:
-                    self._my_version = "UNKNOWN%s" % (time.time())
-        else:
+        if self._my_version is not None:
             return self._my_version
+        if version is None:
+            try:
+                version = get_yt_version()
+            except:
+                version = "UNKNOWN%s" % (time.time())
+        self._my_version = version
+        return self._my_version
 
     def configure(self, options, conf):
         super(AnswerTesting, self).configure(options, conf)
