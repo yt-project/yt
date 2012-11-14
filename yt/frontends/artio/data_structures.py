@@ -28,6 +28,8 @@ import stat
 import weakref
 import cStringIO
 
+import _artio_caller
+
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
@@ -482,5 +484,6 @@ class ARTIOStaticOutput(StaticOutput):
         if not os.path.basename(args[0]).startswith("inf0_"): return False
         fn = args[0].replace("inf0_", "amr_").replace(".txt", ".out00001")
         print fn
+        _artio_caller.read_header("tests/artdat/music_dm11_a0.9710",3 )
         return os.path.exists(fn)
 
