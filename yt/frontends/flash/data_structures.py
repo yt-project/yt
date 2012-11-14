@@ -274,6 +274,7 @@ class FLASHStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+            self.units[unit+"cm"] = self.units[unit]
             self.units[unit] /= (1.0+self.current_redshift)
             
     def _setup_cgs_units(self):
