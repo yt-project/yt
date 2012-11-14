@@ -49,6 +49,7 @@ _url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
+    _my_version = None
 
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
@@ -65,16 +66,26 @@ class AnswerTesting(Plugin):
         parser.add_option("--local-store", dest="store_local_results",
             default=False, action="store_true", help="Store/Load local results?")
 
+    @property
+    def my_version(self, version=None):
+        if self._my_version is None:
+            if version is not None:
+                self._my_version = version
+            else:
+                try:
+                    self._my_version = get_yt_version()
+                except:
+                    self._my_version = "UNKNOWN%s" % (time.time())
+        else:
+            return self._my_version
+
     def configure(self, options, conf):
         super(AnswerTesting, self).configure(options, conf)
         if not self.enabled:
             return
         disable_stream_logging()
-        try:
-            my_hash = get_yt_version()
-        except:
-            my_hash = "UNKNOWN%s" % (time.time())
-        if options.this_name is None: options.this_name = my_hash
+        if options.this_name is None: 
+            options.this_name = self.my_version
         from yt.config import ytcfg
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
@@ -84,19 +95,24 @@ class AnswerTesting(Plugin):
         elif options.compare_name == "latest":
             options.compare_name = _latest
 
-        # We only either store or test.
+        # Local/Cloud storage 
         if options.store_local_results:
+            storage_class = AnswerTestLocalStorage
+            # Fix up filename for local storage 
             if options.compare_name is not None:
-                options.compare_name = "%s/%s" % \
+                options.compare_name = "%s/%s/%s" % \
                         (os.path.realpath(options.output_dir), 
-                         options.compare_name)
-            AnswerTestingTest.reference_storage = \
-                self.storage = \
-                    AnswerTestLocalStorage(options.compare_name, 
-                                           not options.store_results)
+                         options.compare_name, options.compare_name)
+            if options.this_name is not None:
+                options.this_name= "%s/%s/%s" % \
+                        (os.path.realpath(options.output_dir), 
+                         options.this_name, options.this_name)
         else:
-            AnswerTestingTest.reference_storage = \
-                self.storage = AnswerTestCloudStorage(options.compare_name, not options.store_results)
+            storage_class = AnswerTestCloudStorage
+
+        # Initialize answer/reference storage
+        AnswerTestingTest.reference_storage = self.storage = \
+                storage_class(options.compare_name, options.this_name)
 
         self.store_results = options.store_results
         self.store_local_results = options.store_local_results
@@ -108,10 +124,10 @@ class AnswerTesting(Plugin):
         self.storage.dump(self.result_storage)        
 
 class AnswerTestStorage(object):
-    def __init__(self, reference_name, read=True):
+    def __init__(self, reference_name=None, answer_name=None):
         self.reference_name = reference_name
+        self.answer_name = answer_name
         self.cache = {}
-        self.read = read
     def dump(self, result_storage, result):
         raise NotImplementedError 
     def get(self, pf_name, default=None):
@@ -119,7 +135,7 @@ class AnswerTestStorage(object):
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, pf_name, default = None):
-        if not self.read: return default
+        if self.reference_name is None: return default
         if pf_name in self.cache: return self.cache[pf_name]
         url = _url_path % (self.reference_name, pf_name)
         try:
@@ -135,7 +151,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         return rv
 
     def dump(self, result_storage):
-        if self.read: return
+        if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
         import boto
@@ -144,18 +160,18 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.reference_name, pf_name)) 
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
             if tk is not None: tk.delete()
             k = Key(bucket)
-            k.key = "%s_%s" % (self.reference_name, pf_name)
+            k.key = "%s_%s" % (self.answer_name, pf_name)
             k.set_contents_from_string(rs)
             k.set_acl("public-read")
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
-        if self.read: return 
+        if self.answer_name is None: return
         # Store data using shelve
-        ds = shelve.open(self.reference_name, protocol=-1)
+        ds = shelve.open(self.answer_name, protocol=-1)
         for pf_name in result_storage:
             answer_name = "%s" % pf_name
             if name in ds:
@@ -164,7 +180,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         ds.close()
 
     def get(self, pf_name, default=None):
-        if not self.read: return default
+        if self.reference_name is None: return default
         # Read data using shelve
         answer_name = "%s" % pf_name
         ds = shelve.open(self.reference_name, protocol=-1)
@@ -224,8 +240,7 @@ class AnswerTestingTest(object):
 
     def __call__(self):
         nv = self.run()
-        if self.reference_storage.read and \
-           self.reference_storage.reference_name is not None:
+        if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
             if dd is None: raise YTNoOldAnswer(self.storage_name)
             ov = dd[self.description]
