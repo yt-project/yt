@@ -290,13 +290,14 @@ class ProcessorPool(object):
         if size is None:
             size = len(self.available_ranks)
         if len(self.available_ranks) < size:
-            print 'Not enough resources available', size, self.available_ranks
+            mylog.error('Not enough resources available, asked for %d have %d',
+                size, self.available_ranks)
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
         # Default name to the workgroup number.
         if name is None: 
-            name = string(len(self.workgroups))
+            name = str(len(self.workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:

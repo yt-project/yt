@@ -29,6 +29,8 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc
 
+from yt.config import ytcfg
+
 cdef import from "particle.h":
     struct particle:
         np.int64_t id
@@ -44,11 +46,11 @@ cdef import from "rockstar.h":
 cdef import from "config.h":
     void setup_config()
 
-cdef import from "server.h":
+cdef import from "server.h" nogil:
     int server()
 
-cdef import from "client.h":
-    void client()
+cdef import from "client.h" nogil:
+    void client(np.int64_t in_type)
 
 cdef import from "meta_io.h":
     void read_particles(char *filename)
@@ -237,13 +239,13 @@ def print_rockstar_settings():
     print "SINGLE_SNAP =", SINGLE_SNAP
 
 cdef class RockstarInterface
-cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
+cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) with gil:
     global SCALE_NOW
-    pf = rh.tsl.next()
-    print 'reading from particle filename %s: %s'%(filename,pf.basename)
     cdef np.float64_t conv[6], left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
+    pf = rh.tsl.next()
+    print 'reading from particle filename %s: %s'%(filename,pf.basename)
     block = int(str(filename).rsplit(".")[-1])
     n = rh.block_ratio
 
@@ -251,11 +253,16 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
     if NUM_BLOCKS == 1:
-        grids = all_grids #dd._grids
+        grids = all_grids
     else:
-        fnames = np.array([g.filename for g in all_grids])
-        sort = fnames.argsort()
-        grids = np.array_split(all_grids[sort], NUM_BLOCKS)[block]
+        if ytcfg.getboolean("yt", "inline") == False:
+            fnames = np.array([g.filename for g in all_grids])
+            sort = fnames.argsort()
+            grids = np.array_split(all_grids[sort], NUM_BLOCKS)[block]
+        else:
+            # We must be inline, grap only the local grids.
+            grids  = [g for g in all_grids if g.proc_num ==
+                          ytcfg.getint('yt','__topcomm_parallel_rank')]
     
     all_fields = set(pf.h.derived_field_list + pf.h.field_list)
 
@@ -275,6 +282,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             local_parts += arri.size
     else:
         local_parts = TOTAL_PARTICLES
+
+    #print "local_parts", local_parts
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
@@ -393,7 +402,9 @@ cdef class RockstarInterface:
         output_and_free_halos(0, 0, 0, NULL)
 
     def start_server(self):
-        server()
+        with nogil:
+            server()
 
-    def start_client(self):
-        client()
+    def start_client(self, in_type):
+        in_type = np.int64(in_type)
+        client(in_type)
