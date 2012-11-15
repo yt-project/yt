@@ -121,9 +121,9 @@ class Halo(object):
         # This is from disk.
         pid = self.__getitem__('particle_index')
         # This is from the sphere.
-        if self._name is "RockstarHalo":
+        if self._name == "RockstarHalo":
             ds = self.pf.h.sphere(self.CoM, self._radjust * self.max_radius)
-        elif self._name is "LoadedHalo":
+        elif self._name == "LoadedHalo":
             ds = self.pf.h.sphere(self.CoM, self._radjust * self.max_radius)
         sp_pid = ds['particle_index']
         self._ds_sort = sp_pid.argsort()
