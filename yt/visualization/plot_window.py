@@ -921,7 +921,7 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         if name is None:
             name = str(self.pf)
-        suffix = os.path.splitext(name)[1]
+        suffix = os.path.splitext(name)[-1]
         if suffix != '':
             for k, v in self.plots.iteritems():
                 names.append(v.save(name,mpl_kwargs))
@@ -1496,7 +1496,7 @@ class PlotMPL(object):
             self.cax = self.figure.add_axes(caxrect)
             
     def save(self, name, mpl_kwargs, canvas = None):
-        suffix = os.path.splitext(name)[1]
+        suffix = os.path.splitext(name)[-1]
         
         if suffix == '':
             suffix = '.png'
