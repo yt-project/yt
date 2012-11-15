@@ -29,7 +29,9 @@ from .data_structures import \
       StreamHierarchy, \
       StreamStaticOutput, \
       StreamHandler, \
-      load_uniform_grid
+      load_uniform_grid, \
+      load_amr_grids, \
+      refine_amr
 
 from .fields import \
       KnownStreamFields, \

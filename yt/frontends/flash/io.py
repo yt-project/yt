@@ -39,9 +39,11 @@ class IOHandlerFLASH(BaseIOHandler):
         # Now we cache the particle fields
         self.pf = pf
         self._handle = pf._handle
+        self._particle_handle = pf._particle_handle
+        
         try :
             particle_fields = [s[0].strip() for s in
-                               self._handle["/particle names"][:]]
+                               self._particle_handle["/particle names"][:]]
             self._particle_fields = dict([("particle_" + s, i) for i, s in
                                           enumerate(particle_fields)])
         except KeyError:
@@ -53,12 +55,13 @@ class IOHandlerFLASH(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         f = self._handle
+        f_part = self._particle_handle
         if field in self._particle_fields:
             if grid.NumberOfParticles == 0: return np.array([], dtype='float64')
             start = self.pf.h._particle_indices[grid.id - grid._id_offset]
             end = self.pf.h._particle_indices[grid.id - grid._id_offset + 1]
             fi = self._particle_fields[field]
-            tr = f["/tracer particles"][start:end, fi]
+            tr = f_part["/tracer particles"][start:end, fi]
         else:
             tr = f["/%s" % field][grid.id - grid._id_offset,:,:,:].transpose()
         return tr.astype("float64")

@@ -116,7 +116,7 @@ def multi_image_composite(fn, red_channel, blue_channel,
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
 
-def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
+def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
@@ -152,8 +152,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
         alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
         bitmap_array = np.concatenate([bitmap_array, alpha_channel], axis=-1)
     if transpose:
-        for channel in range(bitmap_array.shape[2]):
-            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
+        bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
         au.write_png(bitmap_array.copy(), filename)
     else:
@@ -380,7 +379,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          take_log=True)
     """
     import matplotlib
-    from ._mpl_imports import *
+    from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.
     if take_log:
@@ -421,21 +420,22 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     else:
         dpi = None
 
-    if filename[-4:] == '.png':
-        suffix = ''
-    else:
+    suffix = get_image_suffix(filename)
+
+    if suffix == '':
         suffix = '.png'
         filename = "%s%s" % (filename, suffix)
-    mylog.info("Saving plot %s", fn)
+    mylog.info("Saving plot %s", filename)
     if suffix == ".png":
         canvas = FigureCanvasAgg(fig)
     elif suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):
-        canvas = FigureCanvasPS
+        canvas = FigureCanvasPS(fig)
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas = FigureCanvasAgg(fig)
+
     canvas.print_figure(filename)
     return filename
 
