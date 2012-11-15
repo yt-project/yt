@@ -781,25 +781,20 @@ class PWViewerMPL(PWViewer):
                 raise RuntimeError(
                     'origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
 
-            if (md['axes_unit_names'][0] != md['axes_unit_names'][1]):
-                raise RuntimeError(
-                    'Axis unit labels for the x and y axis must be the same. \n'
-                    'x axis label: \"%(x)s\" \n'
-                    'y axis label: \"%(y)s\" \n' 
-                    % {'x' : md['axes_unit_names'][0],
-                       'y' : md['axes_unit_names'][1]})
+            (unit_x, unit_y) = md['axes_unit_names']
 
-            extentx = [(self.xlim[i] - xc)*self.pf[md['axes_unit_names'][0]] for i in (0,1)]
-            extenty = [(self.ylim[i] - yc)*self.pf[md['axes_unit_names'][1]] for i in (0,1)]
+            extentx = [(self.xlim[i] - xc) * self.pf[unit_x] for i in (0,1)]
+            extenty = [(self.ylim[i] - yc) * self.pf[unit_y] for i in (0,1)]
+
             extent = extentx + extenty
 
             if f in self.plots.keys():
-                zlim = (self.plots[f].zmin,self.plots[f].zmax)
+                zlim = (self.plots[f].zmin, self.plots[f].zmax)
             else:
-                zlim = (None,None)
+                zlim = (None, None)
 
-            aspect = (self.xlim[1] - self.xlim[0])/(self.ylim[1]-self.ylim[0])
-
+            aspect = (self.xlim[1] - self.xlim[0]) / (self.ylim[1] - self.ylim[0])
+            
             # This sets the size of the figure, and defaults to making one of the dimensions smaller.
             # This should protect against giant images in the case of a very large aspect ratio.
             norm_size = 10.0
@@ -809,23 +804,26 @@ class PWViewerMPL(PWViewer):
             else:
                 size = (aspect*norm_size*(1.+cbar_frac), norm_size)
 
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent, self._field_transform[f], 
+            # Correct the aspect ratio in case unit_x and unit_y are different
+            aspect *= self.pf[unit_x]/self.pf[unit_y]
+
+            self.plots[f] = WindowPlotMPL(self._frb[f], extent, aspect, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
 
             axes_unit_labels = ['', '']
-            for i, un in enumerate(md['axes_unit_names']):
+            for i, un in enumerate((unit_x, unit_y)):
                 if un not in ['1', 'u', 'unitary']:
                     axes_unit_labels[i] = '\/\/('+un+')'
                     
-            if self.oblique == False:
-                labels = [r'$\rm{'+axis_labels[axis_index][i]+
-                        axes_unit_labels[i] + r'}$' for i in (0,1)]
-            else:
+            if self.oblique:
                 labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
+            else:
+                labels = [r'$\rm{'+axis_labels[axis_index][i]+
+                          axes_unit_labels[i] + r'}$' for i in (0,1)]
 
             self.plots[f].axes.set_xlabel(labels[0],fontsize=self.fontsize)
             self.plots[f].axes.set_ylabel(labels[1],fontsize=self.fontsize)
@@ -1562,17 +1560,17 @@ class PlotMPL(object):
         return f.read()
 
 class WindowPlotMPL(PlotMPL):
-    def __init__(self, data, extent, field_transform, cmap, size, zlim):
+    def __init__(self, data, extent, aspect, field_transform, cmap, size, zlim):
         self.zmin, self.zmax = zlim
         PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent, field_transform, cmap)
+        self.__init_image(data, extent, aspect, field_transform, cmap)
 
-    def __init_image(self, data, extent, field_transform, cmap):
+    def __init_image(self, data, extent, aspect, field_transform, cmap):
         if (field_transform.name == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (field_transform.name == 'linear'):
             norm = matplotlib.colors.Normalize()
         self.image = self.axes.imshow(data, origin='lower', extent=extent,
-                                      norm=norm, vmin=self.zmin, 
+                                      norm=norm, vmin=self.zmin, aspect=aspect, 
                                       vmax=self.zmax, cmap=cmap)
-        self.image.axes.ticklabel_format(scilimits=(-4,3))
+        self.image.axes.ticklabel_format(scilimits=(-2,3))
