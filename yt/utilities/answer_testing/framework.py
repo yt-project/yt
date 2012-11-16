@@ -53,12 +53,12 @@ class AnswerTesting(Plugin):
 
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
-        parser.add_option("--answer-compare", dest="compare_name",
+        parser.add_option("--answer-compare-name", dest="compare_name",
             default=_latest, help="The name against which we will compare")
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
-        parser.add_option("--answer-name", dest="this_name",
+        parser.add_option("--answer-store-name", dest="this_name",
             default=None,
             help="The name we'll call this set of tests")
         parser.add_option("--answer-store", dest="store_results",
