@@ -29,6 +29,7 @@ import hashlib
 import contextlib
 import urllib2
 import cPickle
+import sys
 
 from nose.plugins import Plugin
 from yt.testing import *
@@ -54,15 +55,13 @@ class AnswerTesting(Plugin):
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
         parser.add_option("--answer-compare-name", dest="compare_name", metavar='str',
-            default=_latest, help="The name against which we will compare")
+            default=_latest, help="The name of tests against which we will compare")
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
-        parser.add_option("--answer-store-name", dest="this_name", metavar='str',
+        parser.add_option("--answer-store-name", dest="store_name", metavar='str',
             default=None,
             help="The name we'll call this set of tests")
-        parser.add_option("--answer-store", dest="store_results",
-            default=False, action="store_true")
         parser.add_option("--local-store", dest="store_local_results",
             default=False, action="store_true", help="Store/Load local results?")
 
@@ -83,8 +82,15 @@ class AnswerTesting(Plugin):
         if not self.enabled:
             return
         disable_stream_logging()
-        if options.this_name is None: 
-            options.this_name = self.my_version
+        if options.store_name is not None:
+            self.store_results = True
+        # Making sure the user isn't trying to store and compare simultaneously
+            if options.compare_name is not None: 
+                sys.exit("You cannot store and compare simultaneously.")
+            options.compare_name = None
+        else: 
+            self.store_results = False
+            options.store_name = self.my_version
         from yt.config import ytcfg
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
@@ -93,8 +99,6 @@ class AnswerTesting(Plugin):
             options.compare_name = None
         elif options.compare_name == "latest":
             options.compare_name = _latest
-        if options.store_results:
-            options.compare_name = None
             
         # Local/Cloud storage 
         if options.store_local_results:
@@ -104,20 +108,20 @@ class AnswerTesting(Plugin):
                 options.compare_name = "%s/%s/%s" % \
                     (os.path.realpath(options.output_dir), options.compare_name, 
                      options.compare_name)
-            if options.this_name is not None:
+            if options.store_name is not None:
                 name_dir_path = "%s/%s" % \
                     (os.path.realpath(options.output_dir), 
-                    options.this_name)
+                    options.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.mkdir(name_dir_path)
-                options.this_name= "%s/%s" % \
-                        (name_dir_path, options.this_name)
+                options.store_name= "%s/%s" % \
+                        (name_dir_path, options.store_name)
         else:
             storage_class = AnswerTestCloudStorage
 
         # Initialize answer/reference storage
         AnswerTestingTest.reference_storage = self.storage = \
-                storage_class(options.compare_name, options.this_name)
+                storage_class(options.compare_name, options.store_name)
 
         self.store_results = options.store_results
         self.store_local_results = options.store_local_results
