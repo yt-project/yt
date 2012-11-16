@@ -271,7 +271,7 @@ def GetMagRescalingFactor(pf):
     if pf['unitsystem'].lower() == "none":
          factor = np.sqrt(4*np.pi)
     else:
-        raise RuntimeError("Runtime parameter unitsystem with"
+        raise RuntimeError("Runtime parameter unitsystem with "
                            "value %s is unrecognized" % pf['unitsystem'])
     return factor
 
