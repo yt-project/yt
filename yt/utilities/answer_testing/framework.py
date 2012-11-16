@@ -93,7 +93,9 @@ class AnswerTesting(Plugin):
             options.compare_name = None
         elif options.compare_name == "latest":
             options.compare_name = _latest
-
+        if options.store_results:
+            options.compare_name = None
+            
         # Local/Cloud storage 
         if options.store_local_results:
             storage_class = AnswerTestLocalStorage
