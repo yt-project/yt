@@ -84,9 +84,8 @@ class AnswerTesting(Plugin):
         disable_stream_logging()
         if options.store_name is not None:
             self.store_results = True
-        # Making sure the user isn't trying to store and compare simultaneously
-            if options.compare_name is not None: 
-                sys.exit("You cannot store and compare simultaneously.")
+        # If the user sets the storage_name, then it means they are storing and
+        # not comparing, even if they set the compare_name (since it is set by default)
             options.compare_name = None
         else: 
             self.store_results = False
@@ -123,7 +122,6 @@ class AnswerTesting(Plugin):
         AnswerTestingTest.reference_storage = self.storage = \
                 storage_class(options.compare_name, options.store_name)
 
-        self.store_results = options.store_results
         self.store_local_results = options.store_local_results
         global run_big_data
         run_big_data = options.big_data
