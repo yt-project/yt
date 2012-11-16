@@ -418,7 +418,11 @@ class FLASHStaticOutput(StaticOutput):
             nblockx = self.parameters["iprocs"]
             nblocky = self.parameters["jprocs"]
             nblockz = self.parameters["kprocs"]
-                        
+
+        # In case the user wasn't careful
+        if dimensionality <= 2 : nblockz = 1
+        if dimensionality == 1 : nblocky = 1
+
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
