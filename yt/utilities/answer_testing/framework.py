@@ -216,9 +216,9 @@ def can_run_pf(pf_fn):
 
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput): return pf_fn
     if not os.path.isdir(path):
         return False
-    if isinstance(pf_fn, StaticOutput): return pf_fn
     with temp_cwd(path):
         pf = load(pf_fn)
         pf.h

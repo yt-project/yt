@@ -331,6 +331,8 @@ class AthenaStaticOutput(StaticOutput):
             dimensionality = 2
         if grid['dimensions'][1] == 1 :
             dimensionality = 1
+        if dimensionality <= 2 : self.domain_dimensions[2] = 1.
+        if dimensionality == 1 : self.domain_dimensions[1] = 1.
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self._handle.__hash__()
