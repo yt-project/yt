@@ -29,8 +29,10 @@ from yt.funcs import *
 from yt.utilities.lib import \
     get_box_grids_level, \
     get_box_grids_below_level
+from yt.utilities.particle_utils import \
+    MatchPointsToGrids
 
-class ObjectFindingMixin(object):
+class ObjectFindingMixin(object) :
 
     def find_ray_grids(self, coord, axis):
         """
@@ -110,6 +112,14 @@ class ObjectFindingMixin(object):
         ind = np.where(mask == 1)
         return self.grids[ind], ind
 
+    def find_points(self, x, y, z) :
+        """
+        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        """
+        find_pts = MatchPointsToGrids(self,x,y,z)
+        ind = find_pts()
+        return self.grids[ind], ind
+    
     def find_field_value_at_point(self, fields, coord):
         r"""Find the value of fields at a point.
         
