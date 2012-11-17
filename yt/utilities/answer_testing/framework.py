@@ -112,7 +112,7 @@ class AnswerTesting(Plugin):
                     (os.path.realpath(options.output_dir), 
                     options.store_name)
                 if not os.path.isdir(name_dir_path):
-                    os.mkdir(name_dir_path)
+                    os.makedirs(name_dir_path)
                 options.store_name= "%s/%s" % \
                         (name_dir_path, options.store_name)
         else:
