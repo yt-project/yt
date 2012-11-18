@@ -28,8 +28,13 @@ import stat
 import weakref
 import cStringIO
 
-import _artio_caller
+from _artio_caller import artio_is_valid, artio_fileset, read_header 
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion 
+from .fields import ARTIOFieldInfo, KnownARTIOFields
+#######
 
+###############################
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
@@ -39,21 +44,27 @@ from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
+############################
 
-from .definitions import artio_header
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+############################
 from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+############################
+
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+
 import yt.utilities.fortran_utils as fpu
+
 from yt.geometry.oct_container import \
     ARTIOOctreeContainer
-from .fields import ARTIOFieldInfo, KnownARTIOFields
 
+
+
+
+# the following classes are old RAMSES oct handling until otherwise noted
 class ARTIODomainFile(object):
     _last_mask = None
     _last_selector_id = None
@@ -387,29 +398,38 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
+
+
+#snl: the following is for complete and understood header reading and unit setting
 class ARTIOStaticOutput(StaticOutput):
+    _handle = None
     _hierarchy_class = ARTIOGeometryHandler
     _fieldinfo_fallback = ARTIOFieldInfo
     _fieldinfo_known = KnownARTIOFields
     
     def __init__(self, filename, data_style='artio',
                  storage_filename = None):
+        if self._handle is not None : return
+        self._filename = filename
+        self._fileset_prefix = filename[:-4]
+        self._handle = artio_fileset(self._fileset_prefix) 
+        
         # Here we want to initiate a traceback, if the reader is not built.
         StaticOutput.__init__(self, filename, data_style)
-        self.storage_filename = storage_filename
+        self.storage_filename = storage_filename 
 
-    def __repr__(self):
-        return self.basename.rsplit(".", 1)[0]
-        
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
         self.units = {}
         self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self._setup_nounits_units()
+        if len(self.parameters) == 0: 
+            self._parse_parameter_file() 
+        for unit in mpc_conversion.keys():
+            self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
@@ -420,70 +440,49 @@ class ARTIOStaticOutput(StaticOutput):
         self.conversion_factors["y-velocity"] = vel_u
         self.conversion_factors["z-velocity"] = vel_u
 
-    def _setup_nounits_units(self):
-        for unit in mpc_conversion.keys():
-            self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
-
     def _parse_parameter_file(self):
-        # hardcoded for now
-        # These should be explicitly obtained from the file, but for now that
-        # will wait until a reorganization of the source tree and better
-        # generalization.
+        # hard-coded -- not provided by headers 
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1. # default unit is 1...
+        self.min_level = 0  #self._handle.parameters['grid_min_level']
+        # ^hard-coded
 
+        # read header
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        # We now execute the same logic Oliver's code does
-        rheader = {}
-        f = open(self.parameter_filename)
-        def read_rhs(cast):
-            line = f.readline()
-            p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
-        for i in range(6): read_rhs(int)
-        f.readline()
-        for i in range(11): read_rhs(float)
-        f.readline()
-        read_rhs(str)
-        # This next line deserves some comment.  We specify a min_level that
-        # corresponds to the minimum level in the ARTIO simulation.  ARTIO is
-        # one-indexed, but it also does refer to the *oct* dimensions -- so
-        # this means that a levelmin of 1 would have *1* oct in it.  So a
-        # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin'] - 1
-        # Now we read the hilbert indices
-        self.hilbert_indices = {}
-        if rheader['ordering type'] == "hilbert":
-            f.readline() # header
-            for n in range(rheader['ncpu']):
-                dom, mi, ma = f.readline().split()
-                self.hilbert_indices[int(dom)] = (float(mi), float(ma))
-        self.parameters.update(rheader)
-        self.current_time = self.parameters['time'] * self.parameters['unit_t']
-        self.domain_left_edge = np.zeros(3, dtype='float64')
-        self.domain_dimensions = np.ones(3, dtype='int32') * \
-                        2**(self.min_level+1)
-        self.domain_right_edge = np.ones(3, dtype='float64')
-        # This is likely not true, but I am not sure how to otherwise
-        # distinguish them.
-        mylog.warning("No current mechanism of distinguishing cosmological simulations in ARTIO!")
-        self.cosmological_simulation = 1
-        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
-        self.omega_lambda = rheader["omega_l"]
-        self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"]
-        self.max_level = rheader['levelmax'] - rheader['levelmin']
+
+        self.domain_dimensions = np.ones(3,dtype='int64') * \
+            self._handle.parameters["num_root_cells"][0]**(1./3.)
+
+        self.domain_left_edge = np.zeros(3, dtype="float64")
+        self.domain_right_edge = self.domain_dimensions
+
+        self.min_level = 0
+        self.max_level = self._handle.parameters["max_refinement_level"][0]
+
+        self.current_time = self._handle.parameters["tl"][0]
+  
+        # detect cosmology
+        if self._handle.parameters["abox"] :
+            self.cosmological_simulation = True
+            self.omega_lambda = self._handle.parameters["OmegaL"][0]
+            self.omega_matter = self._handle.parameters["OmegaM"][0]
+            self.hubble_constant = self._handle.parameters["hubble"][0]
+            self.current_redshift = 1.0/self._handle.parameters["abox"][0] - 1.
+
+            self.parameters["initial_redshift"] = \
+                self._handle.parameters["auni_init"][0]
+
+        self.parameters['unit_l'] = self._handle.parameters["length_unit"][0]
+        self.parameters['unit_t'] = self._handle.parameters["time_unit"][0]
+        self.parameters['unit_m'] = self._handle.parameters["mass_unit"][0]
+        self.parameters['unit_d'] = self.parameters['unit_m']/self.parameters['unit_l']**(3.0)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not os.path.basename(args[0]).startswith("inf0_"): return False
-        fn = args[0].replace("inf0_", "amr_").replace(".txt", ".out00001")
-        print fn
-        _artio_caller.read_header("tests/artdat/music_dm11_a0.9710",3 )
-        return os.path.exists(fn)
+    def _is_valid(self, *args, **kwargs) :
+        # a valid artio header file starts with a prefix and ends with .art
+        if not args[0].endswith(".art"): return False
+        return artio_is_valid(args[0][:-4])
 

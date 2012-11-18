@@ -25,22 +25,24 @@ License:
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
-    NullFunc, \
-    TranslationFunc, \
     FieldInfo, \
+    NullFunc, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-
-ARTIOFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
-add_field = ARTIOFieldInfo.add_field
+import numpy as np
 
 KnownARTIOFields = FieldInfoContainer()
 add_artio_field = KnownARTIOFields.add_field
 
+#snl: doug removed RFI, but field name is needed in yt/data_objects/field_info_container.py?
+ARTIOFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI") 
+add_field = ARTIOFieldInfo.add_field
+
+#need all of these to be defined
 known_artio_fields = [
     "Density",
     "x-velocity",
@@ -54,7 +56,7 @@ for f in known_artio_fields:
     if f not in KnownARTIOFields:
         add_artio_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)])
-
+######################################
 def dx(field, data):
     return data.fwidth[:,0]
 add_field("dx", function=dx)
