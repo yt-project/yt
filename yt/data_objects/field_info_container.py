@@ -58,6 +58,66 @@ class FieldInfoContainer(dict): # Resistance has utility
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
+        
+    def add_grad(self, field, **kwargs):
+        """
+        Creates the partial derivative of a given field. This function will
+        autogenerate the names of the gradient fields.
+
+        """
+        sl = slice(2,None,None)
+        sr = slice(None,-2,None)
+        
+        def _gradx(f, data):
+            grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
+            grad /= 2.0*data["dx"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+            
+        def _grady(f, data):
+            grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
+            grad /= 2.0*data["dy"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+            
+        def _gradz(f, data):
+            grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
+            grad /= 2.0*data["dz"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+        
+        d_kwargs = kwargs.copy()
+        if "display_name" in kwargs: del d_kwargs["display_name"]
+        
+        for ax in "xyz":
+            if "display_name" in kwargs:
+                disp_name = r"%s\_%s" % (kwargs["display_name"], ax)
+            else:
+                disp_name = r"\partial %s/\partial %s" % (field, ax)
+            name = "Grad_%s_%s" % (field, ax)
+            self[name] = DerivedField(name, function=eval('_grad%s' % ax),
+                         take_log=False, validators=[ValidateSpatial(1,[field])],
+                         display_name = disp_name, **d_kwargs)
+        
+        def _grad(f, data) :
+            a = np.power(data["Grad_%s_x" % field],2)
+            b = np.power(data["Grad_%s_y" % field],2)
+            c = np.power(data["Grad_%s_z" % field],2)
+            norm = np.sqrt(a+b+c)
+            return norm
+
+        if "display_name" in kwargs:
+            disp_name = kwargs["display_name"]
+        else:
+            disp_name = r"\Vert\nabla %s\Vert" % (field)   
+        name = "Grad_%s" % field           
+        self[name] = DerivedField(name, function=_grad, take_log=False,
+                                  display_name = disp_name, **d_kwargs)
+        mylog.info("Added new fields: Grad_%s_x, Grad_%s_y, Grad_%s_z, Grad_%s" \
+                   % (field, field, field, field))
 
     def has_key(self, key):
         # This gets used a lot
@@ -107,6 +167,7 @@ def NullFunc(field, data):
 FieldInfo = FieldInfoContainer()
 FieldInfo.name = id(FieldInfo)
 add_field = FieldInfo.add_field
+add_grad = FieldInfo.add_grad
 
 def derived_field(**kwargs):
     def inner_decorator(function):

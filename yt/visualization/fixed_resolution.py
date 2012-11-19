@@ -434,8 +434,9 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
                                self.data_source[item],
                                self.buff_size[0], self.buff_size[1],
                                self.bounds).transpose()
-        self[item] = buff
-        return buff
+        ia = ImageArray(buff, info=self._get_info(item))
+        self[item] = ia
+        return ia 
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
@@ -457,7 +458,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                                    weight=ds.weight_field, volume=ds.volume,
                                    no_ghost=ds.no_ghost, interpolated=ds.interpolated,
                                    north_vector=ds.north_vector)
-        self[item] = buff.swapaxes(0,1)
-        return buff
+        ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
+        self[item] = ia
+        return ia 
 
 

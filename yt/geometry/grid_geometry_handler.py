@@ -132,17 +132,19 @@ class GridGeometryHandler(GeometryHandler):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%14s" % ("level","# grids", "# cells")
+        header = "%3s\t%6s\t%14s\t%14s" % ("level","# grids", "# cells",
+                                           "# cells^3")
         print header
         print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 14i" % \
+            print "% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
-                   self.level_stats['numcells'][level])
+                   self.level_stats['numcells'][level],
+                   self.level_stats['numcells'][level]**(1./3))
             dx = self.select_grids(level)[0].dds[0]
-        print "-" * 28
+        print "-" * 46
         print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
         print "\n"
         try:

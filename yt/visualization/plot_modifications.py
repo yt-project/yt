@@ -630,6 +630,9 @@ class ClumpContourCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+
+        extent = [xx0,xx1,yy0,yy1]
+
         plot._axes.hold(True)
 
         px_index = x_dict[plot.data.axis]
@@ -659,7 +662,7 @@ class ClumpContourCallback(PlotCallback):
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
-                                     **self.plot_args)
+                                     extent=extent,**self.plot_args)
         plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
@@ -806,6 +809,7 @@ class HopCircleCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
+        num = len(self.hop_output[:self.max_number])
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
             if size < self.min_size or size > self.max_size: continue
@@ -822,18 +826,19 @@ class HopCircleCallback(PlotCallback):
             (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
 
             (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
-            cir = Circle((center_x, center_y), radius, fill=False)
+            color = np.ones(3) * (0.4 * (num - halo.id)/ num) + 0.6
+            cir = Circle((center_x, center_y), radius, fill=False, color=color)
             plot._axes.add_patch(cir)
             if self.annotate:
                 if self.print_halo_size:
-                    plot._axes.text(center_x, center_y, "%s" % size,
-                    fontsize=self.font_size)
+                    plot._axes.text(center_x+radius, center_y+radius, "%s" % size,
+                    fontsize=self.font_size, color=color)
                 elif self.print_halo_mass:
-                    plot._axes.text(center_x, center_y, "%s" % halo.total_mass(),
-                    fontsize=self.font_size)
+                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.total_mass(),
+                    fontsize=self.font_size, color=color)
                 else:
-                    plot._axes.text(center_x, center_y, "%s" % halo.id,
-                    fontsize=self.font_size)
+                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.id,
+                    fontsize=self.font_size, color=color)
 
 class HopParticleCallback(PlotCallback):
     _type_name = "hop_particles"
@@ -1167,10 +1172,11 @@ class TimestampCallback(PlotCallback):
           }
     _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black', 'alpha': 1.0}
 
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized = False, 
-                 bbox_dict = None, **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
+                 bbox_dict=None, **kwargs):
         """ 
-        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs)
+        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
+                           normalized=False, bbox_dict=None)
 
         Adds the current time to the plot at point given by *x* and *y*.  If *units* 
         is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
