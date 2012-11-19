@@ -613,19 +613,19 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-hg ] 
+    elif [ ! -e yt-3.0-hg ] 
     then
-        YT_DIR="$PWD/yt-hg/"
+        YT_DIR="$PWD/yt-3.0-hg/"
         ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-3.0/ ./yt-3.0-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
-    elif [ -e yt-hg ] 
+    elif [ -e yt-3.0-hg ] 
     then
-        YT_DIR="$PWD/yt-hg/"
+        YT_DIR="$PWD/yt-3.0-hg/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
