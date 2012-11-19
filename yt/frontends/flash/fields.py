@@ -23,6 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as np
+from yt.utilities.exceptions import *
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
@@ -35,20 +37,12 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    kboltz
-import numpy as np
-from yt.utilities.exceptions import *
+    kboltz, mh
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
 FLASHFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = FLASHFieldInfo.add_field
-
-CylindricalFLASHFieldInfo = FieldInfoContainer.create_with_fallback(FLASHFieldInfo)
-add_cyl_field = CylindricalFLASHFieldInfo.add_field
-
-PolarFLASHFieldInfo = FieldInfoContainer.create_with_fallback(FLASHFieldInfo)
-add_pol_field = PolarFLASHFieldInfo.add_field
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #
@@ -106,8 +100,8 @@ for fn1, fn2 in translation_dict.items():
         add_field(fn1.split("_")[0] + "_Density",
                   function=_get_density(fn1), take_log=True,
                   display_name="%s\/Density" % fn1.split("_")[0],
-                  units = r"\rm{g}/\rm{cm}^3",
-                  projected_units = r"\rm{g}/\rm{cm}^2",
+                  units = r"\rm{g}/\rm{cm}^{3}",
+                  projected_units = r"\rm{g}/\rm{cm}^{2}",
                   )
 
 def _get_convert(fname):
@@ -117,8 +111,8 @@ def _get_convert(fname):
 
 add_flash_field("dens", function=NullFunc, take_log=True,
                 convert_function=_get_convert("dens"),
-                units=r"\rm{g}/\rm{cm}^3",
-                projected_units = r"\rm{g}/\rm{cm}^2"),
+                units=r"\rm{g}/\rm{cm}^{3}",
+                projected_units = r"\rm{g}/\rm{cm}^{2}"),
 add_flash_field("velx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("velx"),
                 units=r"\rm{cm}/\rm{s}")
@@ -164,12 +158,13 @@ add_flash_field("temp", function=NullFunc, take_log=True,
 add_flash_field("tion", function=NullFunc, take_log=True,
                 units=r"\rm{K}")
 add_flash_field("tele", function=NullFunc, take_log=True,
+                convert_function=_get_convert("tele"),
                 units = r"\rm{K}")
 add_flash_field("trad", function=NullFunc, take_log=True,
                 units = r"\rm{K}")
 add_flash_field("pres", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pres"),
-                units=r"\rm{erg}\//\/\rm{cm}^{3}")
+                units=r"\rm{erg}/\rm{cm}^{3}")
 add_flash_field("pion", function=NullFunc, take_log=True,
                 display_name="Ion Pressure",
                 units=r"\rm{J}/\rm{cm}^3")
@@ -190,7 +185,7 @@ add_flash_field("erad", function=NullFunc, take_log=True,
                 units=r"\rm{J}")
 add_flash_field("pden", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pden"),
-                units=r"\rm{g}/\rm{cm}^3")
+                units=r"\rm{g}/\rm{cm}^{3}")
 add_flash_field("depo", function=NullFunc, take_log=True,
                 units = r"\rm{ergs}/\rm{g}")
 add_flash_field("ye", function=NullFunc, take_log=True,
@@ -206,7 +201,7 @@ add_flash_field("magz", function=NullFunc, take_log=False,
                 units = r"\mathrm{Gau\ss}")
 add_flash_field("magp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("magp"),
-                units = r"\rm{erg}\//\/\rm{cm}^{3}")
+                units = r"\rm{erg}/\rm{cm}^{3}")
 add_flash_field("divb", function=NullFunc, take_log=False,
                 convert_function=_get_convert("divb"),
                 units = r"\mathrm{Gau\ss}\/\rm{cm}")
@@ -218,10 +213,10 @@ add_flash_field("gamc", function=NullFunc, take_log=False,
                 units=r"\rm{ratio\/of\/specific\/heats}")
 add_flash_field("gpot", function=NullFunc, take_log=False,
                 convert_function=_get_convert("gpot"),
-                units=r"\rm{ergs\//\/g}")
+                units=r"\rm{ergs}/\rm{g}")
 add_flash_field("gpol", function=NullFunc, take_log=False,
                 convert_function=_get_convert("gpol"),
-                units = r"\rm{ergs\//\/g}")
+                units = r"\rm{ergs}/\rm{g}")
 add_flash_field("flam", function=NullFunc, take_log=False,
                 convert_function=_get_convert("flam"))
 add_flash_field("absr", function=NullFunc, take_log=False,
@@ -326,12 +321,12 @@ add_field("GasEnergy", function=_GasEnergy,
 def GetMagRescalingFactor(pf):
     if pf['unitsystem'].lower() == "cgs":
          factor = 1
-    if pf['unitsystem'].lower() == "si":
+    elif pf['unitsystem'].lower() == "si":
          factor = np.sqrt(4*np.pi/1e7)
-    if pf['unitsystem'].lower() == "none":
+    elif pf['unitsystem'].lower() == "none":
          factor = np.sqrt(4*np.pi)
     else:
-        raise RuntimeError("Runtime parameter unitsystem with"
+        raise RuntimeError("Runtime parameter unitsystem with "
                            "value %s is unrecognized" % pf['unitsystem'])
     return factor
 
@@ -359,94 +354,6 @@ def _DivB(fields, data):
 add_field("DivB", function=_DivB, take_log=False,
           units=r"\rm{Gauss}\/\rm{cm}^{-1}")
 
-
-
-def _unknown_coord(field, data):
-    raise YTCoordinateNotImplemented
-add_cyl_field("dx", function=_unknown_coord)
-add_cyl_field("dy", function=_unknown_coord)
-add_cyl_field("x", function=_unknown_coord)
-add_cyl_field("y", function=_unknown_coord)
-
-def _dr(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
-add_cyl_field('dr', function=_dr, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _dz(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
-add_cyl_field('dz', function=_dz,
-          display_field=False, validators=[ValidateSpatial(0)])
-
-def _dtheta(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
-add_cyl_field('dtheta', function=_dtheta,
-          display_field=False, validators=[ValidateSpatial(0)])
-
-def _coordR(field, data):
-    dim = data.ActiveDimensions[0]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[0])[:,None,None]
-            +0.5) * data['dr'] + data.LeftEdge[0]
-add_cyl_field('r', function=_coordR, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _coordZ(field, data):
-    dim = data.ActiveDimensions[1]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[1])[None,:,None]
-            +0.5) * data['dz'] + data.LeftEdge[1]
-add_cyl_field('z', function=_coordZ, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _coordTheta(field, data):
-    dim = data.ActiveDimensions[2]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[2])[None,None,:]
-            +0.5) * data['dtheta'] + data.LeftEdge[2]
-add_cyl_field('theta', function=_coordTheta, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _CylindricalVolume(field, data):
-    return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
-add_cyl_field("CellVolume", function=_CylindricalVolume)
-
-## Polar fields
-
-add_pol_field("dx", function=_unknown_coord)
-add_pol_field("dy", function=_unknown_coord)
-add_pol_field("x", function=_unknown_coord)
-add_pol_field("y", function=_unknown_coord)
-
-def _dr(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
-add_pol_field('dr', function=_dr, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _dtheta(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
-add_pol_field('dtheta', function=_dtheta,
-          display_field=False, validators=[ValidateSpatial(0)])
-
-def _coordR(field, data):
-    dim = data.ActiveDimensions[0]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[0])[:,None,None]
-            +0.5) * data['dr'] + data.LeftEdge[0]
-add_pol_field('r', function=_coordR, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _coordTheta(field, data):
-    dim = data.ActiveDimensions[2]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[1])[None,:,None]
-            +0.5) * data['dtheta'] + data.LeftEdge[1]
-add_pol_field('theta', function=_coordTheta, display_field=False,
-          validators=[ValidateSpatial(0)])
-
-def _CylindricalVolume(field, data):
-    return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
-add_pol_field("CellVolume", function=_CylindricalVolume)
 
 
 ## Derived FLASH Fields

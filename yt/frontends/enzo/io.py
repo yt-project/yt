@@ -30,6 +30,7 @@ from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
+from yt.geometry.selection_routines import mask_fill
 import h5py
 
 import numpy as np
@@ -39,12 +40,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 
     _data_style = "enzo_packed_3d"
     _base = slice(None)
-
-    def _read_data_set(self, grid, field):
-        handle = h5py.File(grid.filename)
-        tr = handle["/Grid%08i/%s" % (grid.id, field)][:]
-        handle.close()
-        return tr.swapaxes(0, 2)
 
     def _read_field_names(self, grid):
         return hdf5_light_reader.ReadListOfDatasets(
@@ -142,29 +137,41 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
-        if any((ftype != "gas" for ftype, fname in fields)):
-            raise NotImplementedError
         # Now we have to do something unpleasant
         chunks = list(chunks)
+        if selector.__class__.__name__ == "GridSelector":
+            return self._read_grid_chunk(chunks, fields)
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
         for field in fields:
             ftype, fname = field
             fsize = size
             rv[field] = np.empty(fsize, dtype="float64")
-        ind = 0
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
+        ind = 0
         for chunk in chunks:
             data = self._read_chunk_data(chunk, fields)
             for g in chunk.objs:
                 mask = g.select(selector)
                 if mask is None: continue
+                nd = mask.sum()
                 for field in fields:
                     ftype, fname = field
-                    gdata = data[g.id].pop(fname).swapaxes(0,2)[mask]
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
+                    gdata = data[g.id].pop(fname).swapaxes(0,2)
+                    nd = mask_fill(rv[field], ind, mask, gdata)
+                ind += nd
                 data.pop(g.id)
+        return rv
+
+    def _read_grid_chunk(self, chunks, fields):
+        sets = [fname for ftype, fname in fields]
+        g = chunks[0].objs[0]
+        rv = hdf5_light_reader.ReadMultipleGrids(
+            g.filename, [g.id], sets, "")[g.id]
+        for ftype, fname in fields:
+            rv[(ftype, fname)] = rv.pop(fname).swapaxes(0,2)
         return rv
 
     def _read_chunk_data(self, chunk, fields, filter_particles = False,

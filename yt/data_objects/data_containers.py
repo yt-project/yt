@@ -53,7 +53,7 @@ import yt.geometry.selection_routines
 def force_array(item, shape):
     try:
         sh = item.shape
-        return item
+        return item.copy()
     except AttributeError:
         if item:
             return np.ones(shape, dtype='bool')
@@ -109,6 +109,8 @@ class YTDataContainer(object):
         if pf != None:
             self.pf = pf
             self.hierarchy = pf.hierarchy
+        self._current_particle_type = "all"
+        self._current_fluid_type = self.pf.default_fluid_type
         self.hierarchy.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         self.field_data = YTFieldData()
@@ -212,13 +214,14 @@ class YTDataContainer(object):
 
     def _generate_field(self, field):
         ftype, fname = field
-        if fname in self._container_fields:
-            return self._generate_container_field(field)
-        finfo = self._get_field_info(*field)
-        if finfo.particle_type:
-            return self._generate_particle_field(field)
-        else:
-            return self._generate_fluid_field(field)
+        finfo = self.pf._get_field_info(*field)
+        with self._field_type_state(ftype, finfo):
+            if fname in self._container_fields:
+                return self._generate_container_field(field)
+            if finfo.particle_type:
+                return self._generate_particle_field(field)
+            else:
+                return self._generate_fluid_field(field)
 
     def _generate_fluid_field(self, field):
         # First we check the validator
@@ -230,7 +233,7 @@ class YTDataContainer(object):
             gen_obj = self._current_chunk.objs[0]
         try:
             self.pf.field_info[fname].check_available(gen_obj)
-        except NeedsGridType, ngt_exception:
+        except NeedsGridType as ngt_exception:
             rv = np.empty(self.size, dtype="float64")
             ind = 0
             ngz = ngt_exception.ghost_zones
@@ -257,9 +260,9 @@ class YTDataContainer(object):
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            finfo = self._get_field_info(*field)
+            finfo = self.pf._get_field_info(*field)
             finfo.check_available(gen_obj)
-        except NeedsGridType, ngt_exception:
+        except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
                 raise NotImplementedError
             size = self._count_particles(ftype)
@@ -269,6 +272,7 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks(field, "spatial")):
                     x, y, z = (self[ftype, 'particle_position_%s' % ax]
                                for ax in 'xyz')
+                    if x.size == 0: continue
                     mask = self._current_chunk.objs[0].select_particles(
                         self.selector, x, y, z)
                     if mask is None: continue
@@ -277,7 +281,8 @@ class YTDataContainer(object):
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
-            rv = self._get_field_info(*field)(gen_obj)
+            with self._field_type_state(ftype, finfo, gen_obj):
+                rv = self.pf._get_field_info(*field)(gen_obj)
         return rv
 
     def _count_particles(self, ftype):
@@ -289,6 +294,7 @@ class YTDataContainer(object):
             for i,chunk in enumerate(self.chunks([], "spatial")):
                 x, y, z = (self[ftype, 'particle_position_%s' % ax]
                             for ax in 'xyz')
+                if x.size == 0: continue
                 size += self._current_chunk.objs[0].count_particles(
                     self.selector, x, y, z)
         return size
@@ -347,12 +353,18 @@ class YTDataContainer(object):
                        for i in self._con_args])
         return s
 
-    def _get_field_info(self, ftype, fname):
-        if (ftype, fname) in self.pf.field_info:
-            return self.pf.field_info[(ftype, fname)]
-        if fname in self.pf.field_info:
-           return self.pf.field_info[fname]
-        raise YTFieldNotFound((fname, ftype), self.pf)
+    @contextmanager
+    def _field_type_state(self, ftype, finfo, obj = None):
+        if obj is None: obj = self
+        old_particle_type = obj._current_particle_type
+        old_fluid_type = obj._current_fluid_type
+        if finfo.particle_type:
+            obj._current_particle_type = ftype
+        else:
+            obj._current_fluid_type = ftype
+        yield
+        obj._current_particle_type = old_particle_type
+        obj._current_fluid_type = old_fluid_type
 
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
@@ -367,14 +379,14 @@ class YTDataContainer(object):
                    not isinstance(field[1], types.StringTypes):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
-                finfo = self._get_field_info(ftype, fname)
+                finfo = self.pf._get_field_info(ftype, fname)
             else:
                 fname = field
-                finfo = self._get_field_info("unknown", fname)
+                finfo = self.pf._get_field_info("unknown", fname)
                 if finfo.particle_type:
-                    ftype = "all"
+                    ftype = self._current_particle_type
                 else:
-                    ftype = self.pf.default_fluid_type
+                    ftype = self._current_fluid_type
             if finfo.particle_type and ftype not in self.pf.particle_types:
                 raise YTFieldTypeNotFound(ftype)
             elif not finfo.particle_type and ftype not in self.pf.fluid_types:
@@ -441,7 +453,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         for ftype, fname in fields_to_get:
-            finfo = self._get_field_info(ftype, fname)
+            finfo = self.pf._get_field_info(ftype, fname)
             if finfo.particle_type:
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
@@ -666,7 +678,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         as the points in `this` data object with the given *indices*.
         """
         fp = self.field_parameters.copy()
-        return YTSelectedIndicesBase(self, indices, **fp)
+        return YTSelectedIndicesBase(self, indices, field_parameters = fp)
 
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):
@@ -976,7 +988,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
         cen = kwargs.pop("center", None)
         if cen is None: cen = base_region.get_field_parameter("center")
         YTSelectionContainer3D.__init__(self, center=cen,
-                            fields=None, pf=base_region.pf, **kwargs)
+                            pf=base_region.pf, **kwargs)
         self._base_region = base_region # We don't weakly reference because
                                         # It is not cyclic
         if isinstance(indices, types.DictType):
@@ -1084,6 +1096,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
 
 
 class YTValueCutExtractionBase(YTSelectionContainer3D):
+    _type_name = "cut_region"
     """
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.
@@ -1091,7 +1104,7 @@ class YTValueCutExtractionBase(YTSelectionContainer3D):
     def __init__(self, base_region, field_cuts, **kwargs):
         cen = base_region.get_field_parameter("center")
         YTSelectionContainer3D.__init__(self, center=cen,
-                            fields=None, pf=base_region.pf, **kwargs)
+                            pf=base_region.pf, **kwargs)
         self._base_region = base_region # We don't weakly reference because
                                         # It is not cyclic
         self._field_cuts = ensure_list(field_cuts)[:]

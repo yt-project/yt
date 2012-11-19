@@ -67,3 +67,4 @@ class TestAllProjections(YTStaticOutputTest):
         for field in sorted(self.result):
             for p1, p2 in zip(self.result[field], old_result[field]):
                 self.compare_data_arrays(p1, p2, self.tolerance)
+

@@ -1448,7 +1448,7 @@ class MosaicFisheyeCamera(Camera):
             yield self.snapshot()
 
 def allsky_projection(pf, center, radius, nside, field, weight = None,
-                      inner_radius = 10, rotation = None):
+                      inner_radius = 10, rotation = None, source = None):
     r"""Project through a parameter file, through an allsky-method
     decomposition from HEALpix, and return the image plane.
 
@@ -1483,6 +1483,9 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         If supplied, the vectors will be rotated by this.  You can construct
         this by, for instance, calling np.array([v1,v2,v3]) where those are the
         three reference planes of an orthogonal frame (see ortho_find).
+    source : data container, default None
+        If this is supplied, this gives the data source from which the all sky
+        projection pulls its data from.
 
     Returns
     -------
@@ -1526,12 +1529,20 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     positions += inner_radius * dx * vs
     vs *= radius
     uv = np.ones(3, dtype='float64')
-    grids = pf.h.sphere(center, radius)._grids
+    if source is not None:
+        grids = source._grids
+    else:
+        grids = pf.h.sphere(center, radius)._grids
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
-        data = [grid[field] * grid.child_mask.astype('float64')
+        if source is not None:
+            data = [grid[field] * source._get_cut_mask(grid) * \
+                grid.child_mask.astype('float64')
+                for field in fields]
+        else:
+            data = [grid[field] * grid.child_mask.astype('float64')
                 for field in fields]
         pg = PartitionedGrid(
             grid.id, data,

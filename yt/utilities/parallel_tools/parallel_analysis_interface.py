@@ -279,12 +279,12 @@ class ProcessorPool(object):
     ranks = None
     available_ranks = None
     tasks = None
-    workgroups = []
     def __init__(self):
         self.comm = communication_system.communicators[-1]
         self.size = self.comm.size
         self.ranks = range(self.size)
         self.available_ranks = range(self.size)
+        self.workgroups = []
     
     def add_workgroup(self, size=None, ranks=None, name=None):
         if size is None:
@@ -296,7 +296,7 @@ class ProcessorPool(object):
             ranks = [self.available_ranks.pop(0) for i in range(size)]
         # Default name to the workgroup number.
         if name is None: 
-            name = string(len(workgroups))
+            name = string(len(self.workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
@@ -304,16 +304,20 @@ class ProcessorPool(object):
         self.workgroups.append(Workgroup(len(ranks), ranks, new_comm, name))
     
     def free_workgroup(self, workgroup):
+        # If you want to actually delete the workgroup you will need to
+        # pop it out of the self.workgroups list so you don't have references
+        # that are left dangling, e.g. see free_all() below.
         for i in workgroup.ranks:
             if self.comm.rank == i:
                 communication_system.communicators.pop()
             self.available_ranks.append(i) 
-        del workgroup
         self.available_ranks.sort()
 
     def free_all(self):
         for wg in self.workgroups:
             self.free_workgroup(wg)
+        for i in range(len(self.workgroups)):
+            self.workgroups.pop(0)
 
     @classmethod
     def from_sizes(cls, sizes):
@@ -578,7 +582,9 @@ class Communicator(object):
                     ncols, size = data.shape
             ncols = self.comm.allreduce(ncols, op=MPI.MAX)
             if ncols == 0:
-                    data = np.zeros(0, dtype=dtype) # This only works for
+                data = np.zeros(0, dtype=dtype) # This only works for
+            elif data is None:
+                data = np.zeros((ncols, 0), dtype=dtype)
             size = data.shape[-1]
             sizes = np.zeros(self.comm.size, dtype='int64')
             outsize = np.array(size, dtype='int64')
@@ -1055,3 +1061,49 @@ class ParallelAnalysisInterface(object):
                 nextdim = (nextdim + 1) % 3
         return cuts
     
+class GroupOwnership(ParallelAnalysisInterface):
+    def __init__(self, items):
+        ParallelAnalysisInterface.__init__(self)
+        self.num_items = len(items)
+        self.items = items
+        assert(self.num_items >= self.comm.size)
+        self.owned = range(self.comm.size)
+        self.pointer = 0
+        if parallel_capable:
+            communication_system.push_with_ids([self.comm.rank])
+
+    def __del__(self):
+        if parallel_capable:
+            communication_system.pop()
+
+    def inc(self, n = -1):
+        old_item = self.item
+        if n == -1: n = self.comm.size
+        for i in range(n):
+            if self.pointer >= self.num_items - self.comm.size: break
+            self.owned[self.pointer % self.comm.size] += self.comm.size
+            self.pointer += 1
+        if self.item is not old_item:
+            self.switch()
+            
+    def dec(self, n = -1):
+        old_item = self.item
+        if n == -1: n = self.comm.size
+        for i in range(n):
+            if self.pointer == 0: break
+            self.owned[(self.pointer - 1) % self.comm.size] -= self.comm.size
+            self.pointer -= 1
+        if self.item is not old_item:
+            self.switch()
+
+    _last = None
+    @property
+    def item(self):
+        own = self.owned[self.comm.rank]
+        if self._last != own:
+            self._item = self.items[own]
+            self._last = own
+        return self._item
+
+    def switch(self):
+        pass

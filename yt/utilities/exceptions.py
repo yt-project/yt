@@ -25,6 +25,7 @@ License:
 
 # We don't need to import 'exceptions'
 #import exceptions
+import os.path
 
 class YTException(Exception):
     def __init__(self, pf = None):
@@ -91,6 +92,30 @@ class YTSimulationNotIdentified(YTException):
     def __str__(self):
         return "Simulation time-series type %s not defined." % self.sim_type
 
+class YTCannotParseFieldDisplayName(YTException):
+    def __init__(self, field_name, display_name, mathtext_error):
+        self.field_name = field_name
+        self.display_name = display_name
+        self.mathtext_error = mathtext_error
+
+    def __str__(self):
+        return ("The display name \"%s\" "
+                "of the derived field %s " 
+                "contains the following LaTeX parser errors:\n" ) \
+                % (self.display_name, self.field_name) + self.mathtext_error
+
+class YTCannotParseUnitDisplayName(YTException):
+    def __init__(self, field_name, display_unit, mathtext_error):
+        self.field_name = field_name
+        self.unit_name = unit_name
+        self.mathtext_error = mathtext_error
+
+    def __str__(self):
+        return ("The unit display name \"%s\" "
+                "of the derived field %s " 
+                "contains the following LaTeX parser errors:\n" ) \
+            % (self.unit_name, self.field_name) + self.mathtext_error
+
 class AmbiguousOutputs(YTException):
     def __init__(self, pf):
         YTException.__init__(self, pf)
@@ -148,3 +173,38 @@ class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \
                "https://data.yt-project.org/getting_started.html"
+
+class YTNoFilenamesMatchPattern(YTException):
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def __str__(self):
+        return "No filenames were found to match the pattern: " + \
+               "'%s'" % (self.pattern)
+
+class YTNoOldAnswer(YTException):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "There is no old answer available.\n" + \
+               str(self.path)
+
+class YTEllipsoidOrdering(YTException):
+    def __init__(self, pf, A, B, C):
+        YTException.__init__(self, pf)
+        self._A = A
+        self._B = B
+        self._C = C
+
+    def __str__(self):
+        return "Must have A>=B>=C"
+
+class EnzoTestOutputFileNonExistent(YTException):
+    def __init__(self, filename):
+        self.filename = filename
+        self.testname = os.path.basename(os.path.dirname(filename))
+
+    def __str__(self):
+        return "Enzo test output file (OutputLog) not generated for: " + \
+            "'%s'" % (self.testname) + ".\nTest did not complete."

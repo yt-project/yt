@@ -32,6 +32,8 @@ from cython.parallel import prange, parallel, threadid
 from selection_routines cimport SelectorObject
 from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 #from geometry_utils cimport point_to_hilbert
+from yt.utilities.lib.grid_traversal cimport \
+    VolumeContainer, sample_function, walk_volume
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -43,6 +45,10 @@ cdef extern from "math.h":
     double log2(double x) nogil
     long int lrint(double x) nogil
     double fabs(double x) nogil
+
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
 
 # These routines are separated into a couple different categories:
 #
@@ -79,59 +85,34 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
                     cpos += 1
     return indices
 
-def ray_grids(dobj, np.ndarray[np.float64_t, ndim=2] left_edges,
-                    np.ndarray[np.float64_t, ndim=2] right_edges):
-    cdef int i, ax
-    cdef int i1, i2
-    cdef int ng = left_edges.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=1] gridi = np.zeros(ng, dtype='int32')
-    cdef np.float64_t vs[3], t, p0[3], p1[3], v[3]
-    for i in range(3):
-        p0[i] = dobj.start_point[i]
-        p1[i] = dobj.end_point[i]
-        v[i] = dobj.vec[i]
-    # We check first to see if at any point, the ray intersects a grid face
-    for gi in range(ng):
-        for ax in range(3):
-            i1 = (ax+1) % 3
-            i2 = (ax+2) % 3
-            t = (left_edges[gi,ax] - p0[ax])/v[ax]
-            for i in range(3):
-                vs[i] = t * v[i] + p0[i]
-            if left_edges[gi,i1] <= vs[i1] and \
-               right_edges[gi,i1] >= vs[i1] and \
-               left_edges[gi,i2] <= vs[i2] and \
-               right_edges[gi,i2] >= vs[i2]:
-                gridi[gi] = 1
-                break
-            t = (right_edges[gi,ax] - p0[ax])/v[ax]
-            for i in range(3):
-                vs[i] = t * v[i] + p0[i]
-            if left_edges[gi,i1] <= vs[i1] and \
-               right_edges[gi,i1] >= vs[i1] and \
-               left_edges[gi,i2] <= vs[i2] and \
-               right_edges[gi,i2] >= vs[i2]:
-                gridi[gi] = 1
-                break
-        if gridi[gi] == 1: continue
-        # if the point is fully enclosed, we count the grid
-        if left_edges[gi,0] <= p0[0] and \
-           right_edges[gi,0] >= p0[0] and \
-           left_edges[gi,1] <= p0[1] and \
-           right_edges[gi,1] >= p0[1] and \
-           left_edges[gi,2] <= p0[2] and \
-           right_edges[gi,2] >= p0[2]:
-            gridi[gi] = 1
-            continue
-        if left_edges[gi,0] <= p1[0] and \
-           right_edges[gi,0] >= p1[0] and \
-           left_edges[gi,1] <= p1[1] and \
-           right_edges[gi,1] >= p1[1] and \
-           left_edges[gi,2] <= p1[2] and \
-           right_edges[gi,2] >= p1[2]:
-            gridi[gi] = 1
-            continue
-    return gridi.astype("bool")
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
+                np.int64_t offset,
+                np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
+                np.ndarray[anyfloat, ndim=3] vals):
+    cdef np.int64_t count = 0
+    cdef int i, j, k
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            for k in range(mask.shape[2]):
+                if mask[i,j,k] == 1:
+                    out[offset + count] = vals[i,j,k]
+                    count += 1
+    return count
+
+def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
+              np.int64_t offset,
+              np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
+              np.ndarray vals):
+    if vals.dtype == np.float32:
+        return _mask_fill[np.float32_t](out, offset, mask, vals)
+    elif vals.dtype == np.float64:
+        return _mask_fill[np.float64_t](out, offset, mask, vals)
+    else:
+        raise RuntimeError
 
 # Inclined Box
 
@@ -724,6 +705,28 @@ cdef class OrthoRaySelector(SelectorObject):
 
 ortho_ray_selector = OrthoRaySelector
 
+cdef struct IntegrationAccumulator:
+    np.float64_t *t
+    np.float64_t *dt
+    np.uint8_t *child_mask
+    int hits
+
+cdef void dt_sampler(
+             VolumeContainer *vc,
+             np.float64_t v_pos[3],
+             np.float64_t v_dir[3],
+             np.float64_t enter_t,
+             np.float64_t exit_t,
+             int index[3],
+             void *data) nogil:
+    cdef IntegrationAccumulator *am = <IntegrationAccumulator *> data
+    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
+    if am.child_mask[di] == 0 or enter_t == exit_t:
+        return
+    am.hits += 1
+    am.t[di] = enter_t
+    am.dt[di] = (exit_t - enter_t)
+
 cdef class RaySelector(SelectorObject):
 
     cdef np.float64_t p1[3]
@@ -734,60 +737,139 @@ cdef class RaySelector(SelectorObject):
         cdef int i
         for i in range(3):
             self.vec[i] = dobj.vec[i]
-        if (0.0 <= self.vec[0]) and (0.0 <= self.vec[1]) and (0.0 <= self.vec[2]):
-            for i in range(3):
-                self.p1[i] = dobj.start_point[i]
-                self.p2[i] = dobj.end_point[i]
-        else:
-            for i in range(3):
-                self.p1[i] = dobj.end_point[i]
-                self.p2[i] = dobj.start_point[i]
+            self.p1[i] = dobj.start_point[i]
+            self.p2[i] = dobj.end_point[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        if ((self.p1[0] <= left_edge[0]) and (self.p2[0] > right_edge[0]) and 
-            (self.p1[1] <= left_edge[1]) and (self.p2[1] > right_edge[1]) and 
-            (self.p1[2] <= left_edge[2]) and (self.p2[2] > right_edge[2])):
+        cdef int i, ax
+        cdef int i1, i2
+        cdef np.float64_t vs[3], t, v[3]
+        for ax in range(3):
+            i1 = (ax+1) % 3
+            i2 = (ax+2) % 3
+            t = (left_edge[ax] - self.p1[ax])/self.vec[ax]
+            for i in range(3):
+                vs[i] = t * self.vec[i] + self.p1[i]
+            if left_edge[i1] <= vs[i1] and \
+               right_edge[i1] >= vs[i1] and \
+               left_edge[i2] <= vs[i2] and \
+               right_edge[i2] >= vs[i2] and \
+               0.0 <= t <= 1.0:
+                return 1
+            t = (right_edge[ax] - self.p1[ax])/self.vec[ax]
+            for i in range(3):
+                vs[i] = t * self.vec[i] + self.p1[i]
+            if left_edge[i1] <= vs[i1] and \
+               right_edge[i1] >= vs[i1] and \
+               left_edge[i2] <= vs[i2] and \
+               right_edge[i2] >= vs[i2] and\
+               0.0 <= t <= 1.0:
+                return 1
+        # if the point is fully enclosed, we count the grid
+        if left_edge[0] <= self.p1[0] and \
+           right_edge[0] >= self.p1[0] and \
+           left_edge[1] <= self.p1[1] and \
+           right_edge[1] >= self.p1[1] and \
+           left_edge[2] <= self.p1[2] and \
+           right_edge[2] >= self.p1[2]:
+            return 1
+        if left_edge[0] <= self.p2[0] and \
+           right_edge[0] >= self.p2[0] and \
+           left_edge[1] <= self.p2[1] and \
+           right_edge[1] >= self.p2[1] and \
+           left_edge[2] <= self.p2[2] and \
+           right_edge[2] >= self.p2[2]:
             return 1
         return 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.float64_t, ndim=3] t, dt
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i
+        cdef IntegrationAccumulator ia
+        cdef VolumeContainer vc
+        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+        t = np.zeros(gobj.ActiveDimensions, dtype="float64")
+        dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
+        child_mask = gobj.child_mask
+        ia.t = <np.float64_t *> t.data
+        ia.dt = <np.float64_t *> dt.data
+        ia.child_mask = <np.uint8_t *> child_mask.data
+        ia.hits = 0
+        for i in range(3):
+            vc.left_edge[i] = gobj.LeftEdge[i]
+            vc.right_edge[i] = gobj.RightEdge[i]
+            vc.dds[i] = gobj.dds[i]
+            vc.idds[i] = 1.0/gobj.dds[i]
+            vc.dims[i] = dt.shape[i]
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        for i in range(dt.shape[0]):
+            for j in range(dt.shape[1]):
+                for k in range(dt.shape[2]):
+                    if dt[i,j,k] >= 0:
+                        mask[i,j,k] = 1
+        return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        return self.fill_mask(gobj).sum()
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
-                         int eterm[3]) nogil:
-        if ((self.p1[0] <= pos[0] - 0.5*dds[0]) and 
-            (self.p2[0] >  pos[0] + 0.5*dds[0]) and 
-            (self.p1[1] <= pos[1] - 0.5*dds[1]) and 
-            (self.p2[1] >  pos[1] + 0.5*dds[1]) and 
-            (self.p1[2] <= pos[2] - 0.5*dds[2]) and 
-            (self.p2[2] >  pos[2] + 0.5*dds[2])):
-            return 1
-        return 0
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void set_bounds(self,
-                         np.float64_t left_edge[3], np.float64_t right_edge[3],
-                         np.float64_t dds[3], int ind[3][2], int *check):
-        cdef int i
+    def get_dt(self, gobj):
+        cdef np.ndarray[np.float64_t, ndim=3] t, dt
+        cdef np.ndarray[np.float64_t, ndim=1] tr, dtr
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i, j, k, ni
+        cdef IntegrationAccumulator ia
+        cdef VolumeContainer vc
+        t = np.zeros(gobj.ActiveDimensions, dtype="float64")
+        dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
+        child_mask = gobj.child_mask
+        ia.t = <np.float64_t *> t.data
+        ia.dt = <np.float64_t *> dt.data
+        ia.child_mask = <np.uint8_t *> child_mask.data
+        ia.hits = 0
         for i in range(3):
-            ind[i][0] = <int> ((self.p1[i] - left_edge[i])/dds[i])
-            ind[i][1] = ind[i][0] + 1
-        check[0] = 0
-
+            vc.left_edge[i] = gobj.LeftEdge[i]
+            vc.right_edge[i] = gobj.RightEdge[i]
+            vc.dds[i] = gobj.dds[i]
+            vc.idds[i] = 1.0/gobj.dds[i]
+            vc.dims[i] = dt.shape[i]
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        tr = np.zeros(ia.hits, dtype="float64")
+        dtr = np.zeros(ia.hits, dtype="float64")
+        ni = 0
+        for i in range(dt.shape[0]):
+            for j in range(dt.shape[1]):
+                for k in range(dt.shape[2]):
+                    if dt[i,j,k] >= 0:
+                        tr[ni] = t[i,j,k]
+                        dtr[ni] = dt[i,j,k]
+                        ni += 1
+        if not (ni == ia.hits):
+            print ni, ia.hits
+        return dtr, tr
+    
 ray_selector = RaySelector
 
-cdef class GridCollectionSelector(SelectorObject):
+cdef class DataCollectionSelector(SelectorObject):
+    cdef object obj_ids
+    cdef np.int64_t nids
 
     def __init__(self, dobj):
-        return
+        self.obj_ids = dobj._obj_ids
+        self.nids = self.obj_ids.shape[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -804,7 +886,141 @@ cdef class GridCollectionSelector(SelectorObject):
     def select_grids(self,
                      np.ndarray[np.float64_t, ndim=2] left_edges,
                      np.ndarray[np.float64_t, ndim=2] right_edges):
-        raise RuntimeError
+        cdef int i, n
+        cdef int ng = left_edges.shape[0]
+        cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
+        cdef np.ndarray[np.int64_t, ndim=1] oids = self.obj_ids
+        with nogil:
+            for n in range(self.nids):
+                # Call our selector function
+                # Check if the sphere is inside the grid
+                gridi[oids[n]] = 1
+        return gridi.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        return gobj.ActiveDimensions.prod()
     
-grid_collection_selector = GridCollectionSelector
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.uint8_t, ndim=3] mask 
+        mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
+        return mask.astype("bool")
+
+data_collection_selector = DataCollectionSelector
+
+cdef class EllipsoidSelector(SelectorObject):
+    cdef np.float64_t vec[3][3]
+    cdef np.float64_t mag[3]
+    cdef np.float64_t center[3]
+
+    def __init__(self, dobj):
+        cdef int i
+        for i in range(3):
+            self.center[i] = dobj.center[i]
+            self.vec[0][i] = dobj._e0[i]
+            self.vec[1][i] = dobj._e1[i]
+            self.vec[2][i] = dobj._e2[i]
+        self.mag[0] = dobj._A
+        self.mag[1] = dobj._B
+        self.mag[2] = dobj._C
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # This is the sphere selection
+        cdef np.float64_t radius2, box_center, relcenter, closest, dist, edge
+        return 1
+        radius2 = self.mag[0] * self.mag[0]
+        cdef int id
+        if (left_edge[0] <= self.center[0] <= right_edge[0] and
+            left_edge[1] <= self.center[1] <= right_edge[1] and
+            left_edge[2] <= self.center[2] <= right_edge[2]):
+            return 1
+        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
+        dist = 0
+        for i in range(3):
+            box_center = (right_edge[i] + left_edge[i])/2.0
+            relcenter = self.center[i] - box_center
+            edge = right_edge[i] - left_edge[i]
+            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
+            dist += closest * closest
+        if dist < radius2: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        cdef np.float64_t dot_evec[3]
+        cdef np.float64_t dist
+        cdef int i, j
+        dot_evec[0] = dot_evec[1] = dot_evec[2] = 0
+        # Calculate the rotated dot product
+        for i in range(3): # axis
+            dist = pos[i] - self.center[i]
+            for j in range(3):
+                dot_evec[j] += dist * self.vec[j][i]
+        dist = 0.0
+        for i in range(3):
+            dist += (dot_evec[i] * dot_evec[i])/(self.mag[i] * self.mag[i])
+        if dist <= 1.0: return 1
+        return 0
+
+ellipsoid_selector = EllipsoidSelector
+
+cdef class GridSelector(SelectorObject):
+    cdef object ind
+
+    def __init__(self, dobj):
+        self.ind = dobj.id - dobj._id_offset
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        check[0] = 0
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges):
+        cdef int ng = left_edges.shape[0]
+        cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
+        gridi[self.ind] = 1
+        return gridi.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        return gobj.ActiveDimensions.prod()
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        return np.ones(gobj.ActiveDimensions, dtype='bool')
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        return 1
+
+
+grid_selector = GridSelector
 

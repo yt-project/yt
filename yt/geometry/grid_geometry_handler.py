@@ -132,17 +132,19 @@ class GridGeometryHandler(GeometryHandler):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%14s" % ("level","# grids", "# cells")
+        header = "%3s\t%6s\t%14s\t%14s" % ("level","# grids", "# cells",
+                                           "# cells^3")
         print header
         print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 14i" % \
+            print "% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
-                   self.level_stats['numcells'][level])
+                   self.level_stats['numcells'][level],
+                   self.level_stats['numcells'][level]**(1./3))
             dx = self.select_grids(level)[0].dds[0]
-        print "-" * 28
+        print "-" * 46
         print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
         print "\n"
         try:
@@ -161,17 +163,48 @@ class GridGeometryHandler(GeometryHandler):
         for unit in u:
             print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
 
+    def find_max(self, field, finest_levels = 3):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if (field, finest_levels) in self._max_locations:
+            return self._max_locations[(field, finest_levels)]
+        mv, pos = self.find_max_cell_location(field, finest_levels)
+        self._max_locations[(field, finest_levels)] = (mv, pos)
+        return mv, pos
+
+    def find_max_cell_location(self, field, finest_levels = 3):
+        if finest_levels is not False:
+            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
+            source = self.data_collection([0.0]*3, self.grids[gi])
+        else:
+            source = self.all_data()
+        mylog.debug("Searching for maximum value of %s", field)
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        self.parameters["Max%sValue" % (field)] = max_val
+        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        return max_val, np.array((mx,my,mz), dtype='float64')
+
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
-        if getattr(dobj, "_grids", None) is None:
+        if dobj._type_name == "grid":
+            dobj._chunk_info = np.empty(1, dtype='object')
+            dobj._chunk_info[0] = dobj
+        elif getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge)
             grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
-            dobj._chunk_info = np.array(grids, dtype='object')
+            dobj._chunk_info = np.empty(len(grids), dtype='object')
+            for i, g in enumerate(grids):
+                dobj._chunk_info[i] = g
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
+        if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -184,9 +217,15 @@ class GridGeometryHandler(GeometryHandler):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size)
         
-    def _chunk_spatial(self, dobj, ngz):
+    def _chunk_spatial(self, dobj, ngz, sort = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i,og in enumerate(gobjs):
+        if sort in ("+level", "level"):
+            giter = sorted(gobjs, key = g.Level)
+        elif sort == "-level":
+            giter = sorted(gobjs, key = -g.Level)
+        elif sort is None:
+            giter = gobjs
+        for i,og in enumerate(giter):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:

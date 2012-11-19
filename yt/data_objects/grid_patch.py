@@ -26,13 +26,16 @@ License:
 import exceptions
 import pdb
 import weakref
-
+import itertools
 import numpy as np
 
 from yt.funcs import *
 from yt.utilities.definitions import x_dict, y_dict
 
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.data_containers import \
+    YTFieldData, \
+    YTDataContainer, \
+    YTSelectionContainer
 from yt.utilities.definitions import x_dict, y_dict
 from .field_info_container import \
     NeedsGridType, \
@@ -42,7 +45,7 @@ from .field_info_container import \
     NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
 
-class AMRGridPatch(object):
+class AMRGridPatch(YTSelectionContainer):
     _spatial = True
     _num_ghost_zones = 0
     _grids = None
@@ -51,15 +54,8 @@ class AMRGridPatch(object):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
+    _container_fields = ("dx", "dy", "dz")
     OverlappingSiblings = None
-
-    __slots__ = ['field_data', 'field_parameters', 'id', 'hierarchy', 'pf',
-                 'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
-                 'NumberOfParticles', 'Children', 'Parent',
-                 'start_index', 'filename', '__weakref__', 'dds',
-                 '_child_mask', '_child_indices', '_child_index_mask',
-                 '_parent_id', '_children_ids',
-                 '_last_mask', '_last_selector_id']
 
     def __init__(self, id, filename=None, hierarchy=None):
         self.field_data = YTFieldData()
@@ -71,6 +67,8 @@ class AMRGridPatch(object):
         self.start_index = None
         self._last_mask = None
         self._last_selector_id = None
+        self._current_particle_type = 'all'
+        self._current_fluid_type = self.pf.default_fluid_type
 
     def get_global_startindex(self):
         """
@@ -91,28 +89,16 @@ class AMRGridPatch(object):
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
-    def get_field_parameter(self, name, default=None):
-        """
-        This is typically only used by derived field functions, but it returns
-        parameters used to generate fields.
-
-        """
-        if self.field_parameters.has_key(name):
-            return self.field_parameters[name]
-        else:
-            return default
-
-    def set_field_parameter(self, name, val):
-        """
-        Here we set up dictionaries that get passed up and down and ultimately
-        to derived fields.
-
-        """
-        self.field_parameters[name] = val
-
-    def has_field_parameter(self, name):
-        """ Checks if a field parameter is set. """
-        return self.field_parameters.has_key(name)
+    def __getitem__(self, key):
+        tr = super(AMRGridPatch, self).__getitem__(key)
+        try:
+            fields = self._determine_fields(key)
+        except YTFieldTypeNotFound:
+            return tr
+        finfo = self.pf._get_field_info(*fields[0])
+        if not finfo.particle_type:
+            return tr.reshape(self.ActiveDimensions)
+        return tr
 
     def convert(self, datatype):
         """
@@ -122,87 +108,19 @@ class AMRGridPatch(object):
         """
         return self.pf[datatype]
 
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
-        s += ", ".join(["%s=%s" % (i, getattr(self,i))
-                        for i in self._con_args])
-        return s
+    @property
+    def shape(self):
+        return self.ActiveDimensions
 
-    def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator
-            try:
-                self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # This is only going to be raised if n_gz > 0
-                n_gz = ngt_exception.ghost_zones
-                f_gz = ngt_exception.fields
-                if f_gz is None:
-                    f_gz = self.pf.field_info[field].get_dependencies(
-                            pf = self.pf).requested
-                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
-                temp_array = self.pf.field_info[field](gz_grid)
-                sl = [slice(n_gz, -n_gz)] * 3
-                self[field] = temp_array[sl]
-            else:
-                self[field] = self.pf.field_info[field](self)
-        else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
-
-    def has_key(self, key):
-        return (key in self.field_data)
-
-    def __getitem__(self, key):
-        """
-        Returns a single field.  Will add if necessary.
-        """
-        if not self.field_data.has_key(key):
-            self.get_data(key)
-        return self.field_data[key]
-
-    def __setitem__(self, key, val):
-        """
-        Sets a field to be some other value.
-        """
-        self.field_data[key] = val
-
-    def __delitem__(self, key):
-        """
-        Deletes a field
-        """
-        del self.field_data[key]
-
-    def keys(self):
-        return self.field_data.keys()
-
-    def get_data(self, field, convert = True):
-        """
-        Returns a field or set of fields for a key or set of keys
-        """
-        if not self.field_data.has_key(field):
-            if field in self.hierarchy.field_list:
-                conv_factor = 1.0
-                if self.pf.field_info.has_key(field) and convert == True:
-                    conv_factor = self.pf.field_info[field]._convert_function(self)
-                if self.pf.field_info[field].particle_type and \
-                   self.NumberOfParticles == 0:
-                    # because this gets upcast to float
-                    self[field] = np.array([],dtype='int64')
-                    return self.field_data[field]
-                try:
-                    temp = self.hierarchy.io.pop(self, field)
-                    self[field] = np.multiply(temp, conv_factor, temp)
-                except self.hierarchy.io._read_exception, exc:
-                    if field in self.pf.field_info:
-                        if self.pf.field_info[field].not_in_all:
-                            self[field] = np.zeros(self.ActiveDimensions, dtype='float64')
-                        else:
-                            raise
-                    else: raise
-            else:
-                self._generate_field(field)
-        return self.field_data[field]
+    def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
+        if field == "dx":
+            return self._current_chunk.fwidth[:,0]
+        elif field == "dy":
+            return self._current_chunk.fwidth[:,1]
+        elif field == "dz":
+            return self._current_chunk.fwidth[:,2]
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -216,7 +134,6 @@ class AMRGridPatch(object):
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
         if self.pf.dimensionality < 3: self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     @property
     def _corners(self):
@@ -230,10 +147,6 @@ class AMRGridPatch(object):
             [self.RightEdge[0], self.LeftEdge[1],  self.RightEdge[2]],
             [self.LeftEdge[0],  self.RightEdge[1], self.LeftEdge[2]],
             ], dtype='float64')
-
-    @property
-    def shape(self):
-        return tuple(self.ActiveDimensions)
 
     def _generate_overlap_masks(self, axis, LE, RE):
         """
@@ -262,9 +175,9 @@ class AMRGridPatch(object):
         all field parameters.
 
         """
+        super(AMRGridPatch, self).clear_data()
         self._del_child_mask()
         self._del_child_indices()
-        self.field_data.clear()
         self._setup_dx()
 
     def check_child_masks(self):
@@ -284,9 +197,6 @@ class AMRGridPatch(object):
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
-
-    def __len__(self):
-        return np.prod(self.ActiveDimensions)
 
     def find_max(self, field):
         """ Returns value, index of maximum value of *field* in this grid. """
@@ -320,10 +230,6 @@ class AMRGridPatch(object):
             del self.retVal
         self.field_data = YTFieldData()
         self.clear_derived_quantities()
-
-    def clear_derived_quantities(self):
-        """ Clears coordinates, child_indices, child_mask. """
-        # Access the property raw-values here
         del self.child_mask
         del self.child_ind
 
@@ -541,6 +447,10 @@ class AMRGridPatch(object):
         coords = np.empty(mask.sum(), dtype='int64')
         coords[:] = self.Level
         return coords
+
+    def tcoords(self, dobj):
+        dt, t = dobj.selector.get_dt(self)
+        return dt, t
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:

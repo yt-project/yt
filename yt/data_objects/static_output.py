@@ -40,6 +40,11 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
 
+from yt.geometry.coordinate_handler import \
+    CartesianCoordinateHandler, \
+    PolarCoordinateHandler, \
+    CylindricalCoordinateHandler
+
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoStaticOutputs as appropriate.
@@ -53,6 +58,7 @@ class StaticOutput(object):
     fluid_types = ("gas",)
     particle_types = ("all",)
     geometry = "cartesian"
+    coordinates = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -96,6 +102,7 @@ class StaticOutput(object):
         self.min_level = 0
 
         self._parse_parameter_file()
+        self._setup_coordinate_handler()
         self._set_units()
         self._set_derived_attrs()
 
@@ -223,8 +230,35 @@ class StaticOutput(object):
             # away the exising field_info.
             self.field_info = FieldInfoContainer.create_with_fallback(
                                 self._fieldinfo_fallback)
+            self.field_info.update(self.coordinates.coordinate_fields())
         if getattr(self, "field_dependencies", None) is None:
             self.field_dependencies = {}
+
+    def _setup_coordinate_handler(self):
+        if self.geometry == "cartesian":
+            self.coordinates = CartesianCoordinateHandler(self)
+        elif self.geometry == "cylindrical":
+            self.coordinates = CylindricalCoordinateHandler(self)
+        elif self.geometry == "polar":
+            self.coordinates = PolarCoordinateHandler(self)
+        else:
+            raise YTGeometryNotSupported(self.geometry)
+
+    _last_freq = (None, None)
+    _last_finfo = None
+    def _get_field_info(self, ftype, fname):
+        field = (ftype, fname)
+        if field == self._last_freq or fname == self._last_freq[1]:
+            return self._last_finfo
+        if field in self.field_info:
+            self._last_freq = field
+            self._last_finfo = self.field_info[(ftype, fname)]
+            return self._last_finfo
+        if fname in self.field_info:
+            self._last_freq = field
+            self._last_finfo = self.field_info[fname]
+            return self._last_finfo
+        raise YTFieldNotFound((fname, ftype), self)
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

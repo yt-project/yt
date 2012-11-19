@@ -42,6 +42,11 @@ from yt.funcs import *
 
 import yt.utilities.lib as amr_utils
 
+def _check_ftype(field):
+    if isinstance(field.name, tuple):
+        return field.name[0]
+    return "all"
+
 EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "EFI")
 add_field = EnzoFieldInfo.add_field
 
@@ -491,30 +496,14 @@ add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units=r"\rm{Gauss}")
 
 # Particle functions
 
-def particle_func(p_field, dtype='float64'):
-    def _Particles(field, data):
-        io = data.hierarchy.io
-        if not data.NumberOfParticles > 0:
-            return np.array([], dtype=dtype)
-        try:
-            return io._read_data_set(data, p_field).astype(dtype)
-        except io._read_exception:
-            pass
-        # This is bad.  But it's the best idea I have right now.
-        return data._read_data(p_field.replace("_"," ")).astype(dtype)
-    return _Particles
 for pf in ["type", "mass"] + \
           ["position_%s" % ax for ax in 'xyz']:
-    pfunc = particle_func("particle_%s" % (pf))
-    add_enzo_field("particle_%s" % pf, function=pfunc,
-              validators = [ValidateSpatial(0)],
-              particle_type=True)
+    add_enzo_field("particle_%s" % pf, NullFunc, particle_type=True)
     
 def _convRetainInt(data):
     return 1
-add_enzo_field("particle_index", function=particle_func("particle_index", "int64"),
-          validators = [ValidateSpatial(0)], particle_type=True,
-          convert_function=_convRetainInt)
+add_enzo_field("particle_index", function=NullFunc,
+          particle_type=True, convert_function=_convRetainInt)
 
 def _get_vel_convert(ax):
     def _convert_p_vel(data):
@@ -522,20 +511,15 @@ def _get_vel_convert(ax):
     return _convert_p_vel
 for ax in 'xyz':
     pf = "particle_velocity_%s" % ax
-    pfunc = particle_func(pf)
     cfunc = _get_vel_convert(ax)
-    add_enzo_field(pf, function=pfunc, convert_function=cfunc,
-              validators = [ValidateSpatial(0)],
+    add_enzo_field(pf, function=NullFunc, convert_function=cfunc,
               particle_type=True)
 
 for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
-    pfunc = particle_func(pf)
-    add_enzo_field(pf, function=pfunc,
-              validators = [ValidateSpatial(0),
-                            ValidateDataField(pf)],
+    add_enzo_field(pf, function=NullFunc,
+              validators = [ValidateDataField(pf)],
               particle_type=True)
-add_field("particle_mass", function=particle_func("particle_mass"),
-          particle_type=True)
+add_field("particle_mass", function=NullFunc, particle_type=True)
 
 def _ParticleAge(field, data):
     current_time = data.pf.current_time
@@ -641,4 +625,9 @@ def _yvel(field, data):
                     dtype='float64')
 add_enzo_1d_field("z-velocity", function=_zvel)
 add_enzo_1d_field("y-velocity", function=_yvel)
+
+for ax in 'xyz':
+    add_field(("CenOstriker","particle_position_%s" % ax),
+               function=TranslationFunc(("CenOstriker","position_%s" % ax)),
+               particle_type = True)
 

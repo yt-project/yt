@@ -303,18 +303,23 @@ class GeometryHandler(ParallelAnalysisInterface):
         obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
 
-    def _read_particle_fields(self, fields, dobj, chunk = None):
-        if len(fields) == 0: return {}, []
-        selector = dobj.selector
-        if chunk is None:
-            self._identify_base_chunk(dobj)
-        fields_to_return = {}
+    def _split_fields(self, fields):
+        # This will split fields into either generated or read fields
         fields_to_read, fields_to_generate = [], []
         for ftype, fname in fields:
             if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
             else:
                 fields_to_generate.append((ftype, fname))
+        return fields_to_read, fields_to_generate
+
+    def _read_particle_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        selector = dobj.selector
+        if chunk is None:
+            self._identify_base_chunk(dobj)
+        fields_to_return = {}
+        fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(
@@ -322,7 +327,7 @@ class GeometryHandler(ParallelAnalysisInterface):
                     fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
-            finfo = dobj._get_field_info(*field)
+            finfo = self.pf._get_field_info(*field)
             conv_factor = finfo._convert_function(self)
             np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
@@ -337,12 +342,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         else:
             chunk_size = chunk.data_size
         fields_to_return = {}
-        fields_to_read, fields_to_generate = [], []
-        for ftype, fname in fields:
-            if fname in self.field_list:
-                fields_to_read.append((ftype, fname))
-            else:
-                fields_to_generate.append((ftype, fname))
+        fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
@@ -358,28 +358,29 @@ class GeometryHandler(ParallelAnalysisInterface):
         return fields_to_return, fields_to_generate
 
 
-    def _chunk(self, dobj, chunking_style, ngz = 0):
+    def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:
             self._identify_base_chunk(dobj)
         if ngz != 0 and chunking_style != "spatial":
             raise NotImplementedError
         if chunking_style == "all":
-            return self._chunk_all(dobj)
+            return self._chunk_all(dobj, **kwargs)
         elif chunking_style == "spatial":
-            return self._chunk_spatial(dobj, ngz)
+            return self._chunk_spatial(dobj, ngz, **kwargs)
         elif chunking_style == "io":
-            return self._chunk_io(dobj)
+            return self._chunk_io(dobj, **kwargs)
         else:
             raise NotImplementedError
 
 class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size):
+    def __init__(self, dobj, chunk_type, objs, data_size, field_type = None):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
         self._data_size = data_size
+        self._field_type = field_type
 
     @property
     def data_size(self):
@@ -447,3 +448,27 @@ class YTDataChunk(object):
             ind += c.size
         return ci
 
+    _tcoords = None
+    @property
+    def tcoords(self):
+        if self._tcoords is None:
+            self.dtcoords
+        return self._tcoords
+
+    _dtcoords = None
+    @property
+    def dtcoords(self):
+        if self._dtcoords is not None: return self._dtcoords
+        ct = np.empty(self.data_size, dtype='float64')
+        cdt = np.empty(self.data_size, dtype='float64')
+        self._tcoords = ct
+        self._dtcoords = cdt
+        if self.data_size == 0: return self._dtcoords
+        ind = 0
+        for obj in self.objs:
+            gdt, gt = obj.tcoords(self.dobj)
+            if gt.shape == 0: continue
+            ct[ind:ind+gt.size] = gt
+            cdt[ind:ind+gdt.size] = gdt
+            ind += gt.size
+        return cdt

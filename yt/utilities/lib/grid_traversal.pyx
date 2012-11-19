@@ -56,24 +56,6 @@ cdef extern from "math.h":
     double sin(double x) nogil
     double sqrt(double x) nogil
 
-cdef struct VolumeContainer:
-    int n_fields
-    np.float64_t **data
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
-    np.float64_t dds[3]
-    np.float64_t idds[3]
-    int dims[3]
-
-ctypedef void sample_function(
-                VolumeContainer *vc,
-                np.float64_t v_pos[3],
-                np.float64_t v_dir[3],
-                np.float64_t enter_t,
-                np.float64_t exit_t,
-                int index[3],
-                void *data) nogil
-
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -989,9 +971,9 @@ cdef int walk_volume(VolumeContainer *vc,
             tmax[i] = 1e60
     # We have to jumpstart our calculation
     for i in range(3):
-        if cur_ind[i] == vc.dims[i] and step[i] == 1:
+        if cur_ind[i] == vc.dims[i] and step[i] >= 0:
             return 0
-        if cur_ind[i] == -1 and step[i] == -1:
+        if cur_ind[i] == -1 and step[i] <= -1:
             return 0
     enter_t = intersect_t
     hit = 0

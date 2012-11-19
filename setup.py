@@ -154,7 +154,11 @@ def setup_package():
             'amr adaptivemeshrefinement',
         entry_points={'console_scripts': [
                             'yt = yt.utilities.command_line:run_main',
-                       ]},
+                      ],
+                      'nose.plugins.0.10': [
+                            'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
+                      ]
+        },
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url="http://yt-project.org/",

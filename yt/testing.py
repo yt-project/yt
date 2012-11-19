@@ -26,10 +26,21 @@ import numpy as np
 from yt.funcs import *
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
-    assert_array_less, assert_string_equal
+    assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
+    assert_allclose
 
-def assert_rel_equal(a1, a2, decimels):
-    return assert_almost_equal(a1/a2, 1.0, decimels)
+def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
+    # We have nan checks in here because occasionally we have fields that get
+    # weighted without non-zero weights.  I'm looking at you, particle fields!
+    if isinstance(a1, np.ndarray):
+        assert(a1.size == a2.size)
+        # Mask out NaNs
+        a1[np.isnan(a1)] = 1.0
+        a2[np.isnan(a2)] = 1.0
+    elif np.isnan(a1) and np.isnan(a2):
+        return True
+    return assert_almost_equal(a1/a2, 1.0, decimals, err_msg=err_msg,
+                               verbose=verbose)
 
 def amrspace(extent, levels=7, cells=8):
     """Creates two numpy arrays representing the left and right bounds of 

@@ -58,6 +58,66 @@ class FieldInfoContainer(dict): # Resistance has utility
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
+        
+    def add_grad(self, field, **kwargs):
+        """
+        Creates the partial derivative of a given field. This function will
+        autogenerate the names of the gradient fields.
+
+        """
+        sl = slice(2,None,None)
+        sr = slice(None,-2,None)
+        
+        def _gradx(f, data):
+            grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
+            grad /= 2.0*data["dx"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+            
+        def _grady(f, data):
+            grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
+            grad /= 2.0*data["dy"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+            
+        def _gradz(f, data):
+            grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
+            grad /= 2.0*data["dz"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+        
+        d_kwargs = kwargs.copy()
+        if "display_name" in kwargs: del d_kwargs["display_name"]
+        
+        for ax in "xyz":
+            if "display_name" in kwargs:
+                disp_name = r"%s\_%s" % (kwargs["display_name"], ax)
+            else:
+                disp_name = r"\partial %s/\partial %s" % (field, ax)
+            name = "Grad_%s_%s" % (field, ax)
+            self[name] = DerivedField(name, function=eval('_grad%s' % ax),
+                         take_log=False, validators=[ValidateSpatial(1,[field])],
+                         display_name = disp_name, **d_kwargs)
+        
+        def _grad(f, data) :
+            a = np.power(data["Grad_%s_x" % field],2)
+            b = np.power(data["Grad_%s_y" % field],2)
+            c = np.power(data["Grad_%s_z" % field],2)
+            norm = np.sqrt(a+b+c)
+            return norm
+
+        if "display_name" in kwargs:
+            disp_name = kwargs["display_name"]
+        else:
+            disp_name = r"\Vert\nabla %s\Vert" % (field)   
+        name = "Grad_%s" % field           
+        self[name] = DerivedField(name, function=_grad, take_log=False,
+                                  display_name = disp_name, **d_kwargs)
+        mylog.info("Added new fields: Grad_%s_x, Grad_%s_y, Grad_%s_z, Grad_%s" \
+                   % (field, field, field, field))
 
     def has_key(self, key):
         # This gets used a lot
@@ -87,7 +147,7 @@ class FieldInfoContainer(dict): # Resistance has utility
     def __iter__(self):
         for f in dict.__iter__(self):
             yield f
-        if self.fallback:
+        if self.fallback is not None:
             for f in self.fallback: yield f
 
     def keys(self):
@@ -107,6 +167,7 @@ def NullFunc(field, data):
 FieldInfo = FieldInfoContainer()
 FieldInfo.name = id(FieldInfo)
 add_field = FieldInfo.add_field
+add_grad = FieldInfo.add_grad
 
 def derived_field(**kwargs):
     def inner_decorator(function):
@@ -173,7 +234,8 @@ class FieldDetector(defaultdict):
             # required attrs
             pf = fake_parameter_file(lambda: 1)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
-                pf.hubble_constant = pf.cosmological_simulation = 0.0
+                pf.cosmological_simulation = 0.0
+            pf.hubble_constant = 0.7
             pf.domain_left_edge = np.zeros(3, 'float64')
             pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
@@ -290,6 +352,23 @@ class DerivedField(object):
         self.display_field = display_field
         self.display_name = display_name
         self.not_in_all = not_in_all
+
+    def _copy_def(self):
+        dd = {}
+        dd['name'] = self.name
+        dd['convert_function'] = self._convert_function
+        dd['particle_convert_function'] = self._particle_convert_function
+        dd['units'] = self._units
+        dd['projected_units'] = self._projected_units,
+        dd['take_log'] = self.take_log
+        dd['validators'] = self.validators.copy()
+        dd['particle_type'] = self.particle_type
+        dd['vector_field'] = self.vector_field
+        dd['display_field'] = True
+        dd['not_in_all'] = self.not_in_all
+        dd['display_name'] = self.display_name
+        dd['projection_conversion'] = self.projection_conversion
+        return dd
 
     def check_available(self, data):
         """
