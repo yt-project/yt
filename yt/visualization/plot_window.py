@@ -518,7 +518,7 @@ class PWViewer(PlotWindow):
         self._colormaps = defaultdict(lambda: 'algae')
         self.setup_callbacks()
         for field in self._frb.data.keys():
-            finfo = self.data_source._get_field_info(*field)
+            finfo = self.data_source.pf._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
             else:
@@ -709,7 +709,7 @@ class PWViewer(PlotWindow):
         ds = self._frb.data_source
         pf = self.pf
         field = self.data_source._determine_fields(field)[0]
-        finfo = self.data_source._get_field_info(*field)
+        finfo = self.data_source.pf._get_field_info(*field)
         if ds._type_name in ("slice", "cutting"):
             units = finfo.get_units()
         elif ds._type_name == "proj" and (ds.weight_field is not None or 
@@ -848,7 +848,7 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1])
 
             ftype, fname = f
-            field_name = self.data_source._get_field_info(ftype, fname).display_name
+            field_name = self.data_source.pf._get_field_info(ftype, fname).display_name
 
             if field_name is None:
                 field_name = r'$\rm{'+fname+r'}$'
@@ -903,7 +903,7 @@ class PWViewerMPL(PWViewer):
         if field == 'all':
             fields = self.plots.keys()
         else:
-            fields = [field]
+            fields = self.data_source._determine_fields([field])
 
         for field in fields:
             self._colorbar_valid = False
@@ -1518,7 +1518,7 @@ class PWViewerExtJS(PWViewer):
         field = self.data_source._determine_fields(field)[0]
         self._current_field = field
         self._frb[field]
-        finfo = self.data_source._get_field_info(*field)
+        finfo = self.data_source.pf._get_field_info(*field)
         if finfo.take_log:
             self._field_transform[field] = log_transform
         else:

@@ -152,15 +152,15 @@ class FixedResolutionBuffer(object):
 
     def _get_info(self, item):
         info = {}
+        finfo = self.data_source.pf._get_field_info(*item)
         info['data_source'] = self.data_source.__str__()  
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
-        info['units'] = self.data_source.pf.field_info[item].get_units()
+        info['units'] = finfo.get_units()
         info['xlim'] = self.bounds[:2]
         info['ylim'] = self.bounds[2:]
         info['length_to_cm'] = self.data_source.pf['cm']
-        info['projected_units'] = \
-                self.data_source.pf.field_info[item].get_projected_units()
+        info['projected_units'] = finfo.get_projected_units()
         info['center'] = self.data_source.center
         try:
             info['coord'] = self.data_source.coord

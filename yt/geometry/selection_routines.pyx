@@ -46,6 +46,10 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
@@ -85,10 +89,10 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
-              np.int64_t offset,
-              np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-              np.ndarray[np.float64_t, ndim=3] vals):
+cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
+                np.int64_t offset,
+                np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
+                np.ndarray[anyfloat, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):
@@ -98,6 +102,17 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                     out[offset + count] = vals[i,j,k]
                     count += 1
     return count
+
+def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
+              np.int64_t offset,
+              np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
+              np.ndarray vals):
+    if vals.dtype == np.float32:
+        return _mask_fill[np.float32_t](out, offset, mask, vals)
+    elif vals.dtype == np.float64:
+        return _mask_fill[np.float64_t](out, offset, mask, vals)
+    else:
+        raise RuntimeError
 
 # Inclined Box
 
