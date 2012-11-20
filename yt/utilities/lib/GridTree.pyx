@@ -196,15 +196,19 @@ cdef class MatchPointsToGrids :
 
         cdef np.ndarray[np.int64_t, ndim=1] pt_grids
         cdef int i, j
-
+        cdef np.uint8_t in_grid
+        
         pt_grids = np.zeros(self.num_points, dtype='int64')
 
         for i in range(self.num_points) :
 
+            in_grid = 0
+            
             for j in range(self.tree.num_root_grids) :
 
-                self.check_position(i, self.xp[i], self.yp[i], self.zp[i],
-				    &self.tree.root_grids[j])
+                if not in_grid : 
+                    in_grid = self.check_position(i, self.xp[i], self.yp[i], self.zp[i],
+                                                  &self.tree.root_grids[j])
 
         for i in range(self.num_points) :
             pt_grids[i] = self.point_grids[i]
@@ -213,12 +217,12 @@ cdef class MatchPointsToGrids :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void check_position(self,
-			     np.int64_t pt_index, 
-			     np.float64_t x,
-			     np.float64_t y,
-			     np.float64_t z,
-			     GridTreeNode * grid) :
+    cdef np.uint8_t check_position(self,
+                                   np.int64_t pt_index, 
+                                   np.float64_t x,
+                                   np.float64_t y,
+                                   np.float64_t z,
+                                   GridTreeNode * grid) :
 
         cdef int i
         cdef np.uint8_t in_grid
@@ -229,17 +233,22 @@ cdef class MatchPointsToGrids :
 
             if grid.num_children > 0 :
 
+                in_grid = 0
+                
                 for i in range(grid.num_children) :
 
-                    self.check_position(pt_index, x, y, z, grid.children[i])
+                    if not in_grid :
 
+                        in_grid = self.check_position(pt_index, x, y, z, grid.children[i])
+
+                if not in_grid :
+                    self.point_grids[pt_index] = grid.index
+                
             else :
 
                 self.point_grids[pt_index] = grid.index
 
-        else :
-
-            return
+        return in_grid
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
