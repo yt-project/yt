@@ -154,15 +154,11 @@ cdef class GridTree :
 cdef class MatchPointsToGrids :
 
     cdef int num_points
-    cdef int num_idxs_left
-    cdef int num_grids_walked
     cdef np.float64_t * xp
     cdef np.float64_t * yp
     cdef np.float64_t * zp
     cdef GridTree tree
-    cdef np.int64_t * all_idxs
     cdef np.int64_t * point_grids
-    cdef np.int64_t * in_grid
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -176,7 +172,6 @@ cdef class MatchPointsToGrids :
         cdef int i
         
         self.num_points = num_points
-        self.num_idxs_left = num_points
 
         self.xp = <np.float64_t *> malloc(sizeof(np.float64_t) *
                                           num_points)
@@ -184,10 +179,6 @@ cdef class MatchPointsToGrids :
                                           num_points)
         self.zp = <np.float64_t *> malloc(sizeof(np.float64_t) *
                                           num_points)
-        self.all_idxs = <np.int64_t *> malloc(sizeof(np.int64_t) *
-                                              num_points)
-        self.in_grid = <np.int64_t *> malloc(sizeof(np.int64_t) *
-                                             num_points)
         self.point_grids = <np.int64_t *> malloc(sizeof(np.int64_t) *
                                               num_points)
         
@@ -195,8 +186,6 @@ cdef class MatchPointsToGrids :
             self.xp[i] = x[i]
             self.yp[i] = y[i]
             self.zp[i] = z[i]
-            self.all_idxs[i] = i
-            self.in_grid[i] = 0
             self.point_grids[i] = -1
             
         self.tree = tree
@@ -206,13 +195,16 @@ cdef class MatchPointsToGrids :
     def find_points_in_tree(self) :
 
         cdef np.ndarray[np.int64_t, ndim=1] pt_grids
-        cdef int i
+        cdef int i, j
 
         pt_grids = np.zeros(self.num_points, dtype='int64')
-        
-        for i in range(self.tree.num_root_grids) :
 
-            self.check_positions(&self.tree.root_grids[i])
+        for i in range(self.num_points) :
+
+            for j in range(self.tree.num_root_grids) :
+
+                self.check_position(i, self.xp[i], self.yp[i], self.zp[i],
+				    &self.tree.root_grids[j])
 
         for i in range(self.num_points) :
             pt_grids[i] = self.point_grids[i]
@@ -221,58 +213,50 @@ cdef class MatchPointsToGrids :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void check_positions(self, GridTreeNode * grid) :
+    cdef void check_position(self,
+			     np.int64_t pt_index, 
+			     np.float64_t x,
+			     np.float64_t y,
+			     np.float64_t z,
+			     GridTreeNode * grid) :
 
         cdef int i
-        
-        if self.num_idxs_left == 0 : return
+        cdef np.uint8_t in_grid
+	
+        in_grid = self.is_in_grid(x, y, z, grid)
 
-        if grid.num_children > 0 :
+        if in_grid :
 
-            for i in range(grid.num_children) :
-                
-                self.check_positions(grid.children[i])
-                
-        else :
+            if grid.num_children > 0 :
 
-            self.is_in_grid(grid)
+                for i in range(grid.num_children) :
 
-            for i in range(self.num_points) :
-
-                if self.in_grid[i] == 1 :
-
-                    #print self.num_idxs_left
-                    
-                    self.point_grids[i] = grid.index
-                    self.all_idxs[i] = -1
-                    self.num_idxs_left -= 1
-                    
-            return
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void is_in_grid(self, GridTreeNode * grid) :
-
-        cdef int i
-        cdef np.uint8_t xcond, ycond, zcond, cond
-        
-        for i in range(self.num_points) :
-
-            if self.all_idxs[i] >= 0 :
-            
-                xcond = self.xp[i] >= grid.left_edge[0] and self.xp[i] < grid.right_edge[0]
-                ycond = self.yp[i] >= grid.left_edge[1] and self.yp[i] < grid.right_edge[1]
-                zcond = self.zp[i] >= grid.left_edge[2] and self.zp[i] < grid.right_edge[2]
-
-                cond = xcond and ycond
-                cond = cond and zcond
-                
-                if cond :
-                    self.in_grid[i] = 1
-                else :
-                    self.in_grid[i] = 0
+                    self.check_position(pt_index, x, y, z, grid.children[i])
 
             else :
 
-                self.in_grid[i] = 0
+                self.point_grids[pt_index] = grid.index
+
+        else :
+
+            return
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef np.uint8_t is_in_grid(self,
+			 np.float64_t x,
+			 np.float64_t y,
+			 np.float64_t z,
+			 GridTreeNode * grid) :
+
+        cdef np.uint8_t xcond, ycond, zcond, cond
+            
+        xcond = x >= grid.left_edge[0] and x < grid.right_edge[0]
+        ycond = y >= grid.left_edge[1] and y < grid.right_edge[1]
+        zcond = z >= grid.left_edge[2] and z < grid.right_edge[2]
+	
+        cond = xcond and ycond
+        cond = cond and zcond
+
+        return cond
