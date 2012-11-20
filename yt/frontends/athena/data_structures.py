@@ -268,6 +268,8 @@ class AthenaHierarchy(AMRHierarchy):
             gdims[j,0] = gridread['dimensions'][0]
             gdims[j,1] = gridread['dimensions'][1]
             gdims[j,2] = gridread['dimensions'][2]
+            # Setting dds=1 for non-active dimensions in 1D/2D datasets
+            gridread['dds'][gridread['dimensions']==1] = 1.
             gdds[j,:] = gridread['dds']
             
             j=j+1
@@ -287,6 +289,10 @@ class AthenaHierarchy(AMRHierarchy):
                      self.parameter_file.domain_right_edge)
         self.parameter_file.domain_dimensions = \
                 np.round(self.parameter_file.domain_width/gdds[0]).astype('int')
+        if self.parameter_file.dimensionality <= 2 :
+            self.parameter_file.domain_dimensions[2] = np.int(1)
+        if self.parameter_file.dimensionality == 1 :
+            self.parameter_file.domain_dimensions[1] = np.int(1)
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i,self,levels[i],
                                       glis[i],
@@ -387,8 +393,8 @@ class AthenaStaticOutput(StaticOutput):
             dimensionality = 2
         if grid['dimensions'][1] == 1 :
             dimensionality = 1
-        if dimensionality <= 2 : self.domain_dimensions[2] = 1.
-        if dimensionality == 1 : self.domain_dimensions[1] = 1.
+        if dimensionality <= 2 : self.domain_dimensions[2] = np.int32(1)
+        if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self._handle.__hash__()
