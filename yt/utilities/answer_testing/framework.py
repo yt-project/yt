@@ -112,7 +112,7 @@ class AnswerTesting(Plugin):
                     (os.path.realpath(options.output_dir), 
                     options.store_name)
                 if not os.path.isdir(name_dir_path):
-                    os.mkdir(name_dir_path)
+                    os.makedirs(name_dir_path)
                 options.store_name= "%s/%s" % \
                         (name_dir_path, options.store_name)
         else:
@@ -554,3 +554,18 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+class AssertWrapper(object):
+    """
+    Used to wrap a numpy testing assertion, in order to provide a useful name
+    for a given assertion test.
+    """
+    def __init__(self, description, *args):
+        # The key here is to add a description attribute, which nose will pick
+        # up.
+        self.args = args
+        self.description = description
+
+    def __call__(self):
+        self.args[0](*self.args[1:])
+
