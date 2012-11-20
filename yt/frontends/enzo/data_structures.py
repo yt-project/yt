@@ -192,15 +192,7 @@ class EnzoHierarchy(GridGeometryHandler):
             self._bn = "%s.cpu%%04i"
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
-        harray_fn = self.hierarchy_filename[:-9] + "harrays"
-        if ytcfg.getboolean("yt","serialize") and os.path.exists(harray_fn):
-            try:
-                harray_fp = h5py.File(harray_fn)
-                self.num_grids = harray_fp["/Level"].len()
-                harray_fp.close()
-            except IOError:
-                pass
-        elif os.path.getsize(self.hierarchy_filename) == 0:
+        if os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
 
@@ -279,8 +271,6 @@ class EnzoHierarchy(GridGeometryHandler):
             for line in f:
                 if line.startswith(token):
                     return line.split()[2:]
-        if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
-            if self._parse_binary_hierarchy(): return
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
@@ -322,7 +312,6 @@ class EnzoHierarchy(GridGeometryHandler):
         temp_grids[:] = self.grids
         self.grids = temp_grids
         self.filenames = fn
-        self._store_binary_hierarchy()
         t2 = time.time()
 
     def _initialize_grid_arrays(self):
@@ -358,82 +347,6 @@ class EnzoHierarchy(GridGeometryHandler):
                 second_grid._parent_id = first_grid._parent_id
             second_grid.Level = first_grid.Level
         self.grid_levels[sgi] = second_grid.Level
-
-    def _parse_binary_hierarchy(self):
-        mylog.info("Getting the binary hierarchy")
-        if not ytcfg.getboolean("yt","serialize"): return False
-        try:
-            f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
-        except:
-            return False
-        hash = f["/"].attrs.get("hash", None)
-        if hash != self.parameter_file._hash():
-            mylog.info("Binary hierarchy does not match: recreating")
-            f.close()
-            return False
-        self.grid_dimensions[:] = f["/ActiveDimensions"][:]
-        self.grid_left_edge[:] = f["/LeftEdges"][:]
-        self.grid_right_edge[:] = f["/RightEdges"][:]
-        self.grid_particle_count[:,0] = f["/NumberOfParticles"][:]
-        if "NumberOfActiveParticles" in f:
-            self.grid_active_particle_count[:,0] = \
-                f["/NumberOfActiveParticles"][:]
-        levels = f["/Level"][:]
-        parents = f["/ParentIDs"][:]
-        procs = f["/Processor"][:]
-        grids = []
-        self.filenames = []
-        grids = [self.grid(gi+1, self) for gi in xrange(self.num_grids)]
-        giter = izip(grids, levels, procs, parents)
-        bn = self._bn % (self.pf)
-        pmap = [(bn % P,) for P in xrange(procs.max()+1)]
-        for grid,L,P,Pid in giter:
-            grid.Level = L
-            grid._parent_id = Pid
-            if Pid > -1:
-                grids[Pid-1]._children_ids.append(grid.id)
-            self.filenames.append(pmap[P])
-        self.grids = np.array(grids, dtype='object')
-        f.close()
-        mylog.info("Finished with binary hierarchy reading")
-        return True
-
-    @parallel_blocking_call
-    def _store_binary_hierarchy(self):
-        # We don't do any of the logic here, we just check if the data file
-        # is open...
-        if self._data_file is None: return
-        if self._data_mode == 'r': return
-        if self.data_style != "enzo_packed_3d": return
-        mylog.info("Storing the binary hierarchy")
-        try:
-            f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
-        except IOError:
-            return
-        f["/"].attrs["hash"] = self.parameter_file._hash()
-        f.create_dataset("/LeftEdges", data=self.grid_left_edge)
-        f.create_dataset("/RightEdges", data=self.grid_right_edge)
-        parents, procs, levels = [], [], []
-        for i,g in enumerate(self.grids):
-            if g.Parent is not None:
-                parents.append(g.Parent.id)
-            else:
-                parents.append(-1)
-            procs.append(int(self.filenames[i][0][-4:]))
-            levels.append(g.Level)
-
-        parents = np.array(parents, dtype='int64')
-        procs = np.array(procs, dtype='int64')
-        levels = np.array(levels, dtype='int64')
-        f.create_dataset("/ParentIDs", data=parents)
-        f.create_dataset("/Processor", data=procs)
-        f.create_dataset("/Level", data=levels)
-
-        f.create_dataset("/ActiveDimensions", data=self.grid_dimensions)
-        f.create_dataset("/NumberOfParticles", data=self.grid_particle_count[:,0])
-        f.create_dataset("/NumberOfActiveParticles", data=self.grid_active_particle_count[:,0])
-
-        f.close()
 
     def _rebuild_top_grids(self, level = 0):
         #for level in xrange(self.max_level+1):
