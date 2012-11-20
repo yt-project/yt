@@ -243,11 +243,13 @@ cdef class MatchPointsToGrids :
 
                 if not in_grid :
                     self.point_grids[pt_index] = grid.index
-                
+                    in_grid = 1
+                    
             else :
 
                 self.point_grids[pt_index] = grid.index
-
+                in_grid = 1
+                
         return in_grid
     
     @cython.boundscheck(False)
