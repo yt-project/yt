@@ -29,8 +29,11 @@ from yt.funcs import *
 from yt.utilities.lib import \
     get_box_grids_level, \
     get_box_grids_below_level
+from yt.utilities.lib import \
+    MatchPointsToGrids, \
+    GridTree
 
-class ObjectFindingMixin(object):
+class ObjectFindingMixin(object) :
 
     def find_ray_grids(self, coord, axis):
         """
@@ -110,6 +113,16 @@ class ObjectFindingMixin(object):
         ind = np.where(mask == 1)
         return self.grids[ind], ind
 
+    def find_points(self, x, y, z) :
+        """
+        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        """
+        num_points = len(x)
+        grid_tree = self.get_grid_tree()
+        pts = MatchPointsToGrids(grid_tree,num_points,x,y,z)
+        ind = pts.find_points_in_tree() 
+        return self.grids[ind], ind
+    
     def find_field_value_at_point(self, fields, coord):
         r"""Find the value of fields at a point.
         
@@ -239,3 +252,24 @@ class ObjectFindingMixin(object):
                     mask[gi] = True
         return self.grids[mask], np.where(mask)
 
+    def get_grid_tree(self) :
+
+        left_edge = np.zeros((self.num_grids, 3))
+        right_edge = np.zeros((self.num_grids, 3))
+        level = np.zeros((self.num_grids), dtype='int64')
+        parent_ind = np.zeros((self.num_grids), dtype='int64')
+        num_children = np.zeros((self.num_grids), dtype='int64')
+
+        for i, grid in enumerate(self.grids) :
+
+            left_edge[i,:] = grid.LeftEdge
+            right_edge[i,:] = grid.RightEdge
+            level[i] = grid.Level
+            if grid.Parent is None :
+                parent_ind[i] = -1
+            else :
+                parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
+            num_children[i] = np.int64(len(grid.Children))
+
+        return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
+                        level, num_children)

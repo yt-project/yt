@@ -793,20 +793,20 @@ class PWViewerMPL(PWViewer):
             else:
                 zlim = (None, None)
 
-            aspect = (self.xlim[1] - self.xlim[0]) / (self.ylim[1] - self.ylim[0])
+            plot_aspect = (self.xlim[1] - self.xlim[0]) / (self.ylim[1] - self.ylim[0])
             
             # This sets the size of the figure, and defaults to making one of the dimensions smaller.
             # This should protect against giant images in the case of a very large aspect ratio.
             norm_size = 10.0
             cbar_frac = 0.0
-            if aspect > 1.0:
-                size = (norm_size*(1.+cbar_frac), norm_size/aspect)
+            if plot_aspect > 1.0:
+                size = (norm_size*(1.+cbar_frac), norm_size/plot_aspect)
             else:
-                size = (aspect*norm_size*(1.+cbar_frac), norm_size)
+                size = (plot_aspect*norm_size*(1.+cbar_frac), norm_size)
 
             # Correct the aspect ratio in case unit_x and unit_y are different
-            aspect *= self.pf[unit_x]/self.pf[unit_y]
-
+            aspect = self.pf[unit_x]/self.pf[unit_y]
+            
             self.plots[f] = WindowPlotMPL(self._frb[f], extent, aspect, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
 

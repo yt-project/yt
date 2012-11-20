@@ -242,6 +242,23 @@ class AMRGridPatch(object):
         cond = np.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
         return cond
 
+    def is_in_grid(self, x, y, z) :
+        """
+        Generate a mask that shows which points in *x*, *y*, and *z*
+        fall within this grid's boundaries.
+        """
+        xcond = np.logical_and(x >= self.LeftEdge[0],
+                               x < self.RightEdge[0])
+        ycond = np.logical_and(y >= self.LeftEdge[1],
+                               y < self.RightEdge[1])
+        zcond = np.logical_and(z >= self.LeftEdge[2],
+                               z < self.RightEdge[2])
+
+        cond = np.logical_and(xcond, ycond)
+        cond = np.logical_and(zcond, cond)
+
+        return cond
+        
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
 

@@ -126,8 +126,11 @@ class FLASHHierarchy(AMRHierarchy):
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-        np.add.accumulate(self.grid_particle_count.squeeze(),
-                          out=self._particle_indices[1:])
+        if self.num_grids > 1 :
+            np.add.accumulate(self.grid_particle_count.squeeze(),
+                              out=self._particle_indices[1:])
+        else :
+            self._particle_indices[1] = self.grid_particle_count.squeeze()
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
@@ -418,7 +421,11 @@ class FLASHStaticOutput(StaticOutput):
             nblockx = self.parameters["iprocs"]
             nblocky = self.parameters["jprocs"]
             nblockz = self.parameters["kprocs"]
-                        
+
+        # In case the user wasn't careful
+        if dimensionality <= 2 : nblockz = 1
+        if dimensionality == 1 : nblocky = 1
+
         self.dimensionality = dimensionality
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])

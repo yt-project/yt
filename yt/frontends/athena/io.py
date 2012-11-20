@@ -45,10 +45,15 @@ class IOHandlerAthena(BaseIOHandler):
 
     def _read_data_set(self,grid,field):
         f = file(grid.filename, 'rb')
-        dtype, offset = grid.hierarchy._field_map[field]
+        dtype, offsetr = grid.hierarchy._field_map[field]
         grid_ncells = np.prod(grid.ActiveDimensions)
         grid_dims = grid.ActiveDimensions
+        grid0_ncells = np.prod(grid.hierarchy.grid_dimensions[0,:])
         read_table_offset = get_read_table_offset(f)
+        if grid_ncells != grid0_ncells:
+            offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
+        if grid_ncells == grid0_ncells:
+            offset = offsetr
         f.seek(read_table_offset+offset)
         if dtype == 'scalar':
             data = np.fromfile(f, dtype='>f4',
@@ -74,10 +79,15 @@ class IOHandlerAthena(BaseIOHandler):
             sl.reverse()
 
         f = file(grid.filename, 'rb')
-        dtype, offset = grid.hierarchy._field_map[field]
+        dtype, offsetr = grid.hierarchy._field_map[field]
         grid_ncells = np.prod(grid.ActiveDimensions)
-
+        grid_dims = grid.ActiveDimensions
+        grid0_ncells = np.prod(grid.hierarchy.grid_dimensions[0,:])
         read_table_offset = get_read_table_offset(f)
+        if grid_ncells != grid0_ncells:
+            offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
+        if grid_ncells == grid0_ncells:
+            offset = offsetr
         f.seek(read_table_offset+offset)
         if dtype == 'scalar':
             data = np.fromfile(f, dtype='>f4', 

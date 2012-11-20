@@ -266,12 +266,12 @@ add_field("GasEnergy", function=_GasEnergy,
 def GetMagRescalingFactor(pf):
     if pf['unitsystem'].lower() == "cgs":
          factor = 1
-    if pf['unitsystem'].lower() == "si":
+    elif pf['unitsystem'].lower() == "si":
          factor = np.sqrt(4*np.pi/1e7)
-    if pf['unitsystem'].lower() == "none":
+    elif pf['unitsystem'].lower() == "none":
          factor = np.sqrt(4*np.pi)
     else:
-        raise RuntimeError("Runtime parameter unitsystem with"
+        raise RuntimeError("Runtime parameter unitsystem with "
                            "value %s is unrecognized" % pf['unitsystem'])
     return factor
 

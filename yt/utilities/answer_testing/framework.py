@@ -29,6 +29,7 @@ import hashlib
 import contextlib
 import urllib2
 import cPickle
+import sys
 
 from nose.plugins import Plugin
 from yt.testing import *
@@ -53,16 +54,14 @@ class AnswerTesting(Plugin):
 
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
-        parser.add_option("--answer-compare", dest="compare_name",
-            default=_latest, help="The name against which we will compare")
+        parser.add_option("--answer-compare-name", dest="compare_name", metavar='str',
+            default=_latest, help="The name of tests against which we will compare")
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
-        parser.add_option("--answer-name", dest="this_name",
+        parser.add_option("--answer-store-name", dest="store_name", metavar='str',
             default=None,
             help="The name we'll call this set of tests")
-        parser.add_option("--answer-store", dest="store_results",
-            default=False, action="store_true")
         parser.add_option("--local-store", dest="store_local_results",
             default=False, action="store_true", help="Store/Load local results?")
 
@@ -83,8 +82,14 @@ class AnswerTesting(Plugin):
         if not self.enabled:
             return
         disable_stream_logging()
-        if options.this_name is None: 
-            options.this_name = self.my_version
+        if options.store_name is not None:
+            self.store_results = True
+        # If the user sets the storage_name, then it means they are storing and
+        # not comparing, even if they set the compare_name (since it is set by default)
+            options.compare_name = None
+        else: 
+            self.store_results = False
+            options.store_name = self.my_version
         from yt.config import ytcfg
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
@@ -93,7 +98,7 @@ class AnswerTesting(Plugin):
             options.compare_name = None
         elif options.compare_name == "latest":
             options.compare_name = _latest
-
+            
         # Local/Cloud storage 
         if options.store_local_results:
             storage_class = AnswerTestLocalStorage
@@ -102,22 +107,21 @@ class AnswerTesting(Plugin):
                 options.compare_name = "%s/%s/%s" % \
                     (os.path.realpath(options.output_dir), options.compare_name, 
                      options.compare_name)
-            if options.this_name is not None:
+            if options.store_name is not None:
                 name_dir_path = "%s/%s" % \
                     (os.path.realpath(options.output_dir), 
-                    options.this_name)
+                    options.store_name)
                 if not os.path.isdir(name_dir_path):
-                    os.mkdir(name_dir_path)
-                options.this_name= "%s/%s" % \
-                        (name_dir_path, options.this_name)
+                    os.makedirs(name_dir_path)
+                options.store_name= "%s/%s" % \
+                        (name_dir_path, options.store_name)
         else:
             storage_class = AnswerTestCloudStorage
 
         # Initialize answer/reference storage
         AnswerTestingTest.reference_storage = self.storage = \
-                storage_class(options.compare_name, options.this_name)
+                storage_class(options.compare_name, options.store_name)
 
-        self.store_results = options.store_results
         self.store_local_results = options.store_local_results
         global run_big_data
         run_big_data = options.big_data
@@ -216,9 +220,9 @@ def can_run_pf(pf_fn):
 
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput): return pf_fn
     if not os.path.isdir(path):
         return False
-    if isinstance(pf_fn, StaticOutput): return pf_fn
     with temp_cwd(path):
         pf = load(pf_fn)
         pf.h
@@ -550,3 +554,18 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+class AssertWrapper(object):
+    """
+    Used to wrap a numpy testing assertion, in order to provide a useful name
+    for a given assertion test.
+    """
+    def __init__(self, description, *args):
+        # The key here is to add a description attribute, which nose will pick
+        # up.
+        self.args = args
+        self.description = description
+
+    def __call__(self):
+        self.args[0](*self.args[1:])
+
