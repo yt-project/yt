@@ -152,7 +152,8 @@ class FixedResolutionBuffer(object):
 
     def _get_info(self, item):
         info = {}
-        finfo = self.data_source.pf._get_field_info(*item)
+        field = self.data_source._determine_fields(item)[0]
+        finfo = self.data_source.pf._get_field_info(*field)
         info['data_source'] = self.data_source.__str__()  
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
