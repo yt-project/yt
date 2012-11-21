@@ -104,7 +104,7 @@ class ARTDomainFile(object):
         self.select(selector)
         return self.count(selector)
 
-class RAMSESDomainSubset(object):
+class ARTDomainSubset(object):
     def __init__(self, domain, mask, cell_count):
         self.mask = mask
         self.domain = domain
@@ -164,6 +164,66 @@ class RAMSESDomainSubset(object):
                                    tr, temp, self.mask, offset)
         return tr
 
+class ARTGeometryHandler(OctreeGeometryHandler):
+    def __init__(self, pf, data_style='art'):
+        self.data_style = data_style
+        self.parameter_file = weakref.proxy(pf)
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.max_level = pf.max_level
+        self.float_type = np.float64
+        super(ARTGeometryHandler, self).__init__(pf, data_style)
+
+    def _initialize_oct_handler(self):
+        #mirroring ramses but we only one domain
+        self.domains = [ARTDomainFile(self.parameter_file, 0)]
+        total_octs = sum(dom.local_oct_count for dom in self.domains)
+        self.num_grids = total_octs
+        #this merely allocates space for the oct tree
+        #and nothing else
+        #yes, we use the RAMSES oct container
+        self.oct_handler = RAMSESOctreeContainer(
+            self.parameter_file.domain_dimensions/2,
+            self.parameter_file.domain_left_edge,
+            self.parameter_file.domain_right_edge)
+        mylog.debug("Allocating %s octs", total_octs)
+        self.oct_handler.allocate_domains(
+            [dom.local_oct_count for dom in self.domains])
+        #this actually reads every oct and loads it into the octree
+        for dom in self.domains:
+            dom._read_amr(self.oct_handler)
+
+    def _detect_fields(self):
+        self.particle_field_list = particle_fields
+        self.field_list = fluid_fields + particle_fields
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        super(RAMSESGeometryHandler, self)._setup_classes(dd)
+        self.object_types.sort()
+
+    def _identify_base_chunk(self, dobj):
+        if getattr(dobj, "_chunk_info", None) is None:
+            mask = dobj.selector.select_octs(self.oct_handler)
+            counts = self.oct_handler.count_cells(dobj.selector, mask)
+            subsets = [RAMSESDomainSubset(d, mask, c)
+                       for d, c in zip(self.domains, counts) if c > 0]
+            dobj._chunk_info = subsets
+            dobj.size = sum(counts)
+            dobj.shape = (dobj.size,)
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+
+    def _chunk_all(self, dobj):
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+
+    def _chunk_spatial(self, dobj, ngz):
+        raise NotImplementedError
+
+    def _chunk_io(self, dobj):
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in oobjs:
+            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
 def ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTGeometryHandler
@@ -176,6 +236,7 @@ def ARTStaticOutput(StaticOutput):
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.file_amr = file_amr
+        self.parameter_filename = file_amr
         StaticOutput.__init__(self, file_amr, data_style)
 
     def _find_files(self,file_amr):

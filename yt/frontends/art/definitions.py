@@ -25,7 +25,22 @@ License:
 
 """
 
-art_particle_field_names = [
+fluid_fields= [ 
+    'Density',
+    'TotalEnergy',
+    'XMomentumDensity',
+    'YMomentumDensity',
+    'ZMomentumDensity',
+    'Pressure',
+    'Gamma',
+    'GasEnergy',
+    'MetalDensitySNII',
+    'MetalDensitySNIa',
+    'PotentialNew',
+    'PotentialOld'
+]
+
+particle_fields= [
     'particle_age',
     'particle_index',
     'particle_mass',
