@@ -41,3 +41,10 @@ art_particle_field_names = [
 'particle_velocity_y',
 'particle_velocity_z',
 'particle_type']
+
+filename_pattern = {				
+	'amr':'10MpcBox_csf512_%s.d',
+	'particle_header':'PMcrd%s.DAT',
+	'particle_data':'PMcrs0%s.DAT',
+	'particle_stars':'stars_%s.dat'
+}

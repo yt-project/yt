@@ -39,7 +39,7 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from .definitions import ramses_header
+from .definitions import *
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib import \
@@ -49,7 +49,27 @@ from yt.utilities.io_handler import \
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 import yt.utilities.fortran_utils as fpu
-from yt.geometry.oct_container import \
-    RAMSESOctreeContainer
-from .fields import RAMSESFieldInfo, KnownRAMSESFields
+
+class ARTDomainFile(object):
+    _last_mask = None
+    _last_selector_id = None
+    _hydro_offset = None
+    _level_count = None
+    nvar = 6
+    def __init__(self, pf, domain_id):
+        self.pf = pf
+        self.domain_id = domain_id
+        self._read_amr_header()
+    
+	@property
+    def level_count(self):
+        if self._level_count is not None: return self._level_count
+        self.hydro_offset
+        return self._level_count
+
+    @property
+    def hydro_offset(self):
+        if self._hydro_offset is not None: return self._hydro_offset
+		#open the file and figure the level_count and offsets
+
 
