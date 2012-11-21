@@ -31,9 +31,9 @@ License:
 """
 
 from .data_structures import \
-      ARTDomainFile
-      ARTDomainSubset
-      ARTGeometryHandler
+      ARTDomainFile,\
+      ARTDomainSubset,\
+      ARTGeometryHandler,\
       ARTStaticOutput
 
 from .fields import \

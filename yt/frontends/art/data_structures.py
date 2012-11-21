@@ -42,7 +42,13 @@ from yt.data_objects.static_output import \
     StaticOutput
 
 from .definitions import *
-from .io import *
+from io import _read_struct
+from io import _read_art_level_info
+from io import _read_record
+from io import _read_frecord
+from io import _skip_record
+from io import b2t
+from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib import \
@@ -244,12 +250,15 @@ class ARTStaticOutput(StaticOutput):
     _fieldinfo_known = KnownARTFields
     
     def __init__(self, file_amr, storage_filename = None,
-            skip_particles=False,skip_stars=False):
+            skip_particles=False,skip_stars=False,data_style='art'):
+        self.data_style = data_style
         self._find_files(file_amr)
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.file_amr = file_amr
         self.parameter_filename = file_amr
+        self.domain_left_edge  = np.zeros(3)
+        self.domain_right_edge = np.ones(3)
         StaticOutput.__init__(self, file_amr, data_style)
 
     def _find_files(self,file_amr):
@@ -257,22 +266,27 @@ class ARTStaticOutput(StaticOutput):
         Given the AMR base filename, attempt to find the
         particle header, star files, etc.
         """
-        prefix,suffix = filename_pattern['file_amr'].split('%s')
-        affix = file_amr.replace(prefix,'')
+        prefix,suffix = filename_pattern['amr'].split('%s')
+        affix = os.path.basename(file_amr).replace(prefix,'')
         affix = affix.replace(suffix,'')
         affix = affix.replace('_','')
+        affix = affix[1:-1]
+        dirname = os.path.dirname(file_amr)
         for filetype, pattern in filename_pattern.items():
             #sometimes the affix is surrounded by an extraneous _
             #so check for an extra character on either side
-            check_filename = pattern%('?%s?'%affix)
+            check_filename = dirname+'/'+pattern%('?%s?'%affix)
             filenames = glob.glob(check_filename)
             if len(filenames)==1:
-                setattr(self,"file_"+filetype,filename)
+                setattr(self,"file_"+filetype,filenames[0])
                 mylog.info('discovered %s',filetype)
-            else:
+            elif len(filenames)>1:
                 setattr(self,"file_"+filetype,None)
                 mylog.info("Ambiguous number of files found for %s",
                         check_filename)
+            else:
+                setattr(self,"file_"+filetype,None)
+
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
         
@@ -285,11 +299,12 @@ class ARTStaticOutput(StaticOutput):
         self.time_units = {}
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge \
-									 - self.domain_left_edge).max()
+        self.units['unitary'] = 1.0
         self._parse_parameter_file()
 
         #spatial units
+        z   = self.current_redshift
+        h   = self.hubble_constant
         boxcm_cal = self.parameters["boxh"]
         boxcm_uncal = boxcm_cal / h
         box_proper = boxcm_uncal/(1+z)
@@ -301,8 +316,6 @@ class ARTStaticOutput(StaticOutput):
             self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
 
         #all other units
-        z   = self.current_redshift
-        h   = self.hubble_constant
         wmu = self.parameters["wmu"]
         Om0 = self.parameters['Om0']
         ng  = self.parameters['ng']
@@ -320,12 +333,13 @@ class ARTStaticOutput(StaticOutput):
         t0 = r0/v0
         rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
         tr = 2./3. *(3.03e5*r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))     
+        aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
 
         #factors to multiply the native code units to CGS
         cf = defaultdict(lambda: 1.0)
         cf['Pressure'] = P0 #already cgs
         cf['Velocity'] = v0*1e3 #km/s -> cm/s
-        cf["Mass"] = self.parameters["aM0"] * 1.98892e33
+        cf["Mass"] = aM0 * 1.98892e33
         cf["Density"] = rho0*(aexpn**-3.0)
         cf["GasEnergy"] = rho0*v0**2*(aexpn**-5.0)
         cf["Potential"] = 1.0
@@ -350,8 +364,9 @@ class ARTStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         header_vals = {}
-        with open(self.file_amr,'rb') as fh:
-            amr_header_vals = _read_struct(fh,amr_header_struct)
+        self.parameters.update(constants)
+        with open(self.file_amr,'rb') as f:
+            amr_header_vals = _read_struct(f,amr_header_struct)
             for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
                 _skip_record(f)
             (self.ncell,) = struct.unpack('>l', _read_record(f))
@@ -370,9 +385,10 @@ class ARTStaticOutput(StaticOutput):
             _skip_record(f) # var
             self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
             self.child_grid_offset = f.tell()
+        self.parameters.update(amr_header_vals)
         if self.file_particle_header is None:
             with open(self.file_particle_header,"rb") as fh:
-                particle_header_vals = _read_struct(fh,header_struct)
+                particle_header_vals = _read_struct(fh,particle_header_struct)
                 fh.seek(seek_extras)
                 n = particle_header_vals['Nspecies']
                 wspecies = np.fromfile(fh,dtype='>f',count=10)
@@ -383,17 +399,15 @@ class ARTStaticOutput(StaticOutput):
             mylog.info("Discovered %i species of particles",len(ls_nonzero))
             mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
                 ls_nonzero)
-        self.parameters.update(amr_header_vals)
-        self.parameters.update(particle_header_vals)
-        self.parameters.update(constants)
+            self.parameters.update(particle_header_vals)
     
         #setup standard simulation yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
-        self.omega_lambda = header_vals['Oml0']
-        self.omega_matter = header_vals['Om0']
-        self.hubble_constant = header_vals['hubble']
-        self.min_level = header_vals['min_level']
-        self.max_level = header_vals['max_level']
+        self.omega_lambda = amr_header_vals['Oml0']
+        self.omega_matter = amr_header_vals['Om0']
+        self.hubble_constant = amr_header_vals['hubble']
+        self.min_level = amr_header_vals['min_level']
+        self.max_level = amr_header_vals['max_level']
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
 
