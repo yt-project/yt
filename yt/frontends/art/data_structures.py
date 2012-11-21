@@ -56,33 +56,52 @@ from yt.utilities.physical_constants import \
 
 class ARTDomainFile(object):
 	#This is a bit silly since NMSU ART is single-domain
+    #and therefore this class could be merged with ARTStaticOuput
 	#But we'll stay analogous to ramses and keep the AMR
 	#info here and the rest of the simulation info in 
 	#static output
     _last_mask = None
     _last_selector_id = None
-    _hydro_offset = None
-    _level_count = None
     nvar = 6
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
-        self._read_amr_header()
+        (self.num_hydro_variables, self.iNOLL, self.level_oct_offsets,
+            self.level_child_offsets) = \
+                _count_art_octs(self.pf.file_amr,self.pf.child_grid_offset,
+                        self.pf.level_min,self.pf.level_max)
     
-	@property
-    def level_count(self):
-        if self._level_count is not None: return self._level_count
-        self.hydro_offset
-        return self._level_count
+    def _read_amr(self, oct_handler):
+        """Open the oct file, read in octs level-by-level.
+           For each oct, only the position, index, level and domain 
+           are needed - it's position in the octree is found automatically.
+           The most important is finding all the information to feed
+           oct_handler.add
+        """
+        self.nocts = self.pf.domain_dimensions.prod()
+        with open(self.pf.file_amr,"rb") as f:
+            for level in range(self.pf.max_level):
+                le, locts= _read_art_level_info(f, self.level_oct_offsets,level)
+                self.nocts += locts 
+                #note that because we're adapting to the RAMSES 
+                #architecture, cpu=0 and domain id will be fixed as
+                #there is only 1 domain
+                oct_handler.add(0,level,loct,le,self.domain_id)
+        mylog.info("read in %1.1e octs",self.nocts)
 
-    @property
-    def hydro_offset(self):
-        if self._hydro_offset is not None: return self._hydro_offset
-		#open the file and figure the level_count and offsets
-		(self.num_hydro_variables, self.iNOLL, self.level_oct_offsets,
-			self.level_child_offsets) = \
-				_count_art_octs(self.pf.file_amr,pf.hydro_offset,pf.level_min,
-						pf.level_max)
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
 
 def ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTGeometryHandler
@@ -214,7 +233,8 @@ def ARTStaticOutput(StaticOutput):
             _skip_record(f) # hvar
             _skip_record(f) # var
             self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
-        if getattr(self,'file_particle_header',None) is not None:
+            self.child_grid_offset = f.tell()
+        if self.file_particle_header is None:
             with open(self.file_particle_header,"rb") as fh:
                 particle_header_vals = _read_struct(fh,header_struct)
                 fh.seek(seek_extras)
@@ -241,7 +261,6 @@ def ARTStaticOutput(StaticOutput):
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
 
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         """
@@ -254,5 +273,3 @@ def ARTStaticOutput(StaticOutput):
                 os.path.exists(f): 
                 return True
         return False
-
-
