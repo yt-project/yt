@@ -164,7 +164,7 @@ def _count_art_octs(f, offset,
     return nhydrovars, np.array(iNOLL), np.array(level_oct_offsets),\
             np.array(level_child_offsets)
 
-def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
+def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
     #Get the info for this level, skip the rest
@@ -172,7 +172,6 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
        '>iii', _read_record(f))
     
     #fortran indices start at 1
-    
     #Skip all the oct hierarchy data
     le     = np.zeros((nLevel,3),dtype='int64')
     fl     = np.ones((nLevel,6),dtype='int64')
@@ -220,19 +219,20 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     #correct to the yt convention
     #le = le/2**(root_level-1-level)-1
 
+    #try to find the root_level first
+    root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
+    root_level = root_level.astype('int64')
+
     #try without the -1
-    le = le/2**(root_level-2-level)-1
+    le = le/2**(root_level+1-level)-1
 
     #now read the hvars and vars arrays
     #we are looking for iOctCh
     #we record if iOctCh is >0, in which it is subdivided
     iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
     
-    
-    
     f.seek(pos)
-    return le,fl,nLevel
-
+    return le,fl,nLevel,root_level
 
 def read_particles(file,nstars,Nrow):
     words = 6 # words (reals) per particle: x,y,z,vx,vy,vz

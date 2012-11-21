@@ -75,7 +75,7 @@ class ARTDomainFile(object):
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
-        self.local_oct_count = self.pf.domain_dimensions.prod() 
+        self.local_oct_count = self.pf.domain_dimensions.prod()/8
         with open(self.pf.file_amr,"rb") as f:
             (self.nhydro_vars, self.level_info, self.level_oct_offsets,
                 self.level_offsets) = \
@@ -95,7 +95,7 @@ class ARTDomainFile(object):
            oct_handler.add
         """
         #jump through hoops to get the root grid added indpendently
-        NX = self.pf.domain_dimensions/2
+        NX = self.pf.domain_dimensions
         LE = self.pf.domain_left_edge
         RE = self.pf.domain_right_edge
         root_dx = (RE - LE) / NX
@@ -105,21 +105,21 @@ class ARTDomainFile(object):
                          LL[1]:RL[1]:NX[1]*1j,
                          LL[2]:RL[2]:NX[2]*1j ]
         rpos = np.vstack([p.ravel() for p in rpos]).T
-        import pdb; pdb.set_trace()
-        nroot_grids = reduce(lambda x,y: x*y,self.pf.domain_dimensions)
-        oct_handler.add(1, 0, nroot_grids,
-                rpos.astype('float64'), self.domain_id)
+        oct_handler.add(1, 0, -1, rpos, 1)
+        assert(oct_handler.nocts == rpos.shape[0])
         #now add the octs on other levels
+        prev_nocts = oct_handler.nocts
         with open(self.pf.file_amr,"rb") as f:
             for level in range(1,self.pf.max_level+1):
-                le, fl,locts= _read_art_level_info(f, self.level_oct_offsets,
-                        level)
-                fle  = le/2.0**level
-                fle /= self.pf.domain_dimensions
+                le, fl,locts,root_level = _read_art_level_info(f, 
+                        self.level_oct_offsets,level)
+                fle = le/(NX*2.0**(level))
                 #note that because we're adapting to the RAMSES 
                 #architecture, cpu=0 and domain id will be fixed as
                 #there is only 1 domain
-                oct_handler.add(1,level,locts,fle,self.domain_id)
+                oct_handler.add(1,level,-1,fle,self.domain_id)
+                assert oct_handler.nocts - prev_nocts == fle.shape[0]
+                prev_nocts = oct_handler.nocts
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -237,7 +237,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
             counts = self.oct_handler.count_cells(dobj.selector, mask)
-            subsets = [RAMSESDomainSubset(d, mask, c)
+            subsets = [ARTDomainSubset(d, mask, c)
                        for d, c in zip(self.domains, counts) if c > 0]
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
