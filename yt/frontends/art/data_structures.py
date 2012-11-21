@@ -79,9 +79,22 @@ class ARTDomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
-        self.nocts = self.pf.domain_dimensions.prod()
+        #jump through hoops to get the root grid added indpendently
+        self.nocts = self.pf.domain_dimensions.prod() #incremented later
+        root_dx = (RE - LE) / NX
+        NX = self.domain.pf.domain_dimensions/2
+        LE = na.array([0.0, 0.0, 0.0], dtype='float64')
+        RE = na.array([1.0, 1.0, 1.0], dtype='float64')
+        LL = LE + root_dx/2.0
+        RL = RE - root_dx/2.0
+        rpos = na.mgrid[ LL[0]:RL[0]:NX[0]*1j,
+                         LL[1]:RL[1]:NX[1]*1j,
+                         LL[2]:RL[2]:NX[2]*1j ]
+        rpos = na.vstack([p.ravel() for p in rpos]).T
+        oct_handler.add(0, 0, self.nocts, rpos, self.domain_id)
+        #now add the octs on other levels
         with open(self.pf.file_amr,"rb") as f:
-            for level in range(self.pf.max_level):
+            for level in range(1,self.pf.max_level):
                 le, locts= _read_art_level_info(f, self.level_oct_offsets,level)
                 self.nocts += locts 
                 #note that because we're adapting to the RAMSES 
@@ -150,7 +163,7 @@ class ARTDomainSubset(object):
         filled = pos = offset = 0
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
-        for level in range(self.pf.max_level):
+        for level in range(1,self.pf.max_level):
             nc = self.domain.level_count[level]
             temp = {}
             for field in all_fields:
