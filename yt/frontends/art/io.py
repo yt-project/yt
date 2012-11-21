@@ -40,6 +40,25 @@ import yt.utilities.lib as au
 
 from yt.frontends.art.definitions import particle_fields
 
+class IOHandlerART(BaseIOHandler):
+    _data_style = "art"
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        # Chunks in this case will have affiliated domain subset objects
+        # Each domain subset will contain a hydro_offset array, which gives
+        # pointers to level-by-level hydro information
+        tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
+        cp = 0
+        for chunk in chunks: #over yt dhunking
+            for subset in chunk.objs: #over every domain file
+                data = subset.fill(subset.pf.file_amr, fields)
+                for ft, f in fields:
+                    tr[(ft, f)][cp:cp+subset.cell_count] = data.pop(f)
+                cp += subset.cell_count
+        return tr
+
+    def _read_particle_selection(self, chunks, selector, fields):
+        raise NotImplementedError
 
 def load_level(filename,level_offsets,level_info,level,
         nhydro_vars):
