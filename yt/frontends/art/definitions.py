@@ -1,7 +1,7 @@
 """
 Definitions specific to ART
 
-Author: Christopher E. Moody <cemoody@ucsc.ed>
+Author: Christopher E. Moody <cemoody@ucsc.edu>
 Affiliation: UC Santa Cruz
 Homepage: http://yt-project.org/
 License:

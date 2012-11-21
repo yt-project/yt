@@ -238,7 +238,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
-def ARTStaticOutput(StaticOutput):
+class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTGeometryHandler
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
@@ -285,9 +285,9 @@ def ARTStaticOutput(StaticOutput):
         self.time_units = {}
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge 
+        self.units['unitary'] = 1.0 / (self.domain_right_edge \
 									 - self.domain_left_edge).max()
-		self._parse_parameter_file()
+        self._parse_parameter_file()
 
         #spatial units
         boxcm_cal = self.parameters["boxh"]
@@ -314,7 +314,7 @@ def ARTStaticOutput(StaticOutput):
         r0 = boxh/ng
         P0= 4.697e-16 * Om0**2.0 * r0**2.0 * hubble**2.0
         T_0 = 3.03e5 * r0**2.0 * wmu * Om0 # [K]
-        S_0 = 52.077 * wmu**(5.0/3.0) * 
+        S_0 = 52.077 * wmu**(5.0/3.0)
         S_0 *= hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
         v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
         t0 = r0/v0
@@ -346,11 +346,11 @@ def ARTStaticOutput(StaticOutput):
         self.dimensionality = 3
         self.refine_by = 2
         self.cosmological_simulation = True
-		self.parameters = {}
+        self.parameters = {}
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         header_vals = {}
-		with open(self.file_amr,'rb') as fh:
+        with open(self.file_amr,'rb') as fh:
             amr_header_vals = _read_struct(fh,amr_header_struct)
             for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
                 _skip_record(f)

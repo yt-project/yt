@@ -38,7 +38,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 import yt.utilities.lib as au
 
-from yt.frontends.art.definitions import art_particle_field_names
+from yt.frontends.art.definitions import particle_fields
 
 
 def load_level(filename,level_offsets,level_info,level,

@@ -7,6 +7,8 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
+Author: Christopher E. Moody <cemoody@ucsc.edu>
+Affiliation: UC Santa Cruz
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
@@ -29,8 +31,9 @@ License:
 """
 
 from .data_structures import \
-      ARTGrid, \
-      ARTHierarchy, \
+      ARTDomainFile
+      ARTDomainSubset
+      ARTGeometryHandler
       ARTStaticOutput
 
 from .fields import \

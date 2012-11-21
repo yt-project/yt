@@ -99,8 +99,8 @@ from yt.frontends.gdf.api import \
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
 
-#from yt.frontends.art.api import \
-#    ARTStaticOutput, ARTFieldInfo, add_art_field
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo, add_art_field
 
 #from yt.frontends.maestro.api import \
 #    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
