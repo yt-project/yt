@@ -66,10 +66,11 @@ class ARTDomainFile(object):
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
-        (self.num_hydro_variables, self.iNOLL, self.level_oct_offsets,
-            self.level_child_offsets) = \
+        (self.nhydro_vars, self.level_info, self.level_oct_offsets,
+            self.level_offsets) = \
                 _count_art_octs(self.pf.file_amr,self.pf.child_grid_offset,
                         self.pf.level_min,self.pf.level_max)
+        self.level_offsets[0] = self.pf.root_grid_offset
     
     def _read_amr(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
@@ -102,6 +103,67 @@ class ARTDomainFile(object):
             return self._last_mask.sum()
         self.select(selector)
         return self.count(selector)
+
+class RAMSESDomainSubset(object):
+    def __init__(self, domain, mask, cell_count):
+        self.mask = mask
+        self.domain = domain
+        self.oct_handler = domain.pf.h.oct_handler
+        self.cell_count = cell_count
+        level_counts = self.oct_handler.count_levels(
+            self.domain.pf.max_level, self.domain.domain_id, mask)
+        level_counts[1:] = level_counts[:-1]
+        level_counts[0] = 0
+        self.level_counts = np.add.accumulate(level_counts)
+
+    def icoords(self, dobj):
+        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
+                                        self.cell_count,
+                                        self.level_counts.copy())
+
+    def fcoords(self, dobj):
+        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
+                                        self.cell_count,
+                                        self.level_counts.copy())
+
+    def fwidth(self, dobj):
+        # Recall domain_dimensions is the number of cells, not octs
+        base_dx = 1.0/self.domain.pf.domain_dimensions
+        widths = np.empty((self.cell_count, 3), dtype="float64")
+        dds = (2**self.ires(dobj))
+        for i in range(3):
+            widths[:,i] = base_dx[i] / dds
+        return widths
+
+    def ires(self, dobj):
+        return self.oct_handler.ires(self.domain.domain_id, self.mask,
+                                     self.cell_count,
+                                     self.level_counts.copy())
+
+    def fill(self, content, fields):
+        #we are given a file (content)
+        #and we are to fill it with the requested fields
+        oct_handler = self.oct_handler
+        fields = [f for ft, f in fields]
+        min_level = self.domain.pf.min_level
+        tr = {}
+        filled = pos = offset = 0
+        for field in fields:
+            tr[field] = np.zeros(self.cell_count, 'float64')
+        for level in range(self.pf.max_level):
+            nc = self.domain.level_count[level]
+            temp = {}
+            for field in all_fields:
+                temp[field] = np.empty((nc, 8), dtype="float64")
+            #now fill temp for the requested fields
+            hydro_data = load_level(self.domain.pf.file_amr,
+                    self.domain.level_offsets,
+                    self.domain.level_info, level, 
+                    self.domain.nhydro_vars)
+            offset += oct_handler.fill_level(self.domain.domain_id, level,
+                                   tr, temp, self.mask, offset)
+        return tr
+
 
 def ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTGeometryHandler

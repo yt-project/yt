@@ -40,6 +40,70 @@ import yt.utilities.lib as au
 
 from yt.frontends.art.definitions import art_particle_field_names
 
+
+def load_level(filename,level_offsets,level_info,level,
+        nhydro_vars):
+    """ Reads in the full ART tree. From the ART source:
+        iOctLv :    >0   - level of an oct
+        iOctPr :         - parent of an oct
+        iOctCh :    >0   - pointer to an oct of children
+                    0   - there are no children; the cell is a leaf
+        iOctNb :    >0   - pointers to neighbouring cells 
+        iOctPs :         - coordinates of Oct centers
+        
+        iOctLL1:         - doubly linked list of octs
+        iOctLL2:         - doubly linked list of octs
+        
+        tl - current  time moment for level L
+        tlold - previous time moment for level L
+        dtl - dtime0/2**iTimeBin
+        dtlold -  previous time step for level L
+        iSO - sweep order
+        
+        hvar(1,*) - gas density 
+        hvar(2,*) - gas energy 
+        hvar(3,*) - x-momentum 
+        hvar(4,*) - y-momentum
+        hvar(5,*) - z-momentum
+        hvar(6,*) - pressure
+        hvar(7,*) - Gamma
+        hvar(8,*) - internal energy 
+        var (1,*) - total density 
+        var (2,*) - potential (new)
+        var (3,*) - potential (old)
+    """
+    #for the moment, this loads in all of the level data,
+    #not just for the requested fields
+    
+    if level == 0:
+        load_root_level()
+        return
+    with open(filename, 'rb') as f:
+        f.seek(level_offsets[level])
+        ncells = 8*level_info[level]
+        nvals = ncells * (nhydro_vars + 6) # 2 vars, 2 pads
+        arr = np.fromfile(f, dtype='>f', count=nvals)
+    arr = arr.reshape((nhydro_vars+6, ncells), order="F")
+    assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
+    arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
+    return arr
+
+def load_root_level(self):
+    with open(self.filename, 'rb') as f:
+        f.seek(self.level_offsets[0] + 4) # Ditch the header
+        ncells = self.level_info[0]
+        nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
+        hvar = np.fromfile(f, dtype='>f', count=nhvals).astype("float32")
+        hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
+        np.fromfile(f,dtype='>i',count=2) #throw away the pads
+        nvars = ncells * (2) # 0 vars, 0 pads
+        var = np.fromfile(f, dtype='>f', count=nvars).astype("float32")
+    var = var.reshape((2, ncells), order="F")
+    arr = np.concatenate((hvar,var))
+    self.level_data[0] = arr
+    return arr
+
+
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):
     level_oct_offsets= [0,]
@@ -78,7 +142,8 @@ def _count_art_octs(f, offset,
         #find nhydrovars
         nhydrovars = 8+2
     f.seek(offset)
-    return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
+    return nhydrovars, np.array(iNOLL), np.array(level_oct_offsets),\
+            np.array(level_child_offsets)
 
 def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     pos = f.tell()
