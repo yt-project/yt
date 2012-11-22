@@ -95,7 +95,7 @@ class ARTDomainFile(object):
            oct_handler.add
         """
         #jump through hoops to get the root grid added indpendently
-        NX = self.pf.domain_dimensions
+        NX = self.pf.domain_dimensions/2
         LE = self.pf.domain_left_edge
         RE = self.pf.domain_right_edge
         root_dx = (RE - LE) / NX
@@ -112,8 +112,8 @@ class ARTDomainFile(object):
         with open(self.pf.file_amr,"rb") as f:
             for level in range(1,self.pf.max_level+1):
                 le, fl,locts,root_level = _read_art_level_info(f, 
-                        self.level_oct_offsets,level)
-                fle = le/(NX*2.0**(level))
+                    self.level_oct_offsets,level)
+                fle = le/(NX*2.0**(level+1))
                 #note that because we're adapting to the RAMSES 
                 #architecture, cpu=0 and domain id will be fixed as
                 #there is only 1 domain
@@ -137,6 +137,7 @@ class ARTDomainFile(object):
 
 class ARTDomainSubset(object):
     def __init__(self, domain, mask, cell_count):
+        import pdb; pdb.set_trace()
         self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
