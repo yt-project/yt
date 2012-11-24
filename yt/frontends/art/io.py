@@ -51,7 +51,7 @@ class IOHandlerART(BaseIOHandler):
         cp = 0
         for chunk in chunks: #over yt dhunking
             for subset in chunk.objs: #over every domain file
-                data = subset.fill(subset.pf.file_amr, fields)
+                data = subset.fill(subset.domain.pf.file_amr, fields)
                 for ft, f in fields:
                     tr[(ft, f)][cp:cp+subset.cell_count] = data.pop(f)
                 cp += subset.cell_count
@@ -95,8 +95,8 @@ def load_level(filename,level_offsets,level_info,level,
     #not just for the requested fields
     
     if level == 0:
-        load_root_level()
-        return
+        return load_root_level(filename,level_offsets,level_info,level,
+                                nhydro_vars)
     with open(filename, 'rb') as f:
         f.seek(level_offsets[level])
         ncells = 8*level_info[level]
@@ -107,19 +107,27 @@ def load_level(filename,level_offsets,level_info,level,
     arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
     return arr
 
-def load_root_level(self):
-    with open(self.filename, 'rb') as f:
-        f.seek(self.level_offsets[0] + 4) # Ditch the header
-        ncells = self.level_info[0]
-        nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
+def load_root_level(filename,level_offsets,level_info,level,
+        nhydro_vars):
+    ncells = level_info[0]*8 #octs->cells
+    nhvals = ncells * (nhydro_vars) # 0 vars, 0 pads
+    with open(filename, 'rb') as f:
+        #f.seek(level_offsets[0] + 4) # Ditch the header
+        f.seek(level_offsets[0]) 
+        pad1a = np.fromfile(f,dtype='>i',count=1) #throw away the pads
+        assert nhvals == pad1a/4 #pad contains how many bytes
+        #but we're reading 32bit floats, twice in size
         hvar = np.fromfile(f, dtype='>f', count=nhvals).astype("float32")
-        hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
-        np.fromfile(f,dtype='>i',count=2) #throw away the pads
+        hvar = hvar.reshape((nhydro_vars, ncells), order="F")
+        pad1b = np.fromfile(f,dtype='>i',count=1) #throw away the pads
+        pad2a = np.fromfile(f,dtype='>i',count=1) #throw away the pads
         nvars = ncells * (2) # 0 vars, 0 pads
         var = np.fromfile(f, dtype='>f', count=nvars).astype("float32")
+        pad2b = np.fromfile(f,dtype='>i',count=1) #throw away the pads
+    assert pad1a==pad1b
+    assert pad2a==pad2b
     var = var.reshape((2, ncells), order="F")
     arr = np.concatenate((hvar,var))
-    self.level_data[0] = arr
     return arr
 
 
@@ -195,7 +203,6 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #ioct always represents the index of the next variable
     #not the current, so shift forward one index
     #the last index isn't used
-    ioctso = iocts.copy()
     iocts[1:]=iocts[:-1] #shift
     iocts = iocts[:nLevel] #chop off the last index
     iocts[0]=iOct #starting value
@@ -224,7 +231,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     root_level = root_level.astype('int64')
 
     #try without the -1
-    le = le/2**(root_level+1-level)-1
+    le = le.astype('float64')/2.**(root_level+1-level)-1
 
     #now read the hvars and vars arrays
     #we are looking for iOctCh
@@ -302,12 +309,14 @@ def _skip_record(f):
     f.seek(s[0], 1)
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
 
-def _read_frecord(f,fmt):
+def _read_frecord(f,fmt,ret_count=False):
     s1 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
     count = s1/np.dtype(fmt).itemsize
     ss = np.fromfile(f,fmt,count=count)
     s2 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
     assert s1==s2
+    if ret_count:
+        return ss,count
     return ss
 
 

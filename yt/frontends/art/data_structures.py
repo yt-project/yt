@@ -49,6 +49,8 @@ from io import _read_frecord
 from io import _skip_record
 from io import _count_art_octs
 from io import b2t
+from io import load_level
+
 from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -75,17 +77,20 @@ class ARTDomainFile(object):
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
-        self.local_oct_count = self.pf.domain_dimensions.prod()/8
+        assert domain_id > 0
         with open(self.pf.file_amr,"rb") as f:
-            (self.nhydro_vars, self.level_info, self.level_oct_offsets,
+            (self.nhydro_vars, self.iNOLL, self.level_oct_offsets,
                 self.level_offsets) = \
                     _count_art_octs(f,self.pf.child_grid_offset,
                         self.pf.min_level,self.pf.max_level)
-        self.level_info[0] = self.pf.domain_dimensions.prod()
+            self.level_info = [self.pf.domain_dimensions.prod()/8]
+            for level in range(1,self.pf.max_level+1):
+                le, fl,locts,root_level = _read_art_level_info(f, 
+                    self.level_oct_offsets,level)
+                self.level_info.append(locts)
+                assert locts == le.shape[0]
         self.level_offsets[0] = self.pf.root_grid_offset
-        self.local_oct_count += self.level_info.sum()
-        self.local_oct_count = int(self.local_oct_count)
-        mylog.info("read in %1.1e octs",self.local_oct_count)
+        self.local_oct_count  = int(np.sum(self.level_info))
 
     def _read_amr(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
@@ -95,31 +100,38 @@ class ARTDomainFile(object):
            oct_handler.add
         """
         #jump through hoops to get the root grid added indpendently
+        #root grid is 128^3 *cells* so 64 octs
         NX = self.pf.domain_dimensions/2
         LE = self.pf.domain_left_edge
         RE = self.pf.domain_right_edge
         root_dx = (RE - LE) / NX
+        #the zero level is not rounded to the nearest integer
+        #so we adjust it slightly
         LL = LE + root_dx/2.0
         RL = RE - root_dx/2.0
         rpos = np.mgrid[ LL[0]:RL[0]:NX[0]*1j,
                          LL[1]:RL[1]:NX[1]*1j,
                          LL[2]:RL[2]:NX[2]*1j ]
         rpos = np.vstack([p.ravel() for p in rpos]).T
-        oct_handler.add(1, 0, -1, rpos, 1)
+        nassigned = oct_handler.add(1, 0, rpos.shape[0], rpos, 1)
         assert(oct_handler.nocts == rpos.shape[0])
+        assert(nassigned == rpos.shape[0])
         #now add the octs on other levels
         prev_nocts = oct_handler.nocts
         with open(self.pf.file_amr,"rb") as f:
             for level in range(1,self.pf.max_level+1):
                 le, fl,locts,root_level = _read_art_level_info(f, 
                     self.level_oct_offsets,level)
+                #fle = le/(NX*2.0**(level+1))
                 fle = le/(NX*2.0**(level+1))
+                #fc  = fle + 0.5/(NX*2**(level))
                 #note that because we're adapting to the RAMSES 
                 #architecture, cpu=0 and domain id will be fixed as
                 #there is only 1 domain
                 oct_handler.add(1,level,-1,fle,self.domain_id)
                 assert oct_handler.nocts - prev_nocts == fle.shape[0]
                 prev_nocts = oct_handler.nocts
+        assert oct_handler.nocts == self.local_oct_count
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -137,7 +149,6 @@ class ARTDomainFile(object):
 
 class ARTDomainSubset(object):
     def __init__(self, domain, mask, cell_count):
-        import pdb; pdb.set_trace()
         self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
@@ -179,19 +190,29 @@ class ARTDomainSubset(object):
         fields = [f for ft, f in fields]
         min_level = self.domain.pf.min_level
         tr = {}
-        filled = pos = offset = 0
+        offset = 0
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
-        for level in range(1,self.pf.max_level+1):
-            nc = self.domain.level_count[level]
+        for level in range(0,self.domain.pf.max_level+1):
+            no = self.domain.level_info[level]
             temp = {}
-            for field in all_fields:
-                temp[field] = np.empty((nc, 8), dtype="float64")
             #now fill temp for the requested fields
+            #request the cell data (not oct)
             hydro_data = load_level(self.domain.pf.file_amr,
                     self.domain.level_offsets,
                     self.domain.level_info, level, 
                     self.domain.nhydro_vars)
+            import pdb; pdb.set_trace()
+            for field in fields:
+                temp[field] = np.empty((no, 8), dtype="float64")
+            for field in fields:
+                fi = tuple(fluid_fields).index(field)
+                t = hydro_data[fi]
+                nc=t.shape[0]
+                assert nc%8==0
+                assert nc/8==no
+                temp[field][:,:] = \
+                        np.reshape(t,(nc/8,8)).astype('float64')
             offset += oct_handler.fill_level(self.domain.domain_id, level,
                                    tr, temp, self.mask, offset)
         return tr
@@ -208,7 +229,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
 
     def _initialize_oct_handler(self):
         #mirroring ramses but we only one domain
-        self.domains = [ARTDomainFile(self.parameter_file, 0)]
+        self.domains = [ARTDomainFile(self.parameter_file, 1)]
         total_octs = sum(dom.local_oct_count for dom in self.domains)
         self.num_grids = total_octs
         #this merely allocates space for the oct tree
@@ -218,9 +239,9 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
-        mylog.info("Allocating %s octs", total_octs)
         self.oct_handler.allocate_domains(
             [dom.local_oct_count for dom in self.domains])
+        mylog.info("Allocated %s octs", total_octs)
         #this actually reads every oct and loads it into the octree
         for dom in self.domains:
             dom._read_amr(self.oct_handler)

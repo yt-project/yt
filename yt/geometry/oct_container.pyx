@@ -513,8 +513,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         level_counts[o.level] += 1
         return coords
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
