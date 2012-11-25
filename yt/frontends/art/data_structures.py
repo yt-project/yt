@@ -202,7 +202,6 @@ class ARTDomainSubset(object):
                     self.domain.level_offsets,
                     self.domain.level_info, level, 
                     self.domain.nhydro_vars)
-            import pdb; pdb.set_trace()
             for field in fields:
                 temp[field] = np.empty((no, 8), dtype="float64")
             for field in fields:
