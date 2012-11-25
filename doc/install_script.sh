@@ -433,6 +433,7 @@ echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ad
 echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065ae4f21b662e87f2aaedf6ea424ea58dfa9d3d73c06281f806d15dd  nose-1.2.1.tar.gz' > nose-1.2.1.tar.gz.sha512
 echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
 echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
+echo 'd91fa23d8f86c5f5b3df210731c14c92a2e3d999979ef2c4c67be3dda19a8a8d2363f8cd23611957280c17f61653b0e66f59d3f5515b6d443b22cddeaef86ab6  Rockstar-0.99.tar.gz' > Rockstar-0.99.tar.gz.sha512
 
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
@@ -457,6 +458,7 @@ get_ytproject Forthon-0.8.10.tar.gz
 get_ytproject nose-1.2.1.tar.gz 
 get_ytproject python-hglib-0.2.tar.gz
 get_ytproject sympy-0.7.2.tar.gz
+get_ytproject Rockstar-0.99.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e bzip2-1.0.5/done ]
@@ -698,6 +700,18 @@ do_setup_py nose-1.2.1
 do_setup_py python-hglib-0.2
 do_setup_py sympy-0.7.2
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
+
+# Now we build Rockstar and set its environment variable.
+if [ ! -e Rockstar-0.99/done ]
+then
+    [ ! -e Rockstar-0.99 ] && tar xfz Rockstar-0.99.tar.gz
+    echo "Building Rockstar"
+    cd Rockstar-0.99
+    ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    export ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
+    touch done
+    cd ..
+fi
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
