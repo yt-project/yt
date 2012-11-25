@@ -102,9 +102,16 @@ def load_level(filename,level_offsets,level_info,level,
         ncells = 8*level_info[level]
         nvals = ncells * (nhydro_vars + 6) # 2 vars, 2 pads
         arr = np.fromfile(f, dtype='>f', count=nvals)
+    with open(filename, 'rb') as f:
+        f.seek(level_offsets[level])
+        ncells = 8*level_info[level]
+        nvals = ncells * (nhydro_vars + 6) # 2 vars, 2 pads
+        arri = np.fromfile(f, dtype='>i', count=nvals)
+        arri = arri.reshape((nhydro_vars+6, ncells), order="F")
+    idx = np.argsort(arri[1,:])
     arr = arr.reshape((nhydro_vars+6, ncells), order="F")
     assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
-    arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
+    arr = arr[3:-1,idx] #skip beginning pad, idc, iOctCh, + ending pad
     return arr
 
 def load_root_level(filename,level_offsets,level_info,level,

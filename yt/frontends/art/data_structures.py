@@ -210,8 +210,10 @@ class ARTDomainSubset(object):
                 nc=t.shape[0]
                 assert nc%8==0
                 assert nc/8==no
-                temp[field][:,:] = \
-                        np.reshape(t,(nc/8,8)).astype('float64')
+                for ci in range(8):
+                    #t = np.reshape(t,(nc/8,8)).astype('float64')
+                    temp[field][:,ci] = t[ci::8]
+                    #np.reshape(t,(nc/8,8)).astype('float64')
             offset += oct_handler.fill_level(self.domain.domain_id, level,
                                    tr, temp, self.mask, offset)
         return tr
