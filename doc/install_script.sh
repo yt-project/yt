@@ -43,6 +43,7 @@ INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
+INST_ROCKSTAR=1 # Install the Rockstar halo finder?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -702,15 +703,18 @@ do_setup_py sympy-0.7.2
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 # Now we build Rockstar and set its environment variable.
-if [ ! -e Rockstar-0.99/done ]
+if [ $INST_ROCKSTAR -eq 1]
 then
-    [ ! -e Rockstar-0.99 ] && tar xfz Rockstar-0.99.tar.gz
-    echo "Building Rockstar"
-    cd Rockstar-0.99
-    ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    export ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
-    touch done
-    cd ..
+    if [ ! -e Rockstar-0.99/done ]
+    then
+        [ ! -e Rockstar-0.99 ] && tar xfz Rockstar-0.99.tar.gz
+        echo "Building Rockstar"
+        cd Rockstar-0.99
+        ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        export ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
+        touch done
+        cd ..
+    fi
 fi
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
