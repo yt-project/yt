@@ -347,6 +347,13 @@ class GridBoundaryCallback(PlotCallback):
         GLE = plot.data.grid_left_edge
         GRE = plot.data.grid_right_edge
         grid_levels = plot.data.grid_levels
+        min_level = self.min_level
+        max_level = self.max_level
+        if min_level is None:
+            min_level = 0
+        if max_level is None:
+            max_level = plot.data.max_level
+
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
@@ -355,14 +362,9 @@ class GridBoundaryCallback(PlotCallback):
             right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
             right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
-                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix )
-            if self.min_level is not None and self.max_level is None:
-                visible = np.logical_and(visible, grid_levels >= self.min_level)
-            elif self.max_level is not None and self.min_level is None:
-                visible = np.logical_and(visible, grid_levels <= self.max_level)
-            elif self.max_level is not None and self.min_level is not None:
-                visible = np.logical_and(visible, grid_levels <= self.max_level)
-                visible = np.logical_and(visible, grid_levels >= self.min_level)
+                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
+                       ( grid_levels >= min_level) & \
+                       ( grid_levels <= max_level)
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
                 [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
