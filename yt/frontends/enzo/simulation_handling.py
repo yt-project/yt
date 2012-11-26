@@ -37,7 +37,7 @@ from yt.utilities.cosmology import \
 from yt.utilities.definitions import \
     sec_conversion
 from yt.utilities.exceptions import \
-    AmbiguousOutputs, \
+    InvalidSimulationTimeSeries, \
     MissingParameter, \
     NoStoppingCondition
 
@@ -183,8 +183,7 @@ class EnzoSimulation(SimulationTimeSeries):
         if (initial_redshift is not None or \
             final_redshift is not None) and \
             not self.cosmological_simulation:
-            mylog.error('An initial or final redshift has been given for a noncosmological simulation.')
-            return
+            raise InvalidSimulationTimeSeries('An initial or final redshift has been given for a noncosmological simulation.')
 
         if time_data and redshift_data:
             my_all_outputs = self.all_outputs
@@ -193,7 +192,11 @@ class EnzoSimulation(SimulationTimeSeries):
         elif redshift_data:
             my_all_outputs = self.all_redshift_outputs
         else:
-            mylog.error('Both time_data and redshift_data are False.')
+            raise InvalidSimulationTimeSeries('Both time_data and redshift_data are False.')
+
+        if not my_all_outputs:
+            TimeSeriesData.__init__(self, outputs=[], parallel=parallel)
+            mylog.info("%d outputs loaded into time series." % 0)
             return
 
         # Apply selection criteria to the set.
@@ -215,6 +218,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 final_cycle = self.parameters['StopCycle']
             else:
                 final_cycle = min(final_cycle, self.parameters['StopCycle'])
+
             my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
                                                  self.parameters['CycleSkipDataDump'])):
                                         (final_cycle /  self.parameters['CycleSkipDataDump'])+1]

@@ -101,14 +101,13 @@ class YTCannotParseUnitDisplayName(YTException):
                 "contains the following LaTeX parser errors:\n" ) \
             % (self.unit_name, self.field_name) + self.mathtext_error
 
-class AmbiguousOutputs(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf)
+class InvalidSimulationTimeSeries(YTException):
+    def __init__(self, message):
+        self.message = message
 
     def __str__(self):
-        return "Simulation %s has both dtDataDump and CycleSkipDataDump set.  Unable to calculate datasets." % \
-            self.pf
-
+        return self.message
+            
 class MissingParameter(YTException):
     def __init__(self, pf, parameter):
         YTException.__init__(self, pf)
