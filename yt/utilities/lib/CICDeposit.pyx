@@ -128,14 +128,14 @@ def CICSample_3(np.ndarray[np.float64_t, ndim=1] posx,
                 np.float64_t cellSize):
     
     cdef int i1, j1, k1, n
-    cdef double xpos, ypos, zpos
-    cdef double fact, edge0, edge1, edge2
-    cdef double le0, le1, le2
-    cdef float dx, dy, dz, dx2, dy2, dz2
+    cdef np.float64_t xpos, ypos, zpos
+    cdef np.float64_t fact, edge0, edge1, edge2
+    cdef np.float64_t le0, le1, le2
+    cdef np.float64_t dx, dy, dz, dx2, dy2, dz2
     
-    edge0 = (<float> gridDimension[0]) - 0.5001
-    edge1 = (<float> gridDimension[1]) - 0.5001
-    edge2 = (<float> gridDimension[2]) - 0.5001
+    edge0 = (<np.float64_t> gridDimension[0]) - 0.5001
+    edge1 = (<np.float64_t> gridDimension[1]) - 0.5001
+    edge2 = (<np.float64_t> gridDimension[2]) - 0.5001
     fact = 1.0 / cellSize
     
     le0 = leftEdge[0] 
@@ -145,10 +145,10 @@ def CICSample_3(np.ndarray[np.float64_t, ndim=1] posx,
     for n in range(npositions):
         
         # Compute the position of the central cell
-        xpos = fmin(fmax((posx[n] - le0)*fact, 0.5001), edge0)
-        ypos = fmin(fmax((posy[n] - le1)*fact, 0.5001), edge1)
-        zpos = fmin(fmax((posz[n] - le2)*fact, 0.5001), edge2)
-        
+	xpos = fclip((posx[n] - le0)*fact, 0.5001, edge0)
+	ypos = fclip((posy[n] - le1)*fact, 0.5001, edge1)
+	zpos = fclip((posz[n] - le2)*fact, 0.5001, edge2)
+
         i1  = <int> (xpos + 0.5)
         j1  = <int> (ypos + 0.5)
         k1  = <int> (zpos + 0.5)
