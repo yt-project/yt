@@ -121,41 +121,39 @@ class IOHandlerART(BaseIOHandler):
         self.level_data.pop(level, None)
 
     def _read_particle_field(self, grid, field):
-        #This will be cleaned up later
-        idx = np.array(grid.particle_indices)
-        if field == 'particle_index':
-            return np.array(idx)
-        if field == 'particle_type':
-            return grid.pf.particle_type[idx]
-        if field == 'particle_position_x':
-            return grid.pf.particle_position[idx][:,0]
-        if field == 'particle_position_y':
-            return grid.pf.particle_position[idx][:,1]
-        if field == 'particle_position_z':
-            return grid.pf.particle_position[idx][:,2]
-        if field == 'particle_mass':
-            return grid.pf.particle_mass[idx]
-        if field == 'particle_velocity_x':
-            return grid.pf.particle_velocity[idx][:,0]
-        if field == 'particle_velocity_y':
-            return grid.pf.particle_velocity[idx][:,1]
-        if field == 'particle_velocity_z':
-            return grid.pf.particle_velocity[idx][:,2]
-        
-        #stellar fields
-        if field == 'particle_age':
-            return grid.pf.particle_age[idx]
-        if field == 'particle_metallicity':
-            return grid.pf.particle_metallicity1[idx] +\
-                   grid.pf.particle_metallicity2[idx]
-        if field == 'particle_metallicity1':
-            return grid.pf.particle_metallicity1[idx]
-        if field == 'particle_metallicity2':
-            return grid.pf.particle_metallicity2[idx]
-        if field == 'particle_mass_initial':
-            return grid.pf.particle_mass_initial[idx]
-        
-        raise 'Should have matched one of the particle fields...'
+        field_dict = { 'particle_index': grid.particle_id,
+            'particle_type':grid.particle_type,
+            'particle_position_x':grid.particle_position_x,
+            'particle_position_y':grid.particle_position_y,
+            'particle_position_z':grid.particle_position_z,
+            'particle_age':grid.particle_age,
+            'particle_mass':grid.particle_mass,
+            'particle_velocity_x':grid.particle_velocity_x,
+            'particle_velocity_y':grid.particle_velocity_y,
+            'particle_velocity_z':grid.particle_velocity_z,
+            
+            #stellar fields
+            'star_position_x':grid.star_position_x,
+            'star_position_y':grid.star_position_y,
+            'star_position_z':grid.star_position_z,
+            'star_mass':grid.star_mass,
+            'star_velocity_x':grid.star_velocity_x,
+            'star_velocity_y':grid.star_velocity_y,
+            'star_velocity_z':grid.star_velocity_z,
+            'star_age':grid.star_age,
+            'star_metallicity':grid.star_metallicity1 + grid.star_metallicity2,
+            'star_metallicity1':grid.star_metallicity1,
+            'star_metallicity2':grid.star_metallicity2,
+            'star_mass_initial':grid.star_mass_initial,
+            'star_mass':grid.star_mass}
+        starfield = field.replace('particle','star')
+        psi = grid.pf.particle_star_index
+        if field not in field_dict.keys() and starfield in field_dict.keys():
+            particle_field = np.zeros(grid.particle_mass.shape)                    
+            particle_field[grid.particle_type==psi]=field_dict[starfield]
+            return particle_field
+        else:
+            return field_dict[field]
 
         
     def _read_data_set(self, grid, field):
@@ -198,9 +196,9 @@ def _count_art_octs(f, offset,
     level_child_offsets= [0,]
     f.seek(offset)
     nchild,ntot=8,0
-    Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='i')
-    iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='i')
+    Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+    iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+    iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
     for Lev in xrange(MinLev + 1, MaxLevelNow+1):
         level_oct_offsets.append(f.tell())
 
@@ -232,7 +230,7 @@ def _count_art_octs(f, offset,
     f.seek(offset)
     return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
 
-def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
+def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
     #Get the info for this level, skip the rest
@@ -283,13 +281,18 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     le = le[idx]
     fl = fl[idx]
 
+
     #left edges are expressed as if they were on 
     #level 15, so no matter what level max(le)=2**15 
     #correct to the yt convention
     #le = le/2**(root_level-1-level)-1
 
+    #try to find the root_level first
+    root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
+    root_level = root_level.astype('int64')
+
     #try without the -1
-    le = le/2**(root_level-2-level)-1
+    le = le/2**(root_level+1-level)-1
 
     #now read the hvars and vars arrays
     #we are looking for iOctCh
@@ -299,13 +302,12 @@ def _read_art_level_info(f, level_oct_offsets,level,root_level=15):
     
     
     f.seek(pos)
-    return le,fl,nLevel
+    return le,fl,nLevel,root_level
 
 
-def read_particles(file,nstars,Nrow):
+def read_particles(file,Nrow):
     words = 6 # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4 # for file_particle_data; not always true?
-    np = nstars # number of particles including stars, should come from lspecies[-1]
     np_per_page = Nrow**2 # defined in ART a_setup.h
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
 
@@ -314,7 +316,7 @@ def read_particles(file,nstars,Nrow):
     data = np.squeeze(np.dstack(pages)).T # x,y,z,vx,vy,vz
     return data[:,0:3],data[:,3:]
 
-def read_stars(file,nstars,Nrow):
+def read_stars(file):
     fh = open(file,'rb')
     tdum,adum   = _read_frecord(fh,'>d')
     nstars      = _read_frecord(fh,'>i')
@@ -327,7 +329,8 @@ def read_stars(file,nstars,Nrow):
     if fh.tell() < os.path.getsize(file):
         metallicity2 = _read_frecord(fh,'>f')     
     assert fh.tell() == os.path.getsize(file)
-    return nstars, mass, imass, tbirth, metallicity1, metallicity2
+    return  nstars, mass, imass, tbirth, metallicity1, metallicity2,\
+            ws_old,ws_oldi,tdum,adum
 
 def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     f.seek(level_child_offsets[level])
@@ -476,3 +479,29 @@ def b2t(tb,n = 1e2,logger=None,**kwargs):
     #fb2t = interp1d(tbs,ages)
     return fb2t
 
+def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
+    #stars are formed in lumps; spread out the ages linearly
+    da= np.diff(ages)
+    assert np.all(da<=0)
+    #ages should always be decreasing, and ordered so
+    agesd = np.zeros(ages.shape)
+    idx, = np.where(da<0)
+    idx+=1 #mark the right edges
+    #spread this age evenly out to the next age
+    lidx=0
+    lage=0
+    for i in idx:
+        n = i-lidx #n stars affected
+        rage = ages[i]
+        lage = max(rage-spread,0.0)
+        agesd[lidx:i]=np.linspace(lage,rage,n)
+        lidx=i
+        #lage=rage
+        if logger: logger(i)
+    #we didn't get the last iter
+    i=ages.shape[0]-1
+    n = i-lidx #n stars affected
+    rage = ages[i]
+    lage = max(rage-spread,0.0)
+    agesd[lidx:i]=np.linspace(lage,rage,n)
+    return agesd

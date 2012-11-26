@@ -3,6 +3,8 @@ ART-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
+Author: Christopher Erick Moody <cemoody@ucsc.edu>
+Affiliation: UCSC
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
@@ -42,24 +44,24 @@ from yt.data_objects.field_info_container import \
 from .fields import \
     ARTFieldInfo, add_art_field, KnownARTFields
 from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.lib import \
+    get_box_grids_level
 import yt.utilities.lib as amr_utils
 
-try:
-    import yt.frontends.ramses._ramses_reader as _ramses_reader
-except ImportError:
-    _ramses_reader = None
+import yt.frontends.ramses._ramses_reader as _ramses_reader #do not fail silently;
 
 from yt.utilities.physical_constants import \
-    mass_hydrogen_cgs, sec_per_Gyr
-
+    mass_hydrogen_cgs
+    
 from yt.frontends.art.definitions import art_particle_field_names
 
 from yt.frontends.art.io import _read_child_mask_level
 from yt.frontends.art.io import read_particles
 from yt.frontends.art.io import read_stars
+from yt.frontends.art.io import spread_ages
 from yt.frontends.art.io import _count_art_octs
 from yt.frontends.art.io import _read_art_level_info
 from yt.frontends.art.io import _read_art_child
@@ -81,19 +83,43 @@ def num_deep_inc(f):
 class ARTGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, hierarchy, level, locations, props,child_mask=None):
+    def __init__(self, id, hierarchy, level, locations,start_index, le,re,gd,
+            child_mask=None,nop=0):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
-        start_index = props[0]
+        start_index =start_index 
         self.Level = level
         self.Parent = []
         self.Children = []
         self.locations = locations
         self.start_index = start_index.copy()
         
-        self.LeftEdge = props[0]
-        self.RightEdge = props[1]
-        self.ActiveDimensions = props[2] 
+        self.LeftEdge = le
+        self.RightEdge = re
+        self.ActiveDimensions = gd
+        self.NumberOfParticles=nop
+        self.particle_type = np.array([])
+        self.particle_id= np.array([])
+        self.particle_age= np.array([])
+        self.particle_position_x = np.array([])
+        self.particle_position_y = np.array([])
+        self.particle_position_z = np.array([])
+        self.particle_velocity_x = np.array([])
+        self.particle_velocity_y = np.array([])
+        self.particle_velocity_z = np.array([])
+        self.particle_mass= np.array([])
+        self.star_position_x = np.array([])
+        self.star_position_y = np.array([])
+        self.star_position_z = np.array([])
+        self.star_velocity_x = np.array([])
+        self.star_velocity_y = np.array([])
+        self.star_velocity_z = np.array([])
+        self.star_age = np.array([])
+        self.star_metallicity1 = np.array([])
+        self.star_metallicity2 = np.array([])
+        self.star_mass_initial = np.array([])
+        self.star_mass = np.array([])
+
         #if child_mask is not None:
         #    self._set_child_mask(child_mask)
 
@@ -109,7 +135,8 @@ class ARTGrid(AMRGridPatch):
             self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] \
+                = self.dds
 
     def get_global_startindex(self):
         """
@@ -138,13 +165,105 @@ class ARTHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style='art'):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        #for now, the hierarchy file is the parameter file!
+        self.max_level = pf.max_level
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.float_type = np.float64
         AMRHierarchy.__init__(self,pf,data_style)
+        if 'particle_position' in dir(self.pf):
+            self._setup_particle_grids()
         self._setup_field_list()
         
+    def _setup_particle_grids(self):
+        grid_particle_count = np.zeros(len(self.grids),dtype='int64')
+        npt = self.pf.particle_position.shape[0]
+        if self.pf.do_grid_particles:
+            nps = self.pf.star_position.shape[0]
+            grid_indices = np.zeros(nps,dtype='int64')
+            particle_id= np.arange(nps,dtype='int64')
+            pbar = get_pbar("Gridding Particles",len(self.grids))
+            grid_indices,grid_particle_count,grids_done = \
+                    particle_assignment(self.grids,
+                      self.grids[0], 
+                      self.pf.star_position,
+                      particle_id,
+                      grid_indices,
+                      grid_particle_count, 
+                      self.pf.domain_dimensions,
+                      self.pf.max_level,
+                      logger=pbar)
+            pbar.finish()        
+            pbar = get_pbar("Finalizing grids ",len(self.grids))
+            for gi, (g,npi) in enumerate(zip(self.grids,grid_particle_count)): 
+                star_mask= grid_indices==gi
+                if gi==0:
+                    #attach all the particles to the root grid
+                    g.particle_type = self.pf.particle_type
+                    g.particle_id = np.arange(npt)
+                    g.particle_mass = self.pf.particle_mass
+                    g.particle_mass_initial = self.pf.particle_mass_initial
+                    g.particle_age = self.pf.particle_age
+                    g.particle_metallicity= self.pf.particle_metallicity
+                    g.particle_position_x= self.pf.particle_position[:,0]
+                    g.particle_position_y= self.pf.particle_position[:,1]
+                    g.particle_position_z= self.pf.particle_position[:,2]
+                    g.particle_velocity_x= self.pf.particle_velocity[:,0]
+                    g.particle_velocity_y= self.pf.particle_velocity[:,1]
+                    g.particle_velocity_z= self.pf.particle_velocity[:,2]
+                if star_mask.sum()>0:
+                    star_data = self.pf.star_data[star_mask]         
+                    (g.star_position_x, \
+                        g.star_position_y, \
+                        g.star_position_z, \
+                        g.star_velocity_x,\
+                        g.star_velocity_y,\
+                        g.star_velocity_z,\
+                        g.star_age,\
+                        g.star_metallicity1,\
+                        g.star_metallicity2,\
+                        g.star_mass_initial,\
+                        g.star_mass) = tuple(star_data.T)
+                    g.NumberOfParticles = npi        
+                self.grids[gi] = g
+                pbar.update(gi)
+            pbar.finish()
+        else:        
+            pbar = get_pbar("Finalizing grids ",len(self.grids))
+            for gi, g in enumerate(self.grids): 
+                if gi==0:
+                    #attach all the particles to the root grid
+                    g.particle_type = self.pf.particle_type
+                    g.particle_id = np.arange(npt)
+                    g.particle_mass = self.pf.particle_mass
+                    g.particle_mass_initial = self.pf.particle_mass_initial
+                    g.particle_age = self.pf.particle_age
+                    g.particle_metallicity= self.pf.particle_metallicity
+                    g.particle_position_x= self.pf.particle_position[:,0]
+                    g.particle_position_y= self.pf.particle_position[:,1]
+                    g.particle_position_z= self.pf.particle_position[:,2]
+                    g.particle_velocity_x= self.pf.particle_velocity[:,0]
+                    g.particle_velocity_y= self.pf.particle_velocity[:,1]
+                    g.particle_velocity_z= self.pf.particle_velocity[:,2]
+                    if self.pf.do_stars:
+                        (g.star_position_x, \
+                            g.star_position_y, \
+                            g.star_position_z, \
+                            g.star_velocity_x,\
+                            g.star_velocity_y,\
+                            g.star_velocity_z,\
+                            g.star_age,\
+                            g.star_metallicity1,\
+                            g.star_metallicity2,\
+                            g.star_mass_initial,\
+                            g.star_mass) = tuple(self.pf.star_data.T)
+                    g.NumberOfParticles = npt        
+                else:
+                    g.star_indices = []
+                self.grids[gi] = g
+            pbar.finish()
+            grid_particle_count[0]=npt
+        self.grid_particle_count = grid_particle_count
+
     def _initialize_data_storage(self):
         pass
 
@@ -209,11 +328,18 @@ class ARTHierarchy(AMRHierarchy):
             if level > self.pf.limit_level : continue
             
             #refers to the left index for the art octgrid
-            left_index, fl, nocts = _read_art_level_info(f, self.pf.level_oct_offsets,level)
+            left_index, fl, nocts,root_level = _read_art_level_info(f, 
+                    self.pf.level_oct_offsets,level,
+                    coarse_grid=self.pf.domain_dimensions[0])
+            if level>1:
+                assert root_level == last_root_level
+            last_root_level = root_level
+                    
             #left_index_gridpatch = left_index >> LEVEL_OF_EDGE
             
             #read in the child masks for this level and save them
-            idc, art_child_mask = _read_child_mask_level(f, self.pf.level_child_offsets,
+            idc, art_child_mask = _read_child_mask_level(f, 
+                    self.pf.level_child_offsets,
                 level,nocts*8,nhydro_vars=self.pf.nhydro_vars)
             art_child_mask = art_child_mask.reshape((nocts,2,2,2))
             self.pf.level_art_child_masks[level]=art_child_mask
@@ -307,7 +433,7 @@ class ARTHierarchy(AMRHierarchy):
                         eff_nmin*100.0/eff_nall,eff_nmin,eff_nall)
             
         
-            mylog.debug("Done with level % 2i", level)
+            mylog.info("Done with level % 2i; max LE %i", level,np.max(left_index))
             pbar.finish()
             self.proto_grids.append(psgs)
             #print sum(len(psg.grid_file_locations) for psg in psgs)
@@ -322,35 +448,33 @@ class ARTHierarchy(AMRHierarchy):
 
         
     def _parse_hierarchy(self):
-        """ The root grid has no octs except one which is refined.
-        Still, it is the size of 128 cells along a length.
-        Ignore the proto subgrid created for the root grid - it is wrong.
-        """
         grids = []
         gi = 0
-        
+        dd=self.pf.domain_dimensions
         for level, grid_list in enumerate(self.proto_grids):
-            #The root level spans [0,2]
-            #The next level spans [0,256]
-            #The 3rd Level spans up to 128*2^3, etc.
-            #Correct root level to span up to 128
-            correction=1L
-            if level == 0:
-                correction=64L
+            dds = ((2**level) * dd).astype("float64")
             for g in grid_list:
                 fl = g.grid_file_locations
-                props = g.get_properties()*correction
-                dds = ((2**level) * self.pf.domain_dimensions).astype("float64")
-                self.grid_left_edge[gi,:] = props[0,:] / dds
-                self.grid_right_edge[gi,:] = props[1,:] / dds
-                self.grid_dimensions[gi,:] = props[2,:]
+                props = g.get_properties()
+                start_index = props[0,:]
+                le = props[0,:].astype('float64')/dds
+                re = props[1,:].astype('float64')/dds
+                gd = props[2,:].astype('int64')
+                if level==0:
+                    le = np.zeros(3,dtype='float64')
+                    re = np.ones(3,dtype='float64')
+                    gd = dd
+                self.grid_left_edge[gi,:] = le
+                self.grid_right_edge[gi,:] = re
+                self.grid_dimensions[gi,:] = gd
+                assert np.all(self.grid_left_edge[gi,:]<=1.0)    
                 self.grid_levels[gi,:] = level
                 child_mask = np.zeros(props[2,:],'uint8')
-                amr_utils.fill_child_mask(fl,props[0],
+                amr_utils.fill_child_mask(fl,start_index,
                     self.pf.level_art_child_masks[level],
                     child_mask)
                 grids.append(self.grid(gi, self, level, fl, 
-                    props*np.array(correction).astype('int64')))
+                    start_index,le,re,gd))
                 gi += 1
         self.grids = np.empty(len(grids), dtype='object')
         
@@ -359,7 +483,7 @@ class ARTHierarchy(AMRHierarchy):
             lspecies = self.pf.parameters['lspecies']
             wspecies = self.pf.parameters['wspecies']
             Nrow     = self.pf.parameters['Nrow']
-            nstars = lspecies[-1]
+            nstars = np.diff(lspecies)[-1]
             a = self.pf.parameters['aexpn']
             hubble = self.pf.parameters['hubble']
             ud  = self.pf.parameters['r0']*a/hubble #proper Mpc units
@@ -368,7 +492,7 @@ class ARTHierarchy(AMRHierarchy):
             um *= 1.989e33 #convert solar masses to grams 
             pbar = get_pbar("Loading Particles   ",5)
             self.pf.particle_position,self.pf.particle_velocity = \
-                read_particles(self.pf.file_particle_data,nstars,Nrow)
+                read_particles(self.pf.file_particle_data,Nrow)
             pbar.update(1)
             npa,npb=0,0
             npb = lspecies[-1]
@@ -378,27 +502,33 @@ class ARTHierarchy(AMRHierarchy):
                 if type(self.pf.only_particle_type)==type(5):
                     npa = clspecies[self.pf.only_particle_type]
                     npb = clspecies[self.pf.only_particle_type+1]
-            np = npb-npa
+            nparticles = npb-npa
+            npt = nparticles
+            #make sure we aren't going to throw out good particles
+            if not np.all(self.pf.particle_position[npb:]==0.0):
+                print 'WARNING: unused particles discovered from lspecies'
             self.pf.particle_position   = self.pf.particle_position[npa:npb]
             #do NOT correct by an offset of 1.0
             #self.pf.particle_position  -= 1.0 #fortran indices start with 0
             pbar.update(2)
-            self.pf.particle_position  /= self.pf.domain_dimensions #to unitary units (comoving)
+            self.pf.particle_position  /= self.pf.domain_dimensions 
+            #to unitary units (comoving)
             pbar.update(3)
             self.pf.particle_velocity   = self.pf.particle_velocity[npa:npb]
             self.pf.particle_velocity  *= uv #to proper cm/s
             pbar.update(4)
-            self.pf.particle_type         = np.zeros(np,dtype='uint8')
-            self.pf.particle_mass         = np.zeros(np,dtype='float64')
-            self.pf.particle_mass_initial = np.zeros(np,dtype='float64')-1
-            self.pf.particle_creation_time= np.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity1 = np.zeros(np,dtype='float64')-1
-            self.pf.particle_metallicity2 = np.zeros(np,dtype='float64')-1
-            self.pf.particle_age          = np.zeros(np,dtype='float64')-1
-            
+            self.pf.particle_type         = np.zeros(nparticles,dtype='uint8')
+            self.pf.particle_mass         = np.zeros(nparticles,dtype='float64')
+            self.pf.particle_mass_initial = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_creation_time= np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_metallicity  = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_metallicity1 = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_metallicity2 = np.zeros(nparticles,dtype='float64')-1
+            self.pf.particle_age          = np.zeros(nparticles,dtype='float64')-1
+
             dist = self.pf['cm']/self.pf.domain_dimensions[0]
             self.pf.conversion_factors['particle_mass'] = 1.0 #solar mass in g
-            self.pf.conversion_factors['particle_mass_initial'] = 1.0 #solar mass in g
+            self.pf.conversion_factors['particle_mass_initial'] = 1.0
             self.pf.conversion_factors['particle_species'] = 1.0
             for ax in 'xyz':
                 self.pf.conversion_factors['particle_velocity_%s'%ax] = 1.0
@@ -411,10 +541,12 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.conversion_factors['particle_index']=1.0
             self.pf.conversion_factors['particle_type']=1
             self.pf.conversion_factors['particle_age']=1
-            self.pf.conversion_factors['Msun'] = 5.027e-34 #conversion to solar mass units
+            self.pf.conversion_factors['Msun'] = 5.027e-34 
+            #conversion to solar mass units
             
 
             a,b=0,0
+            self.pf.particle_star_index = len(wspecies)-1
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
                 if type(self.pf.only_particle_type)==type(5):
                     if not i==self.pf.only_particle_type:
@@ -425,80 +557,82 @@ class ARTHierarchy(AMRHierarchy):
                 else:
                     self.pf.particle_type[a:b] = i #particle type
                     self.pf.particle_mass[a:b] = m*um #mass in solar masses
+                    if m==0.0:
+                        self.pf.particle_star_index = i
                 a=b
             pbar.finish()
 
-            nparticles = [0,]+list(lspecies)
-            for j,np in enumerate(nparticles):
-                mylog.debug('found %i of particle type %i'%(j,np))
+            lparticles = [0,]+list(lspecies)
+            for j,npi in enumerate(lparticles):
+                mylog.debug('found %i of particle type %i'%(j,npi))
             
-            self.pf.particle_star_index = i
             
             do_stars = (self.pf.only_particle_type is None) or \
                        (self.pf.only_particle_type == -1) or \
                        (self.pf.only_particle_type == len(lspecies))
+            self.pf.do_stars = do_stars 
             if self.pf.file_star_data and do_stars: 
-                nstars, mass, imass, tbirth, metallicity1, metallicity2 \
-                     = read_stars(self.pf.file_star_data,nstars,Nrow)
-                nstars = nstars[0] 
-                if nstars > 0 :
+                nstars_pa = nstars
+                (nstars_rs,), mass, imass, tbirth, metallicity1, metallicity2, \
+                        ws_old,ws_oldi,tdum,adum \
+                     = read_stars(self.pf.file_star_data)
+                self.pf.nstars_rs = nstars_rs     
+                self.pf.nstars_pa = nstars_pa
+                if not nstars_rs==np.sum(self.pf.particle_type==self.pf.particle_star_index):
+                    print 'WARNING!: nstars is inconsistent!'
+                if nstars_rs > 0 :
                     n=min(1e2,len(tbirth))
                     pbar = get_pbar("Stellar Ages        ",n)
-                    sages  = \
+                    birthtimes= \
                         b2t(tbirth,n=n,logger=lambda x: pbar.update(x)).astype('float64')
-                    sages *= sec_per_Gyr #from Gyr to seconds
-                    sages = self.pf.current_time-sages
-                    self.pf.particle_age[-nstars:] = sages
+                    assert birthtimes.shape == tbirth.shape    
+                    birthtimes*= 1.0e9 #from Gyr to yr
+                    birthtimes*= 365*24*3600 #to seconds
+                    ages = self.pf.current_time-birthtimes
+                    spread = self.pf.spread
+                    if spread == False:
+                        pass
+                    elif type(spread)==type(5.5):
+                        ages = spread_ages(ages,spread=spread)
+                    else:
+                        ages = spread_ages(ages)
+                    idx = self.pf.particle_type == self.pf.particle_star_index    
+                    assert np.sum(idx)==nstars_pa
+                    self.pf.star_position = self.pf.particle_position[idx]
+                    self.pf.star_velocity = self.pf.particle_velocity[idx]
+                    self.pf.particle_age[idx] = ages
+                    self.pf.star_age = ages
                     pbar.finish()
-                    self.pf.particle_metallicity1[-nstars:] = metallicity1
-                    self.pf.particle_metallicity2[-nstars:] = metallicity2
-                    #self.pf.particle_metallicity1 *= 0.0199 
-                    #self.pf.particle_metallicity2 *= 0.0199 
-                    self.pf.particle_mass_initial[-nstars:] = imass*um
-                    self.pf.particle_mass[-nstars:] = mass*um
+                    self.pf.particle_metallicity[idx] = metallicity1+metallicity2
+                    self.pf.particle_metallicity1[idx] = metallicity1
+                    self.pf.particle_metallicity2[idx] = metallicity2
+                    self.pf.particle_mass[idx] = mass*um
+                    self.pf.particle_mass_initial[idx] = mass*um
+                    self.pf.star_metallicity1 = metallicity1
+                    self.pf.star_metallicity2 = metallicity2
+                    self.pf.star_mass_initial = imass*um
+                    self.pf.star_mass = mass*um
+                    self.pf.star_data = np.array([
+                        self.pf.star_position[:,0],
+                        self.pf.star_position[:,1],
+                        self.pf.star_position[:,2],
+                        self.pf.star_velocity[:,0],
+                        self.pf.star_velocity[:,1],
+                        self.pf.star_velocity[:,2],
+                        self.pf.star_age,
+                        self.pf.star_metallicity1,
+                        self.pf.star_metallicity2,
+                        self.pf.star_mass_initial,
+                        self.pf.star_mass]).T
 
             done = 0
             init = self.pf.particle_position.shape[0]
             pos = self.pf.particle_position
             #particle indices travel with the particle positions
-            #pos = np.vstack((np.arange(pos.shape[0]),pos.T)).T 
-            if type(self.pf.grid_particles) == type(5):
-                particle_level = min(self.pf.max_level,self.pf.grid_particles)
-            else:
-                particle_level = 2
-            grid_particle_count = np.zeros((len(grids),1),dtype='int64')
-
-            pbar = get_pbar("Gridding Particles ",init)
-            assignment,ilists = amr_utils.assign_particles_to_cell_lists(
-                    self.grid_levels.ravel().astype('int32'),
-                    np.zeros(len(pos[:,0])).astype('int32')-1,
-                    particle_level, #dont grid particles past this
-                    self.grid_left_edge.astype('float32'),
-                    self.grid_right_edge.astype('float32'),
-                    pos[:,0].astype('float32'),
-                    pos[:,1].astype('float32'),
-                    pos[:,2].astype('float32'))
-            pbar.finish()
-            
-            pbar = get_pbar("Filling grids ",init)
-            for gidx,(g,ilist) in enumerate(zip(grids,ilists)):
-                np = len(ilist)
-                grid_particle_count[gidx,0]=np
-                g.hierarchy.grid_particle_count = grid_particle_count
-                g.particle_indices = ilist
-                grids[gidx] = g
-                done += np
-                pbar.update(done)
-            pbar.finish()
-
-            #assert init-done== 0 #we have gridded every particle
-            
-        pbar = get_pbar("Finalizing grids ",len(grids))
-        for gi, g in enumerate(grids): 
-            self.grids[gi] = g
-        pbar.finish()
-            
-
+            #pos = np.vstack((na.arange(pos.shape[0]),pos.T)).T 
+        for gi,g in enumerate(grids):    
+            self.grids[gi]=g
+                    
     def _get_grid_parents(self, grid, LE, RE):
         mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(LE, RE)
@@ -507,47 +641,35 @@ class ARTHierarchy(AMRHierarchy):
         return self.grids[mask]
 
     def _populate_grid_objects(self):
+        mask = np.empty(self.grids.size, dtype='int32')
+        pb = get_pbar("Populating grids", len(self.grids))
         for gi,g in enumerate(self.grids):
-            parents = self._get_grid_parents(g,
-                            self.grid_left_edge[gi,:],
-                            self.grid_right_edge[gi,:])
+            pb.update(gi)
+            amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level - 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
-                g.Parent.extend(parents.tolist())
+                g.Parent.extend((p for p in parents.tolist()
+                        if p.locations[0,0] == g.locations[0,0]))
                 for p in parents: p.Children.append(g)
+            #Now we do overlapping siblings; note that one has to "win" with
+            #siblings, so we assume the lower ID one will "win"
+            amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                g.Level,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask, gi)
+            mask[gi] = False
+            siblings = self.grids[mask.astype("bool")]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
             g._prepare_grid()
             g._setup_dx()
+        pb.finish()
         self.max_level = self.grid_levels.max()
-
-    # def _populate_grid_objects(self):
-    #     mask = np.empty(self.grids.size, dtype='int32')
-    #     pb = get_pbar("Populating grids", len(self.grids))
-    #     for gi,g in enumerate(self.grids):
-    #         pb.update(gi)
-    #         amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
-    #                             self.grid_right_edge[gi,:],
-    #                             g.Level - 1,
-    #                             self.grid_left_edge, self.grid_right_edge,
-    #                             self.grid_levels, mask)
-    #         parents = self.grids[mask.astype("bool")]
-    #         if len(parents) > 0:
-    #             g.Parent.extend((p for p in parents.tolist()
-    #                     if p.locations[0,0] == g.locations[0,0]))
-    #             for p in parents: p.Children.append(g)
-    #         # Now we do overlapping siblings; note that one has to "win" with
-    #         # siblings, so we assume the lower ID one will "win"
-    #         amr_utils.get_box_grids_level(self.grid_left_edge[gi,:],
-    #                             self.grid_right_edge[gi,:],
-    #                             g.Level,
-    #                             self.grid_left_edge, self.grid_right_edge,
-    #                             self.grid_levels, mask, gi)
-    #         mask[gi] = False
-    #         siblings = self.grids[mask.astype("bool")]
-    #         if len(siblings) > 0:
-    #             g.OverlappingSiblings = siblings.tolist()
-    #         g._prepare_grid()
-    #         g._setup_dx()
-    #     pb.finish()
-    #     self.max_level = self.grid_levels.max()
 
     def _setup_field_list(self):
         if self.parameter_file.use_particles:
@@ -588,10 +710,11 @@ class ARTStaticOutput(StaticOutput):
                  file_particle_data=None,
                  file_star_data=None,
                  discover_particles=True,
-                 use_particles=True,
                  limit_level=None,
                  only_particle_type = None,
-                 grid_particles=False,
+                 do_grid_particles=False,
+                 merge_dm_and_stars=False,
+                 spread = True,
                  single_particle_mass=False,
                  single_particle_type=0):
         
@@ -605,8 +728,10 @@ class ARTStaticOutput(StaticOutput):
         self.file_particle_data = file_particle_data
         self.file_star_data = file_star_data
         self.only_particle_type = only_particle_type
-        self.grid_particles = grid_particles
+        self.do_grid_particles = do_grid_particles
         self.single_particle_mass = single_particle_mass
+        self.merge_dm_and_stars = merge_dm_and_stars
+        self.spread = spread
         
         if limit_level is None:
             self.limit_level = np.inf
@@ -719,8 +844,11 @@ class ARTStaticOutput(StaticOutput):
             # Add on the 1e5 to get to cm/s
             self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
         seconds = self.t0
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+        self.time_units['Gyr']   = 1.0/(1.0e9*365*3600*24.0)
+        self.time_units['Myr']   = 1.0/(1.0e6*365*3600*24.0)
+        self.time_units['years'] = 1.0/(365*3600*24.0)
+        self.time_units['days']  = 1.0 / (3600*24.0)
+
 
         #we were already in seconds, go back in to code units
         #self.current_time /= self.t0 
@@ -817,7 +945,7 @@ class ARTStaticOutput(StaticOutput):
         # integrand_arr = integrand(spacings)
         # self.current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
         # self.current_time *= self.hubble_time
-        self.current_time = b2t(self.current_time_raw) * sec_per_Gyr
+        self.current_time = b2t(self.current_time_raw)*1.0e9*365*3600*24         
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 
@@ -865,7 +993,8 @@ class ARTStaticOutput(StaticOutput):
         self.root_grid_mask_offset = f.tell()
         #_skip_record(f) # iOctCh
         root_cells = self.domain_dimensions.prod()
-        self.root_iOctCh = _read_frecord(f,'>i')[:root_cells]
+        self.root_iOctChfull = _read_frecord(f,'>i')
+        self.root_iOctCh = self.root_iOctChfull[:root_cells]
         self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,order='F')
         self.root_grid_offset = f.tell()
         _skip_record(f) # hvar
@@ -927,10 +1056,12 @@ class ARTStaticOutput(StaticOutput):
         seek_extras = 137
         fh.seek(seek_extras)
         n = self.parameters['Nspecies']
-        self.parameters['wspecies'] = np.fromfile(fh,dtype='>f',count=10)
-        self.parameters['lspecies'] = np.fromfile(fh,dtype='>i',count=10)
-        self.parameters['wspecies'] = self.parameters['wspecies'][:n]
-        self.parameters['lspecies'] = self.parameters['lspecies'][:n]
+        self.parameters['wspeciesf'] = np.fromfile(fh,dtype='>f',count=10)
+        self.parameters['lspeciesf'] = np.fromfile(fh,dtype='>i',count=10)
+        assert np.all(self.parameters['lspeciesf'][n:]==0.0)
+        assert np.all(self.parameters['wspeciesf'][n:]==0.0)
+        self.parameters['wspecies'] = self.parameters['wspeciesf'][:n]
+        self.parameters['lspecies'] = self.parameters['lspeciesf'][:n]
         fh.close()
         
         ls_nonzero = [ls for ls in self.parameters['lspecies'] if ls>0 ]
@@ -940,14 +1071,64 @@ class ARTStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        """
-        Defined for Daniel Ceverino's file naming scheme.
-        This could differ for other formats.
-        """
-        fn = ("%s" % (os.path.basename(args[0])))
-        f = ("%s" % args[0])
-        if fn.endswith(".d") and fn.startswith('10Mpc') and\
-                os.path.exists(f): 
-                return True
+        if "10MpcBox" in args[0]:
+            return True
         return False
+
+def particle_assignment(grids,this_grid, 
+                                  pos,
+                                  particle_id,
+                                  grid_indices,
+                                  grid_particle_count, 
+                                  domain_dimensions,
+                                  max_level,
+                                  subdiv=2,
+                                  grids_done=0,
+                                  logger=None):
+    #for every particle check every child grid to see if it fits inside
+    #cast the pos -> cell location index (instead of doing a LE<pos<RE check)
+    #find if cell descends into the next mesh
+    
+    #cast every position into a cell on this grid
+    #we may get negative indices or indices outside this grid
+    #mask them out
+    exp = domain_dimensions*subdiv**this_grid.Level
+    lei= np.floor((pos-this_grid.LeftEdge)*exp).astype('int64')
+
+    #now lookup these indices in the child index mask
+    #throw out child grids = -1 and particles outside the range
+    #default state is to not grid a particle
+    child_idx = np.zeros(lei.shape[0],dtype='int64')-1
+    #remove particles to the left or right of the grid
+    lei_out  = np.any(lei>=this_grid.ActiveDimensions,axis=1)
+    lei_out |= np.any(lei<0,axis=1)
+    #lookup grids for every particle except the ones to the 
+    leio=lei[~lei_out]
+    #child_idx[~lei_out]= \
+    child_idx[~lei_out]= \
+            this_grid.child_index_mask[(leio[:,0],leio[:,1],leio[:,2])]
+    mask = (child_idx > -1)
+    #only assign the particles if they point to a grid ID that isnt -1
+    grid_indices[particle_id[mask]] = child_idx[mask]
+    #the number of particles on this grid is equal to those
+    #that point to -1
+    grid_particle_count[this_grid.id] = np.sum(~mask)
+    grids_done +=1
+    if logger:
+        logger.update(grids_done)
+
+    for child_grid_index in np.unique(this_grid.child_index_mask):
+        if child_grid_index == -1: 
+            continue
+        if grids[child_grid_index].Level == max_level:
+            continue
+        mask = child_idx == child_grid_index
+        if np.sum(mask)==0:continue
+        grid_indices,grid_particle_count,grids_done = \
+        particle_assignment(grids,grids[child_grid_index],
+                pos[mask],particle_id[mask],
+                grid_indices,grid_particle_count,
+                domain_dimensions,max_level,grids_done=grids_done,
+                subdiv=subdiv,logger=logger)
+    return grid_indices,grid_particle_count,grids_done
 

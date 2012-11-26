@@ -958,12 +958,87 @@ class AdaptiveHEALpixCamera(Camera):
         return info, values
 
 class StereoPairCamera(Camera):
-    def __init__(self, original_camera, relative_separation = 0.005):
+    def __init__(self,original_camera,
+                 auto_focus=False,
+                 focal_length=None,
+                 frac_near_plane = 0.90, 
+                 frac_far_plane  = 1.10,
+                 frac_eye_separation=0.05,
+                 aperture = 60.0,
+                 relative_separation=0.005):
+        """
+        Auto-focus is adapted from a guide & code at :
+        http://paulbourke.net/miscellaneous/stereographics/stereorender/
+        """
         ParallelAnalysisInterface.__init__(self)
         self.original_camera = original_camera
-        self.relative_separation = relative_separation
+        oc = self.original_camera
+        if self.auto_focus:
+            dist = lambda x,y: na.sqrt(na.sum((x-y)**2.0))
+            if self.focal_length is None:
+                self.focal_length = dist(oc.normal_vector,0.0)
+            self.focal_far  = oc.center + frac_far_plane*oc.normal_vector
+            self.focal_near = oc.center + frac_near_plane*oc.normal_vector
+            self.wh_ratio = oc.resolution[0]/oc.resolution[1]
+            self.eye_sep  = self.focal_length*frac_eye_separation
+            self.aperture = aperture
+            self.frac_eye_separation = frac_eye_separation
+            self.center_eye_pos = oc.center + oc.normal_vector
+        else:
+            #default to old separation
+            self.relative_separation = relative_separation
+    
+    def finalize_image(self,image):
+        if self.auto_focus:
+            #we have extra frustum pixels on the left and right
+            #cameras
+            left_trim,right_trim = self.trim[0],self.trim[1]
+            left = abs(left_trim)
+            right = image.shapae[0]-abs(right_trim)
+            image = image[left:right,:]
+            return image
+
+	def auto_split(self):
+		"""We must calculate the new camera centers, as well
+        as the extended frustum pixels."""
+        oc = self.original_camera
+        nv = oc.orienter.normal_vector
+        up = oc.north_vector
+        c = oc.center
+        px = resolution[0] #pixel width
+        norm = lambda x: na.sqrt(na.dot(x,x.conj()))
+        between_eyes = na.cross(nv,up)
+        between_eyes /= norm(between_eyes)
+        between_eyes *= eye_sep/2.0
+        le_norm = nv-between_eyes 
+        le_c= c-between_eyes 
+        re_norm = nv+between_eyes 
+        re_c = c+between_eyes 
+        angular_aperture = na.tan(self.aperture/360.0*2.0*na.pi/2.0)
+        delta = na.rint(px*self.frac_eye_separation/(2.0*(angular_aperture)))
+        delta = delta.astype('int')
+        eresolution = resolution[0]+delta
+        left_camera = Camera(le_c, le_norm, oc.width,
+                     eresolution, oc.transfer_function, north_vector=up,
+                     volume=oc.volume, fields=oc.fields, 
+                     log_fields=oc.log_fields,
+                     sub_samples=oc.sub_samples, pf=oc.pf)
+        left_camera.trim = [-delta,0]
+        right_camera = Camera(re_c, re_norm, oc.width,
+                     eresolution, oc.transfer_function, north_vector=up,
+                     volume=oc.volume, fields=oc.fields, 
+                     log_fields=oc.log_fields,
+                     sub_samples=oc.sub_samples, pf=oc.pf)
+        right_camera.trim = [0,-delta]
+        return (left_camera, right_camera)
 
     def split(self):
+        if self.auto_focus:
+            return self.auto_split()
+        else:
+            return self.default_split()
+    
+    def default_split(self):
         oc = self.original_camera
         uv = oc.orienter.unit_vectors
         c = oc.center
@@ -980,6 +1055,10 @@ class StereoPairCamera(Camera):
                              volume=oc.volume, fields=oc.fields, log_fields=oc.log_fields,
                              sub_samples=oc.sub_samples, pf=oc.pf)
         return (left_camera, right_camera)
+
+
+
+        
 
 class FisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution,
