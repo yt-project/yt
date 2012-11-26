@@ -36,7 +36,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 import yt.utilities.lib as au
 
-from yt.frontends.art.definitions import art_particle_field_names
+from yt.frontends.art.definitions import *
 
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
@@ -149,7 +149,7 @@ class IOHandlerART(BaseIOHandler):
         starfield = field.replace('particle','star')
         psi = grid.pf.particle_star_index
         if field not in field_dict.keys() and starfield in field_dict.keys():
-            particle_field = np.zeros(grid.particle_mass.shape)                    
+            particle_field = np.zeros(grid.particle_mass.shape) 
             particle_field[grid.particle_type==psi]=field_dict[starfield]
             return particle_field
         else:
@@ -157,7 +157,7 @@ class IOHandlerART(BaseIOHandler):
 
         
     def _read_data_set(self, grid, field):
-        if field in art_particle_field_names:
+        if field in particle_fields:
             return self._read_particle_field(grid, field)
         pf = grid.pf
         field_id = grid.pf.h.field_list.index(field)
@@ -349,7 +349,7 @@ def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
         arr = arr.reshape((width, chunk), order="F")
         assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
         idc[a:b]    = arr[1,:]-1 #fix fortran indexing
-        ioctch[a:b] = arr[2,:]==0 #if it is above zero, then refined info available
+        ioctch[a:b] = arr[2,:]==0 #if it is above zero, then refined available
         #zero in the mask means there is refinement available
         a=b
         left -= chunk

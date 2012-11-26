@@ -34,22 +34,39 @@ import cStringIO
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
-from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
-from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+from yt.data_objects.hierarchy import \
+      AMRHierarchy
 from yt.data_objects.static_output import \
-    StaticOutput
+      StaticOutput
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, NullFunc
+from .fields import \
+    ARTFieldInfo, add_art_field, KnownARTFields
+from yt.utilities.definitions import \
+    mpc_conversion
+from yt.utilities.io_handler import \
+    io_registry
+from yt.utilities.lib import \
+    get_box_grids_level
+import yt.utilities.lib as amr_utils
 
 from .definitions import *
-from io import _read_struct
+from io import _read_child_mask_level
+from io import read_particles
+from io import read_stars
+from io import spread_ages
+from io import _count_art_octs
 from io import _read_art_level_info
+from io import _read_art_child
+from io import _skip_record
 from io import _read_record
 from io import _read_frecord
-from io import _skip_record
-from io import _count_art_octs
+from io import _read_record_size
+from io import _read_struct
 from io import b2t
-from io import load_level
+
+
+import yt.frontends.ramses._ramses_reader as _ramses_reader
 
 from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
@@ -62,191 +79,6 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
-
-class ARTStaticOutput(StaticOutput):
-    _hierarchy_class = ARTHierarchy
-    _fieldinfo_fallback = ARTFieldInfo
-    _fieldinfo_known = KnownARTFields
-    
-    def __init__(self, file_amr, storage_filename = None,
-            skip_particles=False,skip_stars=False,data_style='art'):
-        self.data_style = data_style
-        self._find_files(file_amr)
-        self.skip_particles = skip_particles
-        self.skip_stars = skip_stars
-        self.file_amr = file_amr
-        self.parameter_filename = file_amr
-        self.domain_left_edge  = np.zeros(3,dtype='float64')
-        self.domain_right_edge = np.ones(3,dtype='float64') 
-        StaticOutput.__init__(self, file_amr, data_style)
-        self.storage_filename = storage_filename
-
-    def _find_files(self,file_amr):
-        """
-        Given the AMR base filename, attempt to find the
-        particle header, star files, etc.
-        """
-        prefix,suffix = filename_pattern['amr'].split('%s')
-        affix = os.path.basename(file_amr).replace(prefix,'')
-        affix = affix.replace(suffix,'')
-        affix = affix.replace('_','')
-        affix = affix[1:-1]
-        dirname = os.path.dirname(file_amr)
-        for filetype, pattern in filename_pattern.items():
-            #sometimes the affix is surrounded by an extraneous _
-            #so check for an extra character on either side
-            check_filename = dirname+'/'+pattern%('?%s?'%affix)
-            filenames = glob.glob(check_filename)
-            if len(filenames)==1:
-                setattr(self,"file_"+filetype,filenames[0])
-                mylog.info('discovered %s',filetype)
-            elif len(filenames)>1:
-                setattr(self,"file_"+filetype,None)
-                mylog.info("Ambiguous number of files found for %s",
-                        check_filename)
-            else:
-                setattr(self,"file_"+filetype,None)
-
-    def __repr__(self):
-        return self.basename.rsplit(".", 1)[0]
-        
-    def _set_units(self):
-        """
-        Generates the conversion to various physical units based 
-		on the parameters from the header
-        """
-        self.units = {}
-        self.time_units = {}
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0
-        self._parse_parameter_file()
-
-        #spatial units
-        z   = self.current_redshift
-        h   = self.hubble_constant
-        boxcm_cal = self.parameters["boxh"]
-        boxcm_uncal = boxcm_cal / h
-        box_proper = boxcm_uncal/(1+z)
-        aexpn = self["aexpn"]
-        for unit in mpc_conversion:
-            self.units[unit] = mpc_conversion[unit] * box_proper
-            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
-            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
-            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
-
-        #all other units
-        wmu = self.parameters["wmu"]
-        Om0 = self.parameters['Om0']
-        ng  = self.parameters['ng']
-        wmu = self.parameters["wmu"]
-        boxh   = self.parameters['boxh'] 
-        aexpn  = self.parameters["aexpn"]
-        hubble = self.parameters['hubble']
-
-        r0 = boxh/ng
-        P0= 4.697e-16 * Om0**2.0 * r0**2.0 * hubble**2.0
-        T_0 = 3.03e5 * r0**2.0 * wmu * Om0 # [K]
-        S_0 = 52.077 * wmu**(5.0/3.0)
-        S_0 *= hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
-        v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
-        t0 = r0/v0
-        rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
-        tr = 2./3. *(3.03e5*r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))     
-        aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
-
-        #factors to multiply the native code units to CGS
-        cf = defaultdict(lambda: 1.0)
-        cf['Pressure'] = P0 #already cgs
-        cf['Velocity'] = v0*1e3 #km/s -> cm/s
-        cf["Mass"] = aM0 * 1.98892e33
-        cf["Density"] = rho0*(aexpn**-3.0)
-        cf["GasEnergy"] = rho0*v0**2*(aexpn**-5.0)
-        cf["Potential"] = 1.0
-        cf["Entropy"] = S_0
-        cf["Temperature"] = tr
-        self.cosmological_simulation = True
-        self.conversion_factors = cf
-        
-        for ax in 'xyz':
-            self.conversion_factors["%s-velocity" % ax] = v0/aexpn
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
-        for particle_field in particle_fields:
-            self.pf.conversion_factors[particle_field] =  1.0
-        self.pf.conversion_factors['particle_creation_time'] =  31556926.0
-        self.pf.conversion_factors['Msun'] = 5.027e-34 
-
-    def _parse_parameter_file(self):
-        """
-        Get the various simulation parameters & constants.
-        """
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.cosmological_simulation = True
-        self.parameters = {}
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        header_vals = {}
-        self.parameters.update(constants)
-        with open(self.file_amr,'rb') as f:
-            amr_header_vals = _read_struct(f,amr_header_struct)
-            for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
-                _skip_record(f)
-            (self.ncell,) = struct.unpack('>l', _read_record(f))
-            # Try to figure out the root grid dimensions
-            est = int(np.rint(self.ncell**(1.0/3.0)))
-            # Note here: this is the number of *cells* on the root grid.
-            # This is not the same as the number of Octs.
-            self.domain_dimensions = np.ones(3, dtype='int64')*est 
-            self.root_grid_mask_offset = f.tell()
-            root_cells = self.domain_dimensions.prod()
-            self.root_iOctCh = _read_frecord(f,'>i')[:root_cells]
-            self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
-                 order='F')
-            self.root_grid_offset = f.tell()
-            _skip_record(f) # hvar
-            _skip_record(f) # var
-            self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
-            self.child_grid_offset = f.tell()
-        self.parameters.update(amr_header_vals)
-        if self.file_particle_header is None:
-            with open(self.file_particle_header,"rb") as fh:
-                particle_header_vals = _read_struct(fh,particle_header_struct)
-                fh.seek(seek_extras)
-                n = particle_header_vals['Nspecies']
-                wspecies = np.fromfile(fh,dtype='>f',count=10)
-                lspecies = np.fromfile(fh,dtype='>i',count=10)
-            self.parameters['wspecies'] = wspecies[:n]
-            self.parameters['lspecies'] = lspecies[:n]
-            ls_nonzero = [ls for ls in self.parameters['lspecies'] if ls>0 ]
-            mylog.info("Discovered %i species of particles",len(ls_nonzero))
-            mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
-                ls_nonzero)
-            self.parameters.update(particle_header_vals)
-    
-        #setup standard simulation yt expects to see
-        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
-        self.omega_lambda = amr_header_vals['Oml0']
-        self.omega_matter = amr_header_vals['Om0']
-        self.hubble_constant = amr_header_vals['hubble']
-        self.min_level = amr_header_vals['min_level']
-        self.max_level = amr_header_vals['max_level']
-        self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
-        self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        """
-        Defined for the NMSU file naming scheme.
-        This could differ for other formats.
-        """
-        fn = ("%s" % (os.path.basename(args[0])))
-        f = ("%s" % args[0])
-        if fn.endswith(".d") and fn.startswith('10Mpc') and\
-                os.path.exists(f): 
-                return True
-        return False
 
 class ARTGrid(AMRGridPatch):
     _id_offset = 0
@@ -267,7 +99,7 @@ class ARTGrid(AMRGridPatch):
         self.ActiveDimensions = gd
         self.NumberOfParticles=nop
         for particle_field in particle_fields:
-            setattr(self,particle_field) = np.array([])
+            setattr(self,particle_field,np.array([]))
 
     def _setup_dx(self):
         id = self.id - self._id_offset
@@ -295,7 +127,8 @@ class ARTGrid(AMRGridPatch):
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
                        np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+        self.start_index = (start_index*self.pf.refine_by)\
+                           .astype('int64').ravel()
         return self.start_index
 
     def __repr__(self):
@@ -319,7 +152,7 @@ class ARTHierarchy(AMRHierarchy):
         self._setup_field_list()
         
     def _setup_particle_grids(self):
-        raise NotImplementedError
+        pass
     
     def _initialize_data_storage(self):
         pass
@@ -371,7 +204,8 @@ class ARTHierarchy(AMRHierarchy):
                     continue
                 psgs = []
                 effs,sizes = [], []
-                if level > self.pf.limit_level : continue
+                if self.pf.limit_level:
+                    if level > self.pf.limit_level : continue
                 #refers to the left index for the art octgrid
                 left_index, fl, nocts,root_level = _read_art_level_info(f, 
                         self.pf.level_oct_offsets,level,
@@ -464,13 +298,11 @@ class ARTHierarchy(AMRHierarchy):
                 mylog.info("%02.1f%% (%i/%i) of grids had minimum efficiency",
                             eff_nmin*100.0/eff_nall,eff_nmin,eff_nall)
                 
-            mylog.info("Done with level % 2i; max LE %i", level,
-                       np.max(left_index))
-            pbar.finish()
-            self.proto_grids.append(psgs)
-            #print sum(len(psg.grid_file_locations) for psg in psgs)
-            #mylog.info("Final grid count: %s", len(self.proto_grids[level]))
-            if len(self.proto_grids[level]) == 1: continue
+                mylog.info("Done with level % 2i; max LE %i", level,
+                           np.max(left_index))
+                pbar.finish()
+                self.proto_grids.append(psgs)
+                if len(self.proto_grids[level]) == 1: continue
         self.num_grids = sum(len(l) for l in self.proto_grids)
         
     def _parse_hierarchy(self):
@@ -506,30 +338,35 @@ class ARTHierarchy(AMRHierarchy):
         if not self.pf.skip_particles and self.pf.file_particle_data:
             lspecies = self.pf.parameters['lspecies']
             wspecies = self.pf.parameters['wspecies']
+            um  = self.pf.conversion_factors['Mass'] #mass units in g
+            uv  = self.pf.conversion_factors['Velocity'] #mass units in g
             self.pf.particle_position,self.pf.particle_velocity = \
                 read_particles(self.pf.file_particle_data,
                         self.pf.parameters['Nrow'])
-            self.pf.particle_position   = self.pf.particle_position
+            nparticles = self.pf.particle_position.shape[0]
             self.pf.particle_position  /= self.pf.domain_dimensions 
             self.pf.particle_velocity   = self.pf.particle_velocity
             self.pf.particle_velocity  *= uv #to proper cm/s
             self.pf.particle_star_index = len(wspecies)-1
+            self.pf.particle_type = np.zeros(nparticles,dtype='int')
+            self.pf.particle_mass = np.zeros(nparticles,dtype='float32')
+            a=0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
-                if i == self.particle_star_index:
+                if i == self.pf.particle_star_index:
                     sa,sb = a,b
                 self.pf.particle_type[a:b] = i #particle type
-                self.pf.particle_mass[a:b] = m*um #mass in solar masses
+                self.pf.particle_mass[a:b] = m*um #mass in grams
                 a=b
             if not self.pf.skip_stars and self.pf.file_particle_stars: 
-                nstars_pa = nstars
                 (nstars_rs,), mass, imass, tbirth, metallicity1, metallicity2, \
                         ws_old,ws_oldi,tdum,adum \
-                     = read_stars(self.pf.file_star_data)
+                     = read_stars(self.pf.file_particle_stars)
                 self.pf.nstars_rs = nstars_rs     
-                self.pf.nstars_pa = nstars_pa
-                inconsisten = self.pf.particle_type==self.pf.particle_star_index
+                self.pf.nstars_pa = b-a
+                inconsistent=self.pf.particle_type==self.pf.particle_star_index
                 if not nstars_rs==np.sum(inconsistent):
                     mylog.info('WARNING!: nstars is inconsistent!')
+                del inconsistent
                 if nstars_rs > 0 :
                     n=min(1e2,len(tbirth))
                     birthtimes= b2t(tbirth,n=n)
@@ -538,20 +375,23 @@ class ARTHierarchy(AMRHierarchy):
                     birthtimes*= 1.0e9 #from Gyr to yr
                     birthtimes*= 365*24*3600 #to seconds
                     ages = self.pf.current_time-birthtimes
-                    spread = self.pf.spread
+                    spread = self.pf.spread_age
                     if type(spread)==type(5.5):
                         ages = spread_ages(ages,spread=spread)
                     elif spread:
                         ages = spread_ages(ages)
                     idx = self.pf.particle_type == self.pf.particle_star_index
-                    assert np.sum(idx)==nstars_pa
-                    pf.particle_age[sa:sb] = ages
-                    pf.particle_mass[sa:sb] = mass
-                    pf.particle_mass_initial[sa:sb] = imass
-                    pf.particle_creation_time[sa:sb] = birthtimes
-                    pf.particle_metallicity1[sa:sb] = metallicity1
-                    pf.particle_metallicity2[sa:sb] = metallicity2
-                    pf.particle_metallicity[sa:sb] = metallicity1+metallicity2
+                    for psf in particle_star_fields:
+                        setattr(self.pf,psf,
+                                np.zeros(nparticles,dtype='float32'))
+                    self.pf.particle_age[sa:sb] = ages
+                    self.pf.particle_mass[sa:sb] = mass
+                    self.pf.particle_mass_initial[sa:sb] = imass
+                    self.pf.particle_creation_time[sa:sb] = birthtimes
+                    self.pf.particle_metallicity1[sa:sb] = metallicity1
+                    self.pf.particle_metallicity2[sa:sb] = metallicity2
+                    self.pf.particle_metallicity[sa:sb]  = metallicity1\
+                                                          + metallicity2
         for gi,g in enumerate(grids):    
             self.grids[gi]=g
                     
@@ -594,10 +434,10 @@ class ARTHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _setup_field_list(self):
-        if self.parameter_file.use_particles:
+        if not self.parameter_file.skip_particles:
             # We know which particle fields will exist -- pending further
             # changes in the future.
-            for field in art_particle_field_names:
+            for field in particle_fields:
                 def external_wrapper(f):
                     def _convert_function(data):
                         return data.convert(f)
@@ -619,4 +459,191 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.nhydro_vars,
             self.pf.level_info,
             self.pf.level_offsets)
+
+class ARTStaticOutput(StaticOutput):
+    _hierarchy_class = ARTHierarchy
+    _fieldinfo_fallback = ARTFieldInfo
+    _fieldinfo_known = KnownARTFields
+    
+    def __init__(self, file_amr, storage_filename = None,
+            skip_particles=False,skip_stars=False,limit_level=None,
+            spread_age=True,data_style='art'):
+        self.data_style = data_style
+        self._find_files(file_amr)
+        self.skip_particles = skip_particles
+        self.skip_stars = skip_stars
+        self.file_amr = file_amr
+        self.parameter_filename = file_amr
+        self.limit_level = limit_level
+        self.spread_age = spread_age
+        self.domain_left_edge  = np.zeros(3,dtype='float64')
+        self.domain_right_edge = np.ones(3,dtype='float64') 
+        StaticOutput.__init__(self, file_amr, data_style)
+        self.storage_filename = storage_filename
+
+    def _find_files(self,file_amr):
+        """
+        Given the AMR base filename, attempt to find the
+        particle header, star files, etc.
+        """
+        prefix,suffix = filename_pattern['amr'].split('%s')
+        affix = os.path.basename(file_amr).replace(prefix,'')
+        affix = affix.replace(suffix,'')
+        affix = affix.replace('_','')
+        affix = affix[1:-1]
+        dirname = os.path.dirname(file_amr)
+        for filetype, pattern in filename_pattern.items():
+            #sometimes the affix is surrounded by an extraneous _
+            #so check for an extra character on either side
+            check_filename = dirname+'/'+pattern%('?%s?'%affix)
+            filenames = glob.glob(check_filename)
+            if len(filenames)==1:
+                setattr(self,"file_"+filetype,filenames[0])
+                mylog.info('discovered %s',filetype)
+            elif len(filenames)>1:
+                setattr(self,"file_"+filetype,None)
+                mylog.info("Ambiguous number of files found for %s",
+                        check_filename)
+            else:
+                setattr(self,"file_"+filetype,None)
+
+    def __repr__(self):
+        return self.basename.rsplit(".", 1)[0]
+        
+    def _set_units(self):
+        """
+        Generates the conversion to various physical units based 
+		on the parameters from the header
+        """
+        self.units = {}
+        self.time_units = {}
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0
+
+        #spatial units
+        z   = self.current_redshift
+        h   = self.hubble_constant
+        boxcm_cal = self.parameters["boxh"]
+        boxcm_uncal = boxcm_cal / h
+        box_proper = boxcm_uncal/(1+z)
+        aexpn = self["aexpn"]
+        for unit in mpc_conversion:
+            self.units[unit] = mpc_conversion[unit] * box_proper
+            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
+            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
+            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
+
+        #all other units
+        wmu = self.parameters["wmu"]
+        Om0 = self.parameters['Om0']
+        ng  = self.parameters['ng']
+        wmu = self.parameters["wmu"]
+        boxh   = self.parameters['boxh'] 
+        aexpn  = self.parameters["aexpn"]
+        hubble = self.parameters['hubble']
+
+        r0 = boxh/ng
+        P0= 4.697e-16 * Om0**2.0 * r0**2.0 * hubble**2.0
+        T_0 = 3.03e5 * r0**2.0 * wmu * Om0 # [K]
+        S_0 = 52.077 * wmu**(5.0/3.0)
+        S_0 *= hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
+        v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
+        t0 = r0/v0
+        rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
+        tr = 2./3. *(3.03e5*r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))     
+        aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
+
+        #factors to multiply the native code units to CGS
+        cf = defaultdict(lambda: 1.0)
+        cf['Pressure'] = P0 #already cgs
+        cf['Velocity'] = v0/aexpn*1.0e5 #proper cm/s
+        cf["Mass"] = aM0 * 1.98892e33
+        cf["Density"] = rho0*(aexpn**-3.0)
+        cf["GasEnergy"] = rho0*v0**2*(aexpn**-5.0)
+        cf["Potential"] = 1.0
+        cf["Entropy"] = S_0
+        cf["Temperature"] = tr
+        self.cosmological_simulation = True
+        self.conversion_factors = cf
+        
+        for ax in 'xyz':
+            self.conversion_factors["%s-velocity" % ax] = v0/aexpn
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
+        for particle_field in particle_fields:
+            self.conversion_factors[particle_field] =  1.0
+        self.conversion_factors['particle_creation_time'] =  31556926.0
+        self.conversion_factors['Msun'] = 5.027e-34 
+
+    def _parse_parameter_file(self):
+        """
+        Get the various simulation parameters & constants.
+        """
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.cosmological_simulation = True
+        self.parameters = {}
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        header_vals = {}
+        self.parameters.update(constants)
+        with open(self.file_amr,'rb') as f:
+            amr_header_vals = _read_struct(f,amr_header_struct)
+            for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
+                _skip_record(f)
+            (self.ncell,) = struct.unpack('>l', _read_record(f))
+            # Try to figure out the root grid dimensions
+            est = int(np.rint(self.ncell**(1.0/3.0)))
+            # Note here: this is the number of *cells* on the root grid.
+            # This is not the same as the number of Octs.
+            self.domain_dimensions = np.ones(3, dtype='int64')*est 
+            self.root_grid_mask_offset = f.tell()
+            root_cells = self.domain_dimensions.prod()
+            self.root_iOctCh = _read_frecord(f,'>i')[:root_cells]
+            self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
+                 order='F')
+            self.root_grid_offset = f.tell()
+            _skip_record(f) # hvar
+            _skip_record(f) # var
+            self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
+            self.child_grid_offset = f.tell()
+        self.parameters.update(amr_header_vals)
+        if not self.skip_particles and self.file_particle_header:
+            with open(self.file_particle_header,"rb") as fh:
+                particle_header_vals = _read_struct(fh,particle_header_struct)
+                fh.seek(seek_extras)
+                n = particle_header_vals['Nspecies']
+                wspecies = np.fromfile(fh,dtype='>f',count=10)
+                lspecies = np.fromfile(fh,dtype='>i',count=10)
+            self.parameters['wspecies'] = wspecies[:n]
+            self.parameters['lspecies'] = lspecies[:n]
+            ls_nonzero = [ls for ls in self.parameters['lspecies'] if ls>0 ]
+            mylog.info("Discovered %i species of particles",len(ls_nonzero))
+            mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
+                *np.diff(ls_nonzero))
+            self.parameters.update(particle_header_vals)
+    
+        #setup standard simulation yt expects to see
+        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
+        self.omega_lambda = amr_header_vals['Oml0']
+        self.omega_matter = amr_header_vals['Om0']
+        self.hubble_constant = amr_header_vals['hubble']
+        self.min_level = amr_header_vals['min_level']
+        self.max_level = amr_header_vals['max_level']
+        self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
+        self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        """
+        Defined for the NMSU file naming scheme.
+        This could differ for other formats.
+        """
+        fn = ("%s" % (os.path.basename(args[0])))
+        f = ("%s" % args[0])
+        if fn.endswith(".d") and fn.startswith('10Mpc') and\
+                os.path.exists(f): 
+                return True
+        return False
 

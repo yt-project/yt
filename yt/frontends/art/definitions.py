@@ -58,6 +58,16 @@ particle_fields= [
     'particle_type'
 ]
 
+particle_star_fields = [
+    'particle_age',
+    'particle_mass',
+    'particle_mass_initial',
+    'particle_creation_time',
+    'particle_metallicity1',
+    'particle_metallicity2',
+    'particle_metallicity',
+]
+
 filename_pattern = {				
 	'amr':'10MpcBox_csf512_%s.d',
 	'particle_header':'PMcrd%s.DAT',
