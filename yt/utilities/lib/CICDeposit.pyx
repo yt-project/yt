@@ -143,11 +143,11 @@ def CICSample_3(np.ndarray[np.float64_t, ndim=1] posx,
     le2 = leftEdge[2] 
                                                     
     for n in range(npositions):
-        
+
         # Compute the position of the central cell
-	xpos = fclip((posx[n] - le0)*fact, 0.5001, edge0)
-	ypos = fclip((posy[n] - le1)*fact, 0.5001, edge1)
-	zpos = fclip((posz[n] - le2)*fact, 0.5001, edge2)
+        xpos = fclip((posx[n] - le0)*fact, 0.5001, edge0)
+        ypos = fclip((posy[n] - le1)*fact, 0.5001, edge1)
+        zpos = fclip((posz[n] - le2)*fact, 0.5001, edge2)
 
         i1  = <int> (xpos + 0.5)
         j1  = <int> (ypos + 0.5)
