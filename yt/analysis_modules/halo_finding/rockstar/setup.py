@@ -9,11 +9,9 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('rockstar',parent_package,top_path)
     config.make_config_py() # installs __config__.py
     #config.make_svn_version_py()
-    if "ROCKSTAR_DIR" in os.environ:
-        rd = os.environ["ROCKSTAR_DIR"]
-    elif os.path.exists("rockstar.cfg"):
+    try:
         rd = open("rockstar.cfg").read().strip()
-    else:
+    except IOError:
         print "Reading Rockstar location from rockstar.cfg failed."
         print "Please place the base directory of your"
         print "Rockstar install in rockstar.cfg and restart."
