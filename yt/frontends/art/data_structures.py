@@ -343,7 +343,11 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_position,self.pf.particle_velocity = \
                 read_particles(self.pf.file_particle_data,
                         self.pf.parameters['Nrow'])
-            nparticles = self.pf.particle_position.shape[0]
+            nparticles = lspecies[-1]
+            if not np.all(self.pf.particle_position[nparticles:]==0.0):
+                mylog.info('WARNING: unused particles discovered from lspecies')
+            self.pf.particle_position = self.pf.particle_position[:nparticles]
+            self.pf.particle_velocity = self.pf.particle_velocity[:nparticles]
             self.pf.particle_position  /= self.pf.domain_dimensions 
             self.pf.particle_velocity   = self.pf.particle_velocity
             self.pf.particle_velocity  *= uv #to proper cm/s
@@ -430,6 +434,22 @@ class ARTHierarchy(AMRHierarchy):
                 g.OverlappingSiblings = siblings.tolist()
             g._prepare_grid()
             g._setup_dx()
+            #instead of gridding particles assign them all to the root grid
+            if gi==0:
+                for particle_field in particle_fields:
+                    source = getattr(self.pf,particle_field,None)
+                    if source is None:
+                        for i,ax in enumerate('xyz'):
+                            pf = particle_field.replace('_%s'%ax,'')
+                            source = getattr(self.pf,pf,None)
+                            if source is not None:
+                                source = source[:,i]
+                                break
+                    if source is not None:
+                        mylog.info("Attaching %s to the root grid",
+                                    particle_field)
+                        g.NumberOfParticles = source.shape[0]
+                        setattr(g,particle_field,source)
         pb.finish()
         self.max_level = self.grid_levels.max()
 
@@ -618,10 +638,10 @@ class ARTStaticOutput(StaticOutput):
                 lspecies = np.fromfile(fh,dtype='>i',count=10)
             self.parameters['wspecies'] = wspecies[:n]
             self.parameters['lspecies'] = lspecies[:n]
-            ls_nonzero = [ls for ls in self.parameters['lspecies'] if ls>0 ]
+            ls_nonzero = np.diff(lspecies)[:n-1]
             mylog.info("Discovered %i species of particles",len(ls_nonzero))
             mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
-                *np.diff(ls_nonzero))
+                *ls_nonzero)
             self.parameters.update(particle_header_vals)
     
         #setup standard simulation yt expects to see
