@@ -26,23 +26,141 @@ License:
 from yt.mods import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
-
 from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
+from yt.config import ytcfg
+
 import rockstar_interface
+
 import socket
 import time
+import threading
+import signal
+import os
+from os import environ
+from os import mkdir
+from os import path
 
-class DomainDecomposer(ParallelAnalysisInterface):
-    def __init__(self, pf, comm):
-        ParallelAnalysisInterface.__init__(self, comm=comm)
-        self.pf = pf
-        self.hierarchy = pf.h
-        self.center = (pf.domain_left_edge + pf.domain_right_edge)/2.0
+# Get some definitions from Rockstar directly.
+if "ROCKSTAR_DIR" in os.environ:
+    ROCKSTAR_DIR = os.environ["ROCKSTAR_DIR"]
+elif os.path.exists("rockstar.cfg"):
+    ROCKSTAR_DIR = open("rockstar.cfg").read().strip()
+else:
+    print "Reading Rockstar location from rockstar.cfg failed."
+    print "Please place the base directory of your"
+    print "Rockstar install in rockstar.cfg and restart."
+    print "(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )"
+    sys.exit(1)
+lines = file(path.join(ROCKSTAR_DIR, 'server.h'))
+READER_TYPE = None
+WRITER_TYPE = None
+for line in lines:
+    if "READER_TYPE" in line:
+        line = line.split()
+        READER_TYPE = int(line[-1])
+    if "WRITER_TYPE" in line:
+        line = line.split()
+        WRITER_TYPE = int(line[-1])
+    if READER_TYPE != None and WRITER_TYPE != None:
+        break
+lines.close()
 
-    def decompose(self):
-        dd = self.pf.h.all_data()
-        check, LE, RE, data_source = self.partition_hierarchy_3d(dd)
-        return data_source
+class InlineRunner(ParallelAnalysisInterface):
+    def __init__(self, num_writers):
+        # If this is being run inline, num_readers == comm.size, always.
+        self.num_readers = ytcfg.getint("yt", "__global_parallel_size")
+        if num_writers is None:
+            self.num_writers =  ytcfg.getint("yt", "__global_parallel_size")
+        else:
+            self.num_writers = min(num_writers,
+                ytcfg.getint("yt", "__global_parallel_size"))
+
+    def split_work(self, pool):
+        avail = range(pool.comm.size)
+        self.writers = []
+        self.readers = []
+        # If we're inline, everyone is a reader.
+        self.readers = avail[:]
+        if self.num_writers == pool.comm.size:
+            # And everyone is a writer!
+            self.writers = avail[:]
+        else:
+            # Everyone is not a writer.
+            # Cyclically assign writers which should approximate
+            # memory load balancing (depending on the mpirun call,
+            # but this should do it in most cases).
+            stride = int(ceil(float(pool.comm.size) / self.num_writers))
+            while len(self.writers) < self.num_writers:
+                self.writers.extend(avail[::stride])
+                for r in readers:
+                    avail.pop(avail.index(r))
+
+    def run(self, handler, pool):
+        # If inline, we use forks.
+        server_pid = 0
+        # Start a server on only one machine/fork.
+        if pool.comm.rank == 0:
+            server_pid = os.fork()
+            if server_pid == 0:
+                handler.start_server()
+                os._exit(0)
+        # Start writers.
+        writer_pid = 0
+        if pool.comm.rank in self.writers:
+            time.sleep(0.1 + pool.comm.rank/10.0)
+            writer_pid = os.fork()
+            if writer_pid == 0:
+                handler.start_client(WRITER_TYPE)
+                os._exit(0)
+        # Start readers, not forked.
+        if pool.comm.rank in self.readers:
+            time.sleep(0.1 + pool.comm.rank/10.0)
+            handler.start_client(READER_TYPE)
+        # Make sure the forks are done, which they should be.
+        if writer_pid != 0:
+            os.waitpid(writer_pid, 0)
+        if server_pid != 0:
+            os.waitpid(server_pid, 0)
+
+class StandardRunner(ParallelAnalysisInterface):
+    def __init__(self, num_readers, num_writers):
+        self.num_readers = num_readers
+        if num_writers is None:
+            self.num_writers = ytcfg.getint("yt", "__global_parallel_size") \
+                - num_readers - 1
+        else:
+            self.num_writers = min(num_writers,
+                ytcfg.getint("yt", "__global_parallel_size"))
+        if self.num_readers + self.num_writers + 1 != ytcfg.getint("yt", \
+                "__global_parallel_size"):
+            mylog.error('%i reader + %i writers != %i mpi',
+                    self.num_readers, self.num_writers,
+                    ytcfg.getint("yt", "__global_parallel_size"))
+            raise RuntimeError
+    
+    def split_work(self, pool):
+        # Who is going to do what.
+        avail = range(pool.comm.size)
+        self.writers = []
+        self.readers = []
+        # If we're not running inline, rank 0 should be removed immediately.
+        avail.pop(0)
+        # Now we assign the rest.
+        for i in range(self.num_readers):
+            self.readers.append(avail.pop(0))
+        for i in range(self.num_writers):
+            self.writers.append(avail.pop(0))
+    
+    def run(self, handler, pool):
+        # Not inline so we just launch them directly from our MPI threads.
+        if pool.comm.rank == 0:
+            handler.start_server()
+        if pool.comm.rank in self.readers:
+            time.sleep(0.1 + pool.comm.rank/10.0)
+            handler.start_client(READER_TYPE)
+        if pool.comm.rank in self.writers:
+            time.sleep(0.2 + pool.comm.rank/10.0)
+            handler.start_client(WRITER_TYPE)
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None, 
@@ -65,23 +183,30 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             The number of reader can be increased from the default
             of 1 in the event that a single snapshot is split among
             many files. This can help in cases where performance is
-            IO-limited. Default is 1.
+            IO-limited. Default is 1. If run inline, it is
+            equal to the number of MPI threads.
         num_writers: int
             The number of writers determines the number of processing threads
             as well as the number of threads writing output data.
-            The default is set comm.size-num_readers-1.
+            The default is set to comm.size-num_readers-1. If run inline,
+            the default is equal to the number of MPI threads.
         outbase: str
             This is where the out*list files that Rockstar makes should be
-            placed. Default is str(pf)+'_rockstar'.
+            placed. Default is 'rockstar_halos'.
         particle_mass: float
             This sets the DM particle mass used in Rockstar.
         dm_type: 1
             In order to exclude stars and other particle types, define
             the dm_type. Default is 1, as Enzo has the DM particle type=1.
-        force_res: None
-            The default force resolution is 0.0012 comoving Mpc/H
-            This overrides Rockstars' defaults
-
+        force_res: float
+            This parameter specifies the force resolution that Rockstar uses
+            in units of Mpc/h.
+            If no value is provided, this parameter is automatically set to
+            the width of the smallest grid element in the simulation from the
+            last data snapshot (i.e. the one where time has evolved the
+            longest) in the time series:
+            ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+            
         Returns
         -------
         None
@@ -93,7 +218,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
         test_rockstar.py:
 
-        from mpi4py import MPI
         from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
         from yt.mods import *
         import sys
@@ -105,50 +229,64 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         rh = RockstarHaloFinder(ts, particle_mass=pm)
         rh.run()
         """
-        ParallelAnalysisInterface.__init__(self)
-        # No subvolume support
-        #we assume that all of the snapshots in the time series
-        #use the same domain info as the first snapshots
+        # Decide how we're working.
+        if ytcfg.getboolean("yt", "inline") == True:
+            self.runner = InlineRunner(num_writers)
+        else:
+            self.runner = StandardRunner(num_readers, num_writers)
+        self.num_readers = self.runner.num_readers
+        self.num_writers = self.runner.num_writers
+        mylog.info("Rockstar is using %d readers and %d writers",
+            self.num_readers, self.num_writers)
+        # Note that Rockstar does not support subvolumes.
+        # We assume that all of the snapshots in the time series
+        # use the same domain info as the first snapshots.
         if not isinstance(ts,TimeSeriesData):
             ts = TimeSeriesData([ts])
         self.ts = ts
         self.dm_type = dm_type
-        if self.comm.size > 1: 
-            self.comm.barrier()            
         tpf = ts.__iter__().next()
+        def _particle_count(field, data):
+            try:
+                return (data["particle_type"]==dm_type).sum()
+            except KeyError:
+                return np.prod(data["particle_position_x"].shape)
+        add_field("particle_count",function=_particle_count, not_in_all=True,
+            particle_type=True)
+        # Get total_particles in parallel.
         dd = tpf.h.all_data()
+        self.total_particles = int(dd.quantities['TotalQuantity']('particle_count')[0])
         self.hierarchy = tpf.h
         self.particle_mass = particle_mass 
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
-        data_source = tpf.h.all_data()
         if outbase is None:
-            outbase = str(tpf)+'_rockstar'
-        self.outbase = outbase        
-        if num_writers is None:
-            num_writers = self.comm.size - num_readers -1
-        self.num_readers = num_readers
-        self.num_writers = num_writers
-        if self.num_readers + self.num_writers + 1 != self.comm.size:
-            #we need readers+writers+1 server = comm size        
-            raise RuntimeError
+            outbase = 'rockstar_halos'
+        self.outbase = outbase
+        self.particle_mass = particle_mass
+        if force_res is None:
+            self.force_res = ts[-1].h.get_smallest_dx() * ts[-1]['mpch']
+        else:
+            self.force_res = force_res
+        self.left_edge = tpf.domain_left_edge
+        self.right_edge = tpf.domain_right_edge
         self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
-        data_source = tpf.h.all_data()
-        self.comm.barrier()
-        self.force_res = force_res
-        def _pcount(field,data):
-            return (data["particle_type"]=dm_type).sum()
-        add_field("pcount",function=_pcount,particle_type=True)
-        total_particles = dd.quantities['TotalQuantity']('pcount')
-        self.total_particles = total_particles
-        mylog.info("Found %i halo particles",total_particles)
+        # We set up the workgroups *before* initializing
+        # ParallelAnalysisInterface. Everyone is their own workgroup!
+        self.pool = ProcessorPool()
+        for i in range(ytcfg.getint("yt", "__global_parallel_size")):
+             self.pool.add_workgroup(size=1)
+        ParallelAnalysisInterface.__init__(self)
+        for wg in self.pool.workgroups:
+            if self.pool.comm.rank in wg.ranks:
+                self.workgroup = wg
         self.handler = rockstar_interface.RockstarInterface(
-                self.ts, data_source)
+                self.ts, dd)
 
     def __del__(self):
         self.pool.free_all()
 
     def _get_hosts(self):
-        if self.comm.size == 1 or self.workgroup.name == "server":
+        if self.pool.comm.size == 1 or self.pool.comm.rank == 0:
             server_address = socket.gethostname()
             sock = socket.socket()
             sock.bind(('', 0))
@@ -156,7 +294,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             del sock
         else:
             server_address, port = None, None
-        self.server_address, self.port = self.comm.mpi_bcast(
+        self.server_address, self.port = self.pool.comm.mpi_bcast(
             (server_address, port))
         self.port = str(self.port)
 
@@ -164,21 +302,13 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         """
         
         """
-        if self.comm.size > 1:
-            self.pool = ProcessorPool()
-            mylog.debug("Num Writers = %s Num Readers = %s",
-                        self.num_writers, self.num_readers)
-            self.pool.add_workgroup(1, name = "server")
-            self.pool.add_workgroup(self.num_readers, name = "readers")
-            self.pool.add_workgroup(self.num_writers, name = "writers")
-            for wg in self.pool.workgroups:
-                if self.comm.rank in wg.ranks: self.workgroup = wg
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
         self.handler.setup_rockstar(self.server_address, self.port,
-                    len(self.ts), self.total_particles, self.dm_type,
-                    parallel = self.comm.size > 1,
+                    len(self.ts), self.total_particles, 
+                    self.dm_type,
+                    parallel = self.pool.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
                     writing_port = -1,
@@ -187,27 +317,29 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     force_res=self.force_res,
                     particle_mass = float(self.particle_mass),
                     **kwargs)
-        #because rockstar *always* write to exactly the same
-        #out_0.list filename we make a directory for it
-        #to sit inside so it doesn't get accidentally
-        #overwritten 
-        if self.workgroup.name == "server":
+        # Make the directory to store the halo lists in.
+        if self.pool.comm.rank == 0:
             if not os.path.exists(self.outbase):
                 os.mkdir(self.outbase)
-        if self.comm.size == 1:
+            # Make a record of which dataset corresponds to which set of
+            # output files because it will be easy to lose this connection.
+            fp = open(self.outbase + '/pfs.txt', 'w')
+            fp.write("# pfname\tindex\n")
+            for i, pf in enumerate(self.ts):
+                pfloc = path.join(path.relpath(pf.fullpath), pf.basename)
+                line = "%s\t%d\n" % (pfloc, i)
+                fp.write(line)
+            fp.close()
+        # This barrier makes sure the directory exists before it might be used.
+        self.pool.comm.barrier()
+        if self.pool.comm.size == 1:
             self.handler.call_rockstar()
         else:
-            self.comm.barrier()
-            if self.workgroup.name == "server":
-                self.handler.start_server()
-            elif self.workgroup.name == "readers":
-                time.sleep(0.1 + self.workgroup.comm.rank/10.0)
-                self.handler.start_client()
-            elif self.workgroup.name == "writers":
-                time.sleep(0.2 + self.workgroup.comm.rank/10.0)
-                self.handler.start_client()
-            self.pool.free_all()
-        self.comm.barrier()
+            # Split up the work.
+            self.runner.split_work(self.pool)
+            # And run it!
+            self.runner.run(self.handler, self.pool)
+        self.pool.comm.barrier()
         self.pool.free_all()
     
     def halo_list(self,file_name='out_0.list'):
@@ -215,5 +347,4 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         Reads in the out_0.list file and generates RockstarHaloList
         and RockstarHalo objects.
         """
-        tpf = self.ts[0]
-        return RockstarHaloList(tpf,file_name)
+        return RockstarHaloList(self.pf,self.outbase+'/%s'%file_name)
