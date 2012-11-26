@@ -148,12 +148,8 @@ class ARTHierarchy(AMRHierarchy):
         AMRHierarchy.__init__(self,pf,data_style)
         if not self.pf.skip_particles:
             self._setup_particle_grids()
-        self._setup_particle_grids()
         self._setup_field_list()
-        
-    def _setup_particle_grids(self):
-        pass
-    
+
     def _initialize_data_storage(self):
         pass
     
