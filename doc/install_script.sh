@@ -711,6 +711,7 @@ then
         echo "Building Rockstar"
         cd Rockstar-0.99
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        cp librockstar.so ${DEST_DIR}/lib
         ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
         echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
         touch done
