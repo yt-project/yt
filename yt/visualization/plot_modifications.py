@@ -307,15 +307,17 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, level=None):
+    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None):
         """
         annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
 
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
         *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
-        Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *level* is
-        specified, only draw grids at or above the given refinement level.
+        Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *min_level* 
+        is specified, only draw grids at or above min_level.  If *max_level* is specified, only 
+        draw grids at or below max_level.
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
@@ -323,7 +325,8 @@ class GridBoundaryCallback(PlotCallback):
         self.min_pix_ids = min_pix_ids
         self.draw_ids = draw_ids # put grid numbers in the corner.
         self.periodic = periodic
-        self.level = level
+        self.min_level = min_level
+        self.max_level = max_level
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -352,8 +355,14 @@ class GridBoundaryCallback(PlotCallback):
             right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
             right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
-                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
-                       ( grid_levels >= self.level)
+                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix )
+            if self.min_level is not None and self.max_level is None:
+                visible = np.logical_and(visible, grid_levels >= self.min_level)
+            elif self.max_level is not None and self.min_level is None:
+                visible = np.logical_and(visible, grid_levels <= self.max_level)
+            elif self.max_level is not None and self.min_level is not None:
+                visible = np.logical_and(visible, grid_levels <= self.max_level)
+                visible = np.logical_and(visible, grid_levels >= self.min_level)
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
                 [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
