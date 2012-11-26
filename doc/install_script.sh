@@ -703,7 +703,7 @@ do_setup_py sympy-0.7.2
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
 # Now we build Rockstar and set its environment variable.
-if [ $INST_ROCKSTAR -eq 1]
+if [ $INST_ROCKSTAR -eq 1 ]
 then
     if [ ! -e Rockstar-0.99/done ]
     then
@@ -712,7 +712,7 @@ then
         cd Rockstar-0.99
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
-        echo $ROCKSTAR_DIR > rockstar.cfg
+        echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
         touch done
         cd ..
     fi
