@@ -712,6 +712,7 @@ then
         cd Rockstar-0.99
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         export ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
+        echo $ROCKSTAR_DIR > rockstar.cfg
         touch done
         cd ..
     fi

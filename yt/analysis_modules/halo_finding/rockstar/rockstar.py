@@ -41,7 +41,16 @@ from os import mkdir
 from os import path
 
 # Get some definitions from Rockstar directly.
-ROCKSTAR_DIR = environ['ROCKSTAR_DIR']
+if "ROCKSTAR_DIR" in os.environ:
+    ROCKSTAR_DIR = os.environ["ROCKSTAR_DIR"]
+elif os.path.exists("rockstar.cfg"):
+    ROCKSTAR_DIR = open("rockstar.cfg").read().strip()
+else:
+    print "Reading Rockstar location from rockstar.cfg failed."
+    print "Please place the base directory of your"
+    print "Rockstar install in rockstar.cfg and restart."
+    print "(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )"
+    sys.exit(1)
 lines = file(path.join(ROCKSTAR_DIR, 'server.h'))
 READER_TYPE = None
 WRITER_TYPE = None

@@ -32,11 +32,6 @@ deactivate () {
         export LD_LIBRARY_PATH
         unset _OLD_VIRTUAL_LD_LIBRARY_PATH
     fi
-    if [ -n "$_OLD_VIRTUAL_ROCKSTAR_DIR"] ; then
-        ROCKSTAR_DIR="$_OLD_VIRTUAL_ROCKSTAR_DIR"
-        export ROCKSTAR_DIR
-        unset _OLD_VIRTUAL_ROCKSTAR_DIR
-    fi
     ### End extra yt vars
 
     # This should detect bash and zsh, which have a hash command that must
@@ -81,10 +76,6 @@ export PYTHONPATH
 _OLD_VIRTUAL_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 LD_LIBRARY_PATH="$VIRTUAL_ENV/lib:$LD_LIBRARY_PATH"
 export LD_LIBRARY_PATH
-
-_OLD_VIRTUAL_ROCKSTAR_DIR="$ROCKSTAR_DIR"
-ROCKSTAR_DIR="$VIRTUAL_ENV/src/Rockstar-0.99"
-export ROCKSTAR_DIR
 ### End extra env vars for yt
 
 # unset PYTHONHOME if set
