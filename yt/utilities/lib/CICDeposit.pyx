@@ -117,6 +117,63 @@ def sample_field_at_positions(np.ndarray[np.float64_t, ndim=3] arr,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def CICSample_3(np.ndarray[np.float64_t, ndim=1] posx,
+                np.ndarray[np.float64_t, ndim=1] posy,
+                np.ndarray[np.float64_t, ndim=1] posz,
+                np.ndarray[np.float64_t, ndim=1] sample,
+                np.int64_t npositions,
+                np.ndarray[np.float64_t, ndim=3] field,
+                np.ndarray[np.float64_t, ndim=1] leftEdge,
+                np.ndarray[np.int32_t, ndim=1] gridDimension,
+                np.float64_t cellSize):
+    
+    cdef int i1, j1, k1, n
+    cdef np.float64_t xpos, ypos, zpos
+    cdef np.float64_t fact, edge0, edge1, edge2
+    cdef np.float64_t le0, le1, le2
+    cdef np.float64_t dx, dy, dz, dx2, dy2, dz2
+    
+    edge0 = (<np.float64_t> gridDimension[0]) - 0.5001
+    edge1 = (<np.float64_t> gridDimension[1]) - 0.5001
+    edge2 = (<np.float64_t> gridDimension[2]) - 0.5001
+    fact = 1.0 / cellSize
+    
+    le0 = leftEdge[0] 
+    le1 = leftEdge[1] 
+    le2 = leftEdge[2] 
+                                                    
+    for n in range(npositions):
+
+        # Compute the position of the central cell
+        xpos = fclip((posx[n] - le0)*fact, 0.5001, edge0)
+        ypos = fclip((posy[n] - le1)*fact, 0.5001, edge1)
+        zpos = fclip((posz[n] - le2)*fact, 0.5001, edge2)
+
+        i1  = <int> (xpos + 0.5)
+        j1  = <int> (ypos + 0.5)
+        k1  = <int> (zpos + 0.5)
+        
+        # Compute the weights
+        dx = (<float> i1) + 0.5 - xpos
+        dy = (<float> j1) + 0.5 - ypos
+        dz = (<float> k1) + 0.5 - zpos
+        dx2 =  1.0 - dx
+        dy2 =  1.0 - dy
+        dz2 =  1.0 - dz
+
+        # Interpolate from field onto the particle
+        sample[n] = (field[i1-1,j1-1,k1-1] * dx  * dy  * dz +
+                     field[i1  ,j1-1,k1-1] * dx2 * dy  * dz +
+                     field[i1-1,j1  ,k1-1] * dx  * dy2 * dz +
+                     field[i1  ,j1  ,k1-1] * dx2 * dy2 * dz +
+                     field[i1-1,j1-1,k1  ] * dx  * dy  * dz2 +
+                     field[i1  ,j1-1,k1  ] * dx2 * dy  * dz2 +
+                     field[i1-1,j1  ,k1  ] * dx  * dy2 * dz2 +
+                     field[i1  ,j1  ,k1  ] * dx2 * dy2 * dz2)
+                                                                                                                        
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def assign_particles_to_cells(np.ndarray[np.int32_t, ndim=1] levels, #for cells
                               np.ndarray[np.float32_t, ndim=2] left_edges, #many cells
                               np.ndarray[np.float32_t, ndim=2] right_edges,
