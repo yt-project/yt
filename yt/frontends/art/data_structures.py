@@ -444,6 +444,7 @@ class ARTHierarchy(AMRHierarchy):
                                     particle_field)
                         g.NumberOfParticles = source.shape[0]
                         setattr(g,particle_field,source)
+                g.particle_index = np.arange(g.NumberOfParticles)
         pb.finish()
         self.max_level = self.grid_levels.max()
 
