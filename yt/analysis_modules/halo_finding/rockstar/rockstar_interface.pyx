@@ -244,6 +244,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     cdef np.float64_t conv[6], left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
+    cdef unsigned long long pi,fi,i
     pf = rh.tsl.next()
     print 'reading from particle filename %s: %s'%(filename,pf.basename)
     block = int(str(filename).rsplit(".")[-1])
