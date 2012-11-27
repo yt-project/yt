@@ -332,9 +332,7 @@ class ARTHierarchy(AMRHierarchy):
         if not self.pf.skip_particles and self.pf.file_particle_data:
             lspecies = self.pf.parameters['lspecies']
             wspecies = self.pf.parameters['wspecies']
-            um  = self.pf.conversion_factors['Mass'] #mass units in g
-            uv  = self.pf.conversion_factors['Velocity'] #mass units in g
-            self.pf.particle_position,self.pf.particle_velocity = \
+            self.pf.particle_position,self.pf.particle_velocity= \
                 read_particles(self.pf.file_particle_data,
                         self.pf.parameters['Nrow'])
             nparticles = lspecies[-1]
@@ -343,17 +341,18 @@ class ARTHierarchy(AMRHierarchy):
             self.pf.particle_position = self.pf.particle_position[:nparticles]
             self.pf.particle_velocity = self.pf.particle_velocity[:nparticles]
             self.pf.particle_position  /= self.pf.domain_dimensions 
-            self.pf.particle_velocity   = self.pf.particle_velocity
-            self.pf.particle_velocity  *= uv #to proper cm/s
-            self.pf.particle_star_index = len(wspecies)-1
             self.pf.particle_type = np.zeros(nparticles,dtype='int')
-            self.pf.particle_mass = np.zeros(nparticles,dtype='float32')
+            self.pf.particle_mass = np.zeros(nparticles,dtype='float64')
+            self.pf.particle_star_index = len(wspecies)-1
             a=0
             for i,(b,m) in enumerate(zip(lspecies,wspecies)):
                 if i == self.pf.particle_star_index:
+                    assert m==0.0
                     sa,sb = a,b
+                else:
+                    assert m>0.0
                 self.pf.particle_type[a:b] = i #particle type
-                self.pf.particle_mass[a:b] = m*um #mass in grams
+                self.pf.particle_mass[a:b] = m #mass in code units
                 a=b
             if not self.pf.skip_stars and self.pf.file_particle_stars: 
                 (nstars_rs,), mass, imass, tbirth, metallicity1, metallicity2, \
@@ -380,8 +379,9 @@ class ARTHierarchy(AMRHierarchy):
                         ages = spread_ages(ages)
                     idx = self.pf.particle_type == self.pf.particle_star_index
                     for psf in particle_star_fields:
-                        setattr(self.pf,psf,
-                                np.zeros(nparticles,dtype='float32'))
+                        if getattr(self.pf,psf,None) is None:
+                            setattr(self.pf,psf,
+                                    np.zeros(nparticles,dtype='float64'))
                     self.pf.particle_age[sa:sb] = ages
                     self.pf.particle_mass[sa:sb] = mass
                     self.pf.particle_mass_initial[sa:sb] = imass
@@ -558,19 +558,30 @@ class ARTStaticOutput(StaticOutput):
         aexpn  = self.parameters["aexpn"]
         hubble = self.parameters['hubble']
 
+        cf = defaultdict(lambda: 1.0)
         r0 = boxh/ng
         P0= 4.697e-16 * Om0**2.0 * r0**2.0 * hubble**2.0
         T_0 = 3.03e5 * r0**2.0 * wmu * Om0 # [K]
         S_0 = 52.077 * wmu**(5.0/3.0)
         S_0 *= hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
-        v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
+        #v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
+        v0 = 50.0*r0*np.sqrt(Om0)
         t0 = r0/v0
-        rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
+        #rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
+        rho0 = 2.776e11 * hubble**2.0 * Om0
         tr = 2./3. *(3.03e5*r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))     
         aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
+        cf['r0']=r0
+        cf['P0']=P0
+        cf['T_0']=T_0
+        cf['S_0']=S_0
+        cf['v0']=v0
+        cf['t0']=t0
+        cf['rho0']=rho0
+        cf['tr']=tr
+        cf['aM0']=aM0
 
         #factors to multiply the native code units to CGS
-        cf = defaultdict(lambda: 1.0)
         cf['Pressure'] = P0 #already cgs
         cf['Velocity'] = v0/aexpn*1.0e5 #proper cm/s
         cf["Mass"] = aM0 * 1.98892e33
@@ -582,15 +593,15 @@ class ARTStaticOutput(StaticOutput):
         self.cosmological_simulation = True
         self.conversion_factors = cf
         
-        for ax in 'xyz':
-            self.conversion_factors["%s-velocity" % ax] = cf['Velocity']
-            self.conversion_factors["particle_velcity_%s"%ax] = cf['Velocity']
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
         for particle_field in particle_fields:
             self.conversion_factors[particle_field] =  1.0
+        for ax in 'xyz':
+            self.conversion_factors["%s-velocity" % ax] = 1.0
+            self.conversion_factors["particle_velocity_%s"%ax] = cf['Velocity']
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
+        self.conversion_factors['particle_mass'] = cf['Mass']
         self.conversion_factors['particle_creation_time'] =  31556926.0
-        self.conversion_factors['particle_mass']=cf['Mass']
         self.conversion_factors['Msun'] = 5.027e-34 
 
     def _parse_parameter_file(self):
@@ -603,7 +614,6 @@ class ARTStaticOutput(StaticOutput):
         self.parameters = {}
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        header_vals = {}
         self.parameters.update(constants)
         with open(self.file_amr,'rb') as f:
             amr_header_vals = _read_struct(f,amr_header_struct)
@@ -639,7 +649,14 @@ class ARTStaticOutput(StaticOutput):
             mylog.info("Discovered %i species of particles",len(ls_nonzero))
             mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
                 *ls_nonzero)
-            self.parameters.update(particle_header_vals)
+            for k,v in particle_header_vals.items():
+                if k in self.parameters.keys():
+                    if not self.parameters[k] == v:
+                        mylog.info("Inconsistent parameter %s %1.1e  %1.1e",k,v,
+                                   self.parameters[k])
+                else:
+                    self.parameters[k]=v
+            self.parameters_particles = particle_header_vals
     
         #setup standard simulation yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
