@@ -146,8 +146,6 @@ class ARTHierarchy(AMRHierarchy):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.float_type = np.float64
         AMRHierarchy.__init__(self,pf,data_style)
-        if not self.pf.skip_particles:
-            self._setup_particle_grids()
         self._setup_field_list()
 
     def _initialize_data_storage(self):
