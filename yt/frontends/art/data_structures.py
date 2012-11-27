@@ -583,12 +583,14 @@ class ARTStaticOutput(StaticOutput):
         self.conversion_factors = cf
         
         for ax in 'xyz':
-            self.conversion_factors["%s-velocity" % ax] = v0/aexpn
+            self.conversion_factors["%s-velocity" % ax] = cf['Velocity']
+            self.conversion_factors["particle_velcity_%s"%ax] = cf['Velocity']
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
         for particle_field in particle_fields:
             self.conversion_factors[particle_field] =  1.0
         self.conversion_factors['particle_creation_time'] =  31556926.0
+        self.conversion_factors['particle_mass']=cf['Mass']
         self.conversion_factors['Msun'] = 5.027e-34 
 
     def _parse_parameter_file(self):
