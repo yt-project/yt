@@ -34,6 +34,11 @@ from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator, \
     TrilinearFieldInterpolator
 
+def _HydrogenDensity(field,data):
+    return data["NumberDensity"]*4.0/9.0  # for primordial gas
+add_field("HydrogenDensity", function=_HydrogenDensity)
+
+
 class SpectralFrequencyIntegrator(object):
     def __init__(self, table, field_names,
                  bounds, ev_bounds):
@@ -63,6 +68,8 @@ class SpectralFrequencyIntegrator(object):
             bin_table, self.bounds, self.field_names[:],
             truncate=True)
 
+
+
     def add_frequency_bin_field(self, ev_min, ev_max):
         """
         Add a new field to the FieldInfoContainer, which is an
@@ -73,7 +80,7 @@ class SpectralFrequencyIntegrator(object):
         interp = self._get_interpolator(ev_min, ev_max)
         name = "XRay_%s_%s" % (ev_min, ev_max)
         def frequency_bin_field(field, data):
-            dd = {'NumberDensity' : np.log10(data["NumberDensity"]),
+            dd = {'HydrogenDensity' : np.log10(data["HydrogenDensity"]),
                   'Temperature'   : np.log10(data["Temperature"])}
             return 10**interp(dd)
         add_field(name, function=frequency_bin_field,
