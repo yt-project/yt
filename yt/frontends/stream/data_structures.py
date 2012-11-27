@@ -249,6 +249,20 @@ class StreamHierarchy(AMRHierarchy):
         else:
             self.io = io_registry[self.data_style](self.stream_handler)
 
+    def update_data(self, data) :
+
+        for key in data[0].keys() :
+
+            if key not in self.field_list: self.field_list.append(key)
+            
+        for i, grid in enumerate(self.grids) :
+            
+            for key in data[i].keys() :
+
+                self.stream_handler.fields[grid.id][key] = data[i][key]
+
+        self._detect_fields()
+        
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo
