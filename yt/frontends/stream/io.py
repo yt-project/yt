@@ -65,6 +65,12 @@ class IOHandlerStream(BaseIOHandler):
         # In-place unit conversion requires we return a copy
         return tr.copy()
 
+    def update_data(self, grid, data) :
+
+        for key in data.keys() :
+            
+            self.fields[grid.id][key] = data[key]
+                        
     @property
     def _read_exception(self):
         return KeyError
