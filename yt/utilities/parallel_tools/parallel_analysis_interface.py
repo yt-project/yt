@@ -432,14 +432,12 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
             break
     if parallel_capable:
         communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    obj_ids = np.arange(len(objects))
-
     to_share = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
-    oiter = itertools.izip(obj_ids[my_new_id::njobs],
-                           objects[my_new_id::njobs])
-    for result_id, obj in oiter:
+    oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+    for obj_id, obj in oiter:
+        result_id = obj_id * njobs + my_new_id
         if storage is not None:
             rstore = ResultsStorage()
             rstore.result_id = result_id
