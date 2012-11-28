@@ -61,7 +61,7 @@ def standard_small_simulation(pf_fn, fields):
     if not can_run_pf(pf_fn): return
     dso = [None]
     for field in fields:
-        yield GridValuesTest(pf_fn, field)
+        # yield GridValuesTest(pf_fn, field)
         if 'particle' in field: continue
         for ds in dso:
             for axis in [0, 1, 2]:
