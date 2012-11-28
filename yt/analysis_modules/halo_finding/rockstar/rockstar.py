@@ -186,9 +186,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         from yt.mods import *
         import sys
 
-        files = glob.glob('/u/cmoody3/data/a*')
-        files.sort()
-        ts = TimeSeriesData.from_filenames(files)
+        ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
         pm = 7.81769027e+11
         rh = RockstarHaloFinder(ts, particle_mass=pm)
         rh.run()

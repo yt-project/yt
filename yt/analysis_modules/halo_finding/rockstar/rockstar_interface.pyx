@@ -146,7 +146,9 @@ cdef import from "config_vars.h":
     np.float64_t AVG_PARTICLE_SPACING
     np.int64_t SINGLE_SNAP
 
+# Forward declare
 cdef class RockstarInterface
+
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) with gil:
     global SCALE_NOW
     cdef np.float64_t conv[6], left_edge[6]
