@@ -40,40 +40,15 @@ from os import environ
 from os import mkdir
 from os import path
 
-# Get some definitions from Rockstar directly.
-if "ROCKSTAR_DIR" in os.environ:
-    ROCKSTAR_DIR = os.environ["ROCKSTAR_DIR"]
-elif os.path.exists("rockstar.cfg"):
-    ROCKSTAR_DIR = open("rockstar.cfg").read().strip()
-else:
-    print "Reading Rockstar location from rockstar.cfg failed."
-    print "Please place the base directory of your"
-    print "Rockstar install in rockstar.cfg and restart."
-    print "(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )"
-    sys.exit(1)
-lines = file(path.join(ROCKSTAR_DIR, 'server.h'))
-READER_TYPE = None
-WRITER_TYPE = None
-for line in lines:
-    if "READER_TYPE" in line:
-        line = line.split()
-        READER_TYPE = int(line[-1])
-    if "WRITER_TYPE" in line:
-        line = line.split()
-        WRITER_TYPE = int(line[-1])
-    if READER_TYPE != None and WRITER_TYPE != None:
-        break
-lines.close()
-
 class InlineRunner(ParallelAnalysisInterface):
     def __init__(self, num_writers):
         # If this is being run inline, num_readers == comm.size, always.
-        self.num_readers = ytcfg.getint("yt", "__global_parallel_size")
+        psize = ytcfg.getint("yt", "__global_parallel_size")
+        self.num_readers = psize
         if num_writers is None:
-            self.num_writers =  ytcfg.getint("yt", "__global_parallel_size")
+            self.num_writers =  psize
         else:
-            self.num_writers = min(num_writers,
-                ytcfg.getint("yt", "__global_parallel_size"))
+            self.num_writers = min(num_writers, psize)
 
     def split_work(self, pool):
         avail = range(pool.comm.size)
@@ -110,12 +85,12 @@ class InlineRunner(ParallelAnalysisInterface):
             time.sleep(0.1 + pool.comm.rank/10.0)
             writer_pid = os.fork()
             if writer_pid == 0:
-                handler.start_client(WRITER_TYPE)
+                handler.start_writer()
                 os._exit(0)
         # Start readers, not forked.
         if pool.comm.rank in self.readers:
             time.sleep(0.1 + pool.comm.rank/10.0)
-            handler.start_client(READER_TYPE)
+            handler.start_reader()
         # Make sure the forks are done, which they should be.
         if writer_pid != 0:
             os.waitpid(writer_pid, 0)
@@ -125,31 +100,19 @@ class InlineRunner(ParallelAnalysisInterface):
 class StandardRunner(ParallelAnalysisInterface):
     def __init__(self, num_readers, num_writers):
         self.num_readers = num_readers
+        psize = ytcfg.getint("yt", "__global_parallel_size")
         if num_writers is None:
-            self.num_writers = ytcfg.getint("yt", "__global_parallel_size") \
-                - num_readers - 1
+            self.num_writers =  psize - num_readers - 1
         else:
-            self.num_writers = min(num_writers,
-                ytcfg.getint("yt", "__global_parallel_size"))
-        if self.num_readers + self.num_writers + 1 != ytcfg.getint("yt", \
-                "__global_parallel_size"):
+            self.num_writers = min(num_writers, psize)
+        if self.num_readers + self.num_writers + 1 != psize:
             mylog.error('%i reader + %i writers != %i mpi',
-                    self.num_readers, self.num_writers,
-                    ytcfg.getint("yt", "__global_parallel_size"))
+                    self.num_readers, self.num_writers, psize)
             raise RuntimeError
     
     def split_work(self, pool):
-        # Who is going to do what.
-        avail = range(pool.comm.size)
-        self.writers = []
-        self.readers = []
-        # If we're not running inline, rank 0 should be removed immediately.
-        avail.pop(0)
-        # Now we assign the rest.
-        for i in range(self.num_readers):
-            self.readers.append(avail.pop(0))
-        for i in range(self.num_writers):
-            self.writers.append(avail.pop(0))
+        self.readers = np.arange(self.num_readers) + 1
+        self.writers = np.arange(self.num_writers) + 1 + self.num_readers
     
     def run(self, handler, pool):
         # Not inline so we just launch them directly from our MPI threads.
@@ -157,10 +120,10 @@ class StandardRunner(ParallelAnalysisInterface):
             handler.start_server()
         if pool.comm.rank in self.readers:
             time.sleep(0.1 + pool.comm.rank/10.0)
-            handler.start_client(READER_TYPE)
+            handler.start_reader()
         if pool.comm.rank in self.writers:
             time.sleep(0.2 + pool.comm.rank/10.0)
-            handler.start_client(WRITER_TYPE)
+            handler.start_writer()
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None, 

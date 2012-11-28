@@ -48,6 +48,8 @@ cdef import from "config.h":
 
 cdef import from "server.h" nogil:
     int server()
+    np.int64_t READER_TYPE
+    np.int64_t WRITER_TYPE
 
 cdef import from "client.h" nogil:
     void client(np.int64_t in_type)
@@ -406,6 +408,10 @@ cdef class RockstarInterface:
         with nogil:
             server()
 
-    def start_client(self, in_type):
-        in_type = np.int64(in_type)
+    def start_reader(self):
+        cdef np.int64_t in_type = np.int64(READER_TYPE)
+        client(in_type)
+
+    def start_writer(self):
+        cdef np.int64_t in_type = np.int64(WRITER_TYPE)
         client(in_type)
