@@ -146,100 +146,6 @@ cdef import from "config_vars.h":
     np.float64_t AVG_PARTICLE_SPACING
     np.int64_t SINGLE_SNAP
 
-def print_rockstar_settings():
-    # We have to do the config
-    print "FILE_FORMAT =", FILE_FORMAT
-    print "PARTICLE_MASS =", PARTICLE_MASS
-
-    print "MASS_DEFINITION =", MASS_DEFINITION
-    print "MIN_HALO_OUTPUT_SIZE =", MIN_HALO_OUTPUT_SIZE
-    print "FORCE_RES =", FORCE_RES
-
-    print "SCALE_NOW =", SCALE_NOW
-    print "h0 =", h0
-    print "Ol =", Ol
-    print "Om =", Om
-
-    print "GADGET_ID_BYTES =", GADGET_ID_BYTES
-    print "GADGET_MASS_CONVERSION =", GADGET_MASS_CONVERSION
-    print "GADGET_LENGTH_CONVERSION =", GADGET_LENGTH_CONVERSION
-    print "GADGET_SKIP_NON_HALO_PARTICLES =", GADGET_SKIP_NON_HALO_PARTICLES
-    print "RESCALE_PARTICLE_MASS =", RESCALE_PARTICLE_MASS
-
-    print "PARALLEL_IO =", PARALLEL_IO
-    print "PARALLEL_IO_SERVER_ADDRESS =", PARALLEL_IO_SERVER_ADDRESS
-    print "PARALLEL_IO_SERVER_PORT =", PARALLEL_IO_SERVER_PORT
-    print "PARALLEL_IO_WRITER_PORT =", PARALLEL_IO_WRITER_PORT
-    print "PARALLEL_IO_SERVER_INTERFACE =", PARALLEL_IO_SERVER_INTERFACE
-    print "RUN_ON_SUCCESS =", RUN_ON_SUCCESS
-
-    print "INBASE =", INBASE
-    print "FILENAME =", FILENAME
-    print "STARTING_SNAP =", STARTING_SNAP
-    print "NUM_SNAPS =", NUM_SNAPS
-    print "NUM_BLOCKS =", NUM_BLOCKS
-    print "NUM_READERS =", NUM_READERS
-    print "PRELOAD_PARTICLES =", PRELOAD_PARTICLES
-    print "SNAPSHOT_NAMES =", SNAPSHOT_NAMES
-    print "LIGHTCONE_ALT_SNAPS =", LIGHTCONE_ALT_SNAPS
-    print "BLOCK_NAMES =", BLOCK_NAMES
-
-    print "OUTBASE =", OUTBASE
-    print "OVERLAP_LENGTH =", OVERLAP_LENGTH
-    print "NUM_WRITERS =", NUM_WRITERS
-    print "FORK_READERS_FROM_WRITERS =", FORK_READERS_FROM_WRITERS
-    print "FORK_PROCESSORS_PER_MACHINE =", FORK_PROCESSORS_PER_MACHINE
-
-    print "OUTPUT_FORMAT =", OUTPUT_FORMAT
-    print "DELETE_BINARY_OUTPUT_AFTER_FINISHED =", DELETE_BINARY_OUTPUT_AFTER_FINISHED
-    print "FULL_PARTICLE_CHUNKS =", FULL_PARTICLE_CHUNKS
-    print "BGC2_SNAPNAMES =", BGC2_SNAPNAMES
-
-    print "BOUND_PROPS =", BOUND_PROPS
-    print "BOUND_OUT_TO_HALO_EDGE =", BOUND_OUT_TO_HALO_EDGE
-    print "DO_MERGER_TREE_ONLY =", DO_MERGER_TREE_ONLY
-    print "IGNORE_PARTICLE_IDS =", IGNORE_PARTICLE_IDS
-    print "TRIM_OVERLAP =", TRIM_OVERLAP
-    print "ROUND_AFTER_TRIM =", ROUND_AFTER_TRIM
-    print "LIGHTCONE =", LIGHTCONE
-    print "PERIODIC =", PERIODIC
-
-    print "LIGHTCONE_ORIGIN =", LIGHTCONE_ORIGIN[0]
-    print "LIGHTCONE_ORIGIN[1] =", LIGHTCONE_ORIGIN[1]
-    print "LIGHTCONE_ORIGIN[2] =", LIGHTCONE_ORIGIN[2]
-    print "LIGHTCONE_ALT_ORIGIN =", LIGHTCONE_ALT_ORIGIN[0]
-    print "LIGHTCONE_ALT_ORIGIN[1] =", LIGHTCONE_ALT_ORIGIN[1]
-    print "LIGHTCONE_ALT_ORIGIN[2] =", LIGHTCONE_ALT_ORIGIN[2]
-
-    print "LIMIT_CENTER =", LIMIT_CENTER[0]
-    print "LIMIT_CENTER[1] =", LIMIT_CENTER[1]
-    print "LIMIT_CENTER[2] =", LIMIT_CENTER[2]
-    print "LIMIT_RADIUS =", LIMIT_RADIUS
-
-    print "SWAP_ENDIANNESS =", SWAP_ENDIANNESS
-    print "GADGET_VARIANT =", GADGET_VARIANT
-
-    print "FOF_FRACTION =", FOF_FRACTION
-    print "FOF_LINKING_LENGTH =", FOF_LINKING_LENGTH
-    print "INCLUDE_HOST_POTENTIAL_RATIO =", INCLUDE_HOST_POTENTIAL_RATIO
-    #print "DOUBLE_COUNT_SUBHALO_MASS_RATIO =", DOUBLE_COUNT_SUBHALO_MASS_RATIO
-    print "TEMPORAL_HALO_FINDING =", TEMPORAL_HALO_FINDING
-    print "MIN_HALO_PARTICLES =", MIN_HALO_PARTICLES
-    print "UNBOUND_THRESHOLD =", UNBOUND_THRESHOLD
-    print "ALT_NFW_METRIC =", ALT_NFW_METRIC
-
-    print "TOTAL_PARTICLES =", TOTAL_PARTICLES
-    print "BOX_SIZE =", BOX_SIZE
-    #print "OUTPUT_HMAD =", OUTPUT_HMAD
-    #print "OUTPUT_PARTICLES =", OUTPUT_PARTICLES
-    print "OUTPUT_LEVELS =", OUTPUT_LEVELS
-    print "DUMP_PARTICLES =", DUMP_PARTICLES[0]
-    print "DUMP_PARTICLES[1] =", DUMP_PARTICLES[1]
-    print "DUMP_PARTICLES[2] =", DUMP_PARTICLES[2]
-
-    print "AVG_PARTICLE_SPACING =", AVG_PARTICLE_SPACING
-    print "SINGLE_SNAP =", SINGLE_SNAP
-
 cdef class RockstarInterface
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) with gil:
     global SCALE_NOW
@@ -252,31 +158,17 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     block = int(str(filename).rsplit(".")[-1])
     n = rh.block_ratio
 
-    all_grids = pf.h.grids
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
-    if NUM_BLOCKS == 1:
-        grids = all_grids
-    else:
-        if ytcfg.getboolean("yt", "inline") == False:
-            fnames = np.array([g.filename for g in all_grids])
-            sort = fnames.argsort()
-            grids = np.array_split(all_grids[sort], NUM_BLOCKS)[block]
-        else:
-            # We must be inline, grap only the local grids.
-            grids  = [g for g in all_grids if g.proc_num ==
-                          ytcfg.getint('yt','__topcomm_parallel_rank')]
-    
     all_fields = set(pf.h.derived_field_list + pf.h.field_list)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
     if NUM_BLOCKS > 1:
         local_parts = 0
-        for g in grids:
+        for g in pf.h._get_objs("grids"):
             if g.NumberOfParticles == 0: continue
             if "particle_type" in all_fields:
-                #iddm = dd._get_data_from_grid(g, "particle_type")==rh.dm_type
                 iddm = g["particle_type"] == rh.dm_type
             else:
                 iddm = Ellipsis
@@ -297,7 +189,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     left_edge[2] = pf.domain_left_edge[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
-    for g in grids:
+    for g in pf.h._get_objs("grids"):
         if g.NumberOfParticles == 0: continue
         if "particle_type" in all_fields:
             iddm = g["particle_type"] == rh.dm_type
