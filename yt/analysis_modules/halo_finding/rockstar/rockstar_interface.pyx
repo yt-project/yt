@@ -54,7 +54,7 @@ cdef import from "client.h" nogil:
 
 cdef import from "meta_io.h":
     void read_particles(char *filename)
-    void output_and_free_halos(np.int64_t id_offset, np.int64_t snap, 
+    void output_halos(np.int64_t id_offset, np.int64_t snap, 
 			   np.int64_t chunk, float *bounds)
 
 cdef import from "config_vars.h":
@@ -220,7 +220,7 @@ def print_rockstar_settings():
     print "FOF_FRACTION =", FOF_FRACTION
     print "FOF_LINKING_LENGTH =", FOF_LINKING_LENGTH
     print "INCLUDE_HOST_POTENTIAL_RATIO =", INCLUDE_HOST_POTENTIAL_RATIO
-    print "DOUBLE_COUNT_SUBHALO_MASS_RATIO =", DOUBLE_COUNT_SUBHALO_MASS_RATIO
+    #print "DOUBLE_COUNT_SUBHALO_MASS_RATIO =", DOUBLE_COUNT_SUBHALO_MASS_RATIO
     print "TEMPORAL_HALO_FINDING =", TEMPORAL_HALO_FINDING
     print "MIN_HALO_PARTICLES =", MIN_HALO_PARTICLES
     print "UNBOUND_THRESHOLD =", UNBOUND_THRESHOLD
@@ -228,8 +228,8 @@ def print_rockstar_settings():
 
     print "TOTAL_PARTICLES =", TOTAL_PARTICLES
     print "BOX_SIZE =", BOX_SIZE
-    print "OUTPUT_HMAD =", OUTPUT_HMAD
-    print "OUTPUT_PARTICLES =", OUTPUT_PARTICLES
+    #print "OUTPUT_HMAD =", OUTPUT_HMAD
+    #print "OUTPUT_PARTICLES =", OUTPUT_PARTICLES
     print "OUTPUT_LEVELS =", OUTPUT_LEVELS
     print "DUMP_PARTICLES =", DUMP_PARTICLES[0]
     print "DUMP_PARTICLES[1] =", DUMP_PARTICLES[1]
@@ -400,7 +400,7 @@ cdef class RockstarInterface:
     def call_rockstar(self):
         read_particles("generic")
         rockstar(NULL, 0)
-        output_and_free_halos(0, 0, 0, NULL)
+        output_halos(0, 0, 0, NULL)
 
     def start_server(self):
         with nogil:
