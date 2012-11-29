@@ -45,7 +45,9 @@ from yt.utilities.command_line import get_yt_version
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
 
-_latest = "gold001"
+# Set the latest gold and local standard filenames
+_latest = ytcfg.get("yt", "gold_standard_filename")
+_latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
 
 class AnswerTesting(Plugin):
@@ -54,16 +56,16 @@ class AnswerTesting(Plugin):
 
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
-        parser.add_option("--answer-compare-name", dest="compare_name", metavar='str',
-            default=_latest, help="The name of tests against which we will compare")
+        parser.add_option("--answer-name", dest="answer_name", metavar='str',
+            default=None, help="The name of the standard to store/compare against")
+        parser.add_option("--answer-store", dest="store_results", metavar='bool',
+            default=False, action="store_true",
+            help="Should we store this result instead of comparing?")
+        parser.add_option("--local", dest="local_results",
+            default=False, action="store_true", help="Store/load reference results locally?")
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
-        parser.add_option("--answer-store-name", dest="store_name", metavar='str',
-            default=None,
-            help="The name we'll call this set of tests")
-        parser.add_option("--local-store", dest="store_local_results",
-            default=False, action="store_true", help="Store/Load local results?")
 
     @property
     def my_version(self, version=None):
@@ -82,47 +84,64 @@ class AnswerTesting(Plugin):
         if not self.enabled:
             return
         disable_stream_logging()
-        if options.store_name is not None:
-            self.store_results = True
-        # If the user sets the storage_name, then it means they are storing and
-        # not comparing, even if they set the compare_name (since it is set by default)
-            options.compare_name = None
-        else: 
-            self.store_results = False
-            options.store_name = self.my_version
-        from yt.config import ytcfg
+
+        # Parse through the storage flags to make sense of them
+        # and use reasonable defaults
+        # If we're storing the data, default storage name is local
+        # latest version
+        if options.store_results:
+            if options.answer_name is None:
+                self.store_name = _latest_local
+            else:
+                self.store_name = options.answer_name
+            self.compare_name = None
+        # if we're not storing, then we're comparing, and we want default
+        # comparison name to be the latest gold standard 
+        # either on network or local
+        else:
+            if options.answer_name is None:
+                if options.local_results:
+                    self.compare_name = _latest_local
+                else:
+                    self.compare_name = _latest
+            else:
+                self.compare_name = options.answer_name
+            self.store_name = self.my_version
+
+        self.store_results = options.store_results
+
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
             self.result_storage = defaultdict(dict)
-        if options.compare_name == "SKIP":
-            options.compare_name = None
-        elif options.compare_name == "latest":
-            options.compare_name = _latest
+        if self.compare_name == "SKIP":
+            self.compare_name = None
+        elif self.compare_name == "latest":
+            self.compare_name = _latest
             
         # Local/Cloud storage 
-        if options.store_local_results:
+        if options.local_results:
             storage_class = AnswerTestLocalStorage
             # Fix up filename for local storage 
-            if options.compare_name is not None:
-                options.compare_name = "%s/%s/%s" % \
-                    (os.path.realpath(options.output_dir), options.compare_name, 
-                     options.compare_name)
-            if options.store_name is not None:
+            if self.compare_name is not None:
+                self.compare_name = "%s/%s/%s" % \
+                    (os.path.realpath(options.output_dir), self.compare_name, 
+                     self.compare_name)
+            if self.store_name is not None:
                 name_dir_path = "%s/%s" % \
                     (os.path.realpath(options.output_dir), 
-                    options.store_name)
+                    self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
-                options.store_name= "%s/%s" % \
-                        (name_dir_path, options.store_name)
+                self.store_name= "%s/%s" % \
+                        (name_dir_path, self.store_name)
         else:
             storage_class = AnswerTestCloudStorage
 
         # Initialize answer/reference storage
         AnswerTestingTest.reference_storage = self.storage = \
-                storage_class(options.compare_name, options.store_name)
+                storage_class(self.compare_name, self.store_name)
 
-        self.store_local_results = options.store_local_results
+        self.local_results = options.local_results
         global run_big_data
         run_big_data = options.big_data
 
