@@ -191,6 +191,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         rh = RockstarHaloFinder(ts, particle_mass=pm)
         rh.run()
         """
+        ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
         if ytcfg.getboolean("yt", "inline") == True:
             self.runner = InlineRunner(num_writers)
@@ -208,36 +209,46 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.ts = ts
         self.dm_type = dm_type
         tpf = ts.__iter__().next()
-        def _particle_count(field, data):
-            try:
-                return (data["particle_type"]==dm_type).sum()
-            except KeyError:
-                return np.prod(data["particle_position_x"].shape)
-        add_field("particle_count", function=_particle_count,
-                  not_in_all=True, particle_type=True)
-        # Get total_particles in parallel.
-        dd = tpf.h.all_data()
-        self.total_particles = int(dd.quantities['TotalQuantity']('particle_count')[0])
-        self.particle_mass = particle_mass 
-        self.left_edge = tpf.domain_left_edge
-        self.right_edge = tpf.domain_right_edge
-        self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         self.outbase = outbase
+        self.particle_mass = particle_mass
         if force_res is None:
-            self.force_res = ts[-1].h.get_smallest_dx() * ts[-1]['mpch']
+            tpf = ts[-1] # Cache a reference
+            self.force_res = tpf.h.get_smallest_dx() * tpf['mpch']
+            # We have to delete now to wipe the hierarchy
+            del tpf
         else:
             self.force_res = force_res
         # We set up the workgroups *before* initializing
         # ParallelAnalysisInterface. Everyone is their own workgroup!
-        ParallelAnalysisInterface.__init__(self)
         self.pool = ProcessorPool()
         self.pool, self.workgroup = ProcessorPool.from_sizes(
            [ (1, "server"),
              (self.num_readers, "readers"),
              (self.num_writers, "writers") ]
         )
-        self.handler = rockstar_interface.RockstarInterface(
-                self.ts, dd)
+        p = self._setup_parameters(ts)
+        params = self.comm.mpi_bcast(p, root = self.pool['readers'].ranks[0])
+        self.__dict__.update(params)
+        self.handler = rockstar_interface.RockstarInterface(self.ts)
+
+    def _setup_parameters(self, ts):
+        if self.workgroup.name != "readers": return None
+        tpf = ts[0]
+        def _particle_count(field, data):
+            try:
+                return (data["particle_type"]==self.dm_type).sum()
+            except KeyError:
+                return np.prod(data["particle_position_x"].shape)
+        add_field("particle_count", function=_particle_count,
+                  not_in_all=True, particle_type=True)
+        # Get total_particles in parallel.
+        dd = tpf.h.all_data()
+        p = {}
+        p['total_particles'] = int(dd.quantities['TotalQuantity']('particle_count')[0])
+        p['left_edge'] = tpf.domain_left_edge
+        p['right_edge'] = tpf.domain_right_edge
+        p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
+        return p
 
     def __del__(self):
         self.pool.free_all()

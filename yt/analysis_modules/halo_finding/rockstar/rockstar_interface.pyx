@@ -226,10 +226,9 @@ cdef class RockstarInterface:
     cdef public int dm_type
     cdef public int total_particles
 
-    def __cinit__(self, ts, data_source):
+    def __cinit__(self, ts):
         self.ts = ts
         self.tsl = ts.__iter__() #timseries generator used by read
-        self.data_source = data_source
 
     def setup_rockstar(self, char *server_address, char *server_port,
                        int num_snaps, np.int64_t total_particles,
