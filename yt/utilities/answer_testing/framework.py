@@ -170,11 +170,10 @@ class AnswerTestCloudStorage(AnswerTestStorage):
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
-                time.sleep(0.01)
                 try:
                     data = resp.read()
                 except:
-                    pass
+                    time.sleep(0.01)
                 else:
                     # We were succesful
                     break
