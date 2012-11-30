@@ -4168,6 +4168,48 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
     _con_args = ("data_source", "surface_field", "field_value")
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
+        r"""This surface object identifies isocontours on a cell-by-cell basis,
+        with no consideration of global connectedness, and returns the vertices
+        of the Triangles in that isocontour.
+
+        This object simply returns the vertices of all the triangles
+        calculated by the marching cubes algorithm; for more complex
+        operations, such as identifying connected sets of cells above a given
+        threshold, see the extract_connected_sets function.  This is more
+        useful for calculating, for instance, total isocontour area, or
+        visualizing in an external program (such as `MeshLab
+        <http://meshlab.sf.net>`_.)  The object has the properties .vertices
+        and will sample values if a field is requested.  The values are
+        interpolated to the center of a given face.
+        
+        Parameters
+        ----------
+        data_source : AMR3DDataObject
+            This is the object which will used as a source
+        surface_field : string
+            Any field that can be obtained in a data object.  This is the field
+            which will be isocontoured.
+        field_value : float
+            The value at which the isocontour should be calculated.
+
+        References
+        ----------
+
+        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+        Examples
+        --------
+        This will create a data object, find a nice value in the center, and
+        output the vertices to "triangles.obj" after rescaling them.
+
+        >>> sp = pf.h.sphere("max", (10, "kpc")
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> print surf["Temperature"]
+        >>> print surf.vertices
+        >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
+        ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
+        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+        """
         ParallelAnalysisInterface.__init__(self)
         self.data_source = data_source
         self.surface_field = surface_field
@@ -4220,22 +4262,117 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                                     grid.dds, svals)
         return my_verts
 
+    def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
+        r"""This calculates the flux over the surface.
+
+        This function will conduct marching cubes on all the cells in a given
+        data container (grid-by-grid), and then for each identified triangular
+        segment of an isocontour in a given cell, calculate the gradient (i.e.,
+        normal) in the isocontoured field, interpolate the local value of the
+        "fluxing" field, the area of the triangle, and then return:
+
+        area * local_flux_value * (n dot v)
+
+        Where area, local_value, and the vector v are interpolated at the barycenter
+        (weighted by the vertex values) of the triangle.  Note that this
+        specifically allows for the field fluxing across the surface to be
+        *different* from the field being contoured.  If the fluxing_field is
+        not specified, it is assumed to be 1.0 everywhere, and the raw flux
+        with no local-weighting is returned.
+
+        Additionally, the returned flux is defined as flux *into* the surface,
+        not flux *out of* the surface.
+        
+        Parameters
+        ----------
+        field_x : string
+            The x-component field
+        field_y : string
+            The y-component field
+        field_z : string
+            The z-component field
+        fluxing_field : string, optional
+            The field whose passage over the surface is of interest.  If not
+            specified, assumed to be 1.0 everywhere.
+
+        Returns
+        -------
+        flux : float
+            The summed flux.  Note that it is not currently scaled; this is
+            simply the code-unit area times the fields.
+
+        References
+        ----------
+
+        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+        Examples
+        --------
+
+        This will create a data object, find a nice value in the center, and
+        calculate the metal flux over it.
+
+        >>> sp = pf.h.sphere("max", (10, "kpc")
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> flux = surf.calculate_flux(
+        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
+        """
+        flux = 0.0
+        pb = get_pbar("Fluxing %s" % fluxing_field,
+                len(list(self._get_grid_objs())))
+        for i, g in enumerate(self._get_grid_objs()):
+            pb.update(i)
+            flux += self._calculate_flux_in_grid(g,
+                    field_x, field_y, field_z, fluxing_field)
+        pb.finish()
+        flux = self.comm.mpi_allreduce(flux, op="sum")
+        return flux
+
     @restore_grid_state
-    def _calculate_flux_in_grid(self, grid, field, value,
+    def _calculate_flux_in_grid(self, grid, 
                     field_x, field_y, field_z, fluxing_field = None):
         mask = self.data_source._get_cut_mask(grid) * grid.child_mask
-        vals = grid.get_vertex_centered_data(field)
+        vals = grid.get_vertex_centered_data(self.surface_field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
         xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
                      [field_x, field_y, field_z]]
-        return march_cubes_grid_flux(value, vals, xv, yv, zv,
+        return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
 
     def export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True):
+        r"""This exports the surface to the PLY format, suitable for visualization
+        in many different programs (e.g., MeshLab).
+
+        Parameters
+        ----------
+        filename : string
+            The file this will be exported to.  This cannot be a file-like object.
+        bounds : list of tuples
+            The bounds the vertices will be normalized to.  This is of the format:
+            [(xmin, xmax), (ymin, ymax), (zmin, zmax)].  Defaults to the full
+            domain.
+        color_field : string
+            Should a field be sample and colormapped?
+        color_map : string
+            Which color map should be applied?
+        color_log : bool
+            Should the color field be logged before being mapped?
+
+        Examples
+        --------
+
+        >>> sp = pf.h.sphere("max", (10, "kpc")
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> print surf["Temperature"]
+        >>> print surf.vertices
+        >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
+        ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
+        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+        """
         if self.vertices is None:
             self.get_data(color_field)
         elif color_field is not None and color_field not in self.field_data:
@@ -4247,10 +4384,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                    color_map = "algae", color_log = True):
         if self.comm.rank != 0:
             return
-        if hasattr(filename, "write"):
-            f = filename
-        else:
-            f = open(filename, "wb")
+        f = open(filename, "wb")
         if bounds is None:
             DLE = self.pf.domain_left_edge
             DRE = self.pf.domain_right_edge
