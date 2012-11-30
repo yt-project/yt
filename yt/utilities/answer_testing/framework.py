@@ -277,7 +277,8 @@ class AnswerTestingTest(object):
         nv = self.run()
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
-            if dd is None: raise YTNoOldAnswer(self.storage_name)
+            if dd is None or self.description not in dd: 
+                raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -404,12 +405,15 @@ class ProjectionValuesTest(AnswerTestingTest):
             obj = self.create_obj(self.pf, self.obj_type)
         else:
             obj = None
+        if self.pf.domain_dimensions[self.axis] == 1: return None
         proj = self.pf.h.proj(self.axis, self.field,
                               weight_field=self.weight_field,
                               data_source = obj)
         return proj.field_data
 
     def compare(self, new_result, old_result):
+        if new_result is None:
+            return
         assert(len(new_result) == len(old_result))
         for k in new_result:
             assert (k in old_result)
