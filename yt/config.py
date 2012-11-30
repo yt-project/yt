@@ -61,7 +61,7 @@ ytcfgDefaults = dict(
     ipython_notebook = 'False',
     answer_testing_tolerance = '3',
     answer_testing_bitwise = 'False',
-    gold_standard_filename = 'gold001',
+    gold_standard_filename = 'gold003',
     local_standard_filename = 'local001'
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
