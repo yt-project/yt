@@ -35,6 +35,7 @@ import weakref
 import exceptions
 import itertools
 import shelve
+import cStringIO
 
 from yt.funcs import *
 
@@ -48,7 +49,7 @@ from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, \
     BilinearFieldInterpolator, \
@@ -4161,6 +4162,143 @@ class AMRBooleanRegionBase(AMR3DData):
         if not isinstance(grid, FakeGridForParticles):
             self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask
+
+class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
+    _type_name = "surface"
+    _con_args = ("data_source", "surface_field", "field_value")
+    vertices = None
+    def __init__(self, data_source, surface_field, field_value):
+        ParallelAnalysisInterface.__init__(self)
+        self.data_source = data_source
+        self.surface_field = surface_field
+        self.field_value = field_value
+        center = data_source.get_field_parameter("center")
+        AMRData.__init__(self, center = center, fields = None, pf =
+                         data_source.pf)
+        self._grids = self.data_source._grids.copy()
+
+    def get_data(self, fields = None):
+        if isinstance(fields, list) and len(fields) > 1:
+            for field in fields: self.get_data(field)
+            return
+        elif isinstance(fields, list):
+            fields = fields[0]
+        # Now we have a "fields" value that is either a string or None
+        pb = get_pbar("Extracting (sampling: %s)" % fields,
+                      len(list(self._get_grid_objs())))
+        verts = []
+        samples = []
+        for i,g in enumerate(self._get_grid_objs()):
+            pb.update(i)
+            my_verts = self._extract_isocontours_from_grid(
+                            g, self.surface_field, self.field_value,
+                            fields)
+            if fields is not None:
+                my_verts, svals = my_verts
+                samples.append(svals)
+            verts.append(my_verts)
+        pb.finish()
+        verts = np.concatenate(verts).transpose()
+        verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
+        self.vertices = verts
+        if fields is not None:
+            samples = np.concatenate(samples)
+            samples = self.comm.par_combine_object(samples, op='cat',
+                                datatype='array')
+            self[fields] = samples
+
+    @restore_grid_state
+    def _extract_isocontours_from_grid(self, grid, field, value,
+                                       sample_values = None):
+        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field, no_ghost = False)
+        if sample_values is not None:
+            svals = grid.get_vertex_centered_data(sample_values)
+        else:
+            svals = None
+        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
+                                    grid.dds, svals)
+        return my_verts
+
+    @restore_grid_state
+    def _calculate_flux_in_grid(self, grid, field, value,
+                    field_x, field_y, field_z, fluxing_field = None):
+        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field)
+        if fluxing_field is None:
+            ff = np.ones(vals.shape, dtype="float64")
+        else:
+            ff = grid.get_vertex_centered_data(fluxing_field)
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+                     [field_x, field_y, field_z]]
+        return march_cubes_grid_flux(value, vals, xv, yv, zv,
+                    ff, mask, grid.LeftEdge, grid.dds)
+
+    def export_ply(self, filename, bounds = None, color_field = None,
+                   color_map = "algae", color_log = True):
+        if self.vertices is None:
+            self.get_data(color_field)
+        elif color_field is not None and color_field not in self.field_data:
+            self[color_field]
+        self._export_ply(filename, bounds, color_field, color_map, color_log)
+
+    @parallel_root_only
+    def _export_ply(self, filename, bounds = None, color_field = None,
+                   color_map = "algae", color_log = True):
+        if self.comm.rank != 0:
+            return
+        if hasattr(filename, "write"):
+            f = filename
+        else:
+            f = open(filename, "wb")
+        if bounds is None:
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        v = np.empty((self.vertices.shape[1], 3), "<f")
+        for i in range(3):
+            v[:,i] = self.vertices[i,:]
+            np.subtract(v[:,i], bounds[i][0], v[:,i])
+            w = bounds[i][1] - bounds[i][0]
+            np.divide(v[:,i], w, v[:,i])
+        f.write("ply\n")
+        f.write("format binary_little_endian 1.0\n")
+        f.write("element vertex %s\n" % (v.shape[0]))
+        f.write("property float x\n")
+        f.write("property float y\n")
+        f.write("property float z\n")
+        f.write("element face %s\n" % (v.shape[0]/3))
+        f.write("property list uchar int vertex_indices\n")
+        if color_field is not None:
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            # Now we get our samples
+            cs = self[color_field]
+            if color_log: cs = np.log10(cs)
+            mi, ma = cs.min(), cs.max()
+            cs = (cs - mi) / (ma - mi)
+            from yt.visualization.image_writer import map_to_colors
+            cs = map_to_colors(cs, color_map)
+            arr = np.empty(cs.shape[1], dtype=np.dtype(fs))
+            arr["red"][:] = cs[0,:,0]
+            arr["green"][:] = cs[0,:,1]
+            arr["blue"][:] = cs[0,:,2]
+            import pdb;pdb.set_trace()
+        else:
+            arr = np.empty(v.shape[0]/3, np.dtype(fs[:-3]))
+        f.write("end_header\n")
+        v.tofile(f)
+        arr["ni"][:] = 3
+        vi = np.arange(v.shape[0], dtype="<i")
+        vi.shape = (v.shape[0]/3, 3)
+        arr["v1"][:] = vi[:,0]
+        arr["v2"][:] = vi[:,1]
+        arr["v3"][:] = vi[:,2]
+        arr.tofile(f)
+        f.close()
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
