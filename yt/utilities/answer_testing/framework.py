@@ -386,7 +386,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         super(ProjectionValuesTest, self).__init__(pf_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
         self.decimals = decimals
 
