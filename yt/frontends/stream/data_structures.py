@@ -274,15 +274,18 @@ class StreamHierarchy(AMRHierarchy):
             self.stream_handler.particle_types[key] = particle_types[key]
             if key not in self.field_list:
                 self.field_list.append(key)
+                
+        self._setup_unknown_fields()
 
         for i, grid in enumerate(self.grids) :
             if data[i].has_key("number_of_particles") :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
             for key in data[i].keys() :
+                if key in grid.keys() : del grid[key]
                 self.stream_handler.fields[grid.id][key] = data[i][key]
             
         self._setup_unknown_fields()
-        self._detect_fields()
+        
         
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
