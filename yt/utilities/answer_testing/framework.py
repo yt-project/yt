@@ -420,6 +420,8 @@ class ProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
               (k, self.field, self.weight_field, self.axis)
+            if k == 'weight_field' and self.weight_field is None:
+                continue
             if self.decimals is None:
                 assert_equal(new_result[k], old_result[k],
                              err_msg=err_msg)
