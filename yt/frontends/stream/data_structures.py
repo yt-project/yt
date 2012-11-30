@@ -259,27 +259,26 @@ class StreamHierarchy(AMRHierarchy):
             self.io = io_registry[self.data_style](self.stream_handler)
 
     def update_data(self, data) :
+
+        """
+        Update the stream data with a new data dict. If fields already exist,
+        they will be replaced, but if they do not, they will be added. Fields
+        already in the stream but not part of the data dict will be left
+        alone. 
+        """
         
         particle_types = set_particle_types(data[0])
 
         for key in data[0].keys() :
-
             if key is "number_of_particles": continue
-            
             self.stream_handler.particle_types[key] = particle_types[key]
-            
             if key not in self.field_list:
                 self.field_list.append(key)
 
-        
         for i, grid in enumerate(self.grids) :
-            
             if data[i].has_key("number_of_particles") :
-
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
-                
             for key in data[i].keys() :
-
                 self.stream_handler.fields[grid.id][key] = data[i][key]
             
         self._setup_unknown_fields()
@@ -351,6 +350,11 @@ def set_particle_types(data) :
     return particle_types
 
 def assign_particle_data(pf, pdata) :
+
+    """
+    Assign particle data to the grids using find_points. This
+    will overwrite any existing particle data, so be careful!
+    """
     
     if pf.h.num_grids > 1 :
 
@@ -362,36 +366,26 @@ def assign_particle_data(pf, pdata) :
             raise KeyError("Cannot decompose particle data without position fields!")
         
         particle_grids, particle_grid_inds = pf.h.find_points(x,y,z)
-        
         idxs = np.argsort(particle_grid_inds)
-        
         particle_grid_count = np.bincount(particle_grid_inds,
                                           minlength=pf.h.num_grids)
         particle_indices = np.zeros(pf.h.num_grids + 1, dtype='int64')
-        
         if pf.h.num_grids > 1 :
             np.add.accumulate(particle_grid_count.squeeze(),
                               out=particle_indices[1:])
         else :
             particle_indices[1] = particle_grid_count.squeeze()
-            
-        pdata.pop("number_of_particles")
-        
+    
+        pdata.pop("number_of_particles")    
         grid_pdata = []
         
         for i, pcount in enumerate(particle_grid_count) :
-            
             grid = {}
-            
             grid["number_of_particles"] = pcount
-            
             start = particle_indices[i]
             end = particle_indices[i+1]
-            
             for key in pdata.keys() :
-                
                 grid[key] = pdata[key][idxs][start:end]
-                
             grid_pdata.append(grid)
 
     else :
