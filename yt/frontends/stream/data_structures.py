@@ -284,7 +284,7 @@ class StreamHierarchy(AMRHierarchy):
                 if key in grid.keys() : del grid[key]
                 self.stream_handler.fields[grid.id][key] = data[i][key]
             
-        self._setup_unknown_fields()
+        self._detect_fields()
         
         
 class StreamStaticOutput(StaticOutput):
