@@ -163,6 +163,14 @@ class YTNoOldAnswer(YTException):
         return "There is no old answer available.\n" + \
                str(self.path)
 
+class YTCloudError(YTException):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "Failed to retrieve cloud data. Connection may be broken.\n" + \
+               str(self.path)
+
 class YTEllipsoidOrdering(YTException):
     def __init__(self, pf, A, B, C):
         YTException.__init__(self, pf)
