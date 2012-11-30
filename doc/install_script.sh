@@ -434,8 +434,7 @@ echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ad
 echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065ae4f21b662e87f2aaedf6ea424ea58dfa9d3d73c06281f806d15dd  nose-1.2.1.tar.gz' > nose-1.2.1.tar.gz.sha512
 echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
 echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
-echo 'd91fa23d8f86c5f5b3df210731c14c92a2e3d999979ef2c4c67be3dda19a8a8d2363f8cd23611957280c17f61653b0e66f59d3f5515b6d443b22cddeaef86ab6  Rockstar-0.99.tar.gz' > Rockstar-0.99.tar.gz.sha512
-
+echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
@@ -705,14 +704,14 @@ do_setup_py sympy-0.7.2
 # Now we build Rockstar and set its environment variable.
 if [ $INST_ROCKSTAR -eq 1 ]
 then
-    if [ ! -e Rockstar-0.99/done ]
+    if [ ! -e Rockstar/done ]
     then
-        [ ! -e Rockstar-0.99 ] && tar xfz Rockstar-0.99.tar.gz
+        [ ! -e Rockstar] && tar xfz rockstar-0.99.6.tar.gz
         echo "Building Rockstar"
-        cd Rockstar-0.99
+        cd Rockstar
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         cp librockstar.so ${DEST_DIR}/lib
-        ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar-0.99
+        ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar
         echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
         touch done
         cd ..
