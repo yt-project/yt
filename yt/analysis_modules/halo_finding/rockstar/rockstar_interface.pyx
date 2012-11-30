@@ -233,7 +233,7 @@ cdef class RockstarInterface:
     def setup_rockstar(self, char *server_address, char *server_port,
                        int num_snaps, np.int64_t total_particles,
                        int dm_type,
-                       np.float64_t particle_mass = -1.0,
+                       np.float64_t particle_mass,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
@@ -280,8 +280,6 @@ cdef class RockstarInterface:
             #workaround is to make a new directory
             OUTBASE = outbase 
 
-        if particle_mass < 0:
-            particle_mass = tpf.h.grids[0]["ParticleMassMsun"][0] / h0
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
         BOX_SIZE = (tpf.domain_right_edge[0] -

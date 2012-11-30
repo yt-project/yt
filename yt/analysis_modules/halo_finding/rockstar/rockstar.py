@@ -127,7 +127,7 @@ class StandardRunner(ParallelAnalysisInterface):
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None,
-            outbase="rockstar_halos", particle_mass=-1.0, dm_type=1, 
+            outbase="rockstar_halos", dm_type=1, 
             force_res=None):
         r"""Spawns the Rockstar Halo finder, distributes dark matter
         particles and finds halos.
@@ -157,8 +157,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         outbase: str
             This is where the out*list files that Rockstar makes should be
             placed. Default is 'rockstar_halos'.
-        particle_mass: float
-            This sets the DM particle mass used in Rockstar.
         dm_type: 1
             In order to exclude stars and other particle types, define
             the dm_type. Default is 1, as Enzo has the DM particle type=1.
@@ -188,7 +186,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
         ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
         pm = 7.81769027e+11
-        rh = RockstarHaloFinder(ts, particle_mass=pm)
+        rh = RockstarHaloFinder(ts)
         rh.run()
         """
         ParallelAnalysisInterface.__init__(self)
@@ -208,9 +206,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             ts = TimeSeriesData([ts])
         self.ts = ts
         self.dm_type = dm_type
-        tpf = ts.__iter__().next()
         self.outbase = outbase
-        self.particle_mass = particle_mass
         if force_res is None:
             tpf = ts[-1] # Cache a reference
             self.force_res = tpf.h.get_smallest_dx() * tpf['mpch']
@@ -243,12 +239,24 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                   not_in_all=True, particle_type=True)
         # Get total_particles in parallel.
         dd = tpf.h.all_data()
+        # Get DM particle mass.
+        all_fields = set(tpf.h.derived_field_list + tpf.h.field_list)
+        for g in tpf.h._get_objs("grids"):
+            if g.NumberOfParticles == 0: continue
+            if "particle_type" in all_fields:
+                iddm = g["particle_type"] == self.dm_type
+            else:
+                iddm = Ellipsis
+            particle_mass = g['ParticleMassMsun'][iddm][0] / tpf.hubble_constant
+            break
         p = {}
         p['total_particles'] = int(dd.quantities['TotalQuantity']('particle_count')[0])
         p['left_edge'] = tpf.domain_left_edge
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
+        p['particle_mass'] = particle_mass
         return p
+
 
     def __del__(self):
         self.pool.free_all()
