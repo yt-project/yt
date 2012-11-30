@@ -43,7 +43,7 @@ INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
-INST_ROCKSTAR=1 # Install the Rockstar halo finder?
+INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""

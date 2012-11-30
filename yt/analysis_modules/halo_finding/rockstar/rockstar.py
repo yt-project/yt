@@ -40,40 +40,15 @@ from os import environ
 from os import mkdir
 from os import path
 
-# Get some definitions from Rockstar directly.
-if "ROCKSTAR_DIR" in os.environ:
-    ROCKSTAR_DIR = os.environ["ROCKSTAR_DIR"]
-elif os.path.exists("rockstar.cfg"):
-    ROCKSTAR_DIR = open("rockstar.cfg").read().strip()
-else:
-    print "Reading Rockstar location from rockstar.cfg failed."
-    print "Please place the base directory of your"
-    print "Rockstar install in rockstar.cfg and restart."
-    print "(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )"
-    sys.exit(1)
-lines = file(path.join(ROCKSTAR_DIR, 'server.h'))
-READER_TYPE = None
-WRITER_TYPE = None
-for line in lines:
-    if "READER_TYPE" in line:
-        line = line.split()
-        READER_TYPE = int(line[-1])
-    if "WRITER_TYPE" in line:
-        line = line.split()
-        WRITER_TYPE = int(line[-1])
-    if READER_TYPE != None and WRITER_TYPE != None:
-        break
-lines.close()
-
 class InlineRunner(ParallelAnalysisInterface):
     def __init__(self, num_writers):
         # If this is being run inline, num_readers == comm.size, always.
-        self.num_readers = ytcfg.getint("yt", "__global_parallel_size")
+        psize = ytcfg.getint("yt", "__global_parallel_size")
+        self.num_readers = psize
         if num_writers is None:
-            self.num_writers =  ytcfg.getint("yt", "__global_parallel_size")
+            self.num_writers =  psize
         else:
-            self.num_writers = min(num_writers,
-                ytcfg.getint("yt", "__global_parallel_size"))
+            self.num_writers = min(num_writers, psize)
 
     def split_work(self, pool):
         avail = range(pool.comm.size)
@@ -110,12 +85,12 @@ class InlineRunner(ParallelAnalysisInterface):
             time.sleep(0.1 + pool.comm.rank/10.0)
             writer_pid = os.fork()
             if writer_pid == 0:
-                handler.start_client(WRITER_TYPE)
+                handler.start_writer()
                 os._exit(0)
         # Start readers, not forked.
         if pool.comm.rank in self.readers:
             time.sleep(0.1 + pool.comm.rank/10.0)
-            handler.start_client(READER_TYPE)
+            handler.start_reader()
         # Make sure the forks are done, which they should be.
         if writer_pid != 0:
             os.waitpid(writer_pid, 0)
@@ -125,46 +100,35 @@ class InlineRunner(ParallelAnalysisInterface):
 class StandardRunner(ParallelAnalysisInterface):
     def __init__(self, num_readers, num_writers):
         self.num_readers = num_readers
+        psize = ytcfg.getint("yt", "__global_parallel_size")
         if num_writers is None:
-            self.num_writers = ytcfg.getint("yt", "__global_parallel_size") \
-                - num_readers - 1
+            self.num_writers =  psize - num_readers - 1
         else:
-            self.num_writers = min(num_writers,
-                ytcfg.getint("yt", "__global_parallel_size"))
-        if self.num_readers + self.num_writers + 1 != ytcfg.getint("yt", \
-                "__global_parallel_size"):
+            self.num_writers = min(num_writers, psize)
+        if self.num_readers + self.num_writers + 1 != psize:
             mylog.error('%i reader + %i writers != %i mpi',
-                    self.num_readers, self.num_writers,
-                    ytcfg.getint("yt", "__global_parallel_size"))
+                    self.num_readers, self.num_writers, psize)
             raise RuntimeError
     
-    def split_work(self, pool):
-        # Who is going to do what.
-        avail = range(pool.comm.size)
-        self.writers = []
-        self.readers = []
-        # If we're not running inline, rank 0 should be removed immediately.
-        avail.pop(0)
-        # Now we assign the rest.
-        for i in range(self.num_readers):
-            self.readers.append(avail.pop(0))
-        for i in range(self.num_writers):
-            self.writers.append(avail.pop(0))
+    def split_work(self):
+        self.readers = np.arange(self.num_readers) + 1
+        self.writers = np.arange(self.num_writers) + 1 + self.num_readers
     
-    def run(self, handler, pool):
+    def run(self, handler, wg):
         # Not inline so we just launch them directly from our MPI threads.
-        if pool.comm.rank == 0:
+        if wg.name == "server":
             handler.start_server()
-        if pool.comm.rank in self.readers:
-            time.sleep(0.1 + pool.comm.rank/10.0)
-            handler.start_client(READER_TYPE)
-        if pool.comm.rank in self.writers:
-            time.sleep(0.2 + pool.comm.rank/10.0)
-            handler.start_client(WRITER_TYPE)
+        if wg.name == "readers":
+            time.sleep(0.1)
+            handler.start_reader()
+        if wg.name == "writers":
+            time.sleep(0.2)
+            handler.start_writer()
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
-    def __init__(self, ts, num_readers = 1, num_writers = None, 
-            outbase=None,particle_mass=-1.0,dm_type=1,force_res=None):
+    def __init__(self, ts, num_readers = 1, num_writers = None,
+            outbase="rockstar_halos", particle_mass=-1.0, dm_type=1, 
+            force_res=None):
         r"""Spawns the Rockstar Halo finder, distributes dark matter
         particles and finds halos.
 
@@ -222,13 +186,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         from yt.mods import *
         import sys
 
-        files = glob.glob('/u/cmoody3/data/a*')
-        files.sort()
-        ts = TimeSeriesData.from_filenames(files)
+        ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
         pm = 7.81769027e+11
         rh = RockstarHaloFinder(ts, particle_mass=pm)
         rh.run()
         """
+        ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
         if ytcfg.getboolean("yt", "inline") == True:
             self.runner = InlineRunner(num_writers)
@@ -241,52 +204,57 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         # Note that Rockstar does not support subvolumes.
         # We assume that all of the snapshots in the time series
         # use the same domain info as the first snapshots.
-        if not isinstance(ts,TimeSeriesData):
+        if not isinstance(ts, TimeSeriesData):
             ts = TimeSeriesData([ts])
         self.ts = ts
         self.dm_type = dm_type
         tpf = ts.__iter__().next()
-        def _particle_count(field, data):
-            try:
-                return (data["particle_type"]==dm_type).sum()
-            except KeyError:
-                return np.prod(data["particle_position_x"].shape)
-        add_field("particle_count",function=_particle_count, not_in_all=True,
-            particle_type=True)
-        # Get total_particles in parallel.
-        dd = tpf.h.all_data()
-        self.total_particles = int(dd.quantities['TotalQuantity']('particle_count')[0])
-        self.hierarchy = tpf.h
-        self.particle_mass = particle_mass 
-        self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
-        if outbase is None:
-            outbase = 'rockstar_halos'
         self.outbase = outbase
         self.particle_mass = particle_mass
         if force_res is None:
-            self.force_res = ts[-1].h.get_smallest_dx() * ts[-1]['mpch']
+            tpf = ts[-1] # Cache a reference
+            self.force_res = tpf.h.get_smallest_dx() * tpf['mpch']
+            # We have to delete now to wipe the hierarchy
+            del tpf
         else:
             self.force_res = force_res
-        self.left_edge = tpf.domain_left_edge
-        self.right_edge = tpf.domain_right_edge
-        self.center = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         # We set up the workgroups *before* initializing
         # ParallelAnalysisInterface. Everyone is their own workgroup!
         self.pool = ProcessorPool()
-        for i in range(ytcfg.getint("yt", "__global_parallel_size")):
-             self.pool.add_workgroup(size=1)
-        ParallelAnalysisInterface.__init__(self)
-        for wg in self.pool.workgroups:
-            if self.pool.comm.rank in wg.ranks:
-                self.workgroup = wg
-        self.handler = rockstar_interface.RockstarInterface(
-                self.ts, dd)
+        self.pool, self.workgroup = ProcessorPool.from_sizes(
+           [ (1, "server"),
+             (self.num_readers, "readers"),
+             (self.num_writers, "writers") ]
+        )
+        p = self._setup_parameters(ts)
+        params = self.comm.mpi_bcast(p, root = self.pool['readers'].ranks[0])
+        self.__dict__.update(params)
+        self.handler = rockstar_interface.RockstarInterface(self.ts)
+
+    def _setup_parameters(self, ts):
+        if self.workgroup.name != "readers": return None
+        tpf = ts[0]
+        def _particle_count(field, data):
+            try:
+                return (data["particle_type"]==self.dm_type).sum()
+            except KeyError:
+                return np.prod(data["particle_position_x"].shape)
+        add_field("particle_count", function=_particle_count,
+                  not_in_all=True, particle_type=True)
+        # Get total_particles in parallel.
+        dd = tpf.h.all_data()
+        p = {}
+        p['total_particles'] = int(dd.quantities['TotalQuantity']('particle_count')[0])
+        p['left_edge'] = tpf.domain_left_edge
+        p['right_edge'] = tpf.domain_right_edge
+        p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
+        return p
 
     def __del__(self):
         self.pool.free_all()
 
     def _get_hosts(self):
-        if self.pool.comm.size == 1 or self.pool.comm.rank == 0:
+        if self.comm.rank == 0 or self.comm.size == 1:
             server_address = socket.gethostname()
             sock = socket.socket()
             sock.bind(('', 0))
@@ -294,7 +262,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             del sock
         else:
             server_address, port = None, None
-        self.server_address, self.port = self.pool.comm.mpi_bcast(
+        self.server_address, self.port = self.comm.mpi_bcast(
             (server_address, port))
         self.port = str(self.port)
 
@@ -308,19 +276,19 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.handler.setup_rockstar(self.server_address, self.port,
                     len(self.ts), self.total_particles, 
                     self.dm_type,
-                    parallel = self.pool.comm.size > 1,
+                    parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
                     writing_port = -1,
                     block_ratio = block_ratio,
                     outbase = self.outbase,
-                    force_res=self.force_res,
+                    force_res = self.force_res,
                     particle_mass = float(self.particle_mass),
                     **kwargs)
         # Make the directory to store the halo lists in.
-        if self.pool.comm.rank == 0:
+        if self.comm.rank == 0:
             if not os.path.exists(self.outbase):
-                os.mkdir(self.outbase)
+                os.makedirs(self.outbase)
             # Make a record of which dataset corresponds to which set of
             # output files because it will be easy to lose this connection.
             fp = open(self.outbase + '/pfs.txt', 'w')
@@ -331,15 +299,15 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 fp.write(line)
             fp.close()
         # This barrier makes sure the directory exists before it might be used.
-        self.pool.comm.barrier()
-        if self.pool.comm.size == 1:
+        self.comm.barrier()
+        if self.comm.size == 1:
             self.handler.call_rockstar()
         else:
             # Split up the work.
-            self.runner.split_work(self.pool)
+            self.runner.split_work()
             # And run it!
-            self.runner.run(self.handler, self.pool)
-        self.pool.comm.barrier()
+            self.runner.run(self.handler, self.workgroup)
+        self.comm.barrier()
         self.pool.free_all()
     
     def halo_list(self,file_name='out_0.list'):
