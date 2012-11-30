@@ -37,27 +37,6 @@ from yt.utilities.linear_interpolators import \
 from yt.frontends.enzo.fields import \
      _ConvertNumberDensity
 
-def _H_NumberDensity(field, data):
-    field_data = np.zeros(data["Density"].shape,
-                          dtype=data["Density"].dtype)
-    if data.pf.parameters["MultiSpecies"] == 0:
-        field_data += data["Density"] * \
-          data.pf.parameters["HydrogenFractionByMass"]
-    if data.pf.parameters["MultiSpecies"] > 0:
-        field_data += data["HI_Density"]
-        field_data += data["HII_Density"]
-    if data.pf.parameters["MultiSpecies"] > 1:
-        field_data += data["HM_Density"]
-        field_data += data["H2I_Density"]
-        field_data += data["H2II_Density"]
-    if data.pf.parameters["MultiSpecies"] > 2:
-        field_data += data["HDI_Density"] / 2.0
-    return field_data
-add_field("H_NumberDensity", units=r"\rm{cm}^{-3}",
-          function=_H_NumberDensity,
-          convert_function=_ConvertNumberDensity)
-
-
 class SpectralFrequencyIntegrator(object):
     def __init__(self, table, field_names,
                  bounds, ev_bounds):
