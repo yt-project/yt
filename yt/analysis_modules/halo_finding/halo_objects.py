@@ -75,11 +75,6 @@ class Halo(object):
     dont_wrap = ["get_sphere", "write_particle_list"]
     extra_wrap = ["__getitem__"]
 
-    # Used for Loaded and RockstarHalos
-    _saved_fields = {}
-    _ds_sort = None
-    _particle_mask = None
-
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
         bulk_vel=None, tasks=None, rms_vel=None, supp=None):
@@ -111,6 +106,9 @@ class Halo(object):
             self.supp = {}
         else:
             self.supp = supp
+        self._saved_fields = {}
+        self._ds_sort = None
+        self._particle_mask = None
 
     @property
     def particle_mask(self):
