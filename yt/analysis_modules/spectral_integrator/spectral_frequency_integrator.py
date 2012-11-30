@@ -34,9 +34,28 @@ from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator, \
     TrilinearFieldInterpolator
 
-def _HydrogenDensity(field,data):
-    return data["NumberDensity"]*4.0/9.0  # for primordial gas
-add_field("HydrogenDensity", function=_HydrogenDensity)
+from yt.frontends.enzo.fields import \
+     _ConvertNumberDensity
+
+def _H_NumberDensity(field, data):
+    field_data = np.zeros(data["Density"].shape,
+                          dtype=data["Density"].dtype)
+    if data.pf.parameters["MultiSpecies"] == 0:
+        field_data += data["Density"] * \
+          data.pf.parameters["HydrogenFractionByMass"]
+    if data.pf.parameters["MultiSpecies"] > 0:
+        field_data += data["HI_Density"]
+        field_data += data["HII_Density"]
+    if data.pf.parameters["MultiSpecies"] > 1:
+        field_data += data["HM_Density"]
+        field_data += data["H2I_Density"]
+        field_data += data["H2II_Density"]
+    if data.pf.parameters["MultiSpecies"] > 2:
+        field_data += data["HDI_Density"] / 2.0
+    return field_data
+add_field("H_NumberDensity", units=r"\rm{cm}^{-3}",
+          function=_H_NumberDensity,
+          convert_function=_ConvertNumberDensity)
 
 
 class SpectralFrequencyIntegrator(object):
@@ -80,7 +99,7 @@ class SpectralFrequencyIntegrator(object):
         interp = self._get_interpolator(ev_min, ev_max)
         name = "XRay_%s_%s" % (ev_min, ev_max)
         def frequency_bin_field(field, data):
-            dd = {'HydrogenDensity' : np.log10(data["HydrogenDensity"]),
+            dd = {'H_NumberDensity' : np.log10(data["H_NumberDensity"]),
                   'Temperature'   : np.log10(data["Temperature"])}
             return 10**interp(dd)
         add_field(name, function=frequency_bin_field,
