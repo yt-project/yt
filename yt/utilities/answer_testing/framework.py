@@ -166,13 +166,23 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path % (self.reference_name, pf_name)
         try:
             resp = urllib2.urlopen(url)
-            # This is dangerous, but we have a controlled S3 environment
-            data = resp.read()
-            rv = cPickle.loads(data)
         except urllib2.HTTPError as ex:
             raise YTNoOldAnswer(url)
             mylog.warning("Missing %s (%s)", url, ex)
             rv = default
+        else:
+            # This is dangerous, but we have a controlled S3 environment
+            tries = 0
+            while(tries < 3):
+                try:
+                    data = resp.read()
+                except:
+                    tries += 1
+                else:
+                    break
+            if tries >= 3:
+                raise YTCloudError(url)
+            rv = cPickle.loads(data)
         self.cache[pf_name] = rv
         return rv
 
