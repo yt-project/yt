@@ -221,6 +221,27 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
 
+def _H_NumberDensity(field, data):
+    field_data = np.zeros(data["Density"].shape,
+                          dtype=data["Density"].dtype)
+    if data.pf.parameters["MultiSpecies"] == 0:
+        field_data += data["Density"] * \
+          data.pf.parameters["HydrogenFractionByMass"]
+    if data.pf.parameters["MultiSpecies"] > 0:
+        field_data += data["HI_Density"]
+        field_data += data["HII_Density"]
+    if data.pf.parameters["MultiSpecies"] > 1:
+        field_data += data["HM_Density"]
+        field_data += data["H2I_Density"]
+        field_data += data["H2II_Density"]
+    if data.pf.parameters["MultiSpecies"] > 2:
+        field_data += data["HDI_Density"] / 2.0
+    return field_data
+add_field("H_NumberDensity", units=r"\rm{cm}^{-3}",
+          function=_H_NumberDensity,
+          convert_function=_ConvertNumberDensity)
+
+
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
 

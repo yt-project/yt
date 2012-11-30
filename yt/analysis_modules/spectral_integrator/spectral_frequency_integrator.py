@@ -63,6 +63,8 @@ class SpectralFrequencyIntegrator(object):
             bin_table, self.bounds, self.field_names[:],
             truncate=True)
 
+
+
     def add_frequency_bin_field(self, ev_min, ev_max):
         """
         Add a new field to the FieldInfoContainer, which is an
@@ -73,7 +75,7 @@ class SpectralFrequencyIntegrator(object):
         interp = self._get_interpolator(ev_min, ev_max)
         name = "XRay_%s_%s" % (ev_min, ev_max)
         def frequency_bin_field(field, data):
-            dd = {'NumberDensity' : np.log10(data["NumberDensity"]),
+            dd = {'H_NumberDensity' : np.log10(data["H_NumberDensity"]),
                   'Temperature'   : np.log10(data["Temperature"])}
             return 10**interp(dd)
         add_field(name, function=frequency_bin_field,

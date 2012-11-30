@@ -105,6 +105,10 @@ from yt.frontends.art.api import \
 #from yt.frontends.maestro.api import \
 #    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
+from yt.frontends.stream.api import \
+    StreamStaticOutput, StreamFieldInfo, add_stream_field, \
+    StreamHandler, load_uniform_grid, load_amr_grids
+
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
 available_analysis_modules = get_available_modules()

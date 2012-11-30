@@ -60,17 +60,20 @@ def requires_outputlog(path = ".", prefix = ""):
 def standard_small_simulation(pf_fn, fields):
     if not can_run_pf(pf_fn): return
     dso = [None]
+    tolerance = ytcfg.getint("yt", "answer_testing_tolerance")
+    bitwise = ytcfg.getboolean("yt", "answer_testing_bitwise")
     for field in fields:
-        yield GridValuesTest(pf_fn, field)
+        if bitwise:
+            yield GridValuesTest(pf_fn, field)
         if 'particle' in field: continue
         for ds in dso:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
-                        ds, decimals=3)
+                        ds, decimals=tolerance)
             yield FieldValuesTest(
-                    pf_fn, field, ds, decimals=3)
+                    pf_fn, field, ds, decimals=tolerance)
                     
 class ShockTubeTest(object):
     def __init__(self, data_file, solution_file, fields, 
