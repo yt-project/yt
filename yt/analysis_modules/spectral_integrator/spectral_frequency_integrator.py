@@ -34,9 +34,6 @@ from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator, \
     TrilinearFieldInterpolator
 
-from yt.frontends.enzo.fields import \
-     _ConvertNumberDensity
-
 class SpectralFrequencyIntegrator(object):
     def __init__(self, table, field_names,
                  bounds, ev_bounds):
