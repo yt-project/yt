@@ -4382,8 +4382,6 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True):
-        if self.comm.rank != 0:
-            return
         f = open(filename, "wb")
         if bounds is None:
             DLE = self.pf.domain_left_edge
@@ -4397,6 +4395,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             np.subtract(v[:,i], bounds[i][0], v[:,i])
             w = bounds[i][1] - bounds[i][0]
             np.divide(v[:,i], w, v[:,i])
+            np.subtract(v[:,i], 0.5, v[:,i]) # Center at origin.
         f.write("ply\n")
         f.write("format binary_little_endian 1.0\n")
         f.write("element vertex %s\n" % (v.shape[0]))
@@ -4420,7 +4419,6 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             arr["red"][:] = cs[0,:,0]
             arr["green"][:] = cs[0,:,1]
             arr["blue"][:] = cs[0,:,2]
-            import pdb;pdb.set_trace()
         else:
             arr = np.empty(v.shape[0]/3, np.dtype(fs[:-3]))
         f.write("end_header\n")
