@@ -747,7 +747,7 @@ if [ $INST_ENZO -eq 1 ]
 then
     echo "Cloning a copy of Enzo."
     cd ${DEST_DIR}/src/
-    ${HG_EXEC} clone https://enzo.googlecode.com/hg/ ./enzo-hg-stable
+    ${HG_EXEC} clone https://bitbucket.org/enzo/enzo-stable ./enzo-hg-stable
     cd $MY_PWD
 fi
 
