@@ -131,6 +131,13 @@ def _OnesOverDx(field, data):
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
+def _Zeros(field, data):
+    return np.zeros(data.ActiveDimensions, dtype='float64')
+add_field("Zeros", function=_Zeros,
+          validators=[ValidateSpatial(0)],
+          projection_conversion="unitary",
+          display_field = False)
+
 def _Ones(field, data):
     return np.ones(data.ActiveDimensions, dtype='float64')
 add_field("Ones", function=_Ones,
