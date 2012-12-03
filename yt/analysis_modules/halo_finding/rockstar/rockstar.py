@@ -300,8 +300,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.comm.size == 1:
             self.handler.call_rockstar()
         else:
-            # Split up the work.
-            self.runner.split_work(self.pool)
             # And run it!
             self.runner.run(self.handler, self.workgroup)
         self.comm.barrier()
