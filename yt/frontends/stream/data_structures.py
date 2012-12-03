@@ -281,12 +281,11 @@ class StreamHierarchy(AMRHierarchy):
             if data[i].has_key("number_of_particles") :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
             for key in data[i].keys() :
-                if key in grid.keys() : del grid[key]
+                if key in grid.keys() : grid.field_data.pop(key, None)
                 self.stream_handler.fields[grid.id][key] = data[i][key]
             
         self._detect_fields()
-        
-        
+                
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo

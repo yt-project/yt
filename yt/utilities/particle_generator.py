@@ -73,7 +73,7 @@ class ParticleGenerator(object) :
         """
         return self.num_particles
 
-    def get_from_grid(self, grid) :
+    def get_for_grid(self, grid) :
         """
         Return a dict containing all of the particle fields in the specified grid.
         """
@@ -160,7 +160,7 @@ class ParticleGenerator(object) :
             else :
                 data["number_of_particles"] = self.NumberOfParticles[i] + \
                                               g.NumberOfParticles
-            grid_particles = self.get_from_grid(g)
+            grid_particles = self.get_for_grid(g)
             for field in self.field_list :
                 if data["number_of_particles"] > 0 :
                     # We have particles in this grid
@@ -168,7 +168,6 @@ class ParticleGenerator(object) :
                         # Particles already exist
                         if field in self.pf.h.field_list :
                             # This field already exists
-                            #prev_particles = self.pf.h.io._read_data_set(g,field)
                             prev_particles = g[field]
                         else :
                             # This one doesn't, set the previous particles' field
