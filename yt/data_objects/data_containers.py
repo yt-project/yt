@@ -4466,6 +4466,64 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
     def export_sketchfab(self, title, description, api_key = None,
                             color_field = None, color_map = "algae",
                             color_log = True, bounds = None):
+        r"""This exports Surfaces to SketchFab.com, where they can be viewed
+        interactively in a web browser.
+
+        SketchFab.com is a proprietary web service that provides WebGL
+        rendering of models.  This routine will use temporary files to
+        construct a compressed binary representation (in .PLY format) of the
+        Surface and any optional fields you specify and upload it to
+        SketchFab.com.  It requires an API key, which can be found on your
+        SketchFab.com dashboard.  You can either supply the API key to this
+        routine directly or you can place it in the variable
+        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        parallel-safe.
+
+        Parameters
+        ----------
+        title : string
+            The title for the model on the website
+        description : string
+            How you want the model to be described on the website
+        api_key : string
+            Optional; defaults to using the one in the config file
+        color_field : string
+            If specified, the field by which the surface will be colored
+        color_map : string
+            The name of the color map to use to map the color field
+        color_log : bool
+            Should the field be logged before being mapped to RGB?
+        bounds : list of tuples
+            [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
+            will be scaled and centered.  Defaults to the full domain.
+
+        Returns
+        -------
+        URL : string
+            The URL at which your model can be viewed.
+
+        Examples
+        --------
+
+        from yt.mods import *
+        pf = load("redshift0058")
+        dd = pf.h.sphere("max", (200, "kpc"))
+        rho = 5e-27
+
+        bounds = [(dd.center[i] - 100.0/pf['kpc'],
+                   dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
+
+        surf = pf.h.surface(dd, "Density", rho)
+
+        rv = surf.export_sketchfab(
+            title = "Testing Upload",
+            description = "A simple test of the uploader",
+            color_field = "Temperature",
+            color_map = "hot",
+            color_log = True,
+            bounds = bounds
+        )
+        """
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):
             raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
