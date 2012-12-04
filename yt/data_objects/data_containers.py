@@ -4214,12 +4214,13 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
+        self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
         AMRData.__init__(self, center = center, fields = None, pf =
                          data_source.pf)
         self._grids = self.data_source._grids.copy()
 
-    def get_data(self, fields = None):
+    def get_data(self, fields = None, sample_type = "face"):
         if isinstance(fields, list) and len(fields) > 1:
             for field in fields: self.get_data(field)
             return
@@ -4234,7 +4235,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             pb.update(i)
             my_verts = self._extract_isocontours_from_grid(
                             g, self.surface_field, self.field_value,
-                            fields)
+                            fields, sample_type)
             if fields is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
@@ -4247,19 +4248,25 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             samples = np.concatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
                                 datatype='array')
-            self[fields] = samples
+            if sample_type == "face":
+                self[fields] = samples
+            elif sample_type == "vertex":
+                self.vertex_samples[fields] = samples
+        
 
     @restore_grid_state
     def _extract_isocontours_from_grid(self, grid, field, value,
-                                       sample_values = None):
+                                       sample_values = None,
+                                       sample_type = "face"):
         mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field, no_ghost = False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
             svals = None
+        sample_type = {"face":1, "vertex":2}[sample_type]
         my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
-                                    grid.dds, svals)
+                                    grid.dds, svals, sample_type)
         return my_verts
 
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
@@ -4343,7 +4350,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                     ff, mask, grid.LeftEdge, grid.dds)
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True):
+                   color_map = "algae", color_log = True, sample_type = "face"):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
 
@@ -4374,58 +4381,78 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
         if self.vertices is None:
-            self.get_data(color_field)
-        elif color_field is not None and color_field not in self.field_data:
-            self[color_field]
-        self._export_ply(filename, bounds, color_field, color_map, color_log)
+            self.get_data(color_field, sample_type)
+        elif color_field is not None:
+            if sample_type == "face" and \
+                color_field not in self.field_data:
+                self[color_field]
+            elif sample_type == "vertex" and \
+                color_field not in self.vertex_data:
+                self.get_data(color_field, sample_type)
+        self._export_ply(filename, bounds, color_field, color_map, color_log,
+                         sample_type)
 
-    @parallel_root_only
-    def _export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True):
-        f = open(filename, "wb")
-        if bounds is None:
-            DLE = self.pf.domain_left_edge
-            DRE = self.pf.domain_right_edge
-            bounds = [(DLE[i], DRE[i]) for i in range(3)]
-        fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
-              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
-        v = np.empty((self.vertices.shape[1], 3), "<f")
-        for i in range(3):
-            v[:,i] = self.vertices[i,:]
-            np.subtract(v[:,i], bounds[i][0], v[:,i])
-            w = bounds[i][1] - bounds[i][0]
-            np.divide(v[:,i], w, v[:,i])
-            np.subtract(v[:,i], 0.5, v[:,i]) # Center at origin.
-        f.write("ply\n")
-        f.write("format binary_little_endian 1.0\n")
-        f.write("element vertex %s\n" % (v.shape[0]))
-        f.write("property float x\n")
-        f.write("property float y\n")
-        f.write("property float z\n")
-        f.write("element face %s\n" % (v.shape[0]/3))
-        f.write("property list uchar int vertex_indices\n")
-        if color_field is not None:
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
-            # Now we get our samples
-            cs = self[color_field]
+    def _color_samples(self, cs, color_log, color_map, arr):
             if color_log: cs = np.log10(cs)
             mi, ma = cs.min(), cs.max()
             cs = (cs - mi) / (ma - mi)
             from yt.visualization.image_writer import map_to_colors
             cs = map_to_colors(cs, color_map)
-            arr = np.empty(cs.shape[1], dtype=np.dtype(fs))
             arr["red"][:] = cs[0,:,0]
             arr["green"][:] = cs[0,:,1]
             arr["blue"][:] = cs[0,:,2]
+
+    @parallel_root_only
+    def _export_ply(self, filename, bounds = None, color_field = None,
+                   color_map = "algae", color_log = True, sample_type = "face"):
+        f = open(filename, "wb")
+        if bounds is None:
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        nv = self.vertices.shape[1]
+        vs = [("x", "<f"), ("y", "<f"), ("z", "<f"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        f.write("ply\n")
+        f.write("format binary_little_endian 1.0\n")
+        f.write("element vertex %s\n" % (nv))
+        f.write("property float x\n")
+        f.write("property float y\n")
+        f.write("property float z\n")
+        if color_field is not None and sample_type == "vertex":
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            v = np.empty(self.vertices.shape[1], dtype=vs)
+            cs = self.vertex_samples[color_field]
+            self._color_samples(cs, color_log, color_map, v)
         else:
-            arr = np.empty(v.shape[0]/3, np.dtype(fs[:-3]))
+            v = np.empty(self.vertices.shape[1], dtype=vs[:3])
+        f.write("element face %s\n" % (nv/3))
+        f.write("property list uchar int vertex_indices\n")
+        if color_field is not None and sample_type == "face":
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            # Now we get our samples
+            cs = self[color_field]
+            arr = np.empty(cs.shape[1], dtype=np.dtype(fs))
+            self._color_samples(cs, color_log, color_map, arr)
+        else:
+            arr = np.empty(nv/3, np.dtype(fs[:-3]))
+        for i, ax in enumerate("xyz"):
+            v[ax][:] = self.vertices[i,:]
+            np.subtract(v[ax][:], bounds[i][0], v[ax][:])
+            w = bounds[i][1] - bounds[i][0]
+            np.divide(v[ax][:], w, v[ax][:])
+            np.subtract(v[ax][:], 0.5, v[ax][:]) # Center at origin.
         f.write("end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
-        vi = np.arange(v.shape[0], dtype="<i")
-        vi.shape = (v.shape[0]/3, 3)
+        vi = np.arange(nv, dtype="<i")
+        vi.shape = (nv/3, 3)
         arr["v1"][:] = vi[:,0]
         arr["v2"][:] = vi[:,1]
         arr["v3"][:] = vi[:,2]
