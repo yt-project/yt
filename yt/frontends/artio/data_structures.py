@@ -28,7 +28,9 @@ import stat
 import weakref
 import cStringIO
 
-from _artio_caller import artio_is_valid, artio_fileset, read_header 
+from _artio_caller import \
+    artio_is_valid, artio_fileset , artio_fileset_grid, \
+    grid_pos_fill, grid_var_fill, count_octs#, read_header 
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
@@ -64,82 +66,84 @@ from yt.geometry.oct_container import \
 
 
 
+def cell_pos_callback( level, refined, sfc_index, pos):
+    print pos[0],pos[1],pos[2], 'cell position from callback'
+    ng=1 #until you write something to buffer
+    cpu=0
+    domain_id=0
+    oct_handler.add(cpu + 1, level - min_level, ng, pos, domain_id) 
+
 # the following classes are old RAMSES oct handling until otherwise noted
 class ARTIODomainFile(object):
-    _last_mask = None
-    _last_selector_id = None
-    nvar = 6
+    _handle = None
 
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
-        num = os.path.basename(pf.parameter_filename).split("."
-                )[0].split("_")[1]
-        basename = "%s/%%s_%s.out%05i" % (
-            os.path.dirname(pf.parameter_filename),
-            num, domain_id)
-        for t in ['grav', 'hydro', 'part', 'amr']:
-            setattr(self, "%s_fn" % t, basename % t)
-        self._read_amr_header()
+        self.part_fn = "%s.p%03i" % (pf.parameter_filename[:-4],domain_id)
+        self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)
+        #self.parameter_file = weakref.proxy(pf)
+        self._fileset_prefix = pf.parameter_filename[:-4]
+        self._handle = artio_fileset(self._fileset_prefix) 
+
+        self._read_grid_header()
         self._read_particle_header()
+        print 'here once!!'
 
-    _hydro_offset = None
-    _level_count = None
+#     @property
+#     def level_count(self):
+#         if self._level_count is not None: return self._level_count
+#         self.hydro_offset
+#         return self._level_count
 
-    @property
-    def level_count(self):
-        if self._level_count is not None: return self._level_count
-        self.hydro_offset
-        return self._level_count
-
-    @property
-    def hydro_offset(self):
-        if self._hydro_offset is not None: return self._hydro_offset
-        # We now have to open the file and calculate it
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 6)
-        # It goes: level, CPU, 8-variable
-        min_level = self.pf.min_level
-        n_levels = self.amr_header['nlevelmax'] - min_level
-        hydro_offset = np.zeros(n_levels, dtype='int64')
-        hydro_offset -= 1
-        level_count = np.zeros(n_levels, dtype='int64')
-        for level in range(self.amr_header['nlevelmax']):
-            for cpu in range(self.amr_header['nboundary'] +
-                             self.amr_header['ncpu']):
-                header = ( ('file_ilevel', 1, 'I'),
-                           ('file_ncache', 1, 'I') )
-                hvals = fpu.read_attrs(f, header)
-                if hvals['file_ncache'] == 0: continue
-                assert(hvals['file_ilevel'] == level+1)
-                if cpu + 1 == self.domain_id and level >= min_level:
-                    hydro_offset[level - min_level] = f.tell()
-                    level_count[level - min_level] = hvals['file_ncache']
-                fpu.skip(f, 8 * self.nvar)
-        self._hydro_offset = hydro_offset
-        self._level_count = level_count
-        return self._hydro_offset
+#     @property
+#     def hydro_offset(self):
+#         if self._hydro_offset is not None: return self._hydro_offset
+#         # We now have to open the file and calculate it
+#         f = open(self.hydro_fn, "rb")
+#         fpu.skip(f, 6)
+#         # It goes: level, CPU, 8-variable
+#         min_level = self.pf.min_level
+#         n_levels = self.grid_header['nlevelmax'] - min_level
+#         hydro_offset = np.zeros(n_levels, dtype='int64')
+#         hydro_offset -= 1
+#         level_count = np.zeros(n_levels, dtype='int64')
+#         for level in range(self.grid_header['nlevelmax']):
+#             for cpu in range(self.grid_header['nboundary'] +
+#                              self.grid_header['ncpu']):
+#                 header = ( ('file_ilevel', 1, 'I'),
+#                            ('file_ncache', 1, 'I') )
+#                 hvals = fpu.read_attrs(f, header)
+#                 if hvals['file_ncache'] == 0: continue
+#                 assert(hvals['file_ilevel'] == level+1)
+#                 if cpu + 1 == self.domain_id and level >= min_level:
+#                     hydro_offset[level - min_level] = f.tell()
+#                     level_count[level - min_level] = hvals['file_ncache']
+#                 fpu.skip(f, 8 * self.nvar)
+#         self._hydro_offset = hydro_offset
+#         self._level_count = level_count
+#         return self._hydro_offset
 
     def _read_particle_header(self):
         if not os.path.exists(self.part_fn):
             self.local_particle_count = 0
             self.particle_field_offsets = {}
             return
-        f = open(self.part_fn, "rb")
+#        f = open(self.part_fn, "rb")
         hvals = {}
         attrs = ( ('ncpu', 1, 'I'),
                   ('ndim', 1, 'I'),
                   ('npart', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        fpu.read_vector(f, 'I')
+#        hvals.update(fpu.read_attrs(f, attrs))
+#        fpu.read_vector(f, 'I')
 
         attrs = ( ('nstar_tot', 1, 'I'),
                   ('mstar_tot', 1, 'd'),
                   ('mstar_lost', 1, 'd'),
                   ('nsink', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        self.particle_header = hvals
-        self.local_particle_count = hvals['npart']
+#        hvals.update(fpu.read_attrs(f, attrs))
+#        self.particle_header = hvals
+#        self.local_particle_count = hvals['npart']
         particle_fields = [
                 ("particle_position_x", "d"),
                 ("particle_position_y", "d"),
@@ -150,96 +154,71 @@ class ARTIODomainFile(object):
                 ("particle_mass", "d"),
                 ("particle_identifier", "I"),
                 ("particle_refinement_level", "I")]
-        if hvals["nstar_tot"] > 0:
-            particle_fields += [("particle_age", "d"),
-                                ("particle_metallicity", "d")]
-        field_offsets = {particle_fields[0][0]: f.tell()}
-        for field, vtype in particle_fields[1:]:
-            fpu.skip(f, 1)
-            field_offsets[field] = f.tell()
-        self.particle_field_offsets = field_offsets
+#        if hvals["nstar_tot"] > 0:
+#            particle_fields += [("particle_age", "d"),
+#                                ("particle_metallicity", "d")]
+#        field_offsets = {particle_fields[0][0]: f.tell()}
+#        for field, vtype in particle_fields[1:]:
+#            fpu.skip(f, 1)
+#            field_offsets[field] = f.tell()
+#        self.particle_field_offsets = field_offsets
 
-    def _read_amr_header(self):
-        hvals = {}
-        f = open(self.amr_fn, "rb")
-        for header in artio_header(hvals):
-            hvals.update(fpu.read_attrs(f, header))
+    def _read_grid_header(self):
+#        hvals = {}
+#        f = open(self.grid_fn, "rb")
+#        for header in ramses_header(hvals):
+#            hvals.update(fpu.read_attrs(f, header))
         # That's the header, now we skip a few.
-        hvals['numbl'] = np.array(hvals['numbl']).reshape(
-            (hvals['nlevelmax'], hvals['ncpu']))
-        fpu.skip(f)
-        if hvals['nboundary'] > 0:
-            fpu.skip(f, 2)
-            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
-        else:
-            self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
-        ordering = fpu.read_vector(f, 'c')
-        fpu.skip(f, 4)
+#        hvals['numbl'] = np.array(hvals['numbl']).reshape(
+#            (hvals['nlevelmax'], hvals['ncpu']))
+#        fpu.skip(f)
+#        if hvals['nboundary'] > 0:
+#            fpu.skip(f, 2)
+#            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
+#        else:
+#            self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
+#        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
+#        ordering = fpu.read_vector(f, 'c')
+#        fpu.skip(f, 4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
-        self.amr_header = hvals
-        self.amr_offset = f.tell()
-        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
+#        self.grid_header = hvals
+#        self.grid_offset = f.tell()
+#        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
+        
+        print self._handle.parameters['grid_file_sfc_index'][1], self.pf.min_level
+        print '!!!!!!!!!!!!!!!!!!!!!',self._handle.parameters['grid_max_level'][0]
+        self.local_oct_count = \
+            count_octs(self._fileset_prefix,
+                       0, self._handle.parameters['grid_file_sfc_index'][1],
+                       self.pf.min_level,
+                       self._handle.parameters['grid_max_level'][0], 
+                       self._handle.parameters['num_grid_variables'][0])
+        print self.local_oct_count
+        
 
-    def _read_amr(self, oct_handler):
+
+    def _read_grid(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain 
            are needed - it's position in the octree is found automatically.
            The most important is finding all the information to feed
            oct_handler.add
         """
-        fb = open(self.amr_fn, "rb")
-        fb.seek(self.amr_offset)
-        f = cStringIO.StringIO()
-        f.write(fb.read())
-        f.seek(0)
-        mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
-            self.domain_id, self.local_oct_count, self.ngridbound.sum())
-        def _ng(c, l):
-            if c < self.amr_header['ncpu']:
-                ng = self.amr_header['numbl'][l, c]
-            else:
-                ng = self.ngridbound[c - self.amr_header['ncpu'] +
-                                self.amr_header['nboundary']*l]
-            return ng
-        min_level = self.pf.min_level
-        total = 0
-        nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
-        for level in range(self.amr_header['nlevelmax']):
-            # Easier if do this 1-indexed
-            for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
-                #ng is the number of octs on this level on this domain
-                ng = _ng(cpu, level)
-                if ng == 0: continue
-                ind = fpu.read_vector(f, "I").astype("int64")
-                fpu.skip(f, 2)
-                pos = np.empty((ng, 3), dtype='float64')
-                pos[:,0] = fpu.read_vector(f, "d") - nx
-                pos[:,1] = fpu.read_vector(f, "d") - ny
-                pos[:,2] = fpu.read_vector(f, "d") - nz
-                #pos *= self.pf.domain_width
-                #pos += self.parameter_file.domain_left_edge
-                fpu.skip(f, 31)
-                #parents = fpu.read_vector(f, "I")
-                #fpu.skip(f, 6)
-                #children = np.empty((ng, 8), dtype='int64')
-                #for i in range(8):
-                #    children[:,i] = fpu.read_vector(f, "I")
-                #cpu_map = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    cpu_map[:,i] = fpu.read_vector(f, "I")
-                #rmap = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    rmap[:,i] = fpu.read_vector(f, "I")
-                # We don't want duplicate grids.
-                # Note that we're adding *grids*, not individual cells.
-                if level >= min_level and cpu + 1 >= self.domain_id: 
-                    assert(pos.shape[0] == ng)
-                    if cpu + 1 == self.domain_id:
-                        total += ng
-                    oct_handler.add(cpu + 1, level - min_level, ng, pos, 
-                                    self.domain_id)
+        print "in read_grid"
+        sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
+        sfc_max = 100   # for testing
+        grid_pos_fill(self._fileset_prefix, 0,sfc_max, 0, 10)##########
+
+    #snl this is where I would LIKE the callback to go:
+#    def cell_pos_callback(self, level, refined, sfc_index, pos):
+#        print pos[0],pos[1],pos[2], 'snlpos'
+#        ng=1 #until you write something to buffer
+#        cpu=0
+#        self.domain_id=0
+#        oct_handler.add(cpu + 1, level - min_level, ng, pos, self.domain_id) 
+        
+    
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -291,6 +270,7 @@ class ARTIODomainSubset(object):
                                      self.cell_count,
                                      self.level_counts.copy())
 
+    #unchanged...
     def fill(self, content, fields):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
@@ -339,29 +319,24 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         super(ARTIOGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
+        #domains are the class object ... ncpu == 1 for parallelization currently 
+        #only one file/"domain" for ART
         self.domains = [ARTIODomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
-        total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
-                         for dom in self.domains)
-        self.num_grids = total_octs
         #this merely allocates space for the oct tree
         #and nothing else
         self.oct_handler = ARTIOOctreeContainer(
             self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
-        mylog.debug("Allocating %s octs", total_octs)
+        mylog.debug("Allocating octs")
         self.oct_handler.allocate_domains(
-            [dom.local_oct_count #+ dom.ngridbound.sum()
-             for dom in self.domains])
-        #this actually reads every oct and loads it into the octree
+            [dom.local_oct_count for dom in self.domains])
         for dom in self.domains:
-            dom._read_amr(self.oct_handler)
-        #for dom in self.domains:
-        #    self.oct_handler.check(dom.domain_id)
+            dom._read_grid(self.oct_handler)
 
     def _detect_fields(self):
-        # TODO: Add additional fields
+        # TODO: Add additional fields #snl how are field names dealt with in ART?
         self.fluid_field_list = [ "Density", "x-velocity", "y-velocity",
 	                        "z-velocity", "Pressure", "Metallicity" ]
         pfl = set([])
@@ -394,9 +369,10 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         raise NotImplementedError
 
     def _chunk_io(self, dobj):
-        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+        raise NotImplementedError
+#        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+#        for subset in oobjs:
+#            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
 
 
@@ -413,6 +389,8 @@ class ARTIOStaticOutput(StaticOutput):
         self._filename = filename
         self._fileset_prefix = filename[:-4]
         self._handle = artio_fileset(self._fileset_prefix) 
+#        grid_pos_fill(self._fileset_prefix, 0,sfc_max, 0, 10)##########
+#        grid_var_fill(self._fileset_prefix, 0,100, 0, 10)##########
         
         # Here we want to initiate a traceback, if the reader is not built.
         StaticOutput.__init__(self, filename, data_style)
@@ -479,6 +457,8 @@ class ARTIOStaticOutput(StaticOutput):
         self.parameters['unit_t'] = self._handle.parameters["time_unit"][0]
         self.parameters['unit_m'] = self._handle.parameters["mass_unit"][0]
         self.parameters['unit_d'] = self.parameters['unit_m']/self.parameters['unit_l']**(3.0)
+#snl hard coded number of domains in ART = 1 ... that may change for parallelization 
+        self.parameters['ncpu'] = 1
 
     @classmethod
     def _is_valid(self, *args, **kwargs) :

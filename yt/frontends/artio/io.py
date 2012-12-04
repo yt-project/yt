@@ -36,15 +36,20 @@ class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
+#chunks: list of YTDataChunk objects
+#selector: SelectorObjects (you can see the definition in yt/geometry/selection_routines.pxd) which can tell you which cells or particles to include in an object
+#fields: list of fields of the form (ftype, fname) where ftype is a string (for the case of multi-fluid simulations) and fname is the name of the fluid type.
+#size: the total (expected) number of cells that intersect, so that fields can be pre-allocated (to avoid memory fragmentation)
+
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
         tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
         cp = 0
-        for chunk in chunks:
-            for subset in chunk.objs:
+        for chunk in chunks:     #from _chunk_io in grid_geometry_handler.py yielding YTDataChunk 
+            for subset in chunk.objs:        #chunk.objs =  gs = files  [=gobjs appended to gfiles]
                 # Now we read the entire thing
-                f = open(subset.domain.hydro_fn, "rb")
+                f = open(subset.domain.grid_fn, "rb") 
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 content = cStringIO.StringIO(f.read())

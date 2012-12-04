@@ -6,12 +6,16 @@ import os.path
 import glob
 
 sourcefiles = ['yt/frontends/artio/_artio_caller.pyx',
+               'yt/frontends/artio/artio_headers/artio.c',
                'yt/frontends/artio/artio_headers/artio_grid.c',
                'yt/frontends/artio/artio_headers/artio_endian.c',
                'yt/frontends/artio/artio_headers/artio_mpi.c', 
                'yt/frontends/artio/artio_headers/artio_parameter.c',
                'yt/frontends/artio/artio_headers/artio_particle.c',
-               'yt/frontends/artio/artio_headers/artio_posix.c']
+               'yt/frontends/artio/artio_headers/artio_posix.c',
+               'yt/frontends/artio/artio_headers/sfc.c',
+               'yt/frontends/artio/artio_headers/sfc.h'
+               ]
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
