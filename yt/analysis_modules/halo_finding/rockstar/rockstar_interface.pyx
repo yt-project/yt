@@ -170,7 +170,9 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
         local_parts = 0
         for g in pf.h._get_objs("grids"):
             if g.NumberOfParticles == 0: continue
-            if "particle_type" in all_fields:
+            if rh.dm_only:
+                iddm = Ellipsis
+            elif "particle_type" in all_fields:
                 iddm = g["particle_type"] == rh.dm_type
             else:
                 iddm = Ellipsis
@@ -193,7 +195,9 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     pi = 0
     for g in pf.h._get_objs("grids"):
         if g.NumberOfParticles == 0: continue
-        if "particle_type" in all_fields:
+        if rh.dm_only:
+            iddm = Ellipsis
+        elif "particle_type" in all_fields:
             iddm = g["particle_type"] == rh.dm_type
         else:
             iddm = Ellipsis
@@ -225,6 +229,7 @@ cdef class RockstarInterface:
     cdef public int block_ratio
     cdef public int dm_type
     cdef public int total_particles
+    cdef public int dm_only
 
     def __cinit__(self, ts):
         self.ts = ts
@@ -238,7 +243,8 @@ cdef class RockstarInterface:
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, force_res=None,
-                       int min_halo_size = 25, outbase = "None"):
+                       int min_halo_size = 25, outbase = "None",
+                       int dm_only = 0):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -269,6 +275,7 @@ cdef class RockstarInterface:
         MIN_HALO_OUTPUT_SIZE=min_halo_size
         TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
+        self.dm_only = dm_only
         
         tpf = self.ts[0]
         h0 = tpf.hubble_constant

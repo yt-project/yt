@@ -111,12 +111,12 @@ class StandardRunner(ParallelAnalysisInterface):
              (self.num_readers, "readers"),
              (self.num_writers, "writers") ]
         )
-        return pool, workgrup
+        return pool, workgroup
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None,
             outbase="rockstar_halos", dm_type=1, 
-            force_res=None):
+            force_res=None, total_particles=None, dm_only=False):
         r"""Spawns the Rockstar Halo finder, distributes dark matter
         particles and finds halos.
 
@@ -156,6 +156,17 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             last data snapshot (i.e. the one where time has evolved the
             longest) in the time series:
             ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+        total_particles : int
+            If supplied, this is a pre-calculated total number of dark matter
+            particles present in the simulation. For example, this is useful
+            when analyzing a series of snapshots where the number of dark
+            matter particles should not change and this will save some disk
+            access time. If left unspecified, it will
+            be calculated automatically. Default: ``None``.
+        dm_only : boolean
+            If set to ``True``, it will be assumed that there are only dark
+            matter particles present in the simulation. This can save analysis
+            time if this is indeed the case. Default: ``False``.
             
         Returns
         -------
@@ -202,6 +213,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             del tpf
         else:
             self.force_res = force_res
+        self.total_particles = total_particles
+        self.dm_only = dm_only
         # Setup pool and workgroups.
         self.pool, self.workgroup = self.runner.setup_pool()
         p = self._setup_parameters(ts)
@@ -213,26 +226,31 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.workgroup.name != "readers": return None
         tpf = ts[0]
         def _particle_count(field, data):
+            if self.dm_only:
+                return np.prod(data["particle_position_x"].shape)
             try:
                 return (data["particle_type"]==self.dm_type).sum()
             except KeyError:
                 return np.prod(data["particle_position_x"].shape)
         add_field("particle_count", function=_particle_count,
                   not_in_all=True, particle_type=True)
-        # Get total_particles in parallel.
         dd = tpf.h.all_data()
         # Get DM particle mass.
         all_fields = set(tpf.h.derived_field_list + tpf.h.field_list)
         for g in tpf.h._get_objs("grids"):
             if g.NumberOfParticles == 0: continue
-            if "particle_type" in all_fields:
+            if self.dm_only:
+                iddm = Ellipsis
+            elif "particle_type" in all_fields:
                 iddm = g["particle_type"] == self.dm_type
             else:
                 iddm = Ellipsis
             particle_mass = g['ParticleMassMsun'][iddm][0] / tpf.hubble_constant
             break
         p = {}
-        p['total_particles'] = int(dd.quantities['TotalQuantity']('particle_count')[0])
+        if self.total_particles is None:
+            # Get total_particles in parallel.
+            p['total_particles'] = int(dd.quantities['TotalQuantity']('particle_count')[0])
         p['left_edge'] = tpf.domain_left_edge
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
@@ -281,6 +299,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     outbase = self.outbase,
                     force_res = self.force_res,
                     particle_mass = float(self.particle_mass),
+                    dm_only = int(self.dm_only),
                     **kwargs)
         # Make the directory to store the halo lists in.
         if self.comm.rank == 0:
