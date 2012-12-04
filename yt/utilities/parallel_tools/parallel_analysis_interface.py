@@ -252,9 +252,10 @@ def parallel_root_only(func):
     @wraps(func)
     def root_only(*args, **kwargs):
         comm = _get_comm(args)
+        rv = None
         if comm.rank == 0:
             try:
-                func(*args, **kwargs)
+                rv = func(*args, **kwargs)
                 all_clear = 1
             except:
                 traceback.print_last()
@@ -263,6 +264,7 @@ def parallel_root_only(func):
             all_clear = None
         all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
+        return rv
     if parallel_capable: return root_only
     return func
 

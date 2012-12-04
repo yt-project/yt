@@ -4548,7 +4548,9 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             'fileModel': zfs,
             'filenameModel': "yt_export.zip",
         }
-        self._upload_to_sketchfab(data)
+        upload_id = self._upload_to_sketchfab(data)
+        upload_id = self.comm.mpi_bcast(upload_id, root = 0)
+        return upload_id
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data):
@@ -4561,11 +4563,13 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                         datamulti, headers)
         rv = urllib2.urlopen(request).read()
         rv = json.loads(rv)
-        upload_id = rv.get("id", None)
+        upload_id = rv.get("result", {}).get("id", None)
         if upload_id:
-            mylog.info("Model uploaded to: https://sketchfab.com/show/%s", id)
+            mylog.info("Model uploaded to: https://sketchfab.com/show/%s",
+                       upload_id)
         else:
             mylog.error("Problem uploading.")
+        return upload_id
 
 
 def _reconstruct_object(*args, **kwargs):
