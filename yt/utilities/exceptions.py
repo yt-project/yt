@@ -189,3 +189,12 @@ class EnzoTestOutputFileNonExistent(YTException):
     def __str__(self):
         return "Enzo test output file (OutputLog) not generated for: " + \
             "'%s'" % (self.testname) + ".\nTest did not complete."
+
+class YTNoAPIKey(YTException):
+    def __init__(self, service, config_name):
+        self.service = service
+        self.config_name
+
+    def __str__(self):
+        return "You need to set an API key for %s in ~/.yt/config as %s" % (
+            self.service, self.config_name)

@@ -4405,7 +4405,10 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
-        f = open(filename, "wb")
+        if isinstance(filename, file):
+            f = filename
+        else:
+            f = open(filename, "wb")
         if bounds is None:
             DLE = self.pf.domain_left_edge
             DRE = self.pf.domain_right_edge
@@ -4438,7 +4441,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             f.write("property uchar blue\n")
             # Now we get our samples
             cs = self[color_field]
-            arr = np.empty(cs.shape[1], dtype=np.dtype(fs))
+            arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
             self._color_samples(cs, color_log, color_map, arr)
         else:
             arr = np.empty(nv/3, np.dtype(fs[:-3]))
@@ -4457,7 +4460,54 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         arr["v2"][:] = vi[:,1]
         arr["v3"][:] = vi[:,2]
         arr.tofile(f)
-        f.close()
+        if filename is not f:
+            f.close()
+
+    def export_sketchfab(self, title, description, api_key = None,
+                            color_field = None, color_map = "algae",
+                            color_log = True, bounds = None):
+        api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
+        if api_key in (None, "None"):
+            raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
+        import zipfile, json
+        from tempfile import TemporaryFile
+
+        ply_file = TemporaryFile()
+        self.export_ply(ply_file, bounds, color_field, color_map, color_log,
+                        sample_type = "vertex")
+        ply_file.seek(0)
+
+        zfs = TemporaryFile()
+        with zipfile.ZipFile(zfs, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("yt_export.ply", ply_file.read())
+        zfs.seek(0)
+
+        zfs.seek(0)
+        data = {
+            'title': title,
+            'token': api_key,
+            'description': description,
+            'fileModel': zfs,
+            'filenameModel': "yt_export.zip",
+        }
+        rv = self._upload_to_sketchfab(data)
+        rv = json.loads(rv)
+        upload_id = rv.get("id", None)
+        if id:
+            return "https://sketchfab.com/show/%s" % (id)
+        else:
+            return "Problem uploading."
+
+    @parallel_root_only
+    def _upload_to_sketchfab(self, data):
+        import urllib2
+        from yt.utilities.poster.encode import multipart_encode
+        from yt.utilities.poster.streaminghttp import register_openers
+        register_openers()
+        datamulti, headers = multipart_encode(data)
+        request = urllib2.Request("https://api.sketchfab.com/v1/models",
+                        datamulti, headers)
+        return urllib2.urlopen(request).read()
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
