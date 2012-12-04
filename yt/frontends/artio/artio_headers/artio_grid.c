@@ -668,10 +668,6 @@ int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,
 	}
 
 	ghandle = handle->grid;
-/*         variables = (float *)malloc(8*ghandle->num_grid_variables * sizeof(float)); */
-/* 	num_octs_per_level = (int *)malloc(ghandle->file_max_level * sizeof(int)); */
-/* 	num_oct_levels = (int *)malloc(sizeof(int)); */
-/*         printf("%d %d %d\n snl in artio_grid.c", ghandle->num_grid_variables ,ghandle->file_max_level, 1); */
 
 	ret = artio_grid_seek_to_sfc(handle, sfc);
 	if ( ret != ARTIO_SUCCESS ) return ret;

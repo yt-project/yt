@@ -6,7 +6,6 @@ import os.path
 import glob
 
 sourcefiles = ['yt/frontends/artio/_artio_caller.pyx',
-               'yt/frontends/artio/artio_headers/artio.c',
                'yt/frontends/artio/artio_headers/artio_grid.c',
                'yt/frontends/artio/artio_headers/artio_endian.c',
                'yt/frontends/artio/artio_headers/artio_mpi.c', 

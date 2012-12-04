@@ -88,7 +88,6 @@ class ARTIODomainFile(object):
 
         self._read_grid_header()
         self._read_particle_header()
-        print 'here once!!'
 
 #     @property
 #     def level_count(self):
@@ -186,11 +185,10 @@ class ARTIODomainFile(object):
 #        self.grid_offset = f.tell()
 #        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
         
-        print self._handle.parameters['grid_file_sfc_index'][1], self.pf.min_level
-        print '!!!!!!!!!!!!!!!!!!!!!',self._handle.parameters['grid_max_level'][0]
+        sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
         self.local_oct_count = \
             count_octs(self._fileset_prefix,
-                       0, self._handle.parameters['grid_file_sfc_index'][1],
+                       0,sfc_max, 
                        self.pf.min_level,
                        self._handle.parameters['grid_max_level'][0], 
                        self._handle.parameters['num_grid_variables'][0])
@@ -205,9 +203,8 @@ class ARTIODomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
-        print "in read_grid"
         sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
-        sfc_max = 100   # for testing
+        sfc_max = 5   # for testing
         grid_pos_fill(self._fileset_prefix, 0,sfc_max, 0, 10)##########
 
     #snl this is where I would LIKE the callback to go:

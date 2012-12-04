@@ -1,6 +1,7 @@
 """
 
 """
+import sys #snl this is for debugging
 
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
@@ -70,6 +71,7 @@ cdef extern from "artio.h":
     int artio_grid_read_root_cell_end(artio_file handle)
     int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,\
                                   float *variables, int32_t *num_oct_levels, int32_t *num_octs_per_level)
+    int artio_grid_cache_sfc_range(artio_file handle, int64_t start, int64_t end)
 
     ctypedef void (* GridCallBackPos)(float * variables, int level, int refined, int64_t sfc_index, double pos[3])
     int artio_grid_read_sfc_range_pos(artio_file handle,\
@@ -153,7 +155,10 @@ cdef class read_parameters_artio :
 #        cdef int length
 #        while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
 #            print 'hi!!'
-
+def check_artio_status(status, name):
+        if status!=ARTIO_SUCCESS :
+            print 'failure with status', status, 'in function ',name 
+            sys.exit(1)
 cdef class artio_fileset :
     cdef public object parameters 
     cdef artio_file handle
@@ -181,36 +186,43 @@ cdef class artio_fileset_grid :
         print 'done reading grid parameters'
 
 ###### callback for positions #############
-def count_octs(char *file_prefix,\
-                   int64_t sfc1, int64_t sfc2,\
-                   int min_level_to_read, int max_level_to_read,\
-                   int num_grid_variables
+def count_octs(char *file_prefix,
+               int64_t sfc1, int64_t sfc2,
+               int min_level_to_read, int max_level_to_read,
+               int num_grid_variables
                ) :
-    #max_level_to_read is currently unused, but could be useful
-    cdef artio_file handle
-    handle = artio_fileset_open( file_prefix, ARTIO_OPEN_GRID, artio_context_global ) 
-    artio_fileset_open_grid( handle ) 
-    num_total_octs = 0 
     cdef float * variables  
     cdef int32_t * num_oct_levels 
     cdef int32_t * num_octs_per_level 
+
     length = num_grid_variables * 8
     variables = <float *>malloc(length*sizeof(float))
     num_oct_levels = <int32_t *>malloc(1*sizeof(int32_t))
     length = max_level_to_read
     num_octs_per_level = <int32_t *>malloc(length*sizeof(int32_t))
-    
+
+    cdef artio_file handle
+    handle = artio_fileset_open( file_prefix, ARTIO_OPEN_GRID, artio_context_global ) 
+    artio_fileset_open_grid( handle ) 
+
+    num_total_octs =0
+    status = artio_grid_cache_sfc_range(handle, sfc1, sfc2)
+    check_artio_status(status, count_octs.__name__)
     for sfc in xrange(sfc1,sfc2):
-        artio_grid_read_root_nocts(handle,\
-                                  sfc,\
-                                  variables, num_oct_levels,\
-                                  num_octs_per_level)
+        status = artio_grid_read_root_nocts(handle, sfc,
+                                            variables, num_oct_levels,
+                                            num_octs_per_level)
+        check_artio_status(status, count_octs.__name__)
+        noct_levels = num_oct_levels[0]
         count_level_octs = {}          
-        count_level_octs = [ num_octs_per_level[i] for i in xrange(min(max_level_to_read,1)) ]
+        count_level_octs = [ num_octs_per_level[i] for i in xrange(noct_levels) ]
         num_sfc_octs = sum(count_level_octs)
         num_total_octs += num_sfc_octs
 
-    artio_grid_read_root_cell_end(handle)
+    status = artio_grid_read_root_cell_end(handle)
+    check_artio_status(status, count_octs.__name__)
+    artio_fileset_close_grid(handle)
+
     return num_total_octs
 
 ###### callback for positions #############
@@ -225,11 +237,7 @@ def grid_pos_fill(char *file_prefix,\
                 min_level_to_read, max_level_to_read,\
                 ARTIO_READ_LEAFS,\
                 wrap_cell_pos_callback)
-    if status != ARTIO_SUCCESS :
-        print "exiting sfc range read with error status", status
-        if status == ARTIO_ERR_MEMORY_ALLOCATION :
-            print "cannot allocate enough memory in one sfc range,",\
-                "try loading smaller pieces"
+    check_artio_status(status, grid_pos_fill.__name__)
 
 cdef void wrap_cell_pos_callback(float *variables, int level, int refined, int64_t sfc_index, double *pos):
     position = {}
