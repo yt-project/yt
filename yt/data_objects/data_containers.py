@@ -4548,24 +4548,25 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             'fileModel': zfs,
             'filenameModel': "yt_export.zip",
         }
-        rv = self._upload_to_sketchfab(data)
-        rv = json.loads(rv)
-        upload_id = rv.get("id", None)
-        if id:
-            return "https://sketchfab.com/show/%s" % (id)
-        else:
-            return "Problem uploading."
+        self._upload_to_sketchfab(data)
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data):
-        import urllib2
+        import urllib2, json
         from yt.utilities.poster.encode import multipart_encode
         from yt.utilities.poster.streaminghttp import register_openers
         register_openers()
         datamulti, headers = multipart_encode(data)
         request = urllib2.Request("https://api.sketchfab.com/v1/models",
                         datamulti, headers)
-        return urllib2.urlopen(request).read()
+        rv = urllib2.urlopen(request).read()
+        rv = json.loads(rv)
+        upload_id = rv.get("id", None)
+        if upload_id:
+            mylog.info("Model uploaded to: https://sketchfab.com/show/%s", id)
+        else:
+            mylog.error("Problem uploading.")
+
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
