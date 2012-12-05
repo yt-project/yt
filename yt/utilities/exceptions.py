@@ -193,7 +193,7 @@ class EnzoTestOutputFileNonExistent(YTException):
 class YTNoAPIKey(YTException):
     def __init__(self, service, config_name):
         self.service = service
-        self.config_name
+        self.config_name = config_name
 
     def __str__(self):
         return "You need to set an API key for %s in ~/.yt/config as %s" % (
