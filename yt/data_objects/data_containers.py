@@ -4447,11 +4447,13 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         else:
             arr = np.empty(nv/3, np.dtype(fs[:-3]))
         for i, ax in enumerate("xyz"):
-            v[ax][:] = self.vertices[i,:]
-            np.subtract(v[ax][:], bounds[i][0], v[ax][:])
+            # Do the bounds first since we cast to f32
+            tmp = self.vertices[i,:]
+            np.subtract(tmp, bounds[i][0], tmp)
             w = bounds[i][1] - bounds[i][0]
-            np.divide(v[ax][:], w, v[ax][:])
-            np.subtract(v[ax][:], 0.5, v[ax][:]) # Center at origin.
+            np.divide(tmp, w, tmp)
+            np.subtract(tmp, 0.5, tmp) # Center at origin.
+            v[ax][:] = tmp 
         f.write("end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
