@@ -38,6 +38,7 @@ import shelve
 import cStringIO
 
 from yt.funcs import *
+from yt.config import ytcfg
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
