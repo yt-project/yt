@@ -3810,7 +3810,9 @@ class AMRCoveringGridBase(AMR3DData):
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [grid[field].astype("float64") for field in fields]
+        g_fields = [gf.astype("float64") 
+                    if gf.dtype != "float64"
+                    else gf for gf in (grid[field] for field in fields)]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
@@ -3981,8 +3983,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        g_fields = [grid[field].astype("float64") for field in fields]
+        g_fields = [gf.astype("float64") 
+                    if gf.dtype != "float64"
+                    else gf for gf in (grid[field] for field in fields)]
         c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,

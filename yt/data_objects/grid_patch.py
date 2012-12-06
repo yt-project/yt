@@ -153,7 +153,7 @@ class AMRGridPatch(object):
         """
         Returns a single field.  Will add if necessary.
         """
-        if not self.field_data.has_key(key):
+        if key not in self.field_data:
             self.get_data(key)
         return self.field_data[key]
 
