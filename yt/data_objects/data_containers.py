@@ -4537,6 +4537,16 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         self.export_ply(ply_file, bounds, color_field, color_map, color_log,
                         sample_type = "vertex")
         ply_file.seek(0)
+        # Greater than ten million vertices and we throw an error but dump
+        # to a file.
+        if self.vertices.shape[1] > 1e7:
+            tfi = 0
+            fn = "temp_model_%03i.ply" % tfi
+            while os.path.exists(fn):
+                fn = "temp_model_%03i.ply" % tfi
+                tfi += 1
+            open(fn, "wb").write(ply_file.read())
+            raise YTTooManyVertices(self.vertices.shape[1], fn)
 
         zfs = TemporaryFile()
         with zipfile.ZipFile(zfs, "w", zipfile.ZIP_DEFLATED) as zf:

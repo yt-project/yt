@@ -198,3 +198,13 @@ class YTNoAPIKey(YTException):
     def __str__(self):
         return "You need to set an API key for %s in ~/.yt/config as %s" % (
             self.service, self.config_name)
+
+class YTTooManyVertices(YTException):
+    def __init__(self, nv, fn):
+        self.nv = nv
+        self.fn = fn
+
+    def __str__(self):
+        s = "There are too many vertices (%s) to upload to Sketchfab. " % (self.nv)
+        s += "Your model has been saved as %s .  You should upload manually." % (self.fn)
+        return s
