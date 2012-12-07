@@ -440,7 +440,6 @@ class EnzoHierarchy(GridGeometryHandler):
         else:
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
-        self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
     def _generate_random_grids(self):
