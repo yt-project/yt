@@ -666,26 +666,23 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
             self.oct_list[i] = c.oct
-            if c.oct.domain == -1:
-                assert(c.oct.children[0][0][0] == NULL)
-                assert(c.np == 0)
             if c.np >= 0:
                 for j in range(3):
                     free(c.pos[j])
                 free(c.pos)
                 c.pos = NULL
-                # We should also include a shortening of the domain IDs here
             c = c.next
             i += 1
-        assert(i == self.nocts)
         qsort(self.oct_list, self.nocts, sizeof(Oct*), &compare_octs)
         cdef int cur_dom = -1
         self.dom_offsets = <np.int64_t *>malloc(sizeof(np.int64_t) *
-                                                self.max_domain + 1)
+                                                self.max_domain + 2)
         for i in range(self.nocts):
+            self.oct_list[i].local_ind = i
             if self.oct_list[i].domain > cur_dom:
                 cur_dom = self.oct_list[i].domain
                 self.dom_offsets[cur_dom] = i
+        self.dom_offsets[cur_dom + 1] = self.nocts
 
     cdef Oct* allocate_oct(self):
         self.nocts += 1
@@ -726,6 +723,28 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             total += 1
             c = c.next
         return total
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_levels(self, int max_level, int domain_id,
+                     np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef np.ndarray[np.int64_t, ndim=1] level_count
+        cdef Oct *o
+        cdef int oi, i
+        level_count = np.zeros(max_level+1, 'int64')
+        ndo
+        cdef np.int64_t ndo, doff
+        ndo = self.dom_offsets[domain_id + 1] \
+            - self.dom_offsets[domain_id]
+        doff = self.dom_offsets[domain_id]
+        print "Domain %s Total %s" % (domain_id, ndo)
+        for oi in range(ndo):
+            o = self.oct_list[oi + doff]
+            for i in range(8):
+                if mask[o.local_ind, i] == 0: continue
+                level_count[o.level] += 1
+        return level_count
 
     def add(self, np.ndarray[np.float64_t, ndim=2] pos, np.int64_t domain_id):
         cdef int no = pos.shape[0]
@@ -803,6 +822,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             noct.domain = o.domain
             noct.sd.np += 1
         o.sd.np = -1
+        o.domain = -1
         for i in range(3):
             free(o.sd.pos[i])
         free(o.sd.pos)
