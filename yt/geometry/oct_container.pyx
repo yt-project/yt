@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free, qsort
 cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
@@ -523,10 +523,21 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             local_filled += 1
         return local_filled
 
+cdef public int compare_octs(void *vo1, void *vo2) nogil:
+    cdef Oct *o1 = (<Oct**> vo1)[0]
+    cdef Oct *o2 = (<Oct**> vo2)[0]
+    if o1.domain < o2.domain: return -1
+    elif o1.domain == o2.domain:
+        if o1.level < o2.level: return -1
+        if o1.level > o2.level: return 1
+        else: return 0
+    elif o1.domain > o2.domain: return 1
+
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef ParticleArrays *first_sd
     cdef ParticleArrays *last_sd
     cdef Oct** oct_list
+    cdef np.int64_t *dom_offsets
 
     def allocate_root(self):
         cdef int i, j, k
@@ -548,6 +559,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for j in range(self.nn[1]):
                 for k in range(self.nn[2]):
                     self.visit_free(self.root_mesh[i][j][k])
+        free(self.oct_list)
+        free(self.dom_offsets)
 
     cdef void visit_free(self, Oct *o):
         cdef int i, j, k
@@ -649,10 +662,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
     def finalize(self):
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
-        cdef i = 0
+        cdef np.int64_t i = 0
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
             self.oct_list[i] = c.oct
+            if c.oct.domain == -1:
+                assert(c.oct.children[0][0][0] == NULL)
+                assert(c.np == 0)
             if c.np >= 0:
                 for j in range(3):
                     free(c.pos[j])
@@ -661,6 +677,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 # We should also include a shortening of the domain IDs here
             c = c.next
             i += 1
+        assert(i == self.nocts)
+        qsort(self.oct_list, self.nocts, sizeof(Oct*), &compare_octs)
+        cdef int cur_dom = -1
+        self.dom_offsets = <np.int64_t *>malloc(sizeof(np.int64_t) *
+                                                self.max_domain + 1)
+        for i in range(self.nocts):
+            if self.oct_list[i].domain > cur_dom:
+                cur_dom = self.oct_list[i].domain
+                self.dom_offsets[cur_dom] = i
 
     cdef Oct* allocate_oct(self):
         self.nocts += 1
@@ -815,7 +840,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for oi in range(self.nocts):
             m = 0
             o = self.oct_list[oi]
-            if o.sd.np <= 0: continue
+            if o.sd.np <= 0 or o.domain == -1: continue
             for i in range(8):
                 if mask[oi, i] == 1:
                     m = 1
