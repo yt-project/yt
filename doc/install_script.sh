@@ -458,7 +458,7 @@ get_ytproject Forthon-0.8.10.tar.gz
 get_ytproject nose-1.2.1.tar.gz 
 get_ytproject python-hglib-0.2.tar.gz
 get_ytproject sympy-0.7.2.tar.gz
-get_ytproject Rockstar-0.99.tar.gz
+get_ytproject rockstar-0.99.6.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e bzip2-1.0.5/done ]
