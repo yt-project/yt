@@ -29,8 +29,6 @@ import weakref
 import cStringIO
 
 from yt.funcs import *
-from yt.data_objects.grid_patch import \
-      AMRGridPatch
 from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
 from yt.geometry.geometry_handler import \
