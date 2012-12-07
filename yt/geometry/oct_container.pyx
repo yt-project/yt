@@ -729,6 +729,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef int ind[3]
         self.max_domain = max(self.max_domain, domain_id)
+        cdef int mid, mad
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         for p in range(no):
             level = 0
@@ -740,7 +741,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
-            if cur.sd.np == 32:
+            if self._check_refine(cur, cp) == 1:
                 self.refine_oct(cur, cp)
             while cur.sd.np < 0:
                 for i in range(3):
@@ -753,7 +754,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         cp[i] += dds[i]/2.0
                 cur = cur.children[ind[0]][ind[1]][ind[2]]
                 level += 1
-                if cur.sd.np == 32:
+                if self._check_refine(cur, cp) == 1:
                     self.refine_oct(cur, cp)
             # Now we copy in our particle 
             pi = cur.sd.np
@@ -762,6 +763,16 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 cur.sd.pos[i][pi] = pp[i]
             cur.sd.domain_id[pi] = domain_id
             cur.sd.np += 1
+
+    cdef int _check_refine(self, Oct *cur, np.float64_t cp[3]):
+        cdef int mid = 16384
+        cdef int mad = -16384
+        for i in range(imax(cur.sd.np, 0)):
+            mid = imin(cur.sd.domain_id[i], mid)
+            mad = imax(cur.sd.domain_id[i], mad)
+        if cur.sd.np == 32 or mid < mad:
+            return 1
+        return 0
 
     cdef void refine_oct(self, Oct *o, np.float64_t pos[3]):
         cdef int i, j, k, m, ind[3]

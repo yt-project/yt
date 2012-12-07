@@ -24,6 +24,7 @@ License:
 """
 
 cimport numpy as np
+from fp_utils cimport *
 
 cdef struct ParticleArrays
 
