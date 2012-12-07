@@ -867,9 +867,11 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         else:
             self.fields = ensure_list(fields)
         from yt.visualization.plot_window import \
-            GetBoundsAndCenter, PWViewerMPL
+            GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
+        if axes_unit is None and units != ('1', '1'):
+            axes_unit = units
         pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
