@@ -61,7 +61,7 @@ ytcfgDefaults = dict(
     ipython_notebook = 'False',
     answer_testing_tolerance = '3',
     answer_testing_bitwise = 'False',
-    gold_standard_filename = 'gold003',
+    gold_standard_filename = 'gold004',
     local_standard_filename = 'local001',
     sketchfab_api_key = 'None'
     )
