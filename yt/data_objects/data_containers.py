@@ -38,6 +38,7 @@ import shelve
 import cStringIO
 
 from yt.funcs import *
+from yt.config import ytcfg
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
@@ -868,9 +869,11 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         else:
             self.fields = ensure_list(fields)
         from yt.visualization.plot_window import \
-            GetBoundsAndCenter, PWViewerMPL
+            GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
+        if axes_unit is None and units != ('1', '1'):
+            axes_unit = units
         pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
@@ -3809,7 +3812,9 @@ class AMRCoveringGridBase(AMR3DData):
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [grid[field].astype("float64") for field in fields]
+        g_fields = [gf.astype("float64") 
+                    if gf.dtype != "float64"
+                    else gf for gf in (grid[field] for field in fields)]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
@@ -3980,8 +3985,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        g_fields = [grid[field].astype("float64") for field in fields]
+        g_fields = [gf.astype("float64") 
+                    if gf.dtype != "float64"
+                    else gf for gf in (grid[field] for field in fields)]
         c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
@@ -4214,12 +4220,13 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
+        self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
         AMRData.__init__(self, center = center, fields = None, pf =
                          data_source.pf)
         self._grids = self.data_source._grids.copy()
 
-    def get_data(self, fields = None):
+    def get_data(self, fields = None, sample_type = "face"):
         if isinstance(fields, list) and len(fields) > 1:
             for field in fields: self.get_data(field)
             return
@@ -4234,7 +4241,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             pb.update(i)
             my_verts = self._extract_isocontours_from_grid(
                             g, self.surface_field, self.field_value,
-                            fields)
+                            fields, sample_type)
             if fields is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
@@ -4247,19 +4254,25 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             samples = np.concatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
                                 datatype='array')
-            self[fields] = samples
+            if sample_type == "face":
+                self[fields] = samples
+            elif sample_type == "vertex":
+                self.vertex_samples[fields] = samples
+        
 
     @restore_grid_state
     def _extract_isocontours_from_grid(self, grid, field, value,
-                                       sample_values = None):
+                                       sample_values = None,
+                                       sample_type = "face"):
         mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field, no_ghost = False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
             svals = None
+        sample_type = {"face":1, "vertex":2}[sample_type]
         my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
-                                    grid.dds, svals)
+                                    grid.dds, svals, sample_type)
         return my_verts
 
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
@@ -4343,7 +4356,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                     ff, mask, grid.LeftEdge, grid.dds)
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True):
+                   color_map = "algae", color_log = True, sample_type = "face"):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
 
@@ -4374,63 +4387,208 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
         if self.vertices is None:
-            self.get_data(color_field)
-        elif color_field is not None and color_field not in self.field_data:
-            self[color_field]
-        self._export_ply(filename, bounds, color_field, color_map, color_log)
+            self.get_data(color_field, sample_type)
+        elif color_field is not None:
+            if sample_type == "face" and \
+                color_field not in self.field_data:
+                self[color_field]
+            elif sample_type == "vertex" and \
+                color_field not in self.vertex_data:
+                self.get_data(color_field, sample_type)
+        self._export_ply(filename, bounds, color_field, color_map, color_log,
+                         sample_type)
 
-    @parallel_root_only
-    def _export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True):
-        f = open(filename, "wb")
-        if bounds is None:
-            DLE = self.pf.domain_left_edge
-            DRE = self.pf.domain_right_edge
-            bounds = [(DLE[i], DRE[i]) for i in range(3)]
-        fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
-              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
-        v = np.empty((self.vertices.shape[1], 3), "<f")
-        for i in range(3):
-            v[:,i] = self.vertices[i,:]
-            np.subtract(v[:,i], bounds[i][0], v[:,i])
-            w = bounds[i][1] - bounds[i][0]
-            np.divide(v[:,i], w, v[:,i])
-            np.subtract(v[:,i], 0.5, v[:,i]) # Center at origin.
-        f.write("ply\n")
-        f.write("format binary_little_endian 1.0\n")
-        f.write("element vertex %s\n" % (v.shape[0]))
-        f.write("property float x\n")
-        f.write("property float y\n")
-        f.write("property float z\n")
-        f.write("element face %s\n" % (v.shape[0]/3))
-        f.write("property list uchar int vertex_indices\n")
-        if color_field is not None:
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
-            # Now we get our samples
-            cs = self[color_field]
+    def _color_samples(self, cs, color_log, color_map, arr):
             if color_log: cs = np.log10(cs)
             mi, ma = cs.min(), cs.max()
             cs = (cs - mi) / (ma - mi)
             from yt.visualization.image_writer import map_to_colors
             cs = map_to_colors(cs, color_map)
-            arr = np.empty(cs.shape[1], dtype=np.dtype(fs))
             arr["red"][:] = cs[0,:,0]
             arr["green"][:] = cs[0,:,1]
             arr["blue"][:] = cs[0,:,2]
+
+    @parallel_root_only
+    def _export_ply(self, filename, bounds = None, color_field = None,
+                   color_map = "algae", color_log = True, sample_type = "face"):
+        if isinstance(filename, file):
+            f = filename
         else:
-            arr = np.empty(v.shape[0]/3, np.dtype(fs[:-3]))
+            f = open(filename, "wb")
+        if bounds is None:
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        nv = self.vertices.shape[1]
+        vs = [("x", "<f"), ("y", "<f"), ("z", "<f"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        f.write("ply\n")
+        f.write("format binary_little_endian 1.0\n")
+        f.write("element vertex %s\n" % (nv))
+        f.write("property float x\n")
+        f.write("property float y\n")
+        f.write("property float z\n")
+        if color_field is not None and sample_type == "vertex":
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            v = np.empty(self.vertices.shape[1], dtype=vs)
+            cs = self.vertex_samples[color_field]
+            self._color_samples(cs, color_log, color_map, v)
+        else:
+            v = np.empty(self.vertices.shape[1], dtype=vs[:3])
+        f.write("element face %s\n" % (nv/3))
+        f.write("property list uchar int vertex_indices\n")
+        if color_field is not None and sample_type == "face":
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            # Now we get our samples
+            cs = self[color_field]
+            arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
+            self._color_samples(cs, color_log, color_map, arr)
+        else:
+            arr = np.empty(nv/3, np.dtype(fs[:-3]))
+        for i, ax in enumerate("xyz"):
+            # Do the bounds first since we cast to f32
+            tmp = self.vertices[i,:]
+            np.subtract(tmp, bounds[i][0], tmp)
+            w = bounds[i][1] - bounds[i][0]
+            np.divide(tmp, w, tmp)
+            np.subtract(tmp, 0.5, tmp) # Center at origin.
+            v[ax][:] = tmp 
         f.write("end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
-        vi = np.arange(v.shape[0], dtype="<i")
-        vi.shape = (v.shape[0]/3, 3)
+        vi = np.arange(nv, dtype="<i")
+        vi.shape = (nv/3, 3)
         arr["v1"][:] = vi[:,0]
         arr["v2"][:] = vi[:,1]
         arr["v3"][:] = vi[:,2]
         arr.tofile(f)
-        f.close()
+        if filename is not f:
+            f.close()
+
+    def export_sketchfab(self, title, description, api_key = None,
+                            color_field = None, color_map = "algae",
+                            color_log = True, bounds = None):
+        r"""This exports Surfaces to SketchFab.com, where they can be viewed
+        interactively in a web browser.
+
+        SketchFab.com is a proprietary web service that provides WebGL
+        rendering of models.  This routine will use temporary files to
+        construct a compressed binary representation (in .PLY format) of the
+        Surface and any optional fields you specify and upload it to
+        SketchFab.com.  It requires an API key, which can be found on your
+        SketchFab.com dashboard.  You can either supply the API key to this
+        routine directly or you can place it in the variable
+        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        parallel-safe.
+
+        Parameters
+        ----------
+        title : string
+            The title for the model on the website
+        description : string
+            How you want the model to be described on the website
+        api_key : string
+            Optional; defaults to using the one in the config file
+        color_field : string
+            If specified, the field by which the surface will be colored
+        color_map : string
+            The name of the color map to use to map the color field
+        color_log : bool
+            Should the field be logged before being mapped to RGB?
+        bounds : list of tuples
+            [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
+            will be scaled and centered.  Defaults to the full domain.
+
+        Returns
+        -------
+        URL : string
+            The URL at which your model can be viewed.
+
+        Examples
+        --------
+
+        from yt.mods import *
+        pf = load("redshift0058")
+        dd = pf.h.sphere("max", (200, "kpc"))
+        rho = 5e-27
+
+        bounds = [(dd.center[i] - 100.0/pf['kpc'],
+                   dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
+
+        surf = pf.h.surface(dd, "Density", rho)
+
+        rv = surf.export_sketchfab(
+            title = "Testing Upload",
+            description = "A simple test of the uploader",
+            color_field = "Temperature",
+            color_map = "hot",
+            color_log = True,
+            bounds = bounds
+        )
+        """
+        api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
+        if api_key in (None, "None"):
+            raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
+        import zipfile, json
+        from tempfile import TemporaryFile
+
+        ply_file = TemporaryFile()
+        self.export_ply(ply_file, bounds, color_field, color_map, color_log,
+                        sample_type = "vertex")
+        ply_file.seek(0)
+        # Greater than ten million vertices and we throw an error but dump
+        # to a file.
+        if self.vertices.shape[1] > 1e7:
+            tfi = 0
+            fn = "temp_model_%03i.ply" % tfi
+            while os.path.exists(fn):
+                fn = "temp_model_%03i.ply" % tfi
+                tfi += 1
+            open(fn, "wb").write(ply_file.read())
+            raise YTTooManyVertices(self.vertices.shape[1], fn)
+
+        zfs = TemporaryFile()
+        with zipfile.ZipFile(zfs, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("yt_export.ply", ply_file.read())
+        zfs.seek(0)
+
+        zfs.seek(0)
+        data = {
+            'title': title,
+            'token': api_key,
+            'description': description,
+            'fileModel': zfs,
+            'filenameModel': "yt_export.zip",
+        }
+        upload_id = self._upload_to_sketchfab(data)
+        upload_id = self.comm.mpi_bcast(upload_id, root = 0)
+        return upload_id
+
+    @parallel_root_only
+    def _upload_to_sketchfab(self, data):
+        import urllib2, json
+        from yt.utilities.poster.encode import multipart_encode
+        from yt.utilities.poster.streaminghttp import register_openers
+        register_openers()
+        datamulti, headers = multipart_encode(data)
+        request = urllib2.Request("https://api.sketchfab.com/v1/models",
+                        datamulti, headers)
+        rv = urllib2.urlopen(request).read()
+        rv = json.loads(rv)
+        upload_id = rv.get("result", {}).get("id", None)
+        if upload_id:
+            mylog.info("Model uploaded to: https://sketchfab.com/show/%s",
+                       upload_id)
+        else:
+            mylog.error("Problem uploading.")
+        return upload_id
+
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]

@@ -1,8 +1,13 @@
 from yt.testing import *
+import os
 
 def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
+
+def teardown_func(fns):
+    for fn in fns:
+        os.remove(fn)
 
 def test_slice():
     for nprocs in [8, 1]:
@@ -21,6 +26,7 @@ def test_slice():
             xax = x_dict[ax]
             yax = y_dict[ax]
             for wf in ["Density", None]:
+                fns = []
                 slc = pf.h.slice(ax, slc_pos, ["Ones", "Density"])
                 yield assert_equal, slc["Ones"].sum(), slc["Ones"].size
                 yield assert_equal, slc["Ones"].min(), 1.0
@@ -29,6 +35,8 @@ def test_slice():
                 yield assert_equal, np.unique(slc["py"]), uc[yax]
                 yield assert_equal, np.unique(slc["pdx"]), 1.0/(dims[xax]*2.0)
                 yield assert_equal, np.unique(slc["pdy"]), 1.0/(dims[yax]*2.0)
+                pw = slc.to_pw()
+                fns += pw.save()
                 frb = slc.to_frb((1.0,'unitary'), 64)
                 for slc_field in ['Ones', 'Density']:
                     yield assert_equal, frb[slc_field].info['data_source'], \
@@ -49,7 +57,7 @@ def test_slice():
                             slc.center
                     yield assert_equal, frb[slc_field].info['coord'], \
                             slc_pos
+                teardown_func(fns)
             # wf == None
             yield assert_equal, wf, None
-
 

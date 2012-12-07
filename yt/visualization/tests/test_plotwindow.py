@@ -1,7 +1,7 @@
 from yt.testing import *
 from yt.mods import SlicePlot, ProjectionPlot, \
     OffAxisSlicePlot, OffAxisProjectionPlot
-import glob, os
+import os
 
 def setup():
     from yt.config import ytcfg
