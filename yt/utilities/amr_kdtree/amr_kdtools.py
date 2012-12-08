@@ -368,7 +368,7 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front):
 
 def send_to_parent(comm, outgoing_rank, image):
     mylog.debug( 'Sending image to %04i' % outgoing_rank)
-    comm.send_array(image.ravel(), outgoing_rank, tag=comm.rank) 
+    comm.send_array(image.ravel(), outgoing_rank, tag=comm.rank)
 
 def scatter_image(comm, root, image):
     mylog.debug( 'Scatterming from %04i' % root)

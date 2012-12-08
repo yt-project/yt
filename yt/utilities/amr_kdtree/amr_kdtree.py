@@ -35,7 +35,7 @@ from yt.utilities.lib.grid_traversal import PartitionedGrid
 import pdb
 
 def my_break():
-    my_debug = False 
+    my_debug = False
     if my_debug: pdb.set_trace()
 
 class Tree(object):
@@ -46,7 +46,7 @@ class Tree(object):
     max_level = None
     comm_rank = 0
     comm_size = 1
-    def __init__(self, pf, comm_rank, comm_size, left=None, right=None, 
+    def __init__(self, pf, comm_rank, comm_size, left=None, right=None,
             min_level=None, max_level=None, grids=None):
 
         self.pf = pf
@@ -131,7 +131,7 @@ class AMRKDTree(HomogenizedVolume):
     current_saved_grids = []
     pf = None
     bricks = []
-    brick_dimensions = [] 
+    brick_dimensions = []
     _initialized = False
     def __init__(self, pf,  l_max=None, le=None, re=None,
                  fields=None, no_ghost=False, min_level=None, max_level=None,
@@ -165,7 +165,7 @@ class AMRKDTree(HomogenizedVolume):
             self.re = np.array(re)
 
         mylog.debug('Building AMRKDTree')
-        self.tree = Tree(pf, self.comm.rank, self.comm.size, 
+        self.tree = Tree(pf, self.comm.rank, self.comm.size,
                          self.le, self.re, min_level=min_level,
                          max_level=max_level, grids=grids)
 
