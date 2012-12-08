@@ -375,3 +375,16 @@ def scatter_image(comm, root, image):
     image = comm.mpi_bcast(image, root=root)
     return image
 
+def find_node(node, pos):
+    """
+    Find the AMRKDTree node enclosing a position
+    """
+    assert(np.all(node.left_edge <= pos))
+    assert(np.all(node.right_edge > pos))
+    while not kd_is_leaf(node):
+        if pos[node.split.dim] < node.split.pos:
+            node = node.left
+        else:
+            node = node.right
+    return node
+
