@@ -112,6 +112,7 @@ class Tree(object):
             dims = (ri - li).astype('int32')
             assert(na.all(grid.LeftEdge <= node.left_edge))
             assert(na.all(grid.RightEdge >= node.right_edge))
+            assert(na.all(dims > 0))
             # print grid, dims, li, ri
 
         # Calculate the Volume

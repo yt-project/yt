@@ -133,7 +133,7 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
                     na.all(gres[0] >= node.right_edge):
                 node.grid = grid_ids[0]
                 assert(node.grid is not None)
-            return
+                return
 
         # Split the grids
         check = split_grids(node, gles, gres, grid_ids, rank, size)
