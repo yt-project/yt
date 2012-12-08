@@ -23,7 +23,7 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import numpy as na
+import numpy as np
 from yt.funcs import *
 from yt.utilities.lib import kdtree_get_choices
 from yt.utilities.parallel_tools.parallel_analysis_interface import _get_comm
@@ -88,15 +88,15 @@ def should_i_split(node, rank, size):
         return False
 
 def geo_split(node, gles, gres, grid_ids, rank, size):
-    big_dim = na.argmax(gres[0]-gles[0])
+    big_dim = np.argmax(gres[0]-gles[0])
     new_pos = (gres[0][big_dim] + gles[0][big_dim])/2.
     old_gre = gres[0].copy()
     new_gle = gles[0].copy()
     new_gle[big_dim] = new_pos
     gres[0][big_dim] = new_pos
-    gles = na.append(gles, na.array([new_gle]), axis=0)
-    gres = na.append(gres, na.array([old_gre]), axis=0)
-    grid_ids = na.append(grid_ids, grid_ids, axis=0)
+    gles = np.append(gles, np.array([new_gle]), axis=0)
+    gres = np.append(gres, np.array([old_gre]), axis=0)
+    grid_ids = np.append(grid_ids, grid_ids, axis=0)
 
     split = Split(big_dim, new_pos)
 
@@ -129,8 +129,8 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
                 #print '%04i '%rank, gles, gres, grid_ids
                 return
 
-            if na.all(gles[0] <= node.left_edge) and \
-                    na.all(gres[0] >= node.right_edge):
+            if np.all(gles[0] <= node.left_edge) and \
+                    np.all(gres[0] >= node.right_edge):
                 node.grid = grid_ids[0]
                 assert(node.grid is not None)
                 return
@@ -145,7 +145,7 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
 
 def split_grids(node, gles, gres, grid_ids, rank, size):
     # Find a Split
-    data = na.array([(gles[i,:], gres[i,:]) for i in
+    data = np.array([(gles[i,:], gres[i,:]) for i in
         xrange(grid_ids.shape[0])], copy=False)
     best_dim, split_pos, less_ids, greater_ids = \
         kdtree_get_choices(data, node.left_edge, node.right_edge)
@@ -176,13 +176,13 @@ def split_grids(node, gles, gres, grid_ids, rank, size):
     return
 
 def new_right(Node, split):
-    new_right = na.empty(3, dtype='float64')
+    new_right = np.empty(3, dtype='float64')
     new_right[:] = Node.right_edge[:]
     new_right[split.dim] = split.pos
     return new_right
 
 def new_left(Node, split):
-    new_left = na.empty(3, dtype='float64')
+    new_left = np.empty(3, dtype='float64')
     new_left[:] = Node.left_edge[:]
     new_left[split.dim] = split.pos
     return new_left
@@ -202,7 +202,7 @@ def kd_sum_volume(node):
     if (node.left is None) and (node.right is None):
         if node.grid is None:
             return 0.0
-        return na.prod(node.right_edge - node.left_edge)
+        return np.prod(node.right_edge - node.left_edge)
     else:
         return kd_sum_volume(node.left) + kd_sum_volume(node.right)
 
@@ -210,7 +210,7 @@ def kd_node_check(node):
     assert (node.left is None) == (node.right is None)
     if (node.left is None) and (node.right is None):
         if node.grid is not None:
-            return na.prod(node.right_edge - node.left_edge)
+            return np.prod(node.right_edge - node.left_edge)
         else: return 0.0
     else:
         return kd_node_check(node.left)+kd_node_check(node.right)

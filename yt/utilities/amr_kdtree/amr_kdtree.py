@@ -24,7 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from yt.funcs import *
-import numpy as na
+import numpy as np
 from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids, \
         receive_and_reduce, send_to_parent, scatter_image
@@ -52,9 +52,9 @@ class Tree(object):
         self.pf = pf
         self._id_offset = self.pf.h.grids[0]._id_offset
         if left is None:
-            left = na.array([-na.inf]*3)
+            left = np.array([-np.inf]*3)
         if right is None:
-            right = na.array([na.inf]*3)
+            right = np.array([np.inf]*3)
 
         if min_level is None: min_level = 0
         if max_level is None: max_level = pf.h.max_level
@@ -81,16 +81,16 @@ class Tree(object):
                 except:
                     break
                 if grids[0].Level not in lvl_range: continue
-                gles = na.array([g.LeftEdge for g in grids if g in self.grids])
-                gres = na.array([g.RightEdge for g in grids if g in self.grids])
-                gids = na.array([g.id for g in grids if g in self.grids])
+                gles = np.array([g.LeftEdge for g in grids if g in self.grids])
+                gres = np.array([g.RightEdge for g in grids if g in self.grids])
+                gids = np.array([g.id for g in grids if g in self.grids])
                 my_break()
                 add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
                 del gles, gres, gids, grids
         else:
-            gles = na.array([g.LeftEdge for g in grids])
-            gres = na.array([g.RightEdge for g in grids])
-            gids = na.array([g.id for g in grids])
+            gles = np.array([g.LeftEdge for g in grids])
+            gres = np.array([g.RightEdge for g in grids])
+            gids = np.array([g.id for g in grids])
 
             add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
             del gles, gres, gids, grids
@@ -107,12 +107,12 @@ class Tree(object):
             dds = grid.dds
             gle = grid.LeftEdge
             gre = grid.RightEdge
-            li = na.rint((node.left_edge-gle)/dds).astype('int32')
-            ri = na.rint((node.right_edge-gle)/dds).astype('int32')
+            li = np.rint((node.left_edge-gle)/dds).astype('int32')
+            ri = np.rint((node.right_edge-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
-            assert(na.all(grid.LeftEdge <= node.left_edge))
-            assert(na.all(grid.RightEdge >= node.right_edge))
-            assert(na.all(dims > 0))
+            assert(np.all(grid.LeftEdge <= node.left_edge))
+            assert(np.all(grid.RightEdge >= node.right_edge))
+            assert(np.all(dims > 0))
             # print grid, dims, li, ri
 
         # Calculate the Volume
@@ -158,11 +158,11 @@ class AMRKDTree(HomogenizedVolume):
         if le is None:
             self.le = pf.domain_left_edge
         else:
-            self.le = na.array(le)
+            self.le = np.array(le)
         if re is None:
             self.re = pf.domain_right_edge
         else:
-            self.re = na.array(re)
+            self.re = np.array(re)
 
         mylog.debug('Building AMRKDTree')
         self.tree = Tree(pf, self.comm.rank, self.comm.size, 
@@ -174,8 +174,8 @@ class AMRKDTree(HomogenizedVolume):
         bricks = []
         for b in self.traverse():
             bricks.append(b)
-        self.bricks = na.array(bricks)
-        self.brick_dimensions = na.array(self.brick_dimensions)
+        self.bricks = np.array(bricks)
+        self.brick_dimensions = np.array(self.brick_dimensions)
         self._initialized = True
 
     def traverse(self, viewpoint=None):
@@ -189,7 +189,7 @@ class AMRKDTree(HomogenizedVolume):
                     yield self.get_brick_data(node)
 
     def get_node(self, nodeid):
-        path = na.binary_repr(nodeid)
+        path = np.binary_repr(nodeid)
         depth = 1
         temp = self.tree.trunk
         for depth in range(1,len(path)):
@@ -242,11 +242,11 @@ class AMRKDTree(HomogenizedVolume):
         dds = grid.dds
         gle = grid.LeftEdge
         gre = grid.RightEdge
-        li = na.rint((node.left_edge-gle)/dds).astype('int32')
-        ri = na.rint((node.right_edge-gle)/dds).astype('int32')
+        li = np.rint((node.left_edge-gle)/dds).astype('int32')
+        ri = np.rint((node.right_edge-gle)/dds).astype('int32')
         dims = (ri - li).astype('int32')
-        assert(na.all(grid.LeftEdge <= node.left_edge))
-        assert(na.all(grid.RightEdge >= node.right_edge))
+        assert(np.all(grid.LeftEdge <= node.left_edge))
+        assert(np.all(grid.RightEdge >= node.right_edge))
 
         if grid in self.current_saved_grids:
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
@@ -254,7 +254,7 @@ class AMRKDTree(HomogenizedVolume):
             dds = []
             for i,field in enumerate(self.fields):
                 vcd = grid.get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
-                if self.log_fields[i]: vcd = na.log10(vcd)
+                if self.log_fields[i]: vcd = np.log10(vcd)
                 dds.append(vcd)
                 self.current_saved_grids.append(grid)
                 self.current_vcds.append(dds)
