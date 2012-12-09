@@ -173,12 +173,12 @@ class TimeSeriesData(object):
         This demonstrates how one might store results:
 
         >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy")
-        >>> storage = {}
-        >>> for sto, pf in ts.piter():
+        >>> my_storage = {}
+        >>> for sto, pf in ts.piter(storage=my_storage):
         ...     v, c = pf.h.find_max("Density")
         ...     sto.result = (v, c)
         ...
-        >>> for i, (v, c) in sorted(storage.items()):
+        >>> for i, (v, c) in sorted(my_storage.items()):
         ...     print "% 4i  %0.3e" % (i, v)
         ...
 

@@ -339,9 +339,15 @@ def _get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
+    if not os.path.isdir(os.path.join(path, ".hg")): return None
     version = _get_hg_version(path)[:12]
     return version
 
@@ -1037,9 +1043,8 @@ class YTInstInfoCmd(YTCommand):
                 print "The supplemental repositories are located at:"
                 print "    %s" % (spath)
                 update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
+        vstring = get_yt_version()
+        if vstring is not None:
             print
             print "The current version of the code is:"
             print
@@ -1047,10 +1052,11 @@ class YTInstInfoCmd(YTCommand):
             print vstring.strip()
             print "---"
             print
-            print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                update_hg(path)
-            print "Updated successfully."
+            if "site-packages" not in path:
+                print "This installation CAN be automatically updated."
+                if opts.update_source:  
+                    update_hg(path)
+                print "Updated successfully."
         elif opts.update_source:
             print
             print "YT site-packages not in path, so you must"

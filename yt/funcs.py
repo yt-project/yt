@@ -466,6 +466,11 @@ def get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
