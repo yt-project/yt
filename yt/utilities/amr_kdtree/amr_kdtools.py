@@ -1,5 +1,5 @@
 """
-AMR kD-Tree Framework
+AMR kD-Tree Tools 
 
 Authors: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder

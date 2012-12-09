@@ -46,7 +46,7 @@ class Tree(object):
     max_level = None
     comm_rank = 0
     comm_size = 1
-    def __init__(self, pf, comm_rank, comm_size, left=None, right=None,
+    def __init__(self, pf, comm_rank=0, comm_size=1, left=None, right=None,
             min_level=None, max_level=None, grids=None):
 
         self.pf = pf
