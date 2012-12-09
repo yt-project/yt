@@ -43,6 +43,7 @@ INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
+INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -220,11 +221,24 @@ function host_specific
         echo "  * libncurses5-dev"
         echo "  * zip"
         echo "  * uuid-dev"
+        echo "  * libfreetype6-dev"
+        echo "  * tk-dev"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev"
         echo
+        echo
+        echo " Additionally, if you want to put yt's lib dir in your LD_LIBRARY_PATH"
+        echo " so you can use yt without the activate script, you might "
+        echo " want to consider turning off LIBZ and FREETYPE in this"
+        echo " install script by editing this file and setting"
+        echo
+        echo " INST_ZLIB=0"
+        echo " INST_FTYPE=0"
+        echo 
+        echo " to avoid conflicts with other command-line programs "
+        echo " (like eog and evince, for example)."
     fi
     if [ ! -z "${CFLAGS}" ]
     then
@@ -232,7 +246,7 @@ function host_specific
         echo "******************************************"
         echo "**                                      **"
         echo "**    Your CFLAGS is not empty.         **"
-        echo "**    This can beak h5py compilation.   **"
+        echo "**    This can break h5py compilation.  **"
         echo "**                                      **"
         echo "******************************************"
         echo "******************************************"
@@ -398,29 +412,31 @@ cd ${DEST_DIR}/src
 
 # Now we dump all our SHA512 files out.
 
-echo '2c1933ab31246b4f4eba049d3288156e0a72f1730604e3ed7357849967cdd329e4647cf236c9442ecfb06d0aff03e6fc892a7ba2a5c1cf5c011b7ab9c619acec  Cython-0.16.tar.gz' > Cython-0.16.tar.gz.sha512
-echo 'b8a12bf05b3aafa71135e47da81440fd0f16a4bd91954bc5615ad3d3b7f9df7d5a7d5620dc61088dc6b04952c5c66ebda947a4cfa33ed1be614c8ca8c0f11dff  PhiloGL-1.4.2.zip' > PhiloGL-1.4.2.zip.sha512
+echo 'eda1b8090e5e21e7e039ef4dd03de186a7b416df9d5a4e4422abeeb4d51383b9a6858e1ac4902d8e5010f661b295bbb2452c43c8738be668379b4eb4835d0f61  Cython-0.17.1.tar.gz' > Cython-0.17.1.tar.gz.sha512
 echo '44eea803870a66ff0bab08d13a8b3388b5578ebc1c807d1d9dca0a93e6371e91b15d02917a00b3b20dc67abb5a21dabaf9b6e9257a561f85eeff2147ac73b478  PyX-0.11.1.tar.gz' > PyX-0.11.1.tar.gz.sha512
-echo '1a754d560bfa433f0960ab3b5a62edb5f291be98ec48cf4e5941fa5b84139e200b87a52efbbd6fa4a76d6feeff12439eed3e7a84db4421940d1bbb576f7a684e  Python-2.7.2.tgz' > Python-2.7.2.tgz.sha512
+echo 'b981f8464575bb24c297631c87a3b9172312804a0fc14ce1fa7cb41ce2b0d2fd383cd1c816d6e10c36467d18bf9492d6faf557c81c04ff3b22debfa93f30ad0b  Python-2.7.3.tgz' > Python-2.7.3.tgz.sha512
 echo 'c017d3d59dd324ac91af0edc178c76b60a5f90fbb775cf843e39062f95bd846238f2c53705f8890ed3f34bc0e6e75671a73d13875eb0287d6201cb45f0a2d338  bzip2-1.0.5.tar.gz' > bzip2-1.0.5.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo 'b519218f93946400326e9b656669269ecb3e5232b944e18fbc3eadc4fe2b56244d68aae56d6f69042b4c87c58c881ee2aaa279561ea0f0f48d5842155f4de9de  freetype-2.4.4.tar.gz' > freetype-2.4.4.tar.gz.sha512
-echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72a7dbd496a5590828131c5f046ddead695e5cba79343b8c205148d1  h5py-2.0.1.tar.gz' > h5py-2.0.1.tar.gz.sha512
-echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
+echo 'b3290c498191684781ca5286ab454eb1bd045e8d894f5b86fb86beb88f174e22ac3ab008fb02d6562051d9fa6a9593920cab433223f6d5473999913223b8e183  h5py-2.1.0.tar.gz' > h5py-2.1.0.tar.gz.sha512
+echo 'c68a425bacaa7441037910b9166f25b89e1387776a7749a5350793f89b1690350df5f018060c31d03686e7c3ed2aa848bd2b945c96350dc3b6322e087934783a  hdf5-1.8.9.tar.gz' > hdf5-1.8.9.tar.gz.sha512
 echo 'dbefad00fa34f4f21dca0f1e92e95bd55f1f4478fa0095dcf015b4d06f0c823ff11755cd777e507efaf1c9098b74af18f613ec9000e5c3a5cc1c7554fb5aefb8  libpng-1.5.12.tar.gz' > libpng-1.5.12.tar.gz.sha512
-echo 'f5ab95c29ef6958096970265a6079f0eb8c43a500924346c4a6c6eb89d9110eeeb6c34a53715e71240e82ded2b76a7b8d5a9b05a07baa000b2926718264ad8ff  matplotlib-1.1.0.tar.gz' > matplotlib-1.1.0.tar.gz.sha512
-echo 'ec7416729f99f5eef6700507e740552e771d6dd8863f757311538d7d67a0eecd3426381bd42a7ddbf0771bdde8bba5cb943f60031ae3567d6a3dcac738facda8  mercurial-2.2.2.tar.gz' > mercurial-2.2.2.tar.gz.sha512
+echo '5b1a0fb52dcb21ca5f0ab71c8a49550e1e8cf633552ec6598dc43f0b32c03422bf5af65b30118c163231ecdddfd40846909336f16da318959106076e80a3fad0  matplotlib-1.2.0.tar.gz' > matplotlib-1.2.0.tar.gz.sha512
+echo '52d1127de2208aaae693d16fef10ffc9b8663081bece83b7597d65706e9568af3b9e56bd211878774e1ebed92e21365ee9c49602a0ff5e48f89f12244d79c161  mercurial-2.4.tar.gz' > mercurial-2.4.tar.gz.sha512
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
 echo '5ad681f99e75849a5ca6f439c7a19bb51abc73d121b50f4f8e4c0da42891950f30407f761a53f0fe51b370b1dbd4c4f5a480557cb2444c8c7c7d5412b328a474  sqlite-autoconf-3070500.tar.gz' > sqlite-autoconf-3070500.tar.gz.sha512
 echo 'edae735960279d92acf58e1f4095c6392a7c2059b8f1d2c46648fc608a0fb06b392db2d073f4973f5762c034ea66596e769b95b3d26ad963a086b9b2d09825f2  zlib-1.2.3.tar.bz2' > zlib-1.2.3.tar.bz2.sha512
-echo '42021737c93cea513116e6051cff9b803e3f25d6019c74370b42f4c91d1af73e94ac2b7ace85b7565fa3d45b79231079bd48a242531beeafa33c36d7139ce838  ipython-0.13.tar.gz' > ipython-0.13.tar.gz.sha512
+echo '05ac335727a2c3036f31a2506fdd2615aa436bfbe2f81799fe6c51bffe2591ad6a8427f3b25c34e7e709fb4e7607a0589dc7a22185c1f9b894e90de6711a88aa  ipython-0.13.1.tar.gz' > ipython-0.13.1.tar.gz.sha512
 echo 'fb3cf421b2dc48c31956b3e3ee4ab6ebc743deec3bf626c2238a1996c8c51be87260bd6aa662793a1f0c34dcda9b3146763777bb162dfad6fec4ca7acc403b2e  zeromq-2.2.0.tar.gz' > zeromq-2.2.0.tar.gz.sha512
 echo 'd761b492352841cdc125d9f0c99ee6d6c435812472ea234728b7f0fb4ad1048e1eec9b399df2081fbc926566f333f7780fedd0ce23255a6633fe5c60ed15a6af  pyzmq-2.1.11.tar.gz' > pyzmq-2.1.11.tar.gz.sha512
 echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254bc76b9b3b14b4aab7c3e1135858f68abc5636daedf2f01f9b8a3cf  tornado-2.2.tar.gz' > tornado-2.2.tar.gz.sha512
 echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ade5e8db944ecde6bfb111211ab218aa414ee90aafbb81f1491b3b93  Forthon-0.8.10.tar.gz' > Forthon-0.8.10.tar.gz.sha512
-
+echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065ae4f21b662e87f2aaedf6ea424ea58dfa9d3d73c06281f806d15dd  nose-1.2.1.tar.gz' > nose-1.2.1.tar.gz.sha512
+echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
+echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
+echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 # Individual processes
-[ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.7.tar.gz
+[ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_ytproject bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_ytproject libpng-1.5.12.tar.gz
@@ -430,16 +446,19 @@ echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ad
 [ $INST_0MQ -eq 1 ] && get_ytproject zeromq-2.2.0.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject pyzmq-2.1.11.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject tornado-2.2.tar.gz
-get_ytproject Python-2.7.2.tgz
+get_ytproject Python-2.7.3.tgz
 get_ytproject numpy-1.6.1.tar.gz
-get_ytproject matplotlib-1.1.0.tar.gz
-get_ytproject mercurial-2.2.2.tar.gz
-get_ytproject ipython-0.13.tar.gz
-get_ytproject h5py-2.0.1.tar.gz
-get_ytproject Cython-0.16.tar.gz
+get_ytproject matplotlib-1.2.0.tar.gz
+get_ytproject mercurial-2.4.tar.gz
+get_ytproject ipython-0.13.1.tar.gz
+get_ytproject h5py-2.1.0.tar.gz
+get_ytproject Cython-0.17.1.tar.gz
 get_ytproject reason-js-20120623.zip
 get_ytproject Forthon-0.8.10.tar.gz
-
+get_ytproject nose-1.2.1.tar.gz 
+get_ytproject python-hglib-0.2.tar.gz
+get_ytproject sympy-0.7.2.tar.gz
+get_ytproject rockstar-0.99.6.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e bzip2-1.0.5/done ]
@@ -523,11 +542,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.8.7/done ]
+    if [ ! -e hdf5-1.8.9/done ]
     then
-        [ ! -e hdf5-1.8.7 ] && tar xfz hdf5-1.8.7.tar.gz
+        [ ! -e hdf5-1.8.9 ] && tar xfz hdf5-1.8.9.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.8.7
+        cd hdf5-1.8.9
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
@@ -555,11 +574,11 @@ then
     fi
 fi
 
-if [ ! -e Python-2.7.2/done ]
+if [ ! -e Python-2.7.3/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.7.2 ] && tar xfz Python-2.7.2.tgz
-    cd Python-2.7.2
+    [ ! -e Python-2.7.3 ] && tar xfz Python-2.7.3.tgz
+    cd Python-2.7.3
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -575,7 +594,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-2.2.2
+    do_setup_py mercurial-2.4
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -599,11 +618,11 @@ then
     elif [ ! -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
         # a new webserver, we are now moving to a three-stage process.
         # First we clone the repo, but only up to r0.
-        ( ${HG_EXEC} --debug clone http://hg.yt-project.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
@@ -643,10 +662,10 @@ then
     echo "Setting CFLAGS ${CFLAGS}"
 fi
 # Now we set up the basedir for matplotlib:
-mkdir -p ${DEST_DIR}/src/matplotlib-1.1.0
-echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.1.0/setup.cfg
-echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.1.0/setup.cfg
-do_setup_py matplotlib-1.1.0
+mkdir -p ${DEST_DIR}/src/matplotlib-1.2.0
+echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.2.0/setup.cfg
+echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.2.0/setup.cfg
+do_setup_py matplotlib-1.2.0
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}
@@ -673,16 +692,41 @@ then
     do_setup_py tornado-2.2
 fi
 
-do_setup_py ipython-0.13
-do_setup_py h5py-2.0.1
-do_setup_py Cython-0.16
+do_setup_py ipython-0.13.1
+do_setup_py h5py-2.1.0
+do_setup_py Cython-0.17.1
 do_setup_py Forthon-0.8.10
+do_setup_py nose-1.2.1
+do_setup_py python-hglib-0.2
+do_setup_py sympy-0.7.2
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
+
+# Now we build Rockstar and set its environment variable.
+if [ $INST_ROCKSTAR -eq 1 ]
+then
+    if [ ! -e Rockstar/done ]
+    then
+        [ ! -e Rockstar] && tar xfz rockstar-0.99.6.tar.gz
+        echo "Building Rockstar"
+        cd Rockstar
+        ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        cp librockstar.so ${DEST_DIR}/lib
+        ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar
+        echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
+        touch done
+        cd ..
+    fi
+fi
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
 cd $YT_DIR
-( ${HG_EXEC} pull && ${HG_EXEC} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+( ${HG_EXEC} pull 2>1 && ${HG_EXEC} up -C 2>1 ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+
+echo "Building Fortran kD-tree module."
+cd yt/utilities/kdtree
+( make 2>&1 ) 1>> ${LOG_FILE}
+cd ../../..
 
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
@@ -702,7 +746,7 @@ if [ $INST_ENZO -eq 1 ]
 then
     echo "Cloning a copy of Enzo."
     cd ${DEST_DIR}/src/
-    ${HG_EXEC} clone https://enzo.googlecode.com/hg/ ./enzo-hg-stable
+    ${HG_EXEC} clone https://bitbucket.org/enzo/enzo-stable ./enzo-hg-stable
     cd $MY_PWD
 fi
 

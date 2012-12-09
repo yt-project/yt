@@ -20,7 +20,7 @@ if ($?YT_DEST == 0) then
     setenv YT_DEST
 endif
 set _OLD_VIRTUAL_YT_DEST="$YT_DEST"
-setenv YT_DEST "${VIRTUAL_ENV}:${YT_DEST}"
+setenv YT_DEST "${VIRTUAL_ENV}"
 
 if ($?PYTHONPATH == 0) then
     setenv PYTHONPATH

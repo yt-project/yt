@@ -22,7 +22,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import copy
 
 from yt.funcs import *
@@ -133,6 +133,7 @@ class Clump(object):
         else:
             exec(operation)
 
+        if self.children is None: return
         for child in self.children:
             child.pass_down(operation)
 

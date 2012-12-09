@@ -7,6 +7,7 @@ import subprocess
 import distribute_setup
 distribute_setup.use_setuptools()
 
+from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils import log
 from distutils import version
@@ -110,6 +111,42 @@ VERSION = "2.5dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
+def get_mercurial_changeset_id(target_dir):
+    """adapted from a script by Jason F. Harris, published at
+
+    http://jasonfharris.com/blog/2010/05/versioning-your-application-with-the-mercurial-changeset-hash/
+
+    """
+    import subprocess
+    import re
+    get_changeset = subprocess.Popen('hg identify -b -i',
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     shell=True)
+        
+    if (get_changeset.stderr.read() != ""):
+        print "Error in obtaining current changeset of the Mercurial repository"
+        changeset = None
+        
+    changeset = get_changeset.stdout.read().strip()
+    if (not re.search("^[0-9a-f]{12}", changeset)):
+        print "Current changeset of the Mercurial repository is malformed"
+        changeset = None
+
+    return changeset
+
+class my_build_py(build_py):
+    def run(self):
+        # honor the --dry-run flag
+        if not self.dry_run:
+            target_dir = os.path.join(self.build_lib,'yt')
+            src_dir =  os.getcwd() 
+            changeset = get_mercurial_changeset_id(src_dir)
+            self.mkpath(target_dir)
+            with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
+                fobj.write("hg_version = '%s'\n" % changeset)
+
+            build_py.run(self)
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -154,7 +191,11 @@ def setup_package():
             'amr adaptivemeshrefinement',
         entry_points={'console_scripts': [
                             'yt = yt.utilities.command_line:run_main',
-                       ]},
+                      ],
+                      'nose.plugins.0.10': [
+                            'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
+                      ]
+        },
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url="http://yt-project.org/",
@@ -162,6 +203,7 @@ def setup_package():
         configuration=configuration,
         zip_safe=False,
         data_files=REASON_FILES,
+        cmdclass = {'build_py': my_build_py},
         )
     return
 

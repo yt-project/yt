@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
@@ -310,7 +311,8 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       ytcfg.getboolean("yt", "ipython_notebook"):
+       "__IPYTHON__" in dir(__builtin__) or \
+       ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar
@@ -464,6 +466,11 @@ def get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
@@ -565,3 +572,7 @@ def get_num_threads():
         
 def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
+
+def get_image_suffix(name):
+    suffix = os.path.splitext(name)[1]
+    return suffix if suffix in ['png', 'eps', 'ps', 'pdf'] else ''

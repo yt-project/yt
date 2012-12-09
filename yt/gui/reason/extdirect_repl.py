@@ -30,7 +30,7 @@ import stat
 import cStringIO
 import logging
 import uuid
-import numpy as na
+import numpy as np
 import time
 import urllib
 import urllib2

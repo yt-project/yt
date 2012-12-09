@@ -25,7 +25,7 @@ from yt.data_objects.time_series import TimeSeriesData
 from yt.utilities.lib import sample_field_at_positions
 from yt.funcs import *
 
-import numpy as na
+import numpy as np
 import h5py
 
 class ParticleTrajectoryCollection(object) :
@@ -112,16 +112,16 @@ class ParticleTrajectoryCollection(object) :
         for pf in self.pfs :
             dd = pf.h.all_data()
             newtags = dd["particle_index"].astype("int")
-            if not na.all(na.in1d(indices, newtags, assume_unique=True)) :
+            if not np.all(np.in1d(indices, newtags, assume_unique=True)) :
                 print "Not all requested particle ids contained in this file!"
                 raise IndexError
-            mask = na.in1d(newtags, indices, assume_unique=True)
-            sorts = na.argsort(newtags[mask])
+            mask = np.in1d(newtags, indices, assume_unique=True)
+            sorts = np.argsort(newtags[mask])
             self.masks.append(mask)            
             self.sorts.append(sorts)
             self.times.append(pf.current_time)
 
-        self.times = na.array(self.times)
+        self.times = np.array(self.times)
 
         # Set up the derived field list and the particle field list
         # so that if the requested field is a particle field, we'll
@@ -226,7 +226,7 @@ class ParticleTrajectoryCollection(object) :
         
         if not self.field_data.has_key(field):
             
-            particles = na.empty((0))
+            particles = np.empty((0))
 
             step = int(0)
                 
@@ -238,13 +238,13 @@ class ParticleTrajectoryCollection(object) :
 
                     dd = pf.h.all_data()
                     pfield = dd[field][mask]
-                    particles = na.append(particles, pfield[sort])
+                    particles = np.append(particles, pfield[sort])
 
                 else :
 
                     # This is hard... must loop over grids
 
-                    pfield = na.zeros((self.num_indices))
+                    pfield = np.zeros((self.num_indices))
                     x = self["particle_position_x"][:,step]
                     y = self["particle_position_y"][:,step]
                     z = self["particle_position_z"][:,step]
@@ -258,7 +258,7 @@ class ParticleTrajectoryCollection(object) :
                                                             grid.RightEdge,
                                                             x, y, z)
 
-                    particles = na.append(particles, pfield)
+                    particles = np.append(particles, pfield)
 
                 step += 1
                 
@@ -294,9 +294,9 @@ class ParticleTrajectoryCollection(object) :
         >>> pl.savefig("orbit")
         """
         
-        mask = na.in1d(self.indices, (index,), assume_unique=True)
+        mask = np.in1d(self.indices, (index,), assume_unique=True)
 
-        if not na.any(mask) :
+        if not np.any(mask) :
             print "The particle index %d is not in the list!" % (index)
             raise IndexError
 
@@ -376,7 +376,7 @@ class ParticleTrajectoryCollection(object) :
 
         fields = [field for field in sorted(self.field_data.keys())]
         
-        fid.create_dataset("particle_indices", dtype=na.int32,
+        fid.create_dataset("particle_indices", dtype=np.int32,
                            data=self.indices)
         fid.create_dataset("particle_time", data=self.times)
         

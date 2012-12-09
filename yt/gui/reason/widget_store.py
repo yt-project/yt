@@ -70,7 +70,7 @@ class WidgetStore(dict):
         if onmax: 
             center = pf.h.find_max('Density')[1]
         else:
-            center = na.array(center)
+            center = np.array(center)
         axis = inv_axis_names[axis.lower()]
         coord = center[axis]
         sl = pf.h.slice(axis, coord, center = center, periodic = True)
@@ -203,7 +203,7 @@ class ParameterFileWidget(object):
     def _pf_info(self):
         tr = {}
         for k, v in self.pf._mrep._attrs.items():
-            if isinstance(v, na.ndarray):
+            if isinstance(v, np.ndarray):
                 tr[k] = v.tolist()
             else:
                 tr[k] = v
@@ -237,9 +237,9 @@ class SceneWidget(object):
     def deliver_isocontour(self, field, value, rel_val = False):
         ph = PayloadHandler()
         vert = get_isocontour(self.pf, field, value, rel_val)
-        normals = na.empty(vert.shape)
+        normals = np.empty(vert.shape)
         for i in xrange(vert.shape[0]/3):
-            n = na.cross(vert[i*3,:], vert[i*3+1,:])
+            n = np.cross(vert[i*3,:], vert[i*3+1,:])
             normals[i*3:i*3+3,:] = n[None,:]
         ph.widget_payload(self, {'ptype':'isocontour',
                                  'binary': ['vert', 'normals'],
@@ -260,20 +260,20 @@ class SceneWidget(object):
         # Assume that path comes in as a list of matrice
         # Assume original vector is (0., 0., 1.), up is (0., 1., 0.)
         
-        views = [na.array(view).transpose() for view in views]
+        views = [np.array(view).transpose() for view in views]
 
-        times = na.linspace(0.0,1.0,len(times))
+        times = np.linspace(0.0,1.0,len(times))
                 
         # This is wrong.
-        reflect = na.array([[1,0,0],[0,1,0],[0,0,-1]])
+        reflect = np.array([[1,0,0],[0,1,0],[0,0,-1]])
 
-        rots = na.array([R[0:3,0:3] for R in views])
+        rots = np.array([R[0:3,0:3] for R in views])
 
-        rots = na.array([na.dot(reflect,rot) for rot in rots])
+        rots = np.array([np.dot(reflect,rot) for rot in rots])
 
-        centers = na.array([na.dot(rot,R[0:3,3]) for R,rot in zip(views,rots)])
+        centers = np.array([np.dot(rot,R[0:3,3]) for R,rot in zip(views,rots)])
 
-        ups = na.array([na.dot(rot,R[0:3,1]) for R,rot in zip(views,rots)])
+        ups = np.array([np.dot(rot,R[0:3,1]) for R,rot in zip(views,rots)])
 
         #print 'views'
         #for view in views: print view
@@ -284,12 +284,12 @@ class SceneWidget(object):
         #print 'ups'
         #for up in ups: print up
 
-        pos = na.empty((N,3), dtype="float64")
-        uv = na.empty((N,3), dtype="float64")
-        f = na.zeros((N,3), dtype="float64")
+        pos = np.empty((N,3), dtype="float64")
+        uv = np.empty((N,3), dtype="float64")
+        f = np.zeros((N,3), dtype="float64")
         for i in range(3):
-            pos[:,i] = create_spline(times, centers[:,i], na.linspace(0.0,1.0,N))
-            uv[:,i] = create_spline(times, ups[:,i], na.linspace(0.0,1.0,N))
+            pos[:,i] = create_spline(times, centers[:,i], np.linspace(0.0,1.0,N))
+            uv[:,i] = create_spline(times, ups[:,i], np.linspace(0.0,1.0,N))
     
         path = [pos.tolist(), f.tolist(), uv.tolist()]
     

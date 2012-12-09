@@ -25,7 +25,7 @@ License:
 
 from yt.funcs import *
 
-import numpy as na
+import numpy as np
 import glob
 import os
 
@@ -37,7 +37,7 @@ from yt.utilities.cosmology import \
 from yt.utilities.definitions import \
     sec_conversion
 from yt.utilities.exceptions import \
-    AmbiguousOutputs, \
+    InvalidSimulationTimeSeries, \
     MissingParameter, \
     NoStoppingCondition
 
@@ -183,8 +183,7 @@ class EnzoSimulation(SimulationTimeSeries):
         if (initial_redshift is not None or \
             final_redshift is not None) and \
             not self.cosmological_simulation:
-            mylog.error('An initial or final redshift has been given for a noncosmological simulation.')
-            return
+            raise InvalidSimulationTimeSeries('An initial or final redshift has been given for a noncosmological simulation.')
 
         if time_data and redshift_data:
             my_all_outputs = self.all_outputs
@@ -193,7 +192,11 @@ class EnzoSimulation(SimulationTimeSeries):
         elif redshift_data:
             my_all_outputs = self.all_redshift_outputs
         else:
-            mylog.error('Both time_data and redshift_data are False.')
+            raise InvalidSimulationTimeSeries('Both time_data and redshift_data are False.')
+
+        if not my_all_outputs:
+            TimeSeriesData.__init__(self, outputs=[], parallel=parallel)
+            mylog.info("%d outputs loaded into time series." % 0)
             return
 
         # Apply selection criteria to the set.
@@ -215,6 +218,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 final_cycle = self.parameters['StopCycle']
             else:
                 final_cycle = min(final_cycle, self.parameters['StopCycle'])
+
             my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
                                                  self.parameters['CycleSkipDataDump'])):
                                         (final_cycle /  self.parameters['CycleSkipDataDump'])+1]
@@ -236,14 +240,18 @@ class EnzoSimulation(SimulationTimeSeries):
             else:
                 my_final_time = self.final_time
 
-            my_times = na.array(map(lambda a:a['time'], my_all_outputs))
-            my_indices = na.digitize([my_initial_time, my_final_time], my_times)
+            my_times = np.array(map(lambda a:a['time'], my_all_outputs))
+            my_indices = np.digitize([my_initial_time, my_final_time], my_times)
             if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
             my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
 
-        TimeSeriesData.__init__(self, outputs=[output['filename'] for output in my_outputs],
-                                parallel=parallel)
-        mylog.info("%d outputs loaded into time series." % len(my_outputs))
+        init_outputs = []
+        for output in my_outputs:
+            if os.path.exists(output['filename']):
+                init_outputs.append(output['filename'])
+            
+        TimeSeriesData.__init__(self, outputs=init_outputs, parallel=parallel)
+        mylog.info("%d outputs loaded into time series." % len(init_outputs))
 
     def _parse_parameter_file(self):
         """
@@ -294,7 +302,7 @@ class EnzoSimulation(SimulationTimeSeries):
             elif len(vals) == 1:
                 vals = pcast(vals[0])
             else:
-                vals = na.array([pcast(i) for i in vals if i != "-99999"])
+                vals = np.array([pcast(i) for i in vals if i != "-99999"])
             self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
@@ -303,17 +311,17 @@ class EnzoSimulation(SimulationTimeSeries):
             if len(self.domain_dimensions) < 3:
                 tmp = self.domain_dimensions.tolist()
                 tmp.append(1)
-                self.domain_dimensions = na.array(tmp)
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+                self.domain_dimensions = np.array(tmp)
+            self.domain_left_edge = np.array(self.parameters["DomainLeftEdge"],
                                              "float64").copy()
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+            self.domain_right_edge = np.array(self.parameters["DomainRightEdge"],
                                              "float64").copy()
         else:
-            self.domain_left_edge = na.array(self.parameters["DomainLeftEdge"],
+            self.domain_left_edge = np.array(self.parameters["DomainLeftEdge"],
                                              "float64")
-            self.domain_right_edge = na.array(self.parameters["DomainRightEdge"],
+            self.domain_right_edge = np.array(self.parameters["DomainRightEdge"],
                                              "float64")
-            self.domain_dimensions = na.array([self.parameters["TopGridDimensions"],1,1])
+            self.domain_dimensions = np.array([self.parameters["TopGridDimensions"],1,1])
 
         if self.parameters["ComovingCoordinates"]:
             cosmo_attr = {'box_size': 'CosmologyComovingBoxSize',
@@ -374,7 +382,7 @@ class EnzoSimulation(SimulationTimeSeries):
                     current_time * self.enzo_cosmology.TimeUnits)
 
             self.all_time_outputs.append(output)
-            if na.abs(self.final_time - current_time) / self.final_time < 1e-4: break
+            if np.abs(self.final_time - current_time) / self.final_time < 1e-4: break
             current_time += self.parameters['dtDataDump']
             index += 1
 
@@ -476,9 +484,9 @@ class EnzoSimulation(SimulationTimeSeries):
         self.parameters['RedshiftDumpDir'] = "RD"
         self.parameters['ComovingCoordinates'] = 0
         self.parameters['TopGridRank'] = 3
-        self.parameters['DomainLeftEdge'] = na.zeros(self.parameters['TopGridRank'])
-        self.parameters['DomainRightEdge'] = na.ones(self.parameters['TopGridRank'])
-        self.parameters['Refineby'] = 2 # technically not the enzo default
+        self.parameters['DomainLeftEdge'] = np.zeros(self.parameters['TopGridRank'])
+        self.parameters['DomainRightEdge'] = np.ones(self.parameters['TopGridRank'])
+        self.parameters['RefineBy'] = 2 # technically not the enzo default
         self.parameters['StopCycle'] = 100000
         self.parameters['dtDataDump'] = 0.
         self.parameters['CycleSkipDataDump'] = 0.
@@ -491,7 +499,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         self.time_units = {}
         if self.cosmological_simulation:
-            self.parameters['TimeUnits'] = 2.52e17 / na.sqrt(self.omega_matter) \
+            self.parameters['TimeUnits'] = 2.52e17 / np.sqrt(self.omega_matter) \
                 / self.hubble_constant / (1 + self.initial_redshift)**1.5
         self.time_units['1'] = 1.
         self.time_units['seconds'] = self.parameters['TimeUnits']
@@ -585,9 +593,11 @@ class EnzoSimulation(SimulationTimeSeries):
         if outputs is None:
             outputs = self.all_outputs
         my_outputs = []
+        if not outputs:
+            return my_outputs
         for value in values:
-            outputs.sort(key=lambda obj:na.fabs(value - obj[key]))
-            if (tolerance is None or na.abs(value - outputs[0][key]) <= tolerance) \
+            outputs.sort(key=lambda obj:np.fabs(value - obj[key]))
+            if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
                     and outputs[0] not in my_outputs:
                 my_outputs.append(outputs[0])
             else:
@@ -649,7 +659,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         """
 
-        times = na.array(times) / self.time_units[time_units]
+        times = np.array(times) / self.time_units[time_units]
         return self._get_outputs_by_key('time', times, tolerance=tolerance,
                                         outputs=outputs)
 

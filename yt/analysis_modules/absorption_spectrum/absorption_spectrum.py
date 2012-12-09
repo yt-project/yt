@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 
 from absorption_line import tau_profile
 
@@ -48,7 +48,7 @@ class AbsorptionSpectrum(object):
         self.tau_field = None
         self.flux_field = None
         self.spectrum_line_list = None
-        self.lambda_bins = na.linspace(lambda_min, lambda_max, n_lambda)
+        self.lambda_bins = np.linspace(lambda_min, lambda_max, n_lambda)
         self.bin_width = (lambda_max - lambda_min) / float(n_lambda - 1)
         self.line_list = []
         self.continuum_list = []
@@ -114,13 +114,13 @@ class AbsorptionSpectrum(object):
             field_data[field] = input[field].value
         input.close()
 
-        self.tau_field = na.zeros(self.lambda_bins.size)
+        self.tau_field = np.zeros(self.lambda_bins.size)
         self.spectrum_line_list = []
 
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
 
-        self.flux_field = na.exp(-self.tau_field)
+        self.flux_field = np.exp(-self.tau_field)
 
         if output_file.endswith('.h5'):
             self._write_spectrum_hdf5(output_file)
@@ -148,20 +148,20 @@ class AbsorptionSpectrum(object):
                 delta_lambda += continuum['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['los_velocity'] / speed_of_light_cgs
             this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = na.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
-            left_index = na.digitize((this_wavelength *
-                                     na.power((tau_min * continuum['normalization'] /
+            right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
+            left_index = np.digitize((this_wavelength *
+                                     np.power((tau_min * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
                                     self.lambda_bins).clip(0, self.n_lambda)
 
-            valid_continuua = na.where(((column_density /
+            valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > tau_min) &
                                        (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding continuum feature - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
             for i, lixel in enumerate(valid_continuua):
-                line_tau = na.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] /
+                line_tau = np.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] /
                                      this_wavelength[lixel]), continuum['index']) * \
                                      column_density[lixel] / continuum['normalization']
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
@@ -184,10 +184,10 @@ class AbsorptionSpectrum(object):
                 # include factor of (1 + z) because our velocity is in proper frame.
                 delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['los_velocity'] / speed_of_light_cgs
-            thermal_b = km_per_cm * na.sqrt((2 * boltzmann_constant_cgs *
+            thermal_b = km_per_cm * np.sqrt((2 * boltzmann_constant_cgs *
                                              field_data['Temperature']) /
                                             (amu_cgs * line['atomic_mass']))
-            center_bins = na.digitize((delta_lambda + line['wavelength']),
+            center_bins = np.digitize((delta_lambda + line['wavelength']),
                                       self.lambda_bins)
 
             # ratio of line width to bin width
@@ -201,7 +201,7 @@ class AbsorptionSpectrum(object):
                            spectrum_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
 
             # loop over all lines wider than the bin width
-            valid_lines = na.where((width_ratio >= 1.0) &
+            valid_lines = np.where((width_ratio >= 1.0) &
                                    (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             valid_lines.size)

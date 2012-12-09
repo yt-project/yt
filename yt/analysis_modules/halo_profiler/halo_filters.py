@@ -24,7 +24,7 @@ License:
 """
 
 from copy import deepcopy
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -105,11 +105,11 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
 
     if use_log:
         for field in temp_profile.keys():
-            temp_profile[field] = na.log10(temp_profile[field])
+            temp_profile[field] = np.log10(temp_profile[field])
 
     virial = dict((field, 0.0) for field in fields)
 
-    if (not (na.array(overDensity) >= virial_overdensity).any()) and \
+    if (not (np.array(overDensity) >= virial_overdensity).any()) and \
             must_be_virialized:
         mylog.debug("This halo is not virialized!")
         return [False, {}]
@@ -123,7 +123,7 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
     elif (overDensity[-1] >= virial_overdensity):
         index = -2
     else:
-        for q in (na.arange(len(overDensity),0,-1)-1):
+        for q in (np.arange(len(overDensity),0,-1)-1):
             if (overDensity[q] < virial_overdensity) and (overDensity[q-1] >= virial_overdensity):
                 index = q - 1
                 break
@@ -144,7 +144,7 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
 
     if use_log:
         for field in virial.keys():
-            virial[field] = na.power(10, virial[field])
+            virial[field] = np.power(10, virial[field])
 
     for vfilter in virial_filters:
         if eval("%s %s %s" % (virial[vfilter[0]],vfilter[1],vfilter[2])):

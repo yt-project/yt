@@ -152,7 +152,7 @@ _common_options = dict(
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type=str,
-                   dest="unit", default='unitary',
+                   dest="unit", default='1',
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type=float,
@@ -339,9 +339,15 @@ def _get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
+    if not os.path.isdir(os.path.join(path, ".hg")): return None
     version = _get_hg_version(path)[:12]
     return version
 
@@ -1037,9 +1043,8 @@ class YTInstInfoCmd(YTCommand):
                 print "The supplemental repositories are located at:"
                 print "    %s" % (spath)
                 update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
+        vstring = get_yt_version()
+        if vstring is not None:
             print
             print "The current version of the code is:"
             print
@@ -1047,10 +1052,11 @@ class YTInstInfoCmd(YTCommand):
             print vstring.strip()
             print "---"
             print
-            print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                update_hg(path)
-            print "Updated successfully."
+            if "site-packages" not in path:
+                print "This installation CAN be automatically updated."
+                if opts.update_source:  
+                    update_hg(path)
+                print "Updated successfully."
         elif opts.update_source:
             print
             print "YT site-packages not in path, so you must"
@@ -1095,8 +1101,12 @@ class YTLoadCmd(YTCommand):
                   )
         else:
             from IPython.config.loader import Config
+            import sys
             cfg = Config()
+            # prepend sys.path with current working directory
+            sys.path.insert(0,'')
             IPython.embed(config=cfg,user_ns=local_ns)
+            
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -1188,6 +1198,40 @@ class YTPastebinGrabCmd(YTCommand):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
+class YTNotebookUploadCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload an IPython notebook to hub.yt-project.org.
+        """
+
+    name = "upload_notebook"
+    def __call__(self, args):
+        filename = args.file
+        if not os.path.isfile(filename):
+            raise IOError(filename)
+        if not filename.endswith(".ipynb"):
+            print "File must be an IPython notebook!"
+            return 1
+        import json
+        try:
+            t = json.loads(open(filename).read())['metadata']['name']
+        except (ValueError, KeyError):
+            print "File does not appear to be an IPython notebook."
+        from yt.utilities.minimal_representation import MinimalNotebook
+        mn = MinimalNotebook(filename, t)
+        rv = mn.upload()
+        print "Upload successful!"
+        print
+        print "To access your raw notebook go here:"
+        print
+        print "  %s" % (rv['url'])
+        print
+        print "To view your notebook go here:"
+        print
+        print "  %s" % (rv['url'].replace("/go/", "/nb/"))
+        print
+
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center",
             "zlim", "axis", "field", "weight", "skip",
@@ -1212,7 +1256,7 @@ class YTPlotCmd(YTCommand):
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
+        center = np.array(center)
         if args.axis == 4:
             axes = range(3)
         else:
@@ -1266,12 +1310,12 @@ class YTRenderCmd(YTCommand):
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
+        center = np.array(center)
 
         L = args.viewpoint
         if L is None:
             L = [1.]*3
-        L = na.array(args.viewpoint)
+        L = np.array(args.viewpoint)
 
         unit = args.unit
         if unit is None:
@@ -1302,7 +1346,7 @@ class YTRenderCmd(YTCommand):
             roi = pf.h.region(center, center-width, center+width)
             mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
-                mi, ma = na.log10(mi), na.log10(ma)
+                mi, ma = np.log10(mi), np.log10(ma)
         else:
             mi, ma = myrange[0], myrange[1]
 
