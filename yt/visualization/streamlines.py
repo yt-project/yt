@@ -138,8 +138,8 @@ class Streamlines(ParallelAnalysisInterface):
                 thismag = self.magnitudes[i,:]
             step = self.steps
             while (step > 1):
-                this_brick = self.volume.locate_brick(stream[-step,:])
-                step = self._integrate_through_brick(this_brick, stream, step, mag=thismag)
+                this_node = self.volume.locate_node(stream[-step,:])
+                step = self._integrate_through_brick(this_node, stream, step, mag=thismag)
             pbar.update(i)
         pbar.finish()
         
@@ -155,7 +155,7 @@ class Streamlines(ParallelAnalysisInterface):
                                  periodic=False, mag=None):
         while (step > 1):
             self.volume.get_brick_data(node)
-            brick = node.brick
+            brick = node.data
             stream[-step+1] = stream[-step]
             if mag is None:
                 brick.integrate_streamline(stream[-step+1], self.direction*self.dx, None)
@@ -168,8 +168,8 @@ class Streamlines(ParallelAnalysisInterface):
                    np.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
 
-            if np.any(stream[-step+1,:] < node.l_corner) | \
-                   np.any(stream[-step+1,:] >= node.r_corner):
+            if np.any(stream[-step+1,:] < node.left_edge) | \
+                   np.any(stream[-step+1,:] >= node.right_edge):
                 return step-1
             step -= 1
         return step

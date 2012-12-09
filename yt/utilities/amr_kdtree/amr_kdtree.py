@@ -27,7 +27,7 @@ from yt.funcs import *
 import numpy as np
 from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids, \
-        receive_and_reduce, send_to_parent, scatter_image
+        receive_and_reduce, send_to_parent, scatter_image, find_node
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
@@ -199,6 +199,9 @@ class AMRKDTree(HomogenizedVolume):
                 temp = temp.right
         assert(temp is not None)
         return temp
+
+    def locate_node(self, pos):
+        return find_node(self.tree.trunk, pos)
 
     def get_reduce_owners(self):
         owners = {}

@@ -292,7 +292,7 @@ class Camera(ParallelAnalysisInterface):
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
         
     def new_image(self):
-        image = na.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
+        image = np.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
@@ -847,7 +847,7 @@ class HEALpixCamera(Camera):
         self.volume = volume
 
     def new_image(self):
-        image = np.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
+        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
@@ -1068,7 +1068,7 @@ class FisheyeCamera(Camera):
         self.volume = volume
 
     def new_image(self):
-        image = np.zeros((self.resolution**2,1,3), dtype='float64', order='C')
+        image = np.zeros((self.resolution**2,1,4), dtype='float64', order='C')
         return image
         
     def get_sampler_args(self, image):
