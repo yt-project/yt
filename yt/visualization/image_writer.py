@@ -23,7 +23,7 @@ License:
 import types
 import imp
 import os
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 import _colormap_data as cmd
@@ -44,7 +44,7 @@ def scale_image(image, mi=None, ma=None):
 
         >>> image = scale_image(image, min=0, max=1000)
     """
-    if isinstance(image, na.ndarray) and image.dtype == na.uint8:
+    if isinstance(image, np.ndarray) and image.dtype == np.uint8:
         return image
     if isinstance(image, (types.TupleType, types.ListType)):
         image, mi, ma = image
@@ -52,7 +52,7 @@ def scale_image(image, mi=None, ma=None):
         mi = image.min()
     if ma is None:
         ma = image.max()
-    image = (na.clip((image-mi)/(ma-mi) * 255, 0, 255)).astype('uint8')
+    image = (np.clip((image-mi)/(ma-mi) * 255, 0, 255)).astype('uint8')
     return image
 
 def multi_image_composite(fn, red_channel, blue_channel,
@@ -97,26 +97,26 @@ def multi_image_composite(fn, red_channel, blue_channel,
     Examples
     --------
 
-        >>> red_channel = na.log10(frb["Temperature"])
-        >>> blue_channel = na.log10(frb["Density"])
+        >>> red_channel = np.log10(frb["Temperature"])
+        >>> blue_channel = np.log10(frb["Density"])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
     red_channel = scale_image(red_channel)
     blue_channel = scale_image(blue_channel)
     if green_channel is None:
-        green_channel = na.zeros(red_channel.shape, dtype='uint8')
+        green_channel = np.zeros(red_channel.shape, dtype='uint8')
     else:
         green_channel = scale_image(green_channel)
     if alpha_channel is None:
-        alpha_channel = na.zeros(red_channel.shape, dtype='uint8') + 255
+        alpha_channel = np.zeros(red_channel.shape, dtype='uint8') + 255
     else:
         alpha_channel = scale_image(alpha_channel) 
-    image = na.array([red_channel, green_channel, blue_channel, alpha_channel])
+    image = np.array([red_channel, green_channel, blue_channel, alpha_channel])
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
 
-def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
+def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
@@ -141,19 +141,18 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=True):
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
     """
-    if bitmap_array.dtype != na.uint8:
+    if bitmap_array.dtype != np.uint8:
         if max_val is None: max_val = bitmap_array.max()
-        bitmap_array = na.clip(bitmap_array / max_val, 0.0, 1.0) * 255
+        bitmap_array = np.clip(bitmap_array / max_val, 0.0, 1.0) * 255
         bitmap_array = bitmap_array.astype("uint8")
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
         raise RuntimeError
     if bitmap_array.shape[-1] == 3:
         s1, s2 = bitmap_array.shape[:2]
-        alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
-        bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
+        alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
+        bitmap_array = np.concatenate([bitmap_array, alpha_channel], axis=-1)
     if transpose:
-        for channel in range(bitmap_array.shape[2]):
-            bitmap_array[:,:,channel] = bitmap_array[:,:,channel].T
+        bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
         au.write_png(bitmap_array.copy(), filename)
     else:
@@ -229,14 +228,14 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     """
     image = func(image)
     if color_bounds is None:
-        mi = na.nanmin(image[~na.isinf(image)])
-        ma = na.nanmax(image[~na.isinf(image)])
+        mi = np.nanmin(image[~np.isinf(image)])
+        ma = np.nanmax(image[~np.isinf(image)])
         color_bounds = mi, ma
     else:
         color_bounds = [func(c) for c in color_bounds]
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
-    to_plot = na.clip(to_plot, 0, 255)
+    to_plot = np.clip(to_plot, 0, 255)
     return to_plot
 
 def annotate_image(image, text, xpos, ypos, font_name = "Vera",
@@ -279,7 +278,7 @@ def annotate_image(image, text, xpos, ypos, font_name = "Vera",
     >>> annotate_image(bitmap, "Hello!", 0, 100)
     >>> write_bitmap(bitmap, "saved.png")
     """
-    if len(image.shape) != 3 or image.dtype != na.uint8:
+    if len(image.shape) != 3 or image.dtype != np.uint8:
         raise RuntimeError("This routine requires a UINT8 bitmapped image.")
     font_path = os.path.join(imp.find_module("matplotlib")[1],
                              "mpl-data/fonts/ttf/",
@@ -295,10 +294,10 @@ def map_to_colors(buff, cmap_name):
         print "Your color map was not found in the extracted colormap file."
         raise KeyError(cmap_name)
     lut = cmd.color_map_luts[cmap_name]
-    x = na.mgrid[0.0:1.0:lut[0].shape[0]*1j]
+    x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
     shape = buff.shape
-    mapped = na.dstack(
-            [(na.interp(buff, x, v)*255) for v in lut ]).astype("uint8")
+    mapped = np.dstack(
+            [(np.interp(buff, x, v)*255) for v in lut ]).astype("uint8")
     return mapped.copy("C")
 
 def strip_colormap_data(fn = "color_map_data.py",
@@ -380,7 +379,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          take_log=True)
     """
     import matplotlib
-    from ._mpl_imports import *
+    from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.
     if take_log:
@@ -421,21 +420,22 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     else:
         dpi = None
 
-    if filename[-4:] == '.png':
-        suffix = ''
-    else:
+    suffix = get_image_suffix(filename)
+
+    if suffix == '':
         suffix = '.png'
         filename = "%s%s" % (filename, suffix)
-    mylog.info("Saving plot %s", fn)
+    mylog.info("Saving plot %s", filename)
     if suffix == ".png":
         canvas = FigureCanvasAgg(fig)
     elif suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):
-        canvas = FigureCanvasPS
+        canvas = FigureCanvasPS(fig)
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas = FigureCanvasAgg(fig)
+
     canvas.print_figure(filename)
     return filename
 

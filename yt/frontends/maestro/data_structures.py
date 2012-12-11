@@ -28,7 +28,7 @@ License:
 import re
 import os
 import weakref
-import numpy as na
+import numpy as np
 
 from collections import \
     defaultdict
@@ -102,17 +102,11 @@ class MaestroGrid(AMRGridPatch):
             self.Parent = None
 
     def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if self.Parent is not None:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        # has already been read in and stored in hierarchy
+        dx = self.hierarchy.grid_dxs[self.index][0]
+        dy = self.hierarchy.grid_dys[self.index][0]
+        dz = self.hierarchy.grid_dzs[self.index][0]
+        self.dds = np.array([dx, dy, dz])
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -170,9 +164,9 @@ class MaestroHierarchy(AMRHierarchy):
         # case in the future we want to enable a "backwards" way of
         # taking the data out of the Header file and using it to fill
         # in in the case of a missing inputs file
-        self.domainLeftEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        self.domainLeftEdge_unnecessary = np.array(map(float,self.__global_header_lines[counter].split()))
         counter += 1
-        self.domainRightEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        self.domainRightEdge_unnecessary = np.array(map(float,self.__global_header_lines[counter].split()))
         counter += 1
         self.refinementFactor_unnecessary = self.__global_header_lines[counter].split()
         counter += 1
@@ -181,9 +175,9 @@ class MaestroHierarchy(AMRHierarchy):
         counter += 1 # unused line in Maestro BoxLib
         
         counter += 1
-        self.dx = na.zeros((self.n_levels,3))
+        self.dx = np.zeros((self.n_levels,3))
         for i,line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
-            self.dx[i] = na.array(map(float,line.split()))
+            self.dx[i] = np.array(map(float,line.split()))
 
         counter += self.n_levels # unused line in Maestro BoxLib
         
@@ -259,8 +253,8 @@ class MaestroHierarchy(AMRHierarchy):
                 counter+=1
                 zlo,zhi = map(float,self.__global_header_lines[counter].split())
                 counter+=1
-                lo = na.array([xlo,ylo,zlo])
-                hi = na.array([xhi,yhi,zhi])
+                lo = np.array([xlo,ylo,zlo])
+                hi = np.array([xhi,yhi,zhi])
                 dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
                 self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read,hierarchy=self))
                 grid_counter += 1 # this is global, and shouldn't be reset
@@ -304,17 +298,17 @@ class MaestroHierarchy(AMRHierarchy):
         self._dtype = dtype
 
     def __calculate_grid_dimensions(self,start_stop):
-        start = na.array(map(int,start_stop[0].split(',')))
-        stop = na.array(map(int,start_stop[1].split(',')))
+        start = np.array(map(int,start_stop[0].split(',')))
+        stop = np.array(map(int,start_stop[1].split(',')))
         dimension = stop - start + 1
         return dimension,start,stop
         
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
-        self.grids = na.concatenate([level.grids for level in self.levels])
-        self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
+        self.grids = np.concatenate([level.grids for level in self.levels])
+        self.grid_levels = np.concatenate([level.ngrids*[level.level] for level in self.levels])
         self.grid_levels = self.grid_levels.reshape((self.num_grids,1))
-        grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
+        grid_dcs = np.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
         self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
         self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
         self.grid_dzs = grid_dcs[:,2].reshape((self.num_grids,1))
@@ -325,9 +319,9 @@ class MaestroHierarchy(AMRHierarchy):
             left_edges += [g.LeftEdge for g in level.grids]
             right_edges += [g.RightEdge for g in level.grids]
             dims += [g.ActiveDimensions for g in level.grids]
-        self.grid_left_edge = na.array(left_edges)
-        self.grid_right_edge = na.array(right_edges)
-        self.grid_dimensions = na.array(dims)
+        self.grid_left_edge = np.array(left_edges)
+        self.grid_right_edge = np.array(right_edges)
+        self.grid_dimensions = np.array(dims)
         self.gridReverseTree = [] * self.num_grids
         self.gridReverseTree = [ [] for i in range(self.num_grids)]
         self.gridTree = [ [] for i in range(self.num_grids)]
@@ -354,10 +348,10 @@ class MaestroHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
+        mask = np.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
         return self.grids[mask]
 
     def _setup_field_list(self):
@@ -367,7 +361,7 @@ class MaestroHierarchy(AMRHierarchy):
                 fd = self.field_info[field].get_dependencies(pf = self.parameter_file)
             except:
                 continue
-            available = na.all([f in self.field_list for f in fd.requested])
+            available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -381,11 +375,11 @@ class MaestroHierarchy(AMRHierarchy):
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+        self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
     def _parse_hierarchy(self):
         pass
@@ -494,9 +488,9 @@ class MaestroStaticOutput(StaticOutput):
                 t = parameterTypes[paramName](val)
                 exec("self.%s = %s" % (paramName,t))
 
-        self.domain_dimensions = na.array([_n_cellx,_n_celly,_n_cellz])
-        self.domain_left_edge = na.array([_prob_lo_x,_prob_lo_y,_prob_lo_z])
-        self.domain_right_edge = na.array([_prob_hi_x,_prob_hi_y,_prob_hi_z])
+        self.domain_dimensions = np.array([_n_cellx,_n_celly,_n_cellz])
+        self.domain_left_edge = np.array([_prob_lo_x,_prob_lo_y,_prob_lo_z])
+        self.domain_right_edge = np.array([_prob_hi_x,_prob_hi_y,_prob_hi_z])
         
         self.cosmological_simulation = self.current_redshift = \
             self.omega_matter = self.omega_lambda = self.hubble_constant = 0

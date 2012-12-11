@@ -27,7 +27,7 @@ import sys;sys.path.insert(0,'.')
 
 from yt.mods import *
 import yt.extensions.HierarchySubset as hs
-import numpy as na
+import numpy as np
 import h5py, time
 
 import matplotlib;matplotlib.use("Agg");import pylab
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     print "Constructing transfer function."
     if "Data" in fn:
-        mh = na.log10(1.67e-24)
+        mh = np.log10(1.67e-24)
         tf = ColorTransferFunction((7.5+mh, 14.0+mh))
         tf.add_gaussian( 8.25+mh, 0.002, [0.2, 0.2, 0.4, 0.1])
         tf.add_gaussian( 9.75+mh, 0.002, [0.0, 0.0, 0.3, 0.1])
@@ -77,17 +77,17 @@ if __name__ == "__main__":
         tf.add_gaussian(-28.5, 0.05, [1.0, 1.0, 1.0, 1.0])
     else: raise RuntimeError
 
-    cpu['ngrids'] = na.array([cpu['dims'].shape[0]], dtype='int32')
+    cpu['ngrids'] = np.array([cpu['dims'].shape[0]], dtype='int32')
     cpu['tf_r'] = tf.red.y.astype("float32")
     cpu['tf_g'] = tf.green.y.astype("float32")
     cpu['tf_b'] = tf.blue.y.astype("float32")
     cpu['tf_a'] = tf.alpha.y.astype("float32")
 
-    cpu['tf_bounds'] = na.array(tf.x_bounds, dtype='float32')
+    cpu['tf_bounds'] = np.array(tf.x_bounds, dtype='float32')
 
-    cpu['v_dir'] = na.array([0.3, 0.5, 0.6], dtype='float32')
+    cpu['v_dir'] = np.array([0.3, 0.5, 0.6], dtype='float32')
 
-    c = na.array([0.47284317, 0.48062515, 0.58282089], dtype='float32')
+    c = np.array([0.47284317, 0.48062515, 0.58282089], dtype='float32')
 
     print "Getting cutting plane."
     cp = pf.h.cutting(cpu['v_dir'], c)
@@ -98,16 +98,16 @@ if __name__ == "__main__":
     back_c = c - cp._norm_vec * W
     front_c = c + cp._norm_vec * W
 
-    px, py = na.mgrid[-W:W:Nvec*1j,-W:W:Nvec*1j]
+    px, py = np.mgrid[-W:W:Nvec*1j,-W:W:Nvec*1j]
     xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + cp.center[0]
     yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + cp.center[1]
     zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
-    cpu['v_pos'] = na.array([xv, yv, zv], dtype='float32').transpose()
+    cpu['v_pos'] = np.array([xv, yv, zv], dtype='float32').transpose()
 
-    cpu['image_r'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
-    cpu['image_g'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
-    cpu['image_b'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
-    cpu['image_a'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_r'] = np.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_g'] = np.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_b'] = np.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_a'] = np.zeros((Nvec, Nvec), dtype='float32').ravel()
 
     print "Generating module"
     source = open("yt/extensions/volume_rendering/_cuda_caster.cu").read()
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         pylab.imshow(image[-1], interpolation='nearest')
         pylab.savefig("/u/ki/mturk/public_html/vr6/%s.png" % (ii))
 
-    image = na.array(image).transpose()
+    image = np.array(image).transpose()
     image = (image - mi) / (ma - mi)
     pylab.clf()
     pylab.imshow(image, interpolation='nearest')

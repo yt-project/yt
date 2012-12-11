@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import h5py
 
 from yt.utilities.io_handler import \
@@ -39,9 +39,11 @@ class IOHandlerFLASH(BaseIOHandler):
         # Now we cache the particle fields
         self.pf = pf
         self._handle = pf._handle
+        self._particle_handle = pf._particle_handle
+        
         try :
             particle_fields = [s[0].strip() for s in
-                               self._handle["/particle names"][:]]
+                               self._particle_handle["/particle names"][:]]
             self._particle_fields = dict([("particle_" + s, i) for i, s in
                                           enumerate(particle_fields)])
         except KeyError:
@@ -51,31 +53,15 @@ class IOHandlerFLASH(BaseIOHandler):
             count_list, conv_factors):
         pass
 
-    def _select_particles(self, grid, field):
-        f = self._handle
-        npart = f["/tracer particles"].shape[0]
-        total_selected = 0
-        start = 0
-        stride = 1e6
-        blki = self._particle_fields["particle_blk"]
-        bi = grid.id - grid._id_offset
-        fi = self._particle_fields[field]
-        tr = []
-        while start < npart:
-            end = min(start + stride - 1, npart)
-            gi = f["/tracer particles"][start:end,blki] == bi
-            tr.append(f["/tracer particles"][gi,fi])
-            start = end
-        return na.concatenate(tr)
-
     def _read_data_set(self, grid, field):
         f = self._handle
+        f_part = self._particle_handle
         if field in self._particle_fields:
-            if grid.NumberOfParticles == 0: return na.array([], dtype='float64')
+            if grid.NumberOfParticles == 0: return np.array([], dtype='float64')
             start = self.pf.h._particle_indices[grid.id - grid._id_offset]
             end = self.pf.h._particle_indices[grid.id - grid._id_offset + 1]
             fi = self._particle_fields[field]
-            tr = f["/tracer particles"][start:end, fi]
+            tr = f_part["/tracer particles"][start:end, fi]
         else:
             tr = f["/%s" % field][grid.id - grid._id_offset,:,:,:].transpose()
         return tr.astype("float64")

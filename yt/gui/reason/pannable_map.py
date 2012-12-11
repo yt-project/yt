@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import os
-import numpy as na
+import numpy as np
 import zipfile
 import sys
 
@@ -92,9 +92,9 @@ class PannableMapServer(object):
                                     dd*DW[0] / (64*256),
                                     dd*DW[0])
         if self.pf.field_info[self.field].take_log:
-            cmi = na.log10(cmi)
-            cma = na.log10(cma)
-            to_plot = apply_colormap(na.log10(frb[self.field]), color_bounds = (cmi, cma))
+            cmi = np.log10(cmi)
+            cma = np.log10(cma)
+            to_plot = apply_colormap(np.log10(frb[self.field]), color_bounds = (cmi, cma))
         else:
             to_plot = apply_colormap(frb[self.field], color_bounds = (cmi, cma))
         rv = write_png_to_string(to_plot)

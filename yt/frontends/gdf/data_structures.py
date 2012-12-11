@@ -28,7 +28,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -37,6 +37,8 @@ from yt.data_objects.hierarchy import \
            AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
+from yt.utilities.lib import \
+    get_box_grids_level
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 
@@ -71,7 +73,7 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -108,11 +110,11 @@ class GDFHierarchy(AMRHierarchy):
     def _parse_hierarchy(self):
         f = self._fhandle
         dxs = []
-        self.grids = na.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype='object')
         levels = (f['grid_level'][:]).copy()
         glis = (f['grid_left_index'][:]).copy()
         gdims = (f['grid_dimensions'][:]).copy()
-        active_dims = ~((na.max(gdims, axis=0) == 1) &
+        active_dims = ~((np.max(gdims, axis=0) == 1) &
                         (self.parameter_file.domain_dimensions == 1))
 
         for i in range(levels.shape[0]):
@@ -125,7 +127,7 @@ class GDFHierarchy(AMRHierarchy):
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx[active_dims] = dx[active_dims]/self.parameter_file.refine_by**(levels[i])
             dxs.append(dx)
-        dx = na.array(dxs)
+        dx = np.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
@@ -133,21 +135,32 @@ class GDFHierarchy(AMRHierarchy):
         del levels, glis, gdims
 
     def _populate_grid_objects(self):
-        for g in self.grids:
+        mask = np.empty(self.grids.size, dtype='int32')
+        for gi, g in enumerate(self.grids):
             g._prepare_grid()
             g._setup_dx()
 
-        for g in self.grids:
+        for gi, g in enumerate(self.grids):
             g.Children = self._get_grid_children(g)
             for g1 in g.Children:
                 g1.Parent.append(g)
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                self.grid_levels[gi],
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            m = mask.astype("bool")
+            m[gi] = False
+            siblings = self.grids[gi:][m[gi:]]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
@@ -235,6 +248,8 @@ class GDFStaticOutput(StaticOutput):
             fileh = h5py.File(args[0],'r')
             if "gridded_data_format" in fileh:
                 return True
+                fileh.close()
+            fileh.close()
         except:
             pass
         return False

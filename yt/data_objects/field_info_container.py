@@ -30,7 +30,7 @@ import inspect
 import copy
 import itertools
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -58,6 +58,66 @@ class FieldInfoContainer(dict): # Resistance has utility
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
+        
+    def add_grad(self, field, **kwargs):
+        """
+        Creates the partial derivative of a given field. This function will
+        autogenerate the names of the gradient fields.
+
+        """
+        sl = slice(2,None,None)
+        sr = slice(None,-2,None)
+        
+        def _gradx(f, data):
+            grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
+            grad /= 2.0*data["dx"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+            
+        def _grady(f, data):
+            grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
+            grad /= 2.0*data["dy"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+            
+        def _gradz(f, data):
+            grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
+            grad /= 2.0*data["dz"].flat[0]
+            g = np.zeros(data[field].shape, dtype='float64')
+            g[1:-1,1:-1,1:-1] = grad
+            return g
+        
+        d_kwargs = kwargs.copy()
+        if "display_name" in kwargs: del d_kwargs["display_name"]
+        
+        for ax in "xyz":
+            if "display_name" in kwargs:
+                disp_name = r"%s\_%s" % (kwargs["display_name"], ax)
+            else:
+                disp_name = r"\partial %s/\partial %s" % (field, ax)
+            name = "Grad_%s_%s" % (field, ax)
+            self[name] = DerivedField(name, function=eval('_grad%s' % ax),
+                         take_log=False, validators=[ValidateSpatial(1,[field])],
+                         display_name = disp_name, **d_kwargs)
+        
+        def _grad(f, data) :
+            a = np.power(data["Grad_%s_x" % field],2)
+            b = np.power(data["Grad_%s_y" % field],2)
+            c = np.power(data["Grad_%s_z" % field],2)
+            norm = np.sqrt(a+b+c)
+            return norm
+
+        if "display_name" in kwargs:
+            disp_name = kwargs["display_name"]
+        else:
+            disp_name = r"\Vert\nabla %s\Vert" % (field)   
+        name = "Grad_%s" % field           
+        self[name] = DerivedField(name, function=_grad, take_log=False,
+                                  display_name = disp_name, **d_kwargs)
+        mylog.info("Added new fields: Grad_%s_x, Grad_%s_y, Grad_%s_z, Grad_%s" \
+                   % (field, field, field, field))
 
     def has_key(self, key):
         # This gets used a lot
@@ -96,6 +156,7 @@ def NullFunc(field, data):
 
 FieldInfo = FieldInfoContainer()
 add_field = FieldInfo.add_field
+add_grad = FieldInfo.add_grad
 
 def derived_field(**kwargs):
     def inner_decorator(function):
@@ -151,8 +212,8 @@ class FieldDetector(defaultdict):
         self.ActiveDimensions = [nd,nd,nd]
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
-        self.dds = na.ones(3, "float64")
-        self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
+        self.dds = np.ones(3, "float64")
+        self['dx'] = self['dy'] = self['dz'] = np.array([1.0])
         class fake_parameter_file(defaultdict):
             pass
 
@@ -160,9 +221,10 @@ class FieldDetector(defaultdict):
             # required attrs
             pf = fake_parameter_file(lambda: 1)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
-                pf.hubble_constant = pf.cosmological_simulation = 0.0
-            pf.domain_left_edge = na.zeros(3, 'float64')
-            pf.domain_right_edge = na.ones(3, 'float64')
+                pf.cosmological_simulation = 0.0
+            pf.hubble_constant = 0.7
+            pf.domain_left_edge = np.zeros(3, 'float64')
+            pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
         self.pf = pf
 
@@ -180,12 +242,12 @@ class FieldDetector(defaultdict):
         self.requested_parameters = []
         if not self.flat:
             defaultdict.__init__(self,
-                lambda: na.ones((nd, nd, nd), dtype='float64')
-                + 1e-4*na.random.random((nd, nd, nd)))
+                lambda: np.ones((nd, nd, nd), dtype='float64')
+                + 1e-4*np.random.random((nd, nd, nd)))
         else:
             defaultdict.__init__(self, 
-                lambda: na.ones((nd * nd * nd), dtype='float64')
-                + 1e-4*na.random.random((nd * nd * nd)))
+                lambda: np.ones((nd * nd * nd), dtype='float64')
+                + 1e-4*np.random.random((nd * nd * nd)))
 
     def __missing__(self, item):
         FI = getattr(self.pf, "field_info", FieldInfo)
@@ -215,13 +277,13 @@ class FieldDetector(defaultdict):
         FI = getattr(self.pf, "field_info", FieldInfo)
         if FI.has_key(field_name) and FI[field_name].particle_type:
             self.requested.append(field_name)
-            return na.ones(self.NumberOfParticles)
+            return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
     def get_field_parameter(self, param):
         self.requested_parameters.append(param)
-        if param in ['bulk_velocity', 'center', 'height_vector']:
-            return na.random.random(3) * 1e-2
+        if param in ['bulk_velocity', 'center', 'normal']:
+            return np.random.random(3) * 1e-2
         else:
             return 0.0
     _num_ghost_zones = 0

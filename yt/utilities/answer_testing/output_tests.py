@@ -29,14 +29,12 @@ from yt.mods import *
 # We first create our dictionary of tests to run.  This starts out empty, and
 # as tests are imported it will be filled.
 if "TestRegistry" not in locals():
-    print "Initializing TestRegistry"
     class TestRegistry(dict):
         def __new__(cls, *p, **k):
             if not '_the_instance' in cls.__dict__:
                 cls._the_instance = dict.__new__(cls)
                 return cls._the_instance
 if "test_registry" not in locals():
-    print "Initializing test_registry"
     test_registry = TestRegistry()
 
 # The exceptions we raise, related to the character of the failure.
@@ -55,10 +53,10 @@ class ValueDelta(RegressionTestException):
 
 class ArrayDelta(ValueDelta):
     def __repr__(self):
-        nabove = len(na.where(self.delta > self.acceptable)[0])
+        nabove = len(np.where(self.delta > self.acceptable)[0])
         return "ArrayDelta: Delta max of %s, acceptable of %s.\n" \
                "%d of %d points above the acceptable limit" % \
-               (na.nanmax(self.delta), self.acceptable, nabove,
+               (np.nanmax(self.delta), self.acceptable, nabove,
                 self.delta.size)
 
 class ShapeMismatch(RegressionTestException):
@@ -122,8 +120,8 @@ class RegressionTest(object):
         """
         if a1.shape != a2.shape:
             raise ShapeMismatch(a1, a2)
-        delta = na.abs(a1 - a2).astype("float64")/(a1 + a2)
-        if na.nanmax(delta) > acceptable:
+        delta = np.abs(a1 - a2).astype("float64")/(a1 + a2)
+        if np.nanmax(delta) > acceptable:
             raise ArrayDelta(delta, acceptable)
         return True
 
@@ -134,7 +132,7 @@ class RegressionTest(object):
         difference is greater than `acceptable` it is considered a failure and
         an appropriate exception is raised.
         """
-        delta = na.abs(v1 - v2)/(v1 + v2)
+        delta = np.abs(v1 - v2)/(v1 + v2)
         if delta > acceptable:
             raise ValueDelta(delta, acceptable)
         return True

@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as np
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
@@ -35,7 +36,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    kboltz
+    kboltz, mh
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -97,7 +98,10 @@ for fn1, fn2 in translation_dict.items():
     if fn1.endswith("_Fraction"):
         add_field(fn1.split("_")[0] + "_Density",
                   function=_get_density(fn1), take_log=True,
-                  display_name="%s\/Density" % fn1.split("_")[0])
+                  display_name="%s\/Density" % fn1.split("_")[0],
+                  units = r"\rm{g}/\rm{cm}^{3}",
+                  projected_units = r"\rm{g}/\rm{cm}^{2}",
+                  )
 
 def _get_convert(fname):
     def _conv(data):
@@ -106,7 +110,8 @@ def _get_convert(fname):
 
 add_flash_field("dens", function=NullFunc, take_log=True,
                 convert_function=_get_convert("dens"),
-                units=r"\rm{g}/\rm{cm}^3")
+                units=r"\rm{g}/\rm{cm}^{3}",
+                projected_units = r"\rm{g}/\rm{cm}^{2}"),
 add_flash_field("velx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("velx"),
                 units=r"\rm{cm}/\rm{s}")
@@ -154,10 +159,10 @@ add_flash_field("tele", function=NullFunc, take_log=True,
                 units = r"\rm{K}")
 add_flash_field("pres", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pres"),
-                units=r"\rm{erg}\//\/\rm{cm}^{3}")
+                units=r"\rm{erg}/\rm{cm}^{3}")
 add_flash_field("pden", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pden"),
-                units=r"\rm{g}/\rm{cm}^3")
+                units=r"\rm{g}/\rm{cm}^{3}")
 add_flash_field("magx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("magx"),
                 units = r"\mathrm{Gau\ss}")
@@ -169,7 +174,7 @@ add_flash_field("magz", function=NullFunc, take_log=False,
                 units = r"\mathrm{Gau\ss}")
 add_flash_field("magp", function=NullFunc, take_log=True,
                 convert_function=_get_convert("magp"),
-                units = r"\rm{erg}\//\/\rm{cm}^{3}")
+                units = r"\rm{erg}/\rm{cm}^{3}")
 add_flash_field("divb", function=NullFunc, take_log=False,
                 convert_function=_get_convert("divb"),
                 units = r"\mathrm{Gau\ss}\/\rm{cm}")
@@ -181,10 +186,10 @@ add_flash_field("gamc", function=NullFunc, take_log=False,
                 units=r"\rm{ratio\/of\/specific\/heats}")
 add_flash_field("gpot", function=NullFunc, take_log=False,
                 convert_function=_get_convert("gpot"),
-                units=r"\rm{ergs\//\/g}")
+                units=r"\rm{ergs}/\rm{g}")
 add_flash_field("gpol", function=NullFunc, take_log=False,
                 convert_function=_get_convert("gpol"),
-                units = r"\rm{ergs\//\/g}")
+                units = r"\rm{ergs}/\rm{g}")
 add_flash_field("flam", function=NullFunc, take_log=False,
                 convert_function=_get_convert("flam"))
 
@@ -203,6 +208,7 @@ for f,v in translation_dict.items():
     add_field(f, TranslationFunc(v),
               take_log=KnownFLASHFields[v].take_log,
               units = ff._units, display_name=dname,
+              projected_units = ff._projected_units,
               particle_type = pfield)
 
 def _convertParticleMassMsun(data):
@@ -254,3 +260,43 @@ def _GasEnergy(fields, data) :
 
 add_field("GasEnergy", function=_GasEnergy, 
           units=r"\rm{ergs}/\rm{g}")
+
+# See http://flash.uchicago.edu/pipermail/flash-users/2012-October/001180.html
+# along with the attachment to that e-mail for details
+def GetMagRescalingFactor(pf):
+    if pf['unitsystem'].lower() == "cgs":
+         factor = 1
+    elif pf['unitsystem'].lower() == "si":
+         factor = np.sqrt(4*np.pi/1e7)
+    elif pf['unitsystem'].lower() == "none":
+         factor = np.sqrt(4*np.pi)
+    else:
+        raise RuntimeError("Runtime parameter unitsystem with "
+                           "value %s is unrecognized" % pf['unitsystem'])
+    return factor
+
+def _Bx(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magx']*factor
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_x")
+
+def _By(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magy']*factor
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_y")
+
+def _Bz(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['magz']*factor
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_z")
+
+def _DivB(fields, data):
+    factor = GetMagRescalingFactor(data.pf)
+    return data['divb']*factor
+add_field("DivB", function=_DivB, take_log=False,
+          units=r"\rm{Gauss}\/\rm{cm}^{-1}")
+
+
